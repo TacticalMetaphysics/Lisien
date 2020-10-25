@@ -284,8 +284,9 @@ class MainScreen(Screen):
         current ``play_speed``.
 
         """
-        Clock.unschedule(self.play)
-        Clock.schedule_interval(self.play, 1.0 / self.play_speed)
+        if hasattr(self, '_play_scheduled'):
+            Clock.unschedule(self._play_scheduled)
+        self._play_scheduled = Clock.schedule_interval(self.play, 1.0 / self.play_speed)
 
     def remake_display(self, *args):
         """Remake any affected widgets after a change in my ``kv``.

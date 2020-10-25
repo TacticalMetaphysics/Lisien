@@ -67,8 +67,9 @@ class ImageStackProxy(ImageStack):
         self.finalize(initial)
 
     def _trigger_pull_from_proxy(self, *args, **kwargs):
-        Clock.unschedule(self.pull_from_proxy)
-        Clock.schedule_once(self.pull_from_proxy, 0)
+        if hasattr(self, '_scheduled_pull_from_proxy'):
+            Clock.unschedule(self._scheduled_pull_from_proxy)
+        self._scheduled_pull_from_proxy = Clock.schedule_once(self.pull_from_proxy, 0)
 
     @trigger
     def _trigger_push_image_paths(self, *args):

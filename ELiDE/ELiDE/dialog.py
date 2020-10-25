@@ -240,8 +240,9 @@ class DialogLayout(FloatLayout):
 
     def _trigger_ok(self, *args, cb=None):
         part = partial(self.ok, cb=cb)
-        Clock.unschedule(part)
-        Clock.schedule_once(part)
+        if hasattr(self, '_scheduled_ok'):
+            Clock.unschedule(self._scheduled_ok)
+        self._scheduled_ok = Clock.schedule_once(part)
 
     def _lookup_func(self, funcname):
         from importlib import import_module

@@ -142,8 +142,9 @@ class StoreList(RecycleView):
 
     def _trigger_redata(self, *args, **kwargs):
         part = partial(self.redata, *args, **kwargs)
-        Clock.unschedule(part)
-        Clock.schedule_once(part, 0)
+        if hasattr(self, '_scheduled_redata'):
+            Clock.unschedule(self._scheduled_redata)
+        self._scheduled_redata = Clock.schedule_once(part, 0)
 
     def select_name(self, name, *args):
         """Select an item by its name, highlighting"""
@@ -151,8 +152,9 @@ class StoreList(RecycleView):
 
     def _trigger_select_name(self, name):
         part = partial(self.select_name, name)
-        Clock.unschedule(part)
-        Clock.schedule_once(part, 0)
+        if hasattr(self, '_scheduled_select_name'):
+            Clock.unschedule(self._scheduled_select_name)
+        self._scheduled_select_name = Clock.schedule_once(part, 0)
 
 
 class LanguageInput(TextInput):

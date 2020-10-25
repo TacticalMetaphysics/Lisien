@@ -68,8 +68,9 @@ class CharactersScreen(Screen):
 
     def _trigger_new_character(self, name):
         part = partial(self.new_character, name)
-        Clock.unschedule(part)
-        Clock.schedule_once(part)
+        if hasattr(self, '_scheduled_new_character'):
+            Clock.unschedule(self._scheduled_new_character)
+        self._scheduled_new_character = Clock.schedule_once(part)
 
     def _munge_names(self, names):
         for i, name in enumerate(names):

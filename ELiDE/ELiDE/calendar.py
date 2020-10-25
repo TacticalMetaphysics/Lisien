@@ -47,8 +47,9 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
         self.disabled = self.turn < self.parent.parent.entity.engine.turn
 
     def _trigger_update_disabledness(self, *args, **kwargs):
-        Clock.unschedule(self._update_disabledness)
-        Clock.schedule_once(self._update_disabledness)
+        if hasattr(self, '_scheduled_update_disabledness'):
+            Clock.unschedule(self._scheduled_update_disabledness)
+        self._scheduled_update_disabledness = Clock.schedule_once(self._update_disabledness)
 
     def _set_value(self):
         entity = self.parent.parent.entity

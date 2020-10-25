@@ -137,6 +137,10 @@ class GraphBoard(RelativeLayout):
     pawn_cls = ObjectProperty(Pawn)
     arrow_cls = ObjectProperty(GraphArrow, allownone=True)
     proto_arrow_cls = ObjectProperty(GraphArrowWidget)
+    _scheduled_rm_spot = DictProperty()
+    _scheduled_rm_arrow = DictProperty()
+    _scheduled_discard_pawn = DictProperty()
+    _scheduled_add_pawn = DictProperty()
 
     @property
     def widkwargs(self):
@@ -368,8 +372,9 @@ class GraphBoard(RelativeLayout):
     def _trigger_pull_wallpaper(self, *args, **kwargs):
         if kwargs['key'] != 'wallpaper':
             return
-        Clock.unschedule(self.pull_wallpaper)
-        Clock.schedule_once(self.pull_wallpaper, 0)
+        if hasattr(self, '_scheduled_pull_wallpaper'):
+            Clock.unschedule(self._scheduled_pull_wallpaper)
+        self._scheduled_pull_wallpaper = Clock.schedule_once(self.pull_wallpaper, 0)
 
     @trigger
     def kv_updated(self, *args):
@@ -498,11 +503,14 @@ class GraphBoard(RelativeLayout):
         spot.canvas.clear()
         for pawn in pawns_here:
             self.rm_pawn(pawn.name)
+        if pawn.name in self._scheduled_rm_spot:
+            del self._scheduled_rm_spot[pawn.name]
 
     def _trigger_rm_spot(self, name):
         part = partial(self.rm_spot, name)
-        Clock.unschedule(part)
-        Clock.schedule_once(part, 0)
+        if name in self._scheduled_rm_spot:
+            Clock.unschedule(self._scheduled_rm_spot[name])
+        self._scheduled_rm_spot[name] = Clock.schedule_once(part, 0)
 
     def rm_arrow(self, orig, dest, *args):
         """Remove the :class:`Arrow` that goes from ``orig`` to ``dest``."""
@@ -515,11 +523,14 @@ class GraphBoard(RelativeLayout):
         if arr in self.selection_candidates:
             self.selection_candidates.remove(arr)
         self.arrowlayout.remove_widget(arr)
+        if (orig, dest) in self._scheduled_rm_arrow:
+            del self._scheduled_rm_arrow[orig, dest]
 
     def _trigger_rm_arrow(self, orig, dest):
         part = partial(self.rm_arrow, orig, dest)
-        Clock.unschedule(part)
-        Clock.schedule_once(part, 0)
+        if (orig, dest) in self._scheduled_rm_arrow:
+            Clock.unschedule(self._scheduled_rm_arrow[orig, dest])
+        self._scheduled_rm_arrow[orig, dest] = Clock.schedule_once(part, 0)
 
     def graph_layout(self, graph):
         from networkx.drawing.layout import spring_layout
@@ -528,11 +539,14 @@ class GraphBoard(RelativeLayout):
     def discard_pawn(self, thingn, *args):
         if thingn in self.pawn:
             self.rm_pawn(thingn)
+        if thingn in self._scheduled_discard_pawn:
+            del self._scheduled_discard_pawn[thingn]
 
     def _trigger_discard_pawn(self, thing):
         part = partial(self.discard_pawn, thing)
-        Clock.unschedule(part)
-        Clock.schedule_once(part, 0)
+        if thing in self._scheduled_discard_pawn:
+            Clock.unschedule(self._scheduled_discard_pawn[thing])
+        self._scheduled_discard_pawn[thing] = Clock.schedule_once(part, 0)
 
     def remove_absent_pawns(self, *args):
         Logger.debug(
@@ -690,11 +704,14 @@ class GraphBoard(RelativeLayout):
             whereat = self.spot[pwn.loc_name]
             whereat.add_widget(pwn)
             self.pawn[thingn] = pwn
+        if thingn in self._scheduled_add_pawn:
+            del self._scheduled_add_pawn[thingn]
 
     def _trigger_add_pawn(self, thingn):
         part = partial(self.add_pawn, thingn)
-        Clock.unschedule(part)
-        Clock.schedule_once(part, 0)
+        if thingn in self._scheduled_add_pawn:
+            Clock.unschedule(self._scheduled_add_pawn[thingn])
+        self._scheduled_add_pawn[thingn] = Clock.schedule_once(part, 0)
 
     def add_new_pawns(self, *args):
         Logger.debug(
@@ -805,8 +822,9 @@ class GraphBoard(RelativeLayout):
 
     def trigger_update_from_delta(self, delta, *args):
         part = partial(self.update_from_delta, delta)
-        Clock.unschedule(part)
-        Clock.schedule_once(part, 0)
+        if hasattr(self, '_scheduled_update_from_delta'):
+            Clock.unschedule(self._scheduled_update_from_delta)
+        self._scheduled_update_from_delta = Clock.schedule_once(part, 0)
 
     def on_spots_unposd(self, *args):
         # TODO: If only some spots are unpositioned, and they remain

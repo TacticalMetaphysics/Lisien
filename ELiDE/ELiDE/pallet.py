@@ -163,8 +163,9 @@ class Pallet(StackLayout):
                 add_widget(swatches[name])
 
     def _trigger_upd_textures(self, *args):
-        Clock.unschedule(self.upd_textures)
-        Clock.schedule_once(self._trigger_upd_textures)
+        if hasattr(self, '_scheduled_upd_textures'):
+            Clock.unschedule(self._scheduled_upd_textures)
+        self._scheduled_upd_textures = Clock.schedule_once(self._trigger_upd_textures)
 
 kv = """
 <Pallet>:
