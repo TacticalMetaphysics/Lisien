@@ -371,13 +371,13 @@ Builder.load_string("""
         default_size: dp(84), dp(36)
         default_size_hint: None, None
         size: self.minimum_size
-        orientation: 'horizontal'
+        orientation: 'lr-tb'
 <Calendar>:
     turn_labels: False
     key_viewclass: 'widget'
     RecycleGridLayout:
         cols: 1
-        orientation: 'vertical'
+        orientation: 'tb-lr'
         default_size_hint: 1, None
         default_size: dp(84), dp(36)
         size: self.minimum_size
