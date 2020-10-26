@@ -1,11 +1,5 @@
-from kivy.logger import Logger
 from kivy.uix.layout import Layout
-from kivy.properties import (
-    ObjectProperty,
-    BooleanProperty,
-    ListProperty,
-    DictProperty
-)
+from kivy.properties import ObjectProperty
 
 from ..imagestackproxy import ImageStackProxy
 
