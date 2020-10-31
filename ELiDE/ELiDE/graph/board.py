@@ -503,8 +503,8 @@ class GraphBoard(RelativeLayout):
         spot.canvas.clear()
         for pawn in pawns_here:
             self.rm_pawn(pawn.name)
-        if pawn.name in self._scheduled_rm_spot:
-            del self._scheduled_rm_spot[pawn.name]
+        if name in self._scheduled_rm_spot:
+            del self._scheduled_rm_spot[name]
 
     def _trigger_rm_spot(self, name):
         part = partial(self.rm_spot, name)
