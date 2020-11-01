@@ -55,9 +55,6 @@ class EntitylessCache(Cache):
     def store(self, key, branch, turn, tick, value, *, planning=None, forward=None, loading=False, contra=True):
         super().store(None, key, branch, turn, tick, value, planning=planning, forward=forward, loading=loading, contra=contra)
 
-    def retrieve(self, key, branch, turn, tick):
-        return super().retrieve(None, key, branch, turn, tick)
-
     def iter_entities_or_keys(self, branch, turn, tick, *, forward=None):
         return super().iter_entities_or_keys(None, branch, turn, tick, forward=forward)
     iter_entities = iter_keys = iter_entities_or_keys
