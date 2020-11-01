@@ -16,6 +16,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Implementation of Parable of the Polygons http://ncase.me/polygons/"""
 
+from LiSE.character import grid_2d_8graph
+
 
 def install(eng):
     @eng.function
@@ -75,15 +77,14 @@ def install(eng):
         _config={
             'min_sameness': {'control': 'slider', 'min': 0.0, 'max': 1.0},
             'max_sameness': {'control': 'slider', 'min': 0.0, 'max': 1.0}
-        }
+        },
+        data=grid_2d_8graph(20, 20)
     )
     square = eng.new_character('square')
     triangle = eng.new_character('triangle')
     square.avatar.rulebook = triangle.avatar.rulebook = 'parable'
 
 
-    # make an 8-way-connected grid
-    physical.grid_2d_8graph(20, 20)
     empty = list(physical.place.values())
     eng.shuffle(empty)
     # distribute 30 of each shape randomly among the empty places
