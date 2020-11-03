@@ -2,25 +2,29 @@ from kivy.properties import NumericProperty, ObjectProperty, OptionProperty
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from .util import trigger
+from LiSE.character import grid_2d_8graph
+from networkx import grid_2d_graph
 
 
 class GeneratorDialog(BoxLayout):
-    board = ObjectProperty()
+    graphboard = ObjectProperty()
+    gridboard = ObjectProperty()
     xval = NumericProperty()
     yval = NumericProperty()
     directions = OptionProperty(4, options=[4, 8])
 
-    def generate(self):
+    def generate(self, *args):
         x = int(self.xval)
         y = int(self.yval)
         if x < 1 or y < 1:
-            raise ValueError("Dimensions must be positive")
+            return
         if self.directions == 4:
-            self.board.character.grid_2d_graph(x, y)
+            self.graphboard.character.copy_from(grid_2d_graph(x, y))
         else:
             assert self.directions == 8
-            self.board.character.grid_2d_8graph(x, y)
-        self.board.update()
+            self.graphboard.character.copy_from(grid_2d_8graph(x, y))
+        self.graphboard.update()
+        self.gridboard.update()
     _trigger_generate = trigger(generate)
 
 

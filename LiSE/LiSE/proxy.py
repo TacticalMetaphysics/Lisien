@@ -1265,6 +1265,33 @@ class CharacterProxy(AbstractCharacter):
     adj_cls = CharSuccessorsMappingProxy
     pred_cls = CharPredecessorsMappingProxy
 
+    def copy_from(self, g):
+        # can't handle multigraphs
+        self.engine.handle('character_copy_from', char=self.name, nodes=g._node, adj=g._adj, block=False, branching=True)
+        for node, nodeval in g.nodes.items():
+            if node not in self.node:
+                    if nodeval and 'location' in nodeval:
+                        self.thing._cache[node] = prox = ThingProxy(
+                            self, node, nodeval['location']
+                        )
+                        self.thing.send(self.thing, key=node, value=prox)
+                    else:
+                        self.place._cache[node] = prox = PlaceProxy(
+                            self, node
+                        )
+                        self.place.send(self.place, key=node, value=prox)
+                    self.node.send(self.node, key=node, value=prox)
+        for orig in g.adj:
+            for dest, edge in g.adj[orig].items():
+                if orig in self.portal and dest in self.portal[orig]:
+                    self.portal[orig][dest]._apply_delta(edge)
+                else:
+                    self.portal._cache[orig][dest] = PortalProxy(
+                        self, orig, dest
+                    )
+                    self.engine._portal_stat_cache[
+                        self.name][orig][dest] = edge
+
     def thing2place(self, name):
         # TODO
         raise NotImplementedError("TODO")

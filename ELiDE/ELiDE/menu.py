@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from kivy.properties import ObjectProperty
 from kivy.uix.textinput import TextInput
+from kivy.clock import Clock
 
 
 class MenuTextInput(TextInput):
@@ -35,7 +36,7 @@ class MenuTextInput(TextInput):
         """
         if self.text == '':
             return
-        self.set_value(self.text)
+        self.set_value(Clock.get_time(), int(self.text))
         self.text = ''
         self.focus = False
 

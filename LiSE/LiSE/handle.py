@@ -663,6 +663,19 @@ class EngineHandle(object):
         if ev:
             ret['edge_val'] = ev
         return ret
+    
+    @timely
+    def character_become(self, char, nodes, adj):
+        chara = self._real.character[char]
+        chara.clear()
+        chara.place.update(nodes)
+        chara.adj.update(adj)
+    
+    @timely
+    def character_copy_from(self, char, nodes, adj):
+        chara = self._real.character[char]
+        chara.place.update(nodes)
+        chara.adj.update(adj)
 
     @timely
     def set_character_stat(self, char, k, v):
