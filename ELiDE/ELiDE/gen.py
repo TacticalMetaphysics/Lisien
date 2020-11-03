@@ -6,13 +6,13 @@ from .util import trigger
 
 class GeneratorDialog(BoxLayout):
     board = ObjectProperty()
-    x = NumericProperty()
-    y = NumericProperty()
+    xval = NumericProperty()
+    yval = NumericProperty()
     directions = OptionProperty(4, options=[4, 8])
 
     def generate(self):
-        x = int(self.x)
-        y = int(self.y)
+        x = int(self.xval)
+        y = int(self.yval)
         if x < 1 or y < 1:
             raise ValueError("Dimensions must be positive")
         if self.directions == 4:
@@ -27,17 +27,15 @@ class GeneratorDialog(BoxLayout):
 Builder.load_string("""
 <GeneratorDialog>:
     BoxLayout:
-        orientation: 'vertical'
-        BoxLayout:
-            orientation: 'horizontal'
-            MenuIntInput:
-                id: input_x
-                set_value: root.setter('x')
-            Label:
-                text: 'x'
-                size_hint_x: None
-                pos_hint: {'center_y': 0.5}
-                texture_size: self.size
-            MenuIntInput:
-                id: input_y
-                set_value: root.setter('y')""")
+        orientation: 'horizontal'
+        MenuIntInput:
+            id: input_x
+            hint_text: str(root.xval) if root.xval else 'x'
+            set_value: root.setter('xval')
+        Label:
+            text: 'x'
+            texture_size: self.size
+        MenuIntInput:
+            id: input_y
+            hint_text: str(root.yval) if root.yval else 'y'
+            set_value: root.setter('yval')""")
