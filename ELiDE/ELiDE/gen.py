@@ -12,6 +12,7 @@ class GeneratorDialog(BoxLayout):
     xval = NumericProperty()
     yval = NumericProperty()
     directions = OptionProperty(4, options=[4, 8])
+    dismiss = ObjectProperty()
 
     def generate(self, *args):
         x = int(self.xval)
@@ -30,6 +31,7 @@ class GeneratorDialog(BoxLayout):
 
 Builder.load_string("""
 <GeneratorDialog>:
+    orientation: 'vertical'
     BoxLayout:
         orientation: 'horizontal'
         MenuIntInput:
@@ -38,8 +40,18 @@ Builder.load_string("""
             set_value: root.setter('xval')
         Label:
             text: 'x'
-            texture_size: self.size
+            size_hint_x: 0.1
         MenuIntInput:
             id: input_y
             hint_text: str(root.yval) if root.yval else 'y'
-            set_value: root.setter('yval')""")
+            set_value: root.setter('yval')
+    BoxLayout:
+        Button:
+            text: 'Cancel'
+            on_release:
+                root.dismiss()
+        Button:
+            text: 'OK'
+            on_release:
+                root._trigger_generate()
+                root.dismiss()""")

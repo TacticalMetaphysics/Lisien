@@ -255,9 +255,9 @@ class MainScreen(Screen):
         self.grid_gen_view = ModalView(size_hint_x=0.3, size_hint_y=0.2)
         self.grid_gen = GeneratorDialog(
             graphboard=self.graphboards[self.app.character_name],
-            gridboard=self.gridboards[self.app.character_name])
+            gridboard=self.gridboards[self.app.character_name],
+            dismiss=self.grid_gen_view.dismiss)
         self.grid_gen_view.add_widget(self.grid_gen)
-        self.grid_gen_view.bind(on_dismiss=self.grid_gen._trigger_generate)
 
     def on_statpanel(self, *args):
         if not self.app:
