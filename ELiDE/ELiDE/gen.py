@@ -31,6 +31,7 @@ class GeneratorDialog(BoxLayout):
 
 Builder.load_string("""
 <GeneratorDialog>:
+    directions: 4 if but4.state == 'down' else 8
     orientation: 'vertical'
     BoxLayout:
         orientation: 'horizontal'
@@ -45,6 +46,16 @@ Builder.load_string("""
             id: input_y
             hint_text: str(root.yval) if root.yval else 'y'
             set_value: root.setter('yval')
+    BoxLayout:
+        ToggleButton:
+            id: but4
+            group: 'dir'
+            text: '4-way'
+            state: 'down'
+        ToggleButton:
+            id: but8
+            group: 'dir'
+            text: '8-way'
     BoxLayout:
         Button:
             text: 'Cancel'
