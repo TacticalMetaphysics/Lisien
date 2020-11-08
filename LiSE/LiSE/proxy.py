@@ -2460,8 +2460,7 @@ class EngineProxy(AbstractEngine):
     def pull(self, chars='all', cb=None, block=True):
         """Update the state of all my proxy objects from the real objects."""
         if block:
-            deltas = self.handle('get_char_deltas', chars=chars)
-            self._upd_caches(deltas)
+            deltas = self.handle('get_char_deltas', chars=chars, cb=self._upd_deltas)
             if cb:
                 cb(deltas)
         else:
