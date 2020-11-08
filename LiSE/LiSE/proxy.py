@@ -2543,13 +2543,12 @@ class EngineProxy(AbstractEngine):
             self._node_stat_cache[char][thing] = stats
         portdata = data.get('edge', data.get('portal', data.get('adj',  {})))
         for orig, dests in portdata.items():
-            assert orig not in self._character_portals_cache[char]
+            assert orig not in self._character_portals_cache.successors[char]
             assert orig not in self._portal_stat_cache[char]
             for dest, stats in dests.items():
-                assert dest not in self._character_portals_cache[char][orig]
+                assert dest not in self._character_portals_cache.successors[char][orig]
                 assert dest not in self._portal_stat_cache[char][orig]
-                self._character_portals_cache[char][orig][dest] \
-                    = PortalProxy(self.engine.character[char], orig, dest)
+                self._character_portals_cache.store(char, orig, dest, PortalProxy(self.engine.character[char], orig, dest))
                 self._portal_stat_cache[char][orig][dest] = stats
         self.handle(
             command='add_character', char=char, data=data, attr=attr,
