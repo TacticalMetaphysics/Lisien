@@ -202,16 +202,13 @@ class ELiDEApp(App):
         if hasattr(self, '_started'):
             raise ChildProcessError("Subprocess already running")
         config = self.config
-        self.procman = EngineProcessManager()
         enkw = {'logger': Logger}
         if config['LiSE'].get('logfile'):
             enkw['logfile'] = config['LiSE']['logfile']
         if config['LiSE'].get('loglevel'):
             enkw['loglevel'] = config['LiSE']['loglevel']
-        self.engine = self.procman.start(
-            config['LiSE']['world'],
-            **enkw
-        )
+        self.procman = EngineProcessManager()
+        self.engine = self.procman.start(**enkw)
         self.pull_time()
 
         self.engine.time.connect(self._pull_time_from_signal, weak=False)

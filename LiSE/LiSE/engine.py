@@ -991,14 +991,15 @@ class Engine(AbstractEngine, gORM):
 
     def __init__(
             self,
-            worlddb='world.db',
+            prefix='.',
             *,
-            string='strings.json',
-            function='function.py',
-            method='method.py',
-            trigger='trigger.py',
-            prereq='prereq.py',
-            action='action.py',
+            string=None,
+            trigger=None,
+            prereq=None,
+            action=None,
+            function=None,
+            method=None,
+            connect_string=None,
             connect_args={},
             schema_cls=NullSchema,
             alchemy=False,
@@ -1011,26 +1012,29 @@ class Engine(AbstractEngine, gORM):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
 
-        :arg worlddb: Either a path to a SQLite database, or a
-        rfc1738 URIfor a database to connect to.
-        :arg string: path to a JSON file storing strings to be used
-        in the game
-        :arg function: either a Python module or a path to a
-        source file; should contain utility functions
-        :arg method: either a Python module or a path to a
-        source file; should contain functions taking this engine as
+        :arg prefix: directory containing the simulation and its code;
+        defaults to the working directory
+        :arg string: module storing strings to be used in the game
+        :arg function: module containing utility functions
+        :arg method: module containing functions taking this engine as
         first arg
-        :arg trigger: either a Python module or a path to a
-        source file; should contain trigger functions, taking a LiSE
+        :arg trigger: module containing trigger functions, taking a LiSE
         entity and returning a boolean for whether to run a rule
-        :arg prereq: either a Python module or a path to a source file;
-        should contain prereq functions, taking a LiSE entity and
+        :arg prereq: module containing prereq functions, taking a LiSE entity and
         returning a boolean for whether to permit a rule to run
-        :arg action: either a Python module or a path to a source file;
-        should contain action functions, taking a LiSE entity and
+        :arg action: module containing action functions, taking a LiSE entity and
         mutating it (and possibly the rest of the world)
+        :arg connect_string: a rfc1738 URI for a database to connect to;
+        if absent, we'll use a SQLite database in the prefix directory.
+        With ``alchemy=False`` we can only open SQLite databases,
+        in which case ``connect_string`` is just a path to the database--
+        unless it's ``":memory:"``, which is an in-memory database that
+        won't be saved
         :arg connect_args: dictionary of keyword arguments for the
         database connection
+        :arg schema: a Schema class that determines which changes to allow to
+        the world; used when a player should not be able to change just anything.
+        Defaults to `NullSchema`
         :arg alchemy: whether to use SQLAlchemy to connect to the
         database. If False, LiSE can only use SQLite
         :arg commit_modulus: LiSE will commit changes to disk every
@@ -1041,55 +1045,54 @@ class Engine(AbstractEngine, gORM):
         :arg validate: whether to perform integrity tests while
         loading the game
         :arg clear: whether to delete *any and all* existing data
-        and code. Use with caution!
+        and code in ``prefix``. Use with caution!
 
         """
-        self.exist_node_time = 0
-        self.exist_edge_time = 0
         import os
         from .xcollections import StringStore
-        worlddbpath = worlddb.replace('sqlite:///', '')
-        if clear and os.path.exists(worlddbpath):
-            os.remove(worlddbpath)
-        if isinstance(string, str):
-            self._string_file = string
-            if clear and os.path.exists(string):
-                os.remove(string)
-        else:
+        self.exist_node_time = 0
+        self.exist_edge_time = 0
+        if string:
             self.string = string
-        if isinstance(function, str):
-            self._function_file = function
-            if clear and os.path.exists(function):
-                os.remove(function)
         else:
+            self._string_file = os.path.join(prefix, 'string.json')
+            if clear and os.path.exists(self._string_file):
+                os.remove(self._string_file)
+        if function:
             self.function = function
-        if isinstance(method, str):
-            self._method_file = method
-            if clear and os.path.exists(method):
-                os.remove(method)
         else:
+            self._function_file = os.path.join(prefix, 'function.py')
+            if clear and os.path.exists(self._function_file):
+                os.remove(self._function_file)
+        if method:
             self.method = method
-        if isinstance(trigger, str):
-            self._trigger_file = trigger
+        else:
+            self._method_file = os.path.join(prefix, 'method.py')
+            if clear and os.path.exists(self._method_file):
+                os.remove(self._method_file)
+        if trigger:
+            self.trigger = trigger
+        else:
+            self._trigger_file = os.path.join(prefix, 'trigger.py')
             if clear and os.path.exists(trigger):
                 os.remove(trigger)
+        if prereq:
+            self.prereq = prereq
         else:
-            self.trigger = trigger
-        if isinstance(prereq, str):
-            self._prereq_file = prereq
+            self._prereq_file = os.path.join(prefix, 'prereq.py')
             if clear and os.path.exists(prereq):
                 os.remove(prereq)
+        if action:
+            self.action = action
         else:
-            self.prereq = prereq
-        if isinstance(action, str):
-            self._action_file = action
+            self._action_file = os.path.join(prefix, 'action.py')
             if clear and os.path.exists(action):
                 os.remove(action)
-        else:
-            self.action = action
         self.schema = schema_cls(self)
+        if connect_string and not alchemy:
+            connect_string = connect_string.split('sqlite:///')[-1]
         super().__init__(
-            worlddb,
+            connect_string or os.path.join(prefix, 'world.db'),
             connect_args=connect_args,
             alchemy=alchemy,
             validate=validate

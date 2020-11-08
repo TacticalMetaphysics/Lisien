@@ -97,12 +97,8 @@ def install(eng):
 if __name__ == '__main__':
     import os
     from LiSE import Engine
-    for stale in ('world.db', 'trigger.py', 'prereq.py', 'action.py', 'function.py', 'method.py'):
-        if os.path.exists(stale):
-            os.remove(stale)
-    with Engine() as eng:
-        with eng.batch():
-            install(eng)
+    with Engine(clear=True) as eng, eng.batch():
+        install(eng)
     import sys
     if '--profile' in sys.argv:
         import cProfile

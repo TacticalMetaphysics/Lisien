@@ -193,11 +193,7 @@ def inittest(
 if __name__ == '__main__':
     from LiSE.engine import Engine
     from os import remove
-    try:
-        remove('world.db')
-    except FileNotFoundError:
-        pass
-    with Engine('world.db', random_seed=69105) as engine:
+    with Engine(random_seed=69105, clear=True) as engine:
         inittest(engine, shrubberies=20, kobold_sprint_chance=.9)
         engine.commit()
         print('shrub_places beginning: {}'.format(
