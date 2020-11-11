@@ -241,6 +241,8 @@ class ELiDEApp(App):
             return tog
         config = self.config
 
+        self.mainmenu = ELiDE.menu.DirPicker(toggle=toggler('mainmenu'))
+
         self.pawncfg = ELiDE.spritebuilder.PawnConfigScreen(
             toggle=toggler('pawncfg'),
             data=json.loads(config['ELiDE']['thing_graphics'])
@@ -322,6 +324,7 @@ class ELiDEApp(App):
         )
         self.selected_proxy = self._get_selected_proxy()
         for wid in (
+                self.mainmenu,
                 self.mainscreen,
                 self.pawncfg,
                 self.spotcfg,
@@ -333,6 +336,7 @@ class ELiDEApp(App):
                 self.funcs
         ):
             self.manager.add_widget(wid)
+        self.manager.current = 'mainmenu'
 
     def update_calendar(self, calendar, past_turns=1, future_turns=5):
         # TODO: make the turn range configurable

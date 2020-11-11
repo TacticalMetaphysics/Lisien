@@ -63,14 +63,16 @@ class MenuIntInput(MenuTextInput):
 
 
 class DirPicker(Screen):
-    screen_manager = ObjectProperty()
+    toggle = ObjectProperty()
 
     def open(self, path):
         pass
 
 
 Builder.load_string("""
+#: import os os
 <DirPicker>:
+    name: 'mainmenu'
     BoxLayout:
         orientation: 'vertical'
         Label:
@@ -78,6 +80,7 @@ Builder.load_string("""
             size_hint_y: None
         FileChooserListView:
             id: filechooser
+            path: os.getcwd()
         Button:
             text: 'Work here'
             size_hint_y: 0.1
