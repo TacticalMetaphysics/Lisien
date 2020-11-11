@@ -15,7 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from kivy.properties import ObjectProperty
 from kivy.uix.textinput import TextInput
+from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
+from kivy.lang import Builder
 
 
 class MenuTextInput(TextInput):
@@ -58,3 +60,26 @@ class MenuIntInput(MenuTextInput):
             ''.join(c for c in s if c in '0123456789'),
             from_undo
         )
+
+
+class DirPicker(Screen):
+    screen_manager = ObjectProperty()
+
+    def open(self, path):
+        pass
+
+
+Builder.load_string("""
+<DirPicker>:
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            text: 'Pick a directory to create or load a simulation in'
+            size_hint_y: None
+        FileChooserListView:
+            id: filechooser
+        Button:
+            text: 'Work here'
+            size_hint_y: 0.1
+            on_release: root.open(filechooser.path)
+""")
