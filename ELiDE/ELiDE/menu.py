@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import os
 from kivy.properties import ObjectProperty
 from kivy.uix.textinput import TextInput
 from kivy.uix.screenmanager import Screen
@@ -64,15 +65,20 @@ class MenuIntInput(MenuTextInput):
 
 class DirPicker(Screen):
     toggle = ObjectProperty()
+    start = ObjectProperty()
 
     def open(self, path):
-        pass
+        os.chdir(path)
+        self.start()
+        self.toggle()
+
 
 
 Builder.load_string("""
 #: import os os
 <DirPicker>:
     name: 'mainmenu'
+    start: app.trigger_start_subprocess
     BoxLayout:
         orientation: 'vertical'
         Label:

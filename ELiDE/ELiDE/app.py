@@ -185,7 +185,6 @@ class ELiDEApp(App):
             from kivy.modules import inspector
             inspector.create_inspector(Window, self.manager)
         
-        self._start_subprocess()
         self._add_screens()
         return self.manager
 
@@ -198,7 +197,7 @@ class ELiDEApp(App):
     def _pull_time_from_signal(self, *args, branch, turn, tick):
         self.branch, self.turn, self.tick = branch, turn, tick
 
-    def _start_subprocess(self, *args):
+    def start_subprocess(self, *args):
         if hasattr(self, '_started'):
             raise ChildProcessError("Subprocess already running")
         config = self.config
@@ -226,12 +225,23 @@ class ELiDEApp(App):
                 self.engine.eternal['boardchar'] = self.engine.character['physical']
             else:
                 self.engine.eternal['boardchar'] = self.engine.new_character('physical')
+        self.chars.names = list(self.engine.character)
+        self.mainscreen.graphboards = {
+                name: GraphBoard(
+                    character=char
+                ) for name, char in self.engine.character.items()
+            }
+        self.mainscreen.gridboards = {
+                name: GridBoard(character=char)
+                for name, char in self.engine.character.items()
+            }
+        self.strings.store = self.engine.string
+        self.select_character(self.engine.eternal['boardchar'])
+        self.selected_proxy = self._get_selected_proxy()
         self._started = True
+    trigger_start_subprocess = trigger(start_subprocess)
 
     def _add_screens(self, *args):
-        if not getattr(self, '_started'):
-            Clock.schedule_once(self._add_screens, 0)
-            return
         def toggler(screenname):
             def tog(*args):
                 if self.manager.current == screenname:
@@ -273,7 +283,6 @@ class ELiDEApp(App):
         self.chars = ELiDE.charsview.CharactersScreen(
             engine=self.engine,
             toggle=toggler('chars'),
-            names=list(self.engine.character),
             new_board=self.new_board
         )
         self.bind(character_name=self.chars.setter('character_name'))
@@ -286,8 +295,6 @@ class ELiDEApp(App):
         self.chars.push_character_name = chars_push_character_name
 
         self.strings = ELiDE.stores.StringsEdScreen(
-            language=self.engine.string.language,
-            language_setter=self._set_language,
             toggle=toggler('strings')
         )
 
@@ -296,24 +303,13 @@ class ELiDEApp(App):
             toggle=toggler('funcs')
         )
 
-        self.select_character(self.engine.eternal['boardchar'])
-
         self.bind(
             selected_proxy=self.statcfg.setter('proxy')
         )
 
         self.mainscreen = ELiDE.screen.MainScreen(
             use_kv=config['ELiDE']['user_kv'] == 'yes',
-            play_speed=int(config['ELiDE']['play_speed']),
-            graphboards={
-                name: GraphBoard(
-                    character=char
-                ) for name, char in self.engine.character.items()
-            },
-            gridboards={
-                name: GridBoard(character=char)
-                for name, char in self.engine.character.items()
-            }
+            play_speed=int(config['ELiDE']['play_speed'])
         )
         if self.mainscreen.statlist:
             self.statcfg.statlist = self.mainscreen.statlist
@@ -322,7 +318,6 @@ class ELiDEApp(App):
             selection=self.refresh_selected_proxy,
             character=self.refresh_selected_proxy
         )
-        self.selected_proxy = self._get_selected_proxy()
         for wid in (
                 self.mainmenu,
                 self.mainscreen,
@@ -404,10 +399,14 @@ class ELiDEApp(App):
 
     def on_stop(self, *largs):
         """Sync the database, wrap up the game, and halt."""
-        self.strings.save()
-        self.funcs.save()
-        self.engine.commit()
-        self.procman.shutdown()
+        if self.strings:
+            self.strings.save()
+        if self.funcs:
+            self.funcs.save()
+        if self.engine:
+            self.engine.commit()
+        if hasattr(self, 'procman'):
+            self.procman.shutdown()
         self.config.write()
 
     def delete_selection(self):

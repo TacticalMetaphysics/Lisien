@@ -206,7 +206,7 @@ class MainScreen(Screen):
     tmp_block = BooleanProperty(False)
 
     def on_mainview(self, *args):
-        if not all((self.statpanel, self.charmenu, self.app)) or not self.charmenu.portaladdbut:
+        if None in (self.statpanel, self.charmenu, self.app) or None in (self.app.character_name, self.charmenu.portaladdbut):
             Clock.schedule_once(self.on_mainview, 0)
             return
         self.boardview = GraphBoardView(
@@ -273,6 +273,9 @@ class MainScreen(Screen):
 
     @trigger
     def _update_statlist(self, *args):
+        if not self.app.selected_proxy:
+            self._update_statlist()
+            return
         self.app.update_calendar(self.statpanel.statlist, past_turns=0, future_turns=0)
 
     def pull_visibility(self, *args):
@@ -337,6 +340,9 @@ class MainScreen(Screen):
         :class:`graph.Pawn` or :class:`graph.Spot`.
 
         """
+        if not self.app.character:
+            Clock.schedule_once(self.on_dummies, 0)
+            return
         def renum_dummy(dummy, *args):
             dummy.num = dummynum(self.app.character, dummy.prefix) + 1
 

@@ -165,7 +165,6 @@ class LanguageInput(TextInput):
     def on_focus(self, instance, value, *largs):
         if not value:
             if self.screen.language != self.text:
-                self.screen.language_setter(self.text)
                 self.screen.language = self.text
             self.text = ''
 
@@ -182,16 +181,25 @@ class StringsEdScreen(Screen):
     """Function to switch back to the main screen"""
     language = StringProperty('eng')
     """Code identifying the language we're editing"""
-    language_setter = ObjectProperty()
-    """Function called with ``language`` when it changes"""
     edbox = ObjectProperty()
     """Widget containing editors for the current string and its name"""
+    store = ObjectProperty()
+    """The string store, an attribute of the LiSE engine"""
 
     def on_language(self, *args):
         if self.edbox is None:
             Clock.schedule_once(self.on_language, 0)
             return
         self.edbox.storelist.redata()
+        if self.store.language != self.language:
+            self.store.language = self.language
+    
+    def on_store(self, *args):
+        self.language = self.store.language
+        self.store.language.connect(self._pull_language)
+    
+    def _pull_language(self, *args, language):
+        self.language = language
 
     def save(self, *args):
         if self.edbox is None:
@@ -597,7 +605,7 @@ Builder.load_string("""
         StringsEdBox:
             id: edbox
             toggle: root.toggle
-            store: app.engine.string
+            store: root.store
             language: root.language
         BoxLayout:
             size_hint_y: 0.05
@@ -712,7 +720,7 @@ Builder.load_string("""
             FuncsEdBox:
                 id: triggers
                 toggle: root.toggle
-                store: app.engine.trigger
+                store: app.engine.trigger if app.engine else None
                 on_data: app.rules.rulesview.set_functions('trigger', map(app.rules.rulesview.inspect_func, self.data))
         TabbedPanelItem:
             id: prereq
@@ -721,7 +729,7 @@ Builder.load_string("""
             FuncsEdBox:
                 id: prereqs
                 toggle: root.toggle
-                store: app.engine.prereq
+                store: app.engine.prereq if app.engine else None
                 on_data: app.rules.rulesview.set_functions('prereq', map(app.rules.rulesview.inspect_func, self.data))
         TabbedPanelItem:
             id: action
@@ -730,6 +738,6 @@ Builder.load_string("""
             FuncsEdBox:
                 id: actions
                 toggle: root.toggle
-                store: app.engine.action
+                store: app.engine.action if app.engine else None
                 on_data: app.rules.rulesview.set_functions('action', map(app.rules.rulesview.inspect_func, self.data))
 """)
