@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from allegedb.cache import (
+from .allegedb.cache import (
     Cache,
     PickyDefaultDict,
     StructuredDefaultDict,
@@ -25,6 +25,8 @@ from collections import OrderedDict
 
 
 class InitializedCache(Cache):
+    __slots__ = ()
+
     def _store_journal(self, *args):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
@@ -48,14 +50,10 @@ class InitializedCache(Cache):
 
 
 class EntitylessCache(Cache):
-    def store(self, key, branch, turn, tick, value, *, planning=None):
-        super().store(None, key, branch, turn, tick, value, planning=planning)
+    __slots__ = ()
 
-    def load(self, data):
-        return super().load(((None,) + row for row in data))
-
-    def retrieve(self, key, branch, turn, tick):
-        return super().retrieve(None, key, branch, turn, tick)
+    def store(self, key, branch, turn, tick, value, *, planning=None, forward=None, loading=False, contra=True):
+        super().store(None, key, branch, turn, tick, value, planning=planning, forward=forward, loading=loading, contra=contra)
 
     def iter_entities_or_keys(self, branch, turn, tick, *, forward=None):
         return super().iter_entities_or_keys(None, branch, turn, tick, forward=forward)
@@ -70,11 +68,15 @@ class EntitylessCache(Cache):
 
 
 class InitializedEntitylessCache(EntitylessCache, InitializedCache):
-    pass
+    __slots__ = ()
 
 
 class AvatarnessCache(Cache):
     """A cache for remembering when a node is an avatar of a character."""
+    __slots__ = (
+        'user_order', 'user_shallow', 'graphs', 'graphavs', 'charavs',
+        'soloav', 'uniqav', 'uniqgraph', 'users'
+    )
     def __init__(self, engine):
         Cache.__init__(self, engine)
         self.user_order = StructuredDefaultDict(3, TurnDict)
@@ -87,9 +89,9 @@ class AvatarnessCache(Cache):
         self.uniqgraph = StructuredDefaultDict(1, TurnDict)
         self.users = StructuredDefaultDict(1, TurnDict)
 
-    def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning, loading=False, contra=True):
+    def store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning=None, forward=None, loading=False, contra=True):
         is_avatar = True if is_avatar else None
-        super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning, loading=loading, contra=contra)
+        super().store(character, graph, node, branch, turn, tick, is_avatar, planning=planning, forward=forward, loading=loading, contra=contra)
         userturns = self.user_order[graph][node][character][branch]
         if turn in userturns:
             userturns[turn][tick] = is_avatar
@@ -465,30 +467,33 @@ class ThingsCache(Cache):
         Cache.__init__(self, db)
         self._make_node = db.thing_cls
 
-    def _store(self, *args, planning, loading=False, contra=True):
+    def store(self, *args, planning=None, loading=False, contra=True):
         character, thing, branch, turn, tick, location = args
         try:
             oldloc = self.retrieve(character, thing, branch, turn, tick)
         except KeyError:
             oldloc = None
-        super()._store(*args, planning=planning, loading=loading, contra=contra)
+        super().store(*args, planning=planning, loading=loading, contra=contra)
         node_contents_cache = self.db._node_contents_cache
-        setsbranch = self.settings[branch]
-        future_location_data = setsbranch.future(turn) or (turn in setsbranch and setsbranch[turn].future(tick))
         # Cache the contents of nodes
         if oldloc is not None:
             oldconts_orig = node_contents_cache.retrieve(character, oldloc, branch, turn, tick)
             newconts_orig = oldconts_orig.difference({thing})
             node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig, contra=False,
                                       loading=True)
+            future_location_data = node_contents_cache.settings[branch].future(turn)
+            todo = []
             for trn in future_location_data:
                 for tck in future_location_data[trn]:
-                    if future_location_data[trn][tck][2] == oldloc:
-                        node_contents_cache.store(
-                            character, oldloc, branch, trn, tck,
-                            node_contents_cache.retrieve(character, oldloc, branch, trn, tck).difference({thing}),
-                            planning=False, contra=False, loading=True
-                        )
+                    char, loca, contents = future_location_data[trn][tck]
+                    if char == character and loca == oldloc:
+                        todo.append((trn, tck))
+            for trn, tck in todo:
+                node_contents_cache.store(
+                    character, oldloc, branch, trn, tck,
+                    node_contents_cache.retrieve(character, oldloc, branch, trn, tck).difference({thing}),
+                    planning=False, contra=False, loading=True
+                )
         if location is not None:
             try:
                 oldconts_dest = node_contents_cache.retrieve(character, location, branch, turn, tick)
@@ -496,14 +501,19 @@ class ThingsCache(Cache):
                 oldconts_dest = frozenset()
             newconts_dest = oldconts_dest.union({thing})
             node_contents_cache.store(character, location, branch, turn, tick, newconts_dest, contra=False, loading=True)
+            future_location_data = node_contents_cache.settings[branch].future(turn)
+            todo = []
             for trn in future_location_data:
-                for tck in future_location_data[trn]:
-                    if future_location_data[trn][tck][2] == location:
-                        node_contents_cache.store(
-                            character, location, branch, trn, tck,
-                            node_contents_cache.retrieve(character, location, branch, trn, tck).union({thing}),
-                            planning=False, contra=False, loading=True
-                        )
+                for tck in sorted(future_location_data[trn]):
+                    char, loca, contents = future_location_data[trn][tck]
+                    if char == character and loca == location:
+                        todo.append((trn, tck))
+            for trn, tck in todo:
+                node_contents_cache.store(
+                    character, location, branch, trn, tck,
+                    node_contents_cache.retrieve(character, location, branch, trn, tck).union({thing}),
+                    planning=False, contra=False, loading=True
+                )
 
     def turn_before(self, character, thing, branch, turn):
         try:
@@ -630,7 +640,6 @@ class NodeContentsCache(Cache):
                 if not kc:
                     del self.keycache[entity, brnch]
         self.shallowest = OrderedDict()
-        self.send(self, branch=branch, turn=turn, tick=tick, action='remove')
 
     def truncate_loc(self, character, location, branch, turn, tick):
         """Remove future data about a particular location

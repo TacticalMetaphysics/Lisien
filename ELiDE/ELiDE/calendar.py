@@ -47,8 +47,9 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
         self.disabled = self.turn < self.parent.parent.entity.engine.turn
 
     def _trigger_update_disabledness(self, *args, **kwargs):
-        Clock.unschedule(self._update_disabledness)
-        Clock.schedule_once(self._update_disabledness)
+        if hasattr(self, '_scheduled_update_disabledness'):
+            Clock.unschedule(self._scheduled_update_disabledness)
+        self._scheduled_update_disabledness = Clock.schedule_once(self._update_disabledness)
 
     def _set_value(self):
         entity = self.parent.parent.entity
@@ -370,13 +371,13 @@ Builder.load_string("""
         default_size: dp(84), dp(36)
         default_size_hint: None, None
         size: self.minimum_size
-        orientation: 'horizontal'
+        orientation: 'tb-lr'
 <Calendar>:
     turn_labels: False
     key_viewclass: 'widget'
     RecycleGridLayout:
         cols: 1
-        orientation: 'vertical'
+        orientation: 'lr-tb'
         default_size_hint: 1, None
         default_size: dp(84), dp(36)
         size: self.minimum_size

@@ -14,10 +14,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Directed edges, as used by LiSE."""
-from collections import Mapping, ValuesView
 
-from allegedb.graph import Edge
-from allegedb.cache import HistoryError
+from .allegedb.graph import Edge
+from .allegedb import HistoryError
 
 from .util import getatt
 from .query import StatusAlias
@@ -236,6 +235,7 @@ class Portal(Edge, RuleFollower):
         For symmetry with :class:`Thing` and :class`Place`.
 
         """
+        self.clear()
         branch, turn, tick = self.engine._nbtt()
         self.engine._edges_cache.store(
             self.character.name,

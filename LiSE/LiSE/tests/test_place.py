@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import networkx as nx
 import pytest
 from LiSE.exc import AmbiguousUserError
 
@@ -80,3 +81,13 @@ def test_rulebook(someplace):
     assert someplace.rulebook.name == ('physical', 'someplace')
     someplace.rulebook = 'imadeitup'
     assert someplace.rulebook.name == 'imadeitup'
+
+
+def test_deletion_after_keyframe(engy):
+    phys = engy.new_character('physical', data=nx.grid_2d_graph(8, 8))
+    del phys.place[5, 5]
+    assert (5, 5) not in phys.place
+    assert (5, 5) not in list(phys.place)
+    engy.turn = 20
+    assert (5, 5) not in phys.place
+    assert (5, 5) not in list(phys.place)

@@ -16,13 +16,13 @@
 import os
 import tempfile
 import pytest
-import allegedb.tests.test_all
+import LiSE.allegedb.tests.test_all
 from LiSE.engine import Engine
 
 
-class CharacterTest(allegedb.tests.test_all.AllegedTest):
+class CharacterTest(LiSE.allegedb.tests.test_all.AllegedTest):
     def setUp(self):
-        self.engine = Engine("sqlite:///:memory:")
+        self.engine = Engine(connect_string="sqlite:///:memory:")
         self.graphmakers = (self.engine.new_character,)
         self.tempdir = tempfile.mkdtemp(dir='.')
         for f in (
@@ -45,15 +45,19 @@ class CharacterTest(allegedb.tests.test_all.AllegedTest):
         os.rmdir(self.tempdir)
 
 
-class CharacterDictStorageTest(CharacterTest, allegedb.tests.test_all.DictStorageTest):
+class CharacterBranchLineageTest(CharacterTest, LiSE.allegedb.tests.test_all.AbstractBranchLineageTest):
     pass
 
 
-class CharacterListStorageTest(CharacterTest, allegedb.tests.test_all.ListStorageTest):
+class CharacterDictStorageTest(CharacterTest, LiSE.allegedb.tests.test_all.DictStorageTest):
     pass
 
 
-class CharacterSetStorageTest(CharacterTest, allegedb.tests.test_all.SetStorageTest):
+class CharacterListStorageTest(CharacterTest, LiSE.allegedb.tests.test_all.ListStorageTest):
+    pass
+
+
+class CharacterSetStorageTest(CharacterTest, LiSE.allegedb.tests.test_all.SetStorageTest):
     pass
 
 
@@ -106,8 +110,6 @@ def update_char(char, *, stat=(), node=(), portal=()):
     end_places = char.place.unwrap()
     end_things = char.thing.unwrap()
     for node, v in node:
-        if 'name' not in v:
-            v['name'] = node
         if v is None:
             del char.node[node]
             if node in end_places:
@@ -156,6 +158,7 @@ def update_char(char, *, stat=(), node=(), portal=()):
             for k, vv in v.items():
                 set_in_mapping(me, k, vv)
         else:
+            v['name'] = node
             end_places[node] = v
             me = char.new_node(node)
             for k, vv in v.items():
@@ -195,7 +198,7 @@ CHAR_DATA = [
 
 @pytest.mark.parametrize(['name', 'data', 'stat', 'nodestat', 'statup', 'nodeup', 'edgeup'], CHAR_DATA)
 def test_char_creation(name, data, stat, nodestat, statup, nodeup, edgeup):
-    with Engine("sqlite:///:memory:") as eng:
+    with Engine(connect_string="sqlite:///:memory:") as eng:
         char = eng.new_character(name, data, **stat)
         assert set(char.node) == set(data)
         es = set()
@@ -206,16 +209,27 @@ def test_char_creation(name, data, stat, nodestat, statup, nodeup, edgeup):
         assert char.stat == stat
 
 
+@pytest.mark.parametrize(['name', 'data', 'stat', 'nodestat', 'statup', 'nodeup', 'edgeup'], CHAR_DATA)
+def test_facade_creation(name, data, stat, nodestat, statup, nodeup, edgeup):
+    with Engine(connect_string='sqlite:///:memory:') as eng:
+        char = eng.new_character(name, data, **stat)
+        fac = char.facade()
+        assert dict(fac.node) == dict(char.node)
+        assert fac.node == char.node
+        assert fac.edges == char.edges
+        assert set(fac.edges) == set(char.edges)
+        assert fac.stat == char.stat
+        assert dict(fac.stat) == dict(char.stat)
+
+
 
 # TODO parametrize bunch of characters
 @pytest.fixture(scope="function", params=CHAR_DATA)
-def character_updates(request, clean):
+def character_updates(request, engy):
     name, data, stat, nodestat, statup, nodeup, edgeup = request.param
-    engine = Engine("sqlite:///:memory:")
-    char = engine.new_character(name, data, **stat)
+    char = engy.new_character(name, data, **stat)
     update_char(char, node=nodestat)
     yield char, statup, nodeup, edgeup
-    engine.close()
 
 
 def test_facade(character_updates):

@@ -36,22 +36,25 @@ and their node in the physical world is an avatar of it.
 """
 
 from abc import abstractmethod
-from collections import (
+from collections.abc import (
     Mapping,
     MutableMapping
 )
+from itertools import chain
+from time import monotonic
 from operator import ge, gt, le, lt, eq
 from weakref import WeakValueDictionary
 from blinker import Signal
 
 import networkx as nx
-from allegedb.graph import (
+from .allegedb.cache import FuturistWindowDict, PickyDefaultDict
+from .allegedb.graph import (
     DiGraph,
     GraphNodeMapping,
     DiGraphSuccessorsMapping,
     DiGraphPredecessorsMapping
 )
-from allegedb.wrap import MutableMappingUnwrapper
+from .allegedb.wrap import MutableMappingUnwrapper
 
 from .xcollections import CompositeDict
 from .rule import RuleMapping
@@ -60,8 +63,8 @@ from .node import Node
 from .thing import Thing
 from .place import Place
 from .portal import Portal
-from .util import getatt, singleton_get
-from .exc import AmbiguousAvatarError, WorldIntegrityError
+from .util import getatt, singleton_get, timer
+from .exc import WorldIntegrityError
 from .query import StatusAlias
 
 
@@ -91,7 +94,27 @@ class SpecialMappingDescriptor:
         it.update(value)
 
 
-class AbstractCharacter(MutableMapping):
+def grid_2d_8graph(m, n):
+    """Make a 2d graph that's connected 8 ways, with diagonals"""
+    me = nx.Graph()
+    nodes = me.nodes
+    add_node = me.add_node
+    add_edge = me.add_edge
+    for i in range(m):
+        for j in range(n):
+            add_node((i, j))
+            if i > 0:
+                add_edge((i, j), (i-1, j))
+                if j > 0:
+                    add_edge((i, j), (i-1, j-1))
+            if j > 0:
+                add_edge((i, j), (i, j-1))
+            if (i - 1, j + 1) in nodes:
+                add_edge((i, j), (i-1, j+1))
+    return me
+
+
+class AbstractCharacter(Mapping):
 
     """The Character API, with all requisite mappings and graph generators.
 
@@ -106,6 +129,10 @@ class AbstractCharacter(MutableMapping):
     """
     engine = getatt('db')
     no_unwrap = True
+
+    @staticmethod
+    def is_directed():
+        return True
 
     @abstractmethod
     def add_place(self, name, **kwargs): pass
@@ -230,17 +257,11 @@ class AbstractCharacter(MutableMapping):
         return k in self.node
 
     def __getitem__(self, k):
-        return self.node[k]
-
-    def __setitem__(self, k, v):
-        self.node[k] = v
-
-    def __delitem__(self, k):
-        del self.node[k]
+        return self.adj[k]
 
     thing = SpecialMappingDescriptor('ThingMapping')
     place = SpecialMappingDescriptor('PlaceMapping')
-    node = _node = SpecialMappingDescriptor('ThingPlaceMapping')
+    node = nodes = _node = SpecialMappingDescriptor('ThingPlaceMapping')
     portal = adj = succ = edge = _adj = _succ = SpecialMappingDescriptor(
         'PortalSuccessorsMapping')
     preportal = pred = _pred = SpecialMappingDescriptor(
@@ -422,285 +443,20 @@ class AbstractCharacter(MutableMapping):
         Return myself.
 
         """
+        start = monotonic()
         self.clear()
-        self.copy_from(g)
+        print("{:,.3f} seconds spent clearing the character".format(monotonic() - start))
+        start = monotonic()
+        self.place.update(g.nodes)
+        print("{:,.3f} seconds spent copying nodes".format(monotonic() - start))
+        with timer('seconds spent copying edges'):
+            self.adj.update(g.adj)
         return self
 
     def clear(self):
         self.node.clear()
         self.portal.clear()
         self.stat.clear()
-
-    def balanced_tree(self, r, h):
-        return self.copy_from(nx.balanced_tree(r, h))
-
-    def barbell_graph(self, m1, m2):
-        return self.copy_from(nx.barbell_graph(m1, m2))
-
-    def complete_graph(self, n):
-        return self.copy_from(nx.complete_graph(n))
-
-    def circular_ladder_graph(self, n):
-        return self.copy_from(nx.circular_ladder_graph(n))
-
-    def cycle_graph(self, n):
-        return self.copy_from(nx.cycle_graph(n))
-
-    def empty_graph(self, n):
-        return self.copy_from(nx.empty_graph(n))
-
-    def grid_2d_graph(self, m, n, periodic=False):
-        return self.copy_from(nx.grid_2d_graph(m, n, periodic))
-
-    def grid_2d_8graph(self, m, n):
-        """Make a 2d graph that's connected 8 ways, with diagonals"""
-        me = nx.Graph()
-        nodes = me.nodes
-        add_node = me.add_node
-        add_edge = me.add_edge
-        for i in range(m):
-            for j in range(n):
-                add_node((i, j))
-                if i > 0:
-                    add_edge((i, j), (i-1, j))
-                    if j > 0:
-                        add_edge((i, j), (i-1, j-1))
-                if j > 0:
-                    add_edge((i, j), (i, j-1))
-                if (i - 1, j + 1) in nodes:
-                    add_edge((i, j), (i-1, j+1))
-        return self.copy_from(me)
-
-    def grid_graph(self, dim, periodic=False):
-        return self.copy_from(nx.grid_graph(dim, periodic))
-
-    def ladder_graph(self, n):
-        return self.copy_from(nx.ladder_graph(n))
-
-    def lollipop_graph(self, m, n):
-        return self.copy_from(nx.lollipop_graph(m, n))
-
-    def path_graph(self, n):
-        return self.copy_from(nx.path_graph(n))
-
-    def star_graph(self, n):
-        return self.copy_from(nx.star_graph(n))
-
-    def wheel_graph(self, n):
-        return self.copy_from(nx.wheel_graph(n))
-
-    def fast_gnp_random_graph(self, n, p, seed=None):
-        return self.copy_from(nx.fast_gnp_random_graph(
-            n, p, seed, directed=True
-        ))
-
-    def gnp_random_graph(self, n, p, seed=None):
-        return self.copy_from(nx.gnp_random_graph(n, p, seed, directed=True))
-
-    def gnm_random_graph(self, n, m, seed=None):
-        return self.copy_from(nx.gnm_random_graph(n, m, seed, directed=True))
-
-    def erdos_renyi_graph(self, n, p, seed=None):
-        return self.copy_from(nx.erdos_renyi_graph(n, p, seed, directed=True))
-
-    def binomial_graph(self, n, p, seed=None):
-        return self.erdos_renyi_graph(n, p, seed)
-
-    def newman_watts_strogatz_graph(self, n, k, p, seed=None):
-        return self.copy_from(nx.newman_watts_strogatz_graph(n, k, p, seed))
-
-    def watts_strogatz_graph(self, n, k, p, seed=None):
-        return self.copy_from(nx.watts_strogatz_graph(n, k, p, seed))
-
-    def connected_watts_strogatz_graph(self, n, k, p, tries=100, seed=None):
-        return self.copy_from(nx.connected_watts_strogatz_graph(
-            n, k, p, tries, seed
-        ))
-
-    def random_regular_graph(self, d, n, seed=None):
-        return self.copy_from(nx.random_regular_graph(d, n, seed))
-
-    def barabasi_albert_graph(self, n, m, seed=None):
-        return self.copy_from(nx.barabasi_albert_graph(n, m, seed))
-
-    def powerlaw_cluster_graph(self, n, m, p, seed=None):
-        return self.copy_from(nx.powerlaw_cluster_graph(n, m, p, seed))
-
-    def duplication_divergence_graph(self, n, p, seed=None):
-        return self.copy_from(nx.duplication_divergence_graph(n, p, seed))
-
-    def random_lobster(self, n, p1, p2, seed=None):
-        return self.copy_from(nx.random_lobster(n, p1, p2, seed))
-
-    def random_shell_graph(self, constructor, seed=None):
-        return self.copy_from(nx.random_shell_graph(constructor, seed))
-
-    def random_powerlaw_tree(self, n, gamma=3, seed=None, tries=100):
-        return self.copy_from(nx.random_powerlaw_tree(n, gamma, seed, tries))
-
-    def configuration_model(self, deg_sequence, seed=None):
-        return self.copy_from(nx.configuration_model(deg_sequence, seed=seed))
-
-    def directed_configuration_model(
-            self,
-            in_degree_sequence,
-            out_degree_sequence,
-            seed=None
-    ):
-        return self.copy_from(nx.directed_configuration_model(
-            in_degree_sequence,
-            out_degree_sequence,
-            seed=seed
-        ))
-
-    def expected_degree_graph(self, w, seed=None, selfloops=True):
-        return self.copy_from(nx.expected_degree_graph(w, seed, selfloops))
-
-    def havel_hakmi_graph(self, deg_sequence):
-        return self.copy_from(nx.havel_hakimi_graph(deg_sequence))
-
-    def directed_havel_hakimi_graph(
-            self,
-            in_degree_sequence,
-            out_degree_sequence
-    ):
-        return self.copy_from(nx.directed_havel_hakimi_graph(
-            in_degree_sequence,
-            out_degree_sequence
-        ))
-
-    def degree_sequence_tree(self, deg_sequence):
-        return self.copy_from(nx.degree_sequence_tree(deg_sequence))
-
-    def random_degree_sequence_graph(self, sequence, seed=None, tries=10):
-        return self.copy_from(nx.random_degree_sequence_graph(
-            sequence, seed, tries
-        ))
-
-    def random_clustered_graph(self, joint_degree_sequence, seed=None):
-        return self.copy_from(nx.random_clustered_graph(
-            joint_degree_sequence, seed=seed
-        ))
-
-    def gn_graph(self, n, kernel=None, seed=None):
-        return self.copy_from(nx.gn_graph(n, kernel, seed=seed))
-
-    def gnr_graph(self, n, p, seed=None):
-        return self.copy_from(nx.gnr_graph(n, p, seed=seed))
-
-    def gnc_graph(self, n, seed=None):
-        return self.copy_from(nx.gnc_graph(n, seed=seed))
-
-    def scale_free_graph(
-            self, n,
-            alpha=0.41,
-            beta=0.54,
-            gamma=0.05,
-            delta_in=0.2,
-            delta_out=0,
-            seed=None
-    ):
-        return self.copy_from(nx.scale_free_graph(
-            n,
-            alpha,
-            beta,
-            gamma,
-            delta_in,
-            delta_out,
-            seed=seed
-        ))
-
-    def random_geometric_graph(self, n, radius, dim=2, pos=None):
-        return self.copy_from(nx.random_geometric_graph(n, radius, dim, pos))
-
-    def geographical_threshold_graph(
-            self, n, theta,
-            alpha=2,
-            dim=2,
-            pos=None,
-            weight=None
-    ):
-        return self.copy_from(nx.geographical_threshold_graph(
-            n, theta, alpha, dim, pos, weight
-        ))
-
-    def waxman_graph(
-            self, n,
-            alpha=0.4,
-            beta=0.1,
-            L=None,
-            domain=(0, 0, 1, 1)
-    ):
-        return self.copy_from(nx.waxman_graph(
-            n, alpha, beta, L, domain
-        ))
-
-    def navigable_small_world_graph(self, n, p=1, q=1, r=2, dim=2, seed=None):
-        return self.copy_from(nx.navigable_small_world_graph(
-            n, p, q, r, dim, seed
-        ))
-
-    def line_graph(self):
-        lg = nx.line_graph(self)
-        self.clear()
-        return self.copy_from(lg)
-
-    def ego_graph(
-            self, n,
-            radius=1,
-            center=True,
-            distance=None
-    ):
-        return self.become(nx.ego_graph(
-            self, n,
-            radius,
-            center,
-            False,
-            distance
-        ))
-
-    def stochastic_graph(self, weight='weight'):
-        nx.stochastic_graph(self, copy=False, weight=weight)
-        return self
-
-    def uniform_random_intersection_graph(self, n, m, p, seed=None):
-        return self.copy_from(nx.uniform_random_intersection_graph(
-            n, m, p, seed=seed
-        ))
-
-    def k_random_intersection_graph(self, n, m, k, seed=None):
-        return self.copy_from(nx.k_random_intersection_graph(
-            n, m, k, seed=seed
-        ))
-
-    def general_random_intersection_graph(self, n, m, p, seed=None):
-        return self.copy_from(
-            nx.general_random_intersection_graph(n, m, p, seed=seed)
-        )
-
-    def caveman_graph(self, l, k):
-        return self.copy_from(nx.caveman_graph(l, k))
-
-    def connected_caveman_graph(self, l, k):
-        return self.copy_from(nx.connected_caveman_graph(l, k))
-
-    def relaxed_caveman_graph(self, l, k, p, seed=None):
-        return self.copy_from(nx.relaxed_caveman_graph(l, k, p, seed=seed))
-
-    def random_partition_graph(self, sizes, p_in, p_out, seed=None):
-        return self.copy_from(nx.random_partition_graph(
-            sizes, p_in, p_out, seed=seed, directed=True
-        ))
-
-    def planted_partition_graph(self, l, k, p_in, p_out, seed=None):
-        return self.copy_from(nx.planted_partition_graph(
-            l, k, p_in, p_out, seed=seed, directed=True
-        ))
-
-    def gaussian_random_partition_graph(self, n, s, v, p_in, p_out, seed=None):
-        return self.copy_from(nx.gaussian_random_partition_graph(
-            n, s, v, p_in, p_out, seed=seed
-        ))
 
     def _lookup_comparator(self, comparator):
         if callable(comparator):
@@ -918,6 +674,12 @@ class FacadePlace(FacadeNode):
             self._real = real_or_name
         else:
             self._real = {'name': real_or_name}
+    
+    def add_thing(self, name):
+        self.facade.add_thing(name, self.name)
+    
+    def new_thing(self, name):
+        return self.facade.new_thing(name, self.name)
 
 
 class FacadeThing(FacadeNode):
@@ -940,10 +702,15 @@ class FacadeThing(FacadeNode):
 
     @property
     def location(self):
-        try:
-            return self.facade.node[self['location']]
-        except KeyError:
-            return None
+        return self.facade.node[self['location']]
+    
+    @location.setter
+    def location(self, v):
+        if isinstance(v, (FacadePlace, FacadeThing)):
+            v = v.name
+        if v not in self.facade.node:
+            raise KeyError("Location {} not present".format(v))
+        self['location'] = v
 
 
 class FacadePortal(FacadeEntity):
@@ -992,7 +759,11 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal):
 
     """
     def _make(self, k, v):
-        return self.facadecls(self, k, **v)
+        kwargs = dict(v)
+        for badkey in ('character', 'engine', 'name'):
+            if badkey in kwargs:
+                del kwargs[badkey]
+        return self.facadecls(self, k, **kwargs)
 
     engine = getatt('facade.engine')
 
@@ -1102,17 +873,10 @@ class FacadePortalMapping(FacadeEntityMapping):
             ret = nuret
         return ret
 
-    def __setitem__(self, node, value):
-        v = self.cls(self.facade, node)
-        v.update(value)
-        self._patch[node] = v
-
-    def __delitem__(self, node):
-        self._patch[node] = None
-
 
 class Facade(AbstractCharacter, nx.DiGraph):
     engine = getatt('character.engine')
+    db = getatt('character.engine')
 
     def __getstate__(self):
         ports = {}
@@ -1176,7 +940,8 @@ class Facade(AbstractCharacter, nx.DiGraph):
     def remove_thing(self, thing):
         del self.thing[thing]
 
-    def add_thing(self, name, **kwargs):
+    def add_thing(self, name, location, **kwargs):
+        kwargs['location'] = location
         self.thing[name] = kwargs
 
     def add_portal(self, orig, dest, symmetrical=False, **kwargs):
@@ -1216,7 +981,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
 
         def _get_inner_map(self):
             try:
-                return self.facade.character.place
+                return self.facade.character._node
             except AttributeError:
                 return {}
 
@@ -1231,7 +996,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
 
         def _get_inner_map(self):
             try:
-                return self.facade.character.portal
+                return self.facade.character._adj
             except AttributeError:
                 return {}
 
@@ -1239,11 +1004,11 @@ class Facade(AbstractCharacter, nx.DiGraph):
         cls = FacadePortalPredecessors
 
         def __contains__(self, item):
-            return item in self.facade.node
+            return item in self.facade._node
 
         def _get_inner_map(self):
             try:
-                return self.facade.character.preportal
+                return self.facade.character.pred
             except AttributeError:
                 return {}
 
@@ -1348,10 +1113,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
     def __repr__(self):
         return "{}.character[{}]".format(repr(self.engine), repr(self.name))
 
-    def __init__(self, engine, name, data=None,
-                 *, init_rulebooks=True, **attr):
-        from allegedb.cache import FuturistWindowDict, PickyDefaultDict
-        super().__init__(engine, name, data, **attr)
+    def __init__(self, engine, name,
+                 *, init_rulebooks=True):
+        super().__init__(engine, name)
         self._avatars_cache = PickyDefaultDict(FuturistWindowDict)
         if not init_rulebooks:
             return
@@ -1364,8 +1128,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         }
         for rulebook, cache in cachemap.items():
             branch, turn, tick = engine._nbtt()
-            rulebook_or_name = attr.get(rulebook, (name, rulebook))
-            rulebook_name = getattr(rulebook_or_name, 'name', rulebook_or_name)
+            rulebook_name = (name, rulebook)
             engine.query._set_rulebook_on_character(
                 rulebook, name, branch, turn, tick, rulebook_name)
             cache.store((name, rulebook), branch, turn, tick, rulebook_name)
@@ -1458,6 +1221,65 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         def _get_rulebook_cache(self):
             return self.engine._characters_places_rulebooks_cache
+
+        def update(self, __m, **kwargs) -> None:
+            engine = self.engine
+            store_node = engine._nodes_cache.store
+            store_node_val = engine._node_val_cache.store
+            iter_node_keys = engine._node_val_cache.iter_keys
+            exist_node = engine.query.exist_node
+            node_val_set = engine.query.node_val_set
+            branch, turn, start_tick = engine._btt()
+            tick = start_tick + 1
+            charn = self.character.name
+            planning = engine._planning
+            forward = engine._forward
+            with timer("seconds spent updating PlaceMapping"):
+                for node, val in chain(__m.items(), kwargs.items()):
+                    if val is None:
+                        for key in iter_node_keys(
+                            charn, node, branch, turn, start_tick,
+                            forward=forward
+                        ):
+                            store_node_val(
+                                charn, node, key, branch, turn, tick, None,
+                                planning=planning, forward=forward,
+                                loading=True
+                            )
+                            node_val_set(
+                                charn, node, key, branch, turn, tick, None
+                            )
+                            tick += 1
+                        store_node(
+                            charn, node, branch, turn, tick, False,
+                            planning=planning, forward=forward,
+                            loading=True
+                        )
+                        exist_node(
+                            charn, node, branch, turn, tick, False
+                        )
+                        tick += 1
+                    else:
+                        store_node(
+                            charn, node, branch, turn, tick, True,
+                            planning=planning, forward=forward,
+                            loading=True
+                        )
+                        exist_node(
+                            charn, node, branch, turn, tick, True
+                        )
+                        tick += 1
+                        for k, v in val.items():
+                            store_node_val(
+                                charn, node, k, branch, turn, tick, v,
+                                planning=planning, forward=forward,
+                                loading=True
+                            )
+                            exist_node(
+                                charn, node, k, branch, turn, tick, v
+                            )
+                            tick += 1
+            engine.tick = tick
 
         def __init__(self, character):
             """Store the character."""
@@ -1554,12 +1376,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         def __setitem__(self, place, v):
             node_exists, exist_node, get_node, charn, character \
                 = self._set_stuff
-            if not node_exists(charn, place):
-                exist_node(charn, place, True)
+            exist_node(charn, place, True)
             pl = get_node(character, place)
             if not isinstance(pl, Place):
                 raise KeyError("{} is not a place".format(place))
-            pl.clear()
             pl.update(v)
             self.send(self, key=place, val=v)
 
@@ -1628,6 +1448,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         character = getatt('graph')
         engine = getatt('graph.engine')
+        upd_succs_time = 0
 
         def __init__(self, graph):
             super().__init__(graph)
@@ -1648,18 +1469,86 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 return cache[orig]
             raise KeyError("No such node")
 
-        def __setitem__(self, orig, val):
-            cache, Successors = self._setitem_stuff
-            if orig not in cache:
-                cache[orig] = Successors(self, orig)
-            sucs = cache[orig]
-            sucs.clear()
-            sucs.update(val)
-            self.send(self, key=orig, val=sucs)
-
         def __delitem__(self, orig):
             super().__delitem__(orig)
             self.send(self, key=orig, val=None)
+
+        def update(self, other, **kwargs):
+            """Recursively update the stats of all portals
+
+            Input should be a dictionary of dictionaries of dictionaries
+            --just like networkx ``DiGraph._edge``.
+
+            This will create portals as needed, but will only delete
+            them if you set their value to ``None``. Likewise, stats
+            not specified in the input will be left untouched, if they
+            are already present, but you can set them to ``None`` to
+            delete them.
+
+            """
+            engine = self.engine
+            planning = engine._planning
+            forward = engine._forward
+            branch, turn, start_tick = engine._btt()
+            exist_edge = engine.query.exist_edge
+            edge_val_set = engine.query.edge_val_set
+            store_edge = engine._edges_cache.store
+            store_edge_val = engine._edge_val_cache.store
+            iter_edge_keys = engine._edge_val_cache.iter_entity_keys
+            charn = self.character.name
+            tick = start_tick + 1
+            with timer("seconds spent updating PortalSuccessorsMapping"):
+                for orig, dests in chain(other.items(), kwargs.items()):
+                    for dest, kvs in dests.items():
+                        if kvs is None:
+                            for k in iter_edge_keys(
+                                charn, orig, dest, 0, branch, turn, start_tick,
+                                forward=forward
+                            ):
+                                store_edge_val(
+                                    charn, orig, dest, 0, k,
+                                    branch, turn, tick, None,
+                                    planning=planning, forward=forward,
+                                    loading=True
+                                )
+                                edge_val_set(
+                                    charn, orig, dest, 0, k,
+                                    branch, turn, tick, None
+                                )
+                                tick += 1
+                            store_edge(
+                                charn, orig, dest, 0,
+                                branch, turn, tick, False,
+                                planning=planning, forward=forward,
+                                loading=True
+                            )
+                            exist_edge(
+                                charn, orig, dest, 0, branch, turn, tick, False
+                            )
+                            tick += 1
+                        else:
+                            store_edge(
+                                charn, orig, dest, 0, branch, turn, tick, True,
+                                planning=planning, forward=forward,
+                                loading=True
+                            )
+                            exist_edge(
+                                charn, orig, dest, 0, branch, turn, tick, True
+                            )
+                            tick += 1
+                            for k, v in kvs.items():
+                                store_edge_val(
+                                    charn, orig, dest, 0,
+                                    k, branch, turn, tick, v,
+                                    planning=planning, forward=forward,
+                                    loading=True
+                                )
+                                edge_val_set(
+                                    charn, orig, dest, 0,
+                                    k, branch, turn, tick, v
+                                )
+                                tick += 1
+            engine.tick = tick
 
         class Successors(DiGraphSuccessorsMapping.Successors):
             """Mapping for possible destinations from some node."""
@@ -1678,8 +1567,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 engine = graph.engine
                 self._getitem_stuff = (engine._get_edge, graph, orig) 
                 self._setitem_stuff = (
-                    engine._exist_edge, graph.name, orig,
-                    engine._get_edge, graph
+                    engine._edge_exists, engine._exist_edge, graph.name, orig,
+                    engine._get_edge, graph, engine.query.edge_val_set,
+                    engine._edge_val_cache.store, engine._nbtt
                 )
                 
             def __getitem__(self, dest):
@@ -1691,21 +1581,70 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 ))
 
             def __setitem__(self, dest, value):
-                exist_edge, charn, orig, get_edge, graph = self._setitem_stuff
+                if value is None:
+                    del self[dest]
+                    return
+                (edge_exists, exist_edge, charn, orig, get_edge, graph,
+                 db_edge_val_set, edge_val_cache_store, nbtt
+                 ) = self._setitem_stuff
                 exist_edge(
                     charn,
                     orig,
                     dest
                 )
-                p = get_edge(graph, orig, dest, 0)
-                p.clear()
-                p.update(value)
-                self.send(self, key=dest, val=p)
+                for k, v in value.items():
+                    branch, turn, tick = nbtt()
+                    db_edge_val_set(charn, orig, dest, 0, k,
+                                    branch, turn, tick, v)
+                    edge_val_cache_store(charn, orig, dest, 0, k,
+                                         branch, turn, tick, v)
+                self.send(self, key=dest, val=value)
 
             def __delitem__(self, dest):
                 if dest not in self:
                     raise KeyError("No portal to {}".format(dest))
                 self[dest].delete()
+
+            def update(self, other, **kwargs):
+                charn = self.graph.name
+                orig = self.orig
+                engine = self.engine
+                store_edge = engine._edges_cache.store
+                exist_edge = engine.query.exist_edge
+                store_edge_val = engine._edge_val_cache.store
+                set_edge_val = engine.query.edge_val_set
+                iter_edge_keys = engine._edge_val_cache.iter_entity_keys
+                planning = engine._planning
+                forward = engine._forward
+                branch, turn, start_tick = engine._btt()
+                tick = start_tick + 1
+                for dest, val in chain(other.items(), kwargs.items()):
+                    if val is None:
+                        for k in iter_edge_keys(
+                            charn, orig, dest, 0, branch, turn, start_tick
+                        ):
+                            store_edge_val(
+                                charn, orig, dest, 0,
+                                k, branch, turn, tick, None,
+                                planning=planning, forward=forward,
+                                loading=True
+                            )
+                            set_edge_val(
+                                charn, orig, dest, 0,
+                                k, branch, turn, tick, None
+                            )
+                            tick += 1
+                        store_edge(
+                            charn, orig, dest, 0, branch, turn, tick, None,
+                            planning=planning, forward=forward,
+                            loading=True
+                        )
+                        exist_edge(
+                            charn, orig, dest, 0, branch, turn, tick, None
+                        )
+                        tick += 1
+
+
     adj_cls = PortalSuccessorsMapping
 
     class PortalPredecessorsMapping(
@@ -1869,10 +1808,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         class CharacterAvatarMapping(Mapping):
             """Mapping of avatars of one Character in another Character."""
             def __init__(self, outer, graphn):
-                """Store the character and the name of the "graph", ie. the other
-                character.
-
-                """
+                """Store this character and the name of the other one"""
                 self.character = character = outer.character
                 self.engine = engine = outer.engine
                 self.name = name = outer.name
@@ -1916,6 +1852,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
             @property
             def only(self):
+                """If I have only one avatar, return it; else error"""
                 mykey = singleton_get(self.keys())
                 if mykey is None:
                     raise AttributeError("No avatar, or more than one")
@@ -1946,11 +1883,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         raise KeyError("No such thing: {}".format(thing))
 
     def add_thing(self, name, location, **kwargs):
-        """Create a Thing, set its location,
-        and set its initial attributes from the keyword arguments (if
-        any).
-
-        """
+        """Make a new Thing and set its location"""
         if name in self.thing:
             raise WorldIntegrityError(
                 "Already have a Thing named {}".format(name)
@@ -2028,8 +1961,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         return self.engine._get_edge(self, origin, destination, 0)
 
     def add_portals_from(self, seq, symmetrical=False):
-        """Take a sequence of (origin, destination) pairs and make a
-        :class:`Portal` for each.
+        """Make portals for a sequence of (origin, destination) pairs
 
         Actually, triples are acceptable too, in which case the third
         item is a dictionary of stats for the new :class:`Portal`.

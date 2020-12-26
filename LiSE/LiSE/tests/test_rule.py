@@ -19,8 +19,10 @@ import os
 from LiSE.engine import Engine
 
 
-def something_dot_rule_test(something, eng):
+def something_dot_rule_test(something, engy):
     """Utility function to test some rule-follower"""
+    eng = engy
+
     @something.rule
     def somerule():
         pass

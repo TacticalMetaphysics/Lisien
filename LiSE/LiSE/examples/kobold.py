@@ -36,7 +36,9 @@ def inittest(
 ):
     # initialize world
     phys = engine.new_character('physical', data=nx.grid_2d_graph(*mapsize))
+    assert len(phys.place) == mapsize[0] * mapsize[1]
     kobold = phys.new_thing("kobold", kobold_pos)
+    assert len(phys.thing) == 1
     kobold['sprint_chance'] = kobold_sprint_chance
     kobold['_image_paths'] = ['atlas://rltiles/base.atlas/kobold_m']
     dwarf = phys.new_thing("dwarf", dwarf_pos)
@@ -44,22 +46,20 @@ def inittest(
     dwarf['seen_kobold'] = False
     dwarf['_image_paths'] = ['atlas://rltiles/base.atlas/dwarf_m']
     # randomly place the shrubberies and add their locations to shrub_places
-    n = 0
     locs = list(phys.place.keys())
     engine.shuffle(locs)
     shrub_places = []
-    while n < shrubberies:
+    while len(shrub_places) < shrubberies:
         loc = locs.pop()
         phys.add_thing(
-            "shrub" + str(n),
+            "shrub" + str(len(shrub_places)),
             loc,
             cover=1,
             _image_paths=['atlas://rltiles/dc-mon.atlas/fungus'],
             _group='shrub'
         )
         shrub_places.append(loc)
-        n += 1
-    print('{} shrubberies: {}'.format(n, shrub_places))
+    print('{} shrubberies: {}'.format(len(shrub_places), shrub_places))
     kobold['shrub_places'] = shrub_places
 
     # Basic day night cycle
@@ -193,11 +193,7 @@ def inittest(
 if __name__ == '__main__':
     from LiSE.engine import Engine
     from os import remove
-    try:
-        remove('world.db')
-    except FileNotFoundError:
-        pass
-    with Engine('world.db', random_seed=69105) as engine:
+    with Engine(random_seed=69105, clear=True) as engine:
         inittest(engine, shrubberies=20, kobold_sprint_chance=.9)
         engine.commit()
         print('shrub_places beginning: {}'.format(

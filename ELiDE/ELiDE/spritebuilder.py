@@ -233,6 +233,6 @@ Builder.load_string("""
     SpotConfigDialog:
         id: dialog
         toggle: root.toggle
-        default_imgpaths: ['orb.png']
+        default_imgpaths: ['atlas://rltiles/floor/floor-stone']
         data: root.data
 """)

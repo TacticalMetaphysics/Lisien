@@ -22,7 +22,7 @@ from kivy.properties import (
     ObjectProperty,
     ReferenceListProperty
 )
-from .board.arrow import ArrowWidget
+from .graph.arrow import GraphArrowWidget
 from .util import try_load, dummynum
 from LiSE.proxy import CharStatProxy
 
@@ -58,7 +58,7 @@ class CharMenu(BoxLayout):
         self.screen.boardview.reciprocal_portal = self.reciprocal_portal
         if self.reciprocal_portal:
             assert (self.revarrow is None)
-            self.revarrow = ArrowWidget(
+            self.revarrow = GraphArrowWidget(
                 board=self.screen.boardview.board,
                 origin=self.ids.emptyright,
                 destination=self.ids.emptyleft
@@ -69,10 +69,19 @@ class CharMenu(BoxLayout):
         )
 
     def spot_from_dummy(self, dummy):
+        if self.screen.boardview.parent != self.screen.mainview:
+            return
         self.screen.boardview.spot_from_dummy(dummy)
 
     def pawn_from_dummy(self, dummy):
-        self.screen.boardview.pawn_from_dummy(dummy)
+        name = dummy.name
+        self.screen.mainview.children[0].pawn_from_dummy(dummy)
+        graphboard = self.screen.graphboards[self.app.character_name]
+        if name not in graphboard.pawn:
+            graphboard.add_pawn(name)
+        gridboard = self.screen.gridboards[self.app.character_name]
+        if name not in gridboard.pawn:
+            gridboard.add_pawn(name)
 
     def toggle_chars_screen(self, *args):
         """Display or hide the list you use to switch between characters."""
@@ -111,7 +120,11 @@ class CharMenu(BoxLayout):
                 dummyplace.num = dummynum(
                     self.app.character, dummyplace.prefix
                 ) + 1
-            dummyplace.paths = self.app.spotcfg.imgpaths
+            if self.app.spotcfg.imgpaths:
+                dummyplace.paths = self.app.spotcfg.imgpaths
+            else:
+                dummyplace.paths = ['atlas://rltiles/floor/floor-stone']
+            dummyplace.center = self.ids.placetab.center
             self.ids.placetab.add_widget(dummyplace)
         else:
             self.app.spotcfg.prefix = self.ids.dummyplace.prefix
@@ -146,7 +159,7 @@ class CharMenu(BoxLayout):
         self.screen.boardview.reciprocal_portal = not self.screen.boardview.reciprocal_portal
         if self.screen.boardview.reciprocal_portal:
             assert(self.revarrow is None)
-            self.revarrow = ArrowWidget(
+            self.revarrow = GraphArrowWidget(
                 board=self.screen.boardview.board,
                 origin=self.ids.emptyright,
                 destination=self.ids.emptyleft
@@ -171,7 +184,7 @@ class CharMenu(BoxLayout):
 
     def on_dummyplace(self, *args):
         if not self.dummyplace.paths:
-            self.dummyplace.paths = ["orb.png"]
+            self.dummyplace.paths = ["atlas://rltiles/floor.atlas/floor-stone"]
 
     def on_dummything(self, *args):
         if not self.dummything.paths:
@@ -224,8 +237,8 @@ Builder.load_string("""
                 center_x: portaladdbut.right - portaladdbut.width / 3
                 center_y: portaladdbut.center_y
                 size: (0, 0)
-            ArrowWidget:
-                board: root.screen.boardview.board if root.screen and root.screen.boardview else None
+            GraphArrowWidget:
+                graph: root.screen.boardview.graph if root.screen and root.screen.boardview else None
                 origin: emptyleft
                 destination: emptyright
         Button:

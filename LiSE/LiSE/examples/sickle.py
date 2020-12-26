@@ -220,9 +220,5 @@ def sickle_cell_test(
 
 
 if __name__ == '__main__':
-    try:
-        remove('world.db')
-    except OSError:
-        pass
-    with Engine('world.db', random_seed=69105) as engine:
+    with Engine(random_seed=69105, clear=True) as engine:
         sickle_cell_test(engine)

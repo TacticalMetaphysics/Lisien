@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Exception classes for use in LiSE."""
-from allegedb.query import IntegrityError, TimeError
+from .allegedb.query import IntegrityError, TimeError
 
 try:
     from sqlalchemy.exc import OperationalError as alchemyOpError

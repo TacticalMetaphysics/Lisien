@@ -27,7 +27,7 @@ contained by Places, or possibly other Things.
 import networkx as nx
 from .node import Node
 from .exc import TravelException
-from allegedb.cache import HistoryError
+from .allegedb import HistoryError
 
 
 def roerror(*args, **kwargs):
@@ -49,15 +49,11 @@ class Thing(Node):
 
     extrakeys = {
         'name',
-        'character',
         'location'
     }
 
     def _getname(self):
         return self.name
-
-    def _getcharname(self):
-        return self.character.name
 
     def _getloc(self):
         return self.engine._things_cache.retrieve(
@@ -88,22 +84,13 @@ class Thing(Node):
 
     _getitem_dispatch = {
         'name': _getname,
-        'character': _getcharname,
         'location': _getloc
     }
 
     _setitem_dispatch = {
         'name': roerror,
-        'character': roerror,
-        'arrival_time': roerror,
-        'next_arrival_time': roerror,
         'location': _set_loc
     }
-
-    def __contains__(self, key):
-        if key in self.extrakeys:
-            return True
-        return super().__contains__(key)
 
     def __getitem__(self, key):
         """Return one of my stats stored in the database, or a few
@@ -158,7 +145,11 @@ class Thing(Node):
     @property
     def location(self):
         """The ``Thing`` or ``Place`` I'm in."""
-        return self.engine._get_node(self.character, self['location'])
+        try:
+            locn = self['location']
+        except KeyError:
+            return None
+        return self.engine._get_node(self.character, locn)
 
     @location.setter
     def location(self, v):

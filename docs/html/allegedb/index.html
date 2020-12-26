@@ -1,0 +1,172 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>allegedb &#8212; LiSE 0.9dev documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="allegedb">
+<h1>allegedb<a class="headerlink" href="#allegedb" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>State container and object-relational mapper for versioned graphs.</p>
+<p>allegedb serves its own special variants on the networkx graph classes:
+Graph, DiGraph, MultiGraph, and MultiDiGraph. Every change to them is
+stored in an SQL database.</p>
+<p>This means you can keep multiple versions of one set of graphs and
+switch between them without the need to save, load, or run git-checkout.
+Just point the ORM at the correct branch and turn, and all of the
+graphs in the program will change. All the different branches and
+revisions remain in the database to be brought back when needed.</p>
+<div class="section" id="usage">
+<h2>usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">allegedb</span> <span class="kn">import</span> <span class="n">ORM</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span> <span class="o">=</span> <span class="n">ORM</span><span class="p">(</span><span class="s1">&#39;sqlite:///test.db&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">new_graph</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>  <span class="c1"># also new_digraph, new_multigraph, new_multidigraph</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">add_nodes_from</span><span class="p">([</span><span class="s1">&#39;spam&#39;</span><span class="p">,</span> <span class="s1">&#39;eggs&#39;</span><span class="p">,</span> <span class="s1">&#39;ham&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s1">&#39;spam&#39;</span><span class="p">,</span> <span class="s1">&#39;eggs&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">adj</span>
+<span class="go">{&#39;eggs&#39;: {&#39;spam&#39;: Edge(graph=test, orig=eggs, dest=spam)}, &#39;ham&#39;: {}, &#39;spam&#39;: {}}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">g</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">orm</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span> <span class="o">=</span> <span class="n">ORM</span><span class="p">(</span><span class="s1">&#39;sqlite:///test.db&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="s1">&#39;test&#39;</span><span class="p">]</span>  <span class="c1"># returns whatever graph type you stored by that name</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">adj</span>
+<span class="go">{&#39;eggs&#39;: {&#39;spam&#39;: Edge(graph=test, orig=eggs, dest=spam)}, &#39;ham&#39;: {}, &#39;spam&#39;: {}}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">random_lobster</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blue</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">new_digraph</span><span class="p">(</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">red</span><span class="p">)</span>  <span class="c1"># initialize with data from the given graph</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">adj</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">adj</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">turn</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blue</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="mi">15</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">adj</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">adj</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">turn</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># undoing what I did when turn=1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">adj</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">adj</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">branch</span> <span class="o">=</span> <span class="s1">&#39;test&#39;</span>    <span class="c1"># navigating to a branch for the first time creates that branch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">turn</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">adj</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">adj</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">branch</span> <span class="o">=</span> <span class="s1">&#39;trunk&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">adj</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">adj</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="orm">
+<h2>ORM<a class="headerlink" href="#orm" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="cache">
+<h2>cache<a class="headerlink" href="#cache" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="graph">
+<h2>graph<a class="headerlink" href="#graph" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="query">
+<h2>query<a class="headerlink" href="#query" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="wrap">
+<h2>wrap<a class="headerlink" href="#wrap" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">LiSE</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../manual.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../manual.html#ide">IDE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ELiDE/index.html">ELiDE</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/allegedb/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -2,7 +2,7 @@ from multiprocessing import freeze_support
 import sys
 import os
 wd = os.getcwd()
-sys.path.extend([wd + '/LiSE', wd + '/ELiDE', wd + '/allegedb'])
+sys.path.extend([wd + '/LiSE', wd + '/ELiDE'])
 
 
 def get_application_config(*args):

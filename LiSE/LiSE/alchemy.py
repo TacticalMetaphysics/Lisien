@@ -36,7 +36,7 @@ Column = partial(BaseColumn, nullable=False)
 
 from json import dumps
 
-import allegedb.alchemy
+from .allegedb import alchemy
 
 
 def tables_for_meta(meta):
@@ -44,7 +44,7 @@ def tables_for_meta(meta):
     provided metadata object.
 
     """
-    allegedb.alchemy.tables_for_meta(meta)
+    alchemy.tables_for_meta(meta)
 
     # Table for global variables that are not sensitive to sim-time.
     Table(
@@ -522,7 +522,7 @@ def queries(table):
         tab = wherecols[0].table
         return tab.update().values(**vmap).where(and_(*wheres))
 
-    r = allegedb.alchemy.queries_for_table_dict(table)
+    r = LiSE.allegedb.alchemy.queries_for_table_dict(table)
 
     rulebooks = table['rulebooks']
     r['rulebooks_update'] = update_where(['rules'], [rulebooks.c.rulebook, rulebooks.c.branch, rulebooks.c.turn, rulebooks.c.tick])

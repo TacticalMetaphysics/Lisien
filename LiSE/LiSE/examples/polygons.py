@@ -16,6 +16,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Implementation of Parable of the Polygons http://ncase.me/polygons/"""
 
+from LiSE.character import grid_2d_8graph
+
 
 def install(eng):
     @eng.function
@@ -49,6 +51,8 @@ def install(eng):
             poly.engine.universal['unoccupied'] = [place for place in poly.character.place.values() if not place.content]
         unoccupied = poly.engine.universal['unoccupied']
         newloc = unoccupied.pop(poly.engine.randrange(0, len(unoccupied)))
+        while not newloc:  # the unoccupied location may have been deleted
+            newloc = unoccupied.pop(poly.engine.randrange(0, len(unoccupied)))
         unoccupied.append(poly.location)
         poly.location = newloc
 
@@ -73,15 +77,14 @@ def install(eng):
         _config={
             'min_sameness': {'control': 'slider', 'min': 0.0, 'max': 1.0},
             'max_sameness': {'control': 'slider', 'min': 0.0, 'max': 1.0}
-        }
+        },
+        data=grid_2d_8graph(20, 20)
     )
     square = eng.new_character('square')
     triangle = eng.new_character('triangle')
     square.avatar.rulebook = triangle.avatar.rulebook = 'parable'
 
 
-    # make an 8-way-connected grid
-    physical.grid_2d_8graph(20, 20)
     empty = list(physical.place.values())
     eng.shuffle(empty)
     # distribute 30 of each shape randomly among the empty places
@@ -94,12 +97,8 @@ def install(eng):
 if __name__ == '__main__':
     import os
     from LiSE import Engine
-    for stale in ('world.db', 'trigger.py', 'prereq.py', 'action.py', 'function.py', 'method.py'):
-        if os.path.exists(stale):
-            os.remove(stale)
-    with Engine() as eng:
-        with eng.batch():
-            install(eng)
+    with Engine(clear=True) as eng, eng.batch():
+        install(eng)
     import sys
     if '--profile' in sys.argv:
         import cProfile

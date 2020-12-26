@@ -86,8 +86,9 @@ class StatRowListItem(Widget):
         self.bind(value=self._push)
 
     def _pull(self, *args, **kwargs):
-        Clock.unschedule(self._really_pull)
-        Clock.schedule_once(self._really_pull, 0)
+        if hasattr(self, '_scheduled_pull'):
+            Clock.unschedule(self._scheduled_pull)
+        self._scheduled_pull = Clock.schedule_once(self._really_pull, 0)
 
 
 class StatRowLabel(StatRowListItem, Label):
@@ -327,6 +328,7 @@ class BaseStatListView(RecycleView):
     """A :class:`LiSE.proxy.EngineProxy` object"""
     app = ObjectProperty()
     """The Kivy app object"""
+    _scheduled_set_value = DictProperty()
 
     def __init__(self, **kwargs):
         self._listeners = {}
@@ -358,11 +360,14 @@ class BaseStatListView(RecycleView):
             except (TypeError, ValueError):
                 vv = v
             self.proxy[k] = vv
+        if (k, v) in self._scheduled_set_value:
+            del self._scheduled_set_value[k, v]
 
     def _trigger_set_value(self, k, v, *args):
         todo = partial(self.set_value, k, v)
-        Clock.unschedule(todo)
-        Clock.schedule_once(todo, 0)
+        if (k, v) in self._scheduled_set_value:
+            Clock.unschedule(self._scheduled_set_value[k, v])
+        self._scheduled_set_value[k, v] = Clock.schedule_once(todo, 0)
 
     def init_config(self, key):
         """Set the configuration for the key to something that will always work"""
@@ -391,14 +396,16 @@ class BaseStatListView(RecycleView):
 
     def iter_data(self):
         """Iterate over key-value pairs that are really meant to be displayed"""
+        invalid = {
+            'character',
+            'name',
+            'location',
+            'rulebooks'
+        }
         for (k, v) in self.proxy.items():
             if (
                 not (isinstance(k, str) and k[0] == '_') and
-                k not in (
-                    'character',
-                    'name',
-                    'location'
-                )
+                k not in invalid
             ):
                 yield k, v
 
@@ -425,8 +432,9 @@ class BaseStatListView(RecycleView):
         self.data = sorted(data, key=lambda d: d['key'])
 
     def _trigger_upd_data(self, *args, **kwargs):
-        Clock.unschedule(self.upd_data)
-        Clock.schedule_once(self.upd_data, 0)
+        if hasattr(self, '_scheduled_upd_data'):
+            Clock.unschedule(self._scheduled_upd_data)
+        self._scheduled_upd_data = Clock.schedule_once(self.upd_data, 0)
 
     def _reg_widget(self, w, *args):
         if not self.proxy:
