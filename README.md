@@ -93,7 +93,7 @@ You could now start the graphical frontend with ``python3 -mELiDE``, but this mi
 have any world state to edit yet. You could laboriously assemble a gameworld by hand, but instead
 let's generate one, Parable of the Polygons by Nicky Case.
 
-Make a new Python script, let's say 'polygons.py', and write the following in it:
+Make a new Python script, let's say 'polygons.py', and write the following in it (or use the [example version](https://github.com/LogicalDash/LiSE/blob/master/LiSE/LiSE/examples/polygons.py)):
 
 ```python
 from LiSE import Engine
