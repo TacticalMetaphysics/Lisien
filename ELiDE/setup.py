@@ -28,6 +28,7 @@ setup(
     packages=[
         "ELiDE",
         "ELiDE.graph",
+        "ELiDE.grid",
         "ELiDE.kivygarden.texturestack"
     ],
     package_dir={
