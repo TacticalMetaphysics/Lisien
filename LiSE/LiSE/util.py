@@ -19,7 +19,16 @@
 from collections.abc import Set
 from operator import attrgetter, add, sub, mul, pow, truediv, floordiv, mod
 from functools import partial
+from contextlib import contextmanager
 from textwrap import dedent
+from time import monotonic
+
+
+@contextmanager
+def timer(msg=''):
+    start = monotonic()
+    yield
+    print("{:,.3f} {}".format(monotonic() - start, msg))
 
 
 def getatt(attribute_name):

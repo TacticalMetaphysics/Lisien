@@ -1,10 +1,8 @@
 LiSE is an application for developing life simulation games.
 
-[Documentation](https://logicaldash.github.io/LiSE)
+[Documentation](https://logicaldash.github.io/LiSE/manual.html)
 
 [Development blog](http://forums.tigsource.com/index.php?topic=35227.0)
-
-[Survey for prospective users](https://goo.gl/7N1TBj)
 
 # What is a life simulation game?
 
@@ -72,7 +70,7 @@ git clone https://github.com/LogicalDash/LiSE.git
 cd LiSE
 git submodule init
 git submodule update
-pip3 install --user allegedb\ LiSE\ ELiDE\
+pip3 install --user LiSE\ ELiDE\
 ```
 
 ## Linux
@@ -88,7 +86,7 @@ git clone https://github.com/LogicalDash/LiSE.git
 cd LiSE
 git submodule init
 git submodule update
-pip3 install --user allegedb/ LiSE/ ELiDE/
+pip3 install --user LiSE/ ELiDE/
 ```
 
 You could now start the graphical frontend with ``python3 -mELiDE``, but this might not be very useful, as you don't
@@ -99,14 +97,15 @@ Make a new Python script, let's say 'polygons.py', and write the following in it
 
 ```python
 from LiSE import Engine
+import networkx as nx
 
 with Engine(clear=True) as eng:
-    phys = eng.new_character('physical').grid_2d_graph(20, 20)
+    phys = eng.new_character('physical', nx.grid_2d_graph(20, 20))
     tri = eng.new_character('triangle')
     sq = eng.new_character('square')
 ```
 
-This starts a new game with its world state stored in 'polygons.db'. Because of ``clear`` being
+This starts a new game with its world state stored in the file 'world.db'. Because of ``clear`` being
 ``True``, it will delete any existing world state and game code each time it's run, which is often useful when you're
 getting started. It creates three characters, one of which, named 'physical', has a 20x20 grid in it.
 The others are empty, and in fact we don't intend to put any graph in them; they're just for keeping track of things
@@ -131,7 +130,7 @@ they have locations -- each square and triangle is located in a place in the gra
 
 The new_thing method of a place object creates a new thing and puts it there. You have to give the thing a name as its
 first argument. You can supply further keyword arguments to customize the thing's stats; in this case, I've given
-the things graphics representing what shape they are. If you wanted, you could set the _image_paths to a list of paths
+the things graphics representing what shape they are. If you wanted, you could set the `_image_paths` to a list of paths
 to whatever graphics. The 'atlas://' in the front is only necessary if you're using graphics packed in the way that the default ones are;
 [read about atlases](https://kivy.org/doc/stable/api-kivy.atlas.html) if you like, or just use some .png files you have lying around.
 

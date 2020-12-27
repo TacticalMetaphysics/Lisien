@@ -40,10 +40,11 @@ import ELiDE.statcfg
 import ELiDE.spritebuilder
 import ELiDE.rulesview
 import ELiDE.charsview
-from ELiDE.board.board import Board
-from ELiDE.board.arrow import ArrowWidget
-from ELiDE.board.spot import Spot
-from ELiDE.board.pawn import Pawn
+from ELiDE.graph.board import GraphBoard
+from ELiDE.graph.arrow import GraphArrowWidget
+from ELiDE.graph.spot import GraphSpot
+from ELiDE.graph.pawn import Pawn
+from ELiDE.grid.board import GridBoard
 from .util import trigger
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
@@ -63,6 +64,7 @@ class ELiDEApp(App):
     character = ObjectProperty()
     selection = ObjectProperty(None, allownone=True)
     selected_proxy = ObjectProperty()
+    statcfg = ObjectProperty()
 
     def on_selection(self, *args):
         Logger.debug("App: {} selected".format(self.selection))
@@ -107,6 +109,7 @@ class ELiDEApp(App):
         self.tick = int(t)
 
     def set_turn(self, t):
+        """Set the turn to the given value, cast to an integer"""
         self.turn = int(t)
 
     def select_character(self, char):
@@ -139,7 +142,6 @@ class ELiDEApp(App):
                 'user_kv': 'yes',
                 'play_speed': '1',
                 'thing_graphics': json.dumps([
-                    ("Marsh Davies' Island", 'marsh_davies_island_fg.atlas'),
                     ('RLTiles: Body', 'base.atlas'),
                     ('RLTiles: Basic clothes', 'body.atlas'),
                     ('RLTiles: Armwear', 'arm.atlas'),
@@ -152,19 +154,14 @@ class ELiDEApp(App):
                     ('RLTiles: Headwear', 'head.atlas')
                 ]),
                 'place_graphics': json.dumps([
-                    ("Marsh Davies' Island", 'marsh_davies_island_bg.atlas'),
-                    ("Marsh Davies' Crypt", 'marsh_davies_crypt.atlas'),
-                    ('RLTiles: Dungeon', 'dungeon.atlas')
+                    ('RLTiles: Dungeon', 'dungeon.atlas'),
+                    ('RLTiles: Floor', 'floor.atlas')
                 ])
             }
         )
         config.write()
 
     def build(self):
-        """Make sure I can use the database, create the tables as needed, and
-        return the root widget.
-
-        """
         self.icon = 'icon_24px.png'
         config = self.config
         Logger.debug(
@@ -185,7 +182,6 @@ class ELiDEApp(App):
             from kivy.modules import inspector
             inspector.create_inspector(Window, self.manager)
         
-        self._start_subprocess()
         self._add_screens()
         return self.manager
 
@@ -198,20 +194,22 @@ class ELiDEApp(App):
     def _pull_time_from_signal(self, *args, branch, turn, tick):
         self.branch, self.turn, self.tick = branch, turn, tick
 
-    def _start_subprocess(self, *args):
+    def start_subprocess(self, *args):
+        """Start the LiSE core and get a proxy to it
+
+        Must be called before ``init_board``
+
+        """
         if hasattr(self, '_started'):
             raise ChildProcessError("Subprocess already running")
         config = self.config
-        self.procman = EngineProcessManager()
         enkw = {'logger': Logger}
         if config['LiSE'].get('logfile'):
             enkw['logfile'] = config['LiSE']['logfile']
         if config['LiSE'].get('loglevel'):
             enkw['loglevel'] = config['LiSE']['loglevel']
-        self.engine = self.procman.start(
-            config['LiSE']['world'],
-            **enkw
-        )
+        self.procman = EngineProcessManager()
+        self.engine = engine = self.procman.start(**enkw)
         self.pull_time()
 
         self.engine.time.connect(self._pull_time_from_signal, weak=False)
@@ -224,17 +222,36 @@ class ELiDEApp(App):
             tick=self._push_time
         )
 
+        self.strings.store = self.engine.string
+        self._started = True
+        return engine
+    trigger_start_subprocess = trigger(start_subprocess)
+
+    def init_board(self, *args):
+        """Get the board widgets initialized to display the game state
+
+        Must be called after start_subprocess
+
+        """
         if 'boardchar' not in self.engine.eternal:
             if 'physical' in self.engine.character:
                 self.engine.eternal['boardchar'] = self.engine.character['physical']
             else:
-                self.engine.eternal['boardchar'] = self.engine.new_character('physical')
-        self._started = True
+                chara = self.engine.eternal['boardchar'] = self.engine.new_character('physical')
+        self.chars.names = list(self.engine.character)
+        self.mainscreen.graphboards = {
+                name: GraphBoard(
+                    character=char
+                ) for name, char in self.engine.character.items()
+            }
+        self.mainscreen.gridboards = {
+                name: GridBoard(character=char)
+                for name, char in self.engine.character.items()
+            }
+        self.select_character(self.engine.eternal['boardchar'])
+        self.selected_proxy = self._get_selected_proxy()
 
     def _add_screens(self, *args):
-        if not getattr(self, '_started'):
-            Clock.schedule_once(self._add_screens, 0)
-            return
         def toggler(screenname):
             def tog(*args):
                 if self.manager.current == screenname:
@@ -244,6 +261,11 @@ class ELiDEApp(App):
             return tog
         config = self.config
 
+        self.mainmenu = ELiDE.menu.DirPicker(
+            toggle=toggler('mainmenu'),
+            start=self.start_subprocess
+        )
+
         self.pawncfg = ELiDE.spritebuilder.PawnConfigScreen(
             toggle=toggler('pawncfg'),
             data=json.loads(config['ELiDE']['thing_graphics'])
@@ -252,6 +274,11 @@ class ELiDEApp(App):
         self.spotcfg = ELiDE.spritebuilder.SpotConfigScreen(
             toggle=toggler('spotcfg'),
             data=json.loads(config['ELiDE']['place_graphics'])
+        )
+
+        self.statcfg = ELiDE.statcfg.StatScreen(
+            toggle=toggler('statcfg'),
+            engine=self.engine
         )
 
         self.rules = ELiDE.rulesview.RulesScreen(
@@ -269,7 +296,6 @@ class ELiDEApp(App):
         self.chars = ELiDE.charsview.CharactersScreen(
             engine=self.engine,
             toggle=toggler('chars'),
-            names=list(self.engine.character),
             new_board=self.new_board
         )
         self.bind(character_name=self.chars.setter('character_name'))
@@ -282,8 +308,6 @@ class ELiDEApp(App):
         self.chars.push_character_name = chars_push_character_name
 
         self.strings = ELiDE.stores.StringsEdScreen(
-            language=self.engine.string.language,
-            language_setter=self._set_language,
             toggle=toggler('strings')
         )
 
@@ -292,24 +316,13 @@ class ELiDEApp(App):
             toggle=toggler('funcs')
         )
 
-        self.select_character(self.engine.eternal['boardchar'])
-
-        self.statcfg = ELiDE.statcfg.StatScreen(
-            toggle=toggler('statcfg'),
-            engine=self.engine
-        )
         self.bind(
             selected_proxy=self.statcfg.setter('proxy')
         )
 
         self.mainscreen = ELiDE.screen.MainScreen(
             use_kv=config['ELiDE']['user_kv'] == 'yes',
-            play_speed=int(config['ELiDE']['play_speed']),
-            boards={
-                name: Board(
-                    character=char
-                ) for name, char in self.engine.character.items()
-            }
+            play_speed=int(config['ELiDE']['play_speed'])
         )
         if self.mainscreen.statlist:
             self.statcfg.statlist = self.mainscreen.statlist
@@ -318,8 +331,8 @@ class ELiDEApp(App):
             selection=self.refresh_selected_proxy,
             character=self.refresh_selected_proxy
         )
-        self.selected_proxy = self._get_selected_proxy()
         for wid in (
+                self.mainmenu,
                 self.mainscreen,
                 self.pawncfg,
                 self.spotcfg,
@@ -331,9 +344,10 @@ class ELiDEApp(App):
                 self.funcs
         ):
             self.manager.add_widget(wid)
+        self.manager.current = 'mainmenu'
 
     def update_calendar(self, calendar, past_turns=1, future_turns=5):
-        # TODO: make the turn range configurable
+        """Fill in a calendar widget with actual simulation data"""
         startturn = self.turn - past_turns
         endturn = self.turn + future_turns
         stats = ['_config'] + [
@@ -383,13 +397,16 @@ class ELiDEApp(App):
             Clock.schedule_once(self.on_character, 0)
             return
         if hasattr(self, '_oldchar'):
-            self.mainscreen.boards[self._oldchar.name].unbind(selection=self.setter('selection'))
+            self.mainscreen.graphboards[self._oldchar.name].unbind(selection=self.setter('selection'))
+            self.mainscreen.gridboards[self._oldchar.name].unbind(selection=self.setter('selection'))
         self.selection = None
-        self.mainscreen.boards[self.character.name].bind(selection=self.setter('selection'))
+        self.mainscreen.graphboards[self.character.name].bind(selection=self.setter('selection'))
+        self.mainscreen.gridboards[self.character.name].bind(selection=self.setter('selection'))
 
     def on_pause(self):
         """Sync the database with the current state of the game."""
-        self.engine.commit()
+        if hasattr(self, 'engine'):
+            self.engine.commit()
         self.strings.save()
         self.funcs.save()
         self.config.write()
@@ -398,8 +415,10 @@ class ELiDEApp(App):
         """Sync the database, wrap up the game, and halt."""
         self.strings.save()
         self.funcs.save()
-        self.engine.commit()
-        self.procman.shutdown()
+        if self.engine:
+            self.engine.commit()
+        if hasattr(self, 'procman'):
+            self.procman.shutdown()
         self.config.write()
 
     def delete_selection(self):
@@ -407,7 +426,7 @@ class ELiDEApp(App):
         selection = self.selection
         if selection is None:
             return
-        if isinstance(selection, ArrowWidget):
+        if isinstance(selection, GraphArrowWidget):
             if selection.reciprocal and selection.reciprocal.portal.get('is_mirror', False):
                 selection.reciprocal.portal.delete()
                 self.mainscreen.boardview.board.rm_arrow(
@@ -419,18 +438,24 @@ class ELiDEApp(App):
                 selection.destination.name
             )
             selection.portal.delete()
-        elif isinstance(selection, Spot):
-            self.mainscreen.boardview.board.rm_spot(selection.name)
+        elif isinstance(selection, GraphSpot):
+            charn = selection.board.character.name
+            self.mainscreen.graphboards[charn].rm_spot(selection.name)
+            gridb = self.mainscreen.gridboards[charn]
+            if selection.name in gridb.spot:
+                gridb.rm_spot(selection.name)
             selection.proxy.delete()
         else:
             assert isinstance(selection, Pawn)
-            self.mainscreen.boardview.board.rm_pawn(selection.name)
+            charn = selection.board.character.name
+            self.mainscreen.graphboards[charn].rm_pawn(selection.name)
+            self.mainscreen.gridboards[charn].rm_pawn(selection.name)
             selection.proxy.delete()
         self.selection = None
 
     def new_board(self, name):
-        """Make a board for a character name, and switch to it."""
+        """Make a graph for a character name, and switch to it."""
         char = self.engine.character[name]
-        board = Board(character=char)
-        self.mainscreen.boards[name] = board
+        self.mainscreen.graphboards[name] = GraphBoard(character=char)
+        self.mainscreen.gridboards[name] = GridBoard(character=char)
         self.character = char

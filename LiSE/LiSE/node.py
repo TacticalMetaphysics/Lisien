@@ -19,12 +19,11 @@ Every actual node that you're meant to use will be a place or
 thing. This module is for what they have in common.
 
 """
-from collections import Mapping, ValuesView
+from collections.abc import Mapping, ValuesView
 
 from networkx import shortest_path, shortest_path_length
 
-import allegedb.graph
-from allegedb.cache import HistoryError
+from .allegedb import graph, HistoryError
 
 from .util import getatt
 from .query import StatusAlias
@@ -279,7 +278,7 @@ class UserDescriptor:
             raise
 
 
-class Node(allegedb.graph.Node, rule.RuleFollower):
+class Node(graph.Node, rule.RuleFollower):
     """The fundamental graph component, which edges (in LiSE, "portals")
     go between.
 
@@ -357,9 +356,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
 
     def __contains__(self, k):
         """Handle extra keys, then delegate."""
-        if k in self.extrakeys:
-            return True
-        return super().__contains__(k)
+        return k in self.extrakeys or super().__contains__(k)
 
     def __setitem__(self, k, v):
         super().__setitem__(k, v)
@@ -452,6 +449,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         anymore.
 
         """
+        self.clear()
         if self.name in self.character.portal:
             del self.character.portal[self.name]
         if self.name in self.character.preportal:

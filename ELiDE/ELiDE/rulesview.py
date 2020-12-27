@@ -87,8 +87,9 @@ class RulesList(RecycleView):
         self.data = data
 
     def _trigger_redata(self, *args, **kwargs):
-        Clock.unschedule(self.redata)
-        Clock.schedule_once(self.redata, 0)
+        if hasattr(self, '_scheduled_redata'):
+            Clock.unschedule(self._scheduled_redata)
+        self._scheduled_redata = Clock.schedule_once(self.redata, 0)
 
 
 class RulesView(Widget):

@@ -663,6 +663,19 @@ class EngineHandle(object):
         if ev:
             ret['edge_val'] = ev
         return ret
+    
+    @timely
+    def character_become(self, char, nodes, adj):
+        chara = self._real.character[char]
+        chara.clear()
+        chara.place.update(nodes)
+        chara.adj.update(adj)
+    
+    @timely
+    def character_copy_from(self, char, nodes, adj):
+        chara = self._real.character[char]
+        chara.place.update(nodes)
+        chara.adj.update(adj)
 
     @timely
     def set_character_stat(self, char, k, v):
@@ -1274,3 +1287,13 @@ class EngineHandle(object):
         for stat in stats:
             ret[stat] = list(entity.historical(stat).iter_history(beginning, end))
         return ret
+
+    @timely
+    def grid_2d_8graph(self, character, m, n):
+        self._real.character[character].grid_2d_8graph(m, n)
+        return self.get_char_deltas([character])
+
+    @timely
+    def grid_2d_graph(self, character, m, n, periodic):
+        self._real.character[character].grid_2d_graph(m, n, periodic)
+        return self.get_char_deltas([character])

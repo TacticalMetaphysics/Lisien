@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Common classes for collections in LiSE, of which most can be bound to."""
-from collections import Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from types import MethodType
 from inspect import getsource
@@ -376,8 +376,9 @@ class CharacterMapping(MutableMapping, Signal):
 
     def __delitem__(self, name):
         """Delete the named character from both the cache and the database."""
-        if name in self.engine._graph_objs:
-            del self.engine._graph_objs[name]
+        it = self[name]
+        it.clear()
+        del self.engine._graph_objs[name]
         self.engine.query.del_graph(name)
         self.send(self, key=name, val=None)
 

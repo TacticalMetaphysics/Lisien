@@ -235,7 +235,7 @@ def install(eng):
 
 if __name__ == "__main__":
     from LiSE.engine import Engine
-    with Engine(":memory:") as eng:
+    with Engine(connect_string=":memory:") as eng:
         install(eng)
         for i in range(72):
             eng.next_turn()

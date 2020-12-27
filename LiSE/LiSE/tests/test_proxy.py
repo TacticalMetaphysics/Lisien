@@ -14,80 +14,76 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from LiSE.proxy import EngineProcessManager
-import allegedb.tests.test_all
+import LiSE.allegedb.tests.test_all
 import pytest
 import LiSE.examples.kobold as kobold
 import LiSE.examples.college as college
-import LiSE.examples.sickle as sickle
 import os
+import shutil
 import tempfile
 from . import data
 
 
-class ProxyTest(allegedb.tests.test_all.AllegedTest):
+class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
     def setUp(self):
         self.manager = EngineProcessManager()
-        self.engine = self.manager.start('sqlite:///:memory:')
-        self.graphmakers = (self.engine.new_character,)
         self.tempdir = tempfile.mkdtemp(dir='.')
+        self.engine = self.manager.start(self.tempdir, connect_string='sqlite:///:memory:')
+        self.graphmakers = (self.engine.new_character,)
         self.addCleanup(self._do_cleanup)
-        for f in (
-                'trigger.py', 'prereq.py', 'action.py', 'function.py',
-                'method.py', 'strings.json'
-        ):
-            if os.path.exists(f):
-                os.rename(f, os.path.join(self.tempdir, f))
 
     def _do_cleanup(self):
         self.manager.shutdown()
-        for f in (
-            'trigger.py', 'prereq.py', 'action.py', 'function.py',
-            'method.py', 'strings.json'
-        ):
-            if os.path.exists(f):
-                os.remove(f)
-            if os.path.exists(os.path.join(self.tempdir, f)):
-                os.rename(os.path.join(self.tempdir, f), f)
-        os.rmdir(self.tempdir)
+        shutil.rmtree(self.tempdir)
 
 
-class ProxyGraphTest(allegedb.tests.test_all.AbstractGraphTest, ProxyTest):
+class ProxyGraphTest(LiSE.allegedb.tests.test_all.AbstractGraphTest, ProxyTest):
     pass
 
 
-class DictStorageTest(ProxyTest, allegedb.tests.test_all.DictStorageTest):
+class DictStorageTest(ProxyTest, LiSE.allegedb.tests.test_all.DictStorageTest):
     pass
 
 
-class ListStorageTest(ProxyTest, allegedb.tests.test_all.ListStorageTest):
+class ListStorageTest(ProxyTest, LiSE.allegedb.tests.test_all.ListStorageTest):
     pass
 
 
-class SetStorageTest(ProxyTest, allegedb.tests.test_all.SetStorageTest):
+class SetStorageTest(ProxyTest, LiSE.allegedb.tests.test_all.SetStorageTest):
     pass
 
 
-@pytest.fixture(scope='function', params=[
-    # lambda eng: kobold.inittest(eng, shrubberies=20, kobold_sprint_chance=.9),
-    college.install,
-    # sickle.install
-])
-def hand(request, clean):
+@pytest.fixture(scope='function')
+def handle(tempdir):
     from LiSE.handle import EngineHandle
-    hand = EngineHandle((':memory:',), {'random_seed': 69105})
-    with hand._real.advancing():
-        request.param(hand._real)
+    hand = EngineHandle((tempdir,), {'connect_string': 'sqlite:///:memory:', 'random_seed': 69105})
     yield hand
     hand.close()
 
 
-def test_fast_delta(hand):
+@pytest.fixture(scope='function', params=[
+    lambda eng: kobold.inittest(eng, shrubberies=20, kobold_sprint_chance=.9),
+    # college.install,
+    # sickle.install
+])
+def handle_initialized(request, handle):
+    with handle._real.advancing():
+        request.param(handle._real)
+    yield handle
+
+
+def test_fast_delta(handle_initialized):
+    hand = handle_initialized
     # just set a baseline for the diff
     hand.get_slow_delta()
+    # there's currently no way to do fast delta past the time when
+    # a character was created, due to the way keyframes work...
+    # so don't test that
+    tick = hand._real.tick
     ret, diff = hand.next_turn()
     slowd = hand.get_slow_delta()
     assert diff == slowd, "Fast delta differs from slow delta"
-    ret, diff2 = hand.time_travel('trunk', 0, 0)
+    ret, diff2 = hand.time_travel('trunk', 0, tick)
     slowd2 = hand.get_slow_delta()
     assert diff2 == slowd2, "Fast delta differs from slow delta"
     ret, diff3 = hand.time_travel('trunk', 3)
@@ -98,9 +94,8 @@ def test_fast_delta(hand):
     assert diff4 == slowd4, "Fast delta differs from slow delta"
 
 
-def test_assignment(clean):
-    from LiSE.handle import EngineHandle
-    hand = EngineHandle((':memory:',), {'random_seed': 69105})
+def test_assignment(handle):
+    hand = handle
     eng = hand._real
     with eng.advancing():
         college.install(eng)
@@ -112,12 +107,10 @@ def test_assignment(clean):
     student_initial_copy['roommate'] = eng.character['dorm0room0student1']
     student_initial_copy['room'] = eng.character['physical'].place['dorm0room0']
     assert hand.character_copy('dorm0room0student0') == student_initial_copy
-    hand.close()
 
 
-def test_serialize_deleted(clean):
-    from LiSE import Engine
-    eng = Engine(':memory:', random_seed=69105)
+def test_serialize_deleted(engy):
+    eng = engy
     with eng.advancing():
         college.install(eng)
     d0r0s0 = eng.character['dorm0room0student0']
@@ -130,9 +123,8 @@ def test_serialize_deleted(clean):
     assert eng.unpack(eng.pack(d0r0s0.stat['roommate'])) == roommate
 
 
-def test_manip_deleted(clean):
-    from LiSE import Engine
-    eng = Engine(':memory:', random_seed=69105)
+def test_manip_deleted(engy):
+    eng = engy
     phys = eng.new_character('physical')
     phys.stat['aoeu'] = True
     phys.add_node(0)

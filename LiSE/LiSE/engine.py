@@ -13,8 +13,9 @@ from abc import ABC, abstractmethod
 
 import msgpack
 from blinker import Signal
-from allegedb import ORM as gORM
-from allegedb.cache import HistoryError
+from .allegedb import ORM as gORM
+from .allegedb import HistoryError
+from .allegedb.window import SettingsTurnDict, WindowDict
 from .reify import reify
 from .util import sort_set
 
@@ -161,16 +162,6 @@ class AbstractEngine(object):
     block, in which deserialized entities will be created as needed.
 
     """
-    from contextlib import contextmanager
-
-    @contextmanager
-    def loading(self):
-        """Context manager for instantiating entities upon unpacking"""
-        if getattr(self, '_initialized', False):
-            raise ValueError("Already loading")
-        self._initialized = False
-        yield
-        self._initialized = True
 
     def __getattr__(self, item):
         meth = super().__getattribute__('method').__getattr__(item)
@@ -573,7 +564,7 @@ class Engine(AbstractEngine, gORM):
         containing any of the lists 'triggers', 'prereqs', and 'actions'
 
         """
-        from allegedb.window import update_window, update_backward_window
+        from LiSE.allegedb.window import update_window, update_backward_window
         if turn_from == turn_to:
             return self.get_turn_delta(
                 branch, turn_to, tick_to,start_tick=tick_from)
@@ -925,31 +916,58 @@ class Engine(AbstractEngine, gORM):
         self._node_contents_cache = NodeContentsCache(self)
         self.character = self.graph = CharacterMapping(self)
         self._universal_cache = EntitylessCache(self)
+        self._universal_cache.name = 'universal_cache'
         self._rulebooks_cache = InitializedEntitylessCache(self)
+        self._rulebooks_cache.name = 'rulebooks_cache'
         self._characters_rulebooks_cache = InitializedEntitylessCache(self)
+        self._characters_rulebooks_cache.name = 'characters_rulebooks_cache'
         self._avatars_rulebooks_cache = InitializedEntitylessCache(self)
+        self._avatars_rulebooks_cache.name = 'avatars_rulebooks_cache'
         self._characters_things_rulebooks_cache = \
             InitializedEntitylessCache(self)
+        self._characters_things_rulebooks_cache.name = \
+            'characters_things_rulebooks_cache'
         self._characters_places_rulebooks_cache = \
             InitializedEntitylessCache(self)
+        self._characters_places_rulebooks_cache.name = \
+            'characters_places_rulebooks_cache'
         self._characters_portals_rulebooks_cache = \
             InitializedEntitylessCache(self)
+        self._characters_portals_rulebooks_cache.name = \
+            'characters_portals_rulebooks_cache'
         self._nodes_rulebooks_cache = InitializedCache(self)
+        self._nodes_rulebooks_cache.name = 'nodes_rulebooks_cache'
         self._portals_rulebooks_cache = InitializedCache(self)
+        self._portals_rulebooks_cache.name = 'portals_rulebooks_cache'
         self._triggers_cache = InitializedEntitylessCache(self)
+        self._triggers_cache.name = 'triggers_cache'
         self._prereqs_cache = InitializedEntitylessCache(self)
+        self._prereqs_cache.name = 'prereqs_cache'
         self._actions_cache = InitializedEntitylessCache(self)
+        self._actions_cache.name = 'actions_cache'
         self._node_rules_handled_cache = NodeRulesHandledCache(self)
+        self._node_rules_handled_cache.name = 'node_rules_handled_cache'
         self._portal_rules_handled_cache = PortalRulesHandledCache(self)
+        self._portal_rules_handled_cache.name = 'portal_rules_handled_cache'
         self._character_rules_handled_cache = CharacterRulesHandledCache(self)
+        self._character_rules_handled_cache.name = \
+            'character_rules_handled_cache'
         self._avatar_rules_handled_cache = AvatarRulesHandledCache(self)
+        self._avatar_rules_handled_cache.name = 'avatar_rules_handled_cache'
         self._character_thing_rules_handled_cache \
             = CharacterThingRulesHandledCache(self)
+        self._character_thing_rules_handled_cache.name = \
+            'character_thing_rules_handled_cache'
         self._character_place_rules_handled_cache \
             = CharacterPlaceRulesHandledCache(self)
+        self._character_place_rules_handled_cache.name = \
+            'character_place_rules_handled_cache'
         self._character_portal_rules_handled_cache \
             = CharacterPortalRulesHandledCache(self)
+        self._character_portal_rules_handled_cache.name = \
+            'character_portal_rules_handled_cache'
         self._avatarness_cache = AvatarnessCache(self)
+        self._avatarness_cache.name = 'avatarness_cache'
         self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
         """The last turn when the rules engine ran in each branch"""
         self.universal = UniversalMapping(self)
@@ -973,14 +991,15 @@ class Engine(AbstractEngine, gORM):
 
     def __init__(
             self,
-            worlddb='world.db',
+            prefix='.',
             *,
-            string='strings.json',
-            function='function.py',
-            method='method.py',
-            trigger='trigger.py',
-            prereq='prereq.py',
-            action='action.py',
+            string=None,
+            trigger=None,
+            prereq=None,
+            action=None,
+            function=None,
+            method=None,
+            connect_string=None,
             connect_args={},
             schema_cls=NullSchema,
             alchemy=False,
@@ -993,26 +1012,29 @@ class Engine(AbstractEngine, gORM):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
 
-        :arg worlddb: Either a path to a SQLite database, or a
-        rfc1738 URIfor a database to connect to.
-        :arg string: path to a JSON file storing strings to be used
-        in the game
-        :arg function: either a Python module or a path to a
-        source file; should contain utility functions
-        :arg method: either a Python module or a path to a
-        source file; should contain functions taking this engine as
+        :arg prefix: directory containing the simulation and its code;
+        defaults to the working directory
+        :arg string: module storing strings to be used in the game
+        :arg function: module containing utility functions
+        :arg method: module containing functions taking this engine as
         first arg
-        :arg trigger: either a Python module or a path to a
-        source file; should contain trigger functions, taking a LiSE
+        :arg trigger: module containing trigger functions, taking a LiSE
         entity and returning a boolean for whether to run a rule
-        :arg prereq: either a Python module or a path to a source file;
-        should contain prereq functions, taking a LiSE entity and
+        :arg prereq: module containing prereq functions, taking a LiSE entity and
         returning a boolean for whether to permit a rule to run
-        :arg action: either a Python module or a path to a source file;
-        should contain action functions, taking a LiSE entity and
+        :arg action: module containing action functions, taking a LiSE entity and
         mutating it (and possibly the rest of the world)
+        :arg connect_string: a rfc1738 URI for a database to connect to;
+        if absent, we'll use a SQLite database in the prefix directory.
+        With ``alchemy=False`` we can only open SQLite databases,
+        in which case ``connect_string`` is just a path to the database--
+        unless it's ``":memory:"``, which is an in-memory database that
+        won't be saved
         :arg connect_args: dictionary of keyword arguments for the
         database connection
+        :arg schema: a Schema class that determines which changes to allow to
+        the world; used when a player should not be able to change just anything.
+        Defaults to `NullSchema`
         :arg alchemy: whether to use SQLAlchemy to connect to the
         database. If False, LiSE can only use SQLite
         :arg commit_modulus: LiSE will commit changes to disk every
@@ -1023,53 +1045,54 @@ class Engine(AbstractEngine, gORM):
         :arg validate: whether to perform integrity tests while
         loading the game
         :arg clear: whether to delete *any and all* existing data
-        and code. Use with caution!
+        and code in ``prefix``. Use with caution!
 
         """
         import os
         from .xcollections import StringStore
-        worlddbpath = worlddb.replace('sqlite:///', '')
-        if clear and os.path.exists(worlddbpath):
-            os.remove(worlddbpath)
-        if isinstance(string, str):
-            self._string_file = string
-            if clear and os.path.exists(string):
-                os.remove(string)
-        else:
+        self.exist_node_time = 0
+        self.exist_edge_time = 0
+        if string:
             self.string = string
-        if isinstance(function, str):
-            self._function_file = function
-            if clear and os.path.exists(function):
-                os.remove(function)
         else:
+            self._string_file = os.path.join(prefix, 'strings.json')
+            if clear and os.path.exists(self._string_file):
+                os.remove(self._string_file)
+        if function:
             self.function = function
-        if isinstance(method, str):
-            self._method_file = method
-            if clear and os.path.exists(method):
-                os.remove(method)
         else:
+            self._function_file = os.path.join(prefix, 'function.py')
+            if clear and os.path.exists(self._function_file):
+                os.remove(self._function_file)
+        if method:
             self.method = method
-        if isinstance(trigger, str):
-            self._trigger_file = trigger
+        else:
+            self._method_file = os.path.join(prefix, 'method.py')
+            if clear and os.path.exists(self._method_file):
+                os.remove(self._method_file)
+        if trigger:
+            self.trigger = trigger
+        else:
+            self._trigger_file = os.path.join(prefix, 'trigger.py')
             if clear and os.path.exists(trigger):
                 os.remove(trigger)
+        if prereq:
+            self.prereq = prereq
         else:
-            self.trigger = trigger
-        if isinstance(prereq, str):
-            self._prereq_file = prereq
+            self._prereq_file = os.path.join(prefix, 'prereq.py')
             if clear and os.path.exists(prereq):
                 os.remove(prereq)
+        if action:
+            self.action = action
         else:
-            self.prereq = prereq
-        if isinstance(action, str):
-            self._action_file = action
+            self._action_file = os.path.join(prefix, 'action.py')
             if clear and os.path.exists(action):
                 os.remove(action)
-        else:
-            self.action = action
         self.schema = schema_cls(self)
+        if connect_string and not alchemy:
+            connect_string = connect_string.split('sqlite:///')[-1]
         super().__init__(
-            worlddb,
+            connect_string or os.path.join(prefix, 'world.db'),
             connect_args=connect_args,
             alchemy=alchemy,
             validate=validate
@@ -1111,6 +1134,24 @@ class Engine(AbstractEngine, gORM):
         q = self.query
         self._things_cache.load(q.things_dump())
         super()._init_load(validate=validate)
+        things_kf = self._things_cache.keyframe
+        nv_kf = self._node_val_cache.keyframe
+        for node, branches in nv_kf.items():
+            for branch, turns in branches.items():
+                for turn, ticks in turns.items():
+                    for tick, vals in ticks.items():
+                        if 'location' in vals:
+                            if node not in things_kf or branch not in \
+                                    things_kf[node]:
+                                things_kf[node][branch] = SettingsTurnDict({
+                                    turn: WindowDict({tick: vals})
+                                })
+                            elif turn not in things_kf[node][branch]:
+                                things_kf[node][branch][turn] = WindowDict({
+                                    tick: vals
+                                })
+                            else:
+                                things_kf[node][branch][turn][tick] = vals
         self._avatarness_cache.load(q.avatars_dump())
         self._universal_cache.load(q.universals_dump())
         self._rulebooks_cache.load(q.rulebooks_dump())
@@ -1547,8 +1588,10 @@ class Engine(AbstractEngine, gORM):
         Any keyword arguments will be set as stats of the new character.
 
         """
-        self._init_graph(name, 'DiGraph')
-        self._graph_objs[name] = self.char_cls(self, name, data, **kwargs)
+        self._init_graph(name, 'DiGraph', data)
+        self._graph_objs[name] = graph_obj = self.char_cls(self, name)
+        if kwargs:
+            graph_obj.stat.update(kwargs)
 
     def del_character(self, name):
         """Remove the Character from the database entirely.

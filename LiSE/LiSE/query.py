@@ -24,8 +24,9 @@ turn numbers in which the comparison evaluated to ``True``.
 """
 from operator import gt, lt, eq, ne, le, ge
 from functools import partialmethod
+from time import monotonic
 
-import allegedb.query
+from .allegedb import query
 
 from .exc import (
     IntegrityError,
@@ -340,7 +341,8 @@ def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
                 yield branch, turn
 
 
-class QueryEngine(allegedb.query.QueryEngine):
+class QueryEngine(query.QueryEngine):
+    exist_edge_t = 0
     path = LiSE.__path__[0]
     IntegrityError = IntegrityError
     OperationalError = OperationalError
@@ -602,10 +604,12 @@ class QueryEngine(allegedb.query.QueryEngine):
         super().exist_node(character, node, branch, turn, tick, extant)
 
     def exist_edge(self, character, orig, dest, idx, branch, turn, tick, extant=None):
+        start = monotonic()
         if extant is None:
             branch, turn, tick, extant = idx, branch, turn, tick
             idx = 0
         super().exist_edge(character, orig, dest, idx, branch, turn, tick, extant)
+        QueryEngine.exist_edge_t += monotonic() - start
 
     def set_node_rulebook(self, character, node, branch, turn, tick, rulebook):
         (character, node, rulebook) = map(

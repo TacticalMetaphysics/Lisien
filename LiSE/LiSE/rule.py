@@ -71,7 +71,7 @@ inconvenient to get the actual function object, use a string of
 the function's name.
 
 """
-from collections import (
+from collections.abc import (
     MutableMapping,
     MutableSequence,
     Hashable

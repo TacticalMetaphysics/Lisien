@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from LiSE import Engine
 import pytest
+import networkx as nx
 
 
 @pytest.fixture(scope='function')
@@ -32,9 +33,34 @@ def test_contents(something):
     assert [] == list(pl2.contents())
 
 
+def test_future_contents(something):
+    engine = something.engine
+    somewhere = something.location
+    with engine.plan():
+        engine.turn = 1
+        something.location = None
+        engine.turn = 2
+        somebody = somewhere.new_thing('somebody')
+        engine.turn = 0
+        someone = somewhere.new_thing('someone')
+    assert len(somewhere.contents()) == 2
+    assert something in somewhere.contents()
+    assert somebody not in somewhere.contents()
+    assert someone in somewhere.contents()
+    engine.turn = 1
+    assert len(somewhere.contents()) == 1
+    assert something not in somewhere.contents()
+    assert someone in somewhere.contents()
+    assert somebody not in somewhere.contents()
+    engine.turn = 2
+    assert len(somewhere.contents()) == 2
+    assert somebody in somewhere.contents()
+    assert someone in somewhere.contents()
+    assert something not in somewhere.contents()
+
+
 def test_travel(engy):
-    phys = engy.new_character('physical')
-    phys.grid_2d_graph(8, 8)
+    phys = engy.new_character('physical', data=nx.grid_2d_graph(8, 8))
     del phys.place[1, 1]
     del phys.place[6, 1]
     thing1 = phys.place[0, 0].new_thing(1)
