@@ -70,7 +70,7 @@ git clone https://github.com/LogicalDash/LiSE.git
 cd LiSE
 git submodule init
 git submodule update
-pip3 install --user allegedb\ LiSE\ ELiDE\
+pip3 install --user LiSE\ ELiDE\
 ```
 
 ## Linux
@@ -86,7 +86,7 @@ git clone https://github.com/LogicalDash/LiSE.git
 cd LiSE
 git submodule init
 git submodule update
-pip3 install --user allegedb/ LiSE/ ELiDE/
+pip3 install --user LiSE/ ELiDE/
 ```
 
 You could now start the graphical frontend with ``python3 -mELiDE``, but this might not be very useful, as you don't
