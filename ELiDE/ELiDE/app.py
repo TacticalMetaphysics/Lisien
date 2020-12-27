@@ -64,10 +64,26 @@ class ELiDEApp(App):
     character = ObjectProperty()
     selection = ObjectProperty(None, allownone=True)
     selected_proxy = ObjectProperty()
+    selected_proxy_name = StringProperty('')
     statcfg = ObjectProperty()
 
     def on_selection(self, *args):
         Logger.debug("App: {} selected".format(self.selection))
+
+    def on_selected_proxy(self, *args):
+        if hasattr(self.selected_proxy, 'name'):
+            self.selected_proxy_name = str(self.selected_proxy.name)
+        selected_proxy = self.selected_proxy
+        assert hasattr(selected_proxy, 'origin')
+        assert hasattr(selected_proxy, 'destination')
+        origin = selected_proxy.origin
+        destination = selected_proxy.destination
+        reciprocal = selected_proxy.reciprocal
+        if selected_proxy['is_mirror'] or (reciprocal and reciprocal['is_mirror']):
+            link = '<>'
+        else:
+            link = '->'
+        self.selected_proxy_name = str(origin.name) + link + str(destination.name)
 
     def _get_character_name(self, *args):
         if self.character is None:

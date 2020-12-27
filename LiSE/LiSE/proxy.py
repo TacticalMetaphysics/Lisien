@@ -473,6 +473,12 @@ class PortalProxy(CachingEntityProxy):
     def destination(self):
         return self.character.node[self._destination]
 
+    @property
+    def reciprocal(self):
+        if self._origin not in self.character.pred or self._destination not in self.character.pred[self._origin]:
+            return None
+        return self.character.pred[self._origin][self._destination]
+
     def _set_item(self, k, v):
         self.engine.handle(
             command='set_portal_stat',
