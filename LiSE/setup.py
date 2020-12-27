@@ -42,7 +42,8 @@ setup(
     },
     install_requires=[
         "astunparse==1.6.3",
-        "msgpack==1.0.0"
+        "msgpack==1.0.0",
+        "blinker"
     ],
     project_urls={
         "Documentation": "https://logicaldash.github.io/LiSE"
