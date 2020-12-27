@@ -43,7 +43,7 @@ setup(
     },
     install_requires=[
         "astunparse==1.6.3",
-        "msgpack==1.0.0",
+        "msgpack>=1.0.0<1.1",
         "blinker",
         "networkx==2.4"
     ],
