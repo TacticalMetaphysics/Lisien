@@ -1074,20 +1074,20 @@ class Engine(AbstractEngine, gORM):
             self.trigger = trigger
         else:
             self._trigger_file = os.path.join(prefix, 'trigger.py')
-            if clear and os.path.exists(trigger):
-                os.remove(trigger)
+            if clear and os.path.exists(self._trigger_file):
+                os.remove(self._trigger_file)
         if prereq:
             self.prereq = prereq
         else:
             self._prereq_file = os.path.join(prefix, 'prereq.py')
-            if clear and os.path.exists(prereq):
-                os.remove(prereq)
+            if clear and os.path.exists(self._prereq_file):
+                os.remove(self._prereq_file)
         if action:
             self.action = action
         else:
             self._action_file = os.path.join(prefix, 'action.py')
-            if clear and os.path.exists(action):
-                os.remove(action)
+            if clear and os.path.exists(self._action_file):
+                os.remove(self._action_file)
         self.schema = schema_cls(self)
         if connect_string and not alchemy:
             connect_string = connect_string.split('sqlite:///')[-1]
