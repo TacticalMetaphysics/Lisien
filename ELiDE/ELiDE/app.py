@@ -73,9 +73,10 @@ class ELiDEApp(App):
     def on_selected_proxy(self, *args):
         if hasattr(self.selected_proxy, 'name'):
             self.selected_proxy_name = str(self.selected_proxy.name)
+            return
         selected_proxy = self.selected_proxy
-        assert hasattr(selected_proxy, 'origin')
-        assert hasattr(selected_proxy, 'destination')
+        assert hasattr(selected_proxy, 'origin'), '{} has no origin'.format(type(selected_proxy))
+        assert hasattr(selected_proxy, 'destination'), '{} has no destination'.format(type(selected_proxy))
         origin = selected_proxy.origin
         destination = selected_proxy.destination
         reciprocal = selected_proxy.reciprocal
