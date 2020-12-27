@@ -183,7 +183,7 @@ class AbstractEngine(object):
                 )),
             self.portal_cls: lambda port: msgpack.ExtType(
                 MSGPACK_PORTAL, packer(
-                    (port.character.name, port.orig, port.dest)
+                    (port.character.name, port.origin.name, port.destination.name)
                 )),
             tuple: lambda tup: msgpack.ExtType(
                 MSGPACK_TUPLE, packer(list(tup))),
