@@ -35,7 +35,8 @@ setup(
     packages=[
         "LiSE",
         "LiSE.server",
-        "LiSE.examples"
+        "LiSE.examples",
+        "LiSE.allegedb"
     ],
     package_data={
         'LiSE': ['sqlite.json']
