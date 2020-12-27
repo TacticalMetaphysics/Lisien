@@ -592,7 +592,9 @@ Builder.load_string(
         toggle_gridview: root.toggle_gridview
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.25, 0.8)
-        selection_name: str(app.selected_proxy.name) if app.selected_proxy else ''
+        selection_name: str(app.selected_proxy.name) if app.selected_proxy and hasattr(app.selected_proxy, 'name') else '{}{}{}'.format(
+            app.selected_proxy.origin.name, '<>' if app.selected_proxy.get('is_mirror', False) or (app.selected_proxy.reciprocal and app.selected_proxy.reciprocal.get('is_mirror, False))
+            else '->', app.selected_proxy.destination.name) if app.selected_proxy else ''
     TimePanel:
         id: timepanel
         screen: root
