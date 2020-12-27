@@ -80,7 +80,7 @@ class ELiDEApp(App):
         origin = selected_proxy.origin
         destination = selected_proxy.destination
         reciprocal = selected_proxy.reciprocal
-        if selected_proxy['is_mirror'] or (reciprocal and reciprocal['is_mirror']):
+        if selected_proxy.get('is_mirror', False) or (reciprocal and reciprocal.get('is_mirror', False)):
             link = '<>'
         else:
             link = '->'
