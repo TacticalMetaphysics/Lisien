@@ -25,7 +25,7 @@ from setuptools import setup
 
 setup(
     name="LiSE",
-    version="0.10.2",
+    version="0.11",
     description="Rules engine for life simulation games",
     author="Zachary Spector",
     author_email="public@zacharyspector.com",
@@ -41,7 +41,6 @@ setup(
         'LiSE': ['sqlite.json']
     },
     install_requires=[
-        "allegedb==0.15.2",
         "astunparse==1.6.3",
         "msgpack==1.0.0"
     ],
