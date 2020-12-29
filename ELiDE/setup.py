@@ -37,7 +37,7 @@ setup(
     },
     install_requires=[
         "LiSE==0.11",
-	"numpy>=1.14.5,<1.15",
+	    "numpy>=1.14.5,<2",
         "kivy>=1.10.0,<3",
         "pygments>=2.3.1,<2.7"
     ],
