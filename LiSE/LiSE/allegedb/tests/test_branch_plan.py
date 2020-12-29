@@ -116,11 +116,9 @@ def test_plan_vs_plan(orm):
     assert 0 in g1.node
     assert 1 in g1.adj[0]
 
-def test_save_load_plan():
-    dbfile = 'sqlite:///test_save_load_plan.db'
-    if os.path.exists('test_save_load_plan.db'):
-        os.remove('test_save_load_plan.db')
-    with allegedb.ORM(dbfile) as orm:
+
+def test_save_load_plan(tmpdbfile):
+    with allegedb.ORM(tmpdbfile) as orm:
         g1 = orm.new_digraph(1)
         g2 = orm.new_digraph(2)
         with orm.plan():
@@ -135,7 +133,7 @@ def test_save_load_plan():
             orm.turn = 1
             g2.add_edge(1, 2)
         orm.turn = 0
-    with allegedb.ORM(dbfile) as orm:
+    with allegedb.ORM(tmpdbfile) as orm:
         g1 = orm.graph[1]
         g2 = orm.graph[2]
         # go to end of turn
@@ -148,7 +146,7 @@ def test_save_load_plan():
         assert 2 not in g1.node
         assert 2 not in g1.edge[1]
         assert 2 in g2.edge[1]
-    with allegedb.ORM(dbfile) as orm:
+    with allegedb.ORM(tmpdbfile) as orm:
         g1 = orm.graph[1]
         g2 = orm.graph[2]
         assert 1 in g2.node
@@ -163,4 +161,3 @@ def test_save_load_plan():
         g2.add_node(2)  # contradict plan
         orm.turn = 0  # end of turn
         assert 2 not in g2.edge[1]
-    os.remove('test_save_load_plan.db')

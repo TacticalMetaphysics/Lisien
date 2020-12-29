@@ -14,11 +14,8 @@ testgraphs.append(path_graph_9)
 
 
 @pytest.fixture
-def db():
-    name = 'allegedb_load_test.db'
-    if os.path.exists(name):
-        os.remove(name)
-    with ORM('sqlite:///' + name) as orm:
+def db(tmpdbfile):
+    with ORM('sqlite:///' + tmpdbfile) as orm:
         for graph in testgraphs:
             orm.new_digraph(graph.name, graph)
             if not graph.is_directed():
@@ -27,9 +24,8 @@ def db():
                 "{}'s nodes changed during instantiation".format(graph.name)
             assert set(graph.edges) == set(orm.graph[graph.name].edges.keys()), \
                 "{}'s edges changed during instantiation".format(graph.name)
-    with ORM('sqlite:///' + name) as orm:
+    with ORM('sqlite:///' + tmpdbfile) as orm:
         yield orm
-    os.remove(name)
 
 
 def test_basic_load(db):
