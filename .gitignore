@@ -41,4 +41,4 @@ _build
 .vscode/settings.json
 ELiDE/ELiDE/kivygarden/texturestack
 */.idea
-.tox
+*/.tox
