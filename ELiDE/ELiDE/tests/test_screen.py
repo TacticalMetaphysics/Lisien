@@ -29,6 +29,7 @@ class ScreenTest(GraphicUnitTest):
         app.engine.character['foo'] = char
         entity = ListenableDict()
         entity.engine = app.engine
+        entity.name = 'name'
         app.selected_proxy = app.proxy = app.statcfg.proxy = entity
         screen = MainScreen(app=app, graphboards={'foo': GraphBoard(
             character=char, app=app)}, gridboards={
