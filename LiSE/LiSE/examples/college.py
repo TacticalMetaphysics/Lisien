@@ -231,6 +231,7 @@ def install(eng):
                 # Apply these previously written rules to each brain cell
                 for rule in (learn, sober_up, catch_up):
                     student.place.rule(rule)
+    eng.snap_keyframe()
 
 
 if __name__ == "__main__":
