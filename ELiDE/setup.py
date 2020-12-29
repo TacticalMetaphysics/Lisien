@@ -15,9 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import sys
 if sys.version_info[0] < 3 or (
-        sys.version_info[0] == 3 and sys.version_info[1] < 3
+        sys.version_info[0] == 3 and sys.version_info[1] < 6
 ):
-    raise RuntimeError("ELiDE requires Python 3.3 or later")
+    raise RuntimeError("ELiDE requires Python 3.6 or later")
 from setuptools import setup
 
 
