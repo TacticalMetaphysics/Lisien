@@ -25,13 +25,9 @@ import tempfile
 
 @pytest.fixture(scope='module')
 def college24_premade():
-    from LiSE.examples.college import install
     directory = tempfile.mkdtemp('.')
-    with Engine(directory, random_seed=69105) as eng:
-        install(eng)
-        for i in range(24):
-            print(i)
-            eng.next_turn()
+    shutil.unpack_archive(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'college24_premade.tar.xz'), directory)
+    with Engine(directory) as eng:
         yield eng
     shutil.rmtree(directory)
 
