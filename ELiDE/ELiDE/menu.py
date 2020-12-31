@@ -114,6 +114,7 @@ class WorldStartConfigurator(BoxLayout):
                 return
         else:
             self.starter()
+            self.init_board()
             self.toggle()
             self.dismiss()
 
