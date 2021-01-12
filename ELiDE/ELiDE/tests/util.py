@@ -96,7 +96,7 @@ class MockEngine(Signal):
 
     def next_turn(self, *args, **kwargs):
         self.turn += 1
-        kwargs['cb']('next_turn', 'master', self.turn, 0, ([], {}))
+        kwargs['cb']('next_turn', 'trunk', self.turn, 0, ([], {}))
 
     def handle(self, *args, **kwargs):
         return {'a': 'b'}

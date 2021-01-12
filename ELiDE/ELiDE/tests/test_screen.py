@@ -50,3 +50,39 @@ class ScreenTest(GraphicUnitTest):
         EventLoop.post_dispatch_input("end", motion)
         EventLoop.idle()
         assert int(turnfield.hint_text) == turn_before + 1
+    
+    @staticmethod
+    def test_play():
+        app = ELiDEApp()
+        app.config = {'ELiDE': {'boardchar': 'foo'}}
+        app.spotcfg = SpotConfigScreen()
+        app.pawncfg = PawnConfigScreen()
+        app.statcfg = StatScreen()
+        char = Facade()
+        char.name = 'foo'
+        app.character = char
+        app.engine = app.statcfg.engine = MockEngine()
+        char.character = SimpleNamespace(engine=app.engine)
+        app.engine.character['foo'] = char
+        entity = ListenableDict()
+        entity.engine = app.engine
+        entity.name = 'name'
+        app.selected_proxy = app.proxy = app.statcfg.proxy = entity
+        screen = MainScreen(app=app, graphboards={'foo': GraphBoard(
+            character=char, app=app)}, gridboards={
+            'foo': GridBoard(character=char)
+        }, play_speed=1.0)
+        win = window_with_widget(screen)
+        idle_until(lambda: 'timepanel' in screen.ids)
+        timepanel = screen.ids['timepanel']
+        idle_until(lambda: timepanel.size != [100, 100])
+        turnfield = timepanel.ids['turnfield']
+        turn_before = int(turnfield.hint_text)
+        playbut = timepanel.ids['playbut']
+        x, y = playbut.center
+        sx = x / win.width
+        sy = y / win.height
+        motion = MockTouch("unittest", 1, {'sx': sx, 'sy': sy})
+        EventLoop.post_dispatch_input("begin", motion)
+        EventLoop.post_dispatch_input("end", motion)
+        idle_until(lambda: int(turnfield.hint_text) == 3, 3000, "Time didn't advance fast enough")
