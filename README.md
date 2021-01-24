@@ -89,6 +89,22 @@ git submodule update
 pip3 install --user LiSE/ ELiDE/
 ```
 
+## Mac
+```
+# if you don't have python 3 installed: 
+brew install python pip3
+# install the Kivy app framework
+brew install cython
+# ELiDE doesn't play movies, so disable gstreamer
+USE_GSTREAMER=0 pip3 install --user kivy
+# install LiSE and the ELiDE frontend
+git clone https://github.com/LogicalDash/LiSE.git
+cd LiSE
+git submodule init
+git submodule update
+pip3 install --user LiSE/ ELiDE/
+```
+
 You could now start the graphical frontend with ``python3 -mELiDE``, but this might not be very useful, as you don't
 have any world state to edit yet. You could laboriously assemble a gameworld by hand, but instead
 let's generate one, Parable of the Polygons by Nicky Case.
