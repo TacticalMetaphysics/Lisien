@@ -1,9 +1,20 @@
-== 0.10.2 | TBD ==
-* Made two-way portals act more like they're one thing
+== 0.11 | 2021-02-03 ==
+* Add support for "keyframes," snapshots of the world state at some specific time. These are currently most useful for supplying the world's initial state by instantiating a Character with a networkx graph, eg. `engine.new_character('new', nx.grid_2d_graph(3, 3))`
+    * Drastically improved load times for large initial world states
+* Removed the would-be world generation API; for now, use [the networkx graph generators](https://networkx.org/documentation/stable/reference/generators.html), and `LiSE.character.grid_2d_8graph`if you want a square grid that's connected at the corners as well as the sides.
+* Removed the "sense" feature. It will need a reimagining at some point. In the meantime you can still use `Character.facade()` to get a transient, mutable view onto a `Character` that won't be saved
+* `allegedb` is a submodule of `LiSE` now, and will not be published on its own.
+    * Dropped support for graph types other than `DiGraph`
+* Dropped support for Python versions prior to 3.6
 * Compatibility with msgpack 1.0.0
-* Fixed tutorial
-* Some under-the-hood changes to the stats widget
-* Compatibility fixes; drop support for Python <3.5
+* ELiDE changes
+    * Grid view
+    * File browser
+    * Grid generator when starting new simulation
+    * Symmetrical portals
+    * New agenda widget, for scheduling things in the future
+      The stat list on the left of the default ELiDE view is technically a calendar now, where an agenda is a related widget class that offers more flexibility to interface designers.
+    * Require Kivy 2.0
 
 == 0.10.1 | 2020-01-08 ==
 * Compatibility with networkx 2.4
