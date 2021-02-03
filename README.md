@@ -91,6 +91,8 @@ pip3 install --user LiSE/ ELiDE/
 
 ## Mac
 ```
+# if you don't have https://brew.sh installed:
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 # if you don't have python 3 installed: 
 brew install python pip3
 # install the Kivy app framework
