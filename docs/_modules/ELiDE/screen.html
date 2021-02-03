@@ -1,17 +1,17 @@
 
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ELiDE.screen &#8212; LiSE 0.9dev documentation</title>
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -49,23 +49,25 @@
 
 <span class="sd">&quot;&quot;&quot;The big layout that you view all of ELiDE through.</span>
 
-<span class="sd">Handles touch, selection, and time control. Contains a board, a stat</span>
+<span class="sd">Handles touch, selection, and time control. Contains a graph, a stat</span>
 <span class="sd">grid, the time control panel, and the menu.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">ast</span> <span class="k">import</span> <span class="n">literal_eval</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">ast</span> <span class="kn">import</span> <span class="n">literal_eval</span>
 
-<span class="kn">from</span> <span class="nn">kivy.factory</span> <span class="k">import</span> <span class="n">Factory</span>
-<span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="k">import</span> <span class="n">Builder</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.togglebutton</span> <span class="k">import</span> <span class="n">ToggleButton</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.button</span> <span class="k">import</span> <span class="n">Button</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.boxlayout</span> <span class="k">import</span> <span class="n">BoxLayout</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.floatlayout</span> <span class="k">import</span> <span class="n">FloatLayout</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="k">import</span> <span class="n">Screen</span>
-<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
-<span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="k">import</span> <span class="n">Logger</span>
-<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="k">import</span> <span class="p">(</span>
+<span class="kn">from</span> <span class="nn">kivy.factory</span> <span class="kn">import</span> <span class="n">Factory</span>
+<span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="kn">import</span> <span class="n">Builder</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.togglebutton</span> <span class="kn">import</span> <span class="n">ToggleButton</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.button</span> <span class="kn">import</span> <span class="n">Button</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.boxlayout</span> <span class="kn">import</span> <span class="n">BoxLayout</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.floatlayout</span> <span class="kn">import</span> <span class="n">FloatLayout</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.modalview</span> <span class="kn">import</span> <span class="n">ModalView</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.scrollview</span> <span class="kn">import</span> <span class="n">ScrollView</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="kn">import</span> <span class="n">Screen</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span>
+<span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="kn">import</span> <span class="n">Logger</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">BooleanProperty</span><span class="p">,</span>
     <span class="n">BoundedNumericProperty</span><span class="p">,</span>
     <span class="n">DictProperty</span><span class="p">,</span>
@@ -75,8 +77,11 @@
     <span class="n">ReferenceListProperty</span><span class="p">,</span>
     <span class="n">StringProperty</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">.charmenu</span> <span class="k">import</span> <span class="n">CharMenu</span>
-<span class="kn">from</span> <span class="nn">.util</span> <span class="k">import</span> <span class="n">dummynum</span><span class="p">,</span> <span class="n">trigger</span>
+<span class="kn">from</span> <span class="nn">.charmenu</span> <span class="kn">import</span> <span class="n">CharMenu</span>
+<span class="kn">from</span> <span class="nn">.graph.board</span> <span class="kn">import</span> <span class="n">GraphBoardView</span>
+<span class="kn">from</span> <span class="nn">.grid.board</span> <span class="kn">import</span> <span class="n">GridBoardView</span>
+<span class="kn">from</span> <span class="nn">.calendar</span> <span class="kn">import</span> <span class="n">Agenda</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">dummynum</span><span class="p">,</span> <span class="n">trigger</span>
 
 <span class="n">Factory</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;CharMenu&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">CharMenu</span><span class="p">)</span>
 
@@ -102,6 +107,8 @@
     <span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
     <span class="n">proxy</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
     <span class="n">toggle_stat_cfg</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">toggle_gridview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">toggle_calendar</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">on_proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">):</span>
@@ -195,9 +202,9 @@
 
 
 <div class="viewcode-block" id="MainScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen">[docs]</a><span class="k">class</span> <span class="nc">MainScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A master layout that contains one board and some menus.</span>
+    <span class="sd">&quot;&quot;&quot;A master layout that contains one graph and some menus.</span>
 
-<span class="sd">    This contains three elements: a scrollview (containing the board),</span>
+<span class="sd">    This contains three elements: a scrollview (containing the graph),</span>
 <span class="sd">    a menu, and the time control panel. This class has some support methods</span>
 <span class="sd">    for handling interactions with the menu and the character sheet,</span>
 <span class="sd">    but if neither of those happen, the scrollview handles touches on its</span>
@@ -205,8 +212,10 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">manager</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="n">boards</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="n">graphboards</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="n">gridboards</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
     <span class="n">boardview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">mainview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
     <span class="n">charmenu</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
     <span class="n">statlist</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
     <span class="n">statpanel</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -227,11 +236,71 @@
     <span class="n">app</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
     <span class="n">tmp_block</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">on_mainview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">portaladdbut</span><span class="p">):</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_mainview</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">boardview</span> <span class="o">=</span> <span class="n">GraphBoardView</span><span class="p">(</span>
+            <span class="n">scale_min</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+            <span class="n">scale_max</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+            <span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span>
+            <span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">graphboards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">],</span>
+            <span class="n">adding_portal</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;down&#39;</span>
+        <span class="p">)</span>
+        <span class="k">def</span> <span class="nf">update_adding_portal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">adding_portal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;down&#39;</span>
+        <span class="k">def</span> <span class="nf">update_board</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">board</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graphboards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">),</span>
+            <span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="n">update_adding_portal</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">character_name</span><span class="o">=</span><span class="n">update_board</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calendar</span> <span class="o">=</span> <span class="n">Agenda</span><span class="p">(</span>
+            <span class="n">update_mode</span><span class="o">=</span><span class="s1">&#39;present&#39;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calendar_view</span> <span class="o">=</span> <span class="n">ScrollView</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+            <span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">pos</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gridview</span> <span class="o">=</span> <span class="n">GridBoardView</span><span class="p">(</span>
+            <span class="n">scale_min</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+            <span class="n">scale_max</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+            <span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span>
+            <span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gridboards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">calendar_view</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">),</span>
+            <span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">calendar_view</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gridview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">),</span>
+            <span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gridview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calendar_view</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calendar</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">on_statpanel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">:</span>
             <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_statpanel</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
             <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">selected_proxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;proxy&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">selected_proxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span><span class="p">,</span>
+            <span class="n">branch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span><span class="p">,</span>
+            <span class="n">turn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span><span class="p">,</span>
+            <span class="n">tick</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span>
+        <span class="p">)</span>
+
+    <span class="nd">@trigger</span>
+    <span class="k">def</span> <span class="nf">_update_statlist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span><span class="p">()</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">update_calendar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="o">.</span><span class="n">statlist</span><span class="p">,</span> <span class="n">past_turns</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">future_turns</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">pull_visibility</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">visible</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">==</span> <span class="s1">&#39;main&#39;</span>
@@ -245,8 +314,9 @@
 <span class="sd">        current ``play_speed``.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">play</span><span class="p">)</span>
-        <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_interval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">play</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">play_speed</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_play_scheduled&#39;</span><span class="p">):</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_play_scheduled</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_play_scheduled</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_interval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">play</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">play_speed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MainScreen.remake_display"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.remake_display">[docs]</a>    <span class="k">def</span> <span class="nf">remake_display</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Remake any affected widgets after a change in my ``kv``.</span>
@@ -272,11 +342,12 @@
         <span class="p">):</span>
             <span class="k">if</span> <span class="n">interceptor</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
                 <span class="n">interceptor</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_down&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">keep_selection</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">keep_selection</span> <span class="o">=</span> \
+                    <span class="bp">self</span><span class="o">.</span><span class="n">gridview</span><span class="o">.</span><span class="n">keep_selection</span> <span class="o">=</span> <span class="kc">True</span>
                 <span class="k">return</span> <span class="kc">True</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialoglayout</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_down&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">True</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_down&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_down&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MainScreen.on_touch_up"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.on_touch_up">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">timepanel</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
@@ -285,14 +356,17 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_up&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_up&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_up&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_up&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MainScreen.on_dummies"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.on_dummies">[docs]</a>    <span class="k">def</span> <span class="nf">on_dummies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Give the dummies numbers such that, when appended to their names,</span>
 <span class="sd">        they give a unique name for the resulting new</span>
-<span class="sd">        :class:`board.Pawn` or :class:`board.Spot`.</span>
+<span class="sd">        :class:`graph.Pawn` or :class:`graph.Spot`.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character</span><span class="p">:</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_dummies</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
         <span class="k">def</span> <span class="nf">renum_dummy</span><span class="p">(</span><span class="n">dummy</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
             <span class="n">dummy</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="n">dummynum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="n">dummy</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
 
@@ -334,6 +408,7 @@
             <span class="k">if</span> <span class="n">unwanted</span> <span class="ow">in</span> <span class="n">chardelta</span><span class="p">:</span>
                 <span class="k">del</span> <span class="n">chardelta</span><span class="p">[</span><span class="n">unwanted</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">trigger_update_from_delta</span><span class="p">(</span><span class="n">chardelta</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gridview</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">trigger_update_from_delta</span><span class="p">(</span><span class="n">chardelta</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="o">.</span><span class="n">statlist</span><span class="o">.</span><span class="n">mirror</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MainScreen.play"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.play">[docs]</a>    <span class="k">def</span> <span class="nf">play</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -380,7 +455,32 @@
             <span class="n">turn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">_push_time</span><span class="p">,</span>
             <span class="n">tick</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">_push_time</span>
         <span class="p">)</span>
-        <span class="n">eng</span><span class="o">.</span><span class="n">next_turn</span><span class="p">(</span><span class="n">cb</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_from_next_turn</span><span class="p">)</span></div></div>
+        <span class="n">eng</span><span class="o">.</span><span class="n">next_turn</span><span class="p">(</span><span class="n">cb</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_from_next_turn</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">switch_to_calendar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">update_calendar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calendar</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calendar_view</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">switch_to_boardview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="s1">&#39;apply_choices&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">calendar</span><span class="o">.</span><span class="n">get_track</span><span class="p">()])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">toggle_gridview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gridview</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gridview</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">toggle_calendar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="c1"># TODO decide how to handle switching between &gt;2 view types</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">boardview</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">switch_to_calendar</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">switch_to_boardview</span><span class="p">()</span></div>
 
 
 <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span>
@@ -391,17 +491,24 @@
 <span class="sd">    cfgstatbut: cfgstatbut</span>
 <span class="sd">    statlist: statlist</span>
 <span class="sd">    id: statpanel</span>
+<span class="sd">    proxy: app.selected_proxy</span>
 <span class="sd">    Label:</span>
 <span class="sd">        size_hint_y: 0.05</span>
 <span class="sd">        text: root.selection_name</span>
-<span class="sd">    StatListView:</span>
+<span class="sd">        bold: True</span>
+<span class="sd">    Calendar:</span>
 <span class="sd">        id: statlist</span>
-<span class="sd">        size_hint_y: 0.9</span>
-<span class="sd">        engine: root.engine</span>
-<span class="sd">        proxy: root.proxy</span>
+<span class="sd">        size_hint_y: 0.8</span>
+<span class="sd">        entity: root.proxy</span>
+<span class="sd">        update_mode: &#39;present&#39;</span>
+<span class="sd">    Button:</span>
+<span class="sd">        id: gridviewbut</span>
+<span class="sd">        size_hint_y: 0.05</span>
+<span class="sd">        text: &#39;toggle grid&#39;</span>
+<span class="sd">        on_release: root.toggle_gridview()</span>
 <span class="sd">    Button:</span>
 <span class="sd">        id: cfgstatbut</span>
-<span class="sd">        size_hint_y: 0.1</span>
+<span class="sd">        size_hint_y: 0.05</span>
 <span class="sd">        text: root.button_text</span>
 <span class="sd">        on_release: root.toggle_stat_cfg()</span>
 <span class="sd">&lt;SimulateButton&gt;:</span>
@@ -459,7 +566,7 @@
 <span class="sd">                text: &#39;Branch&#39;</span>
 <span class="sd">            MenuTextInput:</span>
 <span class="sd">                id: branchfield</span>
-<span class="sd">                setter: root.set_branch</span>
+<span class="sd">                set_value: root.set_branch</span>
 <span class="sd">                hint_text: root.screen.app.branch if root.screen else &#39;&#39;</span>
 <span class="sd">        BoxLayout:</span>
 <span class="sd">            BoxLayout:</span>
@@ -469,7 +576,7 @@
 <span class="sd">                    text: &#39;Turn&#39;</span>
 <span class="sd">                MenuIntInput:</span>
 <span class="sd">                    id: turnfield</span>
-<span class="sd">                    setter: root.set_turn</span>
+<span class="sd">                    set_value: root.set_turn</span>
 <span class="sd">                    hint_text: str(root.screen.app.turn) if root.screen else &#39;&#39;</span>
 <span class="sd">            BoxLayout:</span>
 <span class="sd">                orientation: &#39;vertical&#39;</span>
@@ -478,7 +585,7 @@
 <span class="sd">                    text: &#39;Tick&#39;</span>
 <span class="sd">                MenuIntInput:</span>
 <span class="sd">                    id: tickfield</span>
-<span class="sd">                    setter: root.set_tick</span>
+<span class="sd">                    set_value: root.set_tick</span>
 <span class="sd">                    hint_text: str(root.screen.app.tick) if root.screen else &#39;&#39;</span>
 <span class="sd">    BoxLayout:</span>
 <span class="sd">        size_hint_y: 0.6</span>
@@ -495,7 +602,7 @@
 <span class="sd">    app: app</span>
 <span class="sd">    dummyplace: charmenu.dummyplace</span>
 <span class="sd">    dummything: charmenu.dummything</span>
-<span class="sd">    boardview: boardview</span>
+<span class="sd">    mainview: mainview</span>
 <span class="sd">    playbut: timepanel.playbut</span>
 <span class="sd">    portaladdbut: charmenu.portaladdbut</span>
 <span class="sd">    charmenu: charmenu</span>
@@ -503,23 +610,22 @@
 <span class="sd">    statpanel: statpanel</span>
 <span class="sd">    timepanel: timepanel</span>
 <span class="sd">    dialoglayout: dialoglayout</span>
-<span class="sd">    BoardView:</span>
-<span class="sd">        id: boardview</span>
-<span class="sd">        scale_min: 0.2</span>
-<span class="sd">        scale_max: 4.0</span>
+<span class="sd">    Widget:</span>
+<span class="sd">        id: mainview</span>
 <span class="sd">        x: statpanel.right</span>
 <span class="sd">        y: 0</span>
 <span class="sd">        size_hint: (None, None)</span>
 <span class="sd">        width: charmenu.x - statpanel.right</span>
 <span class="sd">        height: root.height</span>
-<span class="sd">        board: root.boards[app.character_name]</span>
-<span class="sd">        adding_portal: charmenu.portaladdbut.state == &#39;down&#39;</span>
 <span class="sd">    StatListPanel:</span>
 <span class="sd">        id: statpanel</span>
 <span class="sd">        engine: app.engine</span>
 <span class="sd">        toggle_stat_cfg: app.statcfg.toggle</span>
+<span class="sd">        toggle_calendar: root.toggle_calendar</span>
+<span class="sd">        toggle_gridview: root.toggle_gridview</span>
 <span class="sd">        pos_hint: {&#39;left&#39;: 0, &#39;top&#39;: 1}</span>
 <span class="sd">        size_hint: (0.25, 0.8)</span>
+<span class="sd">        selection_name: app.selected_proxy_name</span>
 <span class="sd">    TimePanel:</span>
 <span class="sd">        id: timepanel</span>
 <span class="sd">        screen: root</span>
@@ -563,9 +669,9 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html#ide">IDE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../allegedb/index.html">allegedb</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/LiSE/allegedb/index.html">allegedb</a></li>
 </ul>
 
 <div class="relations">
@@ -586,7 +692,7 @@
     </form>
     </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
 
 
 
@@ -603,7 +709,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.3.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

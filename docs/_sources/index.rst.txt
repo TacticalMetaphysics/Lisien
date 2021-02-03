@@ -7,13 +7,13 @@ Welcome to LiSE's documentation!
 ================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    manual
-   allegedb/index
    LiSE/index
    ELiDE/index
+   LiSE/LiSE/allegedb/index
 
 
 
