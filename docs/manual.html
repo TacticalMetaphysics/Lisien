@@ -117,9 +117,8 @@ which can split off from one another. Branches normally don’t affect
 one another, though it’s possible to write rules that change one
 branch when they are run in another.</p>
 </div>
-</div>
 <div class="section" id="ide">
-<h1>IDE<a class="headerlink" href="#ide" title="Permalink to this headline">¶</a></h1>
+<h2>IDE<a class="headerlink" href="#ide" title="Permalink to this headline">¶</a></h2>
 <p>The graphical interface, ELiDE, lets the developer change whatever
 they want about the world. A game made with ELiDE will be more
 restrictive about what the player is allowed to change, but all of the
@@ -149,7 +148,7 @@ The Tick field indicates how many changes have occurred in the current turn.</p>
 This is deliberate, but it’s not a good idea at the moment,
 because ELiDE doesn’t know how to make plans yet.</p>
 <div class="section" id="stat-editor">
-<h2>Stat Editor<a class="headerlink" href="#stat-editor" title="Permalink to this headline">¶</a></h2>
+<h3>Stat Editor<a class="headerlink" href="#stat-editor" title="Permalink to this headline">¶</a></h3>
 <p>This two-column table displays the keys and values in the selected
 entity. By default, they are all shown as Readouts, which is to say,
 plain text.</p>
@@ -172,14 +171,14 @@ change you can make with it.</p>
 the state of the world.</p>
 </div>
 <div class="section" id="python-editor">
-<h2>Python Editor<a class="headerlink" href="#python-editor" title="Permalink to this headline">¶</a></h2>
+<h3>Python Editor<a class="headerlink" href="#python-editor" title="Permalink to this headline">¶</a></h3>
 <p>Click the Python button to edit your game code in the IDE if you like.
 In this case, you can’t use any of the decorators. Choose the appropriate tab
 from Trigger, Prereq, or Action at the top, and the function you write will
 show up in the appropriate part of the rules editor.</p>
 </div>
 <div class="section" id="rules-editor">
-<h2>Rules Editor<a class="headerlink" href="#rules-editor" title="Permalink to this headline">¶</a></h2>
+<h3>Rules Editor<a class="headerlink" href="#rules-editor" title="Permalink to this headline">¶</a></h3>
 <p>Here you can assemble rules out of prewritten functions. First pick which rule
 to edit from the menu on the left, using the box at the bottom to add one if needed.
 Then go through the trigger, prereq, and action tabs, and drag the functions from
@@ -191,11 +190,12 @@ You can, however, select nothing, in which case you get the option to edit
 rulebooks that apply to the current character overall,</p>
 </div>
 <div class="section" id="strings-editor">
-<h2>Strings Editor<a class="headerlink" href="#strings-editor" title="Permalink to this headline">¶</a></h2>
+<h3>Strings Editor<a class="headerlink" href="#strings-editor" title="Permalink to this headline">¶</a></h3>
 <p>The LiSE engine has an attribute <code class="docutils literal notranslate"><span class="pre">string</span></code> that is accessed like a dictionary and
 used to store arbitrary strings, such as might be shown in a menu. You can edit those
 here. You can store strings for multiple languages, and switch between them
 programmatically by setting <code class="docutils literal notranslate"><span class="pre">engine.string.language</span></code>.</p>
+</div>
 </div>
 </div>
 
@@ -222,18 +222,17 @@ programmatically by setting <code class="docutils literal notranslate"><span cla
 <li class="toctree-l2"><a class="reference internal" href="#too-much-world-state">Too much world state</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#too-many-rules">Too many rules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ide">IDE</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#stat-editor">Stat Editor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#python-editor">Python Editor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rules-editor">Rules Editor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#strings-editor">Strings Editor</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="#ide">IDE</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#stat-editor">Stat Editor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#python-editor">Python Editor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#rules-editor">Rules Editor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#strings-editor">Strings Editor</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ELiDE/index.html">ELiDE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="LiSE/LiSE/allegedb/index.html">allegedb</a></li>
 </ul>
 
 <div class="relations">
