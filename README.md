@@ -6,13 +6,14 @@ LiSE is an application for developing life simulation games.
 
 # What is a life simulation game?
 
-For the purposes of LiSE, it is any game where you are primarily
-concerned with "who you are" rather than "what you're
-doing". Nearly everything your character can do should be
-represented in the game somehow, but mostly in non-interactive form. This frees
-the player to attend to the high-level tasks of "living" in the game
-world--which, in concrete terms, boil down to time and resource
-management.
+Life simulation games simulate the world in relatively high detail,
+but not in the sense that physics engines are concerned with --
+rather, each game in the genre has a different take on the mundane
+events that constitute everyday life for its purpose. Logistics and
+RPG elements tend to feature heavily in these games, but a lot of the
+appeal is in the parts that are only barely interactive; "useless"
+simulations of systems that would logically exist in the game world,
+regardless of what the player wants of them.
 
 Existing games that LiSE seeks to imitate include:
 
@@ -127,7 +128,7 @@ This starts a new game with its world state stored in the file 'world.db'. Becau
 ``True``, it will delete any existing world state and game code each time it's run, which is often useful when you're
 getting started. It creates three characters, one of which, named 'physical', has a 20x20 grid in it.
 The others are empty, and in fact we don't intend to put any graph in them; they're just for keeping track of things
-in ``physical``:
+in ``physical``. Add the following inside the `with` block of `polygons.py`:
 
 ```python
     empty = list(phys.place.values())
