@@ -38,11 +38,9 @@ have, and provides powerful tools specialized to those
 problems. Though you will still need to write some Python code for
 your game, it should only be the code that describes how your game's
 world works. If you don't want to worry about the data structure that
-represents the world, LiSE gives you one that will work. If you don't
-want to write a user interface, you can play the game in the IDE. And
-then again, if your game is similar enough to one that's been freely
-released, you can import rules from that one, and not write that code
-yourself, after all.
+represents the world, LiSE gives you one that will work. And if you
+don't want to write a user interface, you can play the game in the
+IDE.
 
 # Features
 
