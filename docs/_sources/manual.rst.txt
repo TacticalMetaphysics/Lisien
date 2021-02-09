@@ -99,7 +99,7 @@ one another, though it's possible to write rules that change one
 branch when they are run in another.
 
 IDE
-===
+---
 
 The graphical interface, ELiDE, lets the developer change whatever
 they want about the world. A game made with ELiDE will be more
@@ -134,7 +134,7 @@ This is deliberate, but it's not a good idea at the moment,
 because ELiDE doesn't know how to make plans yet.
 
 Stat Editor
------------
+___________
 
 This two-column table displays the keys and values in the selected
 entity. By default, they are all shown as Readouts, which is to say,
@@ -163,7 +163,7 @@ You can use this to build a primitive interface to your game, or just monitor
 the state of the world.
 
 Python Editor
--------------
+_____________
 
 Click the Python button to edit your game code in the IDE if you like.
 In this case, you can't use any of the decorators. Choose the appropriate tab
@@ -171,7 +171,7 @@ from Trigger, Prereq, or Action at the top, and the function you write will
 show up in the appropriate part of the rules editor.
 
 Rules Editor
-------------
+____________
 
 Here you can assemble rules out of prewritten functions. First pick which rule
 to edit from the menu on the left, using the box at the bottom to add one if needed.
@@ -185,7 +185,7 @@ You can, however, select nothing, in which case you get the option to edit
 rulebooks that apply to the current character overall,
 
 Strings Editor
---------------
+______________
 
 The LiSE engine has an attribute ``string`` that is accessed like a dictionary and
 used to store arbitrary strings, such as might be shown in a menu. You can edit those

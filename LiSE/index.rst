@@ -12,12 +12,12 @@ LiSE
 
 
 The only LiSE class that you should ever instantiate yourself is
-Engine. All the other simulation objects should be
-created and accessed through it. Engine is instantiated
-with two arguments, which are file names of SQLite databases that will
-be created if needed; the first will hold the state of the simulation,
-including history, while the second will hold rules, including copies
-of the functions used in the rules.
+`Engine`. All the other simulation objects should be
+created and accessed through it. By default, it keeps the simulation
+code and world state in the working directory, but you can pass in another
+directory if you prefer. Either use it with a context manager
+(`with Engine():`) or call its `.close()` method when you're done
+changing things.
 
 World Modelling
 ---------------
@@ -178,3 +178,88 @@ query
 -----
 .. automodule:: LiSE.query
    :members:
+
+
+allegedb
+--------
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+State container and object-relational mapper for versioned graphs.
+
+allegedb serves its own special variant on the networkx
+DiGraph class (with more to come). Every change to them is
+stored in an SQL database.
+
+This means you can keep multiple versions of one set of graphs and
+switch between them without the need to save, load, or run git-checkout.
+Just point the ORM at the correct branch and turn, and all of the
+graphs in the program will change. All the different branches and
+revisions remain in the database to be brought back when needed.
+
+usage
+_____
+
+::
+
+    >>> from LiSE.allegedb import ORM
+    >>> orm = ORM('sqlite:///test.db')
+    >>> g = orm.new_digraph('test')
+    >>> g.add_nodes_from(['spam', 'eggs', 'ham'])
+    >>> g.add_edge('spam', 'eggs')
+    >>> g.adj
+    <LiSE.allegedb.graph.DiGraphSuccessorsMapping object containing {'ham': {}, 'eggs': {}, 'spam': {'eggs': {}}}>
+    >>> del g
+    >>> orm.close()
+    >>> del orm
+    >>> orm = ORM('sqlite:///test.db')
+    >>> g = orm.graph['test']
+    >>> g.adj
+    <LiSE.allegedb.graph.DiGraphSuccessorsMapping object containing {'ham': {}, 'eggs': {}, 'spam': {'eggs': {}}}>
+    >>> import networkx as nx
+    >>> red = nx.random_lobster(10, 0.9, 0.9)
+    >>> blue = orm.new_digraph('blue', red)  # initialize with data from the given graph
+    >>> red.adj == blue.adj
+    True
+    >>> orm.turn = 1
+    >>> blue.add_edge(17, 15)
+    >>> red.adj == blue.adj
+    False
+    >>> orm.turn = 0  # undoing what I did when turn=1
+    >>> red.adj == blue.adj
+    True
+    >>> orm.branch = 'test'    # navigating to a branch for the first time creates that branch
+    >>> orm.turn = 1
+    >>> red.adj == blue.adj
+    True
+    >>> orm.branch = 'trunk'
+    >>> red.adj == blue.adj
+    False
+
+ORM
+___
+.. automodule:: LiSE.allegedb
+   :members:
+
+cache
+_____
+.. automodule:: LiSE.allegedb.cache
+   :members:
+
+graph
+_____
+.. automodule:: LiSE.allegedb.graph
+   :members:
+
+query
+_____
+.. automodule:: LiSE.allegedb.query
+   :members:
+
+wrap
+____
+.. automodule:: LiSE.allegedb.wrap
+   :members:
+
