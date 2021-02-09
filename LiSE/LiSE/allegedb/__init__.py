@@ -604,6 +604,7 @@ class ORM(object):
         if 'trunk' not in self._branches:
             self._branches['trunk'] = None, 0, 0, 0, 0
         self._new_keyframes = set()
+        self._windows_loaded = {}
         self._nbtt_stuff = (
             self._btt, self._turn_end_plan, self._turn_end,
             self._plan_ticks, self._plan_ticks_uncommitted,
@@ -621,7 +622,8 @@ class ORM(object):
         self._exist_edge_stuff = (
             self._nbtt, self.query.exist_edge, self._edges_cache.store)
         self._load_graphs()
-        self._init_load(validate=validate)
+        assert hasattr(self, 'graph')
+        self._load_at(*self._btt())
 
     def _upd_branch_parentage(self, parent, child):
         self._childbranch[parent].add(child)
@@ -680,12 +682,54 @@ class ORM(object):
                   graph._nodes_state(), graph._edges_state(),
                   graph._val_state())
             self._new_keyframes.add((graphn, branch, turn, tick))
-
-    def _init_load(self, validate=False):
-        assert hasattr(self, 'graph')
+    
+    def _load_at(self, branch, turn, tick):
         snap_keyframe = self._snap_keyframe
-        for (graph, branch, turn, tick, nodes, edges, graph_val) in \
-                self.query.keyframes_dump():
+        noderows = []
+        edgerows = []
+        latest_keyframe = {}
+        keyframes_per_graph_and_branch = {}
+        latest_branch_per_graph = {}
+        branch_now, turn_now, tick_now = branch, turn, tick
+        branch_parents = self._branch_parents
+        the_future = {}  # for finding the next keyframe after the one we're going to load
+        for (graph, branch, turn, tick) in \
+                    self.query.keyframes_list():
+                # figure out the latest keyframe that is earlier than the present moment
+                # ...for each graph
+                # ...can I maybe avoid iterating over the entire keyframes table?
+                if branch_now in branch_parents[branch] or turn_now < turn or (turn_now == turn and tick_now < tick):
+                    # this keyframe is in the future, no need to load it yet;
+                    # but keep tabs on it in case it's the next one after the one we'll load
+                    if graph in the_future:
+                        if branch in the_future[graph]:
+                            future_turn, future_tick = the_future[graph][branch]
+                            if turn < future_turn or (turn == future_turn and tick < future_tick):
+                                the_future[graph][branch] = turn, tick
+                        else:
+                            the_future[graph][branch] = turn, tick
+                    else:
+                        the_future[graph] = {branch: (turn, tick)}
+                    continue
+                if (graph, branch) in keyframes_per_graph_and_branch:
+                    keyframes_per_graph_and_branch[graph, branch].add((turn, tick))
+                else:
+                    keyframes_per_graph_and_branch[graph, branch] = {(turn, tick)}
+                if graph not in latest_keyframe:
+                    latest_keyframe[graph] = (branch, turn, tick)
+                    continue
+                latest_branch, latest_turn, latest_tick = latest_keyframe[graph]
+                if branch == branch_now:
+                    if latest_branch != branch_now or turn > latest_turn or (turn == latest_turn and tick > latest_tick):
+                        latest_keyframe[graph] = (branch, turn, tick)
+                elif latest_branch == branch_now:
+                    continue
+                elif latest_branch in branch_parents[branch]:
+                    latest_keyframe[graph] = (branch, turn, tick)
+        get_keyframe = self.query.get_keyframe
+        for (graph, btt) in latest_keyframe.items():
+            branch, turn, tick = btt
+            nodes, edges, graph_val = get_keyframe(graph, branch, turn, tick)
             snap_keyframe(graph, branch, turn, tick, nodes, edges, graph_val)
         noderows = [
             (graph, node, branch, turn, tick, ex if ex else None)

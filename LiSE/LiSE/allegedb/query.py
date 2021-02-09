@@ -202,6 +202,16 @@ class QueryEngine(object):
         unpack = self.unpack
         for (graph, branch, turn, tick, nodes, edges, graph_val) in self.sql('keyframes_dump'):
             yield unpack(graph), branch, turn, tick, unpack(nodes), unpack(edges), unpack(graph_val)
+    
+    def keyframes_list(self):
+        unpack = self.unpack
+        for (graph, branch, turn, tick) in self.sql('keyframes_list'):
+            yield unpack(graph), branch, turn, tick
+    
+    def get_keyframe(self, graph, branch, turn, tick):
+        unpack = self.unpack
+        nodes, edges, graph_val = self.sql('get_keyframe', self.pack(graph), branch, turn, tick)
+        return unpack(nodes), unpack(edges), unpack(graph_val)
 
     def del_graph(self, graph):
         """Delete all records to do with the graph"""

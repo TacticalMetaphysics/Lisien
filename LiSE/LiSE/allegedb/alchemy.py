@@ -308,6 +308,22 @@ def queries_for_table_dict(table):
         ).where(and_(
             table['turns'].c.branch == bindparam('branch'),
             table['turns'].c.turn == bindparam('turn')
+        )),
+        'keyframes_list': select([
+            table['keyframes'].c.graph,
+            table['keyframes'].c.branch,
+            table['keyframes'].c.turn,
+            table['keyframes'].c.tick
+        ]),
+        'get_keyframe': select([
+            table['keyframes'].c.nodes,
+            table['keyframes'].c.edges,
+            table['keyframes'].c.graph_val
+        ]).where(and_(
+            table['keyframes'].c.graph == bindparam('graph'),
+            table['keyframes'].c.branch == bindparam('branch'),
+            table['keyframes'].c.turn == bindparam('turn'),
+            table['keyframes'].c.tick == bindparam('tick')
         ))
     }
     for t in table.values():
