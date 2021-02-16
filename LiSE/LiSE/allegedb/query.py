@@ -26,7 +26,7 @@ try:
     import wrap
 except ImportError:
     # python 3
-    from LiSE.allegedb import wrap
+    from . import wrap
 wrappath = os.path.dirname(wrap.__file__)
 alchemyIntegError = None
 try:
@@ -404,6 +404,24 @@ class QueryEngine(object):
                 tick,
                 bool(extant)
             )
+    
+    def load_nodes(self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None):
+        self._flush_nodes()
+        pack = self.pack
+        unpack = self.unpack
+        if turn_to is None:
+            for (node, turn, tick, extant) in self.sql(
+                'load_nodes_tick_to_end', pack(graph), branch, turn_from, turn_from, tick_from
+            ):
+                yield unpack(node), turn, tick, extant
+        else:
+            if tick_to is None:
+                raise TypeError("Need either both or neither of turn_to and tick_to")
+            for (node, turn, tick, extant) in self.sql(
+                'load_nodes_tick_to_tick', pack(graph), branch, turn_from, turn_from, tick_from,
+                turn_to, turn_to, tick_to
+            ):
+                yield unpack(node), turn, tick, extant
 
     def node_val_dump(self):
         """Yield the entire contents of the node_val table."""

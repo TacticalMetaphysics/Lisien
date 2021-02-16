@@ -324,6 +324,45 @@ def queries_for_table_dict(table):
             table['keyframes'].c.branch == bindparam('branch'),
             table['keyframes'].c.turn == bindparam('turn'),
             table['keyframes'].c.tick == bindparam('tick')
+        )),
+        'load_nodes_tick_to_end': select([
+            table['nodes'].c.node,
+            table['nodes'].c.turn,
+            table['nodes'].c.tick,
+            table['nodes'].c.extant
+        ]).where(and_(
+            table['nodes'].c.graph == bindparam('graph'),
+            table['nodes'].c.branch == bindparam('branch'),
+            or_(
+                table['nodes'].c.turn > bindparam('turn_a'),
+                and_(
+                    table['nodes'].c.turn == bindparam('turn_b'),
+                    table['nodes'].c.tick >= bindparam('tick')
+                )
+            )
+        )),
+        'load_nodes_tick_to_tick': select([
+            table['nodes'].c.node,
+            table['nodes'].c.turn,
+            table['nodes'].c.tick,
+            table['nodes'].c.extant
+        ]).where(and_(
+            table['nodes'].c.graph == bindparam('graph'),
+            table['nodes'].c.branch == bindparam('branch'),
+            or_(
+                table['nodes'].c.turn > bindparam('turn_past_a'),
+                and_(
+                    table['nodes'].c.turn == bindparam('turn_past_b'),
+                    table['nodes'].c.tick >= bindparam('tick_past')
+                )
+            ),
+            or_(
+                table['nodes'].c.turn < bindparam('turn_future_a'),
+                and_(
+                    table['nodes'].c.turn == bindparam('turn_future_b'),
+                    table['nodes'].c.tick <= bindparam('tick_future')
+                )
+            )
         ))
     }
     for t in table.values():

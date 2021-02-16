@@ -36,7 +36,7 @@ Column = partial(BaseColumn, nullable=False)
 
 from json import dumps
 
-from .allegedb import alchemy
+from allegedb import alchemy
 
 
 def tables_for_meta(meta):
@@ -522,7 +522,7 @@ def queries(table):
         tab = wherecols[0].table
         return tab.update().values(**vmap).where(and_(*wheres))
 
-    r = LiSE.allegedb.alchemy.queries_for_table_dict(table)
+    r = alchemy.queries_for_table_dict(table)
 
     rulebooks = table['rulebooks']
     r['rulebooks_update'] = update_where(['rules'], [rulebooks.c.rulebook, rulebooks.c.branch, rulebooks.c.turn, rulebooks.c.tick])

@@ -21,7 +21,7 @@ from weakref import WeakValueDictionary
 from blinker import Signal
 import networkx as nx
 
-from LiSE.allegedb.window import update_window, update_backward_window
+from .window import update_window, update_backward_window
 from .cache import HistoryError
 from .graph import (
     DiGraph,
