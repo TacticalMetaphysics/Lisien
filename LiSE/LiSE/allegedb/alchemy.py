@@ -190,6 +190,30 @@ def indices_for_table_dict(table):
 
 
 def queries_for_table_dict(table):
+    def tick_to_end_clause(tab):
+        return and_(
+            tab.c.graph == bindparam('graph'),
+            tab.c.branch == bindparam('branch'),
+            or_(
+                tab.c.turn > bindparam('turn_from_a'),
+                and_(
+                    tab.c.turn == bindparam('turn_from_b'),
+                    tab.c.tick >= bindparam('tick_from')
+                )
+            )
+        )
+    
+    def tick_to_tick_clause(tab):
+        return and_(
+            tick_to_end_clause(tab),
+            or_(
+                tab.c.turn < bindparam('turn_to_a'),
+                and_(
+                    tab.c.turn == bindparam('turn_to_b'),
+                    tab.c.tick <= bindparam('tick_to')
+                )
+            )
+        )
     r = {
         'global_get': select(
             [table['global'].c.value]
@@ -330,40 +354,73 @@ def queries_for_table_dict(table):
             table['nodes'].c.turn,
             table['nodes'].c.tick,
             table['nodes'].c.extant
-        ]).where(and_(
-            table['nodes'].c.graph == bindparam('graph'),
-            table['nodes'].c.branch == bindparam('branch'),
-            or_(
-                table['nodes'].c.turn > bindparam('turn_a'),
-                and_(
-                    table['nodes'].c.turn == bindparam('turn_b'),
-                    table['nodes'].c.tick >= bindparam('tick')
-                )
-            )
-        )),
+        ]).where(tick_to_end_clause(table['nodes'])),
         'load_nodes_tick_to_tick': select([
             table['nodes'].c.node,
             table['nodes'].c.turn,
             table['nodes'].c.tick,
             table['nodes'].c.extant
-        ]).where(and_(
-            table['nodes'].c.graph == bindparam('graph'),
-            table['nodes'].c.branch == bindparam('branch'),
-            or_(
-                table['nodes'].c.turn > bindparam('turn_past_a'),
-                and_(
-                    table['nodes'].c.turn == bindparam('turn_past_b'),
-                    table['nodes'].c.tick >= bindparam('tick_past')
-                )
-            ),
-            or_(
-                table['nodes'].c.turn < bindparam('turn_future_a'),
-                and_(
-                    table['nodes'].c.turn == bindparam('turn_future_b'),
-                    table['nodes'].c.tick <= bindparam('tick_future')
-                )
-            )
-        ))
+        ]).where(tick_to_tick_clause(table['nodes'])),
+        'load_edges_tick_to_end': select([
+            table['edges'].c.orig,
+            table['edges'].c.dest,
+            table['edges'].c.idx,
+            table['edges'].c.turn,
+            table['edges'].c.tick,
+            table['edges'].c.extant
+        ]).where(tick_to_end_clause(table['edges'])),
+        'load_edges_tick_to_tick': select([
+            table['edges'].c.orig,
+            table['edges'].c.dest,
+            table['edges'].c.idx,
+            table['edges'].c.turn,
+            table['edges'].c.tick,
+            table['edges'].c.extant
+        ]).where(tick_to_tick_clause(table['edges'])),
+        'load_node_val_tick_to_end': select([
+            table['node_val'].c.node,
+            table['node_val'].c.key,
+            table['node_val'].c.turn,
+            table['node_val'].c.tick,
+            table['node_val'].c.value
+        ]).where(tick_to_end_clause(table['node_val'])),
+        'load_node_val_tick_to_tick': select([
+            table['node_val'].c.node,
+            table['node_val'].c.key,
+            table['node_val'].c.turn,
+            table['node_val'].c.tick,
+            table['node_val'].c.value
+        ]).where(tick_to_tick_clause(table['node_val'])),
+        'load_edge_val_tick_to_end': select([
+            table['edge_val'].c.orig,
+            table['edge_val'].c.dest,
+            table['edge_val'].c.idx,
+            table['edge_val'].c.key,
+            table['edge_val'].c.turn,
+            table['edge_val'].c.tick,
+            table['edge_val'].c.value
+        ]).where(tick_to_end_clause(table['edge_val'])),
+        'load_edge_val_tick_to_tick': select([
+            table['edge_val'].c.orig,
+            table['edge_val'].c.dest,
+            table['edge_val'].c.idx,
+            table['edge_val'].c.key,
+            table['edge_val'].c.turn,
+            table['edge_val'].c.tick,
+            table['edge_val'].c.value
+        ]).where(tick_to_tick_clause(table['edge_val'])),
+        'load_graph_val_tick_to_end': select([
+            table['graph_val'].c.key,
+            table['graph_val'].c.turn,
+            table['graph_val'].c.tick,
+            table['graph_val'].c.value
+        ]).where(tick_to_end_clause(table['graph_val'])),
+        'load_graph_val_tick_to_tick': select([
+            table['graph_val'].c.key,
+            table['graph_val'].c.turn,
+            table['graph_val'].c.tick,
+            table['graph_val'].c.value
+        ]).where(tick_to_tick_clause(table['graph_val']))
     }
     for t in table.values():
         key = list(t.primary_key)
