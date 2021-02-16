@@ -623,6 +623,7 @@ class ORM(object):
             self._nbtt, self.query.exist_edge, self._edges_cache.store)
         self._load_graphs()
         assert hasattr(self, 'graph')
+        self._keyframes_list = self.query.keyframes_list()
         self._load_at(*self._btt())
 
     def _upd_branch_parentage(self, parent, child):
@@ -682,6 +683,7 @@ class ORM(object):
                   graph._nodes_state(), graph._edges_state(),
                   graph._val_state())
             self._new_keyframes.add((graphn, branch, turn, tick))
+            self._keyframes_list.append((graphn, branch, turn, tick))
     
     def _load_at(self, branch, turn, tick):
         snap_keyframe = self._snap_keyframe
@@ -693,7 +695,7 @@ class ORM(object):
         branch_parents = self._branch_parents
         solved_graphs = set()
         for (graph, branch, turn, tick) in \
-                    self.query.keyframes_list():
+                    self._keyframes_list:
                 # Figure out the latest keyframe that is earlier than the present moment,
                 # and the earliest keyframe that is later than the present moment,
                 # for each graph.
