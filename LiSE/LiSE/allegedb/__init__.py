@@ -747,29 +747,84 @@ class ORM(object):
                 # possible futures, and we're trying to be conservative about what we load.
                 # If neither branch is an ancestor of the other, we can't use the keyframe
                 # for this load.
-        for graph, btt in latest_past_keyframe.items():
-            kfbranch, kfturn, kftick = btt
-
+        noderows = []
+        edgerows = []
+        graphvalrows = []
+        nodevalrows = []
+        edgevalrows = []
+        load_nodes = self.query.load_nodes
+        load_edges = self.query.load_edges
+        load_graph_val = self.query.load_graph_val
+        load_node_val = self.query.load_node_val
+        load_edge_val = self.query.load_edge_val
         get_keyframe = self.query.get_keyframe
-        for (graph, btt) in latest_past_keyframe.items():
-            branch, turn, tick = btt
-            nodes, edges, graph_val = get_keyframe(graph, branch, turn, tick)
+        iter_parent_btt = self._iter_parent_btt
+        for graph, btt in latest_past_keyframe.items():
+            past_branch, past_turn, past_tick = btt
+            nodes, edges, graph_val = get_keyframe(graph, past_branch, past_turn, past_tick)
             snap_keyframe(graph, branch, turn, tick, nodes, edges, graph_val)
-        noderows = [
-            (graph, node, branch, turn, tick, ex if ex else None)
-            for (graph, node, branch, turn, tick, ex)
-            in self.query.nodes_dump()
-        ]
+            if graph not in earliest_future_keyframe:
+                noderows.extend(
+                    (graph, node, branch, turn, tick, ex or None)
+                    for (graph, node, branch, turn, tick, ex)
+                    in load_nodes(graph, past_branch, past_turn, past_tick)
+                )
+                edgerows.extend(
+                    (graph, orig, dest, idx, branch, turn, tick, ex or None)
+                    for (graph, orig, dest, idx, branch, turn, tick, ex)
+                    in load_edges(graph, past_branch, past_turn, past_tick)
+                )
+                graphvalrows.extend(load_graph_val(graph, past_branch, past_turn, past_tick))
+                nodevalrows.extend(load_node_val(graph, past_branch, past_turn, past_tick))
+                edgevalrows.extend(load_edge_val(graph, past_branch, past_turn, past_tick))
+                continue
+            future_branch, future_turn, future_tick = earliest_future_keyframe[graph]
+            if past_branch == future_branch:
+                noderows.extend(
+                    (graph, node, branch, turn, tick, ex or None)
+                    for (graph, node, branch, turn, tick, ex)
+                    in load_nodes(graph, past_branch, past_turn, past_tick, future_turn, future_tick)
+                )
+                edgerows.extend(
+                    (graph, orig, dest, idx, branch, turn, tick, ex or None)
+                    for (graph, orig, dest, idx, branch, turn, tick, ex)
+                    in load_edges(graph, past_branch, past_turn, past_tick, future_turn, future_tick)
+                )
+                graphvalrows.extend(load_graph_val(graph, past_branch, past_turn, past_tick, future_turn, future_tick))
+                nodevalrows.extend(load_node_val(graph, past_branch, past_turn, past_tick, future_turn, future_tick))
+                edgevalrows.extend(load_edge_val(graph, past_branch, past_turn, past_tick, future_turn, future_tick))
+                continue
+            parentage_iter = iter_parent_btt(future_branch, future_turn, future_tick)
+            branch1, turn1, tick1 = next(parentage_iter)
+            windows = []
+            for branch0, turn0, tick0 in parentage_iter:
+                windows.append((branch1, turn0, tick0, turn1, tick1))
+                if branch0 == past_branch:
+                    windows.append((branch0, past_turn, past_tick, turn0, tick0))
+                    break
+            else:
+                assert branch0 == past_branch, "Invalid branch heredity"
+            if not windows:
+                continue  # I think this would happen when we are only loading an initial state
+            for window in reversed(windows):  # chronological ordering
+                noderows.extend(
+                    (graph, node, branch, turn, tick, ex or None)
+                    for (graph, node, branch, turn, tick, ex)
+                    in load_nodes(graph, *window)
+                )
+                edgerows.extend(
+                    (graph, orig, dest, idx, branch, turn, tick, ex or None)
+                    for (graph, orig, dest, idx, branch, turn, tick, ex)
+                    in load_edges(graph, *window)
+                )
+                graphvalrows.extend(load_graph_val(graph, *window))
+                nodevalrows.extend(load_node_val(graph, *window))
+                edgevalrows.extend(load_edge_val(graph, *window))
         self._nodes_cache.load(noderows)
-        edgerows = [
-            (graph, orig, dest, idx, branch, turn, tick, ex if ex else None)
-            for (graph, orig, dest, idx, branch, turn, tick, ex)
-            in self.query.edges_dump()
-        ]
         self._edges_cache.load(edgerows)
-        self._graph_val_cache.load(self.query.graph_val_dump())
-        self._node_val_cache.load(self.query.node_val_dump())
-        self._edge_val_cache.load(self.query.edge_val_dump())
+        self._graph_val_cache.load(graphvalrows)
+        self._node_val_cache.load(nodevalrows)
+        self._edge_val_cache.load(edgevalrows)
         last_plan = -1
         plans = self._plans
         branches_plans = self._branches_plans
