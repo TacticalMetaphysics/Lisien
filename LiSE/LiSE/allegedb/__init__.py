@@ -624,6 +624,9 @@ class ORM(object):
         self._load_graphs()
         assert hasattr(self, 'graph')
         self._keyframes_list = list(self.query.keyframes_list())
+        self._init_load()
+
+    def _init_load(self):
         self._load_at(*self._btt())
 
     def _upd_branch_parentage(self, parent, child):
