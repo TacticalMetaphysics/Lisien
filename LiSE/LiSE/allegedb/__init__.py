@@ -623,7 +623,7 @@ class ORM(object):
             self._nbtt, self.query.exist_edge, self._edges_cache.store)
         self._load_graphs()
         assert hasattr(self, 'graph')
-        self._keyframes_list = self.query.keyframes_list()
+        self._keyframes_list = list(self.query.keyframes_list())
         self._load_at(*self._btt())
 
     def _upd_branch_parentage(self, parent, child):
