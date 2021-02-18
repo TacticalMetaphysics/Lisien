@@ -21,6 +21,8 @@ doesn't pollute the other files so much.
 import os
 from collections.abc import MutableMapping
 from sqlite3 import IntegrityError as sqliteIntegError
+from sqlite3.dbapi2 import connect
+
 from . import wrap
 wrappath = os.path.dirname(wrap.__file__)
 alchemyIntegError = None
@@ -101,14 +103,21 @@ class QueryEngine(object):
         def alchem_init(dbstring, connect_args):
             from sqlalchemy import create_engine
             from sqlalchemy.engine.base import Engine
+            from sqlalchemy.exc import ArgumentError
             from LiSE.allegedb.alchemy import Alchemist
             if isinstance(dbstring, Engine):
                 self.engine = dbstring
             else:
-                self.engine = create_engine(
-                    dbstring,
-                    connect_args=connect_args
-                )
+                try:
+                    self.engine = create_engine(
+                        dbstring,
+                        connect_args=connect_args
+                    )
+                except ArgumentError:
+                    self.engine = create_engine(
+                        'sqlite:///' + dbstring,
+                        connect_args=connect_args
+                    )
             self.alchemist = Alchemist(self.engine)
             self.transaction = self.alchemist.conn.begin()
 
