@@ -1141,8 +1141,8 @@ class ORM(object):
         if name in self.illegal_graph_names:
             raise GraphNameError("Illegal name")
         self.query.new_graph(name, type_s)
+        branch, turn, tick = self._btt()
         if data:
-            branch, turn, tick = self._btt()
             if isinstance(data, DiGraph):
                 self._snap_keyframe(name, branch, turn, tick, data._node_state(), data._edges_state(), data._val_state())
             elif isinstance(data, nx.Graph):
@@ -1155,7 +1155,7 @@ class ORM(object):
                 self._snap_keyframe(name, branch, turn, tick, data._node, data._adj, data.graph)
             else:
                 self._snap_keyframe(name, branch, turn, tick, *data)
-            self._new_keyframes.add((name, branch, turn, tick))
+        self._new_keyframes.add((name, branch, turn, tick))
 
     def new_graph(self, name, data=None, **attr):
         """Return a new instance of type Graph, initialized with the given

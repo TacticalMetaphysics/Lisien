@@ -214,7 +214,7 @@ class QueryEngine(object):
     
     def get_keyframe(self, graph, branch, turn, tick):
         unpack = self.unpack
-        nodes, edges, graph_val = self.sql('get_keyframe', self.pack(graph), branch, turn, tick)
+        nodes, edges, graph_val = self.sql('get_keyframe', self.pack(graph), branch, turn, tick).fetchone()
         return unpack(nodes), unpack(edges), unpack(graph_val)
 
     def del_graph(self, graph):
