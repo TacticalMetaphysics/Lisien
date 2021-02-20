@@ -271,6 +271,9 @@ class Node(AbstractEntityMapping):
                  '_cache_contains_stuff', '_len_stuff', '_get_cache_stuff',
                  '_set_db_stuff', '_set_cache_stuff')
 
+    def _validate_node_type(self):
+        return True
+
     def __new__(cls, graph, node):
         gnn = (graph.name, node)
         nobjs = graph.db._node_objs
