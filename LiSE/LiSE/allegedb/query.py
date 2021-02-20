@@ -104,7 +104,7 @@ class QueryEngine(object):
             from sqlalchemy import create_engine
             from sqlalchemy.engine.base import Engine
             from sqlalchemy.exc import ArgumentError
-            from LiSE.allegedb.alchemy import Alchemist
+            from .alchemy import Alchemist
             if isinstance(dbstring, Engine):
                 self.engine = dbstring
             else:
@@ -129,9 +129,8 @@ class QueryEngine(object):
             if isinstance(dbstring, Connection):
                 self.connection = dbstring
             else:
-                if dbstring.startswith('sqlite:'):
-                    slashidx = dbstring.rindex('/')
-                    dbstring = dbstring[slashidx+1:]
+                if dbstring.startswith('sqlite:///'):
+                    dbstring = dbstring[10:]
                 self.connection = connect(dbstring)
 
         if alchemy:
