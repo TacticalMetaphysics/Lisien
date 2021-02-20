@@ -1121,6 +1121,8 @@ class ORM(object):
         kf_ins = self.query.keyframes_insert
         graphmap = self.graph
         for graphn, branch, turn, tick in self._new_keyframes:
+            if graphn not in graphmap:
+                continue
             graph = graphmap[graphn]
             kf_ins(graphn, branch, turn, tick,
                     graph._nodes_state(), graph._edges_state(),
