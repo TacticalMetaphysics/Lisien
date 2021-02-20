@@ -298,7 +298,11 @@ class ORM(object):
             graphn = graph.name
         key = (graphn, node)
         if key in node_objs:
-            return node_objs[key]
+            ret = node_objs[key]
+            if ret._validate_node_type():
+                return ret
+            else:
+                del node_objs[key]
         if not node_exists(graphn, node):
             raise KeyError("No such node: {} in {}".format(node, graphn))
         ret = make_node(graph, node)

@@ -60,6 +60,13 @@ class Thing(Node):
             self.character.name, self.name, *self.engine._btt()
         )
 
+    def _validate_node_type(self):
+        try:
+            self._getloc()
+            return True
+        except:
+            return False
+
     def _get_arrival_time(self):
         charn = self.character.name
         n = self.name

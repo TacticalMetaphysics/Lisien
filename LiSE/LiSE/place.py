@@ -44,6 +44,15 @@ class Place(Node):
             repr(self['name'])
         )
 
+    def _validate_node_type(self):
+        try:
+            self.engine._things_cache.retrieve(
+                self.character.name, self.name, *self.engine._btt()
+            )
+            return False
+        except:
+            return True
+
     def delete(self):
         """Remove myself from the world model immediately."""
         super().delete()
