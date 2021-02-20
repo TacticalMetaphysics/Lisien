@@ -1125,7 +1125,7 @@ class ORM(object):
             kf_ins(graphn, branch, turn, tick,
                     graph._nodes_state(), graph._edges_state(),
                     graph._val_state())
-        self._new_keyframes = []
+        self._new_keyframes = set()
         self.query.commit()
         self._plans_uncommitted = []
         self._plan_ticks_uncommitted = []
