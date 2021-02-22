@@ -42,6 +42,13 @@ represents the world, LiSE gives you one that will work. And if you
 don't want to write a user interface, you can play the game in the
 IDE.
 
+The LiSE data model has been designed from the ground up to support
+debugging of complex simulations. It remembers everything that ever
+happened in the simulation, so that when something strange happens
+in a playtester's game, and they send you their save file, you can
+track down the cause, even if it happened long before the
+tester knew to look for it.
+
 # Features
 
 ## Core
