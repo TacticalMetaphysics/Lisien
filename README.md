@@ -12,9 +12,9 @@ but not in the sense that physics engines are concerned with --
 rather, each game in the genre has a different take on the mundane
 events that constitute everyday life for its purpose. Logistics and
 RPG elements tend to feature heavily in these games, but a lot of the
-appeal is in the parts that are only barely interactive; "useless"
-simulations of systems that would logically exist in the game world,
-regardless of what the player wants of them.
+appeal is in the parts that are not directly under player control.
+The game world feels like it continues to exist when you're not playing
+it, because so much of it seems to operate independently of you.
 
 Existing games that LiSE seeks to imitate include:
 
