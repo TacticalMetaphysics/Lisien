@@ -634,6 +634,21 @@ class ORM(object):
     def _init_load(self):
         self._load_at(*self._btt())
 
+        last_plan = -1
+        plans = self._plans
+        branches_plans = self._branches_plans
+        for plan, branch, turn, tick in self.query.plans_dump():
+            plans[plan] = branch, turn, tick
+            branches_plans[branch].add(plan)
+            if plan > last_plan:
+                last_plan = plan
+        self._last_plan = last_plan
+        plan_ticks = self._plan_ticks
+        time_plan = self._time_plan
+        for plan, turn, tick in self.query.plan_ticks_dump():
+            plan_ticks[plan][turn].append(tick)
+            time_plan[plans[plan][0], turn, tick] = plan
+
     def _upd_branch_parentage(self, parent, child):
         self._childbranch[parent].add(child)
         self._branch_parents[child].add(parent)
@@ -1029,20 +1044,6 @@ class ORM(object):
         self._graph_val_cache.load(graphvalrows)
         self._node_val_cache.load(nodevalrows)
         self._edge_val_cache.load(edgevalrows)
-        last_plan = -1
-        plans = self._plans
-        branches_plans = self._branches_plans
-        for plan, branch, turn, tick in self.query.plans_dump():
-            plans[plan] = branch, turn, tick
-            branches_plans[branch].add(plan)
-            if plan > last_plan:
-                last_plan = plan
-        self._last_plan = last_plan
-        plan_ticks = self._plan_ticks
-        time_plan = self._time_plan
-        for plan, turn, tick in self.query.plan_ticks_dump():
-            plan_ticks[plan][turn].append(tick)
-            time_plan[plans[plan][0], turn, tick] = plan
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""
