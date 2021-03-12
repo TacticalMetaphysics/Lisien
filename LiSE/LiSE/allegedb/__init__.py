@@ -608,7 +608,6 @@ class ORM(object):
         if 'trunk' not in self._branches:
             self._branches['trunk'] = None, 0, 0, 0, 0
         self._new_keyframes = set()
-        self._windows_loaded = {}
         self._nbtt_stuff = (
             self._btt, self._turn_end_plan, self._turn_end,
             self._plan_ticks, self._plan_ticks_uncommitted,
@@ -628,6 +627,7 @@ class ORM(object):
         self._load_graphs()
         assert hasattr(self, 'graph')
         self._keyframes_list = list(self.query.keyframes_list())
+        self._keyframes_dict = {}
         self._loaded = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
         self._init_load()
 
@@ -701,12 +701,24 @@ class ORM(object):
     def snap_keyframe(self):
         branch, turn, tick = self._btt()
         snapp = self._snap_keyframe
+        nkf = self._new_keyframes
+        kfl = self._keyframes_list
+        kfd = self._keyframes_dict
         for graphn, graph in self.graph.items():
             snapp(graphn, branch, turn, tick,
                   graph._nodes_state(), graph._edges_state(),
                   graph._val_state())
-            self._new_keyframes.add((graphn, branch, turn, tick))
-            self._keyframes_list.append((graphn, branch, turn, tick))
+            nkf.add((graphn, branch, turn, tick))
+            kfl.append((graphn, branch, turn, tick))
+            if graphn not in kfd:
+                kfd[graphn] = {}
+            kfdg = kfd[graphn]
+            if branch not in kfdg:
+                kfdg[branch] = {turn: {tick, }}
+            elif turn not in kfdg[branch]:
+                kfdg[branch][turn] = {tick, }
+            else:
+                kfdg[branch][turn].add(tick)
     
     def _load_at(self, branch, turn, tick):
         snap_keyframe = self._snap_keyframe
@@ -1044,6 +1056,77 @@ class ORM(object):
         self._graph_val_cache.load(graphvalrows)
         self._node_val_cache.load(nodevalrows)
         self._edge_val_cache.load(edgevalrows)
+
+    def unload(self):
+        """Remove everything from memory we can"""
+        # find the slices of time that need to stay loaded
+        to_keep = {}
+        loaded = self._loaded
+        branch, turn, tick = self._btt()
+        iter_parent_btt = self._iter_parent_btt
+        kfd = self._keyframes_dict
+        neginf = -float('inf')
+        for graph in loaded:
+            # Find a path to the last keyframe we can use. Keep things
+            # loaded from there to here.
+            path = []
+            for past_branch, past_turn, past_tick in iter_parent_btt(
+                branch, turn, tick
+            ):
+                path.append((past_branch, past_turn, past_tick))
+                if graph in kfd and past_branch in kfd[graph]:
+                    trn = neginf
+                    for trrn in kfd[graph][past_branch]:
+                        if trrn > trn and trrn <= past_turn:
+                            trn = trrn
+                    if trn == neginf:
+                        continue
+                    if trn == past_turn:
+                        tck = neginf
+                        for tcck in kfd[graph][past_branch][trn]:
+                            if tcck > tck and tcck <= past_tick:
+                                tck = tcck
+                        if tck == neginf:
+                            trrn = neginf
+                            for trrrn in kfd[graph][past_branch]:
+                                if trrrn > trrn and trrn < trn:
+                                    trrn = trrrn
+                            if trrn == neginf:
+                                continue
+                            path.append((past_branch, trrn, max(
+                                kfd[graph][past_branch][trrn])))
+                            break
+                    else:
+                        path.append((past_branch, trn, max(
+                            kfd[graph][past_branch][trn])))
+                        break
+            else:
+                # Nothing was loaded in the first place for this graph
+                continue
+
+            def loaded_keep_test(test_turn, test_tick,
+                                 past_turn, past_tick,
+                                 future_turn, future_tick):
+                return (
+                        past_turn < test_turn or (
+                        past_turn == test_turn and past_tick <= test_tick
+                )) and (
+                    future_turn > test_turn or (
+                    future_turn == test_turn and future_tick >= test_tick
+                ))
+            if len(path) >= 2:
+                loaded_graph = loaded[graph]
+                to_keep[graph] = {
+                    branc: loaded_graph[branc]
+                    for (branc, trn, tck) in path[:-1]
+                    if branc in loaded_graph
+                    and loaded_keep_test(trn, tck, *loaded_graph[branc])
+                }
+            (past_branch, past_turn, past_tick) = path[-1]
+            (_, _, future_turn, future_tick) = loaded[graph][past_branch]
+            to_keep[graph][past_branch] = (
+                past_turn, past_tick, future_turn, future_tick
+            )
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""
