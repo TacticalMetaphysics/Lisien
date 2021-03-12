@@ -628,7 +628,7 @@ class ORM(object):
         assert hasattr(self, 'graph')
         self._keyframes_list = list(self.query.keyframes_list())
         self._keyframes_dict = {}
-        self._loaded = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
+        self._loaded = {}  # graph: branch: (turn_from, tick_from, turn_to, tick_to)
         self._init_load()
 
     def _init_load(self):
