@@ -514,13 +514,24 @@ class WindowDict(MutableMapping):
             return self._past[-1][1]
         raise KeyError("No data")
 
-    def truncate(self, rev: int) -> None:
-        """Delete everything after the given revision."""
+    def truncate(self, rev: int, direction='forward') -> None:
+        """Delete everything after the given revision.
+
+        With direction='backward', delete everything after the revision
+        instead.
+
+        """
         self.seek(rev)
-        self._keys.difference_update(map(get0, self._future))
-        self._future = []
-        if not self._past:
-            self.beginning = self.end = None
+        if direction == 'forward':
+            self._keys.difference_update(map(get0, self._future))
+            self._future = []
+            if not self._past:
+                self.beginning = self.end = None
+        elif direction == 'backward':
+            self._keys.difference_update(map(get0, self._past))
+            self._past = []
+            if not self._future:
+                self.beginning = self.end = None
 
     def keys(self):
         return WindowDictKeysView(self)

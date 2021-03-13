@@ -659,18 +659,19 @@ class Cache:
             if not kc:
                 del keycache[entity_branch]
 
-    def truncate(self, branch, turn, tick):
-        """Delete all data after (not on) a specific tick"""
+    def truncate(self, branch, turn, tick, direction='forward'):
+        if direction not in {'forward', 'backward'}:
+            raise ValueError("Illegal direction")
         parents, branches, keys, settings, presettings, keycache = self._truncate_stuff
         def truncate_branhc(branhc):
             if turn in branhc:
                 trn = branhc[turn]
-                trn.truncate(tick)
-                branhc.truncate(turn)
+                trn.truncate(tick, direction)
+                branhc.truncate(turn, direction)
                 if not trn:
                     del branhc[turn]
             else:
-                branhc.truncate(turn)
+                branhc.truncate(turn, direction)
         for entities in parents.values():
             for keys in entities.values():
                 for branches in keys.values():
