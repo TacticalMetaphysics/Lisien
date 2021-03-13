@@ -564,7 +564,7 @@ class Engine(AbstractEngine, gORM):
         containing any of the lists 'triggers', 'prereqs', and 'actions'
 
         """
-        from LiSE.allegedb.window import update_window, update_backward_window
+        from .allegedb.window import update_window, update_backward_window
         if turn_from == turn_to:
             return self.get_turn_delta(
                 branch, turn_to, tick_to,start_tick=tick_from)
