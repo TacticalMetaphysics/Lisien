@@ -33,6 +33,18 @@ from .query import QueryEngine, TimeError
 from .window import HistoryError
 
 
+def loaded_keep_test(test_turn, test_tick,
+                     past_turn, past_tick,
+                     future_turn, future_tick):
+    return (
+                   past_turn < test_turn or (
+                   past_turn == test_turn and past_tick <= test_tick
+           )) and (
+                   future_turn > test_turn or (
+                   future_turn == test_turn and future_tick >= test_tick
+           ))
+
+
 class GraphNameError(KeyError):
     """For errors involving graphs' names"""
 
@@ -1104,16 +1116,6 @@ class ORM(object):
                 # Nothing was loaded in the first place for this graph
                 continue
 
-            def loaded_keep_test(test_turn, test_tick,
-                                 past_turn, past_tick,
-                                 future_turn, future_tick):
-                return (
-                        past_turn < test_turn or (
-                        past_turn == test_turn and past_tick <= test_tick
-                )) and (
-                    future_turn > test_turn or (
-                    future_turn == test_turn and future_tick >= test_tick
-                ))
             if len(path) >= 2:
                 loaded_graph = loaded[graph]
                 to_keep[graph] = {
@@ -1127,6 +1129,19 @@ class ORM(object):
             to_keep[graph][past_branch] = (
                 past_turn, past_tick, future_turn, future_tick
             )
+
+    def _time_is_loaded(self, graph, branch, turn, tick=None):
+        loaded = self._loaded
+        if tick is not None:
+            return graph in loaded and branch in loaded[graph] and \
+                   loaded_keep_test(branch, turn, tick, *loaded[graph][branch])
+        if graph not in loaded:
+            return False
+        logded = loaded[graph]
+        if branch not in logded:
+            return False
+        (past_turn, past_tick, future_turn, future_tick) = logded[branch]
+        return past_turn <= turn <= future_turn
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""
