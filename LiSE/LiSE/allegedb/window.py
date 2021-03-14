@@ -518,7 +518,7 @@ class WindowDict(MutableMapping):
         """Delete everything after the given revision, exclusive.
 
         With direction='backward', delete everything before the revision,
-        inclusive, instead.
+        exclusive, instead.
 
         """
         self.seek(rev)
@@ -528,8 +528,10 @@ class WindowDict(MutableMapping):
             if not self._past:
                 self.beginning = self.end = None
         elif direction == 'backward':
-            self._keys.difference_update(map(get0, self._past))
-            self._past = []
+            if not self._past:
+                return
+            self._keys.difference_update(map(get0, self._past[:-1]))
+            self._past = [self._past[-1]]
             if not self._future:
                 self.beginning = self.end = None
 
