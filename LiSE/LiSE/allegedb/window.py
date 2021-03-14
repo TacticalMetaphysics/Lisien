@@ -517,7 +517,7 @@ class WindowDict(MutableMapping):
     def truncate(self, rev: int, direction='forward') -> None:
         """Delete everything after the given revision.
 
-        With direction='backward', delete everything after the revision
+        With direction='backward', delete everything before the revision
         instead.
 
         """
