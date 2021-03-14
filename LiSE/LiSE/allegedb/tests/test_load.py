@@ -112,6 +112,7 @@ def test_keyframe_load(db):
 
 
 def test_keyframe_unload(tmpdbfile):
+    # TODO: test edge cases involving tick-precise unloads
     with ORM('sqlite:///' + tmpdbfile) as orm:
         g = orm.new_digraph('g', nx.grid_2d_graph(3, 3))
         orm.turn = 1
@@ -133,7 +134,7 @@ def test_keyframe_unload(tmpdbfile):
                 'trunk' in orm._edges_cache.keyframe['g', (0, 0), (0, 1)]:
             assert 0 not in orm._edges_cache.keyframe['g', (0, 0), (0, 1)]['trunk']
     with ORM('sqlite:///' + tmpdbfile) as orm:
-        assert not orm.time_is_loaded('trunk', 1)
+        assert not orm._time_is_loaded('trunk', 1)
         g = orm.graph['g']
         if 'trunk' in orm._nodes_cache.keyframe['g',]:
             assert 0 not in orm._nodes_cache.keyframe['g',]['trunk']
