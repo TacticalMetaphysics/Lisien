@@ -515,10 +515,10 @@ class WindowDict(MutableMapping):
         raise KeyError("No data")
 
     def truncate(self, rev: int, direction='forward') -> None:
-        """Delete everything after the given revision.
+        """Delete everything after the given revision, exclusive.
 
-        With direction='backward', delete everything before the revision
-        instead.
+        With direction='backward', delete everything before the revision,
+        inclusive, instead.
 
         """
         self.seek(rev)
