@@ -740,12 +740,14 @@ class ORM(object):
         nkf = self._new_keyframes
         kfl = self._keyframes_list
         kfd = self._keyframes_dict
+        kfs = self._keyframes_times
         for graphn, graph in self.graph.items():
             snapp(graphn, branch, turn, tick,
                   graph._nodes_state(), graph._edges_state(),
                   graph._val_state())
             nkf.add((graphn, branch, turn, tick))
             kfl.append((graphn, branch, turn, tick))
+            kfs.add((branch, turn, tick))
             if graphn not in kfd:
                 kfd[graphn] = {}
             kfdg = kfd[graphn]
