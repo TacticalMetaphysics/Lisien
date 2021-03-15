@@ -645,10 +645,29 @@ class ORM(object):
         assert hasattr(self, 'graph')
         self._keyframes_list = list(self.query.keyframes_list())
         self._keyframes_dict = {}
+        self._keyframes_times = set()
         self._loaded = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
         self._init_load()
 
     def _init_load(self):
+        keyframes_list = self._keyframes_list
+        keyframes_dict = self._keyframes_dict
+        keyframes_times = self._keyframes_times
+        for graph, branch, turn, tick in self.query.keyframes_list():
+            keyframes_list.append((graph, branch, turn, tick))
+            if graph not in keyframes_dict:
+                keyframes_dict[graph] = {branch: {turn: {tick, }}}
+            else:
+                keyframes_dict_graph = keyframes_dict[graph]
+                if branch not in keyframes_dict_graph:
+                    keyframes_dict_graph[branch] = {turn: {tick, }}
+                else:
+                    keyframes_dict_branch = keyframes_dict_graph[branch]
+                    if turn not in keyframes_dict_branch:
+                        keyframes_dict_branch[turn] = {tick, }
+                    else:
+                        keyframes_dict_branch[turn].add(tick)
+            keyframes_times.add((branch, turn, tick))
         self._load_at(*self._btt())
 
         last_plan = -1
@@ -739,66 +758,63 @@ class ORM(object):
     
     def _load_at(self, branch, turn, tick):
         snap_keyframe = self._snap_keyframe
-        latest_past_keyframe = {}
-        earliest_future_keyframe = {}
+        latest_past_keyframe = None
+        earliest_future_keyframe = None
         branch_now, turn_now, tick_now = branch, turn, tick
         branch_parents = self._branch_parents
-        solved_graphs = set()
-        for (graph, branch, turn, tick) in \
-                    self._keyframes_list:
+        for (branch, turn, tick) in \
+                    self._keyframes_times:
                 # Figure out the latest keyframe that is earlier than the present moment,
                 # and the earliest keyframe that is later than the present moment,
                 # for each graph.
                 # Can I avoid iterating over the entire keyframes table, somehow?
-                if graph in solved_graphs:
-                    continue
-                if branch == branch_now:
-                    if turn < turn_now:
-                        if graph in latest_past_keyframe:
-                            late_branch, late_turn, late_tick = latest_past_keyframe[graph]
-                            if late_branch != branch or late_turn < turn or late_tick < tick:
-                                latest_past_keyframe[graph] = (branch, turn, tick)
-                        else:
-                            latest_past_keyframe[graph] = (branch, turn, tick)
-                    elif turn > turn_now:
-                        if graph in earliest_future_keyframe:
-                            early_branch, early_turn, early_tick = earliest_future_keyframe[graph]
-                            if early_branch != branch or early_turn > turn or early_tick > tick:
-                                earliest_future_keyframe[graph] = (branch, turn, tick)
-                        else:
-                            earliest_future_keyframe[graph] = (branch, turn, tick)
-                    elif tick < tick_now:
-                        if graph in latest_past_keyframe:
-                            late_branch, late_turn, late_tick = latest_past_keyframe[graph]
-                            if late_branch != branch or late_turn < turn or late_tick < tick:
-                                latest_past_keyframe[graph] = (branch, turn, tick)
-                        else:
-                            latest_past_keyframe[graph] = (branch, turn, tick)
-                    elif tick > tick_now:
-                        if graph in earliest_future_keyframe:
-                            early_branch, early_turn, early_tick = earliest_future_keyframe[graph]
-                            if early_branch != branch or early_turn > turn or early_tick > tick:
-                                earliest_future_keyframe[graph] = (branch, turn, tick)
-                        else:
-                            earliest_future_keyframe[graph] = (branch, turn, tick)
+            if branch == branch_now:
+                if turn < turn_now:
+                    if latest_past_keyframe:
+                        late_branch, late_turn, late_tick = latest_past_keyframe
+                        if late_branch != branch or late_turn < turn or late_tick < tick:
+                            latest_past_keyframe = (branch, turn, tick)
                     else:
-                        latest_past_keyframe[graph] = earliest_future_keyframe[graph] = (branch, turn, tick)
-                        solved_graphs.add(graph)
-                elif branch in branch_parents[branch_now]:
-                    if graph in latest_past_keyframe:
-                        late_branch, late_turn, late_tick = latest_past_keyframe[graph]
-                        if branch == late_branch:
-                            if turn > late_turn or (turn == late_turn and tick > late_tick):
-                                latest_past_keyframe[graph] = (branch, turn, tick)
-                        elif late_branch in branch_parents[branch]:
-                            latest_past_keyframe[graph] = (branch, turn, tick)
+                        latest_past_keyframe = (branch, turn, tick)
+                elif turn > turn_now:
+                    if earliest_future_keyframe:
+                        early_branch, early_turn, early_tick = earliest_future_keyframe
+                        if early_branch != branch or early_turn > turn or early_tick > tick:
+                            earliest_future_keyframe = (branch, turn, tick)
                     else:
-                        latest_past_keyframe[graph] = (branch, turn, tick)
-                # If branch is a descendant of branch_now, don't load the keyframe there,
-                # because then we'd potentially be loading keyframes from any number of
-                # possible futures, and we're trying to be conservative about what we load.
-                # If neither branch is an ancestor of the other, we can't use the keyframe
-                # for this load.
+                        earliest_future_keyframe = (branch, turn, tick)
+                elif tick < tick_now:
+                    if latest_past_keyframe:
+                        late_branch, late_turn, late_tick = latest_past_keyframe
+                        if late_branch != branch or late_turn < turn or late_tick < tick:
+                            latest_past_keyframe = (branch, turn, tick)
+                    else:
+                        latest_past_keyframe = (branch, turn, tick)
+                elif tick > tick_now:
+                    if earliest_future_keyframe:
+                        early_branch, early_turn, early_tick = earliest_future_keyframe
+                        if early_branch != branch or early_turn > turn or early_tick > tick:
+                            earliest_future_keyframe = (branch, turn, tick)
+                    else:
+                        earliest_future_keyframe = (branch, turn, tick)
+                else:
+                    latest_past_keyframe = earliest_future_keyframe = (branch, turn, tick)
+                    break
+            elif branch in branch_parents[branch_now]:
+                if latest_past_keyframe:
+                    late_branch, late_turn, late_tick = latest_past_keyframe
+                    if branch == late_branch:
+                        if turn > late_turn or (turn == late_turn and tick > late_tick):
+                            latest_past_keyframe = (branch, turn, tick)
+                    elif late_branch in branch_parents[branch]:
+                        latest_past_keyframe = (branch, turn, tick)
+                else:
+                    latest_past_keyframe = (branch, turn, tick)
+            # If branch is a descendant of branch_now, don't load the keyframe there,
+            # because then we'd potentially be loading keyframes from any number of
+            # possible futures, and we're trying to be conservative about what we load.
+            # If neither branch is an ancestor of the other, we can't use the keyframe
+            # for this load.
         noderows = []
         edgerows = []
         graphvalrows = []
@@ -812,13 +828,45 @@ class ORM(object):
         get_keyframe = self.query.get_keyframe
         iter_parent_btt = self._iter_parent_btt
         loaded = self._loaded
-        for graph, btt in latest_past_keyframe.items():
-            past_branch, past_turn, past_tick = btt
+        if latest_past_keyframe is None:  # can this actually happen?
+            def updload(branch, turn, tick):
+                if branch not in loaded:
+                    loaded[branch] = (turn, tick, turn, tick)
+                    return
+                (early_turn, early_tick, late_turn, late_tick) = loaded[branch]
+                if turn < early_turn or (turn == early_turn and tick < early_tick):
+                    (early_turn, early_tick) = (turn, tick)
+                if turn > late_turn or (turn == late_turn and tick > late_tick):
+                    (late_turn, late_tick) = (turn, tick)
+                loaded[branch] = (early_turn, early_tick, late_turn, late_tick)
+            for (graph, node, branch, turn, tick, ex) in self.query.nodes_dump():
+                updload(branch, turn, tick)
+                noderows.append((graph, node, branch, turn, tick, ex or None))
+            for (graph, orig, dest, idx, branch, turn, tick, ex) in self.query.edges_dump():
+                updload(branch, turn, tick)
+                edgerows.append((graph, orig, dest, idx, branch, turn, tick, ex or None))
+            for row in self.query.graph_val_dump():
+                updload(*row[2:5])
+                graphvalrows.append(row)
+            for row in self.query.node_val_dump():
+                updload(*row[3:6])
+                nodevalrows.append(row)
+            for row in self.query.edge_val_dump():
+                updload(*row[5:8])
+                edgevalrows.append(row)
+            self._nodes_cache.load(noderows)
+            self._edges_cache.load(edgerows)
+            self._graph_val_cache.load(graphvalrows)
+            self._node_val_cache.load(nodevalrows)
+            self._edge_val_cache.load(edgevalrows)
+            return
+        past_branch, past_turn, past_tick = latest_past_keyframe
+        for graph in self.graph:
             nodes, edges, graph_val = get_keyframe(graph, past_branch, past_turn, past_tick)
             snap_keyframe(graph, branch, turn, tick, nodes, edges, graph_val)
-            if graph not in earliest_future_keyframe:
-                if graph in loaded and branch in loaded[graph]:
-                    start_turn, start_tick, end_turn, end_tick = loaded[graph][branch]
+            if earliest_future_keyframe is None:
+                if branch in loaded:
+                    start_turn, start_tick, end_turn, end_tick = loaded[branch]
                 else:
                     (start_turn, start_tick, end_turn, end_tick) = (
                         float('inf'), float('inf'), -float('inf'), -float('inf'))
@@ -912,7 +960,7 @@ class ORM(object):
                     loaded[branch] = (start_turn, start_tick,
                                       end_turn, end_tick)
                 continue
-            future_branch, future_turn, future_tick = earliest_future_keyframe[graph]
+            future_branch, future_turn, future_tick = earliest_future_keyframe
             if past_branch == future_branch:
                 if branch in loaded:
                     start_turn, start_tick, end_turn, end_tick = loaded[branch]
@@ -1165,7 +1213,7 @@ class ORM(object):
         loaded = self._loaded
         if tick is not None:
             return branch in loaded and \
-                   loaded_keep_test(branch, turn, tick, *loaded[branch])
+                   loaded_keep_test(turn, tick, *loaded[branch])
         if branch not in loaded:
             return False
         (past_turn, past_tick, future_turn, future_tick) = loaded[branch]
