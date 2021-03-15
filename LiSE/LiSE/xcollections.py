@@ -287,7 +287,6 @@ class UniversalMapping(MutableMapping, Signal):
         branch, turn, tick = self.engine._nbtt()
         self.engine._universal_cache.store(k, branch, turn, tick, v)
         self.engine.query.universal_set(k, branch, turn, tick, v)
-        self.engine.tick = tick
         self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
