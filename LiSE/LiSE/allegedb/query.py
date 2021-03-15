@@ -201,6 +201,13 @@ class QueryEngine(object):
         graph, nodes, edges, graph_val = map(self.pack, (graph, nodes, edges, graph_val))
         return self.sql('keyframes_insert', graph, branch, turn, tick, nodes, edges, graph_val)
 
+    def keyframes_insert_many(self, many):
+        pack = self.pack
+        return self.sqlmany('keyframes_insert', *[
+            (pack(graph), branch, turn, tick, pack(nodes), pack(edges), pack(graph_val))
+            for (graph, branch, turn, tick, nodes, edges, graph_val) in many
+        ])
+
     def keyframes_dump(self):
         unpack = self.unpack
         for (graph, branch, turn, tick, nodes, edges, graph_val) in self.sql('keyframes_dump'):

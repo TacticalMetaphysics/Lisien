@@ -624,7 +624,7 @@ class ORM(object):
             self._turn_end_plan[branch, turn] = plan_end_tick
         if 'trunk' not in self._branches:
             self._branches['trunk'] = None, 0, 0, 0, 0
-        self._new_keyframes = set()
+        self._new_keyframes = []
         self._nbtt_stuff = (
             self._btt, self._turn_end_plan, self._turn_end,
             self._plan_ticks, self._plan_ticks_uncommitted,
@@ -733,11 +733,11 @@ class ORM(object):
             gvkb[turn][tick] = graph_val
         else:
             gvkb[turn] = {tick: graph_val}
+        self._new_keyframes.append((graph, branch, turn, tick, nodes, edges, graph_val))
 
     def snap_keyframe(self):
         branch, turn, tick = self._btt()
         snapp = self._snap_keyframe
-        nkf = self._new_keyframes
         kfl = self._keyframes_list
         kfd = self._keyframes_dict
         kfs = self._keyframes_times
@@ -745,7 +745,6 @@ class ORM(object):
             snapp(graphn, branch, turn, tick,
                   graph._nodes_state(), graph._edges_state(),
                   graph._val_state())
-            nkf.add((graphn, branch, turn, tick))
             kfl.append((graphn, branch, turn, tick))
             kfs.add((branch, turn, tick))
             if graphn not in kfd:
@@ -1543,17 +1542,10 @@ class ORM(object):
             self.query.plans_insert_many(self._plans_uncommitted)
         if self._plan_ticks_uncommitted:
             self.query.plan_ticks_insert_many(self._plan_ticks_uncommitted)
-        kf_ins = self.query.keyframes_insert
-        graphmap = self.graph
-        for graphn, branch, turn, tick in self._new_keyframes:
-            if graphn not in graphmap:
-                continue
-            graph = graphmap[graphn]
-            kf_ins(graphn, branch, turn, tick,
-                    graph._nodes_state(), graph._edges_state(),
-                    graph._val_state())
-        self._new_keyframes = set()
+        if self._new_keyframes:
+            self.query.keyframes_insert_many(self._new_keyframes)
         self.query.commit()
+        self._new_keyframes = []
         self._plans_uncommitted = []
         self._plan_ticks_uncommitted = []
 
@@ -1582,7 +1574,7 @@ class ORM(object):
                 self._snap_keyframe(name, branch, turn, tick, data._node, data._adj, data.graph)
             else:
                 self._snap_keyframe(name, branch, turn, tick, *data)
-        self._new_keyframes.add((name, branch, turn, tick))
+        self._new_keyframes.append((name, branch, turn, tick))
 
     def new_graph(self, name, data=None, **attr):
         """Return a new instance of type Graph, initialized with the given
