@@ -23,7 +23,7 @@ from setuptools import setup
 
 setup(
     name="ELiDE",
-    version="0.11",
+    version="0.11.1",
     license="AGPL3+",
     packages=[
         "ELiDE",
@@ -36,7 +36,7 @@ setup(
         'ELiDE/kivygarden/texturestack'
     },
     install_requires=[
-        "LiSE==0.11",
+        "LiSE>=0.11,<0.12",
 	    "numpy>=1.14.5,<2",
         "kivy>=1.10.0,<3",
         "pygments>=2.3.1,<2.7"
