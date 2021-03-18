@@ -1035,9 +1035,11 @@ class ORM(object):
                     (name, branch, turn, tick, data._node, data._adj, data.graph)
                 )
             else:
+                if len(data) != 3 or not all(isinstance(d, dict) for d in data):
+                    raise ValueError("Invalid graph data")
                 self._snap_keyframe(name, branch, turn, tick, *data)
                 self._new_keyframes.append(
-                    (name, branch, turn, tick) + data
+                    (name, branch, turn, tick) + tuple(data)
                 )
 
     def new_graph(self, name, data=None, **attr):
