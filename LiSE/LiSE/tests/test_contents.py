@@ -68,6 +68,7 @@ def test_contents_in_plan(chara):
     with chara.engine.plan():
         for i in range(6, 15):
             chara.engine.turn += 1
+            assert set(place.content) == correct_contents
             place.new_thing(i)
             del chara.thing[i]
             assert set(place.content) == correct_contents

@@ -265,13 +265,12 @@ class Cache:
         branch2do = deque(['trunk'])
 
         store = self.store
-        with db.batch():
-            while branch2do:
-                branch = branch2do.popleft()
-                for row in branches[branch]:
-                    store(*row, planning=False, loading=True)
-                if branch in childbranch:
-                    branch2do.extend(childbranch[branch])
+        while branch2do:
+            branch = branch2do.popleft()
+            for row in branches[branch]:
+                store(*row, planning=False, loading=True)
+            if branch in childbranch:
+                branch2do.extend(childbranch[branch])
 
     def _valcache_lookup(self, cache, branch, turn, tick):
         """Return the value at the given time in ``cache``"""
@@ -659,18 +658,19 @@ class Cache:
             if not kc:
                 del keycache[entity_branch]
 
-    def truncate(self, branch, turn, tick):
-        """Delete all data after (not on) a specific tick"""
+    def truncate(self, branch, turn, tick, direction='forward'):
+        if direction not in {'forward', 'backward'}:
+            raise ValueError("Illegal direction")
         parents, branches, keys, settings, presettings, keycache = self._truncate_stuff
         def truncate_branhc(branhc):
             if turn in branhc:
                 trn = branhc[turn]
-                trn.truncate(tick)
-                branhc.truncate(turn)
+                trn.truncate(tick, direction)
+                branhc.truncate(turn, direction)
                 if not trn:
                     del branhc[turn]
             else:
-                branhc.truncate(turn)
+                branhc.truncate(turn, direction)
         for entities in parents.values():
             for keys in entities.values():
                 for branches in keys.values():
@@ -722,8 +722,9 @@ class Cache:
         parent = args[:-6]
         settings_turns = self.settings[branch]
         presettings_turns = self.presettings[branch]
-        prev = self._base_retrieve(args[:-1])
-        if prev is KeyError:
+        try:
+            prev = self.retrieve(*args[:-1])
+        except KeyError:
             prev = None
         if turn in settings_turns or turn in settings_turns.future():
             # These assertions hold for most caches but not for the contents

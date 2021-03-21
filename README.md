@@ -12,9 +12,9 @@ but not in the sense that physics engines are concerned with --
 rather, each game in the genre has a different take on the mundane
 events that constitute everyday life for its purpose. Logistics and
 RPG elements tend to feature heavily in these games, but a lot of the
-appeal is in the parts that are only barely interactive; "useless"
-simulations of systems that would logically exist in the game world,
-regardless of what the player wants of them.
+appeal is in the parts that are not directly under player control.
+The game world feels like it continues to exist when you're not playing
+it, because so much of it seems to operate independently of you.
 
 Existing games that LiSE seeks to imitate include:
 
@@ -41,6 +41,13 @@ world works. If you don't want to worry about the data structure that
 represents the world, LiSE gives you one that will work. And if you
 don't want to write a user interface, you can play the game in the
 IDE.
+
+The LiSE data model has been designed from the ground up to support
+debugging of complex simulations. It remembers everything that ever
+happened in the simulation, so that when something strange happens
+in a playtester's game, and they send you their save file, you can
+track down the cause, even if it happened long before the
+tester knew to look for it.
 
 # Features
 

@@ -109,3 +109,57 @@ def test_keyframe_load(db):
                 assert db._edge_val_cache.keyframe[(graph.name,) + edge]['trunk'][0][0] == graph.edges[edge]
             else:
                 assert db._edge_val_cache.keyframe[(graph.name,) + edge + (0,)]['trunk'][0][0] == graph.edges[edge]
+
+
+def test_keyframe_unload(tmpdbfile):
+    # TODO: test edge cases involving tick-precise unloads
+    with ORM('sqlite:///' + tmpdbfile) as orm:
+        g = orm.new_digraph('g', nx.grid_2d_graph(3, 3))
+        orm.turn = 1
+        assert ('g', (0, 0), (0, 1)) in orm._edges_cache.keyframe and 0 in orm._edges_cache.keyframe['g', (0, 0), (0, 1)]['trunk']
+        del g.node[1, 1]
+        g.add_node('a')
+        g.add_edge((0, 0), 'a')
+        orm.turn = 2
+        orm.snap_keyframe()
+        g.add_node((4, 4))
+        g.add_edge((3, 3), (4, 4))
+        assert ('g', (0, 0), (0, 1)) in orm._edges_cache.keyframe and 0 in orm._edges_cache.keyframe['g', (0, 0), (0, 1)]['trunk']
+        assert ('g',) in orm._nodes_cache.keyframe and 'trunk' in orm._nodes_cache.keyframe['g',] and 0 in orm._nodes_cache.keyframe['g',]['trunk']
+        orm.unload()
+        assert not orm._time_is_loaded('g', 'trunk', 1)
+        if 'trunk' in orm._nodes_cache.keyframe['g',]:
+            assert 0 not in orm._nodes_cache.keyframe['g',]['trunk']
+        assert ('g', (0, 0), (0, 1)) in orm._edges_cache.keyframe
+        assert 'trunk' in orm._edges_cache.keyframe['g', (0, 0), (0, 1)]
+        assert 2 in orm._edges_cache.keyframe['g', (0, 0), (0, 1)]['trunk']
+        assert 0 not in orm._edges_cache.keyframe['g', (0, 0), (0, 1)]['trunk']
+    with ORM('sqlite:///' + tmpdbfile) as orm:
+        assert not orm._time_is_loaded('trunk', 1)
+        assert orm._time_is_loaded('trunk', 2, 3)
+        assert ('g', (0, 0), (0, 1)) in orm._edges_cache.keyframe
+        assert 2 in orm._edges_cache.keyframe['g', (0, 0), (0, 1)]['trunk']
+        assert 0 not in orm._edges_cache.keyframe['g', (0, 0), (0, 1)]['trunk']
+        g = orm.graph['g']
+        if 'trunk' in orm._nodes_cache.keyframe['g',]:
+            assert 0 not in orm._nodes_cache.keyframe['g',]['trunk']
+        if ('g', (0, 0), (0, 1)) in orm._edges_cache.keyframe and \
+                'trunk' in orm._edges_cache.keyframe['g', (0, 0), (0, 1)]:
+            assert 0 not in orm._edges_cache.keyframe['g', (0, 0), (0, 1)]['trunk']
+        assert not orm._time_is_loaded('trunk', 1)
+        orm.turn = 0
+        assert orm._time_is_loaded('trunk', 1)
+        assert 0 in orm._edges_cache.keyframe['g', (0, 0), (0, 1)]['trunk']
+        orm.branch = 'u'
+        del g.node[1, 2]
+        orm.unload()
+    with ORM('sqlite:///' + tmpdbfile) as orm:
+        assert orm.branch == 'u'
+        assert ('g', (1, 1), (1, 2)) not in orm._edges_cache.keyframe \
+               or 'trunk' not in orm._edges_cache.keyframe['g', (1, 1), (1, 2)]
+        g = orm.graph['g']
+        assert (1, 2) not in g.nodes
+        orm.branch = 'trunk'
+        assert (1, 2) in g.nodes
+        assert ('g', (1, 1), (1, 2)) in orm._edges_cache.keyframe \
+               and 'trunk' in orm._edges_cache.keyframe['g', (1, 1), (1, 2)]

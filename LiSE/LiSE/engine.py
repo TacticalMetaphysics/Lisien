@@ -564,7 +564,7 @@ class Engine(AbstractEngine, gORM):
         containing any of the lists 'triggers', 'prereqs', and 'actions'
 
         """
-        from LiSE.allegedb.window import update_window, update_backward_window
+        from .allegedb.window import update_window, update_backward_window
         if turn_from == turn_to:
             return self.get_turn_delta(
                 branch, turn_to, tick_to,start_tick=tick_from)
@@ -1129,11 +1129,11 @@ class Engine(AbstractEngine, gORM):
         if hasattr(self.method, 'init'):
             self.method.init(self)
 
-    def _init_load(self, validate=False):
+    def _init_load(self):
         from .rule import Rule
         q = self.query
         self._things_cache.load(q.things_dump())
-        super()._init_load(validate=validate)
+        super()._init_load()
         things_kf = self._things_cache.keyframe
         nv_kf = self._node_val_cache.keyframe
         for node, branches in nv_kf.items():

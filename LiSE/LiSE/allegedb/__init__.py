@@ -21,7 +21,7 @@ from weakref import WeakValueDictionary
 from blinker import Signal
 import networkx as nx
 
-from LiSE.allegedb.window import update_window, update_backward_window
+from .window import update_window, update_backward_window
 from .cache import HistoryError
 from .graph import (
     DiGraph,
@@ -31,6 +31,18 @@ from .graph import (
 )
 from .query import QueryEngine, TimeError
 from .window import HistoryError
+
+
+def loaded_keep_test(test_turn, test_tick,
+                     past_turn, past_tick,
+                     future_turn, future_tick):
+    return (
+                   past_turn < test_turn or (
+                   past_turn == test_turn and past_tick <= test_tick
+           )) and (
+                   future_turn > test_turn or (
+                   future_turn == test_turn and future_tick >= test_tick
+           ))
 
 
 class GraphNameError(KeyError):
@@ -286,6 +298,56 @@ class ORM(object):
     illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val']
     time = TimeSignalDescriptor()
 
+    def _graph_state_hash(self, nodes, edges, vals):
+        from hashlib import blake2b
+        qpac = self.query.pack
+
+        if isinstance(qpac(' '), str):
+            def pack(x):
+                return qpac(x).encode()
+        else:
+            pack = qpac
+        nodes_hash = 0
+        for name, val in nodes.items():
+            hash = blake2b(pack(name))
+            hash.update(pack(val))
+            nodes_hash ^= int.from_bytes(hash.digest(), 'little')
+        edges_hash = 0
+        for orig, dests in edges.items():
+            for dest, idxs in dests.items():
+                for idx, val in idxs.items():
+                    hash = blake2b(pack(orig))
+                    hash.update(pack(dest))
+                    hash.update(pack(idx))
+                    hash.update(pack(val))
+                    edges_hash ^= int.from_bytes(hash.digest(), 'little')
+        val_hash = 0
+        for key, val in vals.items():
+            hash = blake2b(pack(key))
+            hash.update(pack(val))
+            val_hash ^= int.from_bytes(hash.digest(), 'little')
+        total_hash = blake2b(nodes_hash.to_bytes(64, 'little'))
+        total_hash.update(edges_hash.to_bytes(64, 'little'))
+        total_hash.update(val_hash.to_bytes(64, 'little'))
+        return total_hash.digest()
+
+    def _kfhash(self, graphn, branch, turn, tick, nodes, edges, vals):
+        """Return a hash digest of a keyframe"""
+        from hashlib import blake2b
+        qpac = self.query.pack
+
+        if isinstance(qpac(' '), str):
+            def pack(x):
+                return qpac(x).encode()
+        else:
+            pack = qpac
+        total_hash = blake2b(pack(graphn))
+        total_hash.update(pack(branch))
+        total_hash.update(pack(turn))
+        total_hash.update(pack(tick))
+        total_hash.update(self._graph_state_hash(nodes, edges, vals))
+        return total_hash.digest()
+
     def _make_node(self, graph, node):
         return self.node_cls(graph, node)
 
@@ -298,7 +360,11 @@ class ORM(object):
             graphn = graph.name
         key = (graphn, node)
         if key in node_objs:
-            return node_objs[key]
+            ret = node_objs[key]
+            if ret._validate_node_type():
+                return ret
+            else:
+                del node_objs[key]
         if not node_exists(graphn, node):
             raise KeyError("No such node: {} in {}".format(node, graphn))
         ret = make_node(graph, node)
@@ -540,6 +606,11 @@ class ORM(object):
         self._node_val_cache.name = 'node_val_cache'
         self._edge_val_cache = Cache(self)
         self._edge_val_cache.name = 'edge_val_cache'
+        self._caches = [self._graph_val_cache,
+                        self._nodes_cache,
+                        self._edges_cache,
+                        self._node_val_cache,
+                        self._edge_val_cache]
 
     def _load_graphs(self):
         self.graph = GraphsMapping(self)
@@ -621,7 +692,48 @@ class ORM(object):
         self._exist_edge_stuff = (
             self._nbtt, self.query.exist_edge, self._edges_cache.store)
         self._load_graphs()
-        self._init_load(validate=validate)
+        assert hasattr(self, 'graph')
+        self._keyframes_list = list(self.query.keyframes_list())
+        self._keyframes_dict = {}
+        self._keyframes_times = set()
+        self._loaded = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
+        self._init_load()
+
+    def _init_load(self):
+        keyframes_list = self._keyframes_list
+        keyframes_dict = self._keyframes_dict
+        keyframes_times = self._keyframes_times
+        for graph, branch, turn, tick in self.query.keyframes_list():
+            keyframes_list.append((graph, branch, turn, tick))
+            if graph not in keyframes_dict:
+                keyframes_dict[graph] = {branch: {turn: {tick, }}}
+            else:
+                keyframes_dict_graph = keyframes_dict[graph]
+                if branch not in keyframes_dict_graph:
+                    keyframes_dict_graph[branch] = {turn: {tick, }}
+                else:
+                    keyframes_dict_branch = keyframes_dict_graph[branch]
+                    if turn not in keyframes_dict_branch:
+                        keyframes_dict_branch[turn] = {tick, }
+                    else:
+                        keyframes_dict_branch[turn].add(tick)
+            keyframes_times.add((branch, turn, tick))
+        self._load_at(*self._btt())
+
+        last_plan = -1
+        plans = self._plans
+        branches_plans = self._branches_plans
+        for plan, branch, turn, tick in self.query.plans_dump():
+            plans[plan] = branch, turn, tick
+            branches_plans[branch].add(plan)
+            if plan > last_plan:
+                last_plan = plan
+        self._last_plan = last_plan
+        plan_ticks = self._plan_ticks
+        time_plan = self._time_plan
+        for plan, turn, tick in self.query.plan_ticks_dump():
+            plan_ticks[plan][turn].append(tick)
+            time_plan[plans[plan][0], turn, tick] = plan
 
     def _upd_branch_parentage(self, parent, child):
         self._childbranch[parent].add(child)
@@ -675,49 +787,502 @@ class ORM(object):
     def snap_keyframe(self):
         branch, turn, tick = self._btt()
         snapp = self._snap_keyframe
+        kfl = self._keyframes_list
+        kfd = self._keyframes_dict
+        kfs = self._keyframes_times
+        nkfs = self._new_keyframes
         for graphn, graph in self.graph.items():
             nodes = graph._nodes_state()
             edges = graph._edges_state()
             val = graph._val_state()
             snapp(graphn, branch, turn, tick, nodes, edges, val)
-            self._new_keyframes.append(
-                (graphn, branch, turn, tick, nodes, edges, val))
-
-    def _init_load(self, validate=False):
-        assert hasattr(self, 'graph')
+            nkfs.append((graphn, branch, turn, tick, nodes, edges, val))
+            kfl.append((graphn, branch, turn, tick))
+            kfs.add((branch, turn, tick))
+            if graphn not in kfd:
+                kfd[graphn] = {}
+            kfdg = kfd[graphn]
+            if branch not in kfdg:
+                kfdg[branch] = {turn: {tick, }}
+            elif turn not in kfdg[branch]:
+                kfdg[branch][turn] = {tick, }
+            else:
+                kfdg[branch][turn].add(tick)
+    
+    def _load_at(self, branch, turn, tick):
         snap_keyframe = self._snap_keyframe
-        for (graph, branch, turn, tick, nodes, edges, graph_val) in \
-                self.query.keyframes_dump():
-            snap_keyframe(graph, branch, turn, tick, nodes, edges, graph_val)
-        noderows = [
-            (graph, node, branch, turn, tick, ex if ex else None)
-            for (graph, node, branch, turn, tick, ex)
-            in self.query.nodes_dump()
-        ]
-        self._nodes_cache.load(noderows)
-        edgerows = [
-            (graph, orig, dest, idx, branch, turn, tick, ex if ex else None)
-            for (graph, orig, dest, idx, branch, turn, tick, ex)
-            in self.query.edges_dump()
-        ]
-        self._edges_cache.load(edgerows)
-        self._graph_val_cache.load(self.query.graph_val_dump())
-        self._node_val_cache.load(self.query.node_val_dump())
-        self._edge_val_cache.load(self.query.edge_val_dump())
-        last_plan = -1
-        plans = self._plans
-        branches_plans = self._branches_plans
-        for plan, branch, turn, tick in self.query.plans_dump():
-            plans[plan] = branch, turn, tick
-            branches_plans[branch].add(plan)
-            if plan > last_plan:
-                last_plan = plan
-        self._last_plan = last_plan
-        plan_ticks = self._plan_ticks
-        time_plan = self._time_plan
-        for plan, turn, tick in self.query.plan_ticks_dump():
-            plan_ticks[plan][turn].append(tick)
-            time_plan[plans[plan][0], turn, tick] = plan
+        latest_past_keyframe = None
+        earliest_future_keyframe = None
+        branch_now, turn_now, tick_now = branch, turn, tick
+        branch_parents = self._branch_parents
+        for (branch, turn, tick) in \
+                    self._keyframes_times:
+                # Figure out the latest keyframe that is earlier than the present moment,
+                # and the earliest keyframe that is later than the present moment,
+                # for each graph.
+                # Can I avoid iterating over the entire keyframes table, somehow?
+            if branch == branch_now:
+                if turn < turn_now:
+                    if latest_past_keyframe:
+                        late_branch, late_turn, late_tick = latest_past_keyframe
+                        if late_branch != branch or late_turn < turn or late_tick < tick:
+                            latest_past_keyframe = (branch, turn, tick)
+                    else:
+                        latest_past_keyframe = (branch, turn, tick)
+                elif turn > turn_now:
+                    if earliest_future_keyframe:
+                        early_branch, early_turn, early_tick = earliest_future_keyframe
+                        if early_branch != branch or early_turn > turn or early_tick > tick:
+                            earliest_future_keyframe = (branch, turn, tick)
+                    else:
+                        earliest_future_keyframe = (branch, turn, tick)
+                elif tick < tick_now:
+                    if latest_past_keyframe:
+                        late_branch, late_turn, late_tick = latest_past_keyframe
+                        if late_branch != branch or late_turn < turn or late_tick < tick:
+                            latest_past_keyframe = (branch, turn, tick)
+                    else:
+                        latest_past_keyframe = (branch, turn, tick)
+                elif tick > tick_now:
+                    if earliest_future_keyframe:
+                        early_branch, early_turn, early_tick = earliest_future_keyframe
+                        if early_branch != branch or early_turn > turn or early_tick > tick:
+                            earliest_future_keyframe = (branch, turn, tick)
+                    else:
+                        earliest_future_keyframe = (branch, turn, tick)
+                else:
+                    latest_past_keyframe = earliest_future_keyframe = (branch, turn, tick)
+                    break
+            elif branch in branch_parents[branch_now]:
+                if latest_past_keyframe:
+                    late_branch, late_turn, late_tick = latest_past_keyframe
+                    if branch == late_branch:
+                        if turn > late_turn or (turn == late_turn and tick > late_tick):
+                            latest_past_keyframe = (branch, turn, tick)
+                    elif late_branch in branch_parents[branch]:
+                        latest_past_keyframe = (branch, turn, tick)
+                else:
+                    latest_past_keyframe = (branch, turn, tick)
+            # If branch is a descendant of branch_now, don't load the keyframe there,
+            # because then we'd potentially be loading keyframes from any number of
+            # possible futures, and we're trying to be conservative about what we load.
+            # If neither branch is an ancestor of the other, we can't use the keyframe
+            # for this load.
+        noderows = []
+        edgerows = []
+        graphvalrows = []
+        nodevalrows = []
+        edgevalrows = []
+        load_nodes = self.query.load_nodes
+        load_edges = self.query.load_edges
+        load_graph_val = self.query.load_graph_val
+        load_node_val = self.query.load_node_val
+        load_edge_val = self.query.load_edge_val
+        get_keyframe = self.query.get_keyframe
+        iter_parent_btt = self._iter_parent_btt
+        loaded = self._loaded
+        if latest_past_keyframe is None:  # can this actually happen?
+            def updload(branch, turn, tick):
+                if branch not in loaded:
+                    loaded[branch] = (turn, tick, turn, tick)
+                    return
+                (early_turn, early_tick, late_turn, late_tick) = loaded[branch]
+                if turn < early_turn or (turn == early_turn and tick < early_tick):
+                    (early_turn, early_tick) = (turn, tick)
+                if turn > late_turn or (turn == late_turn and tick > late_tick):
+                    (late_turn, late_tick) = (turn, tick)
+                loaded[branch] = (early_turn, early_tick, late_turn, late_tick)
+            for (graph, node, branch, turn, tick, ex) in self.query.nodes_dump():
+                updload(branch, turn, tick)
+                noderows.append((graph, node, branch, turn, tick, ex or None))
+            for (graph, orig, dest, idx, branch, turn, tick, ex) in self.query.edges_dump():
+                updload(branch, turn, tick)
+                edgerows.append((graph, orig, dest, idx, branch, turn, tick, ex or None))
+            for row in self.query.graph_val_dump():
+                updload(*row[2:5])
+                graphvalrows.append(row)
+            for row in self.query.node_val_dump():
+                updload(*row[3:6])
+                nodevalrows.append(row)
+            for row in self.query.edge_val_dump():
+                updload(*row[5:8])
+                edgevalrows.append(row)
+            with self.batch():
+                self._nodes_cache.load(noderows)
+                self._edges_cache.load(edgerows)
+                self._graph_val_cache.load(graphvalrows)
+                self._node_val_cache.load(nodevalrows)
+                self._edge_val_cache.load(edgevalrows)
+            return
+        past_branch, past_turn, past_tick = latest_past_keyframe
+        for graph in self.graph:
+            nodes, edges, graph_val = get_keyframe(graph, past_branch, past_turn, past_tick)
+            snap_keyframe(graph, past_branch, past_turn, past_tick, nodes, edges, graph_val)
+            if earliest_future_keyframe is None:
+                if branch in loaded:
+                    start_turn, start_tick, end_turn, end_tick = loaded[branch]
+                else:
+                    (start_turn, start_tick, end_turn, end_tick) = (
+                        float('inf'), float('inf'), -float('inf'), -float('inf'))
+                for (graph, node, branch, turn, tick, ex) in load_nodes(
+                        graph, past_branch, past_turn, past_tick
+                ):
+                    noderows.append((
+                        graph, node, branch, turn, tick, ex or None
+                    ))
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                for (graph, orig, dest, idx, branch, turn, tick, ex) in load_edges(
+                        graph, past_branch, past_turn, past_tick
+                ):
+                    edgerows.append((
+                        graph, orig, dest, idx, branch, turn, tick, ex or None
+                    ))
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                for row in load_graph_val(
+                        graph, past_branch, past_turn, past_tick
+                ):
+                    graphvalrows.append(row)
+                    turn = row[3]
+                    tick = row[4]
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                for row in load_node_val(
+                        graph, past_branch, past_turn, past_tick
+                ):
+                    nodevalrows.append(row)
+                    turn = row[4]
+                    tick = row[5]
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                for row in load_edge_val(
+                        graph, past_branch, past_turn, past_tick
+                ):
+                    edgevalrows.append(row)
+                    turn = row[6]
+                    tick = row[7]
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                if branch in loaded:
+                    (start_turn0, start_tick0, end_turn0, end_tick0) = loaded[branch]
+                    if start_turn < start_turn0 or (
+                        start_turn == start_turn0 and start_tick < start_tick0
+                    ):
+                        (start_turn1, start_tick1) = (start_turn, start_tick)
+                    else:
+                        (start_turn1, start_tick1) = (start_turn0, start_tick0)
+                    if end_turn > end_turn0 or (
+                        end_turn == end_turn0 and end_tick > end_tick0
+                    ):
+                        (end_turn1, end_tick1) = (end_turn, end_tick)
+                    else:
+                        (end_turn1, end_tick1) = (end_turn0, end_tick0)
+                    loaded[branch] = (start_turn1, start_tick1,
+                                      end_turn1, end_tick1)
+                else:
+                    loaded[branch] = (start_turn, start_tick,
+                                      end_turn, end_tick)
+                continue
+            future_branch, future_turn, future_tick = earliest_future_keyframe
+            if past_branch == future_branch:
+                if branch in loaded:
+                    start_turn, start_tick, end_turn, end_tick = loaded[branch]
+                else:
+                    (start_turn, start_tick, end_turn, end_tick) = (
+                        float('inf'), float('inf'), -float('inf'), -float('inf'))
+                for (graph, node, branch, turn, tick, ex) in load_nodes(
+                    graph, past_branch, past_turn, past_tick
+                ):
+                    noderows.append((
+                        graph, node, branch, turn, tick, ex or None
+                    ))
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                for (graph, orig, dest, idx, branch, turn, tick, ex) in load_edges(
+                    graph, past_branch, past_turn, past_tick
+                ):
+                    edgerows.append((
+                        graph, orig, dest, idx, branch, turn, tick, ex or None
+                    ))
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                for row in load_graph_val(
+                    graph, past_branch, past_turn, past_tick,
+                    future_turn, future_tick
+                ):
+                    graphvalrows.append(row)
+                    turn = row[3]
+                    tick = row[4]
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                for row in load_node_val(
+                    graph, past_branch, past_turn, past_tick,
+                    future_turn, future_tick
+                ):
+                    nodevalrows.append(row)
+                    turn = row[4]
+                    tick = row[5]
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                for row in load_edge_val(
+                    graph, past_branch, past_turn, past_tick,
+                    future_turn, future_tick
+                ):
+                    edgevalrows.append(row)
+                    turn = row[6]
+                    tick = row[7]
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                loaded[branch] = (start_turn, start_tick, end_turn, end_tick)
+                continue
+            parentage_iter = iter_parent_btt(future_branch, future_turn, future_tick)
+            branch1, turn1, tick1 = next(parentage_iter)
+            windows = []
+            for branch0, turn0, tick0 in parentage_iter:
+                windows.append((branch1, turn0, tick0, turn1, tick1))
+                if branch0 == past_branch:
+                    windows.append((branch0, past_turn, past_tick, turn0, tick0))
+                    break
+            else:
+                assert branch0 == past_branch, "Invalid branch heredity"
+            if not windows:
+                continue  # I think this would happen when we are only loading an initial state
+            for window in reversed(windows):  # chronological ordering
+                if branch in loaded:
+                    start_turn, start_tick, end_turn, end_tick = loaded[branch]
+                else:
+                    (start_turn, start_tick, end_turn, end_tick) = (
+                        float('inf'), float('inf'), -float('inf'), -float('inf'))
+                for (graph, node, branch, turn, tick, ex) in load_nodes(
+                    graph, *window
+                ):
+                    noderows.append((
+                        graph, node, branch, turn, tick, ex or None
+                    ))
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                for (graph, orig, dest, idx, branch, turn, tick, ex) in load_edges(
+                    graph, *window
+                ):
+                    edgerows.append((
+                        graph, orig, dest, idx, branch, turn, tick, ex or None
+                    ))
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                for row in load_graph_val(graph, *window):
+                    graphvalrows.append(row)
+                    turn = row[3]
+                    tick = row[4]
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                for row in load_node_val(graph, *window):
+                    nodevalrows.append(row)
+                    turn = row[4]
+                    tick = row[5]
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                for row in load_edge_val(graph, *window):
+                    edgevalrows.append(row)
+                    turn = row[6]
+                    tick = row[7]
+                    if turn > end_turn:
+                        (end_turn, end_tick) = (turn, tick)
+                    elif turn == end_turn and tick > end_tick:
+                        end_tick = tick
+                    if turn < start_turn:
+                        (start_turn, start_tick) = (turn, tick)
+                    elif turn == start_turn and tick < start_tick:
+                        start_tick = tick
+                loaded[branch] = (start_turn, start_tick, end_turn, end_tick)
+        with self.batch():
+            self._nodes_cache.load(noderows)
+            self._edges_cache.load(edgerows)
+            self._graph_val_cache.load(graphvalrows)
+            self._node_val_cache.load(nodevalrows)
+            self._edge_val_cache.load(edgevalrows)
+
+    def unload(self):
+        """Remove everything from memory we can"""
+        caches = self._caches
+        def unload_except(branch, earliest_turn, earliest_tick,
+                          latest_turn, latest_tick):
+            """Unload most data in a particular branch for a graph
+
+            The exception is provided as a window from (earliest_turn,
+            earliest_tick) to (latest_turn, latest_tick)
+
+            """
+            for cache in caches:
+                cache.truncate(branch, earliest_turn, earliest_tick, 'backward')
+                cache.truncate(branch, latest_turn, latest_tick, 'forward')
+                for graph, branches in cache.keyframe.items():
+                    turns = branches[branch]
+                    turns.truncate(latest_turn, 'forward')
+                    try:
+                        late = turns[latest_turn]
+                    except HistoryError:
+                        pass
+                    else:
+                        late.truncate(latest_tick, 'forward')
+                    turns.truncate(earliest_turn, 'backward')
+                    try:
+                        early = turns[earliest_turn]
+                    except HistoryError:
+                        pass
+                    else:
+                        early.truncate(earliest_tick, 'backward')
+
+        # find the slices of time that need to stay loaded
+        loaded = self._loaded
+        branch, turn, tick = self._btt()
+        iter_parent_btt = self._iter_parent_btt
+        kfd = self._keyframes_dict
+        graphs = self.graph
+        neginf = -float('inf')
+        for branch in loaded:
+            # Find a path to the last keyframe we can use. Keep things
+            # loaded from there to here.
+            path = []
+            for past_branch, past_turn, past_tick in iter_parent_btt(
+                branch, turn, tick
+            ):
+                path.append((past_branch, past_turn, past_tick))
+                for graph in graphs:
+                    if graph in kfd and past_branch in kfd[graph]:
+                        trn = neginf
+                        for trrn in kfd[graph][past_branch]:
+                            if trrn > trn and trrn <= past_turn:
+                                trn = trrn
+                        if trn == neginf:
+                            continue
+                        if trn == past_turn:
+                            tck = neginf
+                            for tcck in kfd[graph][past_branch][trn]:
+                                if tcck > tck and tcck <= past_tick:
+                                    tck = tcck
+                            if tck == neginf:
+                                trrn = neginf
+                                for trrrn in kfd[graph][past_branch]:
+                                    if trrrn > trrn and trrn < trn:
+                                        trrn = trrrn
+                                if trrn == neginf:
+                                    continue
+                                path.append((past_branch, trrn, max(
+                                    kfd[graph][past_branch][trrn])))
+                                break
+                        else:
+                            path.append((past_branch, trn, max(
+                                kfd[graph][past_branch][trn])))
+                            break
+                else:
+                    # Nothing was loaded in the first place for this graph
+                    continue
+            path.sort(key=lambda x: ('', x[1], x[2]) if x[0] is None else x)
+            if len(path) >= 2:
+                for (branc, trn, tck) in path[:-1]:
+                    if branc in loaded and loaded_keep_test(
+                        trn, tck, *loaded[branc]
+                    ):
+                        unload_except(branc, *loaded[branc])
+            (past_branch, past_turn, past_tick) = path[-1]
+            (_, _, future_turn, future_tick) = loaded[past_branch]
+            unload_except(past_branch, past_turn, past_tick,
+                          future_turn, future_tick)
+
+    def _time_is_loaded(self, branch, turn, tick=None):
+        loaded = self._loaded
+        if tick is not None:
+            return branch in loaded and \
+                   loaded_keep_test(turn, tick, *loaded[branch])
+        if branch not in loaded:
+            return False
+        (past_turn, past_tick, future_turn, future_tick) = loaded[branch]
+        return past_turn <= turn <= future_turn
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""
@@ -778,9 +1343,22 @@ class ORM(object):
             self._upd_branch_parentage(v, curbranch)
             self._turn_end_plan[v, curturn] = self._turn_end[v, curturn] = curtick
         self._obranch = v
-        self._otick = self._turn_end_plan[v, curturn]
+        self._otick = tick = self._turn_end_plan[v, curturn]
+        loaded = self._loaded
         if branch_is_new:
             self._copy_plans(curbranch, curturn, curtick)
+            loaded[v] = (curturn, tick, curturn, tick)
+            return
+        elif v not in loaded:
+            self._load_at(v, curturn, tick)
+            return
+        (start_turn, start_tick, end_turn, end_tick) = loaded[v]
+        if (
+            curturn > end_turn or (curturn == end_turn and tick > end_tick)
+        ) or (
+            curturn < start_turn or (curturn == start_turn and tick < start_tick)
+        ):
+            self._load_at(v, curturn, tick)
 
     def _copy_plans(self, branch_from, turn_from, tick_from):
         """Collect all plans that are active at the given time and copy them to the current branch"""
@@ -863,25 +1441,54 @@ class ORM(object):
         return self._oturn
 
     def _set_turn(self, v):
+        branch = self.branch
+        loaded = self._loaded
         if v == self.turn:
-            self._otick = self._turn_end_plan[tuple(self.time)]
+            self._otick = tick = self._turn_end_plan[tuple(self.time)]
+            if branch not in loaded:
+                loaded[branch] = (v, tick, v, tick)
+                return
+            (start_turn, start_tick, end_turn, end_tick) = loaded[branch]
+            if v > end_turn or (v == end_turn and tick > end_tick):
+                if (branch, v, tick) in self._keyframes_times:
+                    self._load_at(branch, v, tick)
+                else:
+                    loaded[branch] = (start_turn, start_tick, end_turn, tick)
             return
         if not isinstance(v, int):
             raise TypeError("turn must be an integer")
         # enforce the arrow of time, if it's in effect
         if self._forward and v < self._oturn:
             raise ValueError("Can't time travel backward in a forward context")
+
         # first make sure the cursor is not before the start of this branch
-        branch = self.branch
-        tick = self._turn_end_plan.setdefault((branch, v), 0)
-        parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
         if branch != 'trunk':
+            parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
             if v < turn_start:
                 raise ValueError(
                     "The turn number {} "
                     "occurs before the start of "
                     "the branch {}".format(v, branch)
                 )
+        if branch not in loaded:
+            if (branch, v) in self._turn_end_plan:
+                tick = self._turn_end_plan[branch, v]
+            else:
+                tick = 0
+            self._load_at(branch, v, tick)
+        else:
+            (start_turn, start_tick, end_turn, end_tick) = loaded[branch]
+            if (branch, v) in self._turn_end_plan:
+                tick = self._turn_end_plan[(branch, v)]
+            else:
+                self._turn_end_plan[(branch, v)] = tick = 0
+            if v > end_turn or (v == end_turn and tick > end_tick):
+                if (branch, v, tick) in self._keyframes_times:
+                    self._load_at(branch, v, tick)
+                else:
+                    loaded[branch] = (start_turn, start_tick, v, tick)
+            elif v < start_turn or (v == start_turn and tick < start_tick):
+                self._load_at(branch, v, tick)
         self._otick = tick
         self._oturn = v
 
@@ -913,6 +1520,19 @@ class ORM(object):
             if turn == turn_end and v > tick_end:
                 self._branches[branch] = parent, turn_start, tick_start, turn, v
         self._otick = v
+        loaded = self._loaded
+        if branch not in loaded:
+            self._load_at(branch, turn, v)
+            return
+        (start_turn, start_tick, end_turn, end_tick) = loaded[branch]
+        if turn > end_turn or (turn == end_turn and v > end_tick):
+            if (branch, end_turn, end_tick) in self._keyframes_times:
+                self._load_at(branch, turn, v)
+                return
+            loaded[branch] = (start_turn, start_tick, turn, v)
+        elif turn < start_turn or (
+                turn == start_turn and v < start_tick):
+            self._load_at(branch, turn, v)
 
     # easier to override things this way
     @property
@@ -969,6 +1589,16 @@ class ORM(object):
             time_plan[branch, turn, tick] = last_plan
         turn_end_plan[branch_turn] = tick
         branches[branch] = parent, turn_start, tick_start, turn_end, tick
+        loaded = self._loaded
+        if branch in loaded:
+            (early_turn, early_tick, late_turn, late_tick) = loaded[branch]
+            if turn > late_turn:
+                (late_turn, late_tick) = (turn, tick)
+            elif turn == late_turn and tick > late_tick:
+                late_tick = tick
+            loaded[branch] = (early_turn, early_tick, late_turn, late_tick)
+        else:
+            loaded[branch] = (turn, tick, turn, tick)
         self._otick = tick
         return branch, turn, tick
 
@@ -1010,37 +1640,38 @@ class ORM(object):
         if name in self.illegal_graph_names:
             raise GraphNameError("Illegal name")
         self.query.new_graph(name, type_s)
+        branch, turn, tick = self._btt()
         if data:
-            branch, turn, tick = self._btt()
             if isinstance(data, DiGraph):
                 nodes = data._nodes_state()
                 edges = data._edges_state()
                 val = data._val_state()
-                self._snap_keyframe(name, branch, turn, tick, nodes, edges, val)
-                self._new_keyframes.append(
-                    (name, branch, turn, tick, nodes, edges, val)
-                )
+                self._snap_keyframe(name, branch, turn, tick,
+                                    nodes, edges, val)
+                self._new_keyframes.append((
+                    name, branch, turn, tick, nodes, edges, val
+                ))
             elif isinstance(data, nx.Graph):
                 self._snap_keyframe(name, branch, turn, tick, data._node, data._adj, data.graph)
-                self._new_keyframes.append(
-                    (name, branch, turn, tick, data._node, data._adj, data.graph)
-                )
+                self._new_keyframes.append((
+                    name, branch, turn, tick, data._node, data._adj, data.graph
+                ))
             elif isinstance(data, dict):
                 try:
                     data = nx.from_dict_of_dicts(data)
                 except AttributeError:
                     data = nx.from_dict_of_lists(data)
                 self._snap_keyframe(name, branch, turn, tick, data._node, data._adj, data.graph)
-                self._new_keyframes.append(
-                    (name, branch, turn, tick, data._node, data._adj, data.graph)
-                )
+                self._new_keyframes.append((
+                    name, branch, turn, tick, data._node, data._adj, data.graph
+                ))
             else:
                 if len(data) != 3 or not all(isinstance(d, dict) for d in data):
                     raise ValueError("Invalid graph data")
                 self._snap_keyframe(name, branch, turn, tick, *data)
-                self._new_keyframes.append(
-                    (name, branch, turn, tick) + tuple(data)
-                )
+                self._new_keyframes.append((
+                    name, branch, turn, tick
+                ) + tuple(data))
 
     def new_graph(self, name, data=None, **attr):
         """Return a new instance of type Graph, initialized with the given
