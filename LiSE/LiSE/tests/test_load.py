@@ -33,5 +33,6 @@ def test_multi_keyframe(tempdir):
     tick1 = eng.tick
     eng.close()
     eng = Engine(tempdir)
+    eng._load_at('trunk', 0, tick0+1)
     assert eng._things_cache.keyframe['physical', 'kobold']['trunk'][0][tick0]\
            != eng._things_cache.keyframe['physical', 'kobold']['trunk'][1][tick1]

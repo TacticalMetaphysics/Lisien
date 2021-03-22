@@ -1651,6 +1651,27 @@ class Engine(AbstractEngine, gORM):
             return v
         return self.alias(v, stat)
 
+    def _snap_keyframe(self, graph, branch, turn, tick, nodes, edges,
+                       graph_val):
+        super()._snap_keyframe(graph, branch, turn, tick, nodes, edges,
+                               graph_val)
+        tkf = self._things_cache.keyframe
+        for (name, node) in nodes.items():
+            if 'location' not in node:
+                continue
+            if (graph, name) not in tkf:
+                tkf[graph, name][branch] = {turn: {tick: node['location']}}
+                continue
+            tkfp = tkf[graph, name]
+            if branch not in tkfp:
+                tkfp[branch] = {turn: {tick: node['location']}}
+                continue
+            tkfpb = tkfp[branch]
+            if turn not in tkfpb:
+                tkfpb[turn] = {tick: node['location']}
+                continue
+            tkfpb[turn][tick] = node['location']
+
     def turns_when(self, qry):
         """Yield the turns in this branch when the query held true
 
