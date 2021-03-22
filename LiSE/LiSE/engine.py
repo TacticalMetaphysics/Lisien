@@ -1134,24 +1134,6 @@ class Engine(AbstractEngine, gORM):
         q = self.query
         self._things_cache.load(q.things_dump())
         super()._init_load()
-        things_kf = self._things_cache.keyframe
-        nv_kf = self._node_val_cache.keyframe
-        for node, branches in nv_kf.items():
-            for branch, turns in branches.items():
-                for turn, ticks in turns.items():
-                    for tick, vals in ticks.items():
-                        if 'location' in vals:
-                            if node not in things_kf or branch not in \
-                                    things_kf[node]:
-                                things_kf[node][branch] = SettingsTurnDict({
-                                    turn: WindowDict({tick: vals})
-                                })
-                            elif turn not in things_kf[node][branch]:
-                                things_kf[node][branch][turn] = WindowDict({
-                                    tick: vals
-                                })
-                            else:
-                                things_kf[node][branch][turn][tick] = vals
         self._avatarness_cache.load(q.avatars_dump())
         self._universal_cache.load(q.universals_dump())
         self._rulebooks_cache.load(q.rulebooks_dump())
@@ -1655,22 +1637,17 @@ class Engine(AbstractEngine, gORM):
                        graph_val):
         super()._snap_keyframe(graph, branch, turn, tick, nodes, edges,
                                graph_val)
-        tkf = self._things_cache.keyframe
-        for (name, node) in nodes.items():
-            if 'location' not in node:
-                continue
-            if (graph, name) not in tkf:
-                tkf[graph, name][branch] = {turn: {tick: node['location']}}
-                continue
-            tkfp = tkf[graph, name]
-            if branch not in tkfp:
-                tkfp[branch] = {turn: {tick: node['location']}}
-                continue
-            tkfpb = tkfp[branch]
-            if turn not in tkfpb:
-                tkfpb[turn] = {tick: node['location']}
-                continue
-            tkfpb[turn][tick] = node['location']
+        newkf = {name: node['location'] for (name, node) in nodes.items()
+                 if 'location' in node}
+        kfs = self._things_cache.keyframe[graph]
+        if branch not in kfs:
+            kfs[branch] = {turn: {tick: newkf}}
+            return
+        kfb = kfs[branch]
+        if turn not in kfb:
+            kfb[turn] = {tick: newkf}
+        else:
+            kfb[turn][tick] = newkf
 
     def turns_when(self, qry):
         """Yield the turns in this branch when the query held true
