@@ -1183,18 +1183,11 @@ class Engine(AbstractEngine, gORM):
         for graph, (nodes, edges, graphval) in keyframed.items():
             thkf = {noden: node['location'] for (noden, node) in nodes.items()
                     if 'location' in node}
-            if graph not in things_keyframes:
-                things_keyframes[graph] = {branch: {turn: {tick: thkf}}}
-                continue
-            thkfg = things_keyframes[graph]
-            if branch not in thkfg:
-                thkfg[branch] = {turn: {tick: thkf}}
-                continue
-            thkfgb = thkfg[branch]
-            if turn not in thkfgb:
-                thkfgb[turn] = {tick: thkf}
+            thkfb = things_keyframes[graph, ][branch]
+            if turn in thkfb:
+                thkfb[turn][tick] = thkf
             else:
-                thkfgb[turn][tick] = thkf
+                thkfb[turn] = {tick: thkf}
         storeloc = self._things_cache.store
         with self.batch():
             for graph, node, key, branch, turn, tick, val in nodevalrows:
