@@ -1020,85 +1020,33 @@ class ORM(object):
                 continue
             future_branch, future_turn, future_tick = earliest_future_keyframe
             if past_branch == future_branch:
-                if branch in loaded:
-                    start_turn, start_tick, end_turn, end_tick = loaded[branch]
-                else:
-                    (start_turn, start_tick, end_turn, end_tick) = (
-                        float('inf'), float('inf'), -float('inf'), -float('inf'))
                 for (graph, node, branch, turn, tick, ex) in load_nodes(
-                    graph, past_branch, past_turn, past_tick
+                    graph, past_branch, past_turn, past_tick,
+                    future_turn, future_tick
                 ):
                     noderows.append((
                         graph, node, branch, turn, tick, ex or None
                     ))
-                    if turn > end_turn:
-                        (end_turn, end_tick) = (turn, tick)
-                    elif turn == end_turn and tick > end_tick:
-                        end_tick = tick
-                    if turn < start_turn:
-                        (start_turn, start_tick) = (turn, tick)
-                    elif turn == start_turn and tick < start_tick:
-                        start_tick = tick
                 for (graph, orig, dest, idx, branch, turn, tick, ex) in load_edges(
-                    graph, past_branch, past_turn, past_tick
+                    graph, past_branch, past_turn, past_tick,
+                    future_turn, future_tick
                 ):
                     edgerows.append((
                         graph, orig, dest, idx, branch, turn, tick, ex or None
                     ))
-                    if turn > end_turn:
-                        (end_turn, end_tick) = (turn, tick)
-                    elif turn == end_turn and tick > end_tick:
-                        end_tick = tick
-                    if turn < start_turn:
-                        (start_turn, start_tick) = (turn, tick)
-                    elif turn == start_turn and tick < start_tick:
-                        start_tick = tick
-                for row in load_graph_val(
+                graphvalrows.extend(load_graph_val(
                     graph, past_branch, past_turn, past_tick,
                     future_turn, future_tick
-                ):
-                    graphvalrows.append(row)
-                    turn = row[3]
-                    tick = row[4]
-                    if turn > end_turn:
-                        (end_turn, end_tick) = (turn, tick)
-                    elif turn == end_turn and tick > end_tick:
-                        end_tick = tick
-                    if turn < start_turn:
-                        (start_turn, start_tick) = (turn, tick)
-                    elif turn == start_turn and tick < start_tick:
-                        start_tick = tick
-                for row in load_node_val(
+                ))
+                nodevalrows.extend(load_node_val(
                     graph, past_branch, past_turn, past_tick,
                     future_turn, future_tick
-                ):
-                    nodevalrows.append(row)
-                    turn = row[4]
-                    tick = row[5]
-                    if turn > end_turn:
-                        (end_turn, end_tick) = (turn, tick)
-                    elif turn == end_turn and tick > end_tick:
-                        end_tick = tick
-                    if turn < start_turn:
-                        (start_turn, start_tick) = (turn, tick)
-                    elif turn == start_turn and tick < start_tick:
-                        start_tick = tick
-                for row in load_edge_val(
+                ))
+                edgevalrows.extend(load_edge_val(
                     graph, past_branch, past_turn, past_tick,
                     future_turn, future_tick
-                ):
-                    edgevalrows.append(row)
-                    turn = row[6]
-                    tick = row[7]
-                    if turn > end_turn:
-                        (end_turn, end_tick) = (turn, tick)
-                    elif turn == end_turn and tick > end_tick:
-                        end_tick = tick
-                    if turn < start_turn:
-                        (start_turn, start_tick) = (turn, tick)
-                    elif turn == start_turn and tick < start_tick:
-                        start_tick = tick
-                loaded[branch] = (start_turn, start_tick, end_turn, end_tick)
+                ))
+                loaded[branch] = (past_turn, past_tick, future_turn, future_tick)
                 continue
             parentage_iter = iter_parent_btt(future_branch, future_turn, future_tick)
             branch1, turn1, tick1 = next(parentage_iter)
