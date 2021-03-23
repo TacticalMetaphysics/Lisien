@@ -881,7 +881,7 @@ class ORM(object):
         get_keyframe = self.query.get_keyframe
         iter_parent_btt = self._iter_parent_btt
         loaded = self._loaded
-        if latest_past_keyframe is None:  # can this actually happen?
+        if latest_past_keyframe is None:  # happens in very short games
             def updload(branch, turn, tick):
                 if branch not in loaded:
                     loaded[branch] = (turn, tick, turn, tick)
@@ -913,7 +913,9 @@ class ORM(object):
                 self._graph_val_cache.load(graphvalrows)
                 self._node_val_cache.load(nodevalrows)
                 self._edge_val_cache.load(edgevalrows)
-            return
+            return latest_past_keyframe, earliest_future_keyframe, \
+                    {}, noderows, edgerows, graphvalrows, \
+                    nodevalrows, edgevalrows
         past_branch, past_turn, past_tick = latest_past_keyframe
         keyframed = {}
         for graph in self.graph:
