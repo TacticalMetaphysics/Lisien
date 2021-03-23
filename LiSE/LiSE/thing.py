@@ -56,9 +56,12 @@ class Thing(Node):
         return self.name
 
     def _getloc(self):
-        return self.engine._things_cache.retrieve(
-            self.character.name, self.name, *self.engine._btt()
-        )
+        try:
+            return self.engine._things_cache.retrieve(
+                self.character.name, self.name, *self.engine._btt()
+            )
+        except:
+            return None
 
     def _validate_node_type(self):
         try:
@@ -111,9 +114,10 @@ class Thing(Node):
         ``location``: return the name of my location
 
         """
-        try:
-            return self._getitem_dispatch[key](self)
-        except KeyError:
+        disp = self._getitem_dispatch
+        if key in disp:
+            return disp[key](self)
+        else:
             return super().__getitem__(key)
 
     def __setitem__(self, key, value):
