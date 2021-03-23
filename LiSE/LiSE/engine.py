@@ -1658,15 +1658,11 @@ class Engine(AbstractEngine, gORM):
                                graph_val)
         newkf = {name: node['location'] for (name, node) in nodes.items()
                  if 'location' in node}
-        kfs = self._things_cache.keyframe[graph]
-        if branch not in kfs:
-            kfs[branch] = {turn: {tick: newkf}}
-            return
-        kfb = kfs[branch]
-        if turn not in kfb:
-            kfb[turn] = {tick: newkf}
+        kfs = self._things_cache.keyframe[graph][branch]
+        if turn not in kfs:
+            kfs[turn] = {tick: newkf}
         else:
-            kfb[turn][tick] = newkf
+            kfs[turn][tick] = newkf
 
     def turns_when(self, qry):
         """Yield the turns in this branch when the query held true
