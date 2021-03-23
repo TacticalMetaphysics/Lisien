@@ -693,7 +693,7 @@ class ORM(object):
             self._nbtt, self.query.exist_edge, self._edges_cache.store)
         self._load_graphs()
         assert hasattr(self, 'graph')
-        self._keyframes_list = list(self.query.keyframes_list())
+        self._keyframes_list = []
         self._keyframes_dict = {}
         self._keyframes_times = set()
         self._loaded = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
