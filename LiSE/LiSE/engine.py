@@ -1180,20 +1180,52 @@ class Engine(AbstractEngine, gORM):
         noderows, edgerows, graphvalrows, nodevalrows, edgevalrows \
             = super()._load_at(branch, turn, tick)
         things_keyframes = self._things_cache.keyframe
+        contents_keyframes = self._node_contents_cache.keyframe
+        thingrows = []
+        load_things = self.query.load_things
         for graph, (nodes, edges, graphval) in keyframed.items():
-            thkf = {noden: node['location'] for (noden, node) in nodes.items()
-                    if 'location' in node}
-            thkfb = things_keyframes[graph, ][branch]
-            if turn in thkfb:
-                thkfb[turn][tick] = thkf
-            else:
-                thkfb[turn] = {tick: thkf}
-        storeloc = self._things_cache.store
-        with self.batch():
-            for graph, node, key, branch, turn, tick, val in nodevalrows:
-                if key != 'location':
+            contents = {}
+            thkf = {}
+            for (noden, node) in nodes.items():
+                if 'location' not in node:
                     continue
-                storeloc(graph, node, branch, turn, tick, val)
+                locn = node['location']
+                thkf[noden] = locn
+                if locn in contents:
+                    contents[locn].add(noden)
+                else:
+                    contents[locn] = {noden, }
+            past_branch, past_turn, past_tick = latest_past_keyframe
+            contkf = contents_keyframes[graph]
+            if past_branch in contkf:
+                contkf_branch = contkf[past_branch]
+                if turn in contkf_branch:
+                    contkf_branch[turn][tick] = contents
+                else:
+                    contkf_branch[turn] = {tick: contents}
+            else:
+                contkf[branch] = {turn: {tick: contents}}
+            graphkf = things_keyframes[graph]
+            if past_branch in graphkf:
+                graphkf_branch = graphkf[past_branch]
+                if turn in graphkf_branch:
+                    graphkf[turn][tick] = thkf
+                else:
+                    graphkf[turn] = {tick: thkf}
+            else:
+                graphkf[branch] = {turn: {tick: thkf}}
+            if earliest_future_keyframe is None:
+                thingrows.extend(load_things(
+                    graph, past_branch, past_turn, past_tick
+                ))
+            else:
+                future_branch, future_turn, future_tick = earliest_future_keyframe
+                thingrows.extend(load_things(
+                    graph, past_branch, past_turn, past_tick,
+                    future_turn, future_tick
+                ))
+        with self.batch():
+            self._things_cache.load(thingrows)
 
     @property
     def stores(self):

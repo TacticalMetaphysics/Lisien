@@ -573,6 +573,39 @@ def queries(table):
             )
         )
     ))
+    things_to_end_clause = and_(
+        things.c.character == bindparam('character'),
+        things.c.branch == bindparam('branch'),
+        or_(
+            things.c.turn > bindparam('turn_from_a'),
+            and_(
+                things.c.turn == bindparam('turn_from_b'),
+                things.c.tick >= bindparam('tick_from')
+            )
+        )
+    )
+    r['load_things_tick_to_end'] = select([
+        things.c.thing,
+        things.c.turn,
+        things.c.tick,
+        things.c.location
+    ]).where(things_to_end_clause)
+    r['load_things_tick_to_tick'] = select([
+        things.c.thing,
+        things.c.branch,
+        things.c.turn,
+        things.c.tick,
+        things.c.location
+    ]).where(and_(
+        things_to_end_clause,
+        or_(
+            things.c.turn < bindparam('turn_to_a'),
+            and_(
+                things.c.turn == bindparam('turn_to_b'),
+                things.c.tick <= bindparam('tick_to')
+            )
+        )
+    ))
 
     for handledtab in (
         'character_rules_handled',
