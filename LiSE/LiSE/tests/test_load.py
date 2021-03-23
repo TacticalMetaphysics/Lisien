@@ -24,15 +24,15 @@ def test_keyframe_load_init(tempdir):
 
 def test_multi_keyframe(tempdir):
     eng = Engine(tempdir)
-    inittest(eng, kobold_pos=(9, 9))
+    inittest(eng)
     eng.snap_keyframe()
     tick0 = eng.tick
     eng.turn = 1
-    eng.character['physical'].thing['kobold']['location'] = (3, 3)
+    del eng.character['physical'].place[3, 3]
     eng.snap_keyframe()
     tick1 = eng.tick
     eng.close()
     eng = Engine(tempdir)
     eng._load_at('trunk', 0, tick0+1)
-    assert eng._things_cache.keyframe['physical']['trunk'][0][tick0]\
-           != eng._things_cache.keyframe['physical']['trunk'][1][tick1]
+    assert eng._nodes_cache.keyframe['physical', ]['trunk'][0][tick0]\
+           != eng._nodes_cache.keyframe['physical', ]['trunk'][1][tick1]
