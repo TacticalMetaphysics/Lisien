@@ -156,10 +156,9 @@ class Thing(Node):
     @property
     def location(self):
         """The ``Thing`` or ``Place`` I'm in."""
-        try:
-            locn = self['location']
-        except KeyError:
-            return None
+        locn = self['location']
+        if locn is None:
+            return
         return self.engine._get_node(self.character, locn)
 
     @location.setter
