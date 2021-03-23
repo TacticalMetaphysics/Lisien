@@ -825,34 +825,37 @@ class ORM(object):
                 if turn < turn_now:
                     if latest_past_keyframe:
                         late_branch, late_turn, late_tick = latest_past_keyframe
-                        if late_branch != branch or late_turn < turn or late_tick < tick:
+                        if late_branch != branch or late_turn < turn or (
+                                late_turn == turn and late_tick < tick):
                             latest_past_keyframe = (branch, turn, tick)
                     else:
                         latest_past_keyframe = (branch, turn, tick)
                 elif turn > turn_now:
                     if earliest_future_keyframe:
                         early_branch, early_turn, early_tick = earliest_future_keyframe
-                        if early_branch != branch or early_turn > turn or early_tick > tick:
+                        if early_branch != branch or early_turn > turn or (
+                                early_turn == turn and early_tick > tick):
                             earliest_future_keyframe = (branch, turn, tick)
                     else:
                         earliest_future_keyframe = (branch, turn, tick)
                 elif tick < tick_now:
                     if latest_past_keyframe:
                         late_branch, late_turn, late_tick = latest_past_keyframe
-                        if late_branch != branch or late_turn < turn or late_tick < tick:
+                        if late_branch != branch or late_turn < turn or (
+                                late_turn == turn and late_tick < tick):
                             latest_past_keyframe = (branch, turn, tick)
                     else:
                         latest_past_keyframe = (branch, turn, tick)
                 elif tick > tick_now:
                     if earliest_future_keyframe:
                         early_branch, early_turn, early_tick = earliest_future_keyframe
-                        if early_branch != branch or early_turn > turn or early_tick > tick:
+                        if early_branch != branch or early_turn > turn or (
+                                early_turn == turn and early_tick > tick):
                             earliest_future_keyframe = (branch, turn, tick)
                     else:
                         earliest_future_keyframe = (branch, turn, tick)
                 else:
-                    latest_past_keyframe = earliest_future_keyframe = (branch, turn, tick)
-                    break
+                    latest_past_keyframe = (branch, turn, tick)
             elif branch in branch_parents[branch_now]:
                 if latest_past_keyframe:
                     late_branch, late_turn, late_tick = latest_past_keyframe
@@ -925,9 +928,13 @@ class ORM(object):
             if earliest_future_keyframe is None:
                 if branch in loaded:
                     start_turn, start_tick, end_turn, end_tick = loaded[branch]
+                    if past_turn < start_turn or (
+                        past_turn == start_turn and past_tick < start_tick
+                    ):
+                        (start_turn, start_tick) = (past_turn, past_tick)
                 else:
                     (start_turn, start_tick, end_turn, end_tick) = (
-                        float('inf'), float('inf'), -float('inf'), -float('inf'))
+                        past_turn, past_tick, -float('inf'), -float('inf'))
                 for (graph, node, branch, turn, tick, ex) in load_nodes(
                         graph, past_branch, past_turn, past_tick
                 ):
