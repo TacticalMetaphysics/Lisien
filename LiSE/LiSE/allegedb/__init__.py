@@ -915,8 +915,10 @@ class ORM(object):
                 self._edge_val_cache.load(edgevalrows)
             return
         past_branch, past_turn, past_tick = latest_past_keyframe
+        keyframed = {}
         for graph in self.graph:
-            nodes, edges, graph_val = get_keyframe(graph, past_branch, past_turn, past_tick)
+            nodes, edges, graph_val = keyframed[graph] = get_keyframe(
+                graph, past_branch, past_turn, past_tick)
             snap_keyframe(graph, past_branch, past_turn, past_tick, nodes, edges, graph_val)
             if earliest_future_keyframe is None:
                 if branch in loaded:
@@ -1185,6 +1187,9 @@ class ORM(object):
             self._graph_val_cache.load(graphvalrows)
             self._node_val_cache.load(nodevalrows)
             self._edge_val_cache.load(edgevalrows)
+        return latest_past_keyframe, earliest_future_keyframe, \
+               keyframed, noderows, edgerows, graphvalrows, \
+               nodevalrows, edgevalrows
 
     def unload(self):
         """Remove everything from memory we can"""

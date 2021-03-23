@@ -1132,7 +1132,6 @@ class Engine(AbstractEngine, gORM):
     def _init_load(self):
         from .rule import Rule
         q = self.query
-        self._things_cache.load(q.things_dump())
         super()._init_load()
         self._avatarness_cache.load(q.avatars_dump())
         self._universal_cache.load(q.universals_dump())
@@ -1175,6 +1174,33 @@ class Engine(AbstractEngine, gORM):
         self._turns_completed.update(q.turns_completed_dump())
         self._rules_cache = {
             name: Rule(self, name, create=False) for name in q.rules_dump()}
+
+    def _load_at(self, branch, turn, tick):
+        latest_past_keyframe, earliest_future_keyframe, keyframed, \
+        noderows, edgerows, graphvalrows, nodevalrows, edgevalrows \
+            = super()._load_at(branch, turn, tick)
+        things_keyframes = self._things_cache.keyframe
+        for graph, (nodes, edges, graphval) in keyframed.items():
+            thkf = {noden: node['location'] for (noden, node) in nodes.items()
+                    if 'location' in node}
+            if graph not in things_keyframes:
+                things_keyframes[graph] = {branch: {turn: {tick: thkf}}}
+                continue
+            thkfg = things_keyframes[graph]
+            if branch not in thkfg:
+                thkfg[branch] = {turn: {tick: thkf}}
+                continue
+            thkfgb = thkfg[branch]
+            if turn not in thkfgb:
+                thkfgb[turn] = {tick: thkf}
+            else:
+                thkfgb[turn][tick] = thkf
+        storeloc = self._things_cache.store
+        with self.batch():
+            for graph, node, key, branch, turn, tick, val in nodevalrows:
+                if key != 'location':
+                    continue
+                storeloc(graph, node, branch, turn, tick, val)
 
     @property
     def stores(self):
