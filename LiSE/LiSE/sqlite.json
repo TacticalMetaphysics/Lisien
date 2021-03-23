@@ -190,7 +190,7 @@
     "load_nodes_tick_to_end": "SELECT nodes.node, nodes.turn, nodes.tick, nodes.extant \nFROM nodes \nWHERE nodes.graph = ? AND nodes.branch = ? AND (nodes.turn > ? OR nodes.turn = ? AND nodes.tick >= ?)",
     "load_nodes_tick_to_tick": "SELECT nodes.node, nodes.turn, nodes.tick, nodes.extant \nFROM nodes \nWHERE nodes.graph = ? AND nodes.branch = ? AND (nodes.turn > ? OR nodes.turn = ? AND nodes.tick >= ?) AND (nodes.turn < ? OR nodes.turn = ? AND nodes.tick <= ?)",
     "load_things_tick_to_end": "SELECT things.thing, things.turn, things.tick, things.location \nFROM things \nWHERE things.character = ? AND things.branch = ? AND (things.turn > ? OR things.turn = ? AND things.tick >= ?)",
-    "load_things_tick_to_tick": "SELECT things.thing, things.branch, things.turn, things.tick, things.location \nFROM things \nWHERE things.character = ? AND things.branch = ? AND (things.turn > ? OR things.turn = ? AND things.tick >= ?) AND (things.turn < ? OR things.turn = ? AND things.tick <= ?)",
+    "load_things_tick_to_tick": "SELECT things.thing, things.turn, things.tick, things.location \nFROM things \nWHERE things.character = ? AND things.branch = ? AND (things.turn > ? OR things.turn = ? AND things.tick >= ?) AND (things.turn < ? OR things.turn = ? AND things.tick <= ?)",
     "node_rulebook_count": "SELECT count(?) AS count_1 \nFROM node_rulebook",
     "node_rulebook_del": "DELETE FROM node_rulebook WHERE node_rulebook.character = ? AND node_rulebook.node = ? AND node_rulebook.branch = ? AND node_rulebook.turn = ? AND node_rulebook.tick = ?",
     "node_rulebook_del_time": "DELETE FROM node_rulebook WHERE node_rulebook.branch = ? AND node_rulebook.turn = ? AND node_rulebook.tick = ?",

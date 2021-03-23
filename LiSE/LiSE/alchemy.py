@@ -592,7 +592,6 @@ def queries(table):
     ]).where(things_to_end_clause)
     r['load_things_tick_to_tick'] = select([
         things.c.thing,
-        things.c.branch,
         things.c.turn,
         things.c.tick,
         things.c.location
