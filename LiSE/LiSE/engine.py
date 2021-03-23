@@ -1179,51 +1179,21 @@ class Engine(AbstractEngine, gORM):
         latest_past_keyframe, earliest_future_keyframe, keyframed, \
         noderows, edgerows, graphvalrows, nodevalrows, edgevalrows \
             = super()._load_at(branch, turn, tick)
-        things_keyframes = self._things_cache.keyframe
-        contents_keyframes = self._node_contents_cache.keyframe
         thingrows = []
         load_things = self.query.load_things
-        for graph, (nodes, edges, graphval) in keyframed.items():
-            contents = {}
-            thkf = {}
-            for (noden, node) in nodes.items():
-                if 'location' not in node:
-                    continue
-                locn = node['location']
-                thkf[noden] = locn
-                if locn in contents:
-                    contents[locn].add(noden)
-                else:
-                    contents[locn] = {noden, }
+        if latest_past_keyframe is not None:
             past_branch, past_turn, past_tick = latest_past_keyframe
-            contkf = contents_keyframes[graph]
-            if past_branch in contkf:
-                contkf_branch = contkf[past_branch]
-                if turn in contkf_branch:
-                    contkf_branch[turn][tick] = contents
+            for graph in self.graph:
+                if earliest_future_keyframe is None:
+                    thingrows.extend(load_things(
+                        graph, past_branch, past_turn, past_tick
+                    ))
                 else:
-                    contkf_branch[turn] = {tick: contents}
-            else:
-                contkf[branch] = {turn: {tick: contents}}
-            graphkf = things_keyframes[graph]
-            if past_branch in graphkf:
-                graphkf_branch = graphkf[past_branch]
-                if turn in graphkf_branch:
-                    graphkf[turn][tick] = thkf
-                else:
-                    graphkf[turn] = {tick: thkf}
-            else:
-                graphkf[branch] = {turn: {tick: thkf}}
-            if earliest_future_keyframe is None:
-                thingrows.extend(load_things(
-                    graph, past_branch, past_turn, past_tick
-                ))
-            else:
-                future_branch, future_turn, future_tick = earliest_future_keyframe
-                thingrows.extend(load_things(
-                    graph, past_branch, past_turn, past_tick,
-                    future_turn, future_tick
-                ))
+                    future_branch, future_turn, future_tick = earliest_future_keyframe
+                    thingrows.extend(load_things(
+                        graph, past_branch, past_turn, past_tick,
+                        future_turn, future_tick
+                    ))
         with self.batch():
             self._things_cache.load(thingrows)
 
@@ -1688,8 +1658,23 @@ class Engine(AbstractEngine, gORM):
                        graph_val):
         super()._snap_keyframe(graph, branch, turn, tick, nodes, edges,
                                graph_val)
-        newkf = {name: node['location'] for (name, node) in nodes.items()
-                 if 'location' in node}
+        newkf = {}
+        contkf = {}
+        for (name, node) in nodes.items():
+            if 'location' not in node:
+                continue
+            locn = node['location']
+            newkf[name] = locn
+            if locn in contkf:
+                contkf[locn].add(name)
+            else:
+                contkf[locn] = {name, }
+        contents_keyframes = self._node_contents_cache.keyframe
+        contkfs = contents_keyframes[graph][branch]
+        if turn not in contkfs:
+            contkfs[turn] = {tick: contkf}
+        else:
+            contkfs[turn][tick] = contkf
         kfs = self._things_cache.keyframe[graph][branch]
         if turn not in kfs:
             kfs[turn] = {tick: newkf}
