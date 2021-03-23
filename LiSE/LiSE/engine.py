@@ -1670,12 +1670,12 @@ class Engine(AbstractEngine, gORM):
             else:
                 contkf[locn] = {name, }
         contents_keyframes = self._node_contents_cache.keyframe
-        contkfs = contents_keyframes[graph][branch]
+        contkfs = contents_keyframes[graph,][branch]
         if turn not in contkfs:
             contkfs[turn] = {tick: contkf}
         else:
             contkfs[turn][tick] = contkf
-        kfs = self._things_cache.keyframe[graph][branch]
+        kfs = self._things_cache.keyframe[graph,][branch]
         if turn not in kfs:
             kfs[turn] = {tick: newkf}
         else:
