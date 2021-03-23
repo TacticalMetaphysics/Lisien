@@ -1164,8 +1164,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             branch, turn, tick = self.engine._btt()
             args = self.character.name, thing, branch, turn, tick
             cache = self.engine._things_cache
-            return cache.contains_key(*args) \
-                   and cache.retrieve(*args) is not None
+            return cache.contains_key(*args)
 
         def __len__(self):
             return self.engine._things_cache.count_keys(
