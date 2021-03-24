@@ -183,8 +183,8 @@ CHAR_DATA = [
 
 
 @pytest.mark.parametrize(['name', 'data', 'stat', 'nodestat', 'statup', 'nodeup', 'edgeup'], CHAR_DATA)
-def test_char_creation(name, data, stat, nodestat, statup, nodeup, edgeup):
-    with Engine(connect_string="sqlite:///:memory:") as eng:
+def test_char_creation(tmpdir, name, data, stat, nodestat, statup, nodeup, edgeup):
+    with Engine(tmpdir) as eng:
         char = eng.new_character(name, data, **stat)
         assert set(char.node) == set(data)
         es = set()
@@ -196,8 +196,8 @@ def test_char_creation(name, data, stat, nodestat, statup, nodeup, edgeup):
 
 
 @pytest.mark.parametrize(['name', 'data', 'stat', 'nodestat', 'statup', 'nodeup', 'edgeup'], CHAR_DATA)
-def test_facade_creation(name, data, stat, nodestat, statup, nodeup, edgeup):
-    with Engine(connect_string='sqlite:///:memory:') as eng:
+def test_facade_creation(tmpdir, name, data, stat, nodestat, statup, nodeup, edgeup):
+    with Engine(tmpdir) as eng:
         char = eng.new_character(name, data, **stat)
         fac = char.facade()
         assert dict(fac.node) == dict(char.node)
