@@ -1430,11 +1430,6 @@ class Engine(AbstractEngine, gORM):
 
         # TODO: triggers that don't mutate anything should be
         #  evaluated in parallel
-        #  Ideally this would be implemented with a pool of
-        #  "engines" that serve Facades
-        #  mirroring the state of the world on turn start,
-        #  kept in sync with deltas.
-        #  I think I could do it with regular concurrent.futures pools though.
         for (
             charactername, rulebook, rulename
         ) in self._character_rules_handled_cache.iter_unhandled_rules(
