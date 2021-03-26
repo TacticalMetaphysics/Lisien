@@ -1022,6 +1022,8 @@ class ORM(object):
                     loaded[branch] = (start_turn1, start_tick1,
                                       end_turn1, end_tick1)
                 else:
+                    if end_turn == -float('inf'):
+                        end_turn, end_tick = start_turn, start_tick
                     loaded[branch] = (start_turn, start_tick,
                                       end_turn, end_tick)
                 continue
