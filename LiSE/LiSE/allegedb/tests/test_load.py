@@ -116,6 +116,7 @@ def test_keyframe_unload(tmpdbfile):
     with ORM('sqlite:///' + tmpdbfile) as orm:
         g = orm.new_digraph('g', nx.grid_2d_graph(3, 3))
         orm.turn = 1
+        assert orm._time_is_loaded(*orm._btt())
         assert ('g', (0, 0), (0, 1)) in orm._edges_cache.keyframe and 0 in orm._edges_cache.keyframe['g', (0, 0), (0, 1)]['trunk']
         del g.node[1, 1]
         g.add_node('a')

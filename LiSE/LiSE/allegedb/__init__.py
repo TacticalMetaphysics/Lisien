@@ -1596,6 +1596,21 @@ class ORM(object):
         self.commit()
         self.query.close()
 
+    def _nudge_loaded(self, branch, turn, tick):
+        loaded = self._loaded
+        if branch in loaded:
+            past_turn, past_tick, future_turn, future_tick = loaded[branch]
+            if turn < past_turn or (
+                turn == past_turn and tick < past_tick
+            ):
+                loaded[branch] = turn, tick, future_turn, future_tick
+            elif turn > future_turn or (
+                turn == future_turn and tick > future_tick
+            ):
+                loaded[branch] = past_turn, past_tick, turn, tick
+        else:
+            loaded[branch] = turn, tick, turn, tick
+
     def _init_graph(self, name, type_s='DiGraph', data=None):
         if self.query.have_graph(name):
             raise GraphNameError("Already have a graph by that name")
@@ -1603,6 +1618,7 @@ class ORM(object):
             raise GraphNameError("Illegal name")
         self.query.new_graph(name, type_s)
         branch, turn, tick = self._btt()
+        self._nudge_loaded(branch, turn, tick)
         if data:
             if isinstance(data, DiGraph):
                 nodes = data._nodes_state()
