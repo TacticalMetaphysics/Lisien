@@ -1787,7 +1787,7 @@ class ORM(object):
             branch,
             turn,
             tick,
-            True
+            exist
         )
         store(character, node, branch, turn, tick, exist)
 
