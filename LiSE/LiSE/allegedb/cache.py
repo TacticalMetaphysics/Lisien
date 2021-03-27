@@ -570,12 +570,12 @@ class Cache:
     def remove_branch(self, branch):
         time_entity, parents, branches, keys, settings, \
         presettings, remove_keycache, keycache = self._remove_stuff
-        times = []
         parentikeys = set()
-        for (branc, turn, tick), parentikey in time_entity.items():
+        for (branc, turn, tick), parentikey in list(time_entity.items()):
             if branc != branch:
                 continue
             parentikeys.add(parentikey)
+            del time_entity[branc, turn, tick]
         for (parent, entity, key) in parentikeys:
             branchkey = parent + (entity, key)
             keykey = parent + (entity,)
