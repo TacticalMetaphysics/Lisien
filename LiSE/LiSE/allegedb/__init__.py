@@ -705,18 +705,14 @@ class ORM(object):
         keyframes_times = self._keyframes_times
         for graph, branch, turn, tick in self.query.keyframes_list():
             keyframes_list.append((graph, branch, turn, tick))
-            if graph not in keyframes_dict:
-                keyframes_dict[graph] = {branch: {turn: {tick, }}}
+            if branch not in keyframes_dict:
+                keyframes_dict[branch] = {turn: {tick}}
             else:
-                keyframes_dict_graph = keyframes_dict[graph]
-                if branch not in keyframes_dict_graph:
-                    keyframes_dict_graph[branch] = {turn: {tick, }}
+                keyframes_dict_branch = keyframes_dict[branch]
+                if turn not in keyframes_dict_branch:
+                    keyframes_dict_branch[turn] = {tick}
                 else:
-                    keyframes_dict_branch = keyframes_dict_graph[branch]
-                    if turn not in keyframes_dict_branch:
-                        keyframes_dict_branch[turn] = {tick, }
-                    else:
-                        keyframes_dict_branch[turn].add(tick)
+                    keyframes_dict_branch[turn].add(tick)
             keyframes_times.add((branch, turn, tick))
         self._load_at(*self._btt())
 
@@ -799,15 +795,12 @@ class ORM(object):
             nkfs.append((graphn, branch, turn, tick, nodes, edges, val))
             kfl.append((graphn, branch, turn, tick))
             kfs.add((branch, turn, tick))
-            if graphn not in kfd:
-                kfd[graphn] = {}
-            kfdg = kfd[graphn]
-            if branch not in kfdg:
-                kfdg[branch] = {turn: {tick, }}
-            elif turn not in kfdg[branch]:
-                kfdg[branch][turn] = {tick, }
+            if branch not in kfd:
+                kfd[branch] = {turn: {tick, }}
+            elif turn not in kfd[branch]:
+                kfd[branch][turn] = {tick, }
             else:
-                kfdg[branch][turn].add(tick)
+                kfd[branch][turn].add(tick)
     
     def _load_at(self, branch, turn, tick):
         snap_keyframe = self._snap_keyframe
@@ -871,6 +864,46 @@ class ORM(object):
             # possible futures, and we're trying to be conservative about what we load.
             # If neither branch is an ancestor of the other, we can't use the keyframe
             # for this load.
+        loaded = self._loaded
+        if earliest_future_keyframe:
+            kfb, kfr, kft = earliest_future_keyframe
+            if kfb in loaded:
+                early_turn, early_tick, late_turn, late_tick = loaded[kfb]
+                if kfr > late_turn or (
+                    kfr == late_turn and kft > late_tick
+                ):
+                    loaded[kfb] = early_turn, early_tick, kfr, kft
+            elif kfb == branch_now:
+                if kfr > turn_now or (kfr == turn_now and kft > tick_now):
+                    loaded[kfb] = (turn_now, tick_now, kfr, kft)
+            else:
+                loaded[kfb] = (kfr, kft, kfr, kft)
+        if latest_past_keyframe:
+            kfb, kfr, kft = latest_past_keyframe
+            if kfb in loaded:
+                early_turn, early_tick, late_turn, late_tick = loaded[kfb]
+                if kfr < early_turn or (
+                    kfr == early_turn and kft < early_tick
+                ):
+                    loaded[kfb] = kfr, kft, late_turn, late_tick
+            elif kfb == branch_now:
+                if kfr < turn_now or (kfr == turn_now and kft < tick_now):
+                    loaded[kfb] = (kfr, kft, turn_now, tick_now)
+            else:
+                loaded[kfb] = (kfr, kft, kfr, kft)
+        if branch_now in loaded:
+            early_turn, early_tick, late_turn, late_tick = loaded[branch_now]
+            if turn_now < early_turn or (
+                turn_now == early_turn and tick_now < early_tick
+            ):
+                early_turn, early_tick = turn_now, tick_now
+            elif turn_now > late_turn or (
+                turn_now == late_turn and tick_now > late_tick
+            ):
+                late_turn, late_tick = turn_now, tick_now
+            loaded[branch_now] = early_turn, early_tick, late_turn, late_tick
+        else:
+            loaded[branch_now] = turn_now, tick_now, turn_now, tick_now
         noderows = []
         edgerows = []
         graphvalrows = []
@@ -883,12 +916,8 @@ class ORM(object):
         load_edge_val = self.query.load_edge_val
         get_keyframe = self.query.get_keyframe
         iter_parent_btt = self._iter_parent_btt
-        loaded = self._loaded
         if latest_past_keyframe is None:  # happens in very short games
             def updload(branch, turn, tick):
-                if branch not in loaded:
-                    loaded[branch] = (turn, tick, turn, tick)
-                    return
                 (early_turn, early_tick, late_turn, late_tick) = loaded[branch]
                 if turn < early_turn or (turn == early_turn and tick < early_tick):
                     (early_turn, early_tick) = (turn, tick)
@@ -916,7 +945,7 @@ class ORM(object):
                 self._graph_val_cache.load(graphvalrows)
                 self._node_val_cache.load(nodevalrows)
                 self._edge_val_cache.load(edgevalrows)
-            return latest_past_keyframe, earliest_future_keyframe, \
+            return None, None, \
                     {}, noderows, edgerows, graphvalrows, \
                     nodevalrows, edgevalrows
         past_branch, past_turn, past_tick = latest_past_keyframe
@@ -926,15 +955,11 @@ class ORM(object):
                 graph, past_branch, past_turn, past_tick)
             snap_keyframe(graph, past_branch, past_turn, past_tick, nodes, edges, graph_val)
             if earliest_future_keyframe is None:
-                if branch in loaded:
-                    start_turn, start_tick, end_turn, end_tick = loaded[branch]
-                    if past_turn < start_turn or (
-                        past_turn == start_turn and past_tick < start_tick
-                    ):
-                        (start_turn, start_tick) = (past_turn, past_tick)
-                else:
-                    (start_turn, start_tick, end_turn, end_tick) = (
-                        past_turn, past_tick, -float('inf'), -float('inf'))
+                start_turn, start_tick, end_turn, end_tick = loaded[branch]
+                if past_turn < start_turn or (
+                    past_turn == start_turn and past_tick < start_tick
+                ):
+                    (start_turn, start_tick) = (past_turn, past_tick)
                 for (graph, node, branch, turn, tick, ex) in load_nodes(
                         graph, past_branch, past_turn, past_tick
                 ):
@@ -1005,27 +1030,21 @@ class ORM(object):
                         (start_turn, start_tick) = (turn, tick)
                     elif turn == start_turn and tick < start_tick:
                         start_tick = tick
-                if branch in loaded:
-                    (start_turn0, start_tick0, end_turn0, end_tick0) = loaded[branch]
-                    if start_turn < start_turn0 or (
-                        start_turn == start_turn0 and start_tick < start_tick0
-                    ):
-                        (start_turn1, start_tick1) = (start_turn, start_tick)
-                    else:
-                        (start_turn1, start_tick1) = (start_turn0, start_tick0)
-                    if end_turn > end_turn0 or (
-                        end_turn == end_turn0 and end_tick > end_tick0
-                    ):
-                        (end_turn1, end_tick1) = (end_turn, end_tick)
-                    else:
-                        (end_turn1, end_tick1) = (end_turn0, end_tick0)
-                    loaded[branch] = (start_turn1, start_tick1,
-                                      end_turn1, end_tick1)
+                (start_turn0, start_tick0, end_turn0, end_tick0) = loaded[branch]
+                if start_turn < start_turn0 or (
+                    start_turn == start_turn0 and start_tick < start_tick0
+                ):
+                    (start_turn1, start_tick1) = (start_turn, start_tick)
                 else:
-                    if end_turn == -float('inf'):
-                        end_turn, end_tick = start_turn, start_tick
-                    loaded[branch] = (start_turn, start_tick,
-                                      end_turn, end_tick)
+                    (start_turn1, start_tick1) = (start_turn0, start_tick0)
+                if end_turn > end_turn0 or (
+                    end_turn == end_turn0 and end_tick > end_tick0
+                ):
+                    (end_turn1, end_tick1) = (end_turn, end_tick)
+                else:
+                    (end_turn1, end_tick1) = (end_turn0, end_tick0)
+                loaded[branch] = (start_turn1, start_tick1,
+                                  end_turn1, end_tick1)
                 continue
             future_branch, future_turn, future_tick = earliest_future_keyframe
             if past_branch == future_branch:
@@ -1070,11 +1089,7 @@ class ORM(object):
             if not windows:
                 continue  # I think this would happen when we are only loading an initial state
             for window in reversed(windows):  # chronological ordering
-                if branch in loaded:
-                    start_turn, start_tick, end_turn, end_tick = loaded[branch]
-                else:
-                    (start_turn, start_tick, end_turn, end_tick) = (
-                        float('inf'), float('inf'), -float('inf'), -float('inf'))
+                start_turn, start_tick, end_turn, end_tick = loaded[branch]
                 for (graph, node, branch, turn, tick, ex) in load_nodes(
                     graph, *window
                 ):
@@ -1152,91 +1167,87 @@ class ORM(object):
 
     def unload(self):
         """Remove everything from memory we can"""
-        caches = self._caches
-        def unload_except(branch, earliest_turn, earliest_tick,
-                          latest_turn, latest_tick):
-            """Unload most data in a particular branch for a graph
-
-            The exception is provided as a window from (earliest_turn,
-            earliest_tick) to (latest_turn, latest_tick)
-
-            """
-            for cache in caches:
-                cache.truncate(branch, earliest_turn, earliest_tick, 'backward')
-                cache.truncate(branch, latest_turn, latest_tick, 'forward')
-                for graph, branches in cache.keyframe.items():
-                    turns = branches[branch]
-                    turns.truncate(latest_turn, 'forward')
-                    try:
-                        late = turns[latest_turn]
-                    except HistoryError:
-                        pass
-                    else:
-                        late.truncate(latest_tick, 'forward')
-                    turns.truncate(earliest_turn, 'backward')
-                    try:
-                        early = turns[earliest_turn]
-                    except HistoryError:
-                        pass
-                    else:
-                        early.truncate(earliest_tick, 'backward')
-
         # find the slices of time that need to stay loaded
-        loaded = self._loaded
         branch, turn, tick = self._btt()
         iter_parent_btt = self._iter_parent_btt
         kfd = self._keyframes_dict
-        graphs = self.graph
+        if not kfd:
+            return
         neginf = -float('inf')
-        for branch in loaded:
-            # Find a path to the last keyframe we can use. Keep things
-            # loaded from there to here.
-            path = []
-            for past_branch, past_turn, past_tick in iter_parent_btt(
-                branch, turn, tick
-            ):
-                path.append((past_branch, past_turn, past_tick))
-                for graph in graphs:
-                    if graph in kfd and past_branch in kfd[graph]:
-                        trn = neginf
-                        for trrn in kfd[graph][past_branch]:
-                            if trrn > trn and trrn <= past_turn:
-                                trn = trrn
-                        if trn == neginf:
-                            continue
-                        if trn == past_turn:
-                            tck = neginf
-                            for tcck in kfd[graph][past_branch][trn]:
-                                if tcck > tck and tcck <= past_tick:
-                                    tck = tcck
-                            if tck == neginf:
-                                trrn = neginf
-                                for trrrn in kfd[graph][past_branch]:
-                                    if trrrn > trrn and trrn < trn:
-                                        trrn = trrrn
-                                if trrn == neginf:
-                                    continue
-                                path.append((past_branch, trrn, max(
-                                    kfd[graph][past_branch][trrn])))
-                                break
-                        else:
-                            path.append((past_branch, trn, max(
-                                kfd[graph][past_branch][trn])))
-                            break
-                else:
-                    # Nothing was loaded in the first place for this graph
+        loaded = self._loaded
+        to_keep = {}
+        # Find a path to the latest past keyframe we can use. Keep things
+        # loaded from there to here.
+        for past_branch, past_turn, past_tick in iter_parent_btt(
+            branch, turn, tick
+        ):
+            if past_branch not in loaded:
+                continue  # nothing happened in this branch i guess
+            early_turn, early_tick, late_turn, late_tick = loaded[
+                past_branch]
+            assert loaded_keep_test(
+                past_turn, past_tick, early_turn, early_tick,
+                late_turn, late_tick
+            ), "Unloading failed due to an invalid cache state"
+            if branch in kfd:
+                # get the latest keyframe in the branch that's before this
+                kfturns = kfd[branch]
+                if past_turn in kfturns:
+                    kfticks = kfturns[past_turn]
+                    if past_tick in kfticks:
+                        to_keep[past_branch] = past_turn, past_tick, late_turn, late_tick
+                        break
+                    toptick = neginf
+                    for tck in kfticks:
+                        if tck > toptick and tck < past_tick:
+                            toptick = tck
+                    if toptick != neginf:
+                        to_keep[past_branch] = past_turn, toptick, late_turn, late_tick
+                        break
+                topturn = neginf
+                for trn in kfturns:
+                    if trn > topturn and trn < past_turn:
+                        topturn = trn
+                if topturn == neginf:
                     continue
-            path.sort(key=lambda x: ('', x[1], x[2]) if x[0] is None else x)
-            if len(path) >= 2:
-                for (branc, trn, tck) in path[:-1]:
-                    if branc in loaded and loaded_keep_test(
-                        trn, tck, *loaded[branc]
-                    ):
-                        unload_except(branc, *loaded[branc])
-            (past_branch, past_turn, past_tick) = path[-1]
-            (_, _, future_turn, future_tick) = loaded[past_branch]
-            unload_except(past_branch, past_turn, past_tick,
-                          future_turn, future_tick)
+                kfticks = kfturns[topturn]
+                toptick = neginf
+                for tck in kfticks:
+                    if tck > toptick and tck < past_tick:
+                        toptick = tck
+                to_keep[past_branch] = topturn, toptick, late_turn, late_tick
+                break
+            # no keyframes in this branch, so keep it loaded
+            # ...well, what we need of it
+            to_keep[past_branch] = early_turn, early_tick, past_turn, past_tick
+        caches = self._caches
+        for past_branch, (
+                early_turn, early_tick, late_turn, late_tick
+        ) in to_keep.items():
+            for cache in caches:
+                cache.truncate(past_branch, early_turn, early_tick, 'backward')
+                cache.truncate(past_branch, late_turn, late_tick, 'forward')
+                for graph, branches in cache.keyframe.items():
+                    turns = branches[past_branch]
+                    turns.truncate(late_turn, 'forward')
+                    try:
+                        late = turns[late_turn]
+                    except HistoryError:
+                        pass
+                    else:
+                        late.truncate(late_tick, 'forward')
+                    turns.truncate(early_turn, 'backward')
+                    try:
+                        early = turns[early_turn]
+                    except HistoryError:
+                        pass
+                    else:
+                        early.truncate(early_tick, 'backward')
+        loaded.update(to_keep)
+        for branch in set(loaded).difference(to_keep):
+            for cache in caches:
+                cache.remove_branch(branch)
+            del loaded[branch]
 
     def _time_is_loaded(self, branch, turn, tick=None):
         loaded = self._loaded
@@ -1753,6 +1764,8 @@ class ORM(object):
             # ``par`` is the parent branch;
             # ``(trn, tck)`` is when ``branch`` forked off from ``par``
             (branch, trn, tck, _, _) = _branches[branch]
+            if branch is None:
+                return
             if branch in stopbranches and (
                 trn < stoptime[1] or (
                     trn == stoptime[1] and (

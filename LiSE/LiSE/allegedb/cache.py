@@ -241,7 +241,8 @@ class Cache:
         )
         self._remove_stuff = (
             self.time_entity, self.parents, self.branches, self.keys,
-            self.settings, self.presettings, self._remove_keycache
+            self.settings, self.presettings, self._remove_keycache,
+            self.keycache
         )
         self._truncate_stuff = (
             self.parents, self.branches, self.keys, self.settings, self.presettings,
@@ -566,9 +567,56 @@ class Cache:
         if not db._no_kc:
             update_keycache(*args, forward=forward)
 
+    def remove_branch(self, branch):
+        time_entity, parents, branches, keys, settings, \
+        presettings, remove_keycache, keycache = self._remove_stuff
+        times = []
+        parentikeys = set()
+        for (branc, turn, tick), parentikey in time_entity.items():
+            if branc != branch:
+                continue
+            parentikeys.add(parentikey)
+        for (parent, entity, key) in parentikeys:
+            branchkey = parent + (entity, key)
+            keykey = parent + (entity,)
+            if parent in parents:
+                parentt = parents[parent]
+                if entity in parentt:
+                    entty = parentt[entity]
+                    if key in entty:
+                        kee = entty[key]
+                        if branch in kee:
+                            del kee[branch]
+                        if not kee:
+                            del entty[key]
+                    if not entty:
+                        del parentt[entity]
+                if not parentt:
+                    del parents[parent]
+            if branchkey in branches:
+                entty = branches[branchkey]
+                if branch in entty:
+                    del entty[branch]
+                if not entty:
+                    del branches[branchkey]
+            if keykey in keys:
+                entty = keys[keykey]
+                if key in entty:
+                    kee = entty[key]
+                    if branch in kee:
+                        del kee[branch]
+                    if not kee:
+                        del entty[key]
+                if not entty:
+                    del keys[keykey]
+        del settings[branch]
+        del presettings[branch]
+        self.shallowest = OrderedDict()
+
     def remove(self, branch, turn, tick):
         """Delete all data from a specific tick"""
-        time_entity, parents, branches, keys, settings, presettings, remove_keycache = self._remove_stuff
+        time_entity, parents, branches, keys, settings, \
+        presettings, remove_keycache, keycache = self._remove_stuff
         parent, entity, key = time_entity[branch, turn, tick]
         branchkey = parent + (entity, key)
         keykey = parent + (entity,)
