@@ -1220,6 +1220,10 @@ class ORM(object):
             # no keyframes in this branch, so keep it loaded
             # ...well, what we need of it
             to_keep[past_branch] = early_turn, early_tick, past_turn, past_tick
+        if not to_keep:
+            # unloading literally everything would make the game unplayable,
+            # so don't
+            return
         caches = self._caches
         for past_branch, (
                 early_turn, early_tick, late_turn, late_tick
