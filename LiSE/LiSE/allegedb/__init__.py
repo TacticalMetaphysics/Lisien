@@ -1074,7 +1074,21 @@ class ORM(object):
                     graph, past_branch, past_turn, past_tick,
                     future_turn, future_tick
                 ))
-                loaded[branch] = (past_turn, past_tick, future_turn, future_tick)
+                if branch in loaded:
+                    early_turn, early_tick, late_turn, late_tick = loaded[branch]
+                    if past_turn < early_turn or (
+                        past_turn == early_turn and past_tick < early_tick
+                    ):
+                        early_turn, early_tick = past_turn, past_tick
+                    if future_turn > late_turn or (
+                        future_turn == late_turn and future_tick > late_tick
+                    ):
+                        late_turn, late_tick = future_turn, future_tick
+                    loaded[branch] = (
+                        early_turn, early_tick, late_turn, late_tick
+                    )
+                else:
+                    loaded[branch] = (past_turn, past_tick, future_turn, future_tick)
                 continue
             parentage_iter = iter_parent_btt(future_branch, future_turn, future_tick)
             branch1, turn1, tick1 = next(parentage_iter)
