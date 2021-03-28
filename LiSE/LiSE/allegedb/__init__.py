@@ -1221,6 +1221,8 @@ class ORM(object):
         if not to_keep:
             # unloading literally everything would make the game unplayable,
             # so don't
+            if hasattr(self, 'warning'):
+                self.warning("Not unloading, due to lack of keyframes")
             return
         caches = self._caches
         for past_branch, (
