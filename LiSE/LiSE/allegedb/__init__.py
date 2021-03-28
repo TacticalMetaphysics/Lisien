@@ -1187,7 +1187,6 @@ class ORM(object):
         kfd = self._keyframes_dict
         if not kfd:
             return
-        neginf = -float('inf')
         loaded = self._loaded
         to_keep = {}
         # Find a path to the latest past keyframe we can use. Keep things
@@ -1218,37 +1217,7 @@ class ORM(object):
                 past_turn, past_tick, early_turn, early_tick,
                 late_turn, late_tick
             ), "Unloading failed due to an invalid cache state"
-            if branch in kfd:
-                # get the latest keyframe in the branch that's before this
-                kfturns = kfd[branch]
-                if past_turn in kfturns:
-                    kfticks = kfturns[past_turn]
-                    if past_tick in kfticks:
-                        to_keep[past_branch] = past_turn, past_tick, late_turn, late_tick
-                        break
-                    toptick = neginf
-                    for tck in kfticks:
-                        if tck > toptick and tck < past_tick:
-                            toptick = tck
-                    if toptick != neginf:
-                        to_keep[past_branch] = past_turn, toptick, late_turn, late_tick
-                        break
-                topturn = neginf
-                for trn in kfturns:
-                    if trn > topturn and trn < past_turn:
-                        topturn = trn
-                if topturn == neginf:
-                    continue
-                kfticks = kfturns[topturn]
-                toptick = neginf
-                for tck in kfticks:
-                    if tck > toptick and tck < past_tick:
-                        toptick = tck
-                to_keep[past_branch] = topturn, toptick, late_turn, late_tick
-                break
-            # no keyframes in this branch, so keep it loaded
-            # ...well, what we need of it
-            to_keep[past_branch] = early_turn, early_tick, past_turn, past_tick
+            to_keep[branch] = early_turn, early_tick, late_turn, late_tick
         if not to_keep:
             # unloading literally everything would make the game unplayable,
             # so don't
