@@ -1198,7 +1198,7 @@ class ORM(object):
                 continue  # nothing happened in this branch i guess
             early_turn, early_tick, late_turn, late_tick = loaded[
                 past_branch]
-            for kfturn, kfticks in kfd[past_branch].items():
+            for kfturn, kfticks in kfd.get(past_branch, {}).items():
                 # this can't possibly perform very well.
                 # Maybe I need another loadedness dict that gives the two
                 # keyframes I am between and gets upkept upon time travel
@@ -1217,7 +1217,7 @@ class ORM(object):
                 past_turn, past_tick, early_turn, early_tick,
                 late_turn, late_tick
             ), "Unloading failed due to an invalid cache state"
-            to_keep[branch] = early_turn, early_tick, late_turn, late_tick
+            to_keep[past_branch] = early_turn, early_tick, past_turn, past_tick
         if not to_keep:
             # unloading literally everything would make the game unplayable,
             # so don't
