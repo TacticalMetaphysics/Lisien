@@ -1504,7 +1504,7 @@ class ORM(object):
         # enforce the arrow of time, if it's in effect
         if self._forward and v < self._otick:
             raise ValueError("Can't time travel backward in a forward context")
-        if v > self._turn_end_plan[time]:
+        if v > self._turn_end_plan[time]:  # TODO: only mutate after load
             self._turn_end_plan[time] = v
         if not self._planning:
             if v > self._turn_end[time]:
