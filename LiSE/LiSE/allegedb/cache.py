@@ -715,7 +715,7 @@ class Cache:
                 trn = branhc[turn]
                 trn.truncate(tick, direction)
                 branhc.truncate(turn, direction)
-                if not trn:
+                if turn in branhc and not branhc[turn]:
                     del branhc[turn]
             else:
                 branhc.truncate(turn, direction)

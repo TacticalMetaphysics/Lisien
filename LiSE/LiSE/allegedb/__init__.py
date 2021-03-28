@@ -1199,6 +1199,21 @@ class ORM(object):
                 continue  # nothing happened in this branch i guess
             early_turn, early_tick, late_turn, late_tick = loaded[
                 past_branch]
+            for kfturn, kfticks in kfd[past_branch].items():
+                # this can't possibly perform very well.
+                # Maybe I need another loadedness dict that gives the two
+                # keyframes I am between and gets upkept upon time travel
+                for kftick in kfticks:
+                    if loaded_keep_test(kfturn, kftick, early_turn, early_tick,
+                                        late_turn, late_tick):
+                        if kfturn < turn or (
+                            kfturn == turn and kftick < tick
+                        ):
+                            early_turn, early_tick = kfturn, kftick
+                        elif kfturn > turn or (
+                            kfturn == turn and kftick >= tick
+                        ):
+                            late_turn, late_tick = kfturn, kftick
             assert loaded_keep_test(
                 past_turn, past_tick, early_turn, early_tick,
                 late_turn, late_tick

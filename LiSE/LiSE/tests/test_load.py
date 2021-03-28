@@ -54,4 +54,25 @@ def test_multi_keyframe(tempdir):
            != eng._nodes_cache.keyframe['physical', ]['trunk'][1][tick1]
 
 
-# TODO test loading node contents from keyframes
+def test_keyframe_load_unload(tempdir):
+    """Make sure all of the caches can load and unload before and after kfs"""
+    with Engine(tempdir) as eng:
+        eng.snap_keyframe()
+        eng.turn = 1
+        inittest(eng)
+        eng.snap_keyframe()
+        eng.turn = 2
+        eng.universal['hi'] = 'hello'
+        now = eng._btt()
+    with Engine(tempdir) as eng:
+        assert eng._time_is_loaded(*now)
+        assert not eng._time_is_loaded('trunk', 0)
+        eng.turn = 1
+        eng.tick = 0
+        assert eng._time_is_loaded('trunk', 1)
+        assert eng._time_is_loaded('trunk', 1, 0)
+        assert not eng._time_is_loaded('trunk', 0)
+        assert eng._time_is_loaded(*now)
+        eng.unload()
+        assert eng._time_is_loaded('trunk', 1, 0)
+        assert not eng._time_is_loaded(*now)
