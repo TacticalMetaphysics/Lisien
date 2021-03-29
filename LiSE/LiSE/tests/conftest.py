@@ -7,7 +7,7 @@ import tempfile
 
 @pytest.fixture(scope='function')
 def tempdir():
-    directory = tempfile.mkdtemp(dir='.')
+    directory = tempfile.mkdtemp()
     yield directory
     shutil.rmtree(directory)
 
