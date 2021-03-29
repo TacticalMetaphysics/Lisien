@@ -76,3 +76,8 @@ def test_keyframe_load_unload(tempdir):
         eng.unload()
         assert eng._time_is_loaded('trunk', 1, 0)
         assert not eng._time_is_loaded(*now)
+        eng.turn = 2
+        eng.branch = 'haha'
+        eng.snap_keyframe()
+        eng.unload()
+        assert not eng._time_is_loaded('trunk')

@@ -1198,26 +1198,34 @@ class ORM(object):
                 continue  # nothing happened in this branch i guess
             early_turn, early_tick, late_turn, late_tick = loaded[
                 past_branch]
-            for kfturn, kfticks in kfd.get(past_branch, {}).items():
-                # this can't possibly perform very well.
-                # Maybe I need another loadedness dict that gives the two
-                # keyframes I am between and gets upkept upon time travel
-                for kftick in kfticks:
-                    if loaded_keep_test(kfturn, kftick, early_turn, early_tick,
-                                        late_turn, late_tick):
-                        if kfturn < turn or (
-                            kfturn == turn and kftick < tick
-                        ):
-                            early_turn, early_tick = kfturn, kftick
-                        elif kfturn > turn or (
-                            kfturn == turn and kftick >= tick
-                        ):
-                            late_turn, late_tick = kfturn, kftick
-            assert loaded_keep_test(
-                past_turn, past_tick, early_turn, early_tick,
-                late_turn, late_tick
-            ), "Unloading failed due to an invalid cache state"
-            to_keep[past_branch] = early_turn, early_tick, past_turn, past_tick
+            if past_branch in kfd:
+                for kfturn, kfticks in kfd[past_branch].items():
+                    # this can't possibly perform very well.
+                    # Maybe I need another loadedness dict that gives the two
+                    # keyframes I am between and gets upkept upon time travel
+                    for kftick in kfticks:
+                        if loaded_keep_test(kfturn, kftick, early_turn, early_tick,
+                                            late_turn, late_tick):
+                            if (kfturn < turn or (
+                                kfturn == turn and kftick < tick
+                            )) and (kfturn > early_turn or (
+                                kfturn == early_turn and kftick > early_tick
+                            )):
+                                early_turn, early_tick = kfturn, kftick
+                            elif (kfturn > turn or (
+                                kfturn == turn and kftick >= tick
+                            )) and (kfturn < late_turn or (
+                                kfturn == late_turn and kftick < late_tick
+                            )):
+                                late_turn, late_tick = kfturn, kftick
+                assert loaded_keep_test(
+                    past_turn, past_tick, early_turn, early_tick,
+                    late_turn, late_tick
+                ), "Unloading failed due to an invalid cache state"
+                to_keep[past_branch] = early_turn, early_tick, past_turn, past_tick
+                break
+            else:
+                to_keep[past_branch] = early_turn, early_tick, late_turn, late_tick
         if not to_keep:
             # unloading literally everything would make the game unplayable,
             # so don't
@@ -1253,8 +1261,10 @@ class ORM(object):
                 cache.remove_branch(branch)
             del loaded[branch]
 
-    def _time_is_loaded(self, branch, turn, tick=None):
+    def _time_is_loaded(self, branch, turn=None, tick=None):
         loaded = self._loaded
+        if turn is None:
+            return branch in loaded
         if tick is not None:
             return branch in loaded and \
                    loaded_keep_test(turn, tick, *loaded[branch])
