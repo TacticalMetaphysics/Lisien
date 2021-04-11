@@ -955,7 +955,9 @@ class ORM(object):
                 graph, past_branch, past_turn, past_tick)
             snap_keyframe(graph, past_branch, past_turn, past_tick, nodes, edges, graph_val)
             if earliest_future_keyframe is None:
-                start_turn, start_tick, end_turn, end_tick = loaded[branch]
+                start_turn, start_tick, end_turn, end_tick = loaded.get(
+                    branch, (turn_now, tick_now, turn_now, tick_now)
+                )
                 if past_turn < start_turn or (
                     past_turn == start_turn and past_tick < start_tick
                 ):
@@ -1030,7 +1032,9 @@ class ORM(object):
                         (start_turn, start_tick) = (turn, tick)
                     elif turn == start_turn and tick < start_tick:
                         start_tick = tick
-                (start_turn0, start_tick0, end_turn0, end_tick0) = loaded[branch]
+                (start_turn0, start_tick0, end_turn0, end_tick0) = loaded.get(
+                    branch, (turn_now, tick_now, turn_now, tick_now)
+                )
                 if start_turn < start_turn0 or (
                     start_turn == start_turn0 and start_tick < start_tick0
                 ):
