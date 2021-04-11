@@ -2216,8 +2216,11 @@ class EngineProxy(AbstractEngine):
         self.function = FuncStoreProxy(self, 'function')
         self.string = StringStoreProxy(self)
         self.rando = RandoProxy(self)
-        self.send(self.pack({'command': 'get_watched_btt'}))
-        self._branch, self._turn, self._tick = self.unpack(self.recv()[-1])
+        self.send_bytes(self.pack({'command': 'get_watched_btt'}))
+        print('sent')
+        received = self.unpack(self.recv_bytes())
+        print('received {}'.format(received))
+        self._branch, self._turn, self._tick = received[-1]
         self.method.load()
         self.action.load()
         self.prereq.load()
@@ -2236,14 +2239,14 @@ class EngineProxy(AbstractEngine):
                 self._char_cache[char] = CharacterProxy(self, char)
             self.character[char]._apply_delta(delta)
 
-    def send(self, obj, blocking=True, timeout=-1):
+    def send_bytes(self, obj, blocking=True, timeout=-1):
         self._handle_out_lock.acquire(blocking, timeout)
-        self._handle_out.send(obj)
+        self._handle_out.send_bytes(obj)
         self._handle_out_lock.release()
 
-    def recv(self, blocking=True, timeout=-1):
+    def recv_bytes(self, blocking=True, timeout=-1):
         self._handle_in_lock.acquire(blocking, timeout)
-        data = self._handle_in.recv()
+        data = self._handle_in.recv_bytes()
         self._handle_in_lock.release()
         return data
 
@@ -2306,13 +2309,13 @@ class EngineProxy(AbstractEngine):
         if kwargs.pop('block', True):
             assert not kwargs.get('silent')
             self.debug('EngineProxy: sending {}'.format(kwargs))
-            self.send(self.pack(kwargs))
-            command, branch, turn, tick, result = self.recv()
+            self.send_bytes(self.pack(kwargs))
+            command, branch, turn, tick, r = self.unpack(
+                self.recv_bytes())
             assert cmd == command, \
                 "Sent command {} but received results for {}".format(
                     cmd, command
                 )
-            r = self.unpack(result)
             self.debug('EngineProxy: received {}'.format(
                 (command, branch, turn, tick, r)))
             if (branch, turn, tick) != self._btt():
@@ -2331,7 +2334,7 @@ class EngineProxy(AbstractEngine):
         else:
             kwargs['silent'] = not (branching or cb or future)
             self.debug('EngineProxy: asynchronously sending {}'.format(kwargs))
-            self.send(self.pack(kwargs))
+            self.send_bytes(self.pack(kwargs))
             if branching:
                 # what happens if more than one branching call
                 # is happening at once?
@@ -2343,14 +2346,13 @@ class EngineProxy(AbstractEngine):
         self._handle_lock.release()
 
     def _unpack_recv(self):
-        command, branch, turn, tick, result = self.recv()
+        ret = self.unpack(self.recv_bytes())
         self._handle_lock.release()
-        return command, branch, turn, tick, self.unpack(result)
+        return ret
 
     def _callback(self, cb):
-        command, branch, turn, tick, result = self.recv()
+        command, branch, turn, tick, res = self.unpack(self.recv_bytes())
         self._handle_lock.release()
-        res = self.unpack(result)
         self.debug('EngineProxy: received, with callback {}: {}'.format(
             cb, (command, branch, turn, tick, res))
         )
@@ -2370,9 +2372,8 @@ class EngineProxy(AbstractEngine):
         return command, branch, turn, tick, res
 
     def _branching(self, cb=None):
-        command, branch, turn, tick, result = self.recv()
+        command, branch, turn, tick, r = self.unpack(self.recv_bytes())
         self._handle_lock.release()
-        r = self.unpack(result)
         self.debug('EngineProxy: received, with branching, {}'.format(
             (command, branch, turn, tick, r)))
         if (branch, turn, tick) != (self._branch, self._turn, self._tick):
@@ -2388,8 +2389,7 @@ class EngineProxy(AbstractEngine):
         return command, branch, turn, tick, r
 
     def _call_with_recv(self, *cbs, **kwargs):
-        cmd, branch, turn, tick, res = self.recv()
-        received = self.unpack(res)
+        cmd, branch, turn, tick, received = self.unpack(self.recv_bytes())
         self.debug('EngineProxy: received {}'.format(
             (cmd, branch, turn, tick, received)))
         if isinstance(received, Exception):
@@ -2453,7 +2453,7 @@ class EngineProxy(AbstractEngine):
     def _pull_async(self, chars, cb):
         if not callable(cb):
             raise TypeError("Uncallable callback")
-        self.send(self.pack({
+        self.send_bytes(self.pack({
             'silent': False,
             'command': 'get_char_deltas',
             'chars': chars
@@ -2626,7 +2626,7 @@ class EngineProxy(AbstractEngine):
         self._commit_lock.acquire()
         self._commit_lock.release()
         self.handle('close')
-        self.send('shutdown')
+        self.send_bytes(b'shutdown')
 
     def _node_contents(self, character, node):
         # very slow. do better
@@ -2656,8 +2656,8 @@ def subprocess(
     engine_handle = EngineHandle(args, kwargs, logq, loglevel=loglevel)
 
     while True:
-        inst = handle_out_pipe.recv()
-        if inst == 'shutdown':
+        inst = handle_out_pipe.recv_bytes()
+        if inst == b'shutdown':
             handle_out_pipe.close()
             handle_in_pipe.close()
             logq.close()
@@ -2678,18 +2678,18 @@ def subprocess(
                 r = getattr(engine_handle, cmd)(**instruction)
         except Exception as e:
             log('exception', repr(e))
-            handle_in_pipe.send((
+            handle_in_pipe.send_bytes(engine_handle.pack((
                 cmd, engine_handle.branch,
                 engine_handle.turn, engine_handle.tick,
-                engine_handle.pack(e)
-            ))
+                e
+            )))
             continue
         if silent:
             continue
-        handle_in_pipe.send((
+        handle_in_pipe.send_bytes(engine_handle.pack((
             cmd, engine_handle.branch, engine_handle.turn, engine_handle.tick,
-            engine_handle.pack(r)
-        ))
+            r
+        )))
         if hasattr(engine_handle, '_after_ret'):
             engine_handle._after_ret()
             del engine_handle._after_ret
