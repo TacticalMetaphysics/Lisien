@@ -2638,21 +2638,6 @@ class EngineProxy(AbstractEngine):
 def subprocess(
     args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel
 ):
-    def log(typ, data):
-        from os import getpid
-        if typ == 'command':
-            (cmd, kvs) = data
-            logs = "LiSE proc {}: calling {}({})".format(
-                getpid(),
-                cmd,
-                ",  ".join("{}={}".format(k,  v) for k,  v in kvs.items())
-            )
-        else:
-            logs = "LiSE proc {}: returning {} (of type {})".format(
-                getpid(),
-                data,
-                repr(type(data))
-            )
     engine_handle = EngineHandle(args, kwargs, logq, loglevel=loglevel)
 
     while True:
@@ -2677,7 +2662,6 @@ def subprocess(
             else:
                 r = getattr(engine_handle, cmd)(**instruction)
         except Exception as e:
-            log('exception', repr(e))
             handle_in_pipe.send_bytes(engine_handle.pack((
                 cmd, engine_handle.branch,
                 engine_handle.turn, engine_handle.tick,
