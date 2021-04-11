@@ -1267,13 +1267,12 @@ class ORM(object):
 
     def _time_is_loaded(self, branch, turn=None, tick=None):
         loaded = self._loaded
-        if turn is None:
-            return branch in loaded
-        if tick is not None:
-            return branch in loaded and \
-                   loaded_keep_test(turn, tick, *loaded[branch])
         if branch not in loaded:
             return False
+        if turn is None:
+            return True
+        if tick is not None:
+            return loaded_keep_test(turn, tick, *loaded[branch])
         (past_turn, past_tick, future_turn, future_tick) = loaded[branch]
         return past_turn <= turn <= future_turn
 
