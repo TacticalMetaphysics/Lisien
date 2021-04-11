@@ -39,7 +39,7 @@ setup(
         "LiSE>=0.11,<0.12",
 	    "numpy>=1.14.5,<2",
         "kivy>=1.10.0,<3",
-        "pygments>=2.3.1,<2.7"
+        "pygments>=2.7.4"
     ],
     package_data={
         "ELiDE": [
