@@ -44,7 +44,7 @@ class MenuTextInput(TextInput):
         """
         if self.text == '':
             return
-        self.set_value(Clock.get_time(), int(self.text))
+        self.set_value(Clock.get_time(), self.text)
         self.text = ''
         self.focus = False
 
