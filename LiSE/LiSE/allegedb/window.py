@@ -534,6 +534,8 @@ class WindowDict(MutableMapping):
             self._past = [self._past[-1]]
             if not self._future:
                 self.beginning = self.end = None
+        else:
+            raise ValueError("Need direction 'forward' or 'backward'")
 
     def keys(self):
         return WindowDictKeysView(self)
