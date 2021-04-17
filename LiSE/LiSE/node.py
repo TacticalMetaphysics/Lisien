@@ -287,8 +287,7 @@ class Node(graph.Node, rule.RuleFollower):
     contain things.
 
     """
-    __slots__ = ()
-    engine = getatt('db')
+    __slots__ = ('_real_rule_mapping',)
     character = getatt('graph')
     name = getatt('node')
     no_unwrap = True
@@ -335,7 +334,7 @@ class Node(graph.Node, rule.RuleFollower):
     def __init__(self, character, name):
         """Store character and name, and initialize caches"""
         super().__init__(character, name)
-        self.db = character.engine
+        self.db = self.engine = character.engine
 
     @property
     def portal(self):
