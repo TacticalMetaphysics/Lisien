@@ -287,9 +287,7 @@ class Node(graph.Node, rule.RuleFollower):
     contain things.
 
     """
-    __slots__ = ('graph', 'node', 'db', '__weakref__', '_iter_stuff',
-                 '_cache_contains_stuff', '_len_stuff', '_get_cache_stuff',
-                 '_set_db_stuff', '_set_cache_stuff', '_real_rule_mapping')
+    __slots__ = ('_real_rule_mapping',)
     character = getatt('graph')
     name = getatt('node')
     no_unwrap = True
