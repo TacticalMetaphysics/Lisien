@@ -118,7 +118,8 @@ def test_plan_vs_plan(orm):
 
 
 def test_save_load_plan(tmpdbfile):
-    with allegedb.ORM(tmpdbfile) as orm:
+    tmpdbstring = 'sqlite:///' + tmpdbfile
+    with allegedb.ORM(tmpdbstring) as orm:
         g1 = orm.new_digraph(1)
         g2 = orm.new_digraph(2)
         with orm.plan():
@@ -133,7 +134,7 @@ def test_save_load_plan(tmpdbfile):
             orm.turn = 1
             g2.add_edge(1, 2)
         orm.turn = 0
-    with allegedb.ORM(tmpdbfile) as orm:
+    with allegedb.ORM(tmpdbstring) as orm:
         g1 = orm.graph[1]
         g2 = orm.graph[2]
         # go to end of turn
@@ -146,7 +147,7 @@ def test_save_load_plan(tmpdbfile):
         assert 2 not in g1.node
         assert 2 not in g1.edge[1]
         assert 2 in g2.edge[1]
-    with allegedb.ORM(tmpdbfile) as orm:
+    with allegedb.ORM(tmpdbstring) as orm:
         g1 = orm.graph[1]
         g2 = orm.graph[2]
         assert 1 in g2.node
