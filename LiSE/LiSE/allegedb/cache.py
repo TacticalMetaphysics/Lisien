@@ -241,7 +241,8 @@ class Cache:
         )
         self._remove_stuff = (
             self.time_entity, self.parents, self.branches, self.keys,
-            self.settings, self.presettings, self._remove_keycache
+            self.settings, self.presettings, self._remove_keycache,
+            self.keycache
         )
         self._truncate_stuff = (
             self.parents, self.branches, self.keys, self.settings, self.presettings,
@@ -265,13 +266,12 @@ class Cache:
         branch2do = deque(['trunk'])
 
         store = self.store
-        with db.batch():
-            while branch2do:
-                branch = branch2do.popleft()
-                for row in branches[branch]:
-                    store(*row, planning=False, loading=True)
-                if branch in childbranch:
-                    branch2do.extend(childbranch[branch])
+        while branch2do:
+            branch = branch2do.popleft()
+            for row in branches[branch]:
+                store(*row, planning=False, loading=True)
+            if branch in childbranch:
+                branch2do.extend(childbranch[branch])
 
     def _valcache_lookup(self, cache, branch, turn, tick):
         """Return the value at the given time in ``cache``"""
@@ -567,9 +567,56 @@ class Cache:
         if not db._no_kc:
             update_keycache(*args, forward=forward)
 
+    def remove_branch(self, branch):
+        time_entity, parents, branches, keys, settings, \
+        presettings, remove_keycache, keycache = self._remove_stuff
+        parentikeys = set()
+        for (branc, turn, tick), parentikey in list(time_entity.items()):
+            if branc != branch:
+                continue
+            parentikeys.add(parentikey)
+            del time_entity[branc, turn, tick]
+        for (parent, entity, key) in parentikeys:
+            branchkey = parent + (entity, key)
+            keykey = parent + (entity,)
+            if parent in parents:
+                parentt = parents[parent]
+                if entity in parentt:
+                    entty = parentt[entity]
+                    if key in entty:
+                        kee = entty[key]
+                        if branch in kee:
+                            del kee[branch]
+                        if not kee:
+                            del entty[key]
+                    if not entty:
+                        del parentt[entity]
+                if not parentt:
+                    del parents[parent]
+            if branchkey in branches:
+                entty = branches[branchkey]
+                if branch in entty:
+                    del entty[branch]
+                if not entty:
+                    del branches[branchkey]
+            if keykey in keys:
+                entty = keys[keykey]
+                if key in entty:
+                    kee = entty[key]
+                    if branch in kee:
+                        del kee[branch]
+                    if not kee:
+                        del entty[key]
+                if not entty:
+                    del keys[keykey]
+        del settings[branch]
+        del presettings[branch]
+        self.shallowest = OrderedDict()
+
     def remove(self, branch, turn, tick):
         """Delete all data from a specific tick"""
-        time_entity, parents, branches, keys, settings, presettings, remove_keycache = self._remove_stuff
+        time_entity, parents, branches, keys, settings, \
+        presettings, remove_keycache, keycache = self._remove_stuff
         parent, entity, key = time_entity[branch, turn, tick]
         branchkey = parent + (entity, key)
         keykey = parent + (entity,)
@@ -659,18 +706,19 @@ class Cache:
             if not kc:
                 del keycache[entity_branch]
 
-    def truncate(self, branch, turn, tick):
-        """Delete all data after (not on) a specific tick"""
+    def truncate(self, branch, turn, tick, direction='forward'):
+        if direction not in {'forward', 'backward'}:
+            raise ValueError("Illegal direction")
         parents, branches, keys, settings, presettings, keycache = self._truncate_stuff
         def truncate_branhc(branhc):
             if turn in branhc:
                 trn = branhc[turn]
-                trn.truncate(tick)
-                branhc.truncate(turn)
-                if not trn:
+                trn.truncate(tick, direction)
+                branhc.truncate(turn, direction)
+                if turn in branhc and not branhc[turn]:
                     del branhc[turn]
             else:
-                branhc.truncate(turn)
+                branhc.truncate(turn, direction)
         for entities in parents.values():
             for keys in entities.values():
                 for branches in keys.values():
@@ -722,8 +770,9 @@ class Cache:
         parent = args[:-6]
         settings_turns = self.settings[branch]
         presettings_turns = self.presettings[branch]
-        prev = self._base_retrieve(args[:-1])
-        if prev is KeyError:
+        try:
+            prev = self.retrieve(*args[:-1])
+        except KeyError:
             prev = None
         if turn in settings_turns or turn in settings_turns.future():
             # These assertions hold for most caches but not for the contents

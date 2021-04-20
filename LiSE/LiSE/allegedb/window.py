@@ -514,13 +514,28 @@ class WindowDict(MutableMapping):
             return self._past[-1][1]
         raise KeyError("No data")
 
-    def truncate(self, rev: int) -> None:
-        """Delete everything after the given revision."""
+    def truncate(self, rev: int, direction='forward') -> None:
+        """Delete everything after the given revision, exclusive.
+
+        With direction='backward', delete everything before the revision,
+        exclusive, instead.
+
+        """
         self.seek(rev)
-        self._keys.difference_update(map(get0, self._future))
-        self._future = []
-        if not self._past:
-            self.beginning = self.end = None
+        if direction == 'forward':
+            self._keys.difference_update(map(get0, self._future))
+            self._future = []
+            if not self._past:
+                self.beginning = self.end = None
+        elif direction == 'backward':
+            if not self._past:
+                return
+            self._keys.difference_update(map(get0, self._past[:-1]))
+            self._past = [self._past[-1]]
+            if not self._future:
+                self.beginning = self.end = None
+        else:
+            raise ValueError("Need direction 'forward' or 'backward'")
 
     def keys(self):
         return WindowDictKeysView(self)
@@ -605,7 +620,13 @@ class WindowDict(MutableMapping):
         # But handle degenerate case.
         if not self:
             raise HistoryError("Tried to delete from an empty WindowDict")
-        if not self.beginning <= rev <= self.end:
+        if self.beginning is None:
+            if self.end is not None and rev > self.end:
+                raise HistoryError("Rev outside of history: {}".format(rev))
+        elif self.end is None:
+            if self.beginning is not None and rev < self.beginning:
+                raise HistoryError("Rev outside of history: {}".format(rev))
+        elif not self.beginning <= rev <= self.end:
             raise HistoryError("Rev outside of history: {}".format(rev))
         self.seek(rev)
         past = self._past

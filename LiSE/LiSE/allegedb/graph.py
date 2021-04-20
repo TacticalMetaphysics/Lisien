@@ -271,6 +271,9 @@ class Node(AbstractEntityMapping):
                  '_cache_contains_stuff', '_len_stuff', '_get_cache_stuff',
                  '_set_db_stuff', '_set_cache_stuff')
 
+    def _validate_node_type(self):
+        return True
+
     def __new__(cls, graph, node):
         gnn = (graph.name, node)
         nobjs = graph.db._node_objs
@@ -520,6 +523,10 @@ class GraphNodeMapping(AllegedMapping):
         """Indicate that the given node no longer exists"""
         if node not in self:
             raise KeyError("No such node")
+        for succ in self.graph.adj[node]:
+            del self.graph.adj[node][succ]
+        for pred in self.graph.pred[node]:
+            del self.graph.pred[node][pred]
         branch, turn, tick = self.db._nbtt()
         self.db.query.exist_node(
             self.graph.name,

@@ -78,8 +78,8 @@ class EntityStatAccessor(object):
         else:
             branc, trn, tck = self.engine._btt()
             self.engine.branch = branch or self.branch
-            self.engine.turn = turn or self.turn
-            self.engine.tick = tick or self.tick
+            self.engine.turn = turn if turn is not None else self.turn
+            self.engine.tick = tick if tick is not None else self.tick
             res = self.entity[self.stat]
             self.engine.branch = branc
             self.engine.turn = trn

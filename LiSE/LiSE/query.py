@@ -528,6 +528,27 @@ class QueryEngine(query.QueryEngine):
                 unpack(location)
             )
 
+    def load_things(self, character, branch, turn_from, tick_from, turn_to=None, tick_to=None):
+        pack = self.pack
+        unpack = self.unpack
+        if turn_to is None:
+            if tick_to is not None:
+                raise ValueError("Need both or neither of turn_to, tick_to")
+            for thing, turn, tick, location in self.sql(
+                'load_things_tick_to_end', pack(character),
+                branch, turn_from, turn_from, tick_from
+            ):
+                yield character, unpack(thing), branch, turn, tick, unpack(location)
+        else:
+            if tick_to is None:
+                raise ValueError("Need both or neither of turn_to, tick_to")
+            for thing, turn, tick, location in self.sql(
+                'load_things_tick_to_tick', pack(character),
+                branch, turn_from, turn_from, tick_from,
+                turn_to, turn_to, tick_to
+            ):
+                yield character, unpack(thing), branch, turn, tick, unpack(location)
+
     def avatars_dump(self):
         unpack = self.unpack
         for character_graph, avatar_graph, avatar_node, branch, turn, tick, is_av in self.sql('avatars_dump'):

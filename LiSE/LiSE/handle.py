@@ -94,6 +94,8 @@ class EngineHandle(object):
             kwargs = {}
         kwargs.setdefault('logfun', self.log)
         self._real = Engine(*args, **kwargs)
+        self.pack = self._real.pack
+        self.unpack = self._real.unpack
         self._logq = logq
         self._loglevel = loglevel
         self._muted_chars = set()
@@ -147,12 +149,6 @@ class EngineHandle(object):
 
     def critical(self, message):
         self.log(CRITICAL, message)
-
-    def unpack(self, s):
-        return self._real.unpack(s)
-
-    def pack(self, o):
-        return self._real.pack(o)
 
     def time_locked(self):
         """Return whether the sim-time has been prevented from advancing"""

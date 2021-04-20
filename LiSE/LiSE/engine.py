@@ -564,7 +564,7 @@ class Engine(AbstractEngine, gORM):
         containing any of the lists 'triggers', 'prereqs', and 'actions'
 
         """
-        from LiSE.allegedb.window import update_window, update_backward_window
+        from .allegedb.window import update_window, update_backward_window
         if turn_from == turn_to:
             return self.get_turn_delta(
                 branch, turn_to, tick_to,start_tick=tick_from)
@@ -1129,29 +1129,10 @@ class Engine(AbstractEngine, gORM):
         if hasattr(self.method, 'init'):
             self.method.init(self)
 
-    def _init_load(self, validate=False):
+    def _init_load(self):
         from .rule import Rule
         q = self.query
-        self._things_cache.load(q.things_dump())
-        super()._init_load(validate=validate)
-        things_kf = self._things_cache.keyframe
-        nv_kf = self._node_val_cache.keyframe
-        for node, branches in nv_kf.items():
-            for branch, turns in branches.items():
-                for turn, ticks in turns.items():
-                    for tick, vals in ticks.items():
-                        if 'location' in vals:
-                            if node not in things_kf or branch not in \
-                                    things_kf[node]:
-                                things_kf[node][branch] = SettingsTurnDict({
-                                    turn: WindowDict({tick: vals})
-                                })
-                            elif turn not in things_kf[node][branch]:
-                                things_kf[node][branch][turn] = WindowDict({
-                                    tick: vals
-                                })
-                            else:
-                                things_kf[node][branch][turn][tick] = vals
+        super()._init_load()
         self._avatarness_cache.load(q.avatars_dump())
         self._universal_cache.load(q.universals_dump())
         self._rulebooks_cache.load(q.rulebooks_dump())
@@ -1193,6 +1174,28 @@ class Engine(AbstractEngine, gORM):
         self._turns_completed.update(q.turns_completed_dump())
         self._rules_cache = {
             name: Rule(self, name, create=False) for name in q.rules_dump()}
+
+    def _load_at(self, branch, turn, tick):
+        latest_past_keyframe, earliest_future_keyframe, keyframed, \
+        noderows, edgerows, graphvalrows, nodevalrows, edgevalrows \
+            = super()._load_at(branch, turn, tick)
+        thingrows = []
+        load_things = self.query.load_things
+        if latest_past_keyframe is not None:
+            past_branch, past_turn, past_tick = latest_past_keyframe
+            for graph in self.graph:
+                if earliest_future_keyframe is None:
+                    thingrows.extend(load_things(
+                        graph, past_branch, past_turn, past_tick
+                    ))
+                else:
+                    future_branch, future_turn, future_tick = earliest_future_keyframe
+                    thingrows.extend(load_things(
+                        graph, past_branch, past_turn, past_tick,
+                        future_turn, future_tick
+                    ))
+        with self.batch():
+            self._things_cache.load(thingrows)
 
     @property
     def stores(self):
@@ -1427,11 +1430,6 @@ class Engine(AbstractEngine, gORM):
 
         # TODO: triggers that don't mutate anything should be
         #  evaluated in parallel
-        #  Ideally this would be implemented with a pool of
-        #  "engines" that serve Facades
-        #  mirroring the state of the world on turn start,
-        #  kept in sync with deltas.
-        #  I think I could do it with regular concurrent.futures pools though.
         for (
             charactername, rulebook, rulename
         ) in self._character_rules_handled_cache.iter_unhandled_rules(
@@ -1650,6 +1648,33 @@ class Engine(AbstractEngine, gORM):
         ):
             return v
         return self.alias(v, stat)
+
+    def _snap_keyframe(self, graph, branch, turn, tick, nodes, edges,
+                       graph_val):
+        super()._snap_keyframe(graph, branch, turn, tick, nodes, edges,
+                               graph_val)
+        newkf = {}
+        contkf = {}
+        for (name, node) in nodes.items():
+            if 'location' not in node:
+                continue
+            locn = node['location']
+            newkf[name] = locn
+            if locn in contkf:
+                contkf[locn].add(name)
+            else:
+                contkf[locn] = {name, }
+        contents_keyframes = self._node_contents_cache.keyframe
+        contkfs = contents_keyframes[graph,][branch]
+        if turn not in contkfs:
+            contkfs[turn] = {tick: contkf}
+        else:
+            contkfs[turn][tick] = contkf
+        kfs = self._things_cache.keyframe[graph,][branch]
+        if turn not in kfs:
+            kfs[turn] = {tick: newkf}
+        else:
+            kfs[turn][tick] = newkf
 
     def turns_when(self, qry):
         """Yield the turns in this branch when the query held true

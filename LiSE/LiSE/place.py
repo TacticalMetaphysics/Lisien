@@ -26,7 +26,8 @@ from .node import Node
 
 class Place(Node):
     """The kind of node where a thing might ultimately be located."""
-    __slots__ = ('graph', 'db', 'node', '_rulebook')
+    __slots__ = ('graph', 'db', 'node', '_rulebook',
+                 '_rulebooks', '_real_rule_mapping')
 
     extrakeys = {
         'name',
@@ -43,6 +44,15 @@ class Place(Node):
             repr(self['character']),
             repr(self['name'])
         )
+
+    def _validate_node_type(self):
+        try:
+            self.engine._things_cache.retrieve(
+                self.character.name, self.name, *self.engine._btt()
+            )
+            return False
+        except:
+            return True
 
     def delete(self):
         """Remove myself from the world model immediately."""

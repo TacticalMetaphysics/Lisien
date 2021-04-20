@@ -45,7 +45,8 @@ class Thing(Node):
     same.
 
     """
-    __slots__ = ('graph', 'db', 'node', '_rulebook')
+    __slots__ = ('graph', 'db', 'node', '_rulebook', '_rulebooks',
+                 '_real_rule_mapping')
 
     extrakeys = {
         'name',
@@ -56,9 +57,19 @@ class Thing(Node):
         return self.name
 
     def _getloc(self):
-        return self.engine._things_cache.retrieve(
-            self.character.name, self.name, *self.engine._btt()
-        )
+        try:
+            return self.engine._things_cache.retrieve(
+                self.character.name, self.name, *self.engine._btt()
+            )
+        except:
+            return None
+
+    def _validate_node_type(self):
+        try:
+            self._getloc()
+            return True
+        except:
+            return False
 
     def _get_arrival_time(self):
         charn = self.character.name
@@ -104,9 +115,10 @@ class Thing(Node):
         ``location``: return the name of my location
 
         """
-        try:
-            return self._getitem_dispatch[key](self)
-        except KeyError:
+        disp = self._getitem_dispatch
+        if key in disp:
+            return disp[key](self)
+        else:
             return super().__getitem__(key)
 
     def __setitem__(self, key, value):
@@ -145,10 +157,9 @@ class Thing(Node):
     @property
     def location(self):
         """The ``Thing`` or ``Place`` I'm in."""
-        try:
-            locn = self['location']
-        except KeyError:
-            return None
+        locn = self['location']
+        if locn is None:
+            return
         return self.engine._get_node(self.character, locn)
 
     @location.setter

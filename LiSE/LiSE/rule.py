@@ -553,10 +553,6 @@ class RuleMapping(MutableMapping, Signal):
         self.send(self, key=k, val=None)
 
 
-rule_mappings = {}
-rulebooks = {}
-
-
 class RuleFollower(ABC):
     """Interface for that which has a rulebook associated, which you can
     get a :class:`RuleMapping` into
@@ -566,19 +562,9 @@ class RuleFollower(ABC):
 
     @property
     def _rule_mapping(self):
-        if id(self) not in rule_mappings:
-            rule_mappings[id(self)] = self._get_rule_mapping()
-        return rule_mappings[id(self)]
-
-    # keeping _rulebooks out of the instance lets subclasses
-    # use __slots__ without having _rulebooks in the slots
-    @property
-    def _rulebooks(self):
-        return rulebooks[id(self)]
-
-    @_rulebooks.setter
-    def _rulebooks(self, v):
-        rulebooks[id(self)] = v
+        if not hasattr(self, '_real_rule_mapping'):
+            self._real_rule_mapping = self._get_rule_mapping()
+        return self._real_rule_mapping
 
     @property
     def rule(self, v=None, name=None):

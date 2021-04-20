@@ -287,8 +287,7 @@ class Node(graph.Node, rule.RuleFollower):
     contain things.
 
     """
-    __slots__ = ()
-    engine = getatt('db')
+    __slots__ = ('_real_rule_mapping',)
     character = getatt('graph')
     name = getatt('node')
     no_unwrap = True
@@ -325,6 +324,7 @@ class Node(graph.Node, rule.RuleFollower):
 
     successor = adj = edge = getatt('portal')
     predecessor = pred = getatt('preportal')
+    engine = getatt('db')
 
     user = UserDescriptor()
 

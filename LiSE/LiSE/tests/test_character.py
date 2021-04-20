@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import os
+from shutil import rmtree
 import tempfile
 import pytest
 import LiSE.allegedb.tests.test_all
@@ -22,27 +22,13 @@ from LiSE.engine import Engine
 
 class CharacterTest(LiSE.allegedb.tests.test_all.AllegedTest):
     def setUp(self):
-        self.engine = Engine(connect_string="sqlite:///:memory:")
-        self.graphmakers = (self.engine.new_character,)
         self.tempdir = tempfile.mkdtemp(dir='.')
-        for f in (
-            'trigger.py', 'prereq.py', 'action.py', 'function.py',
-            'method.py', 'strings.json'
-        ):
-            if os.path.exists(f):
-                os.rename(f, os.path.join(self.tempdir, f))
+        self.engine = Engine(self.tempdir)
+        self.graphmakers = (self.engine.new_character,)
 
     def tearDown(self):
         self.engine.close()
-        for f in (
-            'trigger.py', 'prereq.py', 'action.py', 'function.py',
-            'method.py', 'strings.json'
-        ):
-            if os.path.exists(f):
-                os.remove(f)
-            if os.path.exists(os.path.join(self.tempdir, f)):
-                os.rename(os.path.join(self.tempdir, f), f)
-        os.rmdir(self.tempdir)
+        rmtree(self.tempdir)
 
 
 class CharacterBranchLineageTest(CharacterTest, LiSE.allegedb.tests.test_all.AbstractBranchLineageTest):
@@ -197,8 +183,8 @@ CHAR_DATA = [
 
 
 @pytest.mark.parametrize(['name', 'data', 'stat', 'nodestat', 'statup', 'nodeup', 'edgeup'], CHAR_DATA)
-def test_char_creation(name, data, stat, nodestat, statup, nodeup, edgeup):
-    with Engine(connect_string="sqlite:///:memory:") as eng:
+def test_char_creation(tmpdir, name, data, stat, nodestat, statup, nodeup, edgeup):
+    with Engine(tmpdir) as eng:
         char = eng.new_character(name, data, **stat)
         assert set(char.node) == set(data)
         es = set()
@@ -210,8 +196,8 @@ def test_char_creation(name, data, stat, nodestat, statup, nodeup, edgeup):
 
 
 @pytest.mark.parametrize(['name', 'data', 'stat', 'nodestat', 'statup', 'nodeup', 'edgeup'], CHAR_DATA)
-def test_facade_creation(name, data, stat, nodestat, statup, nodeup, edgeup):
-    with Engine(connect_string='sqlite:///:memory:') as eng:
+def test_facade_creation(tmpdir, name, data, stat, nodestat, statup, nodeup, edgeup):
+    with Engine(tmpdir) as eng:
         char = eng.new_character(name, data, **stat)
         fac = char.facade()
         assert dict(fac.node) == dict(char.node)
