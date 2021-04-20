@@ -1,3 +1,7 @@
+== 0.11.2 | 2021-04-19 ==
+* Fix the branch input in ELiDE
+* Performance improvements
+
 == 0.11.1 | 2021-03-17 ==
 * Fix a flaw in the keyframes implementation that caused them to overwrite each other when several were made in a single session
 

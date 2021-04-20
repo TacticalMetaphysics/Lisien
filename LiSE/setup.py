@@ -25,7 +25,7 @@ from setuptools import setup
 
 setup(
     name="LiSE",
-    version="0.11.1",
+    version="0.11.2",
     description="Rules engine for life simulation games",
     author="Zachary Spector",
     author_email="public@zacharyspector.com",
