@@ -996,11 +996,6 @@ class Engine(AbstractEngine, gORM):
         self.rule = AllRules(self)
         self.rulebook = AllRuleBooks(self)
 
-    def _load_graphs(self):
-        for charn in self.query.characters():
-            self._graph_objs[charn] = self.char_cls(
-                self, charn, init_rulebooks=False)
-
     def __init__(
             self,
             prefix='.',
