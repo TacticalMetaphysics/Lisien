@@ -828,40 +828,8 @@ class Engine(AbstractEngine, gORM):
                         'rulebook'] = rulebook
         return delta
 
-    def _del_rulebook(self, rulebook):  # TODO: fix this for new cache style
-        for (character, character_rulebooks) in \
-             self._characters_rulebooks_cache.items():
-            if rulebook not in character_rulebooks.values():
-                continue
-            for (which, rb) in character_rulebooks.items():
-                if rb == rulebook:
-                    raise ValueError(
-                        "Rulebook still in use by {} as {}".format(
-                            character, which
-                        ))
-        for (character, nodes) in self._nodes_rulebooks_cache.items():
-            if rulebook not in nodes.values():
-                continue
-            for (node, rb) in nodes.items():
-                if rb == rulebook:
-                    raise ValueError(
-                        "Rulebook still in use by node "
-                        "{} in character {}".format(
-                            node, character
-                        ))
-        for (character, origins) in self._portals_rulebooks_cache.items():
-            for (origin, destinations) in origins.items():
-                if rulebook not in destinations.values():
-                    continue
-                for (destination, rb) in destinations:
-                    if rb == rulebook:
-                        raise ValueError(
-                            "Rulebook still in use by portal "
-                            "{}->{} in character {}".format(
-                                origin, destination, character
-                            ))
-        self.rule.query.rulebook_del_all(rulebook)
-        del self._rulebooks_cache._data[rulebook]
+    def _del_rulebook(self, rulebook):
+        raise NotImplementedError("Can't delete rulebooks yet")
 
     def _remember_avatarness(
             self, character, graph, node,
