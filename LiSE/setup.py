@@ -28,7 +28,7 @@ setup(
     description="Rules engine for life simulation games",
     author="Zachary Spector",
     author_email="public@zacharyspector.com",
-    license="AGPL3+",
+    license="AGPL3",
     keywords="game simulation",
     url="https://github.com/LogicalDash/LiSE",
     packages=[
