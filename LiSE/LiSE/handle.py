@@ -1292,3 +1292,28 @@ class EngineHandle(object):
     def grid_2d_graph(self, character, m, n, periodic):
         self._real.character[character].grid_2d_graph(m, n, periodic)
         return self.get_char_deltas([character])
+
+    def rules_handled_turn(self, branch=None, turn=None):
+        if branch is None:
+            branch = self.branch
+        if turn is None:
+            turn = self.turn
+        eng = self._real
+        return {
+            'character': eng._character_rules_handled_cache.handled_deep[branch
+            ][turn],
+            'avatar': eng._avatar_rules_handled_cache.handled_deep[branch
+            ][turn],
+            'character_thing':
+                eng._character_thing_rules_handled_cache.handled_deep[branch
+            ][turn],
+            'character_place':
+                eng._character_place_rules_handled_cache.handled_deep[branch
+                ][turn],
+            'character_portal':
+                eng._character_portal_rules_handled_cache.handled_deep[branch
+                ][turn],
+            'node': eng._node_rules_handled_cache.handled_deep[branch][turn],
+            'portal': eng._portal_rules_handled_cache.handled_deep[branch
+            ][turn]
+        }

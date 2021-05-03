@@ -245,6 +245,7 @@ class RulesHandledCache(object):
     def __init__(self, engine):
         self.engine = engine
         self.handled = {}
+        self.handled_deep = StructuredDefaultDict(2)
         self.unhandled = {}
 
     def get_rulebook(self, *args):
@@ -257,6 +258,7 @@ class RulesHandledCache(object):
         entity = args[:-5]
         rulebook, rule, branch, turn, tick = args[-5:]
         self.handled.setdefault(entity + (rulebook, branch, turn), set()).add(rule)
+        self.handled_deep[branch][turn][tick] = (entity, rulebook, rule)
         unhandl = self.unhandled.setdefault(entity, {}).setdefault(rulebook, {}).setdefault(branch, {})
         if turn not in unhandl:
             unhandl[turn] = list(self.unhandled_rulebook_rules(entity, rulebook, branch, turn, tick))
