@@ -44,7 +44,7 @@ class PickyDefaultDict(dict):
     __slots__ = ['type', 'args_munger', 'kwargs_munger', 'parent', 'key']
 
     def __init__(
-            self, type=None,
+            self, type,
             args_munger=_default_args_munger,
             kwargs_munger=_default_kwargs_munger
     ):
@@ -55,8 +55,6 @@ class PickyDefaultDict(dict):
     def __getitem__(self, k):
         if k in self:
             return super(PickyDefaultDict, self).__getitem__(k)
-        if self.type is None:
-            raise KeyError(k)
         try:
             ret = self[k] = self.type(
                 *self.args_munger(self, k),
@@ -70,7 +68,7 @@ class PickyDefaultDict(dict):
         return self.type(v)
 
     def __setitem__(self, k, v):
-        if self.type is not None and type(v) is not self.type:
+        if type(v) is not self.type:
             v = self._create(v)
         super(PickyDefaultDict, self).__setitem__(k, v)
 
@@ -109,9 +107,12 @@ class StructuredDefaultDict(dict):
             return dict.__getitem__(self, k)
         layer, typ, args_munger, kwargs_munger = self._stuff
         if layer == 1:
-            ret = PickyDefaultDict(
-                typ, args_munger, kwargs_munger
-            )
+            if typ is None:
+                ret = {}
+            else:
+                ret = PickyDefaultDict(
+                    typ, args_munger, kwargs_munger
+                )
         elif layer < 1:
             raise ValueError("Invalid layer")
         else:
