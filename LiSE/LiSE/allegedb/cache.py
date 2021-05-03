@@ -44,7 +44,7 @@ class PickyDefaultDict(dict):
     __slots__ = ['type', 'args_munger', 'kwargs_munger', 'parent', 'key']
 
     def __init__(
-            self, type=object,
+            self, type=None,
             args_munger=_default_args_munger,
             kwargs_munger=_default_kwargs_munger
     ):
@@ -55,20 +55,22 @@ class PickyDefaultDict(dict):
     def __getitem__(self, k):
         if k in self:
             return super(PickyDefaultDict, self).__getitem__(k)
+        if self.type is None:
+            raise KeyError(k)
         try:
             ret = self[k] = self.type(
                 *self.args_munger(self, k),
                 **self.kwargs_munger(self, k)
             )
         except TypeError:
-            raise KeyError
+            raise KeyError(k)
         return ret
 
     def _create(self, v):
         return self.type(v)
 
     def __setitem__(self, k, v):
-        if type(v) is not self.type:
+        if self.type is not None and type(v) is not self.type:
             v = self._create(v)
         super(PickyDefaultDict, self).__setitem__(k, v)
 
@@ -85,7 +87,7 @@ class StructuredDefaultDict(dict):
     __slots__ = ('layer', 'type', 'args_munger', 'kwargs_munger', 'parent', 'key', '_stuff', 'gettest', 'settest')
 
     def __init__(
-            self, layers, type=object,
+            self, layers, type=None,
             args_munger=_default_args_munger,
             kwargs_munger=_default_kwargs_munger,
             gettest=lambda k: None,
@@ -128,7 +130,7 @@ class StructuredDefaultDict(dict):
             layer, typ, args_munger, kwargs_munger = self._stuff
             if (
                     v.layer == layer - 1
-                    and v.type is typ
+                    and (typ is None or v.type is typ)
                     and v.args_munger is args_munger
                     and v.kwargs_munger is kwargs_munger
             ):
