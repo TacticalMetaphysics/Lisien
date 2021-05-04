@@ -982,7 +982,7 @@ class Engine(AbstractEngine, gORM):
             schema_cls=NullSchema,
             alchemy=False,
             flush_modulus=1,
-            commit_modulus=None,
+            commit_modulus=10,
             random_seed=None,
             logfun=None,
             validate=False,
