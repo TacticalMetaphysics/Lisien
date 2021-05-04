@@ -978,7 +978,7 @@ class Engine(AbstractEngine, gORM):
             connect_args={},
             schema_cls=NullSchema,
             alchemy=False,
-            commit_modulus=1,
+            commit_modulus=None,
             random_seed=None,
             logfun=None,
             validate=False,
