@@ -27,7 +27,6 @@ import msgpack
 from blinker import Signal
 from .allegedb import ORM as gORM
 from .allegedb import HistoryError
-from .allegedb.window import SettingsTurnDict, WindowDict
 from .reify import reify
 from .util import sort_set
 
