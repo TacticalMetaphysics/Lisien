@@ -113,6 +113,8 @@ class StructuredDefaultDict(dict):
                 ret = PickyDefaultDict(
                     typ, args_munger, kwargs_munger
                 )
+                ret.parent = self
+                ret.key = k
         elif layer < 1:
             raise ValueError("Invalid layer")
         else:
@@ -120,8 +122,8 @@ class StructuredDefaultDict(dict):
                 layer-1, typ,
                 args_munger, kwargs_munger
             )
-        ret.parent = self
-        ret.key = k
+            ret.parent = self
+            ret.key = k
         dict.__setitem__(self, k, ret)
         return ret
 
