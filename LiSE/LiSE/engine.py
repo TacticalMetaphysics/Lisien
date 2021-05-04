@@ -112,6 +112,10 @@ class NextTurn(Signal):
                     )
         engine._turns_completed[start_branch] = engine.turn
         engine.query.complete_turn(start_branch, engine.turn)
+        if engine.flush_modulus and engine.turn % engine.flush_modulus == 0:
+            engine.query.flush()
+        if engine.commit_modulus and engine.turn % engine.commit_modulus == 0:
+            engine.query.commit()
         self.send(
             self.engine,
             branch=engine.branch,
@@ -977,6 +981,7 @@ class Engine(AbstractEngine, gORM):
             connect_args={},
             schema_cls=NullSchema,
             alchemy=False,
+            flush_modulus=1,
             commit_modulus=None,
             random_seed=None,
             logfun=None,
@@ -1011,11 +1016,13 @@ class Engine(AbstractEngine, gORM):
         Defaults to `NullSchema`
         :arg alchemy: whether to use SQLAlchemy to connect to the
         database. If False, LiSE can only use SQLite
+        :arg flush_modulus: LiSE will put pending changes into the database
+        transaction every ``flush_modulus`` turns
         :arg commit_modulus: LiSE will commit changes to disk every
         ``commit_modulus`` turns
         :arg random_seed: a number to initialize the randomizer
         :arg logfun: an optional function taking arguments
-        ``level, message`` and
+        ``level, message``, which should log `message` somehow
         :arg validate: whether to perform integrity tests while
         loading the game
         :arg clear: whether to delete *any and all* existing data
@@ -1090,6 +1097,7 @@ class Engine(AbstractEngine, gORM):
                 getattr(logger, level)(msg)
         self.log = logfun
         self.commit_modulus = commit_modulus
+        self.flush_modulus = flush_modulus
         self.random_seed = random_seed
         self._rules_iter = self._follow_rules()
         # set up the randomizer
@@ -1201,6 +1209,9 @@ class Engine(AbstractEngine, gORM):
     def critical(self, msg):
         """Log a message at level 'critical'"""
         self.log('critical', msg)
+
+    def flush(self):
+        self.query.flush()
 
     def commit(self):
         try:
