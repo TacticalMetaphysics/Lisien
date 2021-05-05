@@ -22,13 +22,13 @@ grid, the time control panel, and the menu.
 from functools import partial
 from ast import literal_eval
 
+from kivy.app import App
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.modalview import ModalView
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
@@ -99,6 +99,10 @@ class SimulateButton(ToggleButton):
     graphics_bot = NumericProperty()
     graphics_center_y = NumericProperty()
 
+    def on_state(self, *args):
+        app = App.get_running_app()
+        app.edit_locked = self.state == 'down'
+
 
 class OneTurnButton(Button):
     graphics_top = NumericProperty()
@@ -109,6 +113,15 @@ class OneTurnButton(Button):
     step_bar_right = NumericProperty()
     step_arrow_points = ListProperty([0] * 6)
     step_rect_points = ListProperty([0] * 8)
+    screen = ObjectProperty()
+
+    def on_release(self):
+        App.get_running_app().edit_locked = True
+        self.screen.next_turn(cb=self._release_edit_lock)
+
+    @staticmethod
+    def _release_edit_lock(*args):
+        App.get_running_app().edit_locked = False
 
 
 class TimePanel(BoxLayout):
@@ -387,7 +400,7 @@ class MainScreen(Screen):
             return
         self.next_turn()
 
-    def _update_from_next_turn(self, command, branch, turn, tick, result):
+    def _update_from_next_turn(self, command, branch, turn, tick, result, cb=None):
         todo, deltas = result
         if isinstance(todo, list):
             self.dialoglayout.todo = todo
@@ -400,8 +413,10 @@ class MainScreen(Screen):
             tick=self.app._push_time
         )
         self.tmp_block = False
+        if cb is not None:
+            cb(command, branch, turn, tick, result)
 
-    def next_turn(self, *args):
+    def next_turn(self, cb=None, *args):
         """Advance time by one turn, if it's not blocked.
 
         Block time by setting ``engine.universal['block'] = True``"""
@@ -421,7 +436,7 @@ class MainScreen(Screen):
             turn=self.app._push_time,
             tick=self.app._push_time
         )
-        eng.next_turn(cb=self._update_from_next_turn)
+        eng.next_turn(cb=partial(self._update_from_next_turn, cb=cb))
 
     def switch_to_calendar(self, *args):
         self.app.update_calendar(self.calendar)
@@ -467,6 +482,7 @@ Builder.load_string(
         size_hint_y: 0.8
         entity: root.proxy
         update_mode: 'present'
+        disabled: app.edit_locked
     Button:
         id: gridviewbut
         size_hint_y: 0.05
@@ -561,8 +577,8 @@ Builder.load_string(
         OneTurnButton:
             id: stepbut
             font_size: root.buttons_font_size
-            on_release: root.screen.next_turn()
-            disabled: root.disable_one_turn
+            screen: root.screen
+            disabled: root.disable_one_turn or app.edit_locked
 <MainScreen>:
     name: 'main'
     app: app

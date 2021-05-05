@@ -25,6 +25,7 @@ from kivy.uix.screenmanager import ScreenManager, NoTransition
 
 from kivy.properties import (
     AliasProperty,
+    BooleanProperty,
     ObjectProperty,
     NumericProperty,
     StringProperty
@@ -65,6 +66,7 @@ class ELiDEApp(App):
     selected_proxy = ObjectProperty()
     selected_proxy_name = StringProperty('')
     statcfg = ObjectProperty()
+    edit_locked = BooleanProperty(False)
 
     def on_selection(self, *args):
         Logger.debug("App: {} selected".format(self.selection))
@@ -475,3 +477,6 @@ class ELiDEApp(App):
         self.mainscreen.graphboards[name] = GraphBoard(character=char)
         self.mainscreen.gridboards[name] = GridBoard(character=char)
         self.character = char
+
+    def on_edit_locked(self, *args):
+        Logger.debug("ELiDEApp: " + ("edit locked" if self.edit_locked else "edit unlocked"))
