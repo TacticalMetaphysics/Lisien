@@ -1017,9 +1017,11 @@ class Engine(AbstractEngine, gORM):
         :arg alchemy: whether to use SQLAlchemy to connect to the
         database. If False, LiSE can only use SQLite
         :arg flush_modulus: LiSE will put pending changes into the database
-        transaction every ``flush_modulus`` turns
+        transaction every ``flush_modulus`` turns, default 1. If `None`,
+        only flush on commit
         :arg commit_modulus: LiSE will commit changes to disk every
-        ``commit_modulus`` turns
+        ``commit_modulus`` turns, default 10. If `None`, only commit
+        on close or manual call to `commit`
         :arg random_seed: a number to initialize the randomizer
         :arg logfun: an optional function taking arguments
         ``level, message``, which should log `message` somehow
