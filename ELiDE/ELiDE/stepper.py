@@ -27,9 +27,9 @@ class RuleStepper(RecycleView):
             for tick, (entity, rulebook, rule) in rules.items():
                 if data:
                     prev = data[-1]
-                    assert prev['widget'] == 'RuleLabel'
-                    assert prev['end_tick'] is None
-                    prev['end_tick'] = tick - 1
+                    if prev['widget'] == 'RuleStepperRuleButton':
+                        assert prev['end_tick'] is None
+                        prev['end_tick'] = tick - 1
                 rulebook_per_entity = rbtyp in {'thing', 'place', 'portal'}
                 if not rulebook_per_entity:
                     if rulebook != last_rulebook:
@@ -52,20 +52,20 @@ class RuleStepper(RecycleView):
                             'name': rulebook
                         })
                 data.append({
-                    'widget': 'RuleLabel',
+                    'widget': 'RuleStepperRuleButton',
                     'name': rule,
                     'start_tick': tick,
                     'end_tick': None
                 })
             if data:
                 prev = data[-1]
-                assert prev['widget'] == 'RuleLabel'
+                assert prev['widget'] == 'RuleStepperRuleButton'
                 assert prev['end_tick'] is None
                 prev['end_tick'] = tick - 1
         self.data = data
 
 
-class RuleButton(Button):
+class RuleStepperRuleButton(Button):
     name = StringProperty()
     start_tick = NumericProperty()
     end_tick = NumericProperty()
@@ -88,4 +88,6 @@ Builder.load_string("""
     key_viewclass: 'widget'
     RecycleGridLayout:
         cols: 1
+<RuleStepperRuleButton>:
+    text: self.name
 """)
