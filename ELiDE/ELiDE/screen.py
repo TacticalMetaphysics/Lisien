@@ -43,6 +43,7 @@ from kivy.properties import (
     ReferenceListProperty,
     StringProperty
 )
+from .stepper import RuleStepper
 from .charmenu import CharMenu
 from .graph.board import GraphBoardView
 from .grid.board import GridBoardView
@@ -464,6 +465,52 @@ class MainScreen(Screen):
             self.switch_to_boardview()
 
 
+class CharMenuContainer(BoxLayout):
+    screen = ObjectProperty()
+    dummyplace = ObjectProperty()
+    dummything = ObjectProperty()
+    portaladdbut = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        super(CharMenuContainer, self).__init__(**kwargs)
+        self.charmenu = CharMenu(
+            screen=self.screen,
+            size_hint_y=0.9
+        )
+        self.dummyplace = self.charmenu.dummyplace
+        self.charmenu.bind(dummyplace=self.setter('dummyplace'))
+        self.dummything = self.charmenu.dummything
+        self.charmenu.bind(dummything=self.setter('dummything'))
+        self.portaladdbut = self.charmenu.portaladdbut
+        self.charmenu.bind(portaladdbut=self.setter('portaladdbut'))
+        self.stepper = RuleStepper(size_hint_y=0.9)
+        self.button = Button(
+            on_release=self._toggle,
+            text='Rule stepper',
+            size_hint_y=0.1
+        )
+
+    def on_parent(self, *args):
+        if not self.screen or not hasattr(self, 'charmenu') or not hasattr(
+                self, 'stepper') or not hasattr(self, 'button'):
+            Clock.schedule_once(self.on_parent, 0)
+            return
+        self.add_widget(self.charmenu)
+        self.add_widget(self.button)
+
+    @trigger
+    def _toggle(self, *args):
+        if self.charmenu in self.children:
+            self.clear_widgets()
+            self.add_widget(self.stepper)
+            self.button.text = 'Menu'
+        else:
+            self.clear_widgets()
+            self.add_widget(self.charmenu)
+            self.button.text = 'Rule stepper'
+        self.add_widget(self.button)
+
+
 Builder.load_string(
     """
 #: import resource_find kivy.resources.resource_find
@@ -614,8 +661,9 @@ Builder.load_string(
         pos_hint: {'bot': 0}
         size_hint: (0.25, 0.2)
         disable_one_turn: root.tmp_block
-    CharMenu:
+    CharMenuContainer:
         id: charmenu
+        orientation: 'vertical'
         screen: root
         pos_hint: {'right': 1, 'top': 1}
         size_hint: (0.1, 1)
