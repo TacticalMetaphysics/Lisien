@@ -147,16 +147,19 @@ class TimePanel(BoxLayout):
         branch = self.ids.branchfield.text
         self.ids.branchfield.text = ''
         self.screen.app.branch = branch
+        self.ids.charmenu._switch_to_menu()
 
     def set_turn(self, *args):
         turn = int(self.ids.turnfield.text)
         self.ids.turnfield.text = ''
         self.screen.app.turn = turn
+        self.ids.charmenu._switch_to_menu()
 
     def set_tick(self, *args):
         tick = int(self.ids.tickfield.text)
         self.ids.tickfield.text = ''
         self.screen.app.tick = tick
+        self.ids.charmenu._switch_to_menu()
 
     def _upd_branch_hint(self, *args):
         self.ids.branchfield.hint_text = self.screen.app.branch
@@ -438,6 +441,7 @@ class MainScreen(Screen):
             tick=self.app._push_time
         )
         eng.next_turn(cb=partial(self._update_from_next_turn, cb=cb))
+        self.ids.charmenu._switch_to_menu()
 
     def switch_to_calendar(self, *args):
         self.app.update_calendar(self.calendar)
@@ -513,6 +517,14 @@ class CharMenuContainer(BoxLayout):
             self.add_widget(self.charmenu)
             self.button.text = 'Rule stepper'
         self.add_widget(self.button)
+
+    @trigger
+    def _switch_to_menu(self, *args):
+        if self.charmenu not in self.children:
+            self.clear_widgets()
+            self.add_widget(self.charmenu)
+            self.button.text = 'Rule stepper'
+            self.add_widget(self.button)
 
 
 Builder.load_string(
