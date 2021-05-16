@@ -231,6 +231,8 @@ class AbstractEngine(object):
                 typ = type(obj)
             if typ in handlers:
                 return handlers[typ](obj)
+            elif isinstance(obj, dict):
+                return dict(obj)
             raise TypeError("Can't pack {}".format(typ))
         packer = partial(
             msgpack.packb,
