@@ -89,20 +89,29 @@ Builder.load_string("""
     RecycleGridLayout:
         cols: 1
 <RuleStepperRuleButton>:
-    text: '>>>' + self.name
+    text: self.name
+    font_size: 14
     text_size: self.width, None
     size: self.texture_size
+    halign: 'center'
 <EntityLabel>:
     multiline: True
-    text: '>>' + str(self.name)
+    text: str(self.name)
     text_size: self.width, None
     size: self.texture_size
+    font_size: 14
+    padding_x: 8
 <RulebookLabel>:
-    text: '>' + str(self.name)
+    text: str(self.name)
     text_size: self.width, None
     size: self.texture_size
+    font_size: 14
+    bold: True
+    padding_x: 4
 <RulebookTypeLabel>:
     text: self.name
     text_size: self.width, None
+    font_size: 16
+    bold: True
     size: self.texture_size
 """)
