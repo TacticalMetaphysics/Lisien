@@ -33,7 +33,7 @@ class RuleStepper(RecycleView):
                 rulebook_per_entity = rbtyp in {'thing', 'place', 'portal'}
                 if not rulebook_per_entity:
                     if rulebook != last_rulebook:
-                        rulebook = last_rulebook
+                        last_rulebook = rulebook
                         data.append({
                             'widget': 'RulebookLabel',
                             'name': rulebook
@@ -89,5 +89,20 @@ Builder.load_string("""
     RecycleGridLayout:
         cols: 1
 <RuleStepperRuleButton>:
+    text: '>>>' + self.name
+    text_size: self.width, None
+    size: self.texture_size
+<EntityLabel>:
+    multiline: True
+    text: '>>' + str(self.name)
+    text_size: self.width, None
+    size: self.texture_size
+<RulebookLabel>:
+    text: '>' + str(self.name)
+    text_size: self.width, None
+    size: self.texture_size
+<RulebookTypeLabel>:
     text: self.name
+    text_size: self.width, None
+    size: self.texture_size
 """)
