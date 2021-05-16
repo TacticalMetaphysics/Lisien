@@ -92,7 +92,7 @@ Builder.load_string("""
     text: self.name
     font_size: 14
     text_size: self.width, None
-    size: self.texture_size
+    height: self.texture_size[1] * 2
     halign: 'center'
 <EntityLabel>:
     multiline: True
