@@ -501,7 +501,11 @@ class CharMenuContainer(BoxLayout):
     @trigger
     def _toggle(self, *args):
         if self.charmenu in self.children:
+            engine = self.screen.app.engine
             self.clear_widgets()
+            self.stepper.from_rules_handled_turn(
+                engine.handle('rules_handled_turn')
+            )
             self.add_widget(self.stepper)
             self.button.text = 'Menu'
         else:
