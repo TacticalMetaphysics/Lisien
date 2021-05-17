@@ -540,6 +540,327 @@ class Engine(AbstractEngine, gORM):
         'global', 'eternal', 'universal', 'rulebooks', 'rules']
     illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val', 'things']
 
+    def __init__(
+            self,
+            prefix: PathLike = '.',
+            *,
+            string: Union[StringStore, dict] = None,
+            trigger: Union[FunctionStore, ModuleType] = None,
+            prereq: Union[FunctionStore, ModuleType] = None,
+            action: Union[FunctionStore, ModuleType] = None,
+            function: Union[FunctionStore, ModuleType] = None,
+            method: Union[MethodStore, ModuleType] = None,
+            connect_string: str = None,
+            connect_args: dict = None,
+            schema_cls: Type[AbstractSchema] = NullSchema,
+            alchemy=False,
+            flush_modulus=1,
+            commit_modulus=10,
+            random_seed: int = None,
+            logfun: FunctionType = None,
+            validate=False,
+            clear=False,
+            keep_rules_journal=True
+    ):
+        """Store the connections for the world database and the code database;
+        set up listeners; and start a transaction
+
+        :arg prefix: directory containing the simulation and its code;
+        defaults to the working directory
+        :arg string: module storing strings to be used in the game
+        :arg function: module containing utility functions
+        :arg method: module containing functions taking this engine as
+        first arg
+        :arg trigger: module containing trigger functions, taking a LiSE
+        entity and returning a boolean for whether to run a rule
+        :arg prereq: module containing prereq functions, taking a LiSE entity and
+        returning a boolean for whether to permit a rule to run
+        :arg action: module containing action functions, taking a LiSE entity and
+        mutating it (and possibly the rest of the world)
+        :arg connect_string: a rfc1738 URI for a database to connect to;
+        if absent, we'll use a SQLite database in the prefix directory.
+        With ``alchemy=False`` we can only open SQLite databases,
+        in which case ``connect_string`` is just a path to the database--
+        unless it's ``":memory:"``, which is an in-memory database that
+        won't be saved
+        :arg connect_args: dictionary of keyword arguments for the
+        database connection
+        :arg schema: a Schema class that determines which changes to allow to
+        the world; used when a player should not be able to change just anything.
+        Defaults to `NullSchema`
+        :arg alchemy: whether to use SQLAlchemy to connect to the
+        database. If False, LiSE can only use SQLite
+        :arg flush_modulus: LiSE will put pending changes into the database
+        transaction every ``flush_modulus`` turns, default 1. If `None`,
+        only flush on commit
+        :arg commit_modulus: LiSE will commit changes to disk every
+        ``commit_modulus`` turns, default 10. If `None`, only commit
+        on close or manual call to `commit`
+        :arg random_seed: a number to initialize the randomizer
+        :arg logfun: an optional function taking arguments
+        ``level, message``, which should log `message` somehow
+        :arg validate: whether to perform integrity tests while
+        loading the game
+        :arg clear: whether to delete *any and all* existing data
+        and code in ``prefix``. Use with caution!
+        :arg keep_rules_journal: Boolean; if true (default), keep
+        information on the behavior of the rules engine in the database.
+        Makes the database rather large, but useful for debugging.
+
+        """
+        import os
+        from .xcollections import StringStore
+        if connect_args is None:
+            connect_args = {}
+        self.keep_rules_journal = keep_rules_journal
+        self.exist_node_time = 0
+        self.exist_edge_time = 0
+        if string:
+            self.string = string
+        else:
+            self._string_file = os.path.join(prefix, 'strings.json')
+            if clear and os.path.exists(self._string_file):
+                os.remove(self._string_file)
+        if function:
+            self.function = function
+        else:
+            self._function_file = os.path.join(prefix, 'function.py')
+            if clear and os.path.exists(self._function_file):
+                os.remove(self._function_file)
+        if method:
+            self.method = method
+        else:
+            self._method_file = os.path.join(prefix, 'method.py')
+            if clear and os.path.exists(self._method_file):
+                os.remove(self._method_file)
+        if trigger:
+            self.trigger = trigger
+        else:
+            self._trigger_file = os.path.join(prefix, 'trigger.py')
+            if clear and os.path.exists(self._trigger_file):
+                os.remove(self._trigger_file)
+        if prereq:
+            self.prereq = prereq
+        else:
+            self._prereq_file = os.path.join(prefix, 'prereq.py')
+            if clear and os.path.exists(self._prereq_file):
+                os.remove(self._prereq_file)
+        if action:
+            self.action = action
+        else:
+            self._action_file = os.path.join(prefix, 'action.py')
+            if clear and os.path.exists(self._action_file):
+                os.remove(self._action_file)
+        self.schema = schema_cls(self)
+        if connect_string and not alchemy:
+            connect_string = connect_string.split('sqlite:///')[-1]
+        super().__init__(
+            connect_string or os.path.join(prefix, 'world.db'),
+            connect_args=connect_args,
+            alchemy=alchemy,
+            validate=validate
+        )
+        self._things_cache.setdb = self.query.set_thing_loc
+        self._universal_cache.setdb = self.query.universal_set
+        self._rulebooks_cache.setdb = self.query.rulebook_set
+        self.eternal = self.query.globl
+        if hasattr(self, '_string_file'):
+            self.string = StringStore(
+                self.query,
+                self._string_file,
+                self.eternal.setdefault('language', 'eng')
+            )
+        self.next_turn = NextTurn(self)
+        if logfun is None:
+            from logging import getLogger
+            logger = getLogger(__name__)
+
+            def logfun(level, msg):
+                getattr(logger, level)(msg)
+        self.log = logfun
+        self.commit_modulus = commit_modulus
+        self.flush_modulus = flush_modulus
+        self.random_seed = random_seed
+        self._rules_iter = self._follow_rules()
+        # set up the randomizer
+        from random import Random
+        self._rando = Random()
+        if 'rando_state' in self.universal:
+            self._rando.setstate(self.universal['rando_state'])
+        else:
+            self._rando.seed(self.random_seed)
+            self.universal['rando_state'] = self._rando.getstate()
+        if hasattr(self.method, 'init'):
+            self.method.init(self)
+
+    def _init_load(self):
+        from .rule import Rule
+        q = self.query
+        super()._init_load()
+        self._avatarness_cache.load(q.avatars_dump())
+        self._universal_cache.load(q.universals_dump())
+        self._rulebooks_cache.load(q.rulebooks_dump())
+        self._characters_rulebooks_cache.load(
+            q.character_rulebook_dump())
+        self._avatars_rulebooks_cache.load(q.avatar_rulebook_dump())
+        self._characters_things_rulebooks_cache.load(
+            q.character_thing_rulebook_dump())
+        self._characters_places_rulebooks_cache.load(
+            q.character_place_rulebook_dump())
+        self._characters_portals_rulebooks_cache.load(
+            q.character_portal_rulebook_dump())
+        self._nodes_rulebooks_cache.load(q.node_rulebook_dump())
+        self._portals_rulebooks_cache.load(q.portal_rulebook_dump())
+        self._triggers_cache.load(q.rule_triggers_dump())
+        self._prereqs_cache.load(q.rule_prereqs_dump())
+        self._actions_cache.load(q.rule_actions_dump())
+        store_crh = self._character_rules_handled_cache.store
+        for row in q.character_rules_handled_dump():
+            store_crh(*row, loading=True)
+        store_arh = self._avatar_rules_handled_cache.store
+        for row in q.avatar_rules_handled_dump():
+            store_arh(*row, loading=True)
+        store_ctrh = self._character_thing_rules_handled_cache.store
+        for row in q.character_thing_rules_handled_dump():
+            store_ctrh(*row, loading=True)
+        store_cprh = self._character_place_rules_handled_cache.store
+        for row in q.character_place_rules_handled_dump():
+            store_cprh(*row, loading=True)
+        store_cporh = self._character_portal_rules_handled_cache.store
+        for row in q.character_portal_rules_handled_dump():
+            store_cporh(*row, loading=True)
+        store_cnrh = self._node_rules_handled_cache.store
+        for row in q.node_rules_handled_dump():
+            store_cnrh(*row, loading=True)
+        store_porh = self._portal_rules_handled_cache.store
+        for row in q.portal_rules_handled_dump():
+            store_porh(*row, loading=True)
+        self._turns_completed.update(q.turns_completed_dump())
+        self._rules_cache = {
+            name: Rule(self, name, create=False) for name in q.rules_dump()}
+
+    def _load_at(self, branch, turn, tick):
+        latest_past_keyframe, earliest_future_keyframe, keyframed, \
+        noderows, edgerows, graphvalrows, nodevalrows, edgevalrows \
+            = super()._load_at(branch, turn, tick)
+        thingrows = []
+        load_things = self.query.load_things
+        if latest_past_keyframe is not None:
+            past_branch, past_turn, past_tick = latest_past_keyframe
+            for graph in self.graph:
+                if earliest_future_keyframe is None:
+                    thingrows.extend(load_things(
+                        graph, past_branch, past_turn, past_tick
+                    ))
+                else:
+                    future_branch, future_turn, future_tick = earliest_future_keyframe
+                    thingrows.extend(load_things(
+                        graph, past_branch, past_turn, past_tick,
+                        future_turn, future_tick
+                    ))
+        with self.batch():
+            self._things_cache.load(thingrows)
+
+    def _init_caches(self):
+        from .xcollections import (
+            FunctionStore,
+            CharacterMapping,
+            UniversalMapping
+        )
+        from .cache import (
+            NodeContentsCache,
+            InitializedCache,
+            EntitylessCache,
+            InitializedEntitylessCache,
+            AvatarnessCache,
+            AvatarRulesHandledCache,
+            CharacterThingRulesHandledCache,
+            CharacterPlaceRulesHandledCache,
+            CharacterPortalRulesHandledCache,
+            NodeRulesHandledCache,
+            PortalRulesHandledCache,
+            CharacterRulesHandledCache,
+            ThingsCache
+        )
+        from .rule import AllRuleBooks, AllRules
+
+        super()._init_caches()
+        self._things_cache = ThingsCache(self)
+        self._node_contents_cache = NodeContentsCache(self)
+        self.character = self.graph = CharacterMapping(self)
+        self._universal_cache = EntitylessCache(self)
+        self._universal_cache.name = 'universal_cache'
+        self._rulebooks_cache = InitializedEntitylessCache(self)
+        self._rulebooks_cache.name = 'rulebooks_cache'
+        self._characters_rulebooks_cache = InitializedEntitylessCache(self)
+        self._characters_rulebooks_cache.name = 'characters_rulebooks_cache'
+        self._avatars_rulebooks_cache = InitializedEntitylessCache(self)
+        self._avatars_rulebooks_cache.name = 'avatars_rulebooks_cache'
+        self._characters_things_rulebooks_cache = \
+            InitializedEntitylessCache(self)
+        self._characters_things_rulebooks_cache.name = \
+            'characters_things_rulebooks_cache'
+        self._characters_places_rulebooks_cache = \
+            InitializedEntitylessCache(self)
+        self._characters_places_rulebooks_cache.name = \
+            'characters_places_rulebooks_cache'
+        self._characters_portals_rulebooks_cache = \
+            InitializedEntitylessCache(self)
+        self._characters_portals_rulebooks_cache.name = \
+            'characters_portals_rulebooks_cache'
+        self._nodes_rulebooks_cache = InitializedCache(self)
+        self._nodes_rulebooks_cache.name = 'nodes_rulebooks_cache'
+        self._portals_rulebooks_cache = InitializedCache(self)
+        self._portals_rulebooks_cache.name = 'portals_rulebooks_cache'
+        self._triggers_cache = InitializedEntitylessCache(self)
+        self._triggers_cache.name = 'triggers_cache'
+        self._prereqs_cache = InitializedEntitylessCache(self)
+        self._prereqs_cache.name = 'prereqs_cache'
+        self._actions_cache = InitializedEntitylessCache(self)
+        self._actions_cache.name = 'actions_cache'
+        self._node_rules_handled_cache = NodeRulesHandledCache(self)
+        self._node_rules_handled_cache.name = 'node_rules_handled_cache'
+        self._portal_rules_handled_cache = PortalRulesHandledCache(self)
+        self._portal_rules_handled_cache.name = 'portal_rules_handled_cache'
+        self._character_rules_handled_cache = CharacterRulesHandledCache(self)
+        self._character_rules_handled_cache.name = \
+            'character_rules_handled_cache'
+        self._avatar_rules_handled_cache = AvatarRulesHandledCache(self)
+        self._avatar_rules_handled_cache.name = 'avatar_rules_handled_cache'
+        self._character_thing_rules_handled_cache \
+            = CharacterThingRulesHandledCache(self)
+        self._character_thing_rules_handled_cache.name = \
+            'character_thing_rules_handled_cache'
+        self._character_place_rules_handled_cache \
+            = CharacterPlaceRulesHandledCache(self)
+        self._character_place_rules_handled_cache.name = \
+            'character_place_rules_handled_cache'
+        self._character_portal_rules_handled_cache \
+            = CharacterPortalRulesHandledCache(self)
+        self._character_portal_rules_handled_cache.name = \
+            'character_portal_rules_handled_cache'
+        self._avatarness_cache = AvatarnessCache(self)
+        self._avatarness_cache.name = 'avatarness_cache'
+        self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
+        """The last turn when the rules engine ran in each branch"""
+        self.universal = UniversalMapping(self)
+        if hasattr(self, '_action_file'):
+            self.action = FunctionStore(self._action_file)
+        if hasattr(self, '_prereq_file'):
+            self.prereq = FunctionStore(self._prereq_file)
+        if hasattr(self, '_trigger_file'):
+            self.trigger = FunctionStore(self._trigger_file)
+        if hasattr(self, '_function_file'):
+            self.function = FunctionStore(self._function_file)
+        if hasattr(self, '_method_file'):
+            self.method = FunctionStore(self._method_file)
+        self.rule = AllRules(self)
+        self.rulebook = AllRuleBooks(self)
+
+    def _load_graphs(self):
+        for charn in self.query.characters():
+            self._graph_objs[charn] = self.char_cls(self, charn, init_rulebooks=False)
+
     def _make_node(self, graph, node):
         if self._is_thing(graph.name, node):
             return self.thing_cls(graph, node)
@@ -548,10 +869,6 @@ class Engine(AbstractEngine, gORM):
 
     def _make_edge(self, graph, orig, dest, idx=0):
         return self.portal_cls(graph, orig, dest)
-
-    def _load_graphs(self):
-        for charn in self.query.characters():
-            self._graph_objs[charn] = self.char_cls(self, charn, init_rulebooks=False)
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
         """Get a dictionary describing changes to the world.
@@ -904,323 +1221,6 @@ class Engine(AbstractEngine, gORM):
             tick,
             is_avatar
         )
-
-    def _init_caches(self):
-        from .xcollections import (
-            FunctionStore,
-            CharacterMapping,
-            UniversalMapping
-        )
-        from .cache import (
-            NodeContentsCache,
-            InitializedCache,
-            EntitylessCache,
-            InitializedEntitylessCache,
-            AvatarnessCache,
-            AvatarRulesHandledCache,
-            CharacterThingRulesHandledCache,
-            CharacterPlaceRulesHandledCache,
-            CharacterPortalRulesHandledCache,
-            NodeRulesHandledCache,
-            PortalRulesHandledCache,
-            CharacterRulesHandledCache,
-            ThingsCache
-        )
-        from .rule import AllRuleBooks, AllRules
-
-        super()._init_caches()
-        self._things_cache = ThingsCache(self)
-        self._node_contents_cache = NodeContentsCache(self)
-        self.character = self.graph = CharacterMapping(self)
-        self._universal_cache = EntitylessCache(self)
-        self._universal_cache.name = 'universal_cache'
-        self._rulebooks_cache = InitializedEntitylessCache(self)
-        self._rulebooks_cache.name = 'rulebooks_cache'
-        self._characters_rulebooks_cache = InitializedEntitylessCache(self)
-        self._characters_rulebooks_cache.name = 'characters_rulebooks_cache'
-        self._avatars_rulebooks_cache = InitializedEntitylessCache(self)
-        self._avatars_rulebooks_cache.name = 'avatars_rulebooks_cache'
-        self._characters_things_rulebooks_cache = \
-            InitializedEntitylessCache(self)
-        self._characters_things_rulebooks_cache.name = \
-            'characters_things_rulebooks_cache'
-        self._characters_places_rulebooks_cache = \
-            InitializedEntitylessCache(self)
-        self._characters_places_rulebooks_cache.name = \
-            'characters_places_rulebooks_cache'
-        self._characters_portals_rulebooks_cache = \
-            InitializedEntitylessCache(self)
-        self._characters_portals_rulebooks_cache.name = \
-            'characters_portals_rulebooks_cache'
-        self._nodes_rulebooks_cache = InitializedCache(self)
-        self._nodes_rulebooks_cache.name = 'nodes_rulebooks_cache'
-        self._portals_rulebooks_cache = InitializedCache(self)
-        self._portals_rulebooks_cache.name = 'portals_rulebooks_cache'
-        self._triggers_cache = InitializedEntitylessCache(self)
-        self._triggers_cache.name = 'triggers_cache'
-        self._prereqs_cache = InitializedEntitylessCache(self)
-        self._prereqs_cache.name = 'prereqs_cache'
-        self._actions_cache = InitializedEntitylessCache(self)
-        self._actions_cache.name = 'actions_cache'
-        self._node_rules_handled_cache = NodeRulesHandledCache(self)
-        self._node_rules_handled_cache.name = 'node_rules_handled_cache'
-        self._portal_rules_handled_cache = PortalRulesHandledCache(self)
-        self._portal_rules_handled_cache.name = 'portal_rules_handled_cache'
-        self._character_rules_handled_cache = CharacterRulesHandledCache(self)
-        self._character_rules_handled_cache.name = \
-            'character_rules_handled_cache'
-        self._avatar_rules_handled_cache = AvatarRulesHandledCache(self)
-        self._avatar_rules_handled_cache.name = 'avatar_rules_handled_cache'
-        self._character_thing_rules_handled_cache \
-            = CharacterThingRulesHandledCache(self)
-        self._character_thing_rules_handled_cache.name = \
-            'character_thing_rules_handled_cache'
-        self._character_place_rules_handled_cache \
-            = CharacterPlaceRulesHandledCache(self)
-        self._character_place_rules_handled_cache.name = \
-            'character_place_rules_handled_cache'
-        self._character_portal_rules_handled_cache \
-            = CharacterPortalRulesHandledCache(self)
-        self._character_portal_rules_handled_cache.name = \
-            'character_portal_rules_handled_cache'
-        self._avatarness_cache = AvatarnessCache(self)
-        self._avatarness_cache.name = 'avatarness_cache'
-        self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
-        """The last turn when the rules engine ran in each branch"""
-        self.universal = UniversalMapping(self)
-        if hasattr(self, '_action_file'):
-            self.action = FunctionStore(self._action_file)
-        if hasattr(self, '_prereq_file'):
-            self.prereq = FunctionStore(self._prereq_file)
-        if hasattr(self, '_trigger_file'):
-            self.trigger = FunctionStore(self._trigger_file)
-        if hasattr(self, '_function_file'):
-            self.function = FunctionStore(self._function_file)
-        if hasattr(self, '_method_file'):
-            self.method = FunctionStore(self._method_file)
-        self.rule = AllRules(self)
-        self.rulebook = AllRuleBooks(self)
-
-    def __init__(
-            self,
-            prefix: PathLike = '.',
-            *,
-            string: Union[StringStore, dict] = None,
-            trigger: Union[FunctionStore, ModuleType] = None,
-            prereq: Union[FunctionStore, ModuleType] = None,
-            action: Union[FunctionStore, ModuleType] = None,
-            function: Union[FunctionStore, ModuleType] = None,
-            method: Union[MethodStore, ModuleType] = None,
-            connect_string: str = None,
-            connect_args: dict = None,
-            schema_cls: Type[AbstractSchema] = NullSchema,
-            alchemy=False,
-            flush_modulus=1,
-            commit_modulus=10,
-            random_seed: int = None,
-            logfun: FunctionType = None,
-            validate=False,
-            clear=False,
-            keep_rules_journal=True
-    ):
-        """Store the connections for the world database and the code database;
-        set up listeners; and start a transaction
-
-        :arg prefix: directory containing the simulation and its code;
-        defaults to the working directory
-        :arg string: module storing strings to be used in the game
-        :arg function: module containing utility functions
-        :arg method: module containing functions taking this engine as
-        first arg
-        :arg trigger: module containing trigger functions, taking a LiSE
-        entity and returning a boolean for whether to run a rule
-        :arg prereq: module containing prereq functions, taking a LiSE entity and
-        returning a boolean for whether to permit a rule to run
-        :arg action: module containing action functions, taking a LiSE entity and
-        mutating it (and possibly the rest of the world)
-        :arg connect_string: a rfc1738 URI for a database to connect to;
-        if absent, we'll use a SQLite database in the prefix directory.
-        With ``alchemy=False`` we can only open SQLite databases,
-        in which case ``connect_string`` is just a path to the database--
-        unless it's ``":memory:"``, which is an in-memory database that
-        won't be saved
-        :arg connect_args: dictionary of keyword arguments for the
-        database connection
-        :arg schema: a Schema class that determines which changes to allow to
-        the world; used when a player should not be able to change just anything.
-        Defaults to `NullSchema`
-        :arg alchemy: whether to use SQLAlchemy to connect to the
-        database. If False, LiSE can only use SQLite
-        :arg flush_modulus: LiSE will put pending changes into the database
-        transaction every ``flush_modulus`` turns, default 1. If `None`,
-        only flush on commit
-        :arg commit_modulus: LiSE will commit changes to disk every
-        ``commit_modulus`` turns, default 10. If `None`, only commit
-        on close or manual call to `commit`
-        :arg random_seed: a number to initialize the randomizer
-        :arg logfun: an optional function taking arguments
-        ``level, message``, which should log `message` somehow
-        :arg validate: whether to perform integrity tests while
-        loading the game
-        :arg clear: whether to delete *any and all* existing data
-        and code in ``prefix``. Use with caution!
-        :arg keep_rules_journal: Boolean; if true (default), keep
-        information on the behavior of the rules engine in the database.
-        Makes the database rather large, but useful for debugging.
-
-        """
-        import os
-        from .xcollections import StringStore
-        if connect_args is None:
-            connect_args = {}
-        self.keep_rules_journal = keep_rules_journal
-        self.exist_node_time = 0
-        self.exist_edge_time = 0
-        if string:
-            self.string = string
-        else:
-            self._string_file = os.path.join(prefix, 'strings.json')
-            if clear and os.path.exists(self._string_file):
-                os.remove(self._string_file)
-        if function:
-            self.function = function
-        else:
-            self._function_file = os.path.join(prefix, 'function.py')
-            if clear and os.path.exists(self._function_file):
-                os.remove(self._function_file)
-        if method:
-            self.method = method
-        else:
-            self._method_file = os.path.join(prefix, 'method.py')
-            if clear and os.path.exists(self._method_file):
-                os.remove(self._method_file)
-        if trigger:
-            self.trigger = trigger
-        else:
-            self._trigger_file = os.path.join(prefix, 'trigger.py')
-            if clear and os.path.exists(self._trigger_file):
-                os.remove(self._trigger_file)
-        if prereq:
-            self.prereq = prereq
-        else:
-            self._prereq_file = os.path.join(prefix, 'prereq.py')
-            if clear and os.path.exists(self._prereq_file):
-                os.remove(self._prereq_file)
-        if action:
-            self.action = action
-        else:
-            self._action_file = os.path.join(prefix, 'action.py')
-            if clear and os.path.exists(self._action_file):
-                os.remove(self._action_file)
-        self.schema = schema_cls(self)
-        if connect_string and not alchemy:
-            connect_string = connect_string.split('sqlite:///')[-1]
-        super().__init__(
-            connect_string or os.path.join(prefix, 'world.db'),
-            connect_args=connect_args,
-            alchemy=alchemy,
-            validate=validate
-        )
-        self._things_cache.setdb = self.query.set_thing_loc
-        self._universal_cache.setdb = self.query.universal_set
-        self._rulebooks_cache.setdb = self.query.rulebook_set
-        self.eternal = self.query.globl
-        if hasattr(self, '_string_file'):
-            self.string = StringStore(
-                self.query,
-                self._string_file,
-                self.eternal.setdefault('language', 'eng')
-            )
-        self.next_turn = NextTurn(self)
-        if logfun is None:
-            from logging import getLogger
-            logger = getLogger(__name__)
-
-            def logfun(level, msg):
-                getattr(logger, level)(msg)
-        self.log = logfun
-        self.commit_modulus = commit_modulus
-        self.flush_modulus = flush_modulus
-        self.random_seed = random_seed
-        self._rules_iter = self._follow_rules()
-        # set up the randomizer
-        from random import Random
-        self._rando = Random()
-        if 'rando_state' in self.universal:
-            self._rando.setstate(self.universal['rando_state'])
-        else:
-            self._rando.seed(self.random_seed)
-            self.universal['rando_state'] = self._rando.getstate()
-        if hasattr(self.method, 'init'):
-            self.method.init(self)
-
-    def _init_load(self):
-        from .rule import Rule
-        q = self.query
-        super()._init_load()
-        self._avatarness_cache.load(q.avatars_dump())
-        self._universal_cache.load(q.universals_dump())
-        self._rulebooks_cache.load(q.rulebooks_dump())
-        self._characters_rulebooks_cache.load(
-            q.character_rulebook_dump())
-        self._avatars_rulebooks_cache.load(q.avatar_rulebook_dump())
-        self._characters_things_rulebooks_cache.load(
-            q.character_thing_rulebook_dump())
-        self._characters_places_rulebooks_cache.load(
-            q.character_place_rulebook_dump())
-        self._characters_portals_rulebooks_cache.load(
-            q.character_portal_rulebook_dump())
-        self._nodes_rulebooks_cache.load(q.node_rulebook_dump())
-        self._portals_rulebooks_cache.load(q.portal_rulebook_dump())
-        self._triggers_cache.load(q.rule_triggers_dump())
-        self._prereqs_cache.load(q.rule_prereqs_dump())
-        self._actions_cache.load(q.rule_actions_dump())
-        store_crh = self._character_rules_handled_cache.store
-        for row in q.character_rules_handled_dump():
-            store_crh(*row, loading=True)
-        store_arh = self._avatar_rules_handled_cache.store
-        for row in q.avatar_rules_handled_dump():
-            store_arh(*row, loading=True)
-        store_ctrh = self._character_thing_rules_handled_cache.store
-        for row in q.character_thing_rules_handled_dump():
-            store_ctrh(*row, loading=True)
-        store_cprh = self._character_place_rules_handled_cache.store
-        for row in q.character_place_rules_handled_dump():
-            store_cprh(*row, loading=True)
-        store_cporh = self._character_portal_rules_handled_cache.store
-        for row in q.character_portal_rules_handled_dump():
-            store_cporh(*row, loading=True)
-        store_cnrh = self._node_rules_handled_cache.store
-        for row in q.node_rules_handled_dump():
-            store_cnrh(*row, loading=True)
-        store_porh = self._portal_rules_handled_cache.store
-        for row in q.portal_rules_handled_dump():
-            store_porh(*row, loading=True)
-        self._turns_completed.update(q.turns_completed_dump())
-        self._rules_cache = {
-            name: Rule(self, name, create=False) for name in q.rules_dump()}
-
-    def _load_at(self, branch, turn, tick):
-        latest_past_keyframe, earliest_future_keyframe, keyframed, \
-        noderows, edgerows, graphvalrows, nodevalrows, edgevalrows \
-            = super()._load_at(branch, turn, tick)
-        thingrows = []
-        load_things = self.query.load_things
-        if latest_past_keyframe is not None:
-            past_branch, past_turn, past_tick = latest_past_keyframe
-            for graph in self.graph:
-                if earliest_future_keyframe is None:
-                    thingrows.extend(load_things(
-                        graph, past_branch, past_turn, past_tick
-                    ))
-                else:
-                    future_branch, future_turn, future_tick = earliest_future_keyframe
-                    thingrows.extend(load_things(
-                        graph, past_branch, past_turn, past_tick,
-                        future_turn, future_tick
-                    ))
-        with self.batch():
-            self._things_cache.load(thingrows)
 
     @property
     def stores(self):
