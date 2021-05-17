@@ -1,3 +1,4 @@
+from kivy.app import App
 from kivy.properties import (
     NumericProperty,
     ObjectProperty,
@@ -7,12 +8,13 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.recycleview import RecycleView
 from kivy.lang import Builder
+from kivy.graphics import Color, Line
 
 
 class RuleStepper(RecycleView):
     name = StringProperty()
 
-    def from_rules_handled_turn(self, rules_handled_turn):
+    def from_rules_handled_turn(self, start_tick, rules_handled_turn):
         data = []
         for rbtyp, rules in rules_handled_turn.items():
             if not rules:
@@ -24,12 +26,8 @@ class RuleStepper(RecycleView):
             last_entity = None
             last_rulebook = None
             # rules is a WindowDict, guaranteed to be sorted
+            prev_tick = start_tick
             for tick, (entity, rulebook, rule) in rules.items():
-                if data:
-                    prev = data[-1]
-                    if prev['widget'] == 'RuleStepperRuleButton':
-                        assert prev['end_tick'] is None
-                        prev['end_tick'] = tick - 1
                 rulebook_per_entity = rbtyp in {'thing', 'place', 'portal'}
                 if not rulebook_per_entity:
                     if rulebook != last_rulebook:
@@ -54,15 +52,11 @@ class RuleStepper(RecycleView):
                 data.append({
                     'widget': 'RuleStepperRuleButton',
                     'name': rule,
-                    'start_tick': tick,
-                    'end_tick': None,
-                    'height': 28
+                    'start_tick': prev_tick,
+                    'end_tick': tick,
+                    'height': 40
                 })
-            if data:
-                prev = data[-1]
-                assert prev['widget'] == 'RuleStepperRuleButton'
-                assert prev['end_tick'] is None
-                prev['end_tick'] = tick - 1
+                prev_tick = tick
         self.data = data
 
 
@@ -73,11 +67,34 @@ class RuleStepperRuleButton(Button):
     tick = NumericProperty()
     set_tick = ObjectProperty()
 
+    def __init__(self, **kwargs):
+        super(RuleStepperRuleButton, self).__init__(**kwargs)
+        self.bind(pos=self.upd_line, size=self.upd_line, tick=self.upd_line)
+
     def on_release(self, *args):
-        if self.tick == self.end_tick:
-            self.set_tick(self.start_tick)
+        tick = App.get_running_app().tick
+        if tick == self.end_tick:
+            tick = self.start_tick
         else:
-            self.set_tick(self.end_tick)
+            tick = self.end_tick
+        self.set_tick(tick)
+        self.tick = tick
+
+    def upd_line(self, *args):
+        if hasattr(self, 'color_inst'):
+            if self.tick == self.end_tick:
+                self.color_inst.rgba = [1, 0, 0, 1]
+                self.line.points = [self.x, self.y, self.right, self.y]
+            else:
+                self.color_inst.rgba = [0, 0, 0, 0]
+        else:
+            with self.canvas:
+                self.color_inst = Color(
+                    rgba=([1, 0, 0, 1]
+                          if self.tick in (self.start_tick, self.end_tick)
+                          else [0, 0, 0, 0]))
+                self.line = Line(
+                    points=[self.x, self.top, self.right, self.top])
 
 
 class EntityLabel(Label):
@@ -101,17 +118,12 @@ Builder.load_string("""
         default_size_hint: 1, None
         height: self.minimum_height
 <RuleStepperRuleButton>:
-    text: self.name
+    text: '\\n'.join((str(self.start_tick), self.name, str(self.end_tick)))
     font_size: 14
     text_size: self.width, None
     halign: 'center'
     tick: app.tick
     set_tick: app.set_tick
-    canvas:
-        Color:
-            rgba: (1, 0, 0, 1) if self.tick in (self.start_tick, self.end_tick) else (0, 0, 0, 0)
-        Line:
-            points: [self.x, self.y + self.height, self.x + self.width, self.top] if app.tick == self.start_tick else [self.x, self.y, self.x + self.width, self.y]
 <EntityLabel>:
     multiline: True
     text: str(self.name)
