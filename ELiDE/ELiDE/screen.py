@@ -490,7 +490,7 @@ class CharMenuContainer(BoxLayout):
         self.stepper = RuleStepper(size_hint_y=0.9)
         self.button = Button(
             on_release=self._toggle,
-            text='Rule stepper',
+            text='Rule\nstepper',
             size_hint_y=0.1
         )
 
