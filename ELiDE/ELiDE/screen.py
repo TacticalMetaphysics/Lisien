@@ -43,6 +43,7 @@ from kivy.properties import (
     ReferenceListProperty,
     StringProperty
 )
+from .stepper import RuleStepper
 from .charmenu import CharMenu
 from .graph.board import GraphBoardView
 from .grid.board import GridBoardView
@@ -146,16 +147,19 @@ class TimePanel(BoxLayout):
         branch = self.ids.branchfield.text
         self.ids.branchfield.text = ''
         self.screen.app.branch = branch
+        self.screen.charmenu._switch_to_menu()
 
     def set_turn(self, *args):
         turn = int(self.ids.turnfield.text)
         self.ids.turnfield.text = ''
         self.screen.app.turn = turn
+        self.screen.charmenu._switch_to_menu()
 
     def set_tick(self, *args):
         tick = int(self.ids.tickfield.text)
         self.ids.tickfield.text = ''
         self.screen.app.tick = tick
+        self.screen.charmenu._switch_to_menu()
 
     def _upd_branch_hint(self, *args):
         self.ids.branchfield.hint_text = self.screen.app.branch
@@ -437,6 +441,7 @@ class MainScreen(Screen):
             tick=self.app._push_time
         )
         eng.next_turn(cb=partial(self._update_from_next_turn, cb=cb))
+        self.ids.charmenu._switch_to_menu()
 
     def switch_to_calendar(self, *args):
         self.app.update_calendar(self.calendar)
@@ -462,6 +467,64 @@ class MainScreen(Screen):
             self.switch_to_calendar()
         else:
             self.switch_to_boardview()
+
+
+class CharMenuContainer(BoxLayout):
+    screen = ObjectProperty()
+    dummyplace = ObjectProperty()
+    dummything = ObjectProperty()
+    portaladdbut = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        super(CharMenuContainer, self).__init__(**kwargs)
+        self.charmenu = CharMenu(
+            screen=self.screen,
+            size_hint_y=0.9
+        )
+        self.dummyplace = self.charmenu.dummyplace
+        self.charmenu.bind(dummyplace=self.setter('dummyplace'))
+        self.dummything = self.charmenu.dummything
+        self.charmenu.bind(dummything=self.setter('dummything'))
+        self.portaladdbut = self.charmenu.portaladdbut
+        self.charmenu.bind(portaladdbut=self.setter('portaladdbut'))
+        self.stepper = RuleStepper(size_hint_y=0.9)
+        self.button = Button(
+            on_release=self._toggle,
+            text='Rule\nstepper',
+            size_hint_y=0.1
+        )
+
+    def on_parent(self, *args):
+        if not self.screen or not hasattr(self, 'charmenu') or not hasattr(
+                self, 'stepper') or not hasattr(self, 'button'):
+            Clock.schedule_once(self.on_parent, 0)
+            return
+        self.add_widget(self.charmenu)
+        self.add_widget(self.button)
+
+    @trigger
+    def _toggle(self, *args):
+        if self.charmenu in self.children:
+            engine = self.screen.app.engine
+            self.clear_widgets()
+            self.stepper.from_rules_handled_turn(
+                engine.handle('rules_handled_turn')
+            )
+            self.add_widget(self.stepper)
+            self.button.text = 'Menu'
+        else:
+            self.clear_widgets()
+            self.add_widget(self.charmenu)
+            self.button.text = 'Rule stepper'
+        self.add_widget(self.button)
+
+    @trigger
+    def _switch_to_menu(self, *args):
+        if self.charmenu not in self.children:
+            self.clear_widgets()
+            self.add_widget(self.charmenu)
+            self.button.text = 'Rule stepper'
+            self.add_widget(self.button)
 
 
 Builder.load_string(
@@ -614,8 +677,9 @@ Builder.load_string(
         pos_hint: {'bot': 0}
         size_hint: (0.25, 0.2)
         disable_one_turn: root.tmp_block
-    CharMenu:
+    CharMenuContainer:
         id: charmenu
+        orientation: 'vertical'
         screen: root
         pos_hint: {'right': 1, 'top': 1}
         size_hint: (0.1, 1)

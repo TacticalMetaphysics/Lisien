@@ -287,7 +287,6 @@ class GraphArrowWidget(Widget):
     left_head_quad_vertices_fg = ListProperty(eight0s)
     right_head_quad_vertices_fg = ListProperty(eight0s)
     slope = NumericProperty(0.0, allownone=True)
-    y_intercept = NumericProperty(0)
     origin = ObjectProperty()
     destination = ObjectProperty()
     repointed = BooleanProperty(True)
@@ -533,7 +532,6 @@ class GraphArrowWidget(Widget):
             x2, y2, endx, endy, r
         )
         self.slope = self._get_slope()
-        self.y_intercept = self._get_b()
         self.repointed = True
 
     @trigger

@@ -17,6 +17,7 @@ from .allegedb.cache import (
     PickyDefaultDict,
     StructuredDefaultDict,
     TurnDict,
+    WindowDict,
     HistoryError
 )
 from .util import singleton_get, sort_set
@@ -245,7 +246,7 @@ class RulesHandledCache(object):
     def __init__(self, engine):
         self.engine = engine
         self.handled = {}
-        self.handled_deep = StructuredDefaultDict(2)
+        self.handled_deep = StructuredDefaultDict(1, type=WindowDict)
         self.unhandled = {}
 
     def get_rulebook(self, *args):
