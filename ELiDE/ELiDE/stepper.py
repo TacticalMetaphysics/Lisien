@@ -116,7 +116,6 @@ class RulebookTypeLabel(Label):
 
 Builder.load_string("""
 <RuleStepper>:
-            # rules is a WindowDict, guaranteed to be sorted
     key_viewclass: 'widget'
     RecycleGridLayout:
         cols: 1
