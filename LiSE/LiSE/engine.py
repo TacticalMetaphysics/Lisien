@@ -1398,14 +1398,14 @@ class Engine(AbstractEngine, gORM):
                 if res:
                     return True
             else:
-                handled_fun()
+                handled_fun(self.tick)
                 return False
 
         def check_prereqs(rule, handled_fun, entity):
             for prereq in rule.prereqs:
                 res = prereq(entity)
                 if not res:
-                    handled_fun()
+                    handled_fun(self.tick)
                     return False
             return True
 
@@ -1415,7 +1415,7 @@ class Engine(AbstractEngine, gORM):
                 res = action(entity)
                 if res:
                     actres.append(res)
-            handled_fun()
+            handled_fun(self.tick)
             return actres
 
         # TODO: triggers that don't mutate anything should be
@@ -1430,7 +1430,7 @@ class Engine(AbstractEngine, gORM):
             rule = rulemap[rulename]
             handled = partial(
                 self._handled_char, charactername, rulebook, rulename,
-                branch, turn, tick)
+                branch, turn)
             entity = charmap[charactername]
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
@@ -1449,7 +1449,7 @@ class Engine(AbstractEngine, gORM):
             rule = rulemap[rulen]
             handled = partial(
                 self._handled_av, charn, graphn, avn, rulebook, rulen,
-                branch, turn, tick)
+                branch, turn)
             entity = get_node(graphn, avn)
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
@@ -1464,7 +1464,7 @@ class Engine(AbstractEngine, gORM):
             rule = rulemap[rulen]
             handled = partial(
                 handled_char_thing, charn, thingn, rulebook, rulen,
-                branch, turn, tick)
+                branch, turn)
             entity = get_node(charn, thingn)
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
@@ -1479,7 +1479,7 @@ class Engine(AbstractEngine, gORM):
             rule = rulemap[rulen]
             handled = partial(
                 handled_char_place, charn, placen, rulebook, rulen,
-                branch, turn, tick)
+                branch, turn)
             entity = get_node(charn, placen)
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
@@ -1496,7 +1496,7 @@ class Engine(AbstractEngine, gORM):
             rule = rulemap[rulen]
             handled = partial(
                 handled_char_port, charn, orign, destn, rulebook, rulen,
-                branch, turn, tick)
+                branch, turn)
             entity = get_edge(charn, orign, destn)
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
@@ -1511,7 +1511,7 @@ class Engine(AbstractEngine, gORM):
             rule = rulemap[rulen]
             handled = partial(
                 handled_node, charn, noden, rulebook, rulen,
-                branch, turn, tick)
+                branch, turn)
             entity = get_node(charn, noden)
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
@@ -1526,7 +1526,7 @@ class Engine(AbstractEngine, gORM):
             rule = rulemap[rulen]
             handled = partial(
                 handled_portal, charn, orign, destn, rulebook, rulen,
-                branch, turn, tick)
+                branch, turn)
             entity = get_edge(charn, orign, destn)
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))

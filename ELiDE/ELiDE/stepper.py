@@ -69,6 +69,14 @@ class RuleStepperRuleButton(Button):
     name = StringProperty()
     start_tick = NumericProperty()
     end_tick = NumericProperty()
+    tick = NumericProperty()
+    set_tick = ObjectProperty()
+
+    def on_release(self, *args):
+        if self.tick == self.start_tick:
+            self.set_tick(self.end_tick)
+        else:
+            self.set_tick(self.start_tick)
 
 
 class EntityLabel(Label):
@@ -88,12 +96,22 @@ Builder.load_string("""
     key_viewclass: 'widget'
     RecycleGridLayout:
         cols: 1
+        size_hint_y: None
+        default_size_hint: 1, None
+        height: self.minimum_height
 <RuleStepperRuleButton>:
     text: self.name
     font_size: 14
     text_size: self.width, None
     height: self.texture_size[1] * 2
     halign: 'center'
+    tick: app.tick
+    set_tick: app.set_tick
+    canvas:
+        Color:
+            rgba: (1, 0, 0, 1) if self.tick in (self.start_tick, self.end_tick) else (0, 0, 0, 0)
+        Line:
+            points: [self.x, self.y + self.height, self.x + self.width, self.top] if app.tick == self.start_tick else [self.x, self.y, self.x + self.width, self.y]
 <EntityLabel>:
     multiline: True
     text: str(self.name)
