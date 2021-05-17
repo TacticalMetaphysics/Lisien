@@ -115,8 +115,10 @@ class RulebookTypeLabel(Label):
 
 
 Builder.load_string("""
+#:import ScrollEffect kivy.effects.scroll.ScrollEffect
 <RuleStepper>:
     key_viewclass: 'widget'
+    effect_cls: ScrollEffect
     RecycleGridLayout:
         cols: 1
         size_hint_y: None
