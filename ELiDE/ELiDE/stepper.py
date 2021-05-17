@@ -122,6 +122,7 @@ Builder.load_string("""
         cols: 1
         size_hint_y: None
         default_size_hint: 1, None
+        default_height: 20
         height: self.minimum_height
 <RuleStepperRuleButton>:
     text: '\\n'.join((self.name, str(self.end_tick)))
