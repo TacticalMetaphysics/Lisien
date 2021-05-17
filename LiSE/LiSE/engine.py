@@ -585,7 +585,7 @@ class Engine(AbstractEngine, gORM):
         from .allegedb.window import update_window, update_backward_window
         if turn_from == turn_to:
             return self.get_turn_delta(
-                branch, turn_to, tick_to,start_tick=tick_from)
+                branch, turn_to, tick_to, start_tick=tick_from)
         delta = super().get_delta(
             branch, turn_from, tick_from, turn_to, tick_to)
         if turn_from < turn_to:
@@ -744,90 +744,117 @@ class Engine(AbstractEngine, gORM):
         turn = turn or self.turn
         tick = tick or self.tick
         delta = super().get_turn_delta(branch, turn, start_tick, tick)
-        if branch in self._avatarness_cache.settings \
-                and turn in self._avatarness_cache.settings[branch]:
-            for chara, graph, node, is_av in self._avatarness_cache.settings[
+        if start_tick < tick:
+            avatarness_settings = self._avatarness_cache.settings
+            things_settings = self._things_cache.settings
+            rulebooks_settings = self._rulebooks_cache.settings
+            triggers_settings = self._triggers_cache.settings
+            prereqs_settings = self._prereqs_cache.settings
+            actions_settings = self._actions_cache.settings
+            character_rulebooks_settings = self._characters_rulebooks_cache.settings
+            avatar_rulebooks_settings = self._avatars_rulebooks_cache.settings
+            character_thing_rulebooks_settings = self._characters_things_rulebooks_cache.settings
+            character_place_rulebooks_settings = self._characters_places_rulebooks_cache.settings
+            character_portal_rulebooks_settings = self._characters_portals_rulebooks_cache.settings
+            node_rulebooks_settings = self._nodes_rulebooks_cache.settings
+            portal_rulebooks_settings = self._portals_rulebooks_cache.settings
+        else:
+            avatarness_settings = self._avatarness_cache.presettings
+            things_settings = self._things_cache.presettings
+            rulebooks_settings = self._rulebooks_cache.presettings
+            triggers_settings = self._triggers_cache.presettings
+            prereqs_settings = self._prereqs_cache.presettings
+            actions_settings = self._actions_cache.presettings
+            character_rulebooks_settings = self._characters_rulebooks_cache.presettings
+            avatar_rulebooks_settings = self._avatars_rulebooks_cache.presettings
+            character_thing_rulebooks_settings = self._characters_things_rulebooks_cache.presettings
+            character_place_rulebooks_settings = self._characters_places_rulebooks_cache.presettings
+            character_portal_rulebooks_settings = self._characters_portals_rulebooks_cache.presettings
+            node_rulebooks_settings = self._nodes_rulebooks_cache.presettings
+            portal_rulebooks_settings = self._portals_rulebooks_cache.presettings
+        if branch in avatarness_settings \
+                and turn in avatarness_settings[branch]:
+            for chara, graph, node, is_av in avatarness_settings[
                         branch][turn][start_tick:tick]:
                 delta.setdefault(chara, {}).setdefault(
                     'avatars', {}).setdefault(graph, {})[node] = is_av
-        if branch in self._things_cache.settings \
-                and turn in self._things_cache.settings[branch]:
-            for chara, thing, location in self._things_cache.settings[
+        if branch in things_settings \
+                and turn in things_settings[branch]:
+            for chara, thing, location in things_settings[
                                               branch][turn][start_tick:tick]:
                 thingd = delta.setdefault(chara, {}).setdefault(
                     'node_val', {}).setdefault(thing, {})
                 thingd['location'] = location
         delta['rulebooks'] = rbdif = {}
-        if branch in self._rulebooks_cache.settings \
-                and turn in self._rulebooks_cache.settings[branch]:
-            for _, rulebook, rules in self._rulebooks_cache.settings[
+        if branch in rulebooks_settings \
+                and turn in rulebooks_settings[branch]:
+            for _, rulebook, rules in rulebooks_settings[
                                           branch][turn][start_tick:tick]:
                 rbdif[rulebook] = rules
         delta['rules'] = rdif = {}
-        if branch in self._triggers_cache.settings \
-                and turn in self._triggers_cache.settings[branch]:
-            for _, rule, funs in self._triggers_cache.settings[
+        if branch in triggers_settings \
+                and turn in triggers_settings[branch]:
+            for _, rule, funs in triggers_settings[
                                      branch][turn][start_tick:tick]:
                 rdif.setdefault(rule, {})['triggers'] = funs
-        if branch in self._prereqs_cache.settings \
-                and turn in self._prereqs_cache.settings[branch]:
-            for _, rule, funs in self._prereqs_cache.settings[
+        if branch in prereqs_settings \
+                and turn in prereqs_settings[branch]:
+            for _, rule, funs in prereqs_settings[
                                      branch][turn][start_tick:tick]:
                 rdif.setdefault(rule, {})['prereqs'] = funs
-        if branch in self._actions_cache.settings \
-                and turn in self._triggers_cache.settings[branch]:
-            for _, rule, funs in self._triggers_cache.settings[
+        if branch in actions_settings \
+                and turn in actions_settings[branch]:
+            for _, rule, funs in actions_settings[
                                      branch][turn][start_tick:tick]:
                 rdif.setdefault(rule, {})['actions'] = funs
 
-        if branch in self._characters_rulebooks_cache.settings \
-                and turn in self._characters_rulebooks_cache.settings[branch]:
+        if branch in character_rulebooks_settings \
+                and turn in character_rulebooks_settings[branch]:
             for _, character, rulebook in \
-                    self._characters_rulebooks_cache.settings[
+                    character_rulebooks_settings[
                         branch][turn][start_tick:tick]:
                 delta.setdefault(
                     character, {})['character_rulebook'] = rulebook
-        if branch in self._avatars_rulebooks_cache.settings \
-                and turn in self._avatars_rulebooks_cache.settings[branch]:
+        if branch in avatar_rulebooks_settings \
+                and turn in avatar_rulebooks_settings[branch]:
             for _, character, rulebook in \
-                    self._avatars_rulebooks_cache.settings[
+                    avatar_rulebooks_settings[
                         branch][turn][start_tick:tick]:
                 delta.setdefault(character, {})['avatar_rulebook'] = rulebook
-        if branch in self._characters_things_rulebooks_cache.settings \
-                and turn in self._characters_things_rulebooks_cache.settings[
+        if branch in character_thing_rulebooks_settings \
+                and turn in character_thing_rulebooks_settings[
                     branch]:
             for _, character, rulebook in \
-                    self._characters_things_rulebooks_cache.settings[
+                    character_thing_rulebooks_settings[
                         branch][turn][start_tick:tick]:
                 delta.setdefault(
                     character, {})['character_thing_rulebook'] = rulebook
-        if branch in self._characters_places_rulebooks_cache.settings \
-                and turn in self._characters_places_rulebooks_cache.settings[
-                    branch]:
+        if branch in character_place_rulebooks_settings \
+                and turn in character_place_rulebooks_settings[branch]:
             for _, character, rulebook in \
-                    self._characters_places_rulebooks_cache.settings[
+                    character_place_rulebooks_settings[
                         branch][turn][start_tick:tick]:
                 delta.setdefault(
                     character, {})['character_place_rulebook'] = rulebook
-        if branch in self._characters_portals_rulebooks_cache.settings \
-                and turn in self._characters_portals_rulebooks_cache.settings[
+        if branch in character_portal_rulebooks_settings \
+                and turn in character_portal_rulebooks_settings[
                     branch]:
             for _, character, rulebook in \
-                    self._characters_portals_rulebooks_cache.settings[
+                    character_portal_rulebooks_settings[
                         branch][turn][start_tick:tick]:
                 delta.setdefault(character, {})['character_portal_rulebook'] = rulebook
 
-        if branch in self._nodes_rulebooks_cache.settings \
-                and turn in self._nodes_rulebooks_cache.settings[branch]:
+        if branch in node_rulebooks_settings \
+                and turn in node_rulebooks_settings[branch]:
             for character, node, rulebook in \
-                    self._nodes_rulebooks_cache.settings[
+                    node_rulebooks_settings[
                         branch][turn][start_tick:tick]:
                 delta.setdefault(character, {}).setdefault(
                     'node_val', {}).setdefault(node, {})['rulebook'] = rulebook
-        if branch in self._portals_rulebooks_cache.settings \
-                and turn in self._portals_rulebooks_cache.settings[branch]:
+        if branch in portal_rulebooks_settings \
+                and turn in portal_rulebooks_settings[branch]:
             for character, orig, dest, rulebook in \
-                    self._portals_rulebooks_cache.settings[
+                    portal_rulebooks_settings[
                         branch][turn][start_tick:tick]:
                 delta.setdefault(character, {}).setdefault('edge_val', {}) \
                     .setdefault(orig, {}).setdefault(dest, {})[
