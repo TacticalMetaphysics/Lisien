@@ -74,10 +74,10 @@ class RuleStepperRuleButton(Button):
     set_tick = ObjectProperty()
 
     def on_release(self, *args):
-        if self.tick == self.start_tick:
-            self.set_tick(self.end_tick)
-        else:
+        if self.tick == self.end_tick:
             self.set_tick(self.start_tick)
+        else:
+            self.set_tick(self.end_tick)
 
 
 class EntityLabel(Label):
