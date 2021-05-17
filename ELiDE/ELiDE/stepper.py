@@ -55,7 +55,8 @@ class RuleStepper(RecycleView):
                     'widget': 'RuleStepperRuleButton',
                     'name': rule,
                     'start_tick': tick,
-                    'end_tick': None
+                    'end_tick': None,
+                    'height': 28
                 })
             if data:
                 prev = data[-1]
@@ -103,7 +104,6 @@ Builder.load_string("""
     text: self.name
     font_size: 14
     text_size: self.width, None
-    height: self.texture_size[1] * 2
     halign: 'center'
     tick: app.tick
     set_tick: app.set_tick
