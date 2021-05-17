@@ -508,7 +508,6 @@ class CharMenuContainer(BoxLayout):
             engine = self.screen.app.engine
             self.clear_widgets()
             self.stepper.from_rules_handled_turn(
-                self.screen.app.tick,
                 engine.handle('rules_handled_turn')
             )
             self.add_widget(self.stepper)

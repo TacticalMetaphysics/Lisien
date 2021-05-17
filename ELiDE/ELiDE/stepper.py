@@ -14,7 +14,7 @@ from kivy.graphics import Color, Line
 class RuleStepper(RecycleView):
     name = StringProperty()
 
-    def from_rules_handled_turn(self, start_tick, rules_handled_turn):
+    def from_rules_handled_turn(self, rules_handled_turn):
         data = []
         for rbtyp, rules in rules_handled_turn.items():
             if not rules:
@@ -26,7 +26,7 @@ class RuleStepper(RecycleView):
             last_entity = None
             last_rulebook = None
             # rules is a WindowDict, guaranteed to be sorted
-            prev_tick = start_tick
+            prev_tick = 0
             for tick, (entity, rulebook, rule) in rules.items():
                 rulebook_per_entity = rbtyp in {'thing', 'place', 'portal'}
                 if not rulebook_per_entity:
