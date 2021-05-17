@@ -21,7 +21,9 @@ from functools import partial
 from collections import defaultdict
 from collections.abc import Mapping
 from operator import attrgetter
-from types import FunctionType, MethodType
+from types import FunctionType, MethodType, ModuleType
+from typing import Type, Union
+from os import PathLike
 from abc import ABC, abstractmethod
 
 import msgpack
@@ -30,6 +32,7 @@ from .allegedb import ORM as gORM
 from .allegedb import HistoryError
 from .reify import reify
 from .util import sort_set
+from .xcollections import StringStore, FunctionStore, MethodStore
 
 from . import exc
 
@@ -1000,22 +1003,22 @@ class Engine(AbstractEngine, gORM):
 
     def __init__(
             self,
-            prefix='.',
+            prefix: PathLike = '.',
             *,
-            string=None,
-            trigger=None,
-            prereq=None,
-            action=None,
-            function=None,
-            method=None,
-            connect_string=None,
-            connect_args={},
-            schema_cls=NullSchema,
+            string: Union[StringStore, dict] = None,
+            trigger: Union[FunctionStore, ModuleType] = None,
+            prereq: Union[FunctionStore, ModuleType] = None,
+            action: Union[FunctionStore, ModuleType] = None,
+            function: Union[FunctionStore, ModuleType] = None,
+            method: Union[MethodStore, ModuleType] = None,
+            connect_string: str = None,
+            connect_args: dict = None,
+            schema_cls: Type[AbstractSchema] = NullSchema,
             alchemy=False,
             flush_modulus=1,
             commit_modulus=10,
-            random_seed=None,
-            logfun=None,
+            random_seed: int = None,
+            logfun: FunctionType = None,
             validate=False,
             clear=False,
             keep_rules_journal=True
@@ -1068,6 +1071,8 @@ class Engine(AbstractEngine, gORM):
         """
         import os
         from .xcollections import StringStore
+        if connect_args is None:
+            connect_args = {}
         self.keep_rules_journal = keep_rules_journal
         self.exist_node_time = 0
         self.exist_edge_time = 0
