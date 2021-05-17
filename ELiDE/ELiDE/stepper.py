@@ -15,19 +15,29 @@ class RuleStepper(RecycleView):
     name = StringProperty()
 
     def from_rules_handled_turn(self, rules_handled_turn):
-        data = []
-        for rbtyp, rules in rules_handled_turn.items():
+        data = [{
+            'widget': 'RuleStepperRuleButton',
+            'name': 'start',
+            'end_tick': 0,
+            'height': 40
+        }]
+        prev_tick = 0
+        for rbtyp, rules in sorted(rules_handled_turn.items(),
+                                   key=lambda kv: min(kv[1].keys() or [-1])):
             if not rules:
                 continue
-            data.append({
-                'widget': 'RulebookTypeLabel',
-                'name': rbtyp
-            })
             last_entity = None
             last_rulebook = None
-            # rules is a WindowDict, guaranteed to be sorted
-            prev_tick = 0
-            for tick, (entity, rulebook, rule) in rules.items():
+            typed = False
+            for tick, (entity, rulebook, rule) in sorted(rules.items()):
+                if tick == prev_tick:
+                    continue
+                if not typed:
+                    data.append({
+                        'widget': 'RulebookTypeLabel',
+                        'name': rbtyp
+                    })
+                    typed = True
                 rulebook_per_entity = rbtyp in {'thing', 'place', 'portal'}
                 if not rulebook_per_entity:
                     if rulebook != last_rulebook:
@@ -72,13 +82,8 @@ class RuleStepperRuleButton(Button):
         self.bind(pos=self.upd_line, size=self.upd_line, tick=self.upd_line)
 
     def on_release(self, *args):
-        tick = App.get_running_app().tick
-        if tick == self.end_tick:
-            tick = self.start_tick
-        else:
-            tick = self.end_tick
-        self.set_tick(tick)
-        self.tick = tick
+        self.set_tick(self.end_tick)
+        self.tick = self.end_tick
 
     def upd_line(self, *args):
         if hasattr(self, 'color_inst'):
@@ -111,6 +116,7 @@ class RulebookTypeLabel(Label):
 
 Builder.load_string("""
 <RuleStepper>:
+            # rules is a WindowDict, guaranteed to be sorted
     key_viewclass: 'widget'
     RecycleGridLayout:
         cols: 1
@@ -118,7 +124,7 @@ Builder.load_string("""
         default_size_hint: 1, None
         height: self.minimum_height
 <RuleStepperRuleButton>:
-    text: '\\n'.join((str(self.start_tick), self.name, str(self.end_tick)))
+    text: '\\n'.join((self.name, str(self.end_tick)))
     font_size: 14
     text_size: self.width, None
     halign: 'center'
