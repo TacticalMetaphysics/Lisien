@@ -1299,6 +1299,7 @@ class EngineHandle(object):
         if turn is None:
             turn = self.turn
         eng = self._real
+        # assume the caches are all sync'd
         return {
             'character': eng._character_rules_handled_cache.handled_deep[branch
             ][turn],

@@ -112,7 +112,8 @@ class NextTurn(Signal):
                         tick_to=tick
                     )
         engine._turns_completed[start_branch] = engine.turn
-        engine.query.complete_turn(start_branch, engine.turn)
+        if not self.engine.keep_rules_journal:
+            engine.query.complete_turn(start_branch, engine.turn)
         if engine.flush_modulus and engine.turn % engine.flush_modulus == 0:
             engine.query.flush()
         if engine.commit_modulus and engine.turn % engine.commit_modulus == 0:
@@ -520,6 +521,9 @@ class Engine(AbstractEngine, gORM):
       objects, but this one *is* sensitive to sim-time. Each turn, the
       state of the randomizer is saved here under the key
       ``'rando_state'``.
+    - ``keep_rules_journal``: Boolean; if true (default), keep
+      information on the behavior of the rules engine in the database.
+      Makes the database rather large, but useful for debugging.
 
     """
     from .character import Character
@@ -1016,7 +1020,8 @@ class Engine(AbstractEngine, gORM):
             random_seed=None,
             logfun=None,
             validate=False,
-            clear=False
+            clear=False,
+            keep_rules_journal=True
     ):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
@@ -1063,6 +1068,7 @@ class Engine(AbstractEngine, gORM):
         """
         import os
         from .xcollections import StringStore
+        self.keep_rules_journal = keep_rules_journal
         self.exist_node_time = 0
         self.exist_edge_time = 0
         if string:
