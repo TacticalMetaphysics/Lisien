@@ -521,9 +521,6 @@ class Engine(AbstractEngine, gORM):
       objects, but this one *is* sensitive to sim-time. Each turn, the
       state of the randomizer is saved here under the key
       ``'rando_state'``.
-    - ``keep_rules_journal``: Boolean; if true (default), keep
-      information on the behavior of the rules engine in the database.
-      Makes the database rather large, but useful for debugging.
 
     """
     from .character import Character
@@ -1064,6 +1061,9 @@ class Engine(AbstractEngine, gORM):
         loading the game
         :arg clear: whether to delete *any and all* existing data
         and code in ``prefix``. Use with caution!
+        :arg keep_rules_journal: Boolean; if true (default), keep
+        information on the behavior of the rules engine in the database.
+        Makes the database rather large, but useful for debugging.
 
         """
         import os
