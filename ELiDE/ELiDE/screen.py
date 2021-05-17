@@ -147,19 +147,19 @@ class TimePanel(BoxLayout):
         branch = self.ids.branchfield.text
         self.ids.branchfield.text = ''
         self.screen.app.branch = branch
-        self.ids.charmenu._switch_to_menu()
+        self.screen.charmenu._switch_to_menu()
 
     def set_turn(self, *args):
         turn = int(self.ids.turnfield.text)
         self.ids.turnfield.text = ''
         self.screen.app.turn = turn
-        self.ids.charmenu._switch_to_menu()
+        self.screen.charmenu._switch_to_menu()
 
     def set_tick(self, *args):
         tick = int(self.ids.tickfield.text)
         self.ids.tickfield.text = ''
         self.screen.app.tick = tick
-        self.ids.charmenu._switch_to_menu()
+        self.screen.charmenu._switch_to_menu()
 
     def _upd_branch_hint(self, *args):
         self.ids.branchfield.hint_text = self.screen.app.branch
