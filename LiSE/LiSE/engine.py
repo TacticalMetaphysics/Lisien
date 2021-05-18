@@ -927,6 +927,7 @@ class Engine(AbstractEngine, gORM):
                 self._characters_portals_rulebooks_cache.settings
             noderbbranches = self._nodes_rulebooks_cache.settings
             edgerbbranches = self._portals_rulebooks_cache.settings
+            tick_to += 1
         else:
             updater = partial(
                 update_backward_window, turn_from, tick_from, turn_to, tick_to)

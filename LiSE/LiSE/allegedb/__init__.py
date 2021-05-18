@@ -450,6 +450,7 @@ class ORM(object):
             nvbranches = self._node_val_cache.presettings
             ebranches = self._edges_cache.presettings
             evbranches = self._edge_val_cache.presettings
+            tick_to += 1
         else:
             updater = partial(update_window, turn_from, tick_from, turn_to, tick_to)
             gvbranches = self._graph_val_cache.settings
