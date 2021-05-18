@@ -54,12 +54,14 @@ def tables_for_meta(meta):
         ),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
-        Column('value', TEXT)
+        Column('value', TEXT),
+        sqlite_with_rowid=False
     )
 
     Table(
         'rules', meta,
-        Column('rule', TEXT, primary_key=True)
+        Column('rule', TEXT, primary_key=True),
+        sqlite_with_rowid=False
     )
 
     # Table grouping rules into lists called rulebooks.
@@ -69,7 +71,8 @@ def tables_for_meta(meta):
         Column('branch', TEXT, primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
-        Column('rules', TEXT, default='[]')
+        Column('rules', TEXT, default='[]'),
+        sqlite_with_rowid=False
     )
 
     # Table for rules' triggers, those functions that return True only
@@ -83,7 +86,8 @@ def tables_for_meta(meta):
         Column('triggers', TEXT, default='[]'),
         ForeignKeyConstraint(
             ['rule'], ['rules.rule']
-        )
+        ),
+        sqlite_with_rowid=False
     )
 
     # Table for rules' prereqs, functions with veto power over a rule
@@ -97,7 +101,8 @@ def tables_for_meta(meta):
         Column('prereqs', TEXT, default='[]'),
         ForeignKeyConstraint(
             ['rule'], ['rules.rule']
-        )
+        ),
+        sqlite_with_rowid=False
     )
 
     # Table for rules' actions, the functions that do what the rule
@@ -111,7 +116,8 @@ def tables_for_meta(meta):
         Column('actions', TEXT, default='[]'),
         ForeignKeyConstraint(
             ['rule'], ['rules.rule']
-        )
+        ),
+        sqlite_with_rowid=False
     )
 
     # The top level of the LiSE world model, the character. Includes
@@ -138,7 +144,8 @@ def tables_for_meta(meta):
             ),
             ForeignKeyConstraint(
                 ['rulebook'], ['rulebooks.rulebook']
-            )
+            ),
+            sqlite_with_rowid=False
         )
 
     # Rules handled within the rulebook associated with one node in
@@ -154,24 +161,8 @@ def tables_for_meta(meta):
         Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'node'], ['nodes.graph', 'nodes.node']
-        )
-    )
-
-    Table(
-        'node_rules_changes', meta,
-        Column('character', TEXT, primary_key=True),
-        Column('node', TEXT, primary_key=True),
-        Column('rulebook', TEXT, primary_key=True),
-        Column('rule', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('turn', INT, primary_key=True),
-        Column('tick', INT, primary_key=True),
-        Column('handled_branch', TEXT),
-        Column('handled_turn', INT),
-        ForeignKeyConstraint(
-            ['character', 'node', 'rulebook', 'rule', 'handled_branch', 'handled_turn'],
-            [nrh.c.character, nrh.c.node, nrh.c.rulebook, nrh.c.rule, nrh.c.branch, nrh.c.turn]
-        )
+        ),
+        sqlite_with_rowid=False
     )
 
     # Rules handled within the rulebook associated with one portal in
@@ -188,48 +179,8 @@ def tables_for_meta(meta):
         Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'orig', 'dest'], ['edges.graph', 'edges.orig', 'edges.dest']
-        )
-    )
-
-    Table(
-        'portal_rules_changes', meta,
-        Column('character', TEXT, primary_key=True),
-        Column('orig', TEXT, primary_key=True),
-        Column('dest', TEXT, primary_key=True),
-        Column('rulebook', TEXT, primary_key=True),
-        Column('rule', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('turn', INT, primary_key=True),
-        Column('tick', INT, primary_key=True),
-        Column('handled_branch', TEXT),
-        Column('handled_turn', INT),
-        ForeignKeyConstraint(
-            ['character', 'orig', 'dest', 'rulebook', 'rule', 'handled_branch', 'handled_turn'],
-            [porh.c.character, porh.c.orig, porh.c.dest, porh.c.rulebook, porh.c.rule, porh.c.branch, porh.c.turn]
-        )
-    )
-
-    # The function to use for a given sense.
-    #
-    # Characters use senses to look at other characters. To model this,
-    # sense functions are called with a facade representing the
-    # character under observation; the function munges this facade to
-    # make it look as it does through the sense in question, and returns
-    # that.
-    Table(
-        'senses', meta,
-        # null character field means all characters have this sense
-        Column(
-            'character', TEXT, primary_key=True, nullable=True
         ),
-        Column('sense', TEXT, primary_key=True),
-        Column(
-            'branch', TEXT, primary_key=True, default='trunk'
-        ),
-        Column('turn', INT, primary_key=True, default=0),
-        Column('tick', INT, primary_key=True, default=0),
-        Column('function', TEXT, nullable=True),
-        ForeignKeyConstraint(['character'], ['graphs.graph'])
+        sqlite_with_rowid=False
     )
 
     # Table for Things, being those nodes in a Character graph that have
@@ -253,7 +204,8 @@ def tables_for_meta(meta):
         ),
         ForeignKeyConstraint(
             ['character', 'location'], ['nodes.graph', 'nodes.node']
-        )
+        ),
+        sqlite_with_rowid=False
     )
 
     # The rulebook followed by a given node.
@@ -267,7 +219,8 @@ def tables_for_meta(meta):
         Column('rulebook', TEXT),
         ForeignKeyConstraint(
             ['character', 'node'], ['nodes.graph', 'nodes.node']
-        )
+        ),
+        sqlite_with_rowid=False
     )
 
     # The rulebook followed by a given Portal.
@@ -288,7 +241,8 @@ def tables_for_meta(meta):
         ForeignKeyConstraint(
             ['character', 'orig', 'dest'],
             ['edges.graph', 'edges.orig', 'edges.dest']
-        )
+        ),
+        sqlite_with_rowid=False
     )
 
     # The avatars representing one Character in another.
@@ -317,7 +271,8 @@ def tables_for_meta(meta):
         ForeignKeyConstraint(
             ['avatar_graph', 'avatar_node'],
             ['nodes.graph', 'nodes.node']
-        )
+        ),
+        sqlite_with_rowid=False
     )
 
     crh = Table(
@@ -330,23 +285,8 @@ def tables_for_meta(meta):
         Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'rulebook'], ['character_rulebook.character', 'character_rulebook.rulebook']
-        )
-    )
-
-    Table(
-        'character_rules_changes', meta,
-        Column('character', TEXT, primary_key=True),
-        Column('rulebook', TEXT, primary_key=True),
-        Column('rule', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('turn', INT, primary_key=True),
-        Column('tick', INT, primary_key=True),
-        Column('handled_branch', TEXT),
-        Column('handled_turn', TEXT),
-        ForeignKeyConstraint(
-            ['character', 'rulebook', 'rule', 'handled_branch', 'handled_turn'],
-            [crh.c.character, crh.c.rulebook, crh.c.rule, crh.c.branch, crh.c.turn]
-        )
+        ),
+        sqlite_with_rowid=False
     )
 
     arh = Table(
@@ -361,25 +301,8 @@ def tables_for_meta(meta):
         Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'rulebook'], ['avatar_rulebook.character', 'avatar_rulebook.rulebook']
-        )
-    )
-
-    Table(
-        'avatar_rules_changes', meta,
-        Column('character', TEXT, primary_key=True),
-        Column('rulebook', TEXT, primary_key=True),
-        Column('rule', TEXT, primary_key=True),
-        Column('graph', TEXT, primary_key=True),
-        Column('avatar', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('turn', INT, primary_key=True),
-        Column('tick', INT, primary_key=True),
-        Column('handled_branch', TEXT),
-        Column('handled_turn', TEXT),
-        ForeignKeyConstraint(
-            ['character', 'rulebook', 'rule', 'graph', 'avatar', 'handled_branch', 'handled_turn'],
-            [arh.c.character, arh.c.rulebook, arh.c.rule, arh.c.graph, arh.c.avatar, arh.c.branch, arh.c.turn]
-        )
+        ),
+        sqlite_with_rowid=False
     )
 
     ctrh = Table(
@@ -396,24 +319,8 @@ def tables_for_meta(meta):
         ),
         ForeignKeyConstraint(
             ['character', 'thing'], ['things.character', 'things.thing']
-        )
-    )
-
-    Table(
-        'character_thing_rules_changes', meta,
-        Column('character', TEXT, primary_key=True),
-        Column('rulebook', TEXT, primary_key=True),
-        Column('rule', TEXT, primary_key=True),
-        Column('thing', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('turn', INT, primary_key=True),
-        Column('tick', INT, primary_key=True),
-        Column('handled_branch', TEXT),
-        Column('handled_turn', INT),
-        ForeignKeyConstraint(
-            ['character', 'rulebook', 'rule', 'thing', 'handled_branch', 'handled_turn'],
-            [ctrh.c.character, ctrh.c.rulebook, ctrh.c.rule, ctrh.c.thing, ctrh.c.branch, ctrh.c.turn]
-        )
+        ),
+        sqlite_with_rowid=False
     )
 
     cprh = Table(
@@ -430,24 +337,8 @@ def tables_for_meta(meta):
         ),
         ForeignKeyConstraint(
             ['character', 'place'], ['nodes.graph', 'nodes.node']
-        )
-    )
-
-    Table(
-        'character_place_rules_changes', meta,
-        Column('character', TEXT, primary_key=True),
-        Column('rulebook', TEXT, primary_key=True),
-        Column('rule', TEXT, primary_key=True),
-        Column('place', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('turn', INT, primary_key=True),
-        Column('tick', INT, primary_key=True),
-        Column('handled_branch', TEXT),
-        Column('handled_turn', INT),
-        ForeignKeyConstraint(
-            ['character', 'rulebook', 'rule', 'place', 'handled_branch', 'handled_turn'],
-            [cprh.c.character, cprh.c.rulebook, cprh.c.rule, cprh.c.place, cprh.c.branch, cprh.c.turn]
-        )
+        ),
+        sqlite_with_rowid=False
     )
 
     cporh = Table(
@@ -465,31 +356,15 @@ def tables_for_meta(meta):
         ),
         ForeignKeyConstraint(
             ['character', 'orig', 'dest'], ['edges.graph', 'edges.orig', 'edges.dest']
-        )
-    )
-
-    Table(
-        'character_portal_rules_changes', meta,
-        Column('character', TEXT, primary_key=True),
-        Column('rulebook', TEXT, primary_key=True),
-        Column('rule', TEXT, primary_key=True),
-        Column('orig', TEXT, primary_key=True),
-        Column('dest', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('turn', INT, primary_key=True),
-        Column('tick', INT, primary_key=True),
-        Column('handled_branch', TEXT),
-        Column('handled_turn', INT),
-        ForeignKeyConstraint(
-            ['character', 'rulebook', 'rule', 'orig', 'dest', 'handled_branch', 'handled_turn'],
-            [cporh.c.character, cporh.c.rulebook, cporh.c.rule, cporh.c.orig, cporh.c.dest, cporh.c.branch, cporh.c.turn]
-        )
+        ),
+        sqlite_with_rowid=False
     )
 
     Table(
         'turns_completed', meta,
         Column('branch', TEXT, primary_key=True),
-        Column('turn', INT)
+        Column('turn', INT),
+        sqlite_with_rowid=False
     )
 
     return meta.tables

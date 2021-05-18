@@ -857,7 +857,6 @@ class QueryEngine(query.QueryEngine):
             'universals',
             'rules',
             'rulebooks',
-            'senses',
             'things',
             'character_rulebook',
             'avatar_rulebook',

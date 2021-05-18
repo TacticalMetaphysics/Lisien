@@ -51,7 +51,8 @@ def tables_for_meta(meta):
     Table(
         'global', meta,
         Column('key', TEXT, primary_key=True),
-        Column('value', TEXT, nullable=True)
+        Column('value', TEXT, nullable=True),
+        sqlite_with_rowid=False
     )
     Table(
         'branches', meta,
@@ -64,14 +65,16 @@ def tables_for_meta(meta):
         Column('parent_tick', INT, default=0),
         Column('end_turn', INT, default=0),
         Column('end_tick', INT, default=0),
-        CheckConstraint('branch<>parent')
+        CheckConstraint('branch<>parent'),
+        sqlite_with_rowid=False
     )
     Table(
         'turns', meta,
         Column('branch', TEXT, primary_key=True),
         Column('turn', INT, primary_key=True),
         Column('end_tick', INT),
-        Column('plan_end_tick', INT)
+        Column('plan_end_tick', INT),
+        sqlite_with_rowid=False
     )
     Table(
         'graphs', meta,
@@ -79,7 +82,8 @@ def tables_for_meta(meta):
         Column('type', TEXT, default='Graph'),
         CheckConstraint(
             "type IN ('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph')"
-        )
+        ),
+        sqlite_with_rowid=False
     )
     Table(
         'keyframes', meta,
@@ -90,7 +94,8 @@ def tables_for_meta(meta):
         Column('tick', INT, primary_key=True, default=0),
         Column('nodes', TEXT),
         Column('edges', TEXT),
-        Column('graph_val', TEXT)
+        Column('graph_val', TEXT),
+        sqlite_with_rowid=False
     )
     Table(
         'graph_val', meta,
@@ -101,7 +106,8 @@ def tables_for_meta(meta):
                primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
-        Column('value', TEXT, nullable=True)
+        Column('value', TEXT, nullable=True),
+        sqlite_with_rowid=False
     )
     Table(
         'nodes', meta,
@@ -112,7 +118,8 @@ def tables_for_meta(meta):
                primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
-        Column('extant', BOOLEAN)
+        Column('extant', BOOLEAN),
+        sqlite_with_rowid=False
     )
     Table(
         'node_val', meta,
@@ -126,7 +133,8 @@ def tables_for_meta(meta):
         Column('value', TEXT, nullable=True),
         ForeignKeyConstraint(
             ['graph', 'node'], ['nodes.graph', 'nodes.node']
-        )
+        ),
+        sqlite_with_rowid=False
     )
     Table(
         'edges', meta,
@@ -145,7 +153,8 @@ def tables_for_meta(meta):
         ),
         ForeignKeyConstraint(
             ['graph', 'dest'], ['nodes.graph', 'nodes.node']
-        )
+        ),
+        sqlite_with_rowid=False
     )
     Table(
         'edge_val', meta,
@@ -162,14 +171,16 @@ def tables_for_meta(meta):
         ForeignKeyConstraint(
             ['graph', 'orig', 'dest', 'idx'],
             ['edges.graph', 'edges.orig', 'edges.dest', 'edges.idx']
-        )
+        ),
+        sqlite_with_rowid=False
     )
     Table(
         'plans', meta,
         Column('id', INT, primary_key=True),
         Column('branch', TEXT),
         Column('turn', INT),
-        Column('tick', INT)
+        Column('tick', INT),
+        sqlite_with_rowid=False
     )
     Table(
         'plan_ticks', meta,
@@ -179,7 +190,8 @@ def tables_for_meta(meta):
         ForeignKeyConstraint(
             ('plan_id',),
             ('plans.id',)
-        )
+        ),
+        sqlite_with_rowid=False
     )
     return meta.tables
 
