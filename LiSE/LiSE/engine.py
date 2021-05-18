@@ -54,88 +54,6 @@ class InnerStopIteration(StopIteration):
     pass
 
 
-class NextTurn(Signal):
-    """Make time move forward in the simulation.
-
-    Calls ``advance`` repeatedly, returning a list of the rules' return values.
-
-    I am also a ``Signal``, so you can register functions to be
-    called when the simulation runs. Pass them to my ``connect``
-    method.
-
-    """
-    def __init__(self, engine):
-        super().__init__()
-        self.engine = engine
-
-    def __call__(self):
-        engine = self.engine
-        start_branch, start_turn, start_tick = engine._btt()
-        latest_turn = engine._turns_completed[start_branch]
-        if start_turn < latest_turn:
-            engine.turn += 1
-            self.send(
-                engine,
-                branch=engine.branch,
-                turn=engine.turn,
-                tick=engine.tick
-            )
-            return [], engine.get_delta(
-                branch=start_branch,
-                turn_from=start_turn,
-                turn_to=engine.turn,
-                tick_from=start_tick,
-                tick_to=engine.tick
-            )
-        elif start_turn > latest_turn + 1:
-            raise exc.RulesEngineError(
-                "Can't run the rules engine on any turn but the latest")
-        if start_turn == latest_turn:
-            # As a side effect, the following assignment sets the tick
-            # to the latest in the new turn, which will be 0 if that
-            # turn has not yet been simulated.
-            engine.turn += 1
-        with engine.advancing():
-            for res in iter(engine.advance, final_rule):
-                if res:
-                    engine.universal['last_result'] = res
-                    engine.universal['last_result_idx'] = 0
-                    branch, turn, tick = engine._btt()
-                    self.send(
-                        engine,
-                        branch=branch,
-                        turn=turn,
-                        tick=tick
-                    )
-                    return res, engine.get_delta(
-                        branch=start_branch,
-                        turn_from=start_turn,
-                        turn_to=turn,
-                        tick_from=start_tick,
-                        tick_to=tick
-                    )
-        engine._turns_completed[start_branch] = engine.turn
-        if not self.engine.keep_rules_journal:
-            engine.query.complete_turn(start_branch, engine.turn)
-        if engine.flush_modulus and engine.turn % engine.flush_modulus == 0:
-            engine.query.flush()
-        if engine.commit_modulus and engine.turn % engine.commit_modulus == 0:
-            engine.query.commit()
-        self.send(
-            self.engine,
-            branch=engine.branch,
-            turn=engine.turn,
-            tick=engine.tick
-        )
-        return [], engine.get_delta(
-            branch=engine.branch,
-            turn_from=start_turn,
-            turn_to=engine.turn,
-            tick_from=start_tick,
-            tick_to=engine.tick
-        )
-
-
 class DummyEntity(dict):
     """Something to use in place of a node or edge"""
     __slots__ = ['engine']
@@ -172,7 +90,7 @@ MSGPACK_PREREQ = 0x77
 MSGPACK_ACTION = 0x76
 
 
-class AbstractEngine(object):
+class AbstractEngine:
     """Parent class to the real Engine as well as EngineProxy.
 
     Implements serialization and the __getattr__ for stored methods.
@@ -451,6 +369,88 @@ class AbstractEngine(object):
     uniform = getnoplan('_rando.uniform')
     vonmisesvariate = getnoplan('_rando.vonmisesvariate')
     weibullvariate = getnoplan('_rando.weibullvariate')
+
+
+class NextTurn(Signal):
+    """Make time move forward in the simulation.
+
+    Calls ``advance`` repeatedly, returning a list of the rules' return values.
+
+    I am also a ``Signal``, so you can register functions to be
+    called when the simulation runs. Pass them to my ``connect``
+    method.
+
+    """
+    def __init__(self, engine: AbstractEngine):
+        super().__init__()
+        self.engine = engine
+
+    def __call__(self):
+        engine = self.engine
+        start_branch, start_turn, start_tick = engine._btt()
+        latest_turn = engine._turns_completed[start_branch]
+        if start_turn < latest_turn:
+            engine.turn += 1
+            self.send(
+                engine,
+                branch=engine.branch,
+                turn=engine.turn,
+                tick=engine.tick
+            )
+            return [], engine.get_delta(
+                branch=start_branch,
+                turn_from=start_turn,
+                turn_to=engine.turn,
+                tick_from=start_tick,
+                tick_to=engine.tick
+            )
+        elif start_turn > latest_turn + 1:
+            raise exc.RulesEngineError(
+                "Can't run the rules engine on any turn but the latest")
+        if start_turn == latest_turn:
+            # As a side effect, the following assignment sets the tick
+            # to the latest in the new turn, which will be 0 if that
+            # turn has not yet been simulated.
+            engine.turn += 1
+        with engine.advancing():
+            for res in iter(engine.advance, final_rule):
+                if res:
+                    engine.universal['last_result'] = res
+                    engine.universal['last_result_idx'] = 0
+                    branch, turn, tick = engine._btt()
+                    self.send(
+                        engine,
+                        branch=branch,
+                        turn=turn,
+                        tick=tick
+                    )
+                    return res, engine.get_delta(
+                        branch=start_branch,
+                        turn_from=start_turn,
+                        turn_to=turn,
+                        tick_from=start_tick,
+                        tick_to=tick
+                    )
+        engine._turns_completed[start_branch] = engine.turn
+        if not self.engine.keep_rules_journal:
+            engine.query.complete_turn(start_branch, engine.turn)
+        if engine.flush_modulus and engine.turn % engine.flush_modulus == 0:
+            engine.query.flush()
+        if engine.commit_modulus and engine.turn % engine.commit_modulus == 0:
+            engine.query.commit()
+        self.send(
+            self.engine,
+            branch=engine.branch,
+            turn=engine.turn,
+            tick=engine.tick
+        )
+        return [], engine.get_delta(
+            branch=engine.branch,
+            turn_from=start_turn,
+            turn_to=engine.turn,
+            tick_from=start_tick,
+            tick_to=engine.tick
+        )
 
 
 class AbstractSchema(ABC):
@@ -1044,7 +1044,8 @@ class Engine(AbstractEngine, gORM):
 
         return delta
 
-    def get_turn_delta(self, branch=None, turn=None, tick=None, start_tick=0):
+    def get_turn_delta(self, branch: str = None, turn: int = None,
+                       tick: int = None, start_tick=0):
         """Get a dictionary of changes to the world within a given turn
 
         Defaults to the present turn, and stops at the present tick
@@ -1189,8 +1190,8 @@ class Engine(AbstractEngine, gORM):
 
     def _remember_avatarness(
             self, character, graph, node,
-            is_avatar=True, branch=None, turn=None,
-            tick=None
+            is_avatar=True, branch: str = None, turn: int = None,
+            tick: int = None
     ):
         """Use this to record a change in avatarness.
 
@@ -1235,23 +1236,23 @@ class Engine(AbstractEngine, gORM):
             self.string
         )
 
-    def debug(self, msg):
+    def debug(self, msg: str):
         """Log a message at level 'debug'"""
         self.log('debug', msg)
 
-    def info(self, msg):
+    def info(self, msg: str):
         """Log a message at level 'info'"""
         self.log('info', msg)
 
-    def warning(self, msg):
+    def warning(self, msg: str):
         """Log a message at level 'warning'"""
         self.log('warning', msg)
 
-    def error(self, msg):
+    def error(self, msg: str):
         """Log a message at level 'error'"""
         self.log('error', msg)
 
-    def critical(self, msg):
+    def critical(self, msg: str):
         """Log a message at level 'critical'"""
         self.log('critical', msg)
 
@@ -1289,7 +1290,7 @@ class Engine(AbstractEngine, gORM):
         """Close on exit."""
         self.close()
 
-    def _set_branch(self, v):
+    def _set_branch(self, v: str):
         oldrando = self.universal.get('rando_state')
         super()._set_branch(v)
         newrando = self.universal.get('rando_state')
@@ -1297,7 +1298,7 @@ class Engine(AbstractEngine, gORM):
             self._rando.setstate(newrando)
         self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
-    def _set_turn(self, v):
+    def _set_turn(self, v: int):
         oldrando = self.universal.get('rando_state')
         oldturn = self._oturn
         super()._set_turn(v)
@@ -1306,7 +1307,7 @@ class Engine(AbstractEngine, gORM):
             self._rando.setstate(newrando)
         self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
-    def _set_tick(self, v):
+    def _set_tick(self, v: int):
         oldrando = self.universal.get('rando_state')
         oldtick = self._otick
         super()._set_tick(v)
@@ -1314,7 +1315,8 @@ class Engine(AbstractEngine, gORM):
         if v > oldtick and newrando and newrando != oldrando:
             self._rando.setstate(newrando)
 
-    def _handled_char(self, charn, rulebook, rulen, branch, turn, tick):
+    def _handled_char(self, charn, rulebook, rulen,
+                      branch: str, turn: int, tick: int):
         try:
             self._character_rules_handled_cache.store(
                 charn, rulebook, rulen, branch, turn, tick
@@ -1330,7 +1332,7 @@ class Engine(AbstractEngine, gORM):
 
     def _handled_av(
             self, character, graph, avatar, rulebook, rule,
-            branch, turn, tick):
+            branch: str, turn: int, tick: int):
         try:
             self._avatar_rules_handled_cache.store(
                 character, graph, avatar, rulebook, rule, branch, turn, tick
@@ -1360,7 +1362,8 @@ class Engine(AbstractEngine, gORM):
         )
 
     def _handled_char_place(
-            self, character, place, rulebook, rule, branch, turn, tick):
+            self, character, place, rulebook, rule,
+            branch: str, turn: int, tick: int):
         try:
             self._character_place_rules_handled_cache.store(
                 character, place, rulebook, rule, branch, turn, tick
@@ -1375,7 +1378,8 @@ class Engine(AbstractEngine, gORM):
         )
 
     def _handled_char_port(
-            self, character, orig, dest, rulebook, rule, branch, turn, tick):
+            self, character, orig, dest, rulebook, rule,
+            branch: str, turn: int, tick: int):
         try:
             self._character_portal_rules_handled_cache.store(
                 character, orig, dest, rulebook, rule, branch, turn, tick
@@ -1390,7 +1394,8 @@ class Engine(AbstractEngine, gORM):
         )
 
     def _handled_node(
-            self, character, node, rulebook, rule, branch, turn, tick):
+            self, character, node, rulebook, rule,
+            branch: str, turn: int, tick: int):
         try:
             self._node_rules_handled_cache.store(
                 character, node, rulebook, rule, branch, turn, tick
@@ -1405,7 +1410,8 @@ class Engine(AbstractEngine, gORM):
         )
 
     def _handled_portal(
-            self, character, orig, dest, rulebook, rule, branch, turn, tick):
+            self, character, orig, dest, rulebook, rule,
+            branch: str, turn: int, tick: int):
         try:
             self._portal_rules_handled_cache.store(
                 character, orig, dest, rulebook, rule, branch, turn, tick
@@ -1679,8 +1685,8 @@ class Engine(AbstractEngine, gORM):
             return v
         return self.alias(v, stat)
 
-    def _snap_keyframe(self, graph, branch, turn, tick, nodes, edges,
-                       graph_val):
+    def _snap_keyframe(self, graph, branch: str, turn: int, tick: int,
+                       nodes, edges, graph_val):
         super()._snap_keyframe(graph, branch, turn, tick, nodes, edges,
                                graph_val)
         newkf = {}
