@@ -509,7 +509,6 @@ class ORM(object):
             nvbranches = self._node_val_cache.presettings
             ebranches = self._edges_cache.presettings
             evbranches = self._edge_val_cache.presettings
-            tick_to -= 1
 
         if branch in gvbranches and turn in gvbranches[branch]:
             for graph, key, value in gvbranches[branch][turn][tick_from:tick_to]:
