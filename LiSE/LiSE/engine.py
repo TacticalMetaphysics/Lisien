@@ -1425,9 +1425,6 @@ class Engine(AbstractEngine, gORM):
             character, orig, dest, rulebook, rule, branch, turn, tick
         )
 
-    def _follow_rule(self, rule, handled_fun, *args):
-        self.debug("following rule: " + repr(rule))
-
     def _follow_rules(self):
         # TODO: roll back changes done by rules that raise an exception
         # TODO: if there's a paradox while following some rule,
