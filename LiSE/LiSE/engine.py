@@ -1079,6 +1079,7 @@ class Engine(AbstractEngine, gORM):
             character_portal_rulebooks_settings = self._characters_portals_rulebooks_cache.settings
             node_rulebooks_settings = self._nodes_rulebooks_cache.settings
             portal_rulebooks_settings = self._portals_rulebooks_cache.settings
+            tick += 1
         else:
             avatarness_settings = self._avatarness_cache.presettings
             things_settings = self._things_cache.presettings
@@ -1093,6 +1094,7 @@ class Engine(AbstractEngine, gORM):
             character_portal_rulebooks_settings = self._characters_portals_rulebooks_cache.presettings
             node_rulebooks_settings = self._nodes_rulebooks_cache.presettings
             portal_rulebooks_settings = self._portals_rulebooks_cache.presettings
+            tick -= 1
         if branch in avatarness_settings \
                 and turn in avatarness_settings[branch]:
             for chara, graph, node, is_av in avatarness_settings[
