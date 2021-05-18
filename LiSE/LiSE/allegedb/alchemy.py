@@ -179,8 +179,7 @@ def tables_for_meta(meta):
         Column('id', INT, primary_key=True),
         Column('branch', TEXT),
         Column('turn', INT),
-        Column('tick', INT),
-        sqlite_with_rowid=False
+        Column('tick', INT)
     )
     Table(
         'plan_ticks', meta,
