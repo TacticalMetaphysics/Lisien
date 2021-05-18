@@ -24,7 +24,6 @@ python3 alchemy.py >sqlite.json
 from functools import partial
 from sqlalchemy import (
     Table,
-    ForeignKey,
     Column,
     CheckConstraint,
     ForeignKeyConstraint,
