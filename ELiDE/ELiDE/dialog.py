@@ -78,7 +78,6 @@ class DialogMenu(Box):
         self._sv.y = self.y + self.padding[3]
 
     def on_options(self, *args):
-        self.clear_widgets()
         if not hasattr(self, '_sv'):
             self._sv = ScrollView(size=self.size, pos=self.pos)
             self.bind(size=self._set_sv_size, pos=self._set_sv_pos)
@@ -91,7 +90,6 @@ class DialogMenu(Box):
             if not callable(part):
                 raise TypeError("Menu options must be callable")
             layout.add_widget(Button(text=txt, on_release=part, font_name=self.font_name, font_size=self.font_size))
-        self.add_widget(self._sv)
 
 
 class Dialog(BoxLayout):
