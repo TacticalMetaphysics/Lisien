@@ -82,8 +82,11 @@ class DialogMenu(Box):
         if not hasattr(self, '_sv'):
             self._sv = ScrollView(size=self.size, pos=self.pos)
             self.bind(size=self._set_sv_size, pos=self._set_sv_pos)
-            self._sv.add_widget(BoxLayout(orientation='vertical'))
-        layout = self._sv.children[0]
+            layout = BoxLayout(orientation='vertical')
+            self._sv.add_widget(layout)
+        else:
+            layout = self._sv.children[0]
+            layout.clear_widgets()
         for txt, part in self.options:
             if not callable(part):
                 raise TypeError("Menu options must be callable")
