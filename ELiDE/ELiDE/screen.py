@@ -481,6 +481,7 @@ class CharMenuContainer(BoxLayout):
             screen=self.screen,
             size_hint_y=0.9
         )
+        self.bind(screen=self.charmenu.setter('screen'))
         self.dummyplace = self.charmenu.dummyplace
         self.charmenu.bind(dummyplace=self.setter('dummyplace'))
         self.dummything = self.charmenu.dummything
