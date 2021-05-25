@@ -412,7 +412,6 @@ class RulesScreen(Screen):
 
 class CharacterRulesScreen(Screen):
     """Screen with TabbedPanel for all the character-rulebooks"""
-    engine = ObjectProperty()
     character = ObjectProperty()
     toggle = ObjectProperty()
 
@@ -428,7 +427,7 @@ class CharacterRulesScreen(Screen):
     def finalize(self, *args):
         assert not hasattr(self, '_finalized')
         if not (
-            self.engine and self.toggle and self.character
+            self.toggle and self.character
         ):
             Clock.schedule_once(self.finalize, 0)
             return
@@ -443,7 +442,7 @@ class CharacterRulesScreen(Screen):
             tab = TabbedPanelItem(text=txt)
             setattr(self, '_{}_tab'.format(rb), tab)
             box = RulesBox(
-                engine=self.engine,
+                engine=self.character.engine,
                 rulebook=self._get_rulebook(rb),
                 entity=self.character,
                 toggle=self.toggle

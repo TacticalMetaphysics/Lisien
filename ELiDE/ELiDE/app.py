@@ -305,7 +305,6 @@ class ELiDEApp(App):
         )
 
         self.charrules = ELiDE.rulesview.CharacterRulesScreen(
-            engine=self.engine,
             character=self.character,
             toggle=toggler('charrules')
         )
@@ -316,7 +315,9 @@ class ELiDEApp(App):
             toggle=toggler('chars'),
             new_board=self.new_board
         )
-        self.bind(character_name=self.chars.setter('character_name'))
+        self.bind(
+            engine=self.chars.setter('engine'),
+            character_name=self.chars.setter('character_name'))
 
         def chars_push_character_name(*args):
             self.unbind(character_name=self.chars.setter('character_name'))
