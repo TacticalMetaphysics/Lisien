@@ -35,6 +35,7 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Empty
 
 from blinker import Signal
+import lz4.frame
 
 from .allegedb import HistoryError
 from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
@@ -2237,15 +2238,16 @@ class EngineProxy(AbstractEngine):
             self.character[char]._apply_delta(delta)
 
     def send_bytes(self, obj, blocking=True, timeout=-1):
+        compressed = lz4.frame.compress(obj)
         self._handle_out_lock.acquire(blocking, timeout)
-        self._handle_out.send_bytes(obj)
+        self._handle_out.send_bytes(compressed)
         self._handle_out_lock.release()
 
     def recv_bytes(self, blocking=True, timeout=-1):
         self._handle_in_lock.acquire(blocking, timeout)
         data = self._handle_in.recv_bytes()
         self._handle_in_lock.release()
-        return data
+        return lz4.frame.decompress(data)
 
     def debug(self, msg):
         self.logger.debug(msg)
@@ -2636,9 +2638,11 @@ def subprocess(
     args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel
 ):
     engine_handle = EngineHandle(args, kwargs, logq, loglevel=loglevel)
+    compress = lz4.frame.compress
+    decompress = lz4.frame.decompress
 
     while True:
-        inst = handle_out_pipe.recv_bytes()
+        inst = decompress(handle_out_pipe.recv_bytes())
         if inst == b'shutdown':
             handle_out_pipe.close()
             handle_in_pipe.close()
@@ -2659,18 +2663,18 @@ def subprocess(
             else:
                 r = getattr(engine_handle, cmd)(**instruction)
         except Exception as e:
-            handle_in_pipe.send_bytes(engine_handle.pack((
+            handle_in_pipe.send_bytes(compress(engine_handle.pack((
                 cmd, engine_handle.branch,
                 engine_handle.turn, engine_handle.tick,
                 e
-            )))
+            ))))
             continue
         if silent:
             continue
-        handle_in_pipe.send_bytes(engine_handle.pack((
+        handle_in_pipe.send_bytes(compress(engine_handle.pack((
             cmd, engine_handle.branch, engine_handle.turn, engine_handle.tick,
             r
-        )))
+        ))))
         if hasattr(engine_handle, '_after_ret'):
             engine_handle._after_ret()
             del engine_handle._after_ret

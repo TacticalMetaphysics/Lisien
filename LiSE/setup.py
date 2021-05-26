@@ -44,7 +44,8 @@ setup(
         "astunparse>=1.6.3<2",
         "msgpack>=1.0.0<1.1",
         "blinker",
-        "networkx==2.4"
+        "networkx==2.4",
+        "lz4"
     ],
     project_urls={
         "Documentation": "https://logicaldash.github.io/LiSE"
