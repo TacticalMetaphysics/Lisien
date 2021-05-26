@@ -21,7 +21,17 @@ from re import match
 from collections import defaultdict
 from functools import partial
 from importlib import import_module
+from threading import Thread
+
 from .engine import Engine
+
+
+def _get_added(oldkeys, new, newkeys, d):
+    d.update((k, new[k]) for k in newkeys.difference(oldkeys))
+
+
+def _get_removed(oldkeys, newkeys, d):
+    d.update((k, None) for k in oldkeys.difference(newkeys))
 
 
 def dict_delta(old, new):
@@ -34,13 +44,17 @@ def dict_delta(old, new):
 
     """
     r = {}
-    oldkeys = set(old.keys())
-    newkeys = set(new.keys())
-    r.update((k, new[k]) for k in newkeys.difference(oldkeys))
-    r.update((k, None) for k in oldkeys.difference(newkeys))
+    oldkeys = set(old)
+    newkeys = set(new)
+    added_thread = Thread(target=_get_added, args=(oldkeys, new, newkeys, r))
+    removed_thread = Thread(target=_get_removed, args=(oldkeys, newkeys, r))
+    added_thread.start()
+    removed_thread.start()
     for k in oldkeys.intersection(newkeys):
         if old[k] != new[k]:
             r[k] = new[k]
+    added_thread.join()
+    removed_thread.join()
     return r
 
 
