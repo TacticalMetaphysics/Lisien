@@ -195,7 +195,8 @@ class NodeProxy(CachingEntityProxy):
             self._charname][self.name]
 
     def _set_rulebook_proxy(self, rb):
-        self.engine._char_node_rulebooks_cache[self._charname][self.name] = rb
+        self.engine._char_node_rulebooks_cache[self._charname][self.name] \
+            = RuleBookProxy(self.engine, rb)
 
     def _set_rulebook(self, rb):
         self.engine.handle(
@@ -436,7 +437,9 @@ class PortalProxy(CachingEntityProxy):
 
     def _set_rulebook_proxy(self, rb):
         self.engine._char_port_rulebooks_cache[self._charname][
-            self._origin][self._destination] = rb
+            self._origin][self._destination] = RuleBookProxy(
+            self.engine, rb
+        )
 
     def _set_rulebook(self, rb):
         self.engine.handle(
@@ -552,7 +555,8 @@ class NodeMapProxy(MutableMapping, Signal):
         return self.engine._character_rulebooks_cache[self._charname]['node']
 
     def _set_rulebook_proxy(self, rb):
-        self.engine._character_rulebooks_cache[self._charname]['node'] = rb
+        self.engine._character_rulebooks_cache[self._charname]['node'] \
+            = RuleBookProxy(self.engine, rb)
 
     def _set_rulebook(self, rb):
         self.engine.handle(
@@ -633,7 +637,8 @@ class ThingMapProxy(CachingProxy):
         return self.engine._character_rulebooks_cache[self.name]['thing']
 
     def _set_rulebook_proxy(self, rb):
-        self.engine._character_rulebooks_cache[self.name]['thing'] = rb
+        self.engine._character_rulebooks_cache[self.name]['thing'] \
+            = RuleBookProxy(self.engine, rb)
 
     def _set_rulebook(self, rb):
         self.engine.handle(
@@ -703,7 +708,8 @@ class PlaceMapProxy(CachingProxy):
         return self.engine._character_rulebooks_cache[self.name]['place']
 
     def _set_rulebook_proxy(self, rb):
-        self.engine._character_rulebooks_cache[self.name]['place'] = rb
+        self.engine._character_rulebooks_cache[self.name]['place'] \
+            = RuleBookProxy(self.engine, rb)
 
     def _set_rulebook(self, rb):
         self.engine.handle(
@@ -820,7 +826,8 @@ class CharSuccessorsMappingProxy(CachingProxy):
         return self.engine._character_rulebooks_cache[self.name]['portal']
 
     def _set_rulebook_proxy(self, rb):
-        self.engine._character_rulebooks_cache[self.name]['portal'] = rb
+        self.engine._character_rulebooks_cache[self.name]['portal'] \
+            = RuleBookProxy(self.engine, rb)
 
     def _set_rulebook(self, rb):
         self.engine.handle(
@@ -1181,7 +1188,7 @@ class AvatarMapProxy(Mapping):
 
     def _set_rulebook_proxy(self, rb):
         self.engine._character_rulebooks_cache[
-            self.character.name]['avatar'] = rb
+            self.character.name]['avatar'] = RuleBookProxy(self.engine, rb)
 
     def _set_rulebook(self, rb):
         self.engine.handle(
@@ -1309,7 +1316,8 @@ class CharacterProxy(AbstractCharacter):
         return self.engine._character_rulebooks_cache[self.name]['character']
 
     def _set_rulebook_proxy(self, rb):
-        self.engine._character_rulebooks_cache[self.name]['character'] = rb
+        self.engine._character_rulebooks_cache[self.name]['character'] \
+            = RuleBookProxy(self.engine, rb)
 
     def _set_rulebook(self, rb):
         self.engine.handle(
@@ -1403,39 +1411,36 @@ class CharacterProxy(AbstractCharacter):
                 else:
                     self.engine._portal_stat_cache[
                         self.name][orig][dest] = portdelta
-        if delta.pop('character_rulebook',
-                     self.rulebook.name) != self.rulebook.name:
-            self._set_rulebook_proxy(
-                self.engine._rulebooks_cache[delta.pop('character_rulebook')])
-        if delta.pop('avatar_rulebook',
-                     self.avatar.rulebook.name) != self.avatar.rulebook.name:
-            self.avatar._set_rulebook_proxy(
-                self.engine._rulebooks_cache[delta.pop('avatar_rulebook')])
-        if delta.pop('character_thing_rulebook',
-                     self.thing.rulebook.name) != self.thing.rulebook.name:
-            self.thing._set_rulebook_proxy(
-                self.engine._rulebooks_cache[
-                    delta.pop('character_thing_rulebook')])
-        if delta.pop('character_place_rulebook',
-                     self.place.rulebook.name) != self.place.rulebook.name:
-            self.place._set_rulebook_proxy(
-                self.engine._rulebooks_cache[
-                    delta.pop('character_place_rulebook')])
-        if delta.pop('character_portal_rulebook',
-                     self.portal.rulebook.name) != self.portal.rulebook.name:
-            self.portal._set_rulebook_proxy(
-                self.engine._rulebooks_cache[
-                    delta.pop('character_portal_rulebook')])
-        for noden, rb in delta.pop('node_rulebooks', {}).items():
-            node = self.node[noden]
-            if node.rulebook.name != rb:
-                node._set_rulebook_proxy(self.engine._rulebooks_cache[rb])
-        portrb = delta.pop('portal_rulebooks', {})
-        for orign in portrb:
-            for destn, rb in portrb[orign].items():
-                port = self.portal[orign][destn]
-                if port.rulebook.name != rb:
-                    port._set_rulebook_proxy(self.engine._rulebooks_cache[rb])
+        rulebooks = delta.pop('rulebooks')
+        if rulebooks:
+            rulebooks = rulebooks.copy()
+            charrb = rulebooks.pop('character', self.rulebook.name)
+            if charrb != self.rulebook.name:
+                self._set_rulebook_proxy(charrb)
+            avrb = rulebooks.pop('avatar', self.avatar.rulebook.name)
+            if avrb != self.avatar.rulebook.name:
+                self.avatar._set_rulebook_proxy(avrb)
+            cthrb = rulebooks.pop('character_thing', self.thing.rulebook.name)
+            if cthrb != self.thing.rulebook.name:
+                self.thing._set_rulebook_proxy(cthrb)
+            cplrb = rulebooks.pop('character_place', self.place.rulebook.name)
+            if cplrb != self.place.rulebook.name:
+                self.place._set_rulebook_proxy(cplrb)
+            cporb = rulebooks.pop('character_portal', self.portal.rulebook.name)
+            if cporb != self.portal.rulebook.name:
+                self.portal._set_rulebook_proxy(cporb)
+            nodemap = self.node
+            for noden, rb in rulebooks.pop('node_rulebooks', {}).items():
+                node = nodemap[noden]
+                if node.rulebook.name != rb:
+                    node._set_rulebook_proxy(rb)
+            portrb = delta.pop('portal_rulebooks', {})
+            portmap = self.portal
+            for orign in portrb:
+                for destn, rb in portrb[orign].items():
+                    port = portmap[orign][destn]
+                    if port.rulebook.name != rb:
+                        port._set_rulebook_proxy(rb)
         self.stat._apply_delta(delta)
 
     def add_place(self, name, **kwargs):
@@ -2422,7 +2427,8 @@ class EngineProxy(AbstractEngine):
         self._rulebooks_cache.update(rulebookdeltas)
         for rulebook, delta in rulebookdeltas.items():
             if rulebook not in self._rulebook_obj_cache:
-                self._rulebook_obj_cache = RuleBookProxy(self, rulebook)
+                self._rulebook_obj_cache = RuleBookProxy(
+                    {'engine':self, 'name': rulebook})
             rulebookproxy = self._rulebook_obj_cache[rulebook]
             # the "delta" is just the rules list, for now
             rulebookproxy.send(rulebookproxy, rules=delta)
