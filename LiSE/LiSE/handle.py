@@ -23,6 +23,8 @@ from functools import partial
 from importlib import import_module
 from threading import Thread
 
+import numpy as np
+
 from .engine import Engine
 
 
@@ -50,9 +52,16 @@ def dict_delta(old, new):
     removed_thread = Thread(target=_get_removed, args=(oldkeys, newkeys, r))
     added_thread.start()
     removed_thread.start()
-    for k in oldkeys.intersection(newkeys):
-        if old[k] != new[k]:
-            r[k] = new[k]
+    ks = oldkeys.intersection(newkeys)
+    oldvs = np.ndarray((len(ks),), dtype=object)
+    newvs = np.ndarray((len(ks),), dtype=object)
+    karray = np.ndarray((len(ks),), dtype=object)
+    for i, k in enumerate(ks):
+        oldvs[i] = old[k]
+        newvs[i] = new[k]
+        karray[i] = k
+    changes = oldvs != newvs
+    r.update(zip(karray[changes], newvs[changes]))
     added_thread.join()
     removed_thread.join()
     return r
