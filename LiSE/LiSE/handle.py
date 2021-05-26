@@ -28,11 +28,11 @@ import numpy as np
 from .engine import Engine
 
 
-def _get_added(oldkeys, new, newkeys, d):
+def _dict_delta_added(oldkeys, new, newkeys, d):
     d.update((k, new[k]) for k in newkeys.difference(oldkeys))
 
 
-def _get_removed(oldkeys, newkeys, d):
+def _dict_delta_removed(oldkeys, newkeys, d):
     d.update((k, None) for k in oldkeys.difference(newkeys))
 
 
@@ -48,8 +48,8 @@ def dict_delta(old, new):
     r = {}
     oldkeys = set(old)
     newkeys = set(new)
-    added_thread = Thread(target=_get_added, args=(oldkeys, new, newkeys, r))
-    removed_thread = Thread(target=_get_removed, args=(oldkeys, newkeys, r))
+    added_thread = Thread(target=_dict_delta_added, args=(oldkeys, new, newkeys, r))
+    removed_thread = Thread(target=_dict_delta_removed, args=(oldkeys, newkeys, r))
     added_thread.start()
     removed_thread.start()
     ks = oldkeys.intersection(newkeys)
@@ -67,12 +67,18 @@ def dict_delta(old, new):
     return r
 
 
+def _set_delta_added(old, new, d):
+    d.update((item, True) for item in new.difference(old))
+
+
 def set_delta(old, new):
     old = set(old)
     new = set(new)
     r = {}
+    added_thread = Thread(target=_set_delta_added, args=(old, new, r))
+    added_thread.start()
     r.update((item, False) for item in old.difference(new))
-    r.update((item, True) for item in new.difference(old))
+    added_thread.join()
     return r
 
 
