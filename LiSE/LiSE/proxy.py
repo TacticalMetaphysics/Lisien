@@ -1430,11 +1430,11 @@ class CharacterProxy(AbstractCharacter):
             if cporb != self.portal.rulebook.name:
                 self.portal._set_rulebook_proxy(cporb)
             nodemap = self.node
-            for noden, rb in rulebooks.pop('node_rulebooks', {}).items():
+            for noden, rb in rulebooks.pop('node', {}).items():
                 node = nodemap[noden]
                 if node.rulebook.name != rb:
                     node._set_rulebook_proxy(rb)
-            portrb = delta.pop('portal_rulebooks', {})
+            portrb = rulebooks.pop('portal', {})
             portmap = self.portal
             for orign in portrb:
                 for destn, rb in portrb[orign].items():
