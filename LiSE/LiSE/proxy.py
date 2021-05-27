@@ -1439,13 +1439,13 @@ class CharacterProxy(AbstractCharacter):
             avrb = rulebooks.pop('avatar', self.avatar.rulebook.name)
             if avrb != self.avatar.rulebook.name:
                 self.avatar._set_rulebook_proxy(avrb)
-            cthrb = rulebooks.pop('character_thing', self.thing.rulebook.name)
+            cthrb = rulebooks.pop('thing', self.thing.rulebook.name)
             if cthrb != self.thing.rulebook.name:
                 self.thing._set_rulebook_proxy(cthrb)
-            cplrb = rulebooks.pop('character_place', self.place.rulebook.name)
+            cplrb = rulebooks.pop('place', self.place.rulebook.name)
             if cplrb != self.place.rulebook.name:
                 self.place._set_rulebook_proxy(cplrb)
-            cporb = rulebooks.pop('character_portal', self.portal.rulebook.name)
+            cporb = rulebooks.pop('portal', self.portal.rulebook.name)
             if cporb != self.portal.rulebook.name:
                 self.portal._set_rulebook_proxy(cporb)
         self.stat._apply_delta(delta)
