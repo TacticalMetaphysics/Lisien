@@ -89,6 +89,10 @@ class CachingProxy(MutableMapping, Signal):
 
     def _apply_delta(self, delta):
         for (k, v) in delta.items():
+            if k == 'rulebook':
+                if k != self.rulebook.name:
+                    self._set_rulebook_proxy(k)
+                continue
             if v is None:
                 if k in self._cache:
                     del self._cache[k]
@@ -1398,19 +1402,34 @@ class CharacterProxy(AbstractCharacter):
                             .format(node))
                 self.node.send(self.node, key=node, value=None)
         self.portal._apply_delta(delta.pop('edges', {}))
+        nodemap = self.node
+        name = self.name
+        engine = self.engine
+        node_stat_cache = engine._node_stat_cache
         for (node, nodedelta) in delta.pop('node_val', {}).items():
-            if node not in self.node or node not in \
-                    self.engine._node_stat_cache[self.name]:
-                self.engine._node_stat_cache[self.name][node] = nodedelta
+            if node not in nodemap or node not in \
+                    node_stat_cache[name]:
+                rulebook = nodedelta.pop('rulebook', None)
+                node_stat_cache[name][node] = nodedelta
+                if rulebook:
+                    nodemap[node]._set_rulebook_proxy(rulebook)
             else:
-                self.node[node]._apply_delta(nodedelta)
+                nodemap[node]._apply_delta(nodedelta)
+        portmap = self.portal
+        portal_stat_cache = self.engine._portal_stat_cache
         for (orig, destdelta) in delta.pop('edge_val', {}).items():
-            for (dest, portdelta) in destdelta.items():
-                if orig in self.portal and dest in self.portal[orig]:
-                    self.portal[orig][dest]._apply_delta(portdelta)
-                else:
-                    self.engine._portal_stat_cache[
-                        self.name][orig][dest] = portdelta
+            if orig in portmap:
+                destmap = portmap[orig]
+                for (dest, portdelta) in destdelta.items():
+                    if dest in destmap:
+                        destmap[dest]._apply_delta(portdelta)
+            else:
+                porig = portal_stat_cache[name][orig]
+                for dest, portdelta in destdelta.items():
+                    rulebook = portdelta.pop('rulebook', None)
+                    porig[dest] = portdelta
+                    if rulebook:
+                        porig[dest]._set_rulebook_proxy(rulebook)
         rulebooks = delta.pop('rulebooks')
         if rulebooks:
             rulebooks = rulebooks.copy()
@@ -1420,27 +1439,6 @@ class CharacterProxy(AbstractCharacter):
             avrb = rulebooks.pop('avatar', self.avatar.rulebook.name)
             if avrb != self.avatar.rulebook.name:
                 self.avatar._set_rulebook_proxy(avrb)
-            cthrb = rulebooks.pop('character_thing', self.thing.rulebook.name)
-            if cthrb != self.thing.rulebook.name:
-                self.thing._set_rulebook_proxy(cthrb)
-            cplrb = rulebooks.pop('character_place', self.place.rulebook.name)
-            if cplrb != self.place.rulebook.name:
-                self.place._set_rulebook_proxy(cplrb)
-            cporb = rulebooks.pop('character_portal', self.portal.rulebook.name)
-            if cporb != self.portal.rulebook.name:
-                self.portal._set_rulebook_proxy(cporb)
-            nodemap = self.node
-            for noden, rb in rulebooks.pop('node', {}).items():
-                node = nodemap[noden]
-                if node.rulebook.name != rb:
-                    node._set_rulebook_proxy(rb)
-            portrb = rulebooks.pop('portal', {})
-            portmap = self.portal
-            for orign in portrb:
-                for destn, rb in portrb[orign].items():
-                    port = portmap[orign][destn]
-                    if port.rulebook.name != rb:
-                        port._set_rulebook_proxy(rb)
         self.stat._apply_delta(delta)
 
     def add_place(self, name, **kwargs):
