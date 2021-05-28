@@ -219,6 +219,12 @@ class MainScreen(Screen):
     app = ObjectProperty()
     tmp_block = BooleanProperty(False)
 
+    def _update_adding_portal(self, *args):
+        self.boardview.adding_portal = self.charmenu.portaladdbut.state == 'down'
+
+    def _update_board(self, *args):
+        self.boardview.board = self.graphboards[self.app.character_name]
+
     def on_mainview(self, *args):
         if None in (self.statpanel, self.charmenu, self.app) or None in (self.app.character_name, self.charmenu.portaladdbut):
             Clock.schedule_once(self.on_mainview, 0)
@@ -231,16 +237,12 @@ class MainScreen(Screen):
             board=self.graphboards[self.app.character_name],
             adding_portal=self.charmenu.portaladdbut.state == 'down'
         )
-        def update_adding_portal(*args):
-            self.boardview.adding_portal = self.charmenu.portaladdbut.state == 'down'
-        def update_board(*args):
-            self.boardview.board = self.graphboards[self.app.character_name]
         self.mainview.bind(
             size=self.boardview.setter('size'),
             pos=self.boardview.setter('pos')
         )
-        self.charmenu.portaladdbut.bind(state=update_adding_portal)
-        self.app.bind(character_name=update_board)
+        self.charmenu.portaladdbut.bind(state=self._update_adding_portal)
+        self.app.bind(character_name=self._update_board)
         self.calendar = Agenda(
             update_mode='present'
         )
