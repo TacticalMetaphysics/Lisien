@@ -311,7 +311,7 @@ some of the shapes, like so:
 
 Now the triangles only relocate whenever their neighborhood looks too
 much like them, whereas squares only relocate when they have too many
-triangle neighbors
+triangle neighbors.
 
 You should make sure your rules have unique names. This requirement is
 necessary for assigning rules by name rather than decorator; you could
