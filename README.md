@@ -53,8 +53,7 @@ tester knew to look for it.
 
 ## Core
 
-* *Journaling state container* for graph based world models, to allow
-  world state changes to be rewound and replayed.
+* *Infinite time travel*, rendering traditional save files obsolete.
 * Integration with [NetworkX](http://networkx.github.io) for
   convenient access to various *graph algorithms*, particularly
   pathfinding.
@@ -66,14 +65,14 @@ tester knew to look for it.
 
 ## IDE
 
-* View and edit state graphs in a *drag-and-drop interface*.
-* *Rewind time* and the interface will show you the state of the world
-  back then.
-* Code editor with syntax highlighting.
-* *Rule constructor*: Build rules out of functions represented as
-  cards. Looks like deckbuilding in a card game like Magic.
-* *Autosave*. Actually, anything you do gets put in a transaction that
-  gets committed when you quit. In any case you never need to save
+* *Instant replay*: go back to previous world states whenever you feel
+  like it, with minimal loading.
+* *Rule constructor*: Build rules out of short functions representing
+  triggers and actions.
+* *Rule stepper*: view the world state in the middle of a turn, just
+  after one rule's run and before another.
+* Edit state in graph or grid view
+* Edit rule functions with syntax highlighting
 
 # Getting started
 
