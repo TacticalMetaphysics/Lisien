@@ -298,11 +298,13 @@ class ELiDEApp(App):
             toggle=toggler('statcfg'),
             engine=self.engine
         )
+        self.bind(engine=self.statcfg.setter('engine'))
 
         self.rules = ELiDE.rulesview.RulesScreen(
             engine=self.engine,
             toggle=toggler('rules')
         )
+        self.bind(engine=self.rules.setter('engine'))
 
         self.charrules = ELiDE.rulesview.CharacterRulesScreen(
             character=self.character,
