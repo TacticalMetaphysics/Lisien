@@ -1125,8 +1125,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             'character_place': engine._characters_places_rulebooks_cache,
             'character_portal': engine._characters_portals_rulebooks_cache
         }
+        branch, turn, tick = engine._btt()
         for rulebook, cache in cachemap.items():
-            branch, turn, tick = engine._nbtt()
             rulebook_name = (name, rulebook)
             engine.query._set_rulebook_on_character(
                 rulebook, name, branch, turn, tick, rulebook_name)
