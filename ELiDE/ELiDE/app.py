@@ -17,6 +17,9 @@ import sys
 import os
 import json
 
+if 'KIVY_NO_ARGS' not in os.environ:
+    os.environ['KIVY_NO_ARGS'] = '1'
+
 from kivy.logger import Logger
 from kivy.app import App
 from kivy.clock import Clock
@@ -367,7 +370,9 @@ class ELiDEApp(App):
         ):
             self.manager.add_widget(wid)
         self.manager.current = 'mainmenu'
-        if os.path.exists(sys.argv[-1]):
+        if (
+                os.environ['KIVY_NO_ARGS'] or sys.argv[-2] == '-'
+        ) and os.path.exists(sys.argv[-1]):
             self.mainmenu.open(os.path.abspath(sys.argv[-1]))
 
     def update_calendar(self, calendar, past_turns=1, future_turns=5):
