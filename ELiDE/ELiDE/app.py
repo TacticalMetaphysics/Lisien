@@ -13,7 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Object to configure, start, and stop ELiDE."""
-
+import sys
+import os
 import json
 
 from kivy.logger import Logger
@@ -366,6 +367,8 @@ class ELiDEApp(App):
         ):
             self.manager.add_widget(wid)
         self.manager.current = 'mainmenu'
+        if os.path.exists(sys.argv[-1]):
+            self.mainmenu.open(os.path.abspath(sys.argv[-1]))
 
     def update_calendar(self, calendar, past_turns=1, future_turns=5):
         """Fill in a calendar widget with actual simulation data"""
