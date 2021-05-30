@@ -224,6 +224,7 @@ class MainScreen(Screen):
 
     def _update_board(self, *args):
         self.boardview.board = self.graphboards[self.app.character_name]
+        self.gridview.board = self.gridboards[self.app.character_name]
 
     def on_mainview(self, *args):
         if None in (self.statpanel, self.charmenu, self.app) or None in (self.app.character_name, self.charmenu.portaladdbut):
