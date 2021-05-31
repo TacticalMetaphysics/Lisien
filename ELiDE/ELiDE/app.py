@@ -449,6 +449,8 @@ class ELiDEApp(App):
         if hasattr(self, 'procman'):
             self.procman.shutdown()
         self.config.write()
+        if hasattr(self, 'starting_dir'):
+            os.chdir(self.starting_dir)
 
     def delete_selection(self):
         """Delete both the selected widget and whatever it represents."""

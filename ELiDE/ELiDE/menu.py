@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
+from kivy.app import App
 from kivy.properties import OptionProperty, ObjectProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -124,6 +125,7 @@ class DirPicker(Screen):
     init_board = ObjectProperty()
 
     def open(self, path):
+        App.get_running_app().starting_dir = os.path.abspath('.')
         os.chdir(path)
         if 'world.db' not in os.listdir(path):
             # TODO show a configurator, accept cancellation, extract init params
