@@ -1430,7 +1430,7 @@ class CharacterProxy(AbstractCharacter):
                     porig[dest] = portdelta
                     if rulebook:
                         porig[dest]._set_rulebook_proxy(rulebook)
-        rulebooks = delta.pop('rulebooks')
+        rulebooks = delta.pop('rulebooks', None)
         if rulebooks:
             rulebooks = rulebooks.copy()
             charrb = rulebooks.pop('character', self.rulebook.name)
