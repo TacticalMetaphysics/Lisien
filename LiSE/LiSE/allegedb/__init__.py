@@ -1684,6 +1684,30 @@ class ORM(object):
                 self._new_keyframes.append((
                     name, branch, turn, tick
                 ) + tuple(data))
+            graphmap = self.graph
+            others = set(graphmap)
+            others.remove(name)
+            branch, turn, tick = self._btt()
+            snapp = self._snap_keyframe
+            kfl = self._keyframes_list
+            kfd = self._keyframes_dict
+            kfs = self._keyframes_times
+            nkfs = self._new_keyframes
+            for graphn in others:
+                graph = graphmap[graphn]
+                nodes = graph._nodes_state()
+                edges = graph._edges_state()
+                val = graph._val_state()
+                snapp(graphn, branch, turn, tick, nodes, edges, val)
+                nkfs.append((graphn, branch, turn, tick, nodes, edges, val))
+                kfl.append((graphn, branch, turn, tick))
+                kfs.add((branch, turn, tick))
+                if branch not in kfd:
+                    kfd[branch] = {turn: {tick, }}
+                elif turn not in kfd[branch]:
+                    kfd[branch][turn] = {tick, }
+                else:
+                    kfd[branch][turn].add(tick)
 
     def new_graph(self, name, data=None, **attr):
         """Return a new instance of type Graph, initialized with the given
