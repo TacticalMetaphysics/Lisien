@@ -1693,7 +1693,12 @@ class ORM(object):
             kfd = self._keyframes_dict
             kfs = self._keyframes_times
             nkfs = self._new_keyframes
+            already_keyframed = {
+                nkf[:4] for nkf in self._new_keyframes
+            }
             for graphn in others:
+                if (graphn, branch, turn, tick) in already_keyframed:
+                    continue
                 graph = graphmap[graphn]
                 nodes = graph._nodes_state()
                 edges = graph._edges_state()
