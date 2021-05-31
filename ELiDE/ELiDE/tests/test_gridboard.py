@@ -56,20 +56,18 @@ class SwitchGridTest(GraphicUnitTest):
         self.prefix = mkdtemp()
         self.old_argv = sys.argv.copy()
         sys.argv = ['python', '-m', 'ELiDE', self.prefix]
-        with Engine(self.prefix) as eng:
-            eng.add_character('physical', nx.grid_2d_graph(10, 1))
-            eng.add_character('tall', nx.grid_2d_graph(1, 10))
-        self.app = ELiDEApp()
-        self.app._run_prepare()
 
     def tearDown(self, fake=False):
-        self.app.dispatch('on_stop')
         super().tearDown(fake=fake)
         shutil.rmtree(self.prefix)
         sys.argv = self.old_argv
 
     def test_character_switch_grid(self):
-        app = self.app
+        with Engine(self.prefix) as eng:
+            eng.add_character('physical', nx.grid_2d_graph(10, 1))
+            eng.add_character('tall', nx.grid_2d_graph(1, 10))
+        app = ELiDEApp()
+        app._run_prepare()
         idle_until(lambda: hasattr(app, 'mainscreen') and app.mainscreen.mainview and app.mainscreen.statpanel and hasattr(app.mainscreen, 'gridview'))
         app.mainscreen.statpanel.toggle_gridview()
         idle_until(lambda: app.mainscreen.gridview in app.mainscreen.mainview.children)
@@ -79,3 +77,4 @@ class SwitchGridTest(GraphicUnitTest):
         app.character_name = 'tall'
         idle_until(lambda: all(child.x == 0 for child in app.mainscreen.gridview.board.children), 1000, "Never got the new board")
         idle_until(lambda: not all(child.y == 0 for child in app.mainscreen.gridview.board.children), 1000, "New board arranged weird")
+        app.stop()
