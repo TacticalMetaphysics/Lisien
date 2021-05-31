@@ -1686,7 +1686,7 @@ class ORM(object):
                 ) + tuple(data))
             graphmap = self.graph
             others = set(graphmap)
-            others.remove(name)
+            others.discard(name)
             branch, turn, tick = self._btt()
             snapp = self._snap_keyframe
             kfl = self._keyframes_list
