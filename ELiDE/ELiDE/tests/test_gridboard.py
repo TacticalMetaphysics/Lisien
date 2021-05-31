@@ -1,12 +1,19 @@
+import shutil
+import sys
+from tempfile import mkdtemp
+from time import monotonic
+
+import pytest
 from kivy.base import EventLoop
 from kivy.tests.common import GraphicUnitTest
 from kivy.logger import Logger
 import networkx as nx
 
+from LiSE import Engine
 from LiSE.character import Facade
 from ELiDE.app import ELiDEApp
 from ELiDE.grid.board import GridBoard, GridBoardView
-from ELiDE.tests.util import MockTouch, all_spots_placed, all_pawns_placed, all_arrows_placed, idle_until, window_with_widget
+from ELiDE.tests.util import all_spots_placed, all_pawns_placed, idle_until, window_with_widget
 
 
 class GridBoardTest(GraphicUnitTest):
@@ -41,3 +48,34 @@ class GridBoardTest(GraphicUnitTest):
         assert board.pawn['something'].pos == board.spot[1, 1].pos
         assert board.pawn['otherthing'].parent == board.spot[0, 0]
         assert board.pawn['otherthing'].pos == board.spot[0, 0].pos
+
+
+class SwitchGridTest(GraphicUnitTest):
+    def setUp(self):
+        super(SwitchGridTest, self).setUp()
+        self.prefix = mkdtemp()
+        self.old_argv = sys.argv.copy()
+        sys.argv = ['python', '-m', 'ELiDE', self.prefix]
+        with Engine(self.prefix) as eng:
+            eng.add_character('physical', nx.grid_2d_graph(10, 1))
+            eng.add_character('tall', nx.grid_2d_graph(1, 10))
+        self.app = ELiDEApp()
+        self.app._run_prepare()
+
+    def tearDown(self, fake=False):
+        self.app.dispatch('on_stop')
+        super().tearDown(fake=fake)
+        shutil.rmtree(self.prefix)
+        sys.argv = self.old_argv
+
+    def test_character_switch_grid(self):
+        app = self.app
+        idle_until(lambda: hasattr(app, 'mainscreen') and app.mainscreen.mainview and app.mainscreen.statpanel and hasattr(app.mainscreen, 'gridview'))
+        app.mainscreen.statpanel.toggle_gridview()
+        idle_until(lambda: app.mainscreen.gridview in app.mainscreen.mainview.children)
+        idle_until(lambda: app.mainscreen.gridview.board.children)
+        assert all(child.y == 0 for child in app.mainscreen.gridview.board.children)
+        assert not all(child.x == 0 for child in app.mainscreen.gridview.board.children)
+        app.character_name = 'tall'
+        idle_until(lambda: all(child.x == 0 for child in app.mainscreen.gridview.board.children), 1000, "Never got the new board")
+        idle_until(lambda: not all(child.y == 0 for child in app.mainscreen.gridview.board.children), 1000, "New board arranged weird")
