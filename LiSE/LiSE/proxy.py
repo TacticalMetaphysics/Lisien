@@ -2168,6 +2168,7 @@ class EngineProxy(AbstractEngine):
             do_game_start=False,  install_modules=[],
             submit_func=None, threads=None
     ):
+        self.closed = False
         if submit_func:
             self._submit = submit_func
         else:
@@ -2307,6 +2308,8 @@ class EngineProxy(AbstractEngine):
         is a tuple of ``(command, branch, turn, tick, result)``.
 
         """
+        if self.closed:
+            raise RedundantProcessError("Already closed")
         if 'command' in kwargs:
             cmd = kwargs['command']
         elif cmd:
@@ -2639,6 +2642,7 @@ class EngineProxy(AbstractEngine):
         self._commit_lock.release()
         self.handle('close')
         self.send_bytes(b'shutdown')
+        self.closed = True
 
     def _node_contents(self, character, node):
         # very slow. do better
