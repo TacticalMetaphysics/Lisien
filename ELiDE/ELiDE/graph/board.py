@@ -757,7 +757,9 @@ class GraphBoard(RelativeLayout):
         when possible.
 
         """
-
+        if not self.spotlayout or not self.arrowlayout:
+            self.trigger_update()
+            return
         # remove widgets that don't represent anything anymore
         Logger.debug("Board: updating")
         self.remove_absent_pawns()
