@@ -36,6 +36,7 @@ from queue import Empty
 
 from blinker import Signal
 import lz4.frame
+import msgpack
 
 from .allegedb import HistoryError
 from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
@@ -2657,6 +2658,8 @@ def subprocess(
     engine_handle = EngineHandle(args, kwargs, logq, loglevel=loglevel)
     compress = lz4.frame.compress
     decompress = lz4.frame.decompress
+    pack = engine_handle.pack
+    pack_array_header = msgpack.Packer().pack_array_header
 
     while True:
         inst = decompress(handle_out_pipe.recv_bytes())
@@ -2688,10 +2691,14 @@ def subprocess(
             continue
         if silent:
             continue
-        handle_in_pipe.send_bytes(compress(engine_handle.pack((
-            cmd, engine_handle.branch, engine_handle.turn, engine_handle.tick,
-            r
-        ))))
+        resp = pack_array_header(5)
+        resp += pack(cmd) + pack(engine_handle.branch) \
+            + pack(engine_handle.turn) + pack(engine_handle.tick)
+        if hasattr(getattr(engine_handle, cmd), 'packing'):
+            resp += r
+        else:
+            resp += pack(r)
+        handle_in_pipe.send_bytes(compress(resp))
         if hasattr(engine_handle, '_after_ret'):
             engine_handle._after_ret()
             del engine_handle._after_ret

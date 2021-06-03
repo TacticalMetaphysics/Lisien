@@ -22,49 +22,22 @@ from collections import defaultdict
 from functools import partial
 from importlib import import_module
 from threading import Thread
+import hashlib
 
 import numpy as np
+import msgpack
 
 from .engine import Engine
 
 
 def _dict_delta_added(oldkeys, new, newkeys, d):
-    d.update((k, new[k]) for k in newkeys.difference(oldkeys))
+    for k in newkeys.difference(oldkeys):
+        d[k] = new[k]
 
 
 def _dict_delta_removed(oldkeys, newkeys, d):
-    d.update((k, None) for k in oldkeys.difference(newkeys))
-
-
-def dict_delta(old, new):
-    """Return a dictionary containing the items of ``new`` that are either
-    absent from ``old`` or whose values are different; as well as the
-    value ``None`` for those keys that are present in ``old``, but
-    absent from ``new``.
-
-    Useful for describing changes between two versions of a dict.
-
-    """
-    r = {}
-    oldkeys = set(old)
-    newkeys = set(new)
-    added_thread = Thread(target=_dict_delta_added, args=(oldkeys, new, newkeys, r))
-    removed_thread = Thread(target=_dict_delta_removed, args=(oldkeys, newkeys, r))
-    added_thread.start()
-    removed_thread.start()
-    ks = oldkeys.intersection(newkeys)
-    oldvs = np.ndarray((len(ks),), dtype=object)
-    newvs = np.ndarray((len(ks),), dtype=object)
-    karray = np.ndarray((len(ks),), dtype=object)
-    for i, k in enumerate(ks):
-        oldvs[i] = old[k]
-        newvs[i] = new[k]
-        karray[i] = k
-    changes = oldvs != newvs
-    r.update(zip(karray[changes], newvs[changes]))
-    added_thread.join()
-    removed_thread.join()
-    return r
+    for k in oldkeys.difference(newkeys):
+        d[k] = None
 
 
 def _set_delta_added(old, new, d):
@@ -150,6 +123,80 @@ class EngineHandle(object):
         self._rule_cache = {}
         self._rulebook_cache = defaultdict(list)
         self._stores_cache = defaultdict(dict)
+
+    def _dict_delta(self, old, new):
+        """Return a dictionary containing the items of ``new`` that are either
+        absent from ``old`` or whose values are different; as well as the
+        value ``None`` for those keys that are present in ``old``, but
+        absent from ``new``.
+
+        Useful for describing changes between two versions of a dict.
+
+        """
+        pack = self._real.pack
+
+        def pack_pair(kv):
+            k, v = kv
+            return pack(k), pack(v)
+
+        old_bytes = dict(map(pack_pair, old.items()))
+        new_bytes = dict(map(pack_pair, new.items()))
+        packed = self._packed_dict_delta(old_bytes, new_bytes)
+        return self._real.unpack(packed) or {}
+
+    @staticmethod
+    def _packed_dict_delta(old, new):
+        """`_dict_delta` but the keys, values, and output are all bytes"""
+        big_hash_map = {None: b'\xc0'}
+
+        def hashed(b: bytes):
+            h = hashlib.new('blake2b')
+            h.update(b)
+            ret = h.digest()
+            big_hash_map[ret] = b
+            return ret
+
+        def _hashed_pair(kv):
+            k, v = kv
+            return hashed(k), hashed(v)
+
+        r = {}
+        hashed_old = dict(map(_hashed_pair, old.items()))
+        hashed_new = dict(map(_hashed_pair, new.items()))
+        oldkeys = set(hashed_old)
+        newkeys = set(hashed_new)
+        added_thread = Thread(target=_dict_delta_added, args=(oldkeys, hashed_new, newkeys, r))
+        removed_thread = Thread(target=_dict_delta_removed, args=(oldkeys, newkeys, r))
+        added_thread.start()
+        removed_thread.start()
+        ks = oldkeys.intersection(newkeys)
+        oldv_l = []
+        newv_l = []
+        k_l = []
+        for k in ks:
+            oldv_l.append(hashed_old[k])
+            newv_l.append(hashed_new[k])
+            k_l.append(k)
+        oldvs = np.array(oldv_l)
+        newvs = np.array(newv_l)
+        ks = np.array(k_l)
+        changes = oldvs != newvs
+        added_thread.join()
+        removed_thread.join()
+        if not (changes.any() or r):
+            return b'\xc0'
+        changed_keys = ks[changes]
+        changed_values = newvs[changes]
+        packed = msgpack.Packer().pack_map_header(len(changed_keys) + len(r))
+        for (k, v) in r.items():
+            k = big_hash_map[k]
+            v = big_hash_map[v]
+            packed += k + v
+        for (k, v) in zip(changed_keys, changed_values):
+            k = big_hash_map[k]
+            v = big_hash_map[v]
+            packed += k + v
+        return packed
 
     def log(self, level, message):
         if isinstance(level, str):
@@ -405,7 +452,7 @@ class EngineHandle(object):
     def strings_delta(self):
         old = self._strings_cache
         new = dict(self._real.string)
-        ret = dict_delta(old, new)
+        ret = self._dict_delta(old, new)
         self._strings_cache = new
         return ret
 
@@ -446,7 +493,7 @@ class EngineHandle(object):
         new = self.eternal_copy()
         if store:
             self._eternal_cache = new
-        return dict_delta(old, new)
+        return self._dict_delta(old, new)
 
     def get_universal(self, k):
         ret = self._universal_cache[k] = self._real.universal[k]
@@ -470,7 +517,7 @@ class EngineHandle(object):
         new = self.universal_copy()
         if store:
             self._universal_cache = new
-        return dict_delta(old, new)
+        return self._dict_delta(old, new)
 
     @timely
     def init_character(self, char, statdict={}):
@@ -502,13 +549,12 @@ class EngineHandle(object):
             for (k, v) in self._real.character[char].stat.items()
         }
 
-    @staticmethod
-    def _character_something_delta(char, cache, copier, *args, store=True):
+    def _character_something_delta(self, char, cache, copier, *args, store=True):
         old = cache.get(char, {})
         new = copier(char, *args)
         if store:
             cache[char] = new
-        return dict_delta(old, new)
+        return self._dict_delta(old, new)
 
     def character_stat_delta(self, char, *, store=True):
         return self._character_something_delta(
@@ -595,7 +641,7 @@ class EngineHandle(object):
             result = {}
             for origin in old:
                 if origin in new:
-                    result[origin] = dict_delta(old[origin], new[origin])
+                    result[origin] = self._dict_delta(old[origin], new[origin])
                 else:
                     result[origin] = None
             for origin in new:
@@ -768,7 +814,7 @@ class EngineHandle(object):
             new = self.node_stat_copy(self._real.character[char].node[node])
             if store:
                 self._node_stat_cache[char][node] = new
-            r = dict_delta(old, new)
+            r = self._dict_delta(old, new)
             return r
         except KeyError:
             return None
@@ -1077,7 +1123,7 @@ class EngineHandle(object):
             new = self.portal_stat_copy(char, orig, dest)
             if store:
                 self._portal_stat_cache[char][orig][dest] = new
-            return dict_delta(old, new)
+            return self._dict_delta(old, new)
         except KeyError:
             return None
 
@@ -1255,7 +1301,7 @@ class EngineHandle(object):
     def source_delta(self, store):
         old = self._stores_cache.get(store, {})
         new = self._stores_cache[store] = self.source_copy(store)
-        return dict_delta(old, new)
+        return self._dict_delta(old, new)
 
     def get_source(self, store, name):
         return getattr(self._real, store).get_source(name)
