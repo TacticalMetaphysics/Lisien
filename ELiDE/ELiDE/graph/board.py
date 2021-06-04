@@ -757,6 +757,9 @@ class GraphBoard(RelativeLayout):
         when possible.
 
         """
+        if not hasattr(self, 'engine') or getattr(self.engine, 'closed', False):
+            Logger.warning("Board: tried to update without a connection to a LiSE core")
+            return
         if not self.spotlayout or not self.arrowlayout:
             self.trigger_update()
             return
