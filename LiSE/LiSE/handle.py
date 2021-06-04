@@ -145,7 +145,7 @@ class EngineHandle(object):
         old_bytes = dict(self.threadpool.map(pack_pair, old.items()))
         new_bytes = dict(self.threadpool.map(pack_pair, new.items()))
         packed = self._packed_dict_delta(old_bytes, new_bytes)
-        return self._real.unpack(packed) or {}
+        return self._real.unpack(packed)
 
     def _packed_dict_delta(self, old, new):
         """`_dict_delta` but the keys, values, and output are all bytes"""
@@ -186,7 +186,7 @@ class EngineHandle(object):
         added_thread.join()
         removed_thread.join()
         if not (changes.any() or r):
-            return b'\xc0'
+            return b'\x80'
         changed_keys = ks[changes]
         changed_values = newvs[changes]
         packed = msgpack.Packer().pack_map_header(len(changed_keys) + len(r))
