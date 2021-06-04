@@ -22,6 +22,8 @@ from collections import defaultdict
 from functools import partial
 from importlib import import_module
 from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import cpu_count
 import hashlib
 
 import numpy as np
@@ -123,6 +125,7 @@ class EngineHandle(object):
         self._rule_cache = {}
         self._rulebook_cache = defaultdict(list)
         self._stores_cache = defaultdict(dict)
+        self.threadpool = ThreadPoolExecutor(cpu_count())
 
     def _dict_delta(self, old, new):
         """Return a dictionary containing the items of ``new`` that are either
@@ -144,8 +147,7 @@ class EngineHandle(object):
         packed = self._packed_dict_delta(old_bytes, new_bytes)
         return self._real.unpack(packed) or {}
 
-    @staticmethod
-    def _packed_dict_delta(old, new):
+    def _packed_dict_delta(self, old, new):
         """`_dict_delta` but the keys, values, and output are all bytes"""
         big_hash_map = {None: b'\xc0'}
 
@@ -161,8 +163,8 @@ class EngineHandle(object):
             return hashed(k), hashed(v)
 
         r = {}
-        hashed_old = dict(map(_hashed_pair, old.items()))
-        hashed_new = dict(map(_hashed_pair, new.items()))
+        hashed_old = dict(self.threadpool.map(_hashed_pair, old.items()))
+        hashed_new = dict(self.threadpool.map(_hashed_pair, new.items()))
         oldkeys = set(hashed_old)
         newkeys = set(hashed_new)
         added_thread = Thread(target=_dict_delta_added, args=(oldkeys, hashed_new, newkeys, r))
@@ -399,6 +401,7 @@ class EngineHandle(object):
 
     def close(self):
         self._real.close()
+        self.threadpool.shutdown()
 
     def get_branch(self):
         return self._real.branch
