@@ -142,8 +142,8 @@ class EngineHandle(object):
             k, v = kv
             return pack(k), pack(v)
 
-        old_bytes = dict(map(pack_pair, old.items()))
-        new_bytes = dict(map(pack_pair, new.items()))
+        old_bytes = dict(self.threadpool.map(pack_pair, old.items()))
+        new_bytes = dict(self.threadpool.map(pack_pair, new.items()))
         packed = self._packed_dict_delta(old_bytes, new_bytes)
         return self._real.unpack(packed) or {}
 
