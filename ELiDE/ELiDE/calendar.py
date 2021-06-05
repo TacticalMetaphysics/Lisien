@@ -121,7 +121,6 @@ class CalendarSlider(Slider, CalendarWidget):
 class CalendarTextInput(CalendarWidget, TextInput):
 
     def _parse_text(self, *args):
-        print('_parse_text')
         from ast import literal_eval
         try:
             v = literal_eval(self.text)

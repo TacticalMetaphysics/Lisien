@@ -256,7 +256,6 @@ class GameApp(ELiDEApp):
     @trigger
     def _pull_screens(self, *args):
         for screen in reversed(self.screens.children):
-            print('pulling screen ' + screen.name)
             self.screens.remove_widget(screen)
             self.screen_manager.add_widget(screen)
 

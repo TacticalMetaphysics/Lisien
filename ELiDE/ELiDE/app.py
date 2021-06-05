@@ -186,7 +186,6 @@ class ELiDEApp(App):
         config.write()
 
     def build(self):
-        print(f'building app at {id(self)}')
         self.icon = 'icon_24px.png'
         config = self.config
         Logger.debug(
@@ -235,7 +234,6 @@ class ELiDEApp(App):
             enkw['loglevel'] = config['LiSE']['loglevel']
         self.procman = EngineProcessManager()
         self.engine = engine = self.procman.start(**enkw)
-        print(f'got engine proxy at {id(engine)}')
         self.pull_time()
 
         self.engine.time.connect(self._pull_time_from_signal, weak=False)

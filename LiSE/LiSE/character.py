@@ -442,14 +442,9 @@ class AbstractCharacter(Mapping):
         Return myself.
 
         """
-        start = monotonic()
         self.clear()
-        print("{:,.3f} seconds spent clearing the character".format(monotonic() - start))
-        start = monotonic()
         self.place.update(g.nodes)
-        print("{:,.3f} seconds spent copying nodes".format(monotonic() - start))
-        with timer('seconds spent copying edges'):
-            self.adj.update(g.adj)
+        self.adj.update(g.adj)
         return self
 
     def clear(self):
