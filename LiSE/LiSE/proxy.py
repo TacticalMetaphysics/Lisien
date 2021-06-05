@@ -1821,6 +1821,7 @@ class EternalVarProxy(MutableMapping):
         return self.engine.handle(command='eternal_len')
 
     def __getitem__(self, k):
+        print(f'app {id(self)} getting eternal {k} from engine proxy at {id(self.engine)}')
         return self.engine.handle(command='get_eternal', k=k)
 
     def __setitem__(self, k, v):
@@ -2310,7 +2311,7 @@ class EngineProxy(AbstractEngine):
 
         """
         if self.closed:
-            raise RedundantProcessError("Already closed")
+            raise RedundantProcessError(f"Already closed: {id(self)}")
         if 'command' in kwargs:
             cmd = kwargs['command']
         elif cmd:
@@ -2639,6 +2640,9 @@ class EngineProxy(AbstractEngine):
         self._commit_lock.release()
 
     def close(self):
+        print(f'closing engine proxy at {id(self)}')
+        import traceback
+        traceback.print_stack()
         self._commit_lock.acquire()
         self._commit_lock.release()
         self.handle('close')

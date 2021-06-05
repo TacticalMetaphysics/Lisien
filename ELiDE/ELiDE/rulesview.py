@@ -15,6 +15,7 @@
 from collections import OrderedDict
 from inspect import signature
 
+from kivy.app import App
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock
@@ -98,10 +99,13 @@ class RulesView(Widget):
     deckbuilder in it with a column of used functions and a column of unused actions.
 
     """
-    engine = ObjectProperty()
     rulebook = ObjectProperty()
     entity = ObjectProperty()
     rule = ObjectProperty(allownone=True)
+
+    @property
+    def engine(self):
+        return App.get_running_app().engine
 
     def on_rule(self, *args):
         """Make sure to update when the rule changes"""
@@ -361,7 +365,6 @@ class RulesBox(BoxLayout):
     Currently has no way to rename rules (2018-08-15)
 
     """
-    engine = ObjectProperty()
     rulebook = ObjectProperty()
     rulebook_name = StringProperty()
     entity = ObjectProperty()
@@ -370,6 +373,10 @@ class RulesBox(BoxLayout):
     toggle = ObjectProperty()
     ruleslist = ObjectProperty()
     rulesview = ObjectProperty()
+
+    @property
+    def engine(self):
+        return App.get_running_app().engine
 
     def on_ruleslist(self, *args):
         if not self.ruleslist.children:
@@ -400,11 +407,14 @@ class RulesBox(BoxLayout):
 
 class RulesScreen(Screen):
     """Screen containing a RulesBox for one rulebook"""
-    engine = ObjectProperty()
     entity = ObjectProperty()
     rulebook = ObjectProperty()
     toggle = ObjectProperty()
     rulesview = ObjectProperty()
+
+    @property
+    def engine(self):
+        return App.get_running_app().engine
 
     def new_rule(self, *args):
         self.children[0].new_rule()
@@ -442,7 +452,6 @@ class CharacterRulesScreen(Screen):
             tab = TabbedPanelItem(text=txt)
             setattr(self, '_{}_tab'.format(rb), tab)
             box = RulesBox(
-                engine=self.character.engine,
                 rulebook=self._get_rulebook(rb),
                 entity=self.character,
                 toggle=self.toggle
@@ -500,7 +509,6 @@ Builder.load_string("""
             size_hint_x: 0.2
         RulesView:
             id: rulesview
-            engine: root.engine
             rulebook: root.rulebook
             entity: root.entity
             size_hint_x: 0.8
@@ -522,7 +530,6 @@ Builder.load_string("""
     rulesview: box.rulesview
     RulesBox:
         id: box
-        engine: root.engine
         rulebook: root.rulebook
         entity: root.entity
         toggle: root.toggle

@@ -216,8 +216,11 @@ class MainScreen(Screen):
     visible = BooleanProperty()
     _touch = ObjectProperty(None, allownone=True)
     rules_per_frame = BoundedNumericProperty(10, min=1)
-    app = ObjectProperty()
     tmp_block = BooleanProperty(False)
+
+    @property
+    def app(self):
+        return App.get_running_app()
 
     def _update_adding_portal(self, *args):
         self.boardview.adding_portal = self.charmenu.portaladdbut.state == 'down'
@@ -282,6 +285,8 @@ class MainScreen(Screen):
 
     @trigger
     def _update_statlist(self, *args):
+        if not self.app.engine:
+            return
         if not self.app.selected_proxy:
             self._update_statlist()
             return
@@ -647,7 +652,6 @@ Builder.load_string(
             disabled: root.disable_one_turn or app.edit_locked
 <MainScreen>:
     name: 'main'
-    app: app
     dummyplace: charmenu.dummyplace
     dummything: charmenu.dummything
     mainview: mainview

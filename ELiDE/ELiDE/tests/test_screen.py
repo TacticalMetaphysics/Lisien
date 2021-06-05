@@ -24,15 +24,15 @@ class ScreenTest(GraphicUnitTest):
         char = Facade()
         char.name = 'foo'
         app.character = char
-        app.engine = app.statcfg.engine = MockEngine()
+        app.engine = MockEngine()
         char.character = SimpleNamespace(engine=app.engine)
         app.engine.character['foo'] = char
         entity = ListenableDict()
         entity.engine = app.engine
         entity.name = 'name'
         app.selected_proxy = app.proxy = app.statcfg.proxy = entity
-        screen = MainScreen(app=app, graphboards={'foo': GraphBoard(
-            character=char, app=app)}, gridboards={
+        screen = MainScreen(graphboards={'foo': GraphBoard(
+            character=char)}, gridboards={
             'foo': GridBoard(character=char)
         })
         win = window_with_widget(screen)
@@ -61,15 +61,15 @@ class ScreenTest(GraphicUnitTest):
         char = Facade()
         char.name = 'foo'
         app.character = char
-        app.engine = app.statcfg.engine = MockEngine()
+        app.engine = MockEngine()
         char.character = SimpleNamespace(engine=app.engine)
         app.engine.character['foo'] = char
         entity = ListenableDict()
         entity.engine = app.engine
         entity.name = 'name'
         app.selected_proxy = app.proxy = app.statcfg.proxy = entity
-        screen = MainScreen(app=app, graphboards={'foo': GraphBoard(
-            character=char, app=app)}, gridboards={
+        screen = MainScreen(graphboards={'foo': GraphBoard(
+            character=char)}, gridboards={
             'foo': GridBoard(character=char)
         }, play_speed=1.0)
         win = window_with_widget(screen)

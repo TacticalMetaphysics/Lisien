@@ -61,7 +61,7 @@ class ELiDEApp(App):
     """
     title = 'ELiDE'
 
-    engine = ObjectProperty()
+    engine = None
     branch = StringProperty('trunk')
     turn = NumericProperty(0)
     tick = NumericProperty(0)
@@ -118,6 +118,8 @@ class ELiDEApp(App):
 
     @trigger
     def _push_time(self, *args):
+        if not self.engine:
+            return
         branch, turn, tick = self.engine._btt()
         if (self.branch, self.turn, self.tick) != (branch, turn, tick):
             self.engine.time_travel(
@@ -184,6 +186,7 @@ class ELiDEApp(App):
         config.write()
 
     def build(self):
+        print(f'building app at {id(self)}')
         self.icon = 'icon_24px.png'
         config = self.config
         Logger.debug(
@@ -232,6 +235,7 @@ class ELiDEApp(App):
             enkw['loglevel'] = config['LiSE']['loglevel']
         self.procman = EngineProcessManager()
         self.engine = engine = self.procman.start(**enkw)
+        print(f'got engine proxy at {id(engine)}')
         self.pull_time()
 
         self.engine.time.connect(self._pull_time_from_signal, weak=False)
@@ -284,8 +288,7 @@ class ELiDEApp(App):
         config = self.config
 
         self.mainmenu = ELiDE.menu.DirPicker(
-            toggle=toggler('mainmenu'),
-            start=self.start_subprocess
+            toggle=toggler('mainmenu')
         )
 
         self.pawncfg = ELiDE.spritebuilder.PawnConfigScreen(
@@ -299,16 +302,12 @@ class ELiDEApp(App):
         )
 
         self.statcfg = ELiDE.statcfg.StatScreen(
-            toggle=toggler('statcfg'),
-            engine=self.engine
+            toggle=toggler('statcfg')
         )
-        self.bind(engine=self.statcfg.setter('engine'))
 
         self.rules = ELiDE.rulesview.RulesScreen(
-            engine=self.engine,
             toggle=toggler('rules')
         )
-        self.bind(engine=self.rules.setter('engine'))
 
         self.charrules = ELiDE.rulesview.CharacterRulesScreen(
             character=self.character,
@@ -317,12 +316,10 @@ class ELiDEApp(App):
         self.bind(character=self.charrules.setter('character'))
 
         self.chars = ELiDE.charsview.CharactersScreen(
-            engine=self.engine,
             toggle=toggler('chars'),
             new_board=self.new_board
         )
         self.bind(
-            engine=self.chars.setter('engine'),
             character_name=self.chars.setter('character_name'))
 
         def chars_push_character_name(*args):
@@ -442,6 +439,7 @@ class ELiDEApp(App):
 
     def on_stop(self, *largs):
         """Sync the database, wrap up the game, and halt."""
+        self.mainmenu.closed = True
         self.strings.save()
         self.funcs.save()
         if self.engine:

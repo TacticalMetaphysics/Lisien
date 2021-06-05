@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from functools import partial
 
+from kivy.app import App
 from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen
@@ -53,6 +54,10 @@ class CharactersScreen(Screen):
     names = ListProperty()
     new_board = ObjectProperty()
     push_character_name = ObjectProperty()
+
+    @property
+    def engine(self):
+        return App.get_running_app().engine
 
     def new_character(self, name, *args):
         self.engine.add_character(name)

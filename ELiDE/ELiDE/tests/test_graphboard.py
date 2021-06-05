@@ -170,17 +170,20 @@ class SwitchGraphTest(GraphicUnitTest):
     def setUp(self):
         super(GraphicUnitTest, self).setUp()
         self.prefix = mkdtemp()
+        print(f'SwitchGraphTest using prefix {self.prefix}')
         self.old_argv = sys.argv.copy()
         sys.argv = ['python', '-m', 'ELiDE', self.prefix]
         self.app = ELiDEApp()
 
     def tearDown(self, fake=False):
+        self.app.dispatch('on_stop')
+        idle_until(lambda: self.app.engine.closed)
+        self.app.engine = None
         super().tearDown(fake=fake)
-        self.app.stop()
         shutil.rmtree(self.prefix)
         sys.argv = self.old_argv
 
-    def test_character_switch_grid(self):
+    def test_character_switch_graph(self):
         with Engine(self.prefix) as eng:
             eng.add_character('physical', nx.grid_2d_graph(10, 1))
             eng.add_character('tall', nx.grid_2d_graph(1, 10))
@@ -189,6 +192,7 @@ class SwitchGraphTest(GraphicUnitTest):
         idle_until(lambda: hasattr(app, 'mainscreen') and app.mainscreen.mainview and app.mainscreen.statpanel and hasattr(app.mainscreen, 'gridview'))
         idle_until(lambda: app.mainscreen.boardview in app.mainscreen.mainview.children)
         idle_until(lambda: app.mainscreen.boardview.board.children)
+        print(f'test_character_switch_graph got app {id(app)}, engine proxy {id(app.engine)}')
         first_y = next(iter(app.mainscreen.boardview.board.spotlayout.children)).y
         assert all(child.y == first_y for child in app.mainscreen.boardview.board.spotlayout.children)
         assert len(set(child.x for child in app.mainscreen.boardview.board.spotlayout.children)) == len(app.mainscreen.boardview.board.spotlayout.children)

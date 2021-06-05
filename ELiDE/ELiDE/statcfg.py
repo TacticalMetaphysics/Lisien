@@ -12,6 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
     DictProperty,
@@ -205,8 +206,11 @@ class StatScreen(Screen):
     statlist = ObjectProperty()
     statcfg = ObjectProperty()
     toggle = ObjectProperty()
-    engine = ObjectProperty()
     proxy = ObjectProperty()
+
+    @property
+    def engine(self):
+        return App.get_running_app().engine
 
     def new_stat(self):
         """Look at the key and value that the user has entered into the stat

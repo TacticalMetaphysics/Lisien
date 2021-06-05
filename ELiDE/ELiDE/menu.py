@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 from kivy.app import App
-from kivy.properties import OptionProperty, ObjectProperty
+from kivy.properties import BooleanProperty, OptionProperty, ObjectProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
@@ -121,8 +121,6 @@ class WorldStartConfigurator(BoxLayout):
 
 class DirPicker(Screen):
     toggle = ObjectProperty()
-    start = ObjectProperty()
-    init_board = ObjectProperty()
 
     def open(self, path):
         App.get_running_app().starting_dir = os.path.abspath('.')
@@ -140,8 +138,8 @@ class DirPicker(Screen):
                 self.config_popover.add_widget(self.configurator)
             self.config_popover.open()
             return
-        self.start()
-        self.init_board()
+        App.get_running_app().start_subprocess()
+        App.get_running_app().init_board()
         self.toggle()
 
 
