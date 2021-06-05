@@ -13,14 +13,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
+
+from kivy.app import App
 from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.properties import (
     AliasProperty,
     BooleanProperty,
     ObjectProperty,
-    NumericProperty,
-    StringProperty
+    NumericProperty
 )
 from kivy.resources import resource_find
 from .app import ELiDEApp
@@ -43,14 +44,16 @@ class GameScreen(Screen):
     """
     switch_screen = ObjectProperty()
     """Method to set the ``screen`` attribute of the main :class:`kivy.uix.screenmanager.ScreenManager`"""
-    app = ObjectProperty()
-    """The running ``GameApp`` object"""
-    engine = ObjectProperty()
-    """An instance of ``EngineProxy``"""
-    shutdown = ObjectProperty()
-    """Call this to quit the game"""
     disabled = BooleanProperty(False)
     """If you bind your widgets' ``disabled`` to this, they will be disabled when a game command is in mid-execution"""
+
+    @property
+    def app(self):
+        return App.get_running_app()
+
+    @property
+    def engine(self):
+        return App.get_running_app().engine
 
     def disable_input(self, cb=None):
         """Set ``self.disabled`` to ``True``, then call ``cb`` if provided
@@ -138,20 +141,13 @@ class Screens(Widget):
     app = ObjectProperty()
 
     def add_widget(self, wid, index=0, canvas=None):
-        wid.app = self.app
-        wid.engine = self.app.engine
         wid.switch_screen = self.app.screen_manager.setter('screen')
-        wid.shutdown = self.app.stop
         super().add_widget(wid, index, canvas)
 
 
 class GameApp(ELiDEApp):
     modules = []
-    engine = ObjectProperty()
     world_file = None
-    branch = StringProperty('trunk')
-    turn = NumericProperty(0)
-    tick = NumericProperty(0)
     turn_length = NumericProperty(0.5)
 
     def wait_turns(self, turns, dt=None, *, cb=None):
