@@ -285,7 +285,7 @@ class MainScreen(Screen):
 
     @trigger
     def _update_statlist(self, *args):
-        if not self.app.engine:
+        if not self.app or not self.app.engine:
             return
         if not self.app.selected_proxy:
             self._update_statlist()
