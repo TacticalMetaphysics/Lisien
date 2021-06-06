@@ -1,6 +1,14 @@
+import sys
+from tempfile import mkdtemp
+import shutil
+
 from blinker import Signal
 from kivy.input.motionevent import MotionEvent
 from kivy.base import EventLoop
+from kivy.tests.common import GraphicUnitTest
+from kivy.config import ConfigParser
+
+from ELiDE.app import ELiDEApp
 
 
 def all_spots_placed(board, char=None):
@@ -100,3 +108,20 @@ class MockEngine(Signal):
 
     def handle(self, *args, **kwargs):
         return {'a': 'b'}
+
+
+class ELiDEAppTest(GraphicUnitTest):
+    def setUp(self):
+        super(ELiDEAppTest, self).setUp()
+        self.prefix = mkdtemp()
+        self.old_argv = sys.argv.copy()
+        sys.argv = ['python', '-m', 'ELiDE', self.prefix]
+        self.app = ELiDEApp()
+        self.app.config = ConfigParser(None)
+        self.app.build_config(self.app.config)
+
+    def tearDown(self, fake=False):
+        super().tearDown(fake=fake)
+        self.app.stop()
+        shutil.rmtree(self.prefix)
+        sys.argv = self.old_argv

@@ -1,19 +1,18 @@
 import shutil
 import sys
 from tempfile import mkdtemp
-from time import monotonic
 
-import pytest
 from kivy.base import EventLoop
 from kivy.tests.common import GraphicUnitTest
-from kivy.logger import Logger
+from kivy.config import ConfigParser
 import networkx as nx
 
 from LiSE import Engine
 from LiSE.character import Facade
 from ELiDE.app import ELiDEApp
 from ELiDE.grid.board import GridBoard, GridBoardView
-from ELiDE.tests.util import all_spots_placed, all_pawns_placed, idle_until, window_with_widget
+from .util import all_spots_placed, all_pawns_placed, idle_until, window_with_widget, \
+    ELiDEAppTest
 
 
 class GridBoardTest(GraphicUnitTest):
@@ -50,26 +49,13 @@ class GridBoardTest(GraphicUnitTest):
         assert board.pawn['otherthing'].pos == board.spot[0, 0].pos
 
 
-class SwitchGridTest(GraphicUnitTest):
-    def setUp(self):
-        super(SwitchGridTest, self).setUp()
-        self.prefix = mkdtemp()
-        self.old_argv = sys.argv.copy()
-        sys.argv = ['python', '-m', 'ELiDE', self.prefix]
-        self.app = ELiDEApp()
-
-    def tearDown(self, fake=False):
-        self.app.dispatch('on_stop')
-        super().tearDown(fake=fake)
-        shutil.rmtree(self.prefix)
-        sys.argv = self.old_argv
-
+class SwitchGridTest(ELiDEAppTest):
     def test_character_switch_grid(self):
         with Engine(self.prefix) as eng:
             eng.add_character('physical', nx.grid_2d_graph(10, 1))
             eng.add_character('tall', nx.grid_2d_graph(1, 10))
         app = self.app
-        app._run_prepare()
+        window_with_widget(app.build())
         idle_until(lambda: hasattr(app, 'mainscreen') and app.mainscreen.mainview and app.mainscreen.statpanel and hasattr(app.mainscreen, 'gridview'))
         app.mainscreen.statpanel.toggle_gridview()
         idle_until(lambda: app.mainscreen.gridview in app.mainscreen.mainview.children)

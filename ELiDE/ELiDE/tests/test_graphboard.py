@@ -3,6 +3,7 @@ from tempfile import mkdtemp
 import shutil
 
 from kivy.base import EventLoop
+from kivy.config import ConfigParser
 from kivy.tests.common import GraphicUnitTest
 import networkx as nx
 
@@ -10,7 +11,7 @@ from LiSE import Engine
 from LiSE.character import Facade
 from ELiDE.app import ELiDEApp
 from ELiDE.graph.board import GraphBoard, GraphBoardView, FinalLayout
-from ELiDE.tests.util import MockTouch, idle_until, window_with_widget
+from .util import MockTouch, idle_until, window_with_widget, ELiDEAppTest
 
 
 class GraphBoardTest(GraphicUnitTest):
@@ -166,29 +167,13 @@ class GraphBoardTest(GraphicUnitTest):
         idle_until(lambda: that in one.children, 1000, "pawn did not relocate within 1000 ticks")
 
 
-class SwitchGraphTest(GraphicUnitTest):
-    def setUp(self):
-        super(GraphicUnitTest, self).setUp()
-        self.prefix = mkdtemp()
-        print(f'SwitchGraphTest using prefix {self.prefix}')
-        self.old_argv = sys.argv.copy()
-        sys.argv = ['python', '-m', 'ELiDE', self.prefix]
-        self.app = ELiDEApp()
-
-    def tearDown(self, fake=False):
-        self.app.dispatch('on_stop')
-        idle_until(lambda: self.app.engine.closed)
-        self.app.engine = None
-        super().tearDown(fake=fake)
-        shutil.rmtree(self.prefix)
-        sys.argv = self.old_argv
-
+class SwitchGraphTest(ELiDEAppTest):
     def test_character_switch_graph(self):
         with Engine(self.prefix) as eng:
             eng.add_character('physical', nx.grid_2d_graph(10, 1))
             eng.add_character('tall', nx.grid_2d_graph(1, 10))
         app = self.app
-        app._run_prepare()
+        window_with_widget(app.build())
         idle_until(lambda: hasattr(app, 'mainscreen') and app.mainscreen.mainview and app.mainscreen.statpanel and hasattr(app.mainscreen, 'gridview'))
         idle_until(lambda: app.mainscreen.boardview in app.mainscreen.mainview.children)
         idle_until(lambda: app.mainscreen.boardview.board.children)
