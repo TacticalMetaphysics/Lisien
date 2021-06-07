@@ -4,3 +4,4 @@ msgpack>=1.0.0
 networkx>=1.9,<=2.4
 numpy
 pygments
+lz4
