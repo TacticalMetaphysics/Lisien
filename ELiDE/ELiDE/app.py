@@ -433,7 +433,6 @@ class ELiDEApp(App):
             self.engine.commit()
         self.strings.save()
         self.funcs.save()
-        self.config.write()
 
     def on_stop(self, *largs):
         """Sync the database, wrap up the game, and halt."""
@@ -444,7 +443,6 @@ class ELiDEApp(App):
             self.engine.commit()
         if hasattr(self, 'procman'):
             self.procman.shutdown()
-        self.config.write()
         if hasattr(self, 'starting_dir'):
             os.chdir(self.starting_dir)
 
