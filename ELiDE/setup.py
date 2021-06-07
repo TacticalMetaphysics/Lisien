@@ -17,7 +17,12 @@ if sys.version_info[0] < 3 or (
         sys.version_info[0] == 3 and sys.version_info[1] < 6
 ):
     raise RuntimeError("ELiDE requires Python 3.6 or later")
+import os
 from setuptools import setup
+
+
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'requirements.txt'), 'rt') as inf:
+    reqs = list(inf.readlines())
 
 
 setup(
@@ -34,12 +39,7 @@ setup(
         'ELiDE.kivygarden.texturestack':
         'ELiDE/kivygarden/texturestack'
     },
-    install_requires=[
-        "LiSE>=0.11,<0.12",
-	    "numpy>=1.14.5,<2",
-        "kivy>=1.10.0,<3",
-        "pygments>=2.7.4"
-    ],
+    install_requires=reqs,
     package_data={
         "ELiDE": [
             "assets/*.png",

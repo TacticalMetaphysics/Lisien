@@ -18,8 +18,11 @@ if sys.version_info[0] < 3 or (
         sys.version_info[1] < 6
 ):
     raise RuntimeError("LiSE requires Python 3.6 or later")
-
+import os
 from setuptools import setup
+
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'requirements.txt'), 'rt') as inf:
+    reqs = list(inf.readlines())
 
 
 setup(
@@ -40,13 +43,7 @@ setup(
     package_data={
         'LiSE': ['sqlite.json']
     },
-    install_requires=[
-        "astunparse>=1.6.3<2",
-        "msgpack>=1.0.0<1.1",
-        "blinker",
-        "networkx==2.4",
-        "lz4"
-    ],
+    install_requires=reqs,
     project_urls={
         "Documentation": "https://logicaldash.github.io/LiSE"
     }
