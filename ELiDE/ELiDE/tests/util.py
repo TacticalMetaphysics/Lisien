@@ -121,7 +121,7 @@ class ELiDEAppTest(GraphicUnitTest):
         self.app.build_config(self.app.config)
 
     def tearDown(self, fake=False):
+        self.app.dispatch('on_stop')
         super().tearDown(fake=fake)
-        self.app.stop()
         shutil.rmtree(self.prefix)
         sys.argv = self.old_argv
