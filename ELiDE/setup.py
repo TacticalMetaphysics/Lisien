@@ -27,7 +27,7 @@ with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'requirements
 
 setup(
     name="ELiDE",
-    version="0.11.2",
+    version="0.12",
     license="AGPL3",
     packages=[
         "ELiDE",

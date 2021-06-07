@@ -27,7 +27,7 @@ with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'requirements
 
 setup(
     name="LiSE",
-    version="0.11.2",
+    version="0.12",
     description="Rules engine for life simulation games",
     author="Zachary Spector",
     author_email="public@zacharyspector.com",
