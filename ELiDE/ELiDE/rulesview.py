@@ -456,6 +456,7 @@ class CharacterRulesScreen(Screen):
                 entity=self.character,
                 toggle=self.toggle
             )
+            setattr(self, '_{}_box'.format(rb), box)
             tab.add_widget(box)
             self._tabs.add_widget(tab)
         self.add_widget(self._tabs)
