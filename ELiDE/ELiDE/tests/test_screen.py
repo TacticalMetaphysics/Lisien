@@ -85,4 +85,4 @@ class ScreenTest(GraphicUnitTest):
         motion = MockTouch("unittest", 1, {'sx': sx, 'sy': sy})
         EventLoop.post_dispatch_input("begin", motion)
         EventLoop.post_dispatch_input("end", motion)
-        idle_until(lambda: int(turnfield.hint_text) == 3, 300, "Time didn't advance fast enough")
+        idle_until(lambda: int(turnfield.hint_text) == 3, 400, "Time didn't advance fast enough")
