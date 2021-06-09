@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 from kivy.base import EventLoop
+from kivy.config import ConfigParser
 from kivy.tests.common import GraphicUnitTest
 
 from LiSE.character import Facade
@@ -17,23 +18,23 @@ class ScreenTest(GraphicUnitTest):
     @staticmethod
     def test_advance_time():
         app = ELiDEApp()
-        app.config = {'ELiDE': {'boardchar': 'foo'}}
+        app.config = ConfigParser(None)
         app.spotcfg = SpotConfigScreen()
         app.pawncfg = PawnConfigScreen()
         app.statcfg = StatScreen()
         char = Facade()
-        char.name = 'foo'
+        char.name = 'physical'
         app.character = char
         app.engine = MockEngine()
         char.character = SimpleNamespace(engine=app.engine)
-        app.engine.character['foo'] = char
+        app.engine.character['physical'] = char
         entity = ListenableDict()
         entity.engine = app.engine
         entity.name = 'name'
         app.selected_proxy = app.proxy = app.statcfg.proxy = entity
-        screen = MainScreen(graphboards={'foo': GraphBoard(
+        screen = MainScreen(graphboards={'physical': GraphBoard(
             character=char)}, gridboards={
-            'foo': GridBoard(character=char)
+            'physical': GridBoard(character=char)
         })
         win = window_with_widget(screen)
         idle_until(lambda: 'timepanel' in screen.ids)
