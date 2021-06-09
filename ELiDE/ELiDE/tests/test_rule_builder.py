@@ -1,9 +1,13 @@
+from kivy.tests.common import UnitTestTouch
+
 from abc import abstractmethod
 from LiSE import Engine
 from LiSE.examples import kobold
 from LiSE.examples import polygons
 from .util import idle_until, window_with_widget, ELiDEAppTest
 from ..card import Card
+
+from kivy.base import EventLoop
 
 
 class RuleBuilderTest(ELiDEAppTest):
@@ -66,6 +70,94 @@ class TestRuleBuilderKobold(RuleBuilderTest):
                       if isinstance(card, Card)}
         assert card_names == {'standing_still', 'aware', 'uncovered',
                               'sametile', 'breakcover', 'kobold_alive'}
+
+    def test_rule_builder_remove_trigger(self):
+        rules_list = self.rules_list
+        rules_view = self.rules_view
+        idle_until(lambda: 'shrubsprint' in {
+            rulebut.text for rulebut in rules_list.children[0].children}, 100,
+                   'Never made shrubsprint button')
+        for rulebut in rules_list.children[0].children:
+            if rulebut.text == 'shrubsprint':
+                rulebut.state = 'down'
+                break
+        idle_until(lambda: rules_view.children)
+        idle_until(lambda: hasattr(rules_view, '_trigger_tab'), 100,
+                   'Never made trigger tab')
+        builder = rules_view._trigger_builder
+        idle_until(lambda: builder.children, 100,
+                   'Never filled trigger builder')
+        for card in builder.children:
+            if not isinstance(card, Card):
+                continue
+            if card.headline_text == 'breakcover':
+                break
+        else:
+            assert False, "No breakcover card"
+        for foundation in builder.children:
+            if isinstance(foundation, Card):
+                continue
+            if foundation.x > card.right:
+                break
+        else:
+            assert False, "No right foundation"
+        mov = UnitTestTouch(*card.center)
+        mov.touch_down()
+        dist_x = foundation.center_x - card.center_x
+        dist_y = foundation.y - card.center_y
+        for i in range(1, 11):
+            coef = 1 / i
+            x = foundation.center_x - coef * dist_x
+            y = foundation.y - coef * dist_y
+            mov.touch_move(x, y)
+            EventLoop.idle()
+        mov.touch_up(foundation.center_x, foundation.y)
+        idle_until(lambda: card.x == foundation.x, 100, "card didn't move")
+        idle_until(lambda: 'breakcover' not in self.app.engine.rule['shrubsprint'].triggers, 100, 'breakcover never removed from rulebook')
+
+    def test_rule_builder_add_trigger(self):
+        rules_list = self.rules_list
+        rules_view = self.rules_view
+        idle_until(lambda: 'shrubsprint' in {
+            rulebut.text for rulebut in rules_list.children[0].children}, 100,
+                   'Never made shrubsprint button')
+        for rulebut in rules_list.children[0].children:
+            if rulebut.text == 'shrubsprint':
+                rulebut.state = 'down'
+                break
+        idle_until(lambda: rules_view.children)
+        idle_until(lambda: hasattr(rules_view, '_trigger_tab'), 100,
+                   'Never made trigger tab')
+        builder = rules_view._trigger_builder
+        idle_until(lambda: builder.children, 100,
+                   'Never filled trigger builder')
+        aware = breakcover = None
+        for card in builder.children:
+            if not isinstance(card, Card):
+                continue
+            if card.headline_text == 'aware':
+                aware = card
+            elif card.headline_text == 'breakcover':
+                breakcover = card
+        assert None not in (aware, breakcover), "Didn't get 'aware' and 'breakcover' cards"
+        start_x = aware.center_x
+        start_y = aware.top - 10
+        mov = UnitTestTouch(start_x, start_y)
+        mov.touch_down()
+        dist_x = start_x - breakcover.center_x
+        dist_y = start_y - breakcover.center_y
+        decr_x = dist_x / 10
+        decr_y = dist_y / 10
+        x = start_x
+        y = start_y
+        for i in range(1, 11):
+            x -= decr_x
+            y -= decr_y
+            mov.touch_move(x, y)
+            EventLoop.idle()
+        mov.touch_up(*breakcover.center)
+        idle_until(lambda: aware.x == breakcover.x, 100, "aware didn't move to its new place")
+        idle_until(lambda: 'aware' in self.app.engine.rule['shrubsprint'].triggers, 100, 'aware never added to rulebook')
 
 
 class TestCharRuleBuilder(ELiDEAppTest):

@@ -524,6 +524,7 @@ Builder.load_string("""
             text: '+'
             on_release: root.new_rule()
         Button:
+            id: closebut
             text: 'Close'
             on_release: root.toggle()
 <RulesScreen>:

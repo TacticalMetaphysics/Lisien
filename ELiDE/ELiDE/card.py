@@ -272,6 +272,7 @@ class Card(FloatLayout):
         if not self.dragging:
             touch.ungrab(self)
             return
+        print(f'moving {self.headline_text}')
         self.pos = (
             touch.x - self.collide_x,
             touch.y - self.collide_y
