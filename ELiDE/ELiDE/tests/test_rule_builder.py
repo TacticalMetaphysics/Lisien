@@ -64,7 +64,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
         idle_until(lambda: hasattr(rules_view, '_trigger_tab'), 100,
                    'Never made trigger tab')
         builder = rules_view._trigger_builder
-        idle_until(lambda: builder.children, 100,
+        idle_until(lambda: [child for child in builder.children if isinstance(child, Card)], 100,
                    'Never filled trigger builder')
         card_names = {card.headline_text for card in builder.children
                       if isinstance(card, Card)}
@@ -85,7 +85,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
         idle_until(lambda: hasattr(rules_view, '_trigger_tab'), 100,
                    'Never made trigger tab')
         builder = rules_view._trigger_builder
-        idle_until(lambda: builder.children, 100,
+        idle_until(lambda: [child for child in builder.children if isinstance(child, Card)], 100,
                    'Never filled trigger builder')
         for card in builder.children:
             if not isinstance(card, Card):
@@ -129,7 +129,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
         idle_until(lambda: hasattr(rules_view, '_trigger_tab'), 100,
                    'Never made trigger tab')
         builder = rules_view._trigger_builder
-        idle_until(lambda: builder.children, 100,
+        idle_until(lambda: [child for child in builder.children if isinstance(child, Card)], 100,
                    'Never filled trigger builder')
         aware = breakcover = None
         for card in builder.children:
