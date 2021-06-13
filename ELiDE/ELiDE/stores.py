@@ -27,6 +27,7 @@ from functools import partial
 from ast import parse
 from textwrap import indent, dedent
 
+from kivy.app import App
 from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.logger import Logger
@@ -182,8 +183,6 @@ class StringsEdScreen(Screen):
     """Code identifying the language we're editing"""
     edbox = ObjectProperty()
     """Widget containing editors for the current string and its name"""
-    store = ObjectProperty()
-    """The string store, an attribute of the LiSE engine"""
 
     def on_language(self, *args):
         if self.edbox is None:
@@ -326,12 +325,21 @@ class EdBox(BoxLayout):
     """An instance of a subclass of ``Editor``"""
     store = ObjectProperty()
     """Proxy to the store I represent"""
+    store_name = StringProperty()
+    """Name of my store, so I can get it from the engine"""
     data = ListProperty()
     """Dictionaries describing widgets in my ``storelist``"""
     toggle = ObjectProperty()
     """Function to show or hide my screen"""
     disable_text_input = BooleanProperty(False)
     """Set to ``True`` to prevent entering text in the editor"""
+
+    def on_store_name(self, *args):
+        app = App.get_running_app()
+        if app.engine is None:
+            Clock.schedule_once(self.on_store_name, 0)
+            return
+        self.store = getattr(app.engine, self.store_name)
 
     def on_storelist(self, *args):
         self.storelist.bind(selection_name=self._pull_from_storelist)
@@ -604,7 +612,7 @@ Builder.load_string("""
         StringsEdBox:
             id: edbox
             toggle: root.toggle
-            store: root.store
+            store_name: 'string'
             language: root.language
         BoxLayout:
             size_hint_y: 0.05
@@ -719,7 +727,7 @@ Builder.load_string("""
             FuncsEdBox:
                 id: triggers
                 toggle: root.toggle
-                store: app.engine.trigger if app.engine else None
+                store_name: 'trigger'
                 on_data: app.rules.rulesview.set_functions('trigger', map(app.rules.rulesview.inspect_func, self.data))
         TabbedPanelItem:
             id: prereq
@@ -728,7 +736,7 @@ Builder.load_string("""
             FuncsEdBox:
                 id: prereqs
                 toggle: root.toggle
-                store: app.engine.prereq if app.engine else None
+                store_name: 'prereq'
                 on_data: app.rules.rulesview.set_functions('prereq', map(app.rules.rulesview.inspect_func, self.data))
         TabbedPanelItem:
             id: action
@@ -737,6 +745,6 @@ Builder.load_string("""
             FuncsEdBox:
                 id: actions
                 toggle: root.toggle
-                store: app.engine.action if app.engine else None
+                store_name: 'action'
                 on_data: app.rules.rulesview.set_functions('action', map(app.rules.rulesview.inspect_func, self.data))
 """)
