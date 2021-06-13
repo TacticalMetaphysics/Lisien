@@ -17,7 +17,11 @@ class TestPythonEditor(ELiDEAppTest):
         idle_until(lambda: 'actions' in app.funcs.ids, 100, 'Never got actions box')
         actions_box = app.funcs.ids.actions
         idle_until(lambda: actions_box.editor, 100, 'Never got FuncEditor')
+        idle_until(lambda: actions_box.storelist, 100, 'Never got StoreList')
+        idle_until(lambda: actions_box.storelist.data, 100, 'Never got StoreList data')
+        last = actions_box.storelist.data[-1]['name']
+        actions_box.storelist.selection_name = last
         idle_until(lambda: 'funname' in actions_box.editor.ids, 100, 'Never got function input widget')
-        idle_until(lambda: actions_box.editor.ids.funname.text, 100, "Never got function name")
+        idle_until(lambda: actions_box.editor.ids.funname.hint_text, 100, "Never got function name")
         idle_until(lambda: 'code' in actions_box.editor.ids, 100, "Never got code editor widget")
         idle_until(lambda: actions_box.editor.ids.code.text, 100, "Never got source code")
