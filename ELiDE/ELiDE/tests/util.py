@@ -8,6 +8,7 @@ from kivy.base import EventLoop
 from kivy.tests.common import GraphicUnitTest
 from kivy.config import ConfigParser
 
+from LiSE.proxy import RedundantProcessError
 from ELiDE.app import ELiDEApp
 
 
@@ -124,6 +125,9 @@ class ELiDEAppTest(GraphicUnitTest):
         for i in range(100):
             EventLoop.idle()  # let any triggered events fire
         super().tearDown(fake=fake)
-        self.app.stop()
+        try:
+            self.app.stop()
+        except RedundantProcessError:
+            pass
         shutil.rmtree(self.prefix)
         sys.argv = self.old_argv
