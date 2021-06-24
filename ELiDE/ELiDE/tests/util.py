@@ -111,6 +111,9 @@ class MockEngine(Signal):
     def handle(self, *args, **kwargs):
         return {'a': 'b'}
 
+    def commit(self):
+        pass
+
 
 class ELiDEAppTest(GraphicUnitTest):
     def setUp(self):
