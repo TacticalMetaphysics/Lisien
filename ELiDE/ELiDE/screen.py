@@ -230,7 +230,9 @@ class MainScreen(Screen):
         self.gridview.board = self.gridboards[self.app.character_name]
 
     def on_mainview(self, *args):
-        if None in (self.statpanel, self.charmenu, self.app) or None in (self.app.character_name, self.charmenu.portaladdbut):
+        if None in (self.statpanel, self.charmenu, self.app) or None in (
+                self.app.character_name, self.charmenu.portaladdbut
+        ) or self.app.character_name not in self.graphboards:
             Clock.schedule_once(self.on_mainview, 0)
             return
         self.boardview = GraphBoardView(
