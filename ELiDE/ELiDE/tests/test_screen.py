@@ -2,23 +2,27 @@ from types import SimpleNamespace
 
 from kivy.base import EventLoop
 from kivy.config import ConfigParser
-from kivy.tests.common import GraphicUnitTest
+from kivy.tests.common import UnitTestTouch
 
 from LiSE.character import Facade
-from ELiDE.app import ELiDEApp
+from ELiDE.menu import DirPicker
 from ELiDE.screen import MainScreen
 from ELiDE.spritebuilder import PawnConfigScreen, SpotConfigScreen
 from ELiDE.statcfg import StatScreen
 from ELiDE.graph.board import GraphBoard
 from ELiDE.grid.board import GridBoard
-from .util import MockTouch, ListenableDict, MockEngine, idle_until, window_with_widget
+from .util import ELiDEAppTest, ListenableDict, MockEngine, idle_until, window_with_widget
 
 
-class ScreenTest(GraphicUnitTest):
-    @staticmethod
-    def test_advance_time():
-        app = ELiDEApp()
-        app.config = ConfigParser(None)
+class MockStore:
+    def save(self, *args):
+        pass
+
+
+class ScreenTest(ELiDEAppTest):
+    def test_advance_time(self):
+        app = self.app
+        app.mainmenu = DirPicker()
         app.spotcfg = SpotConfigScreen()
         app.pawncfg = PawnConfigScreen()
         app.statcfg = StatScreen()
@@ -26,6 +30,8 @@ class ScreenTest(GraphicUnitTest):
         char.name = 'physical'
         app.character = char
         app.engine = MockEngine()
+        app.strings = MockStore()
+        app.funcs = MockStore()
         char.character = SimpleNamespace(engine=app.engine)
         app.engine.character['physical'] = char
         entity = ListenableDict()
@@ -43,22 +49,20 @@ class ScreenTest(GraphicUnitTest):
         turnfield = timepanel.ids['turnfield']
         turn_before = int(turnfield.hint_text)
         stepbut = timepanel.ids['stepbut']
-        x, y = stepbut.center
-        sx = x / win.width
-        sy = y / win.height
-        motion = MockTouch("unittest", 1, {'sx': sx, 'sy': sy})
-        EventLoop.post_dispatch_input("begin", motion)
-        EventLoop.post_dispatch_input("end", motion)
+        motion = UnitTestTouch(*stepbut.center)
+        motion.touch_down()
+        motion.touch_up()
         EventLoop.idle()
         assert int(turnfield.hint_text) == turn_before + 1
-    
-    @staticmethod
-    def test_play():
-        app = ELiDEApp()
-        app.config = {'ELiDE': {'boardchar': 'foo'}}
+
+    def test_play(self):
+        app = self.app
         app.spotcfg = SpotConfigScreen()
         app.pawncfg = PawnConfigScreen()
         app.statcfg = StatScreen()
+        app.mainmenu = DirPicker()
+        app.strings = MockStore()
+        app.funcs = MockStore()
         char = Facade()
         char.name = 'foo'
         app.character = char
@@ -80,10 +84,7 @@ class ScreenTest(GraphicUnitTest):
         turnfield = timepanel.ids['turnfield']
         turn_before = int(turnfield.hint_text)
         playbut = timepanel.ids['playbut']
-        x, y = playbut.center
-        sx = x / win.width
-        sy = y / win.height
-        motion = MockTouch("unittest", 1, {'sx': sx, 'sy': sy})
-        EventLoop.post_dispatch_input("begin", motion)
-        EventLoop.post_dispatch_input("end", motion)
+        motion = UnitTestTouch(*playbut.center)
+        motion.touch_down()
+        motion.touch_up()
         idle_until(lambda: int(turnfield.hint_text) == 3, 400, "Time didn't advance fast enough")
