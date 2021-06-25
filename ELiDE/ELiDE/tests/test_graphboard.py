@@ -1,17 +1,11 @@
-import sys
-from tempfile import mkdtemp
-import shutil
-
-from kivy.base import EventLoop
-from kivy.config import ConfigParser
-from kivy.tests.common import GraphicUnitTest
+from kivy.tests.common import GraphicUnitTest, UnitTestTouch
 import networkx as nx
 
 from LiSE import Engine
 from LiSE.character import Facade
 from ELiDE.app import ELiDEApp
 from ELiDE.graph.board import GraphBoard, GraphBoardView, FinalLayout
-from .util import MockTouch, idle_until, window_with_widget, ELiDEAppTest
+from .util import idle_until, window_with_widget, ELiDEAppTest
 
 
 class GraphBoardTest(GraphicUnitTest):
@@ -42,17 +36,14 @@ class GraphBoardTest(GraphicUnitTest):
         board.add_widget(arrowlayout)
         board.update()
         boardview = GraphBoardView(board=board)
-        EventLoop.ensure_window()
-        win = EventLoop.window
-        win.add_widget(boardview)
+        win = window_with_widget(boardview)
         def all_spots_placed():
             for x in range(spots_wide):
                 for y in range(spots_tall):
                     if (x, y) not in board.spot:
                         return False
             return True
-        while not all_spots_placed():
-            EventLoop.idle()
+        idle_until(all_spots_placed, 1000, "Never finished placing spots")
         # Don't get too picky about the exact proportions of the grid; just make sure the
         # spots are positioned logically with respect to one another
         for name, spot in board.spot.items():
@@ -86,11 +77,9 @@ class GraphBoardTest(GraphicUnitTest):
         )
         ox, oy = board.spot[0].center
         dx, dy = board.spot[1].center
-        motion = MockTouch("unittest", 1, {
-            'sx': (ox + ((dx - ox) / 2)) / win.width,
-            'sy': dy / win.height})
-        EventLoop.post_dispatch_input("begin", motion)
-        EventLoop.post_dispatch_input("end", motion)
+        motion = UnitTestTouch((ox + ((dx - ox) / 2)), dy)
+        motion.touch_down()
+        motion.touch_up()
         assert app.selection == board.arrow[0][1]
 
     @staticmethod
@@ -106,11 +95,9 @@ class GraphBoardTest(GraphicUnitTest):
         win = window_with_widget(boardview)
         idle_until(lambda: 0 in board.spot and board.spot[0] in board.spotlayout.children)
         x, y = board.spot[0].center
-        motion = MockTouch("unittest", 1, {
-            'sx': x / win.width,
-            'sy': y / win.height})
-        EventLoop.post_dispatch_input("begin", motion)
-        EventLoop.post_dispatch_input("end", motion)
+        motion = UnitTestTouch(x, y)
+        motion.touch_down()
+        motion.touch_up()
         assert app.selection == board.spot[0]
 
     @staticmethod
@@ -130,12 +117,9 @@ class GraphBoardTest(GraphicUnitTest):
             board.spot[0] in board.spotlayout.children and
             board.pawn['that'] in board.spot[0].children
         )
-        x, y = board.pawn['that'].center
-        motion = MockTouch("unittest", 1, {
-            'sx': x / win.width,
-            'sy': y / win.height})
-        EventLoop.post_dispatch_input("begin", motion)
-        EventLoop.post_dispatch_input("end", motion)
+        motion = UnitTestTouch(*board.pawn['that'].center)
+        motion.touch_down()
+        motion.touch_up()
         assert app.selection == board.pawn['that']
 
     @staticmethod
