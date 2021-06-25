@@ -37,13 +37,14 @@ class GraphBoardTest(GraphicUnitTest):
         board.update()
         boardview = GraphBoardView(board=board)
         win = window_with_widget(boardview)
+
+        @idle_until(timeout=1000, message="Never finished placing spots")
         def all_spots_placed():
             for x in range(spots_wide):
                 for y in range(spots_tall):
                     if (x, y) not in board.spot:
                         return False
             return True
-        idle_until(all_spots_placed, 1000, "Never finished placing spots")
         # Don't get too picky about the exact proportions of the grid; just make sure the
         # spots are positioned logically with respect to one another
         for name, spot in board.spot.items():

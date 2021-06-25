@@ -1,6 +1,7 @@
 import sys
 from tempfile import mkdtemp
 import shutil
+from functools import partial
 
 from blinker import Signal
 from kivy.input.motionevent import MotionEvent
@@ -49,13 +50,15 @@ def board_is_arranged(board, char=None):
     return all_spots_placed(board, char) and all_pawns_placed(board, char) and all_arrows_placed(board, char)
 
 
-def idle_until(condition, timeout=None, message="Timed out"):
+def idle_until(condition=None, timeout=None, message="Timed out"):
     """Advance frames until ``condition()`` is true
 
     With integer ``timeout``, give up after that many frames,
     raising ``TimeoutError``. You can customize its ``message``.
 
     """
+    if condition is None:
+        return partial(idle_until, timeout=timeout, message=message)
     if timeout is None:
         while not condition():
             EventLoop.idle()
