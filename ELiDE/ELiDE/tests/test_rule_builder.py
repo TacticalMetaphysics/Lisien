@@ -7,8 +7,6 @@ from LiSE.examples import polygons
 from .util import idle_until, window_with_widget, ELiDEAppTest
 from ..card import Card
 
-from kivy.base import EventLoop
-
 
 class RuleBuilderTest(ELiDEAppTest):
     @abstractmethod
@@ -110,7 +108,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
             x = foundation.center_x - coef * dist_x
             y = foundation.y - coef * dist_y
             mov.touch_move(x, y)
-            EventLoop.idle()
+            self.advance_frames(1)
         mov.touch_up(foundation.center_x, foundation.y)
         idle_until(lambda: card.x == foundation.x, 100, "card didn't move")
         idle_until(lambda: 'breakcover' not in self.app.engine.rule['shrubsprint'].triggers, 100, 'breakcover never removed from rulebook')
@@ -154,7 +152,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
             x -= decr_x
             y -= decr_y
             mov.touch_move(x, y)
-            EventLoop.idle()
+            self.advance_frames(1)
         mov.touch_up(*breakcover.center)
         idle_until(lambda: aware.x == breakcover.x, 100, "aware didn't move to its new place")
         idle_until(lambda: 'aware' in self.app.engine.rule['shrubsprint'].triggers, 100, 'aware never added to rulebook')
@@ -165,6 +163,10 @@ class TestCharRuleBuilder(ELiDEAppTest):
         super(TestCharRuleBuilder, self).setUp()
         with Engine(self.prefix) as eng:
             polygons.install(eng)
+            assert list(eng.character['triangle'].avatar.rule[
+                            'relocate'].triggers) == [
+                   eng.trigger.similar_neighbors,
+                   eng.trigger.dissimilar_neighbors]
         app = self.app
         mgr = app.build()
         self.win = window_with_widget(mgr)
@@ -175,15 +177,21 @@ class TestCharRuleBuilder(ELiDEAppTest):
         idle_until(lambda: getattr(app.charrules, '_finalized', False), 100,
                    'Never finalized')
 
-    def test_char_rule_builder_display_avatar_trigger(self):
+    def test_char_rule_builder_remove_avatar_trigger(self):
         app = self.app
+        idle_until(lambda: getattr(app.charrules, '_finalized', False), 100, "Never finalized charrules")
         tabitem = app.charrules._avatar_tab
         idle_until(lambda: tabitem.content, 100,
                    'avatar tab never got content')
-        app.charrules._tabs.switch_to(tabitem)
+        tabitem.on_press()
+        self.advance_frames(1)
+        tabitem.on_release()
         idle_until(lambda: app.charrules._tabs.current_tab == tabitem, 100,
                    'Never switched tab')
         rules_box = app.charrules._avatar_box
+        idle_until(lambda: rules_box.parent, 100, 'avatar box never got parent')
+        idle_until(lambda: getattr(rules_box.rulesview, '_finalized', False), 100, "Never finalized avatar rules view")
+        idle_until(lambda: rules_box.children, 100, '_avatar_box never got children')
         idle_until(lambda: rules_box.rulesview.children, 100,
                    'Never filled rules view')
         rules_list = rules_box.ruleslist
@@ -197,8 +205,56 @@ class TestCharRuleBuilder(ELiDEAppTest):
                 rulebut.state = 'down'
                 break
         builder = rules_box.rulesview._trigger_builder
-        idle_until(lambda: builder.children, 100,
+        assert rules_box.rulesview._tabs.current_tab == rules_box.rulesview._trigger_tab
+        idle_until(lambda: builder.children, 100, 'trigger builder never got children')
+        def builder_foundation():
+            for child in builder.children:
+                if not isinstance(child, Card):
+                    return True
+            return False
+        idle_until(builder_foundation, 100,
                    'Never filled trigger builder')
+        idle_until(lambda: builder.parent, 100, "trigger builder never got parent")
         card_names = {card.headline_text for card in builder.children
                       if isinstance(card, Card)}
         assert card_names == {'similar_neighbors', 'dissimilar_neighbors'}
+        for card in builder.children:
+            if not isinstance(card, Card):
+                continue
+            if card.headline_text == 'similar_neighbors':
+                break
+        else:
+            assert False, "Didn't get similar_neighbors"
+        startx = card.center_x
+        starty = card.top - 1
+        assert card.collide_point(startx, starty), "card didn't collide itself"
+        for cardother in builder.children:
+            if not isinstance(cardother, Card) or cardother == card:
+                continue
+            assert not cardother.collide_point(startx, starty), "other card will grab the touch"
+        touch = UnitTestTouch(startx, starty)
+        for target in builder.children:
+            if isinstance(target, Card):
+                continue
+            if target.x > card.right:
+                break
+        else:
+            assert False, "Didn't get target foundation"
+        targx, targy = target.center
+        distx = targx - startx
+        disty = targy - starty
+        x, y = startx, starty
+        touch.touch_down()
+        for i in range(1, 11):
+            x += distx / 10
+            y += disty / 10
+            touch.touch_move(x, y)
+            self.advance_frames(1)
+        touch.touch_up()
+        self.advance_frames(5)
+        rules_box.ids.closebut.on_release()
+        self.advance_frames(5)
+        app.stop()
+        with Engine(self.prefix) as eng:
+            assert list(eng.character['triangle'].avatar.rule['relocate'].triggers) == [
+                eng.trigger.dissimilar_neighbors]

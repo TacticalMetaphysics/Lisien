@@ -130,6 +130,7 @@ class RulesView(Widget):
 
     def finalize(self, *args):
         """Add my tabs"""
+        assert not getattr(self, '_finalized', False), "Already finalized"
         if not self.canvas:
             Clock.schedule_once(self.finalize, 0)
             return
@@ -197,6 +198,7 @@ class RulesView(Widget):
                 )
             )
             self.bind(rule=getattr(self, '_trigger_pull_{}s'.format(functyp)))
+        self._finalized = True
 
     def get_functions_cards(self, what, allfuncs):
         """Return a pair of lists of Card widgets for used and unused functions.
