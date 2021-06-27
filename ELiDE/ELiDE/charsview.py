@@ -48,7 +48,6 @@ class CharactersView(RecycleView):
 class CharactersScreen(Screen):
     toggle = ObjectProperty()
     charsview = ObjectProperty()
-    engine = ObjectProperty()
     character_name = StringProperty()
     wallpaper_path = StringProperty()
     names = ListProperty()
