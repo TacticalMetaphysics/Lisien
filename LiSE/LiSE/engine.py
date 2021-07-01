@@ -462,18 +462,15 @@ class AbstractSchema(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def validate(self, turn, entity, key, value):
+    def stat_permitted(self, turn, entity, key, value):
         raise NotImplementedError
-
-    def get_not_permitted_entity_message(self, entity):
-        return
 
 
 class NullSchema(AbstractSchema):
     def entity_permitted(self, entity):
         return True
 
-    def validate(self, turn, entity, key, value):
+    def stat_permitted(self, turn, entity, key, value):
         return True
 
 
@@ -1731,7 +1728,7 @@ class Engine(AbstractEngine, gORM):
     def apply_choice(self, entity, key, value, dry_run=False):
         schema = self.schema
         assert schema.entity_permitted(entity)
-        val = schema.validate(self.turn, entity, key, value)
+        val = schema.stat_permitted(self.turn, entity, key, value)
         if not val:
             return val
         if type(val) is tuple:
@@ -1769,8 +1766,11 @@ class Engine(AbstractEngine, gORM):
         for track in choices:
             entity = track['entity']
             permissible = schema.entity_permitted(entity)
+            if isinstance(permissible, tuple):
+                permissible, msg = permissible
+            else:
+                msg = ''
             if not permissible:
-                msg = schema.get_not_permitted_entity_message(entity)
                 for turn, changes in enumerate(track['changes'], start=self.turn):
                     rejections.extend(
                         ((turn, entity, k, v), msg) for (k, v) in changes
@@ -1780,7 +1780,7 @@ class Engine(AbstractEngine, gORM):
                 for k, v in changes:
                     ekv = (entity, k, v)
                     parcel = (turn, entity, k, v)
-                    val = schema.validate(*parcel)
+                    val = schema.stat_permitted(*parcel)
                     if type(val) is tuple:
                         accept, message = val
                         if accept:
