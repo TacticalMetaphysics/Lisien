@@ -501,20 +501,27 @@ class Engine(AbstractEngine, gORM):
     - ``branch``: The fork of the timestream that we're on.
     - ``turn``: Units of time that have passed since the sim started.
     - ``time``: ``(branch, turn)``
-    - ``tick``: A counter of how many changes have occurred this turn
+    - ``tick``: A counter of how many changes have occurred this turn.
+    Can be set manually, but is more often set to the last tick in a turn
+    as a side effect of setting ``turn``.
     - ``character``: A mapping of :class:`Character` objects by name.
     - ``rule``: A mapping of all rules that have been made.
     - ``rulebook``: A mapping of lists of rules. They are followed in
       their order.  A whole rulebook full of rules may be assigned to
       an entity at once.
-    - ``trigger``: A mapping of functions that might trigger a rule.
-    - ``prereq``: A mapping of functions a rule might require to return
+    - ``trigger``: Functions that might trigger a rule.
+    - ``prereq``: Functions a rule might require to return
       ``True`` for it to run.
-    - ``action``: A mapping of functions that might manipulate the world
+    - ``action``: Functions that might manipulate the world
       state as a result of a rule running.
-    - ``function``: A mapping of generic functions.
+    - ``method``: Extension methods to be added to the engine object.
+    - ``function``: Generic functions. All of ``trigger``, ``prereq``,
+    ``action``, ``method``, and ``function`` are modules or similar;
+    they default to :class:`FunctionStore` objects, which can write
+    Python code to the underlying module at runtime.
     - ``string``: A mapping of strings, probably shown to the player
-      at some point.
+      at some point. Defaults to a :class:`StringStore` object,
+      which can alter the underlying JSON file at runtime.
     - ``eternal``: Mapping of arbitrary serializable objects. It isn't
       sensitive to sim-time. A good place to keep game settings.
     - ``universal``: Another mapping of arbitrary serializable
