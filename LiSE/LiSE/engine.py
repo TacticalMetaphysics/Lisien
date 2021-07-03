@@ -1733,20 +1733,6 @@ class Engine(AbstractEngine, gORM):
                 character, node, *self._btt()
         )
 
-    def apply_choice(self, entity, key, value, dry_run=False):
-        schema = self.schema
-        assert schema.entity_permitted(entity)
-        val = schema.stat_permitted(self.turn, entity, key, value)
-        if not val:
-            return val
-        if type(val) is tuple:
-            res, msg = val
-            if res and not dry_run:
-                entity[key] = value
-            return msg
-        if not dry_run:
-            entity[key] = value
-
     def apply_choices(self, choices, dry_run=False, perfectionist=False):
         """Validate changes a player wants to make, and apply if acceptable.
 
