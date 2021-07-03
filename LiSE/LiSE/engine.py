@@ -17,6 +17,7 @@ stores for game data and entities, as well as properties for manipulating the
 flow of time.
 
 """
+from abc import ABC
 from functools import partial
 from collections import defaultdict
 from collections.abc import Mapping
@@ -90,7 +91,7 @@ MSGPACK_PREREQ = 0x77
 MSGPACK_ACTION = 0x76
 
 
-class AbstractEngine:
+class AbstractEngine(ABC):
     """Parent class to the real Engine as well as EngineProxy.
 
     Implements serialization and the __getattr__ for stored methods.
