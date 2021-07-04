@@ -562,7 +562,6 @@ class Engine(AbstractEngine, gORM):
             commit_modulus=10,
             random_seed: int = None,
             logfun: FunctionType = None,
-            validate=False,
             clear=False,
             keep_rules_journal=True
     ):
@@ -603,8 +602,6 @@ class Engine(AbstractEngine, gORM):
         :arg random_seed: a number to initialize the randomizer
         :arg logfun: an optional function taking arguments
         ``level, message``, which should log `message` somehow
-        :arg validate: whether to perform integrity tests while
-        loading the game
         :arg clear: whether to delete *any and all* existing data
         and code in ``prefix``. Use with caution!
         :arg keep_rules_journal: Boolean; if true (default), keep
