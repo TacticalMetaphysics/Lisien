@@ -206,7 +206,8 @@ class Thing(Node):
     def follow_path(self, path, weight=None):
         """Go to several :class:`Place`s in succession, deciding how long to
         spend in each by consulting the ``weight`` stat of the
-        :class:`Portal` connecting the one :class:`Place` to the next.
+        :class:`Portal` connecting the one :class:`Place` to the next,
+        default 1 turn.
 
         Return the total number of turns the travel will take. Raise
         :class:`TravelException` if I can't follow the whole path,
