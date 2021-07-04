@@ -18,22 +18,13 @@ of other cards.
 
 """
 
-
 from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.logger import Logger
-from kivy.properties import (
-    AliasProperty,
-    BooleanProperty,
-    DictProperty,
-    ListProperty,
-    NumericProperty,
-    ObjectProperty,
-    OptionProperty,
-    ReferenceListProperty,
-    StringProperty,
-    BoundedNumericProperty
-)
+from kivy.properties import (AliasProperty, BooleanProperty, DictProperty,
+                             ListProperty, NumericProperty, ObjectProperty,
+                             OptionProperty, ReferenceListProperty,
+                             StringProperty, BoundedNumericProperty)
 from kivy.graphics import InstructionGroup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
@@ -41,7 +32,6 @@ from kivy.uix.layout import Layout
 from kivy.uix.stencilview import StencilView
 from kivy.uix.image import Image
 from kivy.uix.widget import Widget
-
 
 dbg = Logger.debug
 
@@ -55,15 +45,9 @@ def get_pos_hint_x(poshints, sizehintx):
         return poshints['x']
     elif sizehintx is not None:
         if 'center_x' in poshints:
-            return (
-                poshints['center_x'] -
-                sizehintx / 2
-            )
+            return (poshints['center_x'] - sizehintx / 2)
         elif 'right' in poshints:
-            return (
-                poshints['right'] -
-                sizehintx
-            )
+            return (poshints['right'] - sizehintx)
 
 
 def get_pos_hint_y(poshints, sizehinty):
@@ -75,15 +59,9 @@ def get_pos_hint_y(poshints, sizehinty):
         return poshints['y']
     elif sizehinty is not None:
         if 'center_y' in poshints:
-            return (
-                poshints['center_y'] -
-                sizehinty / 2
-            )
+            return (poshints['center_y'] - sizehinty / 2)
         elif 'top' in poshints:
-            return (
-                poshints['top'] -
-                sizehinty
-            )
+            return (poshints['top'] - sizehinty)
 
 
 def get_pos_hint(poshints, sizehintx, sizehinty):
@@ -93,10 +71,8 @@ def get_pos_hint(poshints, sizehintx, sizehinty):
     and ``size_hint_y``.
 
     """
-    return (
-        get_pos_hint_x(poshints, sizehintx),
-        get_pos_hint_y(poshints, sizehinty)
-    )
+    return (get_pos_hint_x(poshints,
+                           sizehintx), get_pos_hint_y(poshints, sizehinty))
 
 
 class ColorTextureBox(Widget):
@@ -272,10 +248,7 @@ class Card(FloatLayout):
         if not self.dragging:
             touch.ungrab(self)
             return
-        self.pos = (
-            touch.x - self.collide_x,
-            touch.y - self.collide_y
-        )
+        self.pos = (touch.x - self.collide_x, touch.y - self.collide_y)
 
     def on_touch_up(self, touch):
         """Stop dragging if needed."""
@@ -287,48 +260,20 @@ class Card(FloatLayout):
     def copy(self):
         """Return a new :class:`Card` just like me."""
         d = {}
-        for att in (
-                'deck',
-                'idx',
-                'ud',
-                'foreground_source',
-                'foreground_color',
-                'foreground_image',
-                'foreground_texture',
-                'background_source',
-                'background_color',
-                'background_image',
-                'background_texture',
-                'outline_color',
-                'content_outline_color',
-                'foreground_outline_color',
-                'art_outline_color',
-                'art_source',
-                'art_color',
-                'art_image',
-                'art_texture',
-                'show_art',
-                'headline_text',
-                'headline_markup',
-                'headline_font_name',
-                'headline_font_size',
-                'headline_color',
-                'midline_text',
-                'midline_markup',
-                'midline_font_name',
-                'midline_font_size',
-                'midline_color',
-                'footer_text',
-                'footer_markup',
-                'footer_font_name',
-                'footer_font_size',
-                'footer_color',
-                'text',
-                'text_color',
-                'markup',
-                'font_name',
-                'font_size'
-        ):
+        for att in ('deck', 'idx', 'ud', 'foreground_source',
+                    'foreground_color', 'foreground_image',
+                    'foreground_texture', 'background_source',
+                    'background_color', 'background_image',
+                    'background_texture', 'outline_color',
+                    'content_outline_color', 'foreground_outline_color',
+                    'art_outline_color', 'art_source', 'art_color',
+                    'art_image', 'art_texture', 'show_art', 'headline_text',
+                    'headline_markup', 'headline_font_name',
+                    'headline_font_size', 'headline_color', 'midline_text',
+                    'midline_markup', 'midline_font_name', 'midline_font_size',
+                    'midline_color', 'footer_text', 'footer_markup',
+                    'footer_font_name', 'footer_font_size', 'footer_color',
+                    'text', 'text_color', 'markup', 'font_name', 'font_size'):
             v = getattr(self, att)
             if v is not None:
                 d[att] = v
@@ -344,7 +289,6 @@ class Foundation(ColorTextureBox):
     """Color of the outline"""
     deck = NumericProperty(0)
     """Index of the deck in the parent :class:`DeckLayout`"""
-
     def upd_pos(self, *args):
         """Ask the foundation where I should be, based on what deck I'm
         for.
@@ -354,10 +298,8 @@ class Foundation(ColorTextureBox):
 
     def upd_size(self, *args):
         """I'm the same size as any given card in my :class:`DeckLayout`."""
-        self.size = (
-            self.parent.card_size_hint_x * self.parent.width,
-            self.parent.card_size_hint_y * self.parent.height
-        )
+        self.size = (self.parent.card_size_hint_x * self.parent.width,
+                     self.parent.card_size_hint_y * self.parent.height)
 
 
 class DeckBuilderLayout(Layout):
@@ -366,9 +308,8 @@ class DeckBuilderLayout(Layout):
     cards.
 
     """
-    direction = OptionProperty(
-        'ascending', options=['ascending', 'descending']
-    )
+    direction = OptionProperty('ascending',
+                               options=['ascending', 'descending'])
     """Should the beginning card of each deck appear on the bottom
     ('ascending'), or the top ('descending')?
 
@@ -431,21 +372,18 @@ class DeckBuilderLayout(Layout):
     """Index within the current deck that a card is being dragged into."""
     _foundations = ListProperty([])
     """Private. A list of :class:`Foundation` widgets, one per deck."""
-
     def __init__(self, **kwargs):
         """Bind most of my custom properties to ``_trigger_layout``."""
         super().__init__(**kwargs)
-        self.bind(
-            card_size_hint=self._trigger_layout,
-            starting_pos_hint=self._trigger_layout,
-            card_hint_step=self._trigger_layout,
-            deck_hint_step=self._trigger_layout,
-            decks=self._trigger_layout,
-            deck_x_hint_offsets=self._trigger_layout,
-            deck_y_hint_offsets=self._trigger_layout,
-            insertion_deck=self._trigger_layout,
-            insertion_card=self._trigger_layout
-        )
+        self.bind(card_size_hint=self._trigger_layout,
+                  starting_pos_hint=self._trigger_layout,
+                  card_hint_step=self._trigger_layout,
+                  deck_hint_step=self._trigger_layout,
+                  decks=self._trigger_layout,
+                  deck_x_hint_offsets=self._trigger_layout,
+                  deck_y_hint_offsets=self._trigger_layout,
+                  insertion_deck=self._trigger_layout,
+                  insertion_card=self._trigger_layout)
 
     def scroll_deck_x(self, decknum, scroll_x):
         """Move a deck left or right."""
@@ -453,8 +391,7 @@ class DeckBuilderLayout(Layout):
             raise IndexError("I have no deck at {}".format(decknum))
         if decknum >= len(self.deck_x_hint_offsets):
             self.deck_x_hint_offsets = list(self.deck_x_hint_offsets) + [0] * (
-                decknum - len(self.deck_x_hint_offsets) + 1
-            )
+                decknum - len(self.deck_x_hint_offsets) + 1)
         self.deck_x_hint_offsets[decknum] += scroll_x
         self._trigger_layout()
 
@@ -464,8 +401,7 @@ class DeckBuilderLayout(Layout):
             raise IndexError("I have no deck at {}".format(decknum))
         if decknum >= len(self.deck_y_hint_offsets):
             self.deck_y_hint_offsets = list(self.deck_y_hint_offsets) + [0] * (
-                decknum - len(self.deck_y_hint_offsets) + 1
-            )
+                decknum - len(self.deck_y_hint_offsets) + 1)
         self.deck_y_hint_offsets[decknum] += scroll_y
         self._trigger_layout()
 
@@ -481,9 +417,7 @@ class DeckBuilderLayout(Layout):
         ``deck_y_hint_offsets``.
 
         """
-        (phx, phy) = get_pos_hint(
-            self.starting_pos_hint, *self.card_size_hint
-        )
+        (phx, phy) = get_pos_hint(self.starting_pos_hint, *self.card_size_hint)
         phx += self.deck_x_hint_step * i + self.deck_x_hint_offsets[i]
         phy += self.deck_y_hint_step * i + self.deck_y_hint_offsets[i]
         x = phx * self.width + self.x
@@ -502,21 +436,16 @@ class DeckBuilderLayout(Layout):
                 oldfound += [None] * extend
             width = self.card_size_hint_x * self.width
             height = self.card_size_hint_y * self.height
-            found = Foundation(
-                pos=self._get_foundation_pos(i), size=(width, height), deck=i
-            )
-            self.bind(
-                pos=found.upd_pos,
-                card_size_hint=found.upd_pos,
-                deck_hint_step=found.upd_pos,
-                size=found.upd_pos,
-                deck_x_hint_offsets=found.upd_pos,
-                deck_y_hint_offsets=found.upd_pos
-            )
-            self.bind(
-                size=found.upd_size,
-                card_size_hint=found.upd_size
-            )
+            found = Foundation(pos=self._get_foundation_pos(i),
+                               size=(width, height),
+                               deck=i)
+            self.bind(pos=found.upd_pos,
+                      card_size_hint=found.upd_pos,
+                      deck_hint_step=found.upd_pos,
+                      size=found.upd_pos,
+                      deck_x_hint_offsets=found.upd_pos,
+                      deck_y_hint_offsets=found.upd_pos)
+            self.bind(size=found.upd_size, card_size_hint=found.upd_size)
             oldfound[i] = found
             self._foundations = oldfound
         return self._foundations[i]
@@ -527,12 +456,8 @@ class DeckBuilderLayout(Layout):
         a layout.
 
         """
-        if None in (
-                self.canvas,
-                self.decks,
-                self.deck_x_hint_offsets,
-                self.deck_y_hint_offsets
-        ):
+        if None in (self.canvas, self.decks, self.deck_x_hint_offsets,
+                    self.deck_y_hint_offsets):
             Clock.schedule_once(self.on_decks, 0)
             return
         self.clear_widgets()
@@ -552,12 +477,10 @@ class DeckBuilderLayout(Layout):
             decknum += 1
         if len(self.deck_x_hint_offsets) < len(self.decks):
             self.deck_x_hint_offsets = list(self.deck_x_hint_offsets) + [0] * (
-                len(self.decks) - len(self.deck_x_hint_offsets)
-            )
+                len(self.decks) - len(self.deck_x_hint_offsets))
         if len(self.deck_y_hint_offsets) < len(self.decks):
             self.deck_y_hint_offsets = list(self.deck_y_hint_offsets) + [0] * (
-                len(self.decks) - len(self.deck_y_hint_offsets)
-            )
+                len(self.decks) - len(self.deck_y_hint_offsets))
         self._trigger_layout()
 
     def point_before_card(self, card, x, y):
@@ -578,6 +501,7 @@ class DeckBuilderLayout(Layout):
             else:
                 # stacking downward
                 return y > card.top
+
         if self.card_x_hint_step > 0:
             # stacking to the right
             if x < card.x:
@@ -609,6 +533,7 @@ class DeckBuilderLayout(Layout):
             else:
                 # stacking downward
                 return y < card.y
+
         if self.card_x_hint_step > 0:
             # stacking to the right
             if x > card.right:
@@ -627,16 +552,11 @@ class DeckBuilderLayout(Layout):
         where the dragged card will go if you drop it.
 
         """
-        if (
-                'card' not in touch.ud or
-                'layout' not in touch.ud or
-                touch.ud['layout'] != self
-        ):
+        if ('card' not in touch.ud or 'layout' not in touch.ud
+                or touch.ud['layout'] != self):
             return
-        if (
-                touch.ud['layout'] == self and
-                not hasattr(touch.ud['card'], '_topdecked')
-        ):
+        if (touch.ud['layout'] == self
+                and not hasattr(touch.ud['card'], '_topdecked')):
             touch.ud['card']._topdecked = InstructionGroup()
             touch.ud['card']._topdecked.add(touch.ud['card'].canvas)
             self.canvas.after.add(touch.ud['card']._topdecked)
@@ -655,19 +575,15 @@ class DeckBuilderLayout(Layout):
                         collided = card
                 if collided.deck == touch.ud['deck']:
                     self.insertion_card = (
-                        1 if collided.idx == 0 else
-                        maxidx + 1 if collided.idx == maxidx else
-                        collided.idx + 1 if collided.idx > touch.ud['idx']
-                        else collided.idx
-                    )
+                        1 if collided.idx == 0 else maxidx +
+                        1 if collided.idx == maxidx else collided.idx +
+                        1 if collided.idx > touch.ud['idx'] else collided.idx)
                 else:
                     dropdeck = self.decks[collided.deck]
                     maxidx = max(card.idx for card in dropdeck)
                     self.insertion_card = (
-                        1 if collided.idx == 0 else
-                        maxidx + 1 if collided.idx == maxidx else
-                        collided.idx + 1
-                    )
+                        1 if collided.idx == 0 else maxidx +
+                        1 if collided.idx == maxidx else collided.idx + 1)
                 if self.insertion_deck != collided.deck:
                     self.insertion_deck = collided.deck
                 return
@@ -675,20 +591,14 @@ class DeckBuilderLayout(Layout):
                 if self.insertion_deck == i:
                     if self.insertion_card in (0, len(deck)):
                         pass
-                    elif self.point_before_card(
-                            cards[0], *touch.pos
-                    ):
+                    elif self.point_before_card(cards[0], *touch.pos):
                         self.insertion_card = 0
-                    elif self.point_after_card(
-                        cards[-1], *touch.pos
-                    ):
+                    elif self.point_after_card(cards[-1], *touch.pos):
                         self.insertion_card = cards[-1].idx
                 else:
                     for j, found in enumerate(self._foundations):
-                        if (
-                                found is not None and
-                                found.collide_point(*touch.pos)
-                        ):
+                        if (found is not None
+                                and found.collide_point(*touch.pos)):
                             self.insertion_deck = j
                             self.insertion_card = 0
                             return
@@ -698,11 +608,8 @@ class DeckBuilderLayout(Layout):
         and trigger a layout.
 
         """
-        if (
-                'card' not in touch.ud or
-                'layout' not in touch.ud or
-                touch.ud['layout'] != self
-        ):
+        if ('card' not in touch.ud or 'layout' not in touch.ud
+                or touch.ud['layout'] != self):
             return
         if hasattr(touch.ud['card'], '_topdecked'):
             self.canvas.after.remove(touch.ud['card']._topdecked)
@@ -747,6 +654,7 @@ class DeckBuilderLayout(Layout):
                 if card.dragging:
                     return j
                 j += 1
+
         # Put a None in the card list in place of the card you're
         # hovering over, if you're dragging another card. This will
         # result in an empty space where the card will go if you drop
@@ -778,10 +686,7 @@ class DeckBuilderLayout(Layout):
                 if card in self.children:
                     self.remove_widget(card)
                 (shw, shh) = self.card_size_hint
-                card.pos = (
-                    x + phx * w,
-                    y + phy * h
-                )
+                card.pos = (x + phx * w, y + phy * h)
                 card.size = (w * shw, h * shh)
                 self.add_widget(card)
             phx += self.card_x_hint_step
@@ -815,10 +720,8 @@ class DeckBuilderScrollBar(FloatLayout):
     within a :class:`DeckBuilderLayout`.
 
     """
-    orientation = OptionProperty(
-        'vertical',
-        options=['horizontal', 'vertical']
-    )
+    orientation = OptionProperty('vertical',
+                                 options=['horizontal', 'vertical'])
     """Which way to scroll? Options are 'horizontal' and 'vertical'."""
     deckbuilder = ObjectProperty()
     """The :class:`DeckBuilderLayout` of the deck to scroll."""
@@ -843,17 +746,15 @@ class DeckBuilderScrollBar(FloatLayout):
     """
 
     scroll_hint = AliasProperty(
-        lambda self: abs(self.scroll_max-self.scroll_min),
+        lambda self: abs(self.scroll_max - self.scroll_min),
         lambda self, v: None,
-        bind=('scroll_min', 'scroll_max')
-    )
+        bind=('scroll_min', 'scroll_max'))
     """The distance between ``scroll_max`` and ``scroll_min``."""
     _scroll = NumericProperty(0)
     """Private. The current adjustment to the deck's ``pos_hint_x`` or
     ``pos_hint_y``.
 
     """
-
     def _get_scroll(self):
         zero = self._scroll - self.scroll_min
         return zero / self.scroll_hint
@@ -866,11 +767,9 @@ class DeckBuilderScrollBar(FloatLayout):
         normal = v * self.scroll_hint
         self._scroll = self.scroll_min + normal
 
-    scroll = AliasProperty(
-        _get_scroll,
-        _set_scroll,
-        bind=('_scroll', 'scroll_min', 'scroll_max')
-    )
+    scroll = AliasProperty(_get_scroll,
+                           _set_scroll,
+                           bind=('_scroll', 'scroll_min', 'scroll_max'))
     """A number between 0 and 1 representing how far beyond ``scroll_min``
     toward ``scroll_max`` I am presently scrolled.
 
@@ -887,11 +786,10 @@ class DeckBuilderScrollBar(FloatLayout):
         sy = min(1.0, max(0.0, self.scroll))
         py = (1 - ph) * sy
         return (py, ph)
-    vbar = AliasProperty(
-        _get_vbar,
-        None,
-        bind=('_scroll', 'scroll_min', 'scroll_max')
-    )
+
+    vbar = AliasProperty(_get_vbar,
+                         None,
+                         bind=('_scroll', 'scroll_min', 'scroll_max'))
     """A tuple of ``(y, height)`` for my scroll bar, if it's vertical."""
 
     def _get_hbar(self):
@@ -906,11 +804,9 @@ class DeckBuilderScrollBar(FloatLayout):
         px = (1 - pw) * sx
         return (px, pw)
 
-    hbar = AliasProperty(
-        _get_hbar,
-        None,
-        bind=('_scroll', 'scroll_min', 'scroll_max')
-    )
+    hbar = AliasProperty(_get_hbar,
+                         None,
+                         bind=('_scroll', 'scroll_min', 'scroll_max'))
     """A tuple of ``(x, width)`` for my scroll bar, if it's horizontal."""
     bar_color = ListProperty([.7, .7, .7, .9])
     """Color to use for the scroll bar when scrolling. RGBA format."""
@@ -925,11 +821,9 @@ class DeckBuilderScrollBar(FloatLayout):
 
         """
         super().__init__(**kwargs)
-        self.bind(
-            _scroll=self._trigger_layout,
-            scroll_min=self._trigger_layout,
-            scroll_max=self._trigger_layout
-        )
+        self.bind(_scroll=self._trigger_layout,
+                  scroll_min=self._trigger_layout,
+                  scroll_max=self._trigger_layout)
 
     def do_layout(self, *args):
         """Put the bar where it's supposed to be, and size it in proportion to
@@ -952,9 +846,8 @@ class DeckBuilderScrollBar(FloatLayout):
         scrolled.
 
         """
-        att = 'deck_{}_hint_offsets'.format(
-            'x' if self.orientation == 'horizontal' else 'y'
-        )
+        att = 'deck_{}_hint_offsets'.format('x' if self.orientation ==
+                                            'horizontal' else 'y')
         self._scroll = getattr(self.deckbuilder, att)[self.deckidx]
 
     def on_deckbuilder(self, *args):
@@ -964,9 +857,8 @@ class DeckBuilderScrollBar(FloatLayout):
         """
         if self.deckbuilder is None:
             return
-        att = 'deck_{}_hint_offsets'.format(
-            'x' if self.orientation == 'horizontal' else 'y'
-        )
+        att = 'deck_{}_hint_offsets'.format('x' if self.orientation ==
+                                            'horizontal' else 'y')
         offs = getattr(self.deckbuilder, att)
         if len(offs) <= self.deckidx:
             Clock.schedule_once(self.on_deckbuilder, 0)
@@ -984,9 +876,8 @@ class DeckBuilderScrollBar(FloatLayout):
         if 'bar' not in self.ids:
             Clock.schedule_once(self.handle_scroll, 0)
             return
-        att = 'deck_{}_hint_offsets'.format(
-            'x' if self.orientation == 'horizontal' else 'y'
-        )
+        att = 'deck_{}_hint_offsets'.format('x' if self.orientation ==
+                                            'horizontal' else 'y')
         offs = list(getattr(self.deckbuilder, att))
         if len(offs) <= self.deckidx:
             Clock.schedule_once(self.on_scroll, 0)
@@ -999,14 +890,12 @@ class DeckBuilderScrollBar(FloatLayout):
         """Start scrolling, and record where I started scrolling."""
         self.scrolling = True
         self._start_bar_pos_hint = get_pos_hint(bar.pos_hint, *bar.size_hint)
-        self._start_touch_pos_hint = (
-            touch.x / self.width,
-            touch.y / self.height
-        )
-        self._start_bar_touch_hint = (
-            self._start_touch_pos_hint[0] - self._start_bar_pos_hint[0],
-            self._start_touch_pos_hint[1] - self._start_bar_pos_hint[1]
-        )
+        self._start_touch_pos_hint = (touch.x / self.width,
+                                      touch.y / self.height)
+        self._start_bar_touch_hint = (self._start_touch_pos_hint[0] -
+                                      self._start_bar_pos_hint[0],
+                                      self._start_touch_pos_hint[1] -
+                                      self._start_bar_pos_hint[1])
         touch.grab(self)
 
     def on_touch_move(self, touch):
@@ -1141,60 +1030,53 @@ kv = """
 """
 Builder.load_string(kv)
 
-
 if __name__ == '__main__':
     deck0 = [
-        Card(
-            background_color=[0, 1, 0, 1],
-            headline_text='Card {}'.format(i),
-            art_color=[1, 0, 0, 1],
-            midline_text='0deck',
-            foreground_color=[0, 0, 1, 1],
-            text='The quick brown fox jumps over the lazy dog',
-            text_color=[1, 1, 1, 1],
-            footer_text=str(i)
-        )
-        for i in range(0, 9)
+        Card(background_color=[0, 1, 0, 1],
+             headline_text='Card {}'.format(i),
+             art_color=[1, 0, 0, 1],
+             midline_text='0deck',
+             foreground_color=[0, 0, 1, 1],
+             text='The quick brown fox jumps over the lazy dog',
+             text_color=[1, 1, 1, 1],
+             footer_text=str(i)) for i in range(0, 9)
     ]
     deck1 = [
-        Card(
-            background_color=[0, 0, 1, 1],
-            headline_text='Card {}'.format(i),
-            art_color=[0, 1, 0, 1],
-            show_art=False,
-            midline_text='1deck',
-            foreground_color=[1, 0, 0, 1],
-            text='Have a steak at the porter house bar',
-            text_color=[1, 1, 0, 1],
-            footer_text=str(i)
-        )
-        for i in range(0, 9)
+        Card(background_color=[0, 0, 1, 1],
+             headline_text='Card {}'.format(i),
+             art_color=[0, 1, 0, 1],
+             show_art=False,
+             midline_text='1deck',
+             foreground_color=[1, 0, 0, 1],
+             text='Have a steak at the porter house bar',
+             text_color=[1, 1, 0, 1],
+             footer_text=str(i)) for i in range(0, 9)
     ]
     from kivy.base import runTouchApp
     from kivy.core.window import Window
     from kivy.modules import inspector
-    builder = DeckBuilderLayout(
-        card_size_hint=(0.15, 0.3),
-        pos_hint={'x': 0, 'y': 0},
-        starting_pos_hint={'x': 0.1, 'top': 0.9},
-        card_hint_step=(0.05, -0.1),
-        deck_hint_step=(0.4, 0),
-        decks=[deck0, deck1],
-        deck_y_hint_offsets=[0, 1]
-    )
+    builder = DeckBuilderLayout(card_size_hint=(0.15, 0.3),
+                                pos_hint={
+                                    'x': 0,
+                                    'y': 0
+                                },
+                                starting_pos_hint={
+                                    'x': 0.1,
+                                    'top': 0.9
+                                },
+                                card_hint_step=(0.05, -0.1),
+                                deck_hint_step=(0.4, 0),
+                                decks=[deck0, deck1],
+                                deck_y_hint_offsets=[0, 1])
     layout = BoxLayout(orientation='horizontal')
-    left_bar = DeckBuilderScrollBar(
-        deckbuilder=builder,
-        orientation='vertical',
-        size_hint_x=0.1,
-        deckidx=0
-    )
-    right_bar = DeckBuilderScrollBar(
-        deckbuilder=builder,
-        orientation='vertical',
-        size_hint_x=0.1,
-        deckidx=1
-    )
+    left_bar = DeckBuilderScrollBar(deckbuilder=builder,
+                                    orientation='vertical',
+                                    size_hint_x=0.1,
+                                    deckidx=0)
+    right_bar = DeckBuilderScrollBar(deckbuilder=builder,
+                                     orientation='vertical',
+                                     size_hint_x=0.1,
+                                     deckidx=1)
     layout.add_widget(left_bar)
     layout.add_widget(builder)
     layout.add_widget(right_bar)

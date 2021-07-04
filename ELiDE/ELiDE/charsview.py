@@ -23,9 +23,9 @@ from kivy.properties import ListProperty, ObjectProperty, StringProperty
 
 from .util import SelectableRecycleBoxLayout
 
-
 # TODO: Visual preview
 # TODO: Background image chooser
+
 
 class CharactersRecycleBoxLayout(SelectableRecycleBoxLayout):
     character_name = StringProperty()

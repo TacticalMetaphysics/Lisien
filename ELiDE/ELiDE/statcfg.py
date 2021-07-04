@@ -14,12 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.properties import (
-    DictProperty,
-    NumericProperty,
-    StringProperty,
-    ObjectProperty
-)
+from kivy.properties import (DictProperty, NumericProperty, StringProperty,
+                             ObjectProperty)
 from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
@@ -31,10 +27,8 @@ from .statlist import BaseStatListView
 
 class FloatInput(TextInput):
     def insert_text(self, s, from_undo=False):
-        return super().insert_text(
-            ''.join(c for c in s if c in '0123456789.'),
-            from_undo
-        )
+        return super().insert_text(''.join(c for c in s if c in '0123456789.'),
+                                   from_undo)
 
 
 class ControlTypePicker(Button):
@@ -55,57 +49,41 @@ class ControlTypePicker(Button):
             self.app.selected_proxy[k] = v
 
     def build(self, *args):
-        if None in (
-                self.key,
-                self.set_control
-        ):
+        if None in (self.key, self.set_control):
             Clock.schedule_once(self.build, 0)
             return
         self.mainbutton = None
         self.dropdown = None
         self.dropdown = DropDown()
         self.dropdown.bind(
-            on_select=lambda instance, x: self.set_control(self.key, x)
-        )
-        readoutbut = Button(
-            text='readout',
-            size_hint_y=None,
-            height=self.height,
-            background_color=(0.7, 0.7, 0.7, 1)
-        )
+            on_select=lambda instance, x: self.set_control(self.key, x))
+        readoutbut = Button(text='readout',
+                            size_hint_y=None,
+                            height=self.height,
+                            background_color=(0.7, 0.7, 0.7, 1))
         readoutbut.bind(
-            on_release=lambda instance: self.dropdown.select('readout')
-        )
+            on_release=lambda instance: self.dropdown.select('readout'))
         self.dropdown.add_widget(readoutbut)
-        textinbut = Button(
-            text='textinput',
-            size_hint_y=None,
-            height=self.height,
-            background_color=(0.7, 0.7, 0.7, 1)
-        )
+        textinbut = Button(text='textinput',
+                           size_hint_y=None,
+                           height=self.height,
+                           background_color=(0.7, 0.7, 0.7, 1))
         textinbut.bind(
-            on_release=lambda instance: self.dropdown.select('textinput')
-        )
+            on_release=lambda instance: self.dropdown.select('textinput'))
         self.dropdown.add_widget(textinbut)
-        togbut = Button(
-            text='togglebutton',
-            size_hint_y=None,
-            height=self.height,
-            background_color=(0.7, 0.7, 0.7, 1)
-        )
+        togbut = Button(text='togglebutton',
+                        size_hint_y=None,
+                        height=self.height,
+                        background_color=(0.7, 0.7, 0.7, 1))
         togbut.bind(
-            on_release=lambda instance: self.dropdown.select('togglebutton')
-        )
+            on_release=lambda instance: self.dropdown.select('togglebutton'))
         self.dropdown.add_widget(togbut)
-        sliderbut = Button(
-            text='slider',
-            size_hint_y=None,
-            height=self.height,
-            background_color=(0.7, 0.7, 0.7, 1)
-        )
+        sliderbut = Button(text='slider',
+                           size_hint_y=None,
+                           height=self.height,
+                           background_color=(0.7, 0.7, 0.7, 1))
         sliderbut.bind(
-            on_release=lambda instance: self.dropdown.select('slider')
-        )
+            on_release=lambda instance: self.dropdown.select('slider'))
         self.dropdown.add_widget(sliderbut)
         self.bind(on_release=self.dropdown.open)
 
@@ -115,11 +93,13 @@ class ConfigListItemToggleButton(BoxLayout):
     false_text = StringProperty('1')
 
     def set_true_text(self, *args):
-        self.parent.set_config(self.parent.key, 'true_text', self.ids.truetext.text)
+        self.parent.set_config(self.parent.key, 'true_text',
+                               self.ids.truetext.text)
         self.true_text = self.ids.truetext.text
 
     def set_false_text(self, *args):
-        self.parent.set_config(self.parent.key, 'false_text', self.ids.falsetext.text)
+        self.parent.set_config(self.parent.key, 'false_text',
+                               self.ids.falsetext.text)
 
 
 class ConfigListItemSlider(BoxLayout):
@@ -155,13 +135,16 @@ class ConfigListItemCustomizer(BoxLayout):
             if 'true_text' not in self.config or 'false_text' not in self.config:
                 Clock.schedule_once(self.on_control, 0)
                 return
-            wid = ConfigListItemToggleButton(true_text=self.config['true_text'], false_text=self.config['false_text'])
+            wid = ConfigListItemToggleButton(
+                true_text=self.config['true_text'],
+                false_text=self.config['false_text'])
             self.add_widget(wid)
         elif self.control == 'slider':
             if 'min' not in self.config or 'max' not in self.config:
                 Clock.schedule_once(self.on_control, 0)
                 return
-            wid = ConfigListItemSlider(min=self.config['min'], max=self.config['max'])
+            wid = ConfigListItemSlider(min=self.config['min'],
+                                       max=self.config['max'])
             self.add_widget(wid)
 
 

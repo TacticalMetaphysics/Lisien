@@ -35,10 +35,7 @@ and their node in the physical world is an avatar of it.
 """
 
 from abc import abstractmethod
-from collections.abc import (
-    Mapping,
-    MutableMapping
-)
+from collections.abc import (Mapping, MutableMapping)
 from itertools import chain
 from time import monotonic
 from operator import ge, gt, le, lt, eq
@@ -47,12 +44,9 @@ from blinker import Signal
 
 import networkx as nx
 from .allegedb.cache import FuturistWindowDict, PickyDefaultDict
-from .allegedb.graph import (
-    DiGraph,
-    GraphNodeMapping,
-    DiGraphSuccessorsMapping,
-    DiGraphPredecessorsMapping
-)
+from .allegedb.graph import (DiGraph, GraphNodeMapping,
+                             DiGraphSuccessorsMapping,
+                             DiGraphPredecessorsMapping)
 from .allegedb.wrap import MutableMappingUnwrapper
 
 from .xcollections import CompositeDict
@@ -87,7 +81,8 @@ class SpecialMappingDescriptor:
     def __set__(self, instance, value):
         if id(instance) not in self.mapps:
             self.insts[id(instance)] = instance
-            self.mapps[id(instance)] = getattr(instance, self.mapclsname)(instance)
+            self.mapps[id(instance)] = getattr(instance,
+                                               self.mapclsname)(instance)
         it = self.mapps[id(instance)]
         it.clear()
         it.update(value)
@@ -103,18 +98,17 @@ def grid_2d_8graph(m, n):
         for j in range(n):
             add_node((i, j))
             if i > 0:
-                add_edge((i, j), (i-1, j))
+                add_edge((i, j), (i - 1, j))
                 if j > 0:
-                    add_edge((i, j), (i-1, j-1))
+                    add_edge((i, j), (i - 1, j - 1))
             if j > 0:
-                add_edge((i, j), (i, j-1))
+                add_edge((i, j), (i, j - 1))
             if (i - 1, j + 1) in nodes:
-                add_edge((i, j), (i-1, j+1))
+                add_edge((i, j), (i - 1, j + 1))
     return me
 
 
 class AbstractCharacter(Mapping):
-
     """The Character API, with all requisite mappings and graph generators.
 
     Mappings resemble those of a NetworkX digraph:
@@ -134,13 +128,15 @@ class AbstractCharacter(Mapping):
         return True
 
     @abstractmethod
-    def add_place(self, name, **kwargs): pass
+    def add_place(self, name, **kwargs):
+        pass
 
     def add_node(self, name, **kwargs):
         self.add_place(name, **kwargs)
 
     @abstractmethod
-    def add_places_from(self, seq, **attrs): pass
+    def add_places_from(self, seq, **attrs):
+        pass
 
     def add_nodes_from(self, seq, **attrs):
         self.add_places_from(seq, **attrs)
@@ -161,14 +157,14 @@ class AbstractCharacter(Mapping):
         return self.new_place(name, **kwargs)
 
     @abstractmethod
-    def add_thing(self, name, location, **kwargs): pass
+    def add_thing(self, name, location, **kwargs):
+        pass
 
     @abstractmethod
-    def add_things_from(self, seq, **attrs): pass
+    def add_things_from(self, seq, **attrs):
+        pass
 
-    def new_thing(
-            self, name, location, **kwargs
-    ):
+    def new_thing(self, name, location, **kwargs):
         if name not in self.node:
             self.add_thing(name, location, **kwargs)
             return self.thing[name]
@@ -181,13 +177,16 @@ class AbstractCharacter(Mapping):
         raise KeyError("Already have a thing named {}".format(name))
 
     @abstractmethod
-    def thing2place(self, name): pass
+    def thing2place(self, name):
+        pass
 
     @abstractmethod
-    def place2thing(self, name, location): pass
+    def place2thing(self, name, location):
+        pass
 
     @abstractmethod
-    def add_portal(self, orig, dest, symmetrical=False, **kwargs): pass
+    def add_portal(self, orig, dest, symmetrical=False, **kwargs):
+        pass
 
     def add_edge(self, orig, dest, **kwargs):
         self.add_portal(orig, dest, **kwargs)
@@ -197,13 +196,15 @@ class AbstractCharacter(Mapping):
         return self.portal[orig][dest]
 
     @abstractmethod
-    def add_portals_from(self, seq, **attrs): pass
+    def add_portals_from(self, seq, **attrs):
+        pass
 
     def add_edges_from(self, seq, **attrs):
         self.add_portals_from(seq, **attrs)
 
     @abstractmethod
-    def remove_portal(self, origin, destination): pass
+    def remove_portal(self, origin, destination):
+        pass
 
     def remove_portals_from(self, seq):
         for orig, dest in seq:
@@ -213,31 +214,36 @@ class AbstractCharacter(Mapping):
         self.remove_portals_from(seq)
 
     @abstractmethod
-    def remove_place(self, place): pass
+    def remove_place(self, place):
+        pass
 
     def remove_places_from(self, seq):
         for place in seq:
             self.remove_place(place)
 
     @abstractmethod
-    def remove_thing(self, thing): pass
+    def remove_thing(self, thing):
+        pass
 
     def remove_things_from(self, seq):
         for thing in seq:
             self.remove_thing(thing)
 
     @abstractmethod
-    def remove_node(self, node): pass
+    def remove_node(self, node):
+        pass
 
     def remove_nodes_from(self, seq):
         for node in seq:
             self.remove_node(node)
 
     @abstractmethod
-    def add_avatar(self, a, b=None): pass
+    def add_avatar(self, a, b=None):
+        pass
 
     @abstractmethod
-    def remove_avatar(self, a, b=None): pass
+    def remove_avatar(self, a, b=None):
+        pass
 
     def __eq__(self, other):
         return isinstance(other, AbstractCharacter) \
@@ -270,10 +276,7 @@ class AbstractCharacter(Mapping):
 
     def historical(self, stat):
         from .query import StatusAlias
-        return StatusAlias(
-            entity=self.stat,
-            stat=stat
-        )
+        return StatusAlias(entity=self.stat, stat=stat)
 
     def do(self, func, *args, **kwargs):
         """Apply the function to myself, and return myself.
@@ -304,23 +307,23 @@ class AbstractCharacter(Mapping):
         from math import floor
         p = self.engine.shuffle([
             151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7,
-            225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190,
-            6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117,
-            35, 11, 32, 57, 177, 33, 88, 237, 149, 56, 87, 174, 20, 125, 136,
-            171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166, 77, 146,
-            158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41,
-            55, 46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80,
-            73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116,
-            188, 159, 86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226,
-            250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207,
-            206, 59, 227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213,
-            119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101, 155, 167, 43,
-            172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232, 178,
-            185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144,
-            12, 191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49,
-            192, 214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50,
-            45, 127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72,
-            243, 141, 128, 195, 78, 66, 215, 61, 156, 180
+            225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6,
+            148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35,
+            11, 32, 57, 177, 33, 88, 237, 149, 56, 87, 174, 20, 125, 136, 171,
+            168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166, 77, 146, 158,
+            231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55,
+            46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80, 73,
+            209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188,
+            159, 86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226, 250,
+            124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206,
+            59, 227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213, 119,
+            248, 152, 2, 44, 154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9,
+            129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232, 178, 185,
+            112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12,
+            191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192,
+            214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45,
+            127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243,
+            141, 128, 195, 78, 66, 215, 61, 156, 180
         ]) * 2
 
         def fade(t):
@@ -352,40 +355,23 @@ class AbstractCharacter(Mapping):
             # HASH COORDINATES OF THE 8 CUBE CORNERS,
             A = p[X] + Y
             AA = p[A] + Z
-            AB = p[A+1] + Z
-            B = p[X+1] + y
+            AB = p[A + 1] + Z
+            B = p[X + 1] + y
             BA = p[B] + Z
-            BB = p[B+1] + Z
+            BB = p[B + 1] + Z
             # AND ADD BLENDED RESULTS FROM 8 CORNERS OF CUBE
             return lerp(
                 w,
                 lerp(
-                    v,
-                    lerp(
-                        u,
-                        grad(p[AA], x, y, z),
-                        grad(p[BA], x-1, y, z)
-                    ),
-                    lerp(
-                        u,
-                        grad(p[AB], x, y-1, z),
-                        grad(p[BB], x-1, y-1, z)
-                    )
-                ),
+                    v, lerp(u, grad(p[AA], x, y, z), grad(p[BA], x - 1, y, z)),
+                    lerp(u, grad(p[AB], x, y - 1, z),
+                         grad(p[BB], x - 1, y - 1, z))),
                 lerp(
                     v,
-                    lerp(
-                        u,
-                        grad(p[AA+1], x, y, z-1),
-                        grad(p[BA+1], x-1, y, z-1)
-                    ),
-                    lerp(
-                        u,
-                        grad(p[AB+1], x, y-1, z-1),
-                        grad(p[BB+1], x-1, y-1, z-1)
-                    )
-                )
-            )
+                    lerp(u, grad(p[AA + 1], x, y, z - 1),
+                         grad(p[BA + 1], x - 1, y, z - 1)),
+                    lerp(u, grad(p[AB + 1], x, y - 1, z - 1),
+                         grad(p[BB + 1], x - 1, y - 1, z - 1))))
 
         for node in self.node.values():
             try:
@@ -418,7 +404,7 @@ class AbstractCharacter(Mapping):
             if k in self.place:
                 n = 0
                 while k in self.place:
-                    k = ok + (n,) if isinstance(ok, tuple) else (ok, n)
+                    k = ok + (n, ) if isinstance(ok, tuple) else (ok, n)
                     n += 1
             renamed[ok] = k
             self.place[k] = g.nodes[k]
@@ -455,13 +441,7 @@ class AbstractCharacter(Mapping):
     def _lookup_comparator(self, comparator):
         if callable(comparator):
             return comparator
-        ops = {
-            'ge': ge,
-            'gt': gt,
-            'le': le,
-            'lt': lt,
-            'eq': eq
-        }
+        ops = {'ge': ge, 'gt': gt, 'le': le, 'lt': lt, 'eq': eq}
         if comparator in ops:
             return ops[comparator]
         return getattr(self.engine.function, comparator)
@@ -493,8 +473,7 @@ class AbstractCharacter(Mapping):
         for u in self.portal:
             for v in self.portal[u]:
                 if stat in self.portal[u][v] and comparator(
-                        self.portal[u][v][stat], threshold
-                ):
+                        self.portal[u][v][stat], threshold):
                     dead.append((u, v))
         self.remove_edges_from(dead)
         return self
@@ -532,7 +511,6 @@ class CharRuleMapping(RuleMapping):
     the rulebook, but won't be followed.
 
     """
-
     def __init__(self, character, rulebook, booktyp):
         """Initialize as usual for the ``rulebook``, mostly.
 
@@ -547,13 +525,8 @@ class CharRuleMapping(RuleMapping):
 
 class RuleFollower(BaseRuleFollower):
     """Mixin class. Has a rulebook, which you can get a RuleMapping into."""
-
     def _get_rule_mapping(self):
-        return CharRuleMapping(
-            self.character,
-            self.rulebook,
-            self._book
-        )
+        return CharRuleMapping(self.character, self.rulebook, self._book)
 
     @abstractmethod
     def _get_rulebook_cache(self):
@@ -561,23 +534,22 @@ class RuleFollower(BaseRuleFollower):
 
     def _get_rulebook_name(self):
         try:
-            return self._get_rulebook_cache().retrieve(
-                self.character.name, *self.engine._btt()
-            )
+            return self._get_rulebook_cache().retrieve(self.character.name,
+                                                       *self.engine._btt())
         except KeyError:
             return self.character.name, self._book
 
     def _set_rulebook_name(self, n):
         branch, turn, tick = self.engine._nbtt()
-        self.engine.query._set_rulebook_on_character(
-            self._book, self.character.name, branch, turn, tick, n)
-        self._get_rulebook_cache().store(
-            self.character.name, branch, turn, tick, n)
+        self.engine.query._set_rulebook_on_character(self._book,
+                                                     self.character.name,
+                                                     branch, turn, tick, n)
+        self._get_rulebook_cache().store(self.character.name, branch, turn,
+                                         tick, n)
 
     def __contains__(self, k):
         return self.engine._active_rules_cache.contains_key(
-            self._get_rulebook_name(), *self.engine._btt()
-        )
+            self._get_rulebook_name(), *self.engine._btt())
 
 
 class FacadeEntity(MutableMapping, Signal):
@@ -594,8 +566,8 @@ class FacadeEntity(MutableMapping, Signal):
 
     def __contains__(self, item):
         patch = self._patch
-        return item in self._real or (
-                item in patch and patch[item] is not None)
+        return item in self._real or (item in patch
+                                      and patch[item] is not None)
 
     def __iter__(self):
         seen = set()
@@ -604,10 +576,7 @@ class FacadeEntity(MutableMapping, Signal):
                 yield k
                 seen.add(k)
         for k in self._patch:
-            if (
-                    self._patch[k] is not None and
-                    k not in seen
-            ):
+            if (self._patch[k] is not None and k not in seen):
                 yield k
 
     def __len__(self):
@@ -623,10 +592,10 @@ class FacadeEntity(MutableMapping, Signal):
             return self._patch[k]
         ret = self._real[k]
         if hasattr(ret, 'unwrap'):  # a wrapped mutable object from the
-                                    # allegedb.wrap module
+            # allegedb.wrap module
             ret = ret.unwrap()
             self._patch[k] = ret  # changes will be reflected in the
-                                  # facade but not the original
+            # facade but not the original
         return ret
 
     def __setitem__(self, k, v):
@@ -660,7 +629,6 @@ class FacadeNode(FacadeEntity):
 
 class FacadePlace(FacadeNode):
     """Lightweight analogue of Place for Facade use."""
-
     def __init__(self, mapping, real_or_name, **kwargs):
         super().__init__(mapping, **kwargs)
         if isinstance(real_or_name, Place) or \
@@ -668,10 +636,10 @@ class FacadePlace(FacadeNode):
             self._real = real_or_name
         else:
             self._real = {'name': real_or_name}
-    
+
     def add_thing(self, name):
         self.facade.add_thing(name, self.name)
-    
+
     def new_thing(self, name):
         return self.facade.new_thing(name, self.name)
 
@@ -680,24 +648,21 @@ class FacadeThing(FacadeNode):
     def __init__(self, mapping, real_or_name, **kwargs):
         location = kwargs.pop('location', None)
         super().__init__(mapping, **kwargs)
-        if location is None and not (
-                isinstance(real_or_name, Thing) or
-                isinstance(real_or_name, FacadeThing)
-        ):
+        if location is None and not (isinstance(real_or_name, Thing)
+                                     or isinstance(real_or_name, FacadeThing)):
             raise TypeError(
                 "FacadeThing needs to wrap a real Thing or another "
-                "FacadeThing, or have a location of its own."
-            )
+                "FacadeThing, or have a location of its own.")
         self._real = {
-            'name': real_or_name.name if hasattr(real_or_name, 'name')
-            else real_or_name,
+            'name': real_or_name.name
+            if hasattr(real_or_name, 'name') else real_or_name,
             'location': location
         }
 
     @property
     def location(self):
         return self.facade.node[self['location']]
-    
+
     @location.setter
     def location(self, v):
         if isinstance(v, (FacadePlace, FacadeThing)):
@@ -709,7 +674,6 @@ class FacadeThing(FacadeNode):
 
 class FacadePortal(FacadeEntity):
     """Lightweight analogue of Portal for Facade use."""
-
     def __init__(self, mapping, other, **kwargs):
         super().__init__(mapping, **kwargs)
         if hasattr(mapping, 'orig'):
@@ -745,7 +709,6 @@ class FacadePortal(FacadeEntity):
 
 
 class FacadeEntityMapping(MutableMappingUnwrapper, Signal):
-
     """Mapping that contains entities in a Facade.
 
     All the entities are of the same type, ``facadecls``, possibly
@@ -1036,8 +999,8 @@ class Facade(AbstractCharacter, nx.DiGraph):
             return k in self._patch and self._patch[k] is not None
 
         def __getitem__(self, k):
-            if k not in self._patch and hasattr(
-                    self.facade.character, 'graph'):
+            if k not in self._patch and hasattr(self.facade.character,
+                                                'graph'):
                 ret = self.facade.character.graph[k]
                 if not hasattr(ret, 'unwrap'):
                     return ret
@@ -1107,8 +1070,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
     def __repr__(self):
         return "{}.character[{}]".format(repr(self.engine), repr(self.name))
 
-    def __init__(self, engine, name,
-                 *, init_rulebooks=True):
+    def __init__(self, engine, name, *, init_rulebooks=True):
         super().__init__(engine, name)
         self._avatars_cache = PickyDefaultDict(FuturistWindowDict)
         if not init_rulebooks:
@@ -1123,8 +1085,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         branch, turn, tick = engine._btt()
         for rulebook, cache in cachemap.items():
             rulebook_name = (name, rulebook)
-            engine.query._set_rulebook_on_character(
-                rulebook, name, branch, turn, tick, rulebook_name)
+            engine.query._set_rulebook_on_character(rulebook, name, branch,
+                                                    turn, tick, rulebook_name)
             cache.store((name, rulebook), branch, turn, tick, rulebook_name)
 
     class ThingMapping(MutableMappingUnwrapper, RuleFollower, Signal):
@@ -1148,8 +1110,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             branch, turn, tick = self.engine._btt()
             for key in cache.iter_keys(char, branch, turn, tick):
                 try:
-                    if cache.retrieve(char, key, branch, turn, tick
-                                      ) is not None:
+                    if cache.retrieve(char, key, branch, turn,
+                                      tick) is not None:
                         yield key
                 except KeyError:
                     continue
@@ -1162,8 +1124,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         def __len__(self):
             return self.engine._things_cache.count_keys(
-                self.character.name, *self.engine._btt()
-            )
+                self.character.name, *self.engine._btt())
 
         def __getitem__(self, thing):
             if thing not in self:
@@ -1189,11 +1150,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 raise ValueError('Thing needs location')
             created = thing not in self
             self.engine._exist_node(self.character.name, thing)
-            self.engine._set_thing_loc(
-                self.character.name,
-                thing,
-                val['location']
-            )
+            self.engine._set_thing_loc(self.character.name, thing,
+                                       val['location'])
             th = self._make_thing(thing, val)
             th.clear()
             th.update(val)
@@ -1205,8 +1163,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             self.send(self, thing_name=thing, exists=False)
 
         def __repr__(self):
-            return "{}.character[{}].thing".format(
-                repr(self.engine), repr(self.name))
+            return "{}.character[{}].thing".format(repr(self.engine),
+                                                   repr(self.name))
 
     class PlaceMapping(MutableMappingUnwrapper, RuleFollower, Signal):
         """:class:`Place` objects that are in a :class:`Character`"""
@@ -1230,47 +1188,60 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             with timer("seconds spent updating PlaceMapping"):
                 for node, val in chain(__m.items(), kwargs.items()):
                     if val is None:
-                        for key in iter_node_keys(
-                            charn, node, branch, turn, start_tick,
-                            forward=forward
-                        ):
-                            store_node_val(
-                                charn, node, key, branch, turn, tick, None,
-                                planning=planning, forward=forward,
-                                loading=True
-                            )
-                            node_val_set(
-                                charn, node, key, branch, turn, tick, None
-                            )
+                        for key in iter_node_keys(charn,
+                                                  node,
+                                                  branch,
+                                                  turn,
+                                                  start_tick,
+                                                  forward=forward):
+                            store_node_val(charn,
+                                           node,
+                                           key,
+                                           branch,
+                                           turn,
+                                           tick,
+                                           None,
+                                           planning=planning,
+                                           forward=forward,
+                                           loading=True)
+                            node_val_set(charn, node, key, branch, turn, tick,
+                                         None)
                             tick += 1
-                        store_node(
-                            charn, node, branch, turn, tick, False,
-                            planning=planning, forward=forward,
-                            loading=True
-                        )
-                        exist_node(
-                            charn, node, branch, turn, tick, False
-                        )
+                        store_node(charn,
+                                   node,
+                                   branch,
+                                   turn,
+                                   tick,
+                                   False,
+                                   planning=planning,
+                                   forward=forward,
+                                   loading=True)
+                        exist_node(charn, node, branch, turn, tick, False)
                         tick += 1
                     else:
-                        store_node(
-                            charn, node, branch, turn, tick, True,
-                            planning=planning, forward=forward,
-                            loading=True
-                        )
-                        exist_node(
-                            charn, node, branch, turn, tick, True
-                        )
+                        store_node(charn,
+                                   node,
+                                   branch,
+                                   turn,
+                                   tick,
+                                   True,
+                                   planning=planning,
+                                   forward=forward,
+                                   loading=True)
+                        exist_node(charn, node, branch, turn, tick, True)
                         tick += 1
                         for k, v in val.items():
-                            store_node_val(
-                                charn, node, k, branch, turn, tick, v,
-                                planning=planning, forward=forward,
-                                loading=True
-                            )
-                            exist_node(
-                                charn, node, k, branch, turn, tick, v
-                            )
+                            store_node_val(charn,
+                                           node,
+                                           k,
+                                           branch,
+                                           turn,
+                                           tick,
+                                           v,
+                                           planning=planning,
+                                           forward=forward,
+                                           loading=True)
+                            exist_node(charn, node, k, branch, turn, tick, v)
                             tick += 1
             engine.tick = tick
 
@@ -1286,82 +1257,47 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             nodes_contains = nodes_cache.contains_entity
             things_contains = things_cache.contains_entity
             btt = engine._btt
-            self._iter_stuff = (
-                iter_nodes,
-                things_contains,
-                charn,
-                btt
-            )
-            self._len_stuff = (
-                nodes_cache.count_entities,
-                things_cache.count_entities,
-                charn,
-                btt
-            )
-            self._contains_stuff = (
-                nodes_contains,
-                things_contains,
-                charn,
-                btt
-            )
-            self._get_stuff = self._contains_stuff + (
-                engine._node_objs,
-                character
-            )
-            self._set_stuff = (
-                engine._node_exists,
-                engine._exist_node,
-                engine._get_node,
-                charn,
-                character
-            )
+            self._iter_stuff = (iter_nodes, things_contains, charn, btt)
+            self._len_stuff = (nodes_cache.count_entities,
+                               things_cache.count_entities, charn, btt)
+            self._contains_stuff = (nodes_contains, things_contains, charn,
+                                    btt)
+            self._get_stuff = self._contains_stuff + (engine._node_objs,
+                                                      character)
+            self._set_stuff = (engine._node_exists, engine._exist_node,
+                               engine._get_node, charn, character)
 
         def __iter__(self):
             iter_nodes, things_contains, charn, btt = self._iter_stuff
             branch, turn, tick = btt()
-            for node in iter_nodes(
-                    charn, branch, turn, tick
-            ):
-                if not things_contains(
-                        charn, node, branch, turn, tick
-                ):
+            for node in iter_nodes(charn, branch, turn, tick):
+                if not things_contains(charn, node, branch, turn, tick):
                     yield node
 
         def __len__(self):
             count_nodes, count_things, charn, btt = self._len_stuff
             branch, turn, tick = btt()
-            return count_nodes(
-                charn, branch, turn, tick
-            ) - count_things(
-                charn, branch, turn, tick
-            )
+            return count_nodes(charn, branch, turn, tick) - count_things(
+                charn, branch, turn, tick)
 
         def __contains__(self, place):
             # TODO: maybe a special cache just for places and not just
             # nodes in general
             nodes_contains, things_contains, charn, btt = self._contains_stuff
             branch, turn, tick = btt()
-            return (
-                nodes_contains(
-                    charn, place, branch, turn, tick
-                ) and not things_contains(
-                    charn, place, branch, turn, tick
-                )
-            )
+            return (nodes_contains(charn, place, branch, turn, tick)
+                    and not things_contains(charn, place, branch, turn, tick))
 
         def __getitem__(self, place):
             nodes_contains, things_contains, charn, btt, cache, character \
                 = self._get_stuff
             branch, turn, tick = btt()
-            if not nodes_contains(
-                charn, place, branch, turn, tick
-            ) or things_contains(
-                charn, place, branch, turn, tick
-            ):
+            if not nodes_contains(charn, place, branch, turn,
+                                  tick) or things_contains(
+                                      charn, place, branch, turn, tick):
                 raise KeyError("No such place: {}".format(place))
             if (charn, place) not in cache or not isinstance(
-                    cache[(charn, place)], Place
-            ):
+                    cache[(charn, place)], Place):
                 ret = cache[(charn, place)] = Place(character, place)
                 return ret
             return cache[(charn, place)]
@@ -1380,15 +1316,15 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             self[place].delete()
 
         def __repr__(self):
-            return "{}.character[{}].place".format(
-                repr(self.character.engine), repr(self.character.name))
+            return "{}.character[{}].place".format(repr(self.character.engine),
+                                                   repr(self.character.name))
 
     class ThingPlaceMapping(GraphNodeMapping, Signal):
         """GraphNodeMapping but for Place and Thing"""
         _book = "character_node"
 
         character = getatt('graph')
-        engine =  getatt('db')
+        engine = getatt('db')
         name = getatt('character.name')
 
         def __init__(self, character):
@@ -1397,14 +1333,12 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             Signal.__init__(self)
             engine = character.engine
             charn = character.name
-            self._contains_stuff = contains_stuff = (
-                engine._node_exists, charn)
-            self._getitem_stuff = contains_stuff + (
-                engine._get_node, character
-            )
+            self._contains_stuff = contains_stuff = (engine._node_exists,
+                                                     charn)
+            self._getitem_stuff = contains_stuff + (engine._get_node,
+                                                    character)
             self._delitem_stuff = contains_stuff + (
-                engine._is_thing, character.thing, character.place
-            )
+                engine._is_thing, character.thing, character.place)
             self._placemap = character.place
 
         def __contains__(self, k):
@@ -1428,6 +1362,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 del thingmap[k]
             else:
                 del placemap[k]
+
     node_map_cls = ThingPlaceMapping
 
     class PortalSuccessorsMapping(DiGraphSuccessorsMapping, RuleFollower):
@@ -1494,52 +1429,73 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 for orig, dests in chain(other.items(), kwargs.items()):
                     for dest, kvs in dests.items():
                         if kvs is None:
-                            for k in iter_edge_keys(
-                                charn, orig, dest, 0, branch, turn, start_tick,
-                                forward=forward
-                            ):
-                                store_edge_val(
-                                    charn, orig, dest, 0, k,
-                                    branch, turn, tick, None,
-                                    planning=planning, forward=forward,
-                                    loading=True
-                                )
-                                edge_val_set(
-                                    charn, orig, dest, 0, k,
-                                    branch, turn, tick, None
-                                )
+                            for k in iter_edge_keys(charn,
+                                                    orig,
+                                                    dest,
+                                                    0,
+                                                    branch,
+                                                    turn,
+                                                    start_tick,
+                                                    forward=forward):
+                                store_edge_val(charn,
+                                               orig,
+                                               dest,
+                                               0,
+                                               k,
+                                               branch,
+                                               turn,
+                                               tick,
+                                               None,
+                                               planning=planning,
+                                               forward=forward,
+                                               loading=True)
+                                edge_val_set(charn, orig, dest, 0, k, branch,
+                                             turn, tick, None)
                                 tick += 1
-                            store_edge(
-                                charn, orig, dest, 0,
-                                branch, turn, tick, False,
-                                planning=planning, forward=forward,
-                                loading=True
-                            )
-                            exist_edge(
-                                charn, orig, dest, 0, branch, turn, tick, False
-                            )
+                            store_edge(charn,
+                                       orig,
+                                       dest,
+                                       0,
+                                       branch,
+                                       turn,
+                                       tick,
+                                       False,
+                                       planning=planning,
+                                       forward=forward,
+                                       loading=True)
+                            exist_edge(charn, orig, dest, 0, branch, turn,
+                                       tick, False)
                             tick += 1
                         else:
-                            store_edge(
-                                charn, orig, dest, 0, branch, turn, tick, True,
-                                planning=planning, forward=forward,
-                                loading=True
-                            )
-                            exist_edge(
-                                charn, orig, dest, 0, branch, turn, tick, True
-                            )
+                            store_edge(charn,
+                                       orig,
+                                       dest,
+                                       0,
+                                       branch,
+                                       turn,
+                                       tick,
+                                       True,
+                                       planning=planning,
+                                       forward=forward,
+                                       loading=True)
+                            exist_edge(charn, orig, dest, 0, branch, turn,
+                                       tick, True)
                             tick += 1
                             for k, v in kvs.items():
-                                store_edge_val(
-                                    charn, orig, dest, 0,
-                                    k, branch, turn, tick, v,
-                                    planning=planning, forward=forward,
-                                    loading=True
-                                )
-                                edge_val_set(
-                                    charn, orig, dest, 0,
-                                    k, branch, turn, tick, v
-                                )
+                                store_edge_val(charn,
+                                               orig,
+                                               dest,
+                                               0,
+                                               k,
+                                               branch,
+                                               turn,
+                                               tick,
+                                               v,
+                                               planning=planning,
+                                               forward=forward,
+                                               loading=True)
+                                edge_val_set(charn, orig, dest, 0, k, branch,
+                                             turn, tick, v)
                                 tick += 1
             engine.tick = tick
 
@@ -1558,39 +1514,33 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 super().__init__(container, orig)
                 graph = self.graph
                 engine = graph.engine
-                self._getitem_stuff = (engine._get_edge, graph, orig) 
-                self._setitem_stuff = (
-                    engine._edge_exists, engine._exist_edge, graph.name, orig,
-                    engine._get_edge, graph, engine.query.edge_val_set,
-                    engine._edge_val_cache.store, engine._nbtt
-                )
-                
+                self._getitem_stuff = (engine._get_edge, graph, orig)
+                self._setitem_stuff = (engine._edge_exists, engine._exist_edge,
+                                       graph.name, orig, engine._get_edge,
+                                       graph, engine.query.edge_val_set,
+                                       engine._edge_val_cache.store,
+                                       engine._nbtt)
+
             def __getitem__(self, dest):
                 get_edge, graph, orig = self._getitem_stuff
                 if dest in self:
                     return get_edge(graph, orig, dest, 0)
-                raise KeyError("No such portal: {}->{}".format(
-                    orig, dest
-                ))
+                raise KeyError("No such portal: {}->{}".format(orig, dest))
 
             def __setitem__(self, dest, value):
                 if value is None:
                     del self[dest]
                     return
                 (edge_exists, exist_edge, charn, orig, get_edge, graph,
-                 db_edge_val_set, edge_val_cache_store, nbtt
-                 ) = self._setitem_stuff
-                exist_edge(
-                    charn,
-                    orig,
-                    dest
-                )
+                 db_edge_val_set, edge_val_cache_store,
+                 nbtt) = self._setitem_stuff
+                exist_edge(charn, orig, dest)
                 for k, v in value.items():
                     branch, turn, tick = nbtt()
-                    db_edge_val_set(charn, orig, dest, 0, k,
-                                    branch, turn, tick, v)
-                    edge_val_cache_store(charn, orig, dest, 0, k,
-                                         branch, turn, tick, v)
+                    db_edge_val_set(charn, orig, dest, 0, k, branch, turn,
+                                    tick, v)
+                    edge_val_cache_store(charn, orig, dest, 0, k, branch, turn,
+                                         tick, v)
                 self.send(self, key=dest, val=value)
 
             def __delitem__(self, dest):
@@ -1613,37 +1563,41 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 tick = start_tick + 1
                 for dest, val in chain(other.items(), kwargs.items()):
                     if val is None:
-                        for k in iter_edge_keys(
-                            charn, orig, dest, 0, branch, turn, start_tick
-                        ):
-                            store_edge_val(
-                                charn, orig, dest, 0,
-                                k, branch, turn, tick, None,
-                                planning=planning, forward=forward,
-                                loading=True
-                            )
-                            set_edge_val(
-                                charn, orig, dest, 0,
-                                k, branch, turn, tick, None
-                            )
+                        for k in iter_edge_keys(charn, orig, dest, 0, branch,
+                                                turn, start_tick):
+                            store_edge_val(charn,
+                                           orig,
+                                           dest,
+                                           0,
+                                           k,
+                                           branch,
+                                           turn,
+                                           tick,
+                                           None,
+                                           planning=planning,
+                                           forward=forward,
+                                           loading=True)
+                            set_edge_val(charn, orig, dest, 0, k, branch, turn,
+                                         tick, None)
                             tick += 1
-                        store_edge(
-                            charn, orig, dest, 0, branch, turn, tick, None,
-                            planning=planning, forward=forward,
-                            loading=True
-                        )
-                        exist_edge(
-                            charn, orig, dest, 0, branch, turn, tick, None
-                        )
+                        store_edge(charn,
+                                   orig,
+                                   dest,
+                                   0,
+                                   branch,
+                                   turn,
+                                   tick,
+                                   None,
+                                   planning=planning,
+                                   forward=forward,
+                                   loading=True)
+                        exist_edge(charn, orig, dest, 0, branch, turn, tick,
+                                   None)
                         tick += 1
-
 
     adj_cls = PortalSuccessorsMapping
 
-    class PortalPredecessorsMapping(
-            DiGraphPredecessorsMapping,
-            RuleFollower
-    ):
+    class PortalPredecessorsMapping(DiGraphPredecessorsMapping, RuleFollower):
         """Mapping of nodes that have at least one incoming edge.
 
         Maps to another mapping keyed by the origin nodes, which maps to
@@ -1661,26 +1615,22 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         class Predecessors(DiGraphPredecessorsMapping.Predecessors):
             """Mapping of possible origins from some destination."""
-
             def __init__(self, container, dest):
                 super().__init__(container, dest)
                 graph = self.graph
-                self._setitem_stuff = (
-                    graph, graph.name, dest, self.db._edge_objs)
+                self._setitem_stuff = (graph, graph.name, dest,
+                                       self.db._edge_objs)
 
             def __setitem__(self, orig, value):
                 graph, graph_name, dest, portal_objs = self._setitem_stuff
                 key = (graph_name, orig, dest)
                 if key not in portal_objs:
-                    portal_objs[key] = Portal(
-                        graph,
-                        orig,
-                        dest
-                    )
+                    portal_objs[key] = Portal(graph, orig, dest)
                 p = portal_objs[key]
                 p.clear()
                 p.update(value)
                 p.engine._exist_edge(graph_name, dest, orig)
+
     pred_cls = PortalPredecessorsMapping
 
     class AvatarGraphMapping(Mapping, RuleFollower):
@@ -1713,18 +1663,11 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             get_char_graphs = avcache.get_char_graphs
             charn = char.name
             btt = engine._btt
-            self._iter_stuff = (
-                get_char_graphs, charn, btt
-            )
-            self._node_stuff = (
-                self._get_char_av_cache,
-                avcache.get_char_only_graph,
-                charn, btt
-            )
-            self._only_stuff = (
-                avcache.get_char_only_av,
-                charn, btt, engine._get_node, engine.character
-            )
+            self._iter_stuff = (get_char_graphs, charn, btt)
+            self._node_stuff = (self._get_char_av_cache,
+                                avcache.get_char_only_graph, charn, btt)
+            self._only_stuff = (avcache.get_char_only_av, charn, btt,
+                                engine._get_node, engine.character)
 
         def __call__(self, av):
             """Add the avatar
@@ -1770,15 +1713,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             get_char_av_cache, get_char_only_graph, charn, btt \
                 = self._node_stuff
             try:
-                return get_char_av_cache(
-                    get_char_only_graph(
-                        charn, *btt()
-                    )
-                )
+                return get_char_av_cache(get_char_only_graph(charn, *btt()))
             except KeyError:
                 raise AttributeError(
-                    "I have no avatar, or I have avatars in many graphs"
-                )
+                    "I have no avatar, or I have avatars in many graphs")
 
         @property
         def only(self):
@@ -1789,14 +1727,11 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             """
             get_char_only_av, charn, btt, get_node, charmap = self._only_stuff
             try:
-                charn, noden = get_char_only_av(
-                    charn, *btt()
-                )
+                charn, noden = get_char_only_av(charn, *btt())
                 return get_node(charmap[charn], noden)
             except KeyError:
                 raise AttributeError(
-                    "I have no avatar, or more than one avatar"
-                )
+                    "I have no avatar, or more than one avatar")
 
         class CharacterAvatarMapping(Mapping):
             """Mapping of avatars of one Character in another Character."""
@@ -1808,37 +1743,30 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 self.graph = graphn
                 avcache = engine._avatarness_cache
                 btt = engine._btt
-                self._iter_stuff = iter_stuff = (
-                    avcache.get_char_graph_avs, name, graphn, btt
-                )
+                self._iter_stuff = iter_stuff = (avcache.get_char_graph_avs,
+                                                 name, graphn, btt)
                 get_node = engine._get_node
-                self._getitem_stuff = iter_stuff + (
-                    get_node, graphn, engine.character)
+                self._getitem_stuff = iter_stuff + (get_node, graphn,
+                                                    engine.character)
                 self._only_stuff = (get_node, engine.character, graphn)
 
             def __iter__(self):
                 """Iterate over names of avatar nodes"""
                 get_char_graph_avs, name, graphn, btt = self._iter_stuff
-                return iter(get_char_graph_avs(
-                    name, graphn, *btt()
-                ))
+                return iter(get_char_graph_avs(name, graphn, *btt()))
 
             def __contains__(self, av):
                 get_char_graph_avs, name, graphn, btt = self._iter_stuff
-                return av in get_char_graph_avs(
-                    name, graphn, *btt()
-                )
+                return av in get_char_graph_avs(name, graphn, *btt())
 
             def __len__(self):
                 """Number of avatars of this character in that graph"""
                 get_char_graph_avs, name, graphn, btt = self._iter_stuff
-                return len(get_char_graph_avs(
-                    name, graphn, *btt()
-                ))
+                return len(get_char_graph_avs(name, graphn, *btt()))
 
             def __getitem__(self, av):
-                (get_char_graph_avs, name, graphn, btt, get_node,
-                 graphn, charmap) = self._getitem_stuff
+                (get_char_graph_avs, name, graphn, btt, get_node, graphn,
+                 charmap) = self._getitem_stuff
                 if av in get_char_graph_avs(name, graphn, *btt()):
                     return get_node(charmap[graphn], av)
                 raise KeyError("No avatar: {}".format(av))
@@ -1853,7 +1781,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 return get_node(charmap[graphn], mykey)
 
             def __repr__(self):
-                return "{}.character[{}].avatar".format(repr(self.engine), repr(self.name))
+                return "{}.character[{}].avatar".format(
+                    repr(self.engine), repr(self.name))
 
     def facade(self):
         return Facade(self)
@@ -1879,12 +1808,14 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         """Make a new Thing and set its location"""
         if name in self.thing:
             raise WorldIntegrityError(
-                "Already have a Thing named {}".format(name)
-            )
+                "Already have a Thing named {}".format(name))
         self.add_node(name, **kwargs)
         if isinstance(location, Node):
             location = location.name
-        self.place2thing(name, location,)
+        self.place2thing(
+            name,
+            location,
+        )
 
     def add_things_from(self, seq, **attrs):
         for tup in seq:
@@ -1899,9 +1830,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         It will keep all its attached Portals.
 
         """
-        self.engine._set_thing_loc(
-            self.name, name, location
-        )
+        self.engine._set_thing_loc(self.name, name, location)
         if (self.name, name) in self.engine._node_objs:
             obj = self.engine._node_objs[self.name, name]
             thing = Thing(self, name)
@@ -1913,9 +1842,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
     def thing2place(self, name):
         """Unset a Thing's location, and thus turn it into a Place."""
-        self.engine._set_thing_loc(
-            self.name, name, None
-        )
+        self.engine._set_thing_loc(self.name, name, None)
         if (self.name, name) in self.engine._node_objs:
             thing = self.engine._node_objs[self.name, name]
             place = Place(self, name)
@@ -1979,33 +1906,24 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             raise NotImplementedError(
                 "Currently can't add avatars within a plan")
         if b is None:
-            if not (
-                    isinstance(a, Place) or
-                    isinstance(a, Thing)
-            ):
-                raise TypeError(
-                    'when called with one argument, '
-                    'it must be a place or thing'
-                )
+            if not (isinstance(a, Place) or isinstance(a, Thing)):
+                raise TypeError('when called with one argument, '
+                                'it must be a place or thing')
             g = a.character.name
             n = a.name
         else:
             if isinstance(a, Character):
                 g = a.name
             elif not isinstance(a, str):
-                raise TypeError(
-                    'when called with two arguments, '
-                    'the first is a character or its name'
-                )
+                raise TypeError('when called with two arguments, '
+                                'the first is a character or its name')
             else:
                 g = a
             if isinstance(b, Place) or isinstance(b, Thing):
                 n = b.name
             elif not isinstance(b, str):
-                raise TypeError(
-                    'when called with two arguments, '
-                    'the second is a thing/place or its name'
-                )
+                raise TypeError('when called with two arguments, '
+                                'the second is a thing/place or its name')
             else:
                 n = b
         # This will create the node if it doesn't exist. Otherwise
@@ -2013,8 +1931,12 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         self.engine._exist_node(g, n)
         # Declare that the node is my avatar
         branch, turn, tick = self.engine._nbtt()
-        self.engine._remember_avatarness(
-            self.name, g, n, branch=branch, turn=turn, tick=tick)
+        self.engine._remember_avatarness(self.name,
+                                         g,
+                                         n,
+                                         branch=branch,
+                                         turn=turn,
+                                         tick=tick)
 
     def remove_avatar(self, a, b=None):
         """This is no longer my avatar, though it still exists"""
@@ -2023,27 +1945,23 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 "Currently can't remove avatars within a plan")
         if b is None:
             if not isinstance(a, Node):
-                raise TypeError(
-                    "In single argument form, "
-                    "del_avatar requires a Node object "
-                    "(Thing or Place)."
-                )
+                raise TypeError("In single argument form, "
+                                "del_avatar requires a Node object "
+                                "(Thing or Place).")
             g = a.character.name
             n = a.name
         else:
             g = a.name if isinstance(a, Character) else a
             n = b.name if isinstance(b, Node) else b
-        self.engine._remember_avatarness(
-            self.character.name, g, n, False
-        )
+        self.engine._remember_avatarness(self.character.name, g, n, False)
 
     def portals(self):
         """Iterate over all portals."""
         char = self.character
         make_edge = self.engine._get_edge
-        for (o, d) in self.engine._edges_cache.iter_keys(
-                self.character.name, *self.engine._btt()
-        ):
+        for (o,
+             d) in self.engine._edges_cache.iter_keys(self.character.name,
+                                                      *self.engine._btt()):
             yield make_edge(char, o, d)
 
     def avatars(self):
@@ -2057,12 +1975,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         charmap = self.engine.character
         avit = self.engine._avatarness_cache.iter_entities
         makenode = self.engine._get_node
-        for graph in avit(
-                charname, branch, turn, tick
-        ):
-            for node in avit(
-                    charname, graph, branch, turn, tick
-            ):
+        for graph in avit(charname, branch, turn, tick):
+            for node in avit(charname, graph, branch, turn, tick):
                 try:
                     yield makenode(charmap[graph], node)
                 except KeyError:

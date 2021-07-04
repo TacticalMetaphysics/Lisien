@@ -16,9 +16,9 @@
 
 """
 from functools import partial
-from kivy.properties import (
-    DictProperty, ListProperty, ObjectProperty, StringProperty, NumericProperty, VariableListProperty
-)
+from kivy.properties import (DictProperty, ListProperty, ObjectProperty,
+                             StringProperty, NumericProperty,
+                             VariableListProperty)
 from kivy.core.text import DEFAULT_FONT
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -68,7 +68,6 @@ class DialogMenu(Box):
     """
     options = ListProperty()
     """List of pairs of (button_text, callable)"""
-
     def _set_sv_size(self, *args):
         self._sv.width = self.width - self.padding[0] - self.padding[2]
         self._sv.height = self.height - self.padding[1] - self.padding[3]
@@ -89,7 +88,11 @@ class DialogMenu(Box):
         for txt, part in self.options:
             if not callable(part):
                 raise TypeError("Menu options must be callable")
-            layout.add_widget(Button(text=txt, on_release=part, font_name=self.font_name, font_size=self.font_size))
+            layout.add_widget(
+                Button(text=txt,
+                       on_release=part,
+                       font_name=self.font_name,
+                       font_size=self.font_size))
 
 
 class Dialog(BoxLayout):
@@ -106,10 +109,8 @@ class Dialog(BoxLayout):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.bind(
-            message_kwargs=self._propagate_msg_kwargs,
-            menu_kwargs=self._propagate_menu_kwargs
-        )
+        self.bind(message_kwargs=self._propagate_msg_kwargs,
+                  menu_kwargs=self._propagate_menu_kwargs)
         self._propagate_msg_kwargs()
         self._propagate_menu_kwargs()
 
@@ -118,7 +119,8 @@ class Dialog(BoxLayout):
             Clock.schedule_once(self._propagate_msg_kwargs, 0)
             return
         kw = dict(self.message_kwargs)
-        kw.setdefault('background', 'atlas://data/images/defaulttheme/textinput')
+        kw.setdefault('background',
+                      'atlas://data/images/defaulttheme/textinput')
         for k, v in kw.items():
             setattr(self.ids.msg, k, v)
 
@@ -127,7 +129,8 @@ class Dialog(BoxLayout):
             Clock.schedule_once(self._propagate_menu_kwargs, 0)
             return
         kw = dict(self.menu_kwargs)
-        kw.setdefault('background', 'atlas://data/images/defaulttheme/vkeyboard_background')
+        kw.setdefault('background',
+                      'atlas://data/images/defaulttheme/vkeyboard_background')
         for k, v in kw.items():
             setattr(self.ids.menu, k, v)
 
@@ -204,7 +207,9 @@ class DialogLayout(FloatLayout):
         # about presentation
         elif isinstance(diargs, list):
             dia.message_kwargs = {'text': 'Select from the following:'}
-            dia.menu_kwargs = {'options': list(map(self._munge_menu_option, diargs))}
+            dia.menu_kwargs = {
+                'options': list(map(self._munge_menu_option, diargs))
+            }
         # For real control of the dialog, you need a pair of dicts --
         # the 0th describes the message shown to the player, the 1th
         # describes the menu below
@@ -220,14 +225,17 @@ class DialogLayout(FloatLayout):
             else:
                 raise TypeError("Message must be dict or str")
             if isinstance(mnukwargs, dict):
-                mnukwargs['options'] = list(map(self._munge_menu_option, mnukwargs['options']))
+                mnukwargs['options'] = list(
+                    map(self._munge_menu_option, mnukwargs['options']))
                 dia.menu_kwargs = mnukwargs
             elif isinstance(mnukwargs, list) or isinstance(mnukwargs, tuple):
-                dia.menu_kwargs['options'] = list(map(self._munge_menu_option, mnukwargs))
+                dia.menu_kwargs['options'] = list(
+                    map(self._munge_menu_option, mnukwargs))
             else:
                 raise TypeError("Menu must be dict or list")
         else:
-            raise TypeError("Don't know how to turn {} into a dialog".format(type(diargs)))
+            raise TypeError("Don't know how to turn {} into a dialog".format(
+                type(diargs)))
         self.add_widget(dia)
 
     def ok(self, *args, cb=None):

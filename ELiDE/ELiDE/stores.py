@@ -38,14 +38,8 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.togglebutton import ToggleButton
 
-from kivy.properties import (
-    AliasProperty,
-    BooleanProperty,
-    ListProperty,
-    NumericProperty,
-    ObjectProperty,
-    StringProperty
-)
+from kivy.properties import (AliasProperty, BooleanProperty, ListProperty,
+                             NumericProperty, ObjectProperty, StringProperty)
 from .util import trigger
 
 
@@ -74,7 +68,6 @@ class StoreButton(RecycleToggleButton):
     """Text of this item"""
     select = ObjectProperty()
     """Function that gets called with my ``index`` when I'm selected"""
-
     def on_parent(self, *args):
         if self.name == '+':
             self.state = 'down'
@@ -96,7 +89,6 @@ class StoreList(RecycleView):
     """The ``name`` of the ``StoreButton`` currently selected"""
     boxl = ObjectProperty()
     """Instance of ``SelectableRecycleBoxLayout``"""
-
     def __init__(self, **kwargs):
         self._i2name = {}
         self._name2i = {}
@@ -161,7 +153,6 @@ class LanguageInput(TextInput):
     """Widget to enter the language you want to edit"""
     screen = ObjectProperty()
     """The instance of ``StringsEdScreen`` that I'm in"""
-
     def on_focus(self, instance, value, *largs):
         if not value:
             if self.screen.language != self.text:
@@ -183,7 +174,6 @@ class StringsEdScreen(Screen):
     """Code identifying the language we're editing"""
     edbox = ObjectProperty()
     """Widget containing editors for the current string and its name"""
-
     def on_language(self, *args):
         if self.edbox is None:
             Clock.schedule_once(self.on_language, 0)
@@ -191,11 +181,11 @@ class StringsEdScreen(Screen):
         self.edbox.storelist.redata()
         if self.store.language != self.language:
             self.store.language = self.language
-    
+
     def on_store(self, *args):
         self.language = self.store.language
         self.store.language.connect(self._pull_language)
-    
+
     def _pull_language(self, *args, language):
         self.language = language
 
@@ -221,43 +211,41 @@ class Editor(BoxLayout):
     def save(self, *args):
         """Put text in my store, return True if it changed"""
         if self.name_wid is None or self.store is None:
-            Logger.debug("{}: Not saving, missing name_wid or store".format(type(self).__name__))
+            Logger.debug("{}: Not saving, missing name_wid or store".format(
+                type(self).__name__))
             return
         if not (self.name_wid.text or self.name_wid.hint_text):
             Logger.debug("{}: Not saving, no name".format(type(self).__name__))
             return
-        if self.name_wid.text and self.name_wid.text[0] in string.digits + string.whitespace + string.punctuation:
+        if self.name_wid.text and self.name_wid.text[
+                0] in string.digits + string.whitespace + string.punctuation:
             # TODO alert the user to invalid name
-            Logger.warning("{}: Not saving, invalid name".format(type(self).__name__))
+            Logger.warning("{}: Not saving, invalid name".format(
+                type(self).__name__))
             return
         if hasattr(self, '_do_parse'):
             try:
                 parse(self.source)
             except SyntaxError:
                 # TODO alert user to invalid source
-                Logger.debug("{}: Not saving, couldn't parse".format(type(self).__name__))
+                Logger.debug("{}: Not saving, couldn't parse".format(
+                    type(self).__name__))
                 return
         do_redata = False
         if self.name_wid.text:
-            if (
-                self.name_wid.hint_text and
-                self.name_wid.hint_text != self.name_wid.text and
-                hasattr(self.store, self.name_wid.hint_text)
-            ):
+            if (self.name_wid.hint_text
+                    and self.name_wid.hint_text != self.name_wid.text
+                    and hasattr(self.store, self.name_wid.hint_text)):
                 delattr(self.store, self.name_wid.hint_text)
                 do_redata = True
-            if (
-                not hasattr(self.store, self.name_wid.text) or
-                getattr(self.store, self.name_wid.text) != self.source
-            ):
+            if (not hasattr(self.store, self.name_wid.text)
+                    or getattr(self.store, self.name_wid.text) != self.source):
                 Logger.debug("{}: Saving!".format(type(self).__name__))
                 setattr(self.store, self.name_wid.text, self.source)
                 do_redata = True
         elif self.name_wid.hint_text:
-            if (
-                not hasattr(self.store, self.name_wid.hint_text) or
-                getattr(self.store, self.name_wid.hint_text) != self.source
-            ):
+            if (not hasattr(self.store, self.name_wid.hint_text) or getattr(
+                    self.store, self.name_wid.hint_text) != self.source):
                 Logger.debug("{}: Saving!".format(type(self).__name__))
                 setattr(self.store, self.name_wid.hint_text, self.source)
                 do_redata = True
@@ -280,7 +268,6 @@ class StringInput(Editor):
     """Editor for human-readable strings"""
     validate_name_input = ObjectProperty()
     """Boolean function for checking if a string name is acceptable"""
-
     def on_name_wid(self, *args):
         if not self.validate_name_input:
             Clock.schedule_once(self.on_name_wid, 0)
@@ -333,7 +320,6 @@ class EdBox(BoxLayout):
     """Function to show or hide my screen"""
     disable_text_input = BooleanProperty(False)
     """Set to ``True`` to prevent entering text in the editor"""
-
     def on_store_name(self, *args):
         app = App.get_running_app()
         if app.engine is None:
@@ -346,21 +332,25 @@ class EdBox(BoxLayout):
 
     @trigger
     def validate_name_input(self, *args):
-        self.disable_text_input = not (self.valid_name(self.editor.name_wid.hint_text) or self.valid_name(self.editor.name_wid.text))
+        self.disable_text_input = not (
+            self.valid_name(self.editor.name_wid.hint_text)
+            or self.valid_name(self.editor.name_wid.text))
 
     @trigger
     def _pull_from_storelist(self, *args):
         self.save()
         # The + button at the top is for adding an entry yet unnamed, so don't display hint text for it
-        self.editor.name_wid.hint_text = self.storelist.selection_name.strip('+')
+        self.editor.name_wid.hint_text = self.storelist.selection_name.strip(
+            '+')
         self.editor.name_wid.text = ''
         try:
-            self.editor.source = getattr(
-                self.store, self.editor.name_wid.hint_text
-            )
+            self.editor.source = getattr(self.store,
+                                         self.editor.name_wid.hint_text)
         except AttributeError:
-            self.editor.source = self.get_default_text(self.editor.name_wid.hint_text)
-        self.disable_text_input = not self.valid_name(self.editor.name_wid.hint_text)
+            self.editor.source = self.get_default_text(
+                self.editor.name_wid.hint_text)
+        self.disable_text_input = not self.valid_name(
+            self.editor.name_wid.hint_text)
         if hasattr(self, '_lock_save'):
             del self._lock_save
 
@@ -396,6 +386,7 @@ class EdBox(BoxLayout):
             self.storelist.redata(del_select)
         else:
             del self._lock_save
+
     _trigger_delete = trigger(delete)
 
     def on_store(self, *args):
@@ -419,7 +410,6 @@ class StringsEdBox(EdBox):
 
     """
     language = StringProperty('eng')
-
 
     @staticmethod
     def get_default_text(newname):
@@ -445,9 +435,8 @@ class FunctionNameInput(TextInput):
         if self.text == '':
             if s[0] not in (string.ascii_letters + '_'):
                 return
-        return super().insert_text(
-            ''.join(c for c in s if c in (string.ascii_letters + string.digits + '_'))
-        )
+        return super().insert_text(''.join(
+            c for c in s if c in (string.ascii_letters + string.digits + '_')))
 
     def on_focus(self, inst, val, *largs):
         if not val:
@@ -465,10 +454,8 @@ def munge_source(v):
         firstline = lines[0].lstrip()
     if not lines:
         return tuple(), ''
-    params = tuple(
-        parm.strip() for parm in
-        sig_ex.match(lines[0]).group(1).split(',')
-    )
+    params = tuple(parm.strip()
+                   for parm in sig_ex.match(lines[0]).group(1).split(','))
     del lines[0]
     if not lines:
         return params, ''
@@ -493,7 +480,8 @@ class FuncEditor(Editor):
     _do_parse = True
 
     def _get_source(self):
-        code = self.get_default_text(self.name_wid.text or self.name_wid.hint_text)
+        code = self.get_default_text(self.name_wid.text
+                                     or self.name_wid.hint_text)
         if self._text:
             code += indent(self._text, ' ' * 4)
         else:
@@ -527,13 +515,13 @@ class FuncsEdBox(EdBox):
     FuncEditor showing the source of the selected one, and a close button.
 
     """
-
     def get_default_text(self, newname):
         return self.editor.get_default_text(newname)
 
     @staticmethod
     def valid_name(name):
-        return name and name[0] not in string.digits + string.whitespace + string.punctuation
+        return name and name[
+            0] not in string.digits + string.whitespace + string.punctuation
 
 
 class FuncsEdScreen(Screen):

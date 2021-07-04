@@ -29,10 +29,10 @@ class LiSEHandleWebService(object):
             self.logger = kwargs['logger'] = logging.getLogger(__name__)
         self.cmdq = kwargs['cmdq'] = Queue()
         self.outq = kwargs['outq'] = Queue()
-        self._handle_thread = threading.Thread(
-            target=self._run_handle_forever, args=args, kwargs=kwargs,
-            daemon=True
-        )
+        self._handle_thread = threading.Thread(target=self._run_handle_forever,
+                                               args=args,
+                                               kwargs=kwargs,
+                                               daemon=True)
         self._handle_thread.start()
 
     @staticmethod
@@ -46,21 +46,12 @@ class LiSEHandleWebService(object):
         def log(typ, data):
             if typ == 'command':
                 (cmd, args) = data
-                logger.debug(
-                    "LiSE thread {}: calling {}{}".format(
-                        threading.get_ident(),
-                        cmd,
-                        tuple(args)
-                    )
-                )
+                logger.debug("LiSE thread {}: calling {}{}".format(
+                    threading.get_ident(), cmd, tuple(args)))
             else:
                 logger.debug(
                     "LiSE thread {}: returning {} (of type {})".format(
-                        threading.get_ident(),
-                        data,
-                        repr(type(data))
-                    )
-                )
+                        threading.get_ident(), data, repr(type(data))))
 
         def get_log_forever(logq):
             (level, data) = logq.get()
@@ -69,9 +60,9 @@ class LiSEHandleWebService(object):
         engine_handle = EngineHandle(args, kwargs, logq)
         if setup:
             setup(engine_handle._real)
-        handle_log_thread = threading.Thread(
-            target=get_log_forever, args=(logq,), daemon=True
-        )
+        handle_log_thread = threading.Thread(target=get_log_forever,
+                                             args=(logq, ),
+                                             daemon=True)
         handle_log_thread.start()
         while True:
             inst = cmdq.get()

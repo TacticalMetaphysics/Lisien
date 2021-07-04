@@ -27,8 +27,9 @@ class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
     def setUp(self):
         self.manager = EngineProcessManager()
         self.tempdir = tempfile.mkdtemp(dir='.')
-        self.engine = self.manager.start(self.tempdir, connect_string='sqlite:///:memory:')
-        self.graphmakers = (self.engine.new_character,)
+        self.engine = self.manager.start(self.tempdir,
+                                         connect_string='sqlite:///:memory:')
+        self.graphmakers = (self.engine.new_character, )
         self.addCleanup(self._do_cleanup)
 
     def _do_cleanup(self):
@@ -36,7 +37,8 @@ class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
         shutil.rmtree(self.tempdir)
 
 
-class ProxyGraphTest(LiSE.allegedb.tests.test_all.AbstractGraphTest, ProxyTest):
+class ProxyGraphTest(LiSE.allegedb.tests.test_all.AbstractGraphTest,
+                     ProxyTest):
     pass
 
 
@@ -55,16 +57,22 @@ class SetStorageTest(ProxyTest, LiSE.allegedb.tests.test_all.SetStorageTest):
 @pytest.fixture(scope='function')
 def handle(tempdir):
     from LiSE.handle import EngineHandle
-    hand = EngineHandle((tempdir,), {'connect_string': 'sqlite:///:memory:', 'random_seed': 69105})
+    hand = EngineHandle((tempdir, ), {
+        'connect_string': 'sqlite:///:memory:',
+        'random_seed': 69105
+    })
     yield hand
     hand.close()
 
 
-@pytest.fixture(scope='function', params=[
-    lambda eng: kobold.inittest(eng, shrubberies=20, kobold_sprint_chance=.9),
-    # college.install,
-    # sickle.install
-])
+@pytest.fixture(
+    scope='function',
+    params=[
+        lambda eng: kobold.inittest(
+            eng, shrubberies=20, kobold_sprint_chance=.9),
+        # college.install,
+        # sickle.install
+    ])
 def handle_initialized(request, handle):
     with handle._real.advancing():
         request.param(handle._real)
@@ -104,7 +112,8 @@ def test_assignment(handle):
     assert dorm_copy == data.DORM_INITIAL_COPY
     student_initial_copy = data.STUDENT_INITIAL_COPY
     student_initial_copy['roommate'] = eng.character['dorm0room0student1']
-    student_initial_copy['room'] = eng.character['physical'].place['dorm0room0']
+    student_initial_copy['room'] = eng.character['physical'].place[
+        'dorm0room0']
     assert hand.character_copy('dorm0room0student0') == student_initial_copy
 
 

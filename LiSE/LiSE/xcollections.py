@@ -27,7 +27,6 @@ from astunparse import unparse, Unparser
 
 from .util import dedent_source
 
-
 if sys.version_info.minor < 6:
     ModuleNotFoundError = ImportError
 
@@ -140,7 +139,9 @@ class FunctionStore(Signal):
     """
     def __init__(self, filename):
         if not filename.endswith(".py"):
-            raise ValueError("FunctionStore can only work with pure Python source code with .py extension")
+            raise ValueError(
+                "FunctionStore can only work with pure Python source code with .py extension"
+            )
         super().__init__()
         self._filename = fullname = os.path.abspath(os.path.realpath(filename))
         path, filename = os.path.split(fullname)
@@ -325,7 +326,10 @@ class CharacterMapping(MutableMapping, Signal):
             return name in self.engine._graph_objs
         # hack to make initial load work
         if self._cache is None:
-            self._cache = [ch for ch, typ in self.engine.query.graphs_types() if typ == 'DiGraph']
+            self._cache = [
+                ch for ch, typ in self.engine.query.graphs_types()
+                if typ == 'DiGraph'
+            ]
         return name in self._cache
 
     def __len__(self):
@@ -346,11 +350,9 @@ class CharacterMapping(MutableMapping, Signal):
             cache[name] = Character(self.engine, name)
         ret = cache[name]
         if not isinstance(ret, Character):
-            raise TypeError(
-                """Tried to get a graph that isn't a Character.
+            raise TypeError("""Tried to get a graph that isn't a Character.
                 This should never happen. It probably indicates
-                a bug in allegedb."""
-            )
+                a bug in allegedb.""")
         return ret
 
     def __setitem__(self, name, value):
@@ -367,9 +369,9 @@ class CharacterMapping(MutableMapping, Signal):
             ch.stat.clear()
             ch.stat.update(value)
         else:
-            ch = self.engine._graph_objs[name] = Character(
-                self.engine, name, data=value
-            )
+            ch = self.engine._graph_objs[name] = Character(self.engine,
+                                                           name,
+                                                           data=value)
         self.send(self, key=name, val=ch)
 
     def __delitem__(self, name):

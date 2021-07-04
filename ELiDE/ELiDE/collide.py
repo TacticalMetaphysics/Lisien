@@ -1,7 +1,6 @@
 from math import floor, ceil
 from array import array
 
-
 # Copyright (c) Kivy Team and other contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -83,11 +82,11 @@ class Collide2DPoly(object):
                 multiple[i] = 0.
             else:
                 constant[i] = (points[i_x] - points[i_y] * points[j_x] /
-                                (points[j_y] - points[i_y]) +
-                                points[i_y] * points[i_x] /
-                                (points[j_y] - points[i_y]))
+                               (points[j_y] - points[i_y]) +
+                               points[i_y] * points[i_x] /
+                               (points[j_y] - points[i_y]))
                 multiple[i] = ((points[j_x] - points[i_x]) /
-                                (points[j_y] - points[i_y]))
+                               (points[j_y] - points[i_y]))
             j = i
         if cache:
             width = int(ceil(self.max_x) - min_x + 1.)
@@ -101,16 +100,16 @@ class Collide2DPoly(object):
                     for i in range(count):
                         i_y = i * 2 + 1
                         j_y = j * 2 + 1
-                        if (points[i_y] < y and points[j_y] >= y or
-                                        points[j_y] < y and points[i_y] >= y):
+                        if (points[i_y] < y and points[j_y] >= y
+                                or points[j_y] < y and points[i_y] >= y):
                             odd ^= y * multiple[i] + constant[i] < x
                         j = i
                     space[y * width + x] = odd
 
     def collide_point(self, x, y):
         points = self.points
-        if not points or not (self.min_x <= x <= self.max_x and
-                                              self.min_y <= y <= self.max_y):
+        if not points or not (self.min_x <= x <= self.max_x
+                              and self.min_y <= y <= self.max_y):
             return False
         if hasattr(self, 'space'):
             y -= floor(self.min_y)
@@ -124,8 +123,8 @@ class Collide2DPoly(object):
         for i in range(self.count):
             i_y = i * 2 + 1
             j_y = j * 2 + 1
-            if (points[i_y] < y and points[j_y] >= y or
-                            points[j_y] < y and points[i_y] >= y):
+            if (points[i_y] < y and points[j_y] >= y
+                    or points[j_y] < y and points[i_y] >= y):
                 odd ^= y * multiple[i] + constant[i] < x
             j = i
         return odd

@@ -109,17 +109,17 @@ class UserMapping(Mapping):
         nn = node.name
         avatar = ret.avatar
         if charn not in avatar or nn not in avatar[charn]:
-            raise KeyError("{} not used by {}".format(
-                self.node.name, k
-            ))
+            raise KeyError("{} not used by {}".format(self.node.name, k))
         return ret
+
 
 class NodeContentValues(ValuesView):
     def __iter__(self):
         node = self._mapping.node
         nodem = node.character.node
         try:
-            for name in node.engine._node_contents(node.character.name, node.name):
+            for name in node.engine._node_contents(node.character.name,
+                                                   node.name):
                 yield nodem[name]
         except KeyError:
             return
@@ -129,7 +129,7 @@ class NodeContentValues(ValuesView):
 
 
 class NodeContent(Mapping):
-    __slots__ = ('node',)
+    __slots__ = ('node', )
 
     def __init__(self, node):
         self.node = node
@@ -137,16 +137,17 @@ class NodeContent(Mapping):
     def __iter__(self):
         try:
             yield from self.node.engine._node_contents_cache.retrieve(
-                self.node.character.name, self.node.name, *self.node.engine._btt()
-            )
+                self.node.character.name, self.node.name,
+                *self.node.engine._btt())
         except KeyError:
             return
 
     def __len__(self):
         try:
-            return len(self.node.engine._node_contents_cache.retrieve(
-                self.node.character.name, self.node.name, *self.node.engine._btt()
-            ))
+            return len(
+                self.node.engine._node_contents_cache.retrieve(
+                    self.node.character.name, self.node.name,
+                    *self.node.engine._btt()))
         except KeyError:
             return 0
 
@@ -182,21 +183,15 @@ class Dests(Mapping):
 
     def __iter__(self):
         edges_cache, charname, name, btt = self._ecnb
-        yield from edges_cache.iter_successors(
-            charname, name, *btt()
-        )
+        yield from edges_cache.iter_successors(charname, name, *btt())
 
     def __len__(self):
         edges_cache, charname, name, btt = self._ecnb
-        return edges_cache.count_successors(
-            charname, name, *btt()
-        )
+        return edges_cache.count_successors(charname, name, *btt())
 
     def __contains__(self, item):
         edges_cache, charname, name, btt = self._ecnb
-        return edges_cache.has_successor(
-            charname, name, item, *btt()
-        )
+        return edges_cache.has_successor(charname, name, item, *btt())
 
     def __getitem__(self, item):
         portal, name = self._pn
@@ -223,21 +218,15 @@ class Origs(Mapping):
 
     def __iter__(self):
         edges_cache, charname, name, btt = self._ecnb
-        return edges_cache.iter_predecessors(
-            charname, name, *btt()
-        )
+        return edges_cache.iter_predecessors(charname, name, *btt())
 
     def __contains__(self, item):
         edges_cache, charname, name, btt = self._ecnb
-        return edges_cache.has_predecessor(
-            charname, name, item, *btt()
-        )
+        return edges_cache.has_predecessor(charname, name, item, *btt())
 
     def __len__(self):
         edges_cache, charname, name, btt = self._ecnb
-        return edges_cache.count_predecessors(
-            charname, name, *btt()
-        )
+        return edges_cache.count_predecessors(charname, name, *btt())
 
     def __getitem__(self, item):
         if item not in self:
@@ -268,7 +257,8 @@ class UserDescriptor:
             raise AmbiguousUserError("No users")
         try:
             next(it)
-            raise AmbiguousUserError("{} users. Use the ``users`` property".format(len(mapping)))
+            raise AmbiguousUserError(
+                "{} users. Use the ``users`` property".format(len(mapping)))
         except StopIteration:
             return mapping[k]
         except AmbiguousUserError:
@@ -288,7 +278,7 @@ class Node(graph.Node, rule.RuleFollower):
     This is truthy if it exists, falsy if it's been deleted.
 
     """
-    __slots__ = ('_real_rule_mapping',)
+    __slots__ = ('_real_rule_mapping', )
     character = getatt('graph')
     name = getatt('node')
     no_unwrap = True
@@ -299,29 +289,27 @@ class Node(graph.Node, rule.RuleFollower):
     def _get_rulebook_name(self):
         try:
             return self.engine._nodes_rulebooks_cache.retrieve(
-                self.character.name, self.name, *self.engine._btt()
-            )
+                self.character.name, self.name, *self.engine._btt())
         except KeyError:
             return self.character.name, self.name
 
     def _get_rulebook(self):
-        return rule.RuleBook(
-            self.engine,
-            self._get_rulebook_name()
-        )
+        return rule.RuleBook(self.engine, self._get_rulebook_name())
 
     def _set_rulebook_name(self, rulebook):
         character = self.character.name
         node = self.name
         cache = self.engine._nodes_rulebooks_cache
         try:
-            if rulebook == cache.retrieve(character, node, *self.engine._btt()):
+            if rulebook == cache.retrieve(character, node,
+                                          *self.engine._btt()):
                 return
         except KeyError:
             pass
         branch, turn, tick = self.engine._nbtt()
         cache.store(character, node, branch, turn, tick, rulebook)
-        self.engine.query.set_node_rulebook(character, node, branch, turn, tick, rulebook)
+        self.engine.query.set_node_rulebook(character, node, branch, turn,
+                                            tick, rulebook)
 
     successor = adj = edge = getatt('portal')
     predecessor = pred = getatt('preportal')
@@ -388,9 +376,8 @@ class Node(graph.Node, rule.RuleFollower):
     def _plain_dest_name(self, dest):
         if isinstance(dest, Node):
             if dest.character != self.character:
-                raise ValueError(
-                    "{} not in {}".format(dest.name, self.character.name)
-                )
+                raise ValueError("{} not in {}".format(dest.name,
+                                                       self.character.name))
             return dest.name
         else:
             if dest in self.character.node:
@@ -405,9 +392,8 @@ class Node(graph.Node, rule.RuleFollower):
 
         """
 
-        return shortest_path_length(
-            self.character, self.name, self._plain_dest_name(dest), weight
-        )
+        return shortest_path_length(self.character, self.name,
+                                    self._plain_dest_name(dest), weight)
 
     def shortest_path(self, dest, weight=None):
         """Return a list of node names leading from me to ``dest``.
@@ -416,9 +402,8 @@ class Node(graph.Node, rule.RuleFollower):
         or the name of one.
 
         """
-        return shortest_path(
-            self.character, self.name, self._plain_dest_name(dest), weight
-        )
+        return shortest_path(self.character, self.name,
+                             self._plain_dest_name(dest), weight)
 
     def path_exists(self, dest, weight=None):
         """Return whether there is a path leading from me to ``dest``.
@@ -460,21 +445,18 @@ class Node(graph.Node, rule.RuleFollower):
         for user in list(self.users.values()):
             user.remove_avatar(self.character.name, self.name)
         branch, turn, tick = self.engine._nbtt()
-        self.engine._nodes_cache.store(
-            self.character.name, self.name,
-            branch, turn, tick, False
-        )
-        self.engine.query.exist_node(
-            self.character.name, self.name,
-            branch, turn, tick, False
-        )
+        self.engine._nodes_cache.store(self.character.name, self.name, branch,
+                                       turn, tick, False)
+        self.engine.query.exist_node(self.character.name, self.name, branch,
+                                     turn, tick, False)
         self.character.node.send(self.character.node, key=self.name, val=None)
 
     def one_way_portal(self, other, **stats):
         """Connect a portal from here to another node, and return it."""
-        return self.character.new_portal(
-            self, other, symmetrical=False, **stats
-        )
+        return self.character.new_portal(self,
+                                         other,
+                                         symmetrical=False,
+                                         **stats)
 
     def one_way(self, other, **stats):
         """Connect a portal from here to another node, and return it."""
@@ -482,9 +464,10 @@ class Node(graph.Node, rule.RuleFollower):
 
     def two_way_portal(self, other, **stats):
         """Connect these nodes with a two-way portal and return it."""
-        return self.character.new_portal(
-            self, other, symmetrical=True, **stats
-        )
+        return self.character.new_portal(self,
+                                         other,
+                                         symmetrical=True,
+                                         **stats)
 
     def two_way(self, other, **stats):
         """Connect these nodes with a two-way portal and return it."""
@@ -492,9 +475,7 @@ class Node(graph.Node, rule.RuleFollower):
 
     def new_thing(self, name, **stats):
         """Create a new thing, located here, and return it."""
-        return self.character.new_thing(
-            name, self.name, **stats
-        )
+        return self.character.new_thing(name, self.name, **stats)
 
     def historical(self, stat):
         """Return a reference to the values that a stat has had in the past.
@@ -504,10 +485,7 @@ class Node(graph.Node, rule.RuleFollower):
         ``self.engine.ticks_when``.
 
         """
-        return StatusAlias(
-            entity=self,
-            stat=stat
-        )
+        return StatusAlias(entity=self, stat=stat)
 
     def __bool__(self):
         return self.name in self.character.node

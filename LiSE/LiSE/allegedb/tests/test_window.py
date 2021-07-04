@@ -106,15 +106,19 @@ def test_empty():
 
 def test_slice(windd):
     assert list(windd[:50]) == [windd[i] for i in range(50)]
-    assert list(reversed(windd[:50])) == [windd[i] for i in reversed(range(50))]
+    assert list(reversed(
+        windd[:50])) == [windd[i] for i in reversed(range(50))]
     assert list(windd[:50:2]) == [windd[i] for i in range(0, 50, 2)]
     assert list(windd[50:]) == [windd[i] for i in range(50, 100)]
-    assert list(reversed(windd[50:])) == [windd[i] for i in reversed(range(50, 100))]
+    assert list(reversed(
+        windd[50:])) == [windd[i] for i in reversed(range(50, 100))]
     assert list(windd[50::2]) == [windd[i] for i in range(50, 100, 2)]
     assert list(windd[25:50]) == [windd[i] for i in range(25, 50)]
-    assert list(reversed(windd[25:50])) == [windd[i] for i in reversed(range(25, 50))]
+    assert list(reversed(
+        windd[25:50])) == [windd[i] for i in reversed(range(25, 50))]
     assert list(windd[50:25]) == [windd[i] for i in range(50, 25, -1)]
-    assert list(reversed(windd[50:25])) == [windd[i] for i in reversed(range(50, 25, -1))]
+    assert list(reversed(
+        windd[50:25])) == [windd[i] for i in reversed(range(50, 25, -1))]
     assert list(windd[25:50:2]) == [windd[i] for i in range(25, 50, 2)]
     assert list(windd[50:25:-2]) == [windd[i] for i in range(50, 25, -2)]
 
@@ -160,7 +164,7 @@ def test_set():
     assert 5 not in wd
     with ORM('sqlite:///:memory:') as orm:
         g = orm.new_digraph('g')
-        g.node[5] = {'ham': {'spam':'beans'}}
+        g.node[5] = {'ham': {'spam': 'beans'}}
         wd[5] = g.node[5]['ham']
         assert wd[5] == {'spam': 'beans'}
         assert wd[5] == g.node[5]['ham']

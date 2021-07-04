@@ -18,11 +18,7 @@ top of these.
 """
 from kivy.clock import Clock
 
-from kivy.properties import (
-    AliasProperty,
-    ObjectProperty,
-    NumericProperty
-)
+from kivy.properties import (AliasProperty, ObjectProperty, NumericProperty)
 from .pawnspot import GraphPawnSpot
 from ..util import trigger
 
@@ -60,10 +56,11 @@ class GraphSpot(GraphPawnSpot):
         if self.board is None:
             Clock.schedule_once(self._upd_pos, 0)
             return
-        self.pos = (
-            int(self.proxy.get('_x', self.default_pos[0]) * self.board.width),
-            int(self.proxy.get('_y', self.default_pos[1]) * self.board.height)
-        )
+        self.pos = (int(
+            self.proxy.get('_x', self.default_pos[0]) * self.board.width),
+                    int(
+                        self.proxy.get('_y', self.default_pos[1]) *
+                        self.board.height))
 
     def finalize(self, initial=True):
         if initial:
@@ -79,6 +76,7 @@ class GraphSpot(GraphPawnSpot):
         """
         self.proxy['_x'] = self.x / self.board.width
         self.proxy['_y'] = self.y / self.board.height
+
     _trigger_push_pos = trigger(push_pos)
 
     def on_touch_up(self, touch):

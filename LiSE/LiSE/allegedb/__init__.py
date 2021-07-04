@@ -22,26 +22,17 @@ import networkx as nx
 
 from .window import update_window, update_backward_window
 from .cache import HistoryError
-from .graph import (
-    DiGraph,
-    Node,
-    Edge,
-    GraphsMapping
-)
+from .graph import (DiGraph, Node, Edge, GraphsMapping)
 from .query import QueryEngine, TimeError
 from .window import HistoryError
 
 
-def loaded_keep_test(test_turn, test_tick,
-                     past_turn, past_tick,
-                     future_turn, future_tick):
-    return (
-                   past_turn < test_turn or (
-                   past_turn == test_turn and past_tick <= test_tick
-           )) and (
-                   future_turn > test_turn or (
-                   future_turn == test_turn and future_tick >= test_tick
-           ))
+def loaded_keep_test(test_turn, test_tick, past_turn, past_tick, future_turn,
+                     future_tick):
+    return (past_turn < test_turn or
+            (past_turn == test_turn and past_tick <= test_tick)) and (
+                future_turn > test_turn or
+                (future_turn == test_turn and future_tick >= test_tick))
 
 
 class GraphNameError(KeyError):
@@ -173,7 +164,8 @@ class TimeSignalDescriptor:
             if branch_now != branch_then:
                 raise TimeError("Can't change branches in a forward context")
             if turn_now < turn_then:
-                raise TimeError("Can't time travel backward in a forward context")
+                raise TimeError(
+                    "Can't time travel backward in a forward context")
             if turn_now > turn_then + 1:
                 raise TimeError("Can't skip turns in a forward context")
         # make sure I'll end up within the revision range of the
@@ -181,37 +173,29 @@ class TimeSignalDescriptor:
         branches = e._branches
 
         if branch_now in branches:
-            tick_now = e._turn_end_plan.setdefault(
-                (branch_now, turn_now),
-                tick_then
-            )
-            parent, turn_start, tick_start, turn_end, tick_end = branches[branch_now]
+            tick_now = e._turn_end_plan.setdefault((branch_now, turn_now),
+                                                   tick_then)
+            parent, turn_start, tick_start, turn_end, tick_end = branches[
+                branch_now]
             if turn_now < turn_start:
-                raise ValueError(
-                    "The turn number {} "
-                    "occurs before the start of "
-                    "the branch {}".format(turn_now, branch_now)
-                )
+                raise ValueError("The turn number {} "
+                                 "occurs before the start of "
+                                 "the branch {}".format(turn_now, branch_now))
             if turn_now == turn_start and tick_now < tick_start:
-                raise ValueError(
-                    "The tick number {}"
-                    "on turn {} "
-                    "occurs before the start of "
-                    "the branch {}".format(
-                        tick_now, turn_now, branch_now
-                    )
-                )
-            if not e._planning and (
-                turn_now > turn_end or (
-                    turn_now == turn_end and tick_now > tick_end
-                )
-            ):
-                branches[branch_now] = parent, turn_start, tick_start, turn_now, tick_now
+                raise ValueError("The tick number {}"
+                                 "on turn {} "
+                                 "occurs before the start of "
+                                 "the branch {}".format(
+                                     tick_now, turn_now, branch_now))
+            if not e._planning and (turn_now > turn_end or
+                                    (turn_now == turn_end
+                                     and tick_now > tick_end)):
+                branches[
+                    branch_now] = parent, turn_start, tick_start, turn_now, tick_now
         else:
             tick_now = tick_then
-            branches[branch_now] = (
-                branch_then, turn_now, tick_now, turn_now, tick_now
-            )
+            branches[branch_now] = (branch_then, turn_now, tick_now, turn_now,
+                                    tick_now)
             e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
         e._obranch, e._oturn = val
 
@@ -219,15 +203,13 @@ class TimeSignalDescriptor:
             if tick_now > e._turn_end[val]:
                 e._turn_end[val] = tick_now
         e._otick = e._turn_end_plan[val] = tick_now
-        sig.send(
-            e,
-            branch_then=branch_then,
-            turn_then=turn_then,
-            tick_then=tick_then,
-            branch_now=branch_now,
-            turn_now=turn_now,
-            tick_now=tick_now
-        )
+        sig.send(e,
+                 branch_then=branch_then,
+                 turn_then=turn_then,
+                 tick_then=tick_then,
+                 branch_now=branch_now,
+                 turn_now=turn_now,
+                 tick_now=tick_now)
 
 
 def setgraphval(delta, graph, key, val):
@@ -242,12 +224,13 @@ def setnode(delta, graph, node, exists):
 
 def setnodeval(delta, graph, node, key, value):
     """Change a delta to say that a node stat was set to a certain value"""
-    if (
-        graph in delta and 'nodes' in delta[graph] and
-        node in delta[graph]['nodes'] and not delta[graph]['nodes'][node]
-    ):
+    if (graph in delta and 'nodes' in delta[graph]
+            and node in delta[graph]['nodes']
+            and not delta[graph]['nodes'][node]):
         return
-    delta.setdefault(graph, {}).setdefault('node_val', {}).setdefault(node, {})[key] = value
+    delta.setdefault(graph, {}).setdefault('node_val',
+                                           {}).setdefault(node,
+                                                          {})[key] = value
 
 
 def setedge(delta, is_multigraph, graph, orig, dest, idx, exists):
@@ -263,22 +246,20 @@ def setedge(delta, is_multigraph, graph, orig, dest, idx, exists):
 def setedgeval(delta, is_multigraph, graph, orig, dest, idx, key, value):
     """Change a delta to say that an edge stat was set to a certain value"""
     if is_multigraph(graph):
-        if (
-            graph in delta and 'edges' in delta[graph] and
-            orig in delta[graph]['edges'] and dest in delta[graph]['edges'][orig]
-            and idx in delta[graph]['edges'][orig][dest]
-            and not delta[graph]['edges'][orig][dest][idx]
-        ):
+        if (graph in delta and 'edges' in delta[graph]
+                and orig in delta[graph]['edges']
+                and dest in delta[graph]['edges'][orig]
+                and idx in delta[graph]['edges'][orig][dest]
+                and not delta[graph]['edges'][orig][dest][idx]):
             return
         delta.setdefault(graph, {}).setdefault('edge_val', {})\
             .setdefault(orig, {}).setdefault(dest, {})\
             .setdefault(idx, {})[key] = value
     else:
-        if (
-                                    graph in delta and 'edges' in delta[graph] and
-                                orig in delta[graph]['edges'] and dest in delta[graph]['edges'][orig]
-                and not delta[graph]['edges'][orig][dest]
-        ):
+        if (graph in delta and 'edges' in delta[graph]
+                and orig in delta[graph]['edges']
+                and dest in delta[graph]['edges'][orig]
+                and not delta[graph]['edges'][orig][dest]):
             return
         delta.setdefault(graph, {}).setdefault('edge_val', {})\
             .setdefault(orig, {}).setdefault(dest, {})[key] = value
@@ -302,6 +283,7 @@ class ORM(object):
         qpac = self.query.pack
 
         if isinstance(qpac(' '), str):
+
             def pack(x):
                 return qpac(x).encode()
         else:
@@ -336,6 +318,7 @@ class ORM(object):
         qpac = self.query.pack
 
         if isinstance(qpac(' '), str):
+
             def pack(x):
                 return qpac(x).encode()
         else:
@@ -384,13 +367,15 @@ class ORM(object):
         if key in edge_objs:
             return edge_objs[key]
         if not edge_exists(graphn, orig, dest, idx):
-            raise KeyError("No such edge: {}->{}[{}] in {}".format(orig, dest, idx, graphn))
+            raise KeyError("No such edge: {}->{}[{}] in {}".format(
+                orig, dest, idx, graphn))
         ret = make_edge(graph, orig, dest, idx)
         edge_objs[key] = ret
         return ret
 
     def plan(self):
         return PlanningContext(self)
+
     plan.__doc__ = PlanningContext.__doc__
 
     @contextmanager
@@ -444,7 +429,8 @@ class ORM(object):
         delta = {}
         graph_objs = self._graph_objs
         if turn_to < turn_from:
-            updater = partial(update_backward_window, turn_from, tick_from, turn_to, tick_to)
+            updater = partial(update_backward_window, turn_from, tick_from,
+                              turn_to, tick_to)
             gvbranches = self._graph_val_cache.presettings
             nbranches = self._nodes_cache.presettings
             nvbranches = self._node_val_cache.presettings
@@ -452,7 +438,8 @@ class ORM(object):
             evbranches = self._edge_val_cache.presettings
             tick_to += 1
         else:
-            updater = partial(update_window, turn_from, tick_from, turn_to, tick_to)
+            updater = partial(update_window, turn_from, tick_from, turn_to,
+                              tick_to)
             gvbranches = self._graph_val_cache.settings
             nbranches = self._nodes_cache.settings
             nvbranches = self._node_val_cache.settings
@@ -469,14 +456,24 @@ class ORM(object):
             updater(partial(setnodeval, delta), nvbranches[branch])
 
         if branch in ebranches:
-            updater(partial(setedge, delta, lambda g: graph_objs[g].is_multigraph()), ebranches[branch])
+            updater(
+                partial(setedge, delta,
+                        lambda g: graph_objs[g].is_multigraph()),
+                ebranches[branch])
 
         if branch in evbranches:
-            updater(partial(setedgeval, delta, lambda g: graph_objs[g].is_multigraph()), evbranches[branch])
+            updater(
+                partial(setedgeval, delta,
+                        lambda g: graph_objs[g].is_multigraph()),
+                evbranches[branch])
 
         return delta
 
-    def get_turn_delta(self, branch=None, turn=None, tick_from=0, tick_to=None):
+    def get_turn_delta(self,
+                       branch=None,
+                       turn=None,
+                       tick_from=0,
+                       tick_to=None):
         """Get a dictionary describing changes made on a given turn.
 
         If ``tick_to`` is not supplied, report all changes after ``tick_from``
@@ -512,22 +509,25 @@ class ORM(object):
             evbranches = self._edge_val_cache.presettings
 
         if branch in gvbranches and turn in gvbranches[branch]:
-            for graph, key, value in gvbranches[branch][turn][tick_from:tick_to]:
+            for graph, key, value in gvbranches[branch][turn][
+                    tick_from:tick_to]:
                 if graph in delta:
                     delta[graph][key] = value
                 else:
                     delta[graph] = {key: value}
 
         if branch in nbranches and turn in nbranches[branch]:
-            for graph, node, exists in nbranches[branch][turn][tick_from:tick_to]:
-                delta.setdefault(graph, {}).setdefault('nodes', {})[node] = bool(exists)
+            for graph, node, exists in nbranches[branch][turn][
+                    tick_from:tick_to]:
+                delta.setdefault(graph, {}).setdefault('nodes',
+                                                       {})[node] = bool(exists)
 
         if branch in nvbranches and turn in nvbranches[branch]:
-            for graph, node, key, value in nvbranches[branch][turn][tick_from:tick_to]:
-                if (
-                    graph in delta and 'nodes' in delta[graph] and
-                    node in delta[graph]['nodes'] and not delta[graph]['nodes'][node]
-                ):
+            for graph, node, key, value in nvbranches[branch][turn][
+                    tick_from:tick_to]:
+                if (graph in delta and 'nodes' in delta[graph]
+                        and node in delta[graph]['nodes']
+                        and not delta[graph]['nodes'][node]):
                     continue
                 nodevd = delta.setdefault(graph, {}).setdefault('node_val', {})
                 if node in nodevd:
@@ -537,29 +537,29 @@ class ORM(object):
 
         graph_objs = self._graph_objs
         if branch in ebranches and turn in ebranches[branch]:
-            for graph, orig, dest, idx, exists in ebranches[branch][turn][tick_from:tick_to]:
+            for graph, orig, dest, idx, exists in ebranches[branch][turn][
+                    tick_from:tick_to]:
                 if graph_objs[graph].is_multigraph():
-                    if (
-                        graph in delta and 'edges' in delta[graph] and
-                        orig in delta[graph]['edges'] and dest in delta[graph]['edges'][orig]
-                        and idx in delta[graph]['edges'][orig][dest]
-                        and not delta[graph]['edges'][orig][dest][idx]
-                    ):
+                    if (graph in delta and 'edges' in delta[graph]
+                            and orig in delta[graph]['edges']
+                            and dest in delta[graph]['edges'][orig]
+                            and idx in delta[graph]['edges'][orig][dest]
+                            and not delta[graph]['edges'][orig][dest][idx]):
                         continue
                     delta.setdefault(graph, {}).setdefault('edges', {})\
                         .setdefault(orig, {}).setdefault(dest, {})[idx] = bool(exists)
                 else:
-                    if (
-                        graph in delta and 'edges' in delta[graph] and
-                        orig in delta[graph]['edges'] and dest in delta[graph]['edges'][orig]
-                        and not delta[graph]['edges'][orig][dest]
-                    ):
+                    if (graph in delta and 'edges' in delta[graph]
+                            and orig in delta[graph]['edges']
+                            and dest in delta[graph]['edges'][orig]
+                            and not delta[graph]['edges'][orig][dest]):
                         continue
                     delta.setdefault(graph, {}).setdefault('edges', {})\
                         .setdefault(orig, {})[dest] = bool(exists)
 
         if branch in evbranches and turn in evbranches[branch]:
-            for graph, orig, dest, idx, key, value in evbranches[branch][turn][tick_from:tick_to]:
+            for graph, orig, dest, idx, key, value in evbranches[branch][turn][
+                    tick_from:tick_to]:
                 edgevd = delta.setdefault(graph, {}).setdefault('edge_val', {})\
                     .setdefault(orig, {}).setdefault(dest, {})
                 if graph_objs[graph].is_multigraph():
@@ -607,11 +607,10 @@ class ORM(object):
         self._node_val_cache.name = 'node_val_cache'
         self._edge_val_cache = Cache(self)
         self._edge_val_cache.name = 'edge_val_cache'
-        self._caches = [self._graph_val_cache,
-                        self._nodes_cache,
-                        self._edges_cache,
-                        self._node_val_cache,
-                        self._edge_val_cache]
+        self._caches = [
+            self._graph_val_cache, self._nodes_cache, self._edges_cache,
+            self._node_val_cache, self._edge_val_cache
+        ]
 
     def _load_graphs(self):
         self.graph = GraphsMapping(self)
@@ -620,12 +619,7 @@ class ORM(object):
                 raise NotImplementedError("Only DiGraph for now")
             self._graph_objs[graph] = DiGraph(self, graph)
 
-    def __init__(
-            self,
-            dbstring,
-            alchemy=True,
-            connect_args=None
-    ):
+    def __init__(self, dbstring, alchemy=True, connect_args=None):
         """Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
         either case, begin a transaction.
 
@@ -648,10 +642,9 @@ class ORM(object):
         if hasattr(self, '_post_init_cache_hook'):
             self._post_init_cache_hook()
         if not hasattr(self, 'query'):
-            self.query = self.query_engine_cls(
-                dbstring, connect_args, alchemy,
-                getattr(self, 'pack', None), getattr(self, 'unpack', None)
-            )
+            self.query = self.query_engine_cls(dbstring, connect_args, alchemy,
+                                               getattr(self, 'pack', None),
+                                               getattr(self, 'unpack', None))
         self._edge_val_cache.setdb = self.query.edge_val_set
         self._edge_val_cache.deldb = self.query.edge_val_del_time
         self._node_val_cache.setdb = self.query.node_val_set
@@ -666,8 +659,10 @@ class ORM(object):
         self._obranch = self.query.get_branch()
         self._oturn = self.query.get_turn()
         self._otick = self.query.get_tick()
-        for (branch, parent, parent_turn, parent_tick, end_turn, end_tick) in self.query.all_branches():
-            self._branches[branch] = (parent, parent_turn, parent_tick, end_turn, end_tick)
+        for (branch, parent, parent_turn, parent_tick, end_turn,
+             end_tick) in self.query.all_branches():
+            self._branches[branch] = (parent, parent_turn, parent_tick,
+                                      end_turn, end_tick)
             self._upd_branch_parentage(parent, branch)
         for (branch, turn, end_tick, plan_end_tick) in self.query.turns_dump():
             self._turn_end[branch, turn] = end_tick
@@ -675,22 +670,15 @@ class ORM(object):
         if 'trunk' not in self._branches:
             self._branches['trunk'] = None, 0, 0, 0, 0
         self._new_keyframes = []
-        self._nbtt_stuff = (
-            self._btt, self._turn_end_plan, self._turn_end,
-            self._plan_ticks, self._plan_ticks_uncommitted,
-            self._time_plan, self._branches
-        )
-        self._node_exists_stuff = (
-            self._nodes_cache.retrieve, self._btt
-        )
-        self._exist_node_stuff = (
-            self._nbtt, self.query.exist_node, self._nodes_cache.store
-        )
-        self._edge_exists_stuff = (
-            self._edges_cache.retrieve, self._btt
-        )
-        self._exist_edge_stuff = (
-            self._nbtt, self.query.exist_edge, self._edges_cache.store)
+        self._nbtt_stuff = (self._btt, self._turn_end_plan, self._turn_end,
+                            self._plan_ticks, self._plan_ticks_uncommitted,
+                            self._time_plan, self._branches)
+        self._node_exists_stuff = (self._nodes_cache.retrieve, self._btt)
+        self._exist_node_stuff = (self._nbtt, self.query.exist_node,
+                                  self._nodes_cache.store)
+        self._edge_exists_stuff = (self._edges_cache.retrieve, self._btt)
+        self._exist_edge_stuff = (self._nbtt, self.query.exist_edge,
+                                  self._edges_cache.store)
         self._load_graphs()
         assert hasattr(self, 'graph')
         self._keyframes_list = []
@@ -738,30 +726,31 @@ class ORM(object):
             parent, _, _, _, _ = self._branches[parent]
             self._branch_parents[child].add(parent)
 
-    def _snap_keyframe(self, graph, branch, turn, tick, nodes, edges, graph_val):
-        nodes_keyframes_branch_d = self._nodes_cache.keyframe[
-            graph,][branch]
+    def _snap_keyframe(self, graph, branch, turn, tick, nodes, edges,
+                       graph_val):
+        nodes_keyframes_branch_d = self._nodes_cache.keyframe[graph, ][branch]
         if turn in nodes_keyframes_branch_d:
             nodes_keyframes_branch_d[turn][tick] = {
-                node: True for node in nodes}
+                node: True
+                for node in nodes
+            }
         else:
             nodes_keyframes_branch_d[turn] = {
-                tick: {node: True for node in nodes}}
+                tick: {node: True
+                       for node in nodes}
+            }
         nvck = self._node_val_cache.keyframe
         for node, vals in nodes.items():
             node_val_keyframe_branch_d = nvck[graph, node][branch]
             if turn in node_val_keyframe_branch_d:
                 node_val_keyframe_branch_d[turn][tick] = vals
             else:
-                node_val_keyframe_branch_d[turn] = {
-                    tick: vals
-                }
+                node_val_keyframe_branch_d[turn] = {tick: vals}
         eck = self._edges_cache.keyframe
         evck = self._edge_val_cache.keyframe
         for orig, dests in edges.items():
             for dest, vals in dests.items():
-                edge_val_keyframe_branch_d = evck[
-                    graph, orig, dest, 0][branch]
+                edge_val_keyframe_branch_d = evck[graph, orig, dest, 0][branch]
                 edges_keyframe_branch_d = eck[graph, orig, dest][branch]
                 if turn in edges_keyframe_branch_d:
                     edges_keyframe_branch_d[turn][tick] = {}
@@ -774,7 +763,7 @@ class ORM(object):
                     edge_val_keyframe_branch_d[turn][tick] = vals
                 else:
                     edge_val_keyframe_branch_d[turn] = {tick: vals}
-        gvkb = self._graph_val_cache.keyframe[graph,][branch]
+        gvkb = self._graph_val_cache.keyframe[graph, ][branch]
         if turn in gvkb:
             gvkb[turn][tick] = graph_val
         else:
@@ -796,12 +785,18 @@ class ORM(object):
             kfl.append((graphn, branch, turn, tick))
             kfs.add((branch, turn, tick))
             if branch not in kfd:
-                kfd[branch] = {turn: {tick, }}
+                kfd[branch] = {
+                    turn: {
+                        tick,
+                    }
+                }
             elif turn not in kfd[branch]:
-                kfd[branch][turn] = {tick, }
+                kfd[branch][turn] = {
+                    tick,
+                }
             else:
                 kfd[branch][turn].add(tick)
-    
+
     def _load_at(self, branch, turn, tick):
         snap_keyframe = self._snap_keyframe
         latest_past_keyframe = None
@@ -810,10 +805,10 @@ class ORM(object):
         branch_parents = self._branch_parents
         for (branch, turn, tick) in \
                     self._keyframes_times:
-                # Figure out the latest keyframe that is earlier than the present moment,
-                # and the earliest keyframe that is later than the present moment,
-                # for each graph.
-                # Can I avoid iterating over the entire keyframes table, somehow?
+            # Figure out the latest keyframe that is earlier than the present moment,
+            # and the earliest keyframe that is later than the present moment,
+            # for each graph.
+            # Can I avoid iterating over the entire keyframes table, somehow?
             if branch == branch_now:
                 if turn < turn_now:
                     if latest_past_keyframe:
@@ -853,7 +848,8 @@ class ORM(object):
                 if latest_past_keyframe:
                     late_branch, late_turn, late_tick = latest_past_keyframe
                     if branch == late_branch:
-                        if turn > late_turn or (turn == late_turn and tick > late_tick):
+                        if turn > late_turn or (turn == late_turn
+                                                and tick > late_tick):
                             latest_past_keyframe = (branch, turn, tick)
                     elif late_branch in branch_parents[branch]:
                         latest_past_keyframe = (branch, turn, tick)
@@ -869,9 +865,7 @@ class ORM(object):
             kfb, kfr, kft = earliest_future_keyframe
             if kfb in loaded:
                 early_turn, early_tick, late_turn, late_tick = loaded[kfb]
-                if kfr > late_turn or (
-                    kfr == late_turn and kft > late_tick
-                ):
+                if kfr > late_turn or (kfr == late_turn and kft > late_tick):
                     loaded[kfb] = early_turn, early_tick, kfr, kft
             elif kfb == branch_now:
                 if kfr > turn_now or (kfr == turn_now and kft > tick_now):
@@ -882,9 +876,8 @@ class ORM(object):
             kfb, kfr, kft = latest_past_keyframe
             if kfb in loaded:
                 early_turn, early_tick, late_turn, late_tick = loaded[kfb]
-                if kfr < early_turn or (
-                    kfr == early_turn and kft < early_tick
-                ):
+                if kfr < early_turn or (kfr == early_turn
+                                        and kft < early_tick):
                     loaded[kfb] = kfr, kft, late_turn, late_tick
             elif kfb == branch_now:
                 if kfr < turn_now or (kfr == turn_now and kft < tick_now):
@@ -893,13 +886,11 @@ class ORM(object):
                 loaded[kfb] = (kfr, kft, kfr, kft)
         if branch_now in loaded:
             early_turn, early_tick, late_turn, late_tick = loaded[branch_now]
-            if turn_now < early_turn or (
-                turn_now == early_turn and tick_now < early_tick
-            ):
+            if turn_now < early_turn or (turn_now == early_turn
+                                         and tick_now < early_tick):
                 early_turn, early_tick = turn_now, tick_now
-            elif turn_now > late_turn or (
-                turn_now == late_turn and tick_now > late_tick
-            ):
+            elif turn_now > late_turn or (turn_now == late_turn
+                                          and tick_now > late_tick):
                 late_turn, late_tick = turn_now, tick_now
             loaded[branch_now] = early_turn, early_tick, late_turn, late_tick
         else:
@@ -917,19 +908,26 @@ class ORM(object):
         get_keyframe = self.query.get_keyframe
         iter_parent_btt = self._iter_parent_btt
         if latest_past_keyframe is None:  # happens in very short games
+
             def updload(branch, turn, tick):
                 (early_turn, early_tick, late_turn, late_tick) = loaded[branch]
-                if turn < early_turn or (turn == early_turn and tick < early_tick):
+                if turn < early_turn or (turn == early_turn
+                                         and tick < early_tick):
                     (early_turn, early_tick) = (turn, tick)
-                if turn > late_turn or (turn == late_turn and tick > late_tick):
+                if turn > late_turn or (turn == late_turn
+                                        and tick > late_tick):
                     (late_turn, late_tick) = (turn, tick)
                 loaded[branch] = (early_turn, early_tick, late_turn, late_tick)
-            for (graph, node, branch, turn, tick, ex) in self.query.nodes_dump():
+
+            for (graph, node, branch, turn, tick,
+                 ex) in self.query.nodes_dump():
                 updload(branch, turn, tick)
                 noderows.append((graph, node, branch, turn, tick, ex or None))
-            for (graph, orig, dest, idx, branch, turn, tick, ex) in self.query.edges_dump():
+            for (graph, orig, dest, idx, branch, turn, tick,
+                 ex) in self.query.edges_dump():
                 updload(branch, turn, tick)
-                edgerows.append((graph, orig, dest, idx, branch, turn, tick, ex or None))
+                edgerows.append((graph, orig, dest, idx, branch, turn, tick, ex
+                                 or None))
             for row in self.query.graph_val_dump():
                 updload(*row[2:5])
                 graphvalrows.append(row)
@@ -951,26 +949,24 @@ class ORM(object):
         past_branch, past_turn, past_tick = latest_past_keyframe
         keyframed = {}
         for graph in self.graph:
-            stuff = keyframed[graph] = get_keyframe(
-                graph, past_branch, past_turn, past_tick)
+            stuff = keyframed[graph] = get_keyframe(graph, past_branch,
+                                                    past_turn, past_tick)
             if stuff is None:
                 continue
             nodes, edges, graph_val = stuff
-            snap_keyframe(graph, past_branch, past_turn, past_tick, nodes, edges, graph_val)
+            snap_keyframe(graph, past_branch, past_turn, past_tick, nodes,
+                          edges, graph_val)
             if earliest_future_keyframe is None:
                 start_turn, start_tick, end_turn, end_tick = loaded.get(
-                    branch, (turn_now, tick_now, turn_now, tick_now)
-                )
-                if past_turn < start_turn or (
-                    past_turn == start_turn and past_tick < start_tick
-                ):
+                    branch, (turn_now, tick_now, turn_now, tick_now))
+                if past_turn < start_turn or (past_turn == start_turn
+                                              and past_tick < start_tick):
                     (start_turn, start_tick) = (past_turn, past_tick)
-                for (graph, node, branch, turn, tick, ex) in load_nodes(
-                        graph, past_branch, past_turn, past_tick
-                ):
-                    noderows.append((
-                        graph, node, branch, turn, tick, ex or None
-                    ))
+                for (graph, node, branch, turn, tick,
+                     ex) in load_nodes(graph, past_branch, past_turn,
+                                       past_tick):
+                    noderows.append((graph, node, branch, turn, tick, ex
+                                     or None))
                     if turn > end_turn:
                         (end_turn, end_tick) = (turn, tick)
                     elif turn == end_turn and tick > end_tick:
@@ -979,12 +975,12 @@ class ORM(object):
                         (start_turn, start_tick) = (turn, tick)
                     elif turn == start_turn and tick < start_tick:
                         start_tick = tick
-                for (graph, orig, dest, idx, branch, turn, tick, ex) in load_edges(
-                        graph, past_branch, past_turn, past_tick
-                ):
-                    edgerows.append((
-                        graph, orig, dest, idx, branch, turn, tick, ex or None
-                    ))
+                for (graph, orig, dest, idx, branch, turn, tick,
+                     ex) in load_edges(graph, past_branch, past_turn,
+                                       past_tick):
+                    edgerows.append(
+                        (graph, orig, dest, idx, branch, turn, tick, ex
+                         or None))
                     if turn > end_turn:
                         (end_turn, end_tick) = (turn, tick)
                     elif turn == end_turn and tick > end_tick:
@@ -993,9 +989,8 @@ class ORM(object):
                         (start_turn, start_tick) = (turn, tick)
                     elif turn == start_turn and tick < start_tick:
                         start_tick = tick
-                for row in load_graph_val(
-                        graph, past_branch, past_turn, past_tick
-                ):
+                for row in load_graph_val(graph, past_branch, past_turn,
+                                          past_tick):
                     graphvalrows.append(row)
                     turn = row[3]
                     tick = row[4]
@@ -1007,9 +1002,8 @@ class ORM(object):
                         (start_turn, start_tick) = (turn, tick)
                     elif turn == start_turn and tick < start_tick:
                         start_tick = tick
-                for row in load_node_val(
-                        graph, past_branch, past_turn, past_tick
-                ):
+                for row in load_node_val(graph, past_branch, past_turn,
+                                         past_tick):
                     nodevalrows.append(row)
                     turn = row[4]
                     tick = row[5]
@@ -1021,9 +1015,8 @@ class ORM(object):
                         (start_turn, start_tick) = (turn, tick)
                     elif turn == start_turn and tick < start_tick:
                         start_tick = tick
-                for row in load_edge_val(
-                        graph, past_branch, past_turn, past_tick
-                ):
+                for row in load_edge_val(graph, past_branch, past_turn,
+                                         past_tick):
                     edgevalrows.append(row)
                     turn = row[6]
                     tick = row[7]
@@ -1036,74 +1029,66 @@ class ORM(object):
                     elif turn == start_turn and tick < start_tick:
                         start_tick = tick
                 (start_turn0, start_tick0, end_turn0, end_tick0) = loaded.get(
-                    branch, (turn_now, tick_now, turn_now, tick_now)
-                )
-                if start_turn < start_turn0 or (
-                    start_turn == start_turn0 and start_tick < start_tick0
-                ):
+                    branch, (turn_now, tick_now, turn_now, tick_now))
+                if start_turn < start_turn0 or (start_turn == start_turn0
+                                                and start_tick < start_tick0):
                     (start_turn1, start_tick1) = (start_turn, start_tick)
                 else:
                     (start_turn1, start_tick1) = (start_turn0, start_tick0)
-                if end_turn > end_turn0 or (
-                    end_turn == end_turn0 and end_tick > end_tick0
-                ):
+                if end_turn > end_turn0 or (end_turn == end_turn0
+                                            and end_tick > end_tick0):
                     (end_turn1, end_tick1) = (end_turn, end_tick)
                 else:
                     (end_turn1, end_tick1) = (end_turn0, end_tick0)
-                loaded[branch] = (start_turn1, start_tick1,
-                                  end_turn1, end_tick1)
+                loaded[branch] = (start_turn1, start_tick1, end_turn1,
+                                  end_tick1)
                 continue
             future_branch, future_turn, future_tick = earliest_future_keyframe
             if past_branch == future_branch:
-                for (graph, node, branch, turn, tick, ex) in load_nodes(
-                    graph, past_branch, past_turn, past_tick,
-                    future_turn, future_tick
-                ):
-                    noderows.append((
-                        graph, node, branch, turn, tick, ex or None
-                    ))
-                for (graph, orig, dest, idx, branch, turn, tick, ex) in load_edges(
-                    graph, past_branch, past_turn, past_tick,
-                    future_turn, future_tick
-                ):
-                    edgerows.append((
-                        graph, orig, dest, idx, branch, turn, tick, ex or None
-                    ))
-                graphvalrows.extend(load_graph_val(
-                    graph, past_branch, past_turn, past_tick,
-                    future_turn, future_tick
-                ))
-                nodevalrows.extend(load_node_val(
-                    graph, past_branch, past_turn, past_tick,
-                    future_turn, future_tick
-                ))
-                edgevalrows.extend(load_edge_val(
-                    graph, past_branch, past_turn, past_tick,
-                    future_turn, future_tick
-                ))
+                for (graph, node, branch, turn, tick,
+                     ex) in load_nodes(graph, past_branch, past_turn,
+                                       past_tick, future_turn, future_tick):
+                    noderows.append((graph, node, branch, turn, tick, ex
+                                     or None))
+                for (graph, orig, dest, idx, branch, turn, tick,
+                     ex) in load_edges(graph, past_branch, past_turn,
+                                       past_tick, future_turn, future_tick):
+                    edgerows.append(
+                        (graph, orig, dest, idx, branch, turn, tick, ex
+                         or None))
+                graphvalrows.extend(
+                    load_graph_val(graph, past_branch, past_turn, past_tick,
+                                   future_turn, future_tick))
+                nodevalrows.extend(
+                    load_node_val(graph, past_branch, past_turn, past_tick,
+                                  future_turn, future_tick))
+                edgevalrows.extend(
+                    load_edge_val(graph, past_branch, past_turn, past_tick,
+                                  future_turn, future_tick))
                 if branch in loaded:
-                    early_turn, early_tick, late_turn, late_tick = loaded[branch]
-                    if past_turn < early_turn or (
-                        past_turn == early_turn and past_tick < early_tick
-                    ):
+                    early_turn, early_tick, late_turn, late_tick = loaded[
+                        branch]
+                    if past_turn < early_turn or (past_turn == early_turn
+                                                  and past_tick < early_tick):
                         early_turn, early_tick = past_turn, past_tick
-                    if future_turn > late_turn or (
-                        future_turn == late_turn and future_tick > late_tick
-                    ):
+                    if future_turn > late_turn or (future_turn == late_turn and
+                                                   future_tick > late_tick):
                         late_turn, late_tick = future_turn, future_tick
-                    loaded[branch] = (
-                        early_turn, early_tick, late_turn, late_tick
-                    )
+                    loaded[branch] = (early_turn, early_tick, late_turn,
+                                      late_tick)
                 else:
-                    loaded[branch] = (past_turn, past_tick, future_turn, future_tick)
+                    loaded[branch] = (past_turn, past_tick, future_turn,
+                                      future_tick)
                 continue
-            parentage_iter = iter_parent_btt(future_branch, future_turn, future_tick)
+            parentage_iter = iter_parent_btt(future_branch, future_turn,
+                                             future_tick)
             branch1, turn1, tick1 = next(parentage_iter)
             windows = []
             for branch0, turn0, tick0 in parentage_iter:
                 windows.append((branch1, turn0, tick0, turn1, tick1))
                 if branch0 == past_branch:
-                    windows.append((branch0, past_turn, past_tick, turn0, tick0))
+                    windows.append(
+                        (branch0, past_turn, past_tick, turn0, tick0))
                     break
             else:
                 assert branch0 == past_branch, "Invalid branch heredity"
@@ -1111,12 +1096,10 @@ class ORM(object):
                 continue  # I think this would happen when we are only loading an initial state
             for window in reversed(windows):  # chronological ordering
                 start_turn, start_tick, end_turn, end_tick = loaded[branch]
-                for (graph, node, branch, turn, tick, ex) in load_nodes(
-                    graph, *window
-                ):
-                    noderows.append((
-                        graph, node, branch, turn, tick, ex or None
-                    ))
+                for (graph, node, branch, turn, tick,
+                     ex) in load_nodes(graph, *window):
+                    noderows.append((graph, node, branch, turn, tick, ex
+                                     or None))
                     if turn > end_turn:
                         (end_turn, end_tick) = (turn, tick)
                     elif turn == end_turn and tick > end_tick:
@@ -1125,12 +1108,11 @@ class ORM(object):
                         (start_turn, start_tick) = (turn, tick)
                     elif turn == start_turn and tick < start_tick:
                         start_tick = tick
-                for (graph, orig, dest, idx, branch, turn, tick, ex) in load_edges(
-                    graph, *window
-                ):
-                    edgerows.append((
-                        graph, orig, dest, idx, branch, turn, tick, ex or None
-                    ))
+                for (graph, orig, dest, idx, branch, turn, tick,
+                     ex) in load_edges(graph, *window):
+                    edgerows.append(
+                        (graph, orig, dest, idx, branch, turn, tick, ex
+                         or None))
                     if turn > end_turn:
                         (end_turn, end_tick) = (turn, tick)
                     elif turn == end_turn and tick > end_tick:
@@ -1199,40 +1181,40 @@ class ORM(object):
         # Find a path to the latest past keyframe we can use. Keep things
         # loaded from there to here.
         for past_branch, past_turn, past_tick in iter_parent_btt(
-            branch, turn, tick
-        ):
+                branch, turn, tick):
             if past_branch not in loaded:
                 continue  # nothing happened in this branch i guess
-            early_turn, early_tick, late_turn, late_tick = loaded[
-                past_branch]
+            early_turn, early_tick, late_turn, late_tick = loaded[past_branch]
             if past_branch in kfd:
                 for kfturn, kfticks in kfd[past_branch].items():
                     # this can't possibly perform very well.
                     # Maybe I need another loadedness dict that gives the two
                     # keyframes I am between and gets upkept upon time travel
                     for kftick in kfticks:
-                        if loaded_keep_test(kfturn, kftick, early_turn, early_tick,
-                                            late_turn, late_tick):
-                            if (kfturn < turn or (
-                                kfturn == turn and kftick < tick
-                            )) and (kfturn > early_turn or (
-                                kfturn == early_turn and kftick > early_tick
-                            )):
+                        if loaded_keep_test(kfturn, kftick, early_turn,
+                                            early_tick, late_turn, late_tick):
+                            if (kfturn < turn or
+                                (kfturn == turn and kftick < tick)) and (
+                                    kfturn > early_turn or
+                                    (kfturn == early_turn
+                                     and kftick > early_tick)):
                                 early_turn, early_tick = kfturn, kftick
-                            elif (kfturn > turn or (
-                                kfturn == turn and kftick >= tick
-                            )) and (kfturn < late_turn or (
-                                kfturn == late_turn and kftick < late_tick
-                            )):
+                            elif (kfturn > turn or
+                                  (kfturn == turn and kftick >= tick)) and (
+                                      kfturn < late_turn or
+                                      (kfturn == late_turn
+                                       and kftick < late_tick)):
                                 late_turn, late_tick = kfturn, kftick
                 assert loaded_keep_test(
-                    past_turn, past_tick, early_turn, early_tick,
-                    late_turn, late_tick
+                    past_turn, past_tick, early_turn, early_tick, late_turn,
+                    late_tick
                 ), "Unloading failed due to an invalid cache state"
-                to_keep[past_branch] = early_turn, early_tick, past_turn, past_tick
+                to_keep[
+                    past_branch] = early_turn, early_tick, past_turn, past_tick
                 break
             else:
-                to_keep[past_branch] = early_turn, early_tick, late_turn, late_tick
+                to_keep[
+                    past_branch] = early_turn, early_tick, late_turn, late_tick
         if not to_keep:
             # unloading literally everything would make the game unplayable,
             # so don't
@@ -1240,9 +1222,8 @@ class ORM(object):
                 self.warning("Not unloading, due to lack of keyframes")
             return
         caches = self._caches
-        for past_branch, (
-                early_turn, early_tick, late_turn, late_tick
-        ) in to_keep.items():
+        for past_branch, (early_turn, early_tick, late_turn,
+                          late_tick) in to_keep.items():
             for cache in caches:
                 cache.truncate(past_branch, early_turn, early_tick, 'backward')
                 cache.truncate(past_branch, late_turn, late_tick, 'forward')
@@ -1299,9 +1280,7 @@ class ORM(object):
         if child not in self._branches:
             raise ValueError(
                 "The branch {} seems not to have ever been created".format(
-                    child
-                )
-            )
+                    child))
         if self._branches[child][0] == parent:
             return True
         return self.is_parent_of(parent, self._branches[child][0])
@@ -1325,10 +1304,7 @@ class ORM(object):
                     "Tried to jump to branch {br}, "
                     "which starts at turn {rv}. "
                     "Go to turn {rv} or later to use this branch.".format(
-                        br=v,
-                        rv=parturn
-                    )
-                )
+                        br=v, rv=parturn))
         branch_is_new = v not in self._branches
         if branch_is_new:
             # assumes the present turn in the parent branch has
@@ -1336,7 +1312,8 @@ class ORM(object):
             self.query.new_branch(v, curbranch, curturn, curtick)
             self._branches[v] = curbranch, curturn, curtick, curturn, curtick
             self._upd_branch_parentage(v, curbranch)
-            self._turn_end_plan[v, curturn] = self._turn_end[v, curturn] = curtick
+            self._turn_end_plan[v, curturn] = self._turn_end[v,
+                                                             curturn] = curtick
         self._obranch = v
         self._otick = tick = self._turn_end_plan[v, curturn]
         loaded = self._loaded
@@ -1348,11 +1325,10 @@ class ORM(object):
             self._load_at(v, curturn, tick)
             return
         (start_turn, start_tick, end_turn, end_tick) = loaded[v]
-        if (
-            curturn > end_turn or (curturn == end_turn and tick > end_tick)
-        ) or (
-            curturn < start_turn or (curturn == start_turn and tick < start_tick)
-        ):
+        if (curturn > end_turn or
+            (curturn == end_turn and tick > end_tick)) or (
+                curturn < start_turn or
+                (curturn == start_turn and tick < start_tick)):
             self._load_at(v, curturn, tick)
 
     def _copy_plans(self, branch_from, turn_from, tick_from):
@@ -1367,7 +1343,8 @@ class ORM(object):
         turn_end_plan = self._turn_end_plan
         for plan_id in self._branches_plans[branch_from]:
             _, start_turn, start_tick = plans[plan_id]
-            if start_turn > turn_from or (start_turn == turn_from and start_tick > tick_from):
+            if start_turn > turn_from or (start_turn == turn_from
+                                          and start_tick > tick_from):
                 continue
             incremented = False
             for turn, ticks in list(plan_ticks[plan_id].items()):
@@ -1402,7 +1379,8 @@ class ORM(object):
         branch, turn, tick = self._btt()
         to_delete = []
         plan_ticks = self._plan_ticks[plan]
-        for trn, tcks in plan_ticks.items():  # might improve performance to use a WindowDict for plan_ticks
+        for trn, tcks in plan_ticks.items(
+        ):  # might improve performance to use a WindowDict for plan_ticks
             if turn == trn:
                 for tck in tcks:
                     if tck >= tick:
@@ -1458,13 +1436,12 @@ class ORM(object):
 
         # first make sure the cursor is not before the start of this branch
         if branch != 'trunk':
-            parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
+            parent, turn_start, tick_start, turn_end, tick_end = self._branches[
+                branch]
             if v < turn_start:
-                raise ValueError(
-                    "The turn number {} "
-                    "occurs before the start of "
-                    "the branch {}".format(v, branch)
-                )
+                raise ValueError("The turn number {} "
+                                 "occurs before the start of "
+                                 "the branch {}".format(v, branch))
         if branch not in loaded:
             if (branch, v) in self._turn_end_plan:
                 tick = self._turn_end_plan[branch, v]
@@ -1511,9 +1488,11 @@ class ORM(object):
         if not self._planning:
             if v > self._turn_end[time]:
                 self._turn_end[time] = v
-            parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
+            parent, turn_start, tick_start, turn_end, tick_end = self._branches[
+                branch]
             if turn == turn_end and v > tick_end:
-                self._branches[branch] = parent, turn_start, tick_start, turn, v
+                self._branches[
+                    branch] = parent, turn_start, tick_start, turn, v
         self._otick = v
         loaded = self._loaded
         if branch not in loaded:
@@ -1525,8 +1504,7 @@ class ORM(object):
                 self._load_at(branch, turn, v)
                 return
             loaded[branch] = (start_turn, start_tick, turn, v)
-        elif turn < start_turn or (
-                turn == start_turn and v < start_tick):
+        elif turn < start_turn or (turn == start_turn and v < start_tick):
             self._load_at(branch, turn, v)
 
     # easier to override things this way
@@ -1561,24 +1539,22 @@ class ORM(object):
             tick = turn_end_plan[branch_turn] + 1
         if turn_end[branch_turn] > tick:
             raise HistoryError(
-                "You're not at the end of turn {}. Go to tick {} to change things".format(
-                    turn, turn_end[branch_turn]
-                )
-            )
+                "You're not at the end of turn {}. Go to tick {} to change things"
+                .format(turn, turn_end[branch_turn]))
         parent, turn_start, tick_start, turn_end, tick_end = branches[branch]
         if turn < turn_end:
             # There used to be a check for turn == turn_end and tick < tick_end
             # but I couldn't come up with a situation where that would actually
             # happen
             raise HistoryError(
-                "You're in the past. Go to turn {}, tick {} to change things".format(turn_end, tick_end)
-            )
+                "You're in the past. Go to turn {}, tick {} to change things".
+                format(turn_end, tick_end))
         if self._planning:
             last_plan = self._last_plan
             if (turn, tick) in plan_ticks[last_plan]:
                 raise HistoryError(
-                    "Trying to make a plan at {}, but that time already happened".format((branch, turn, tick))
-                )
+                    "Trying to make a plan at {}, but that time already happened"
+                    .format((branch, turn, tick)))
             plan_ticks[last_plan][turn].append(tick)
             plan_ticks_uncommitted.append((last_plan, turn, tick))
             time_plan[branch, turn, tick] = last_plan
@@ -1607,8 +1583,10 @@ class ORM(object):
         self.query.globl['turn'] = self._oturn
         self.query.globl['tick'] = self._otick
         set_branch = self.query.set_branch
-        for branch, (parent, turn_start, tick_start, turn_end, tick_end) in self._branches.items():
-            set_branch(branch, parent, turn_start, tick_start, turn_end, tick_end)
+        for branch, (parent, turn_start, tick_start, turn_end,
+                     tick_end) in self._branches.items():
+            set_branch(branch, parent, turn_start, tick_start, turn_end,
+                       tick_end)
         turn_end = self._turn_end
         set_turn = self.query.set_turn
         for (branch, turn), plan_end_tick in self._turn_end_plan.items():
@@ -1633,13 +1611,10 @@ class ORM(object):
         loaded = self._loaded
         if branch in loaded:
             past_turn, past_tick, future_turn, future_tick = loaded[branch]
-            if turn < past_turn or (
-                turn == past_turn and tick < past_tick
-            ):
+            if turn < past_turn or (turn == past_turn and tick < past_tick):
                 loaded[branch] = turn, tick, future_turn, future_tick
-            elif turn > future_turn or (
-                turn == future_turn and tick > future_tick
-            ):
+            elif turn > future_turn or (turn == future_turn
+                                        and tick > future_tick):
                 loaded[branch] = past_turn, past_tick, turn, tick
         else:
             loaded[branch] = turn, tick, turn, tick
@@ -1657,32 +1632,31 @@ class ORM(object):
                 nodes = data._nodes_state()
                 edges = data._edges_state()
                 val = data._val_state()
-                self._snap_keyframe(name, branch, turn, tick,
-                                    nodes, edges, val)
-                self._new_keyframes.append((
-                    name, branch, turn, tick, nodes, edges, val
-                ))
+                self._snap_keyframe(name, branch, turn, tick, nodes, edges,
+                                    val)
+                self._new_keyframes.append(
+                    (name, branch, turn, tick, nodes, edges, val))
             elif isinstance(data, nx.Graph):
-                self._snap_keyframe(name, branch, turn, tick, data._node, data._adj, data.graph)
-                self._new_keyframes.append((
-                    name, branch, turn, tick, data._node, data._adj, data.graph
-                ))
+                self._snap_keyframe(name, branch, turn, tick, data._node,
+                                    data._adj, data.graph)
+                self._new_keyframes.append((name, branch, turn, tick,
+                                            data._node, data._adj, data.graph))
             elif isinstance(data, dict):
                 try:
                     data = nx.from_dict_of_dicts(data)
                 except AttributeError:
                     data = nx.from_dict_of_lists(data)
-                self._snap_keyframe(name, branch, turn, tick, data._node, data._adj, data.graph)
-                self._new_keyframes.append((
-                    name, branch, turn, tick, data._node, data._adj, data.graph
-                ))
+                self._snap_keyframe(name, branch, turn, tick, data._node,
+                                    data._adj, data.graph)
+                self._new_keyframes.append((name, branch, turn, tick,
+                                            data._node, data._adj, data.graph))
             else:
-                if len(data) != 3 or not all(isinstance(d, dict) for d in data):
+                if len(data) != 3 or not all(
+                        isinstance(d, dict) for d in data):
                     raise ValueError("Invalid graph data")
                 self._snap_keyframe(name, branch, turn, tick, *data)
-                self._new_keyframes.append((
-                    name, branch, turn, tick
-                ) + tuple(data))
+                self._new_keyframes.append((name, branch, turn, tick) +
+                                           tuple(data))
             graphmap = self.graph
             others = set(graphmap)
             others.discard(name)
@@ -1692,9 +1666,7 @@ class ORM(object):
             kfd = self._keyframes_dict
             kfs = self._keyframes_times
             nkfs = self._new_keyframes
-            already_keyframed = {
-                nkf[:4] for nkf in self._new_keyframes
-            }
+            already_keyframed = {nkf[:4] for nkf in self._new_keyframes}
             for graphn in others:
                 if (graphn, branch, turn, tick) in already_keyframed:
                     continue
@@ -1707,9 +1679,15 @@ class ORM(object):
                 kfl.append((graphn, branch, turn, tick))
                 kfs.add((branch, turn, tick))
                 if branch not in kfd:
-                    kfd[branch] = {turn: {tick, }}
+                    kfd[branch] = {
+                        turn: {
+                            tick,
+                        }
+                    }
                 elif turn not in kfd[branch]:
-                    kfd[branch][turn] = {tick, }
+                    kfd[branch][turn] = {
+                        tick,
+                    }
                 else:
                     kfd[branch][turn].add(tick)
 
@@ -1734,8 +1712,8 @@ class ORM(object):
         if data and isinstance(data, nx.Graph):
             if not data.is_directed():
                 data = nx.to_directed(data)
-            self._init_graph(
-                name, 'DiGraph', [data._node, data._succ, data.graph])
+            self._init_graph(name, 'DiGraph',
+                             [data._node, data._succ, data.graph])
         else:
             self._init_graph(name, 'DiGraph', data)
         return DiGraph(self, name)
@@ -1782,7 +1760,12 @@ class ORM(object):
         if name in self._graph_objs:
             del self._graph_objs[name]
 
-    def _iter_parent_btt(self, branch=None, turn=None, tick=None, *, stoptime=None):
+    def _iter_parent_btt(self,
+                         branch=None,
+                         turn=None,
+                         tick=None,
+                         *,
+                         stoptime=None):
         """Private use. Iterate over (branch, turn, tick), where the branch is
         a descendant of the previous (starting with whatever branch is
         presently active and ending at 'trunk'), and the turn is the
@@ -1816,12 +1799,9 @@ class ORM(object):
             if branch is None:
                 return
             if branch in stopbranches and (
-                trn < stoptime[1] or (
-                    trn == stoptime[1] and (
-                        stoptime[2] is None or tck <= stoptime[2]
-                    )
-                )
-            ):
+                    trn < stoptime[1] or
+                (trn == stoptime[1] and
+                 (stoptime[2] is None or tck <= stoptime[2]))):
                 return
             yield branch, trn, tck
 
@@ -1845,40 +1825,18 @@ class ORM(object):
     def _exist_node(self, character, node, exist=True):
         nbtt, exist_node, store = self._exist_node_stuff
         branch, turn, tick = nbtt()
-        exist_node(
-            character,
-            node,
-            branch,
-            turn,
-            tick,
-            exist
-        )
+        exist_node(character, node, branch, turn, tick, exist)
         store(character, node, branch, turn, tick, exist)
 
     def _edge_exists(self, character, orig, dest, idx=0):
         retrieve, btt = self._edge_exists_stuff
         try:
-            return retrieve(
-                character, orig, dest, idx, *btt()
-            ) is not None
+            return retrieve(character, orig, dest, idx, *btt()) is not None
         except KeyError:
             return False
 
-    def _exist_edge(
-            self, character, orig, dest, idx=0, exist=True
-    ):
+    def _exist_edge(self, character, orig, dest, idx=0, exist=True):
         nbtt, exist_edge, store = self._exist_edge_stuff
         branch, turn, tick = nbtt()
-        exist_edge(
-            character,
-            orig,
-            dest,
-            idx,
-            branch,
-            turn,
-            tick,
-            exist
-        )
-        store(
-            character, orig, dest, idx, branch, turn, tick, exist
-        )
+        exist_edge(character, orig, dest, idx, branch, turn, tick, exist)
+        store(character, orig, dest, idx, branch, turn, tick, exist)

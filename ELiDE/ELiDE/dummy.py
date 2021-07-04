@@ -12,12 +12,8 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from kivy.properties import (
-    NumericProperty,
-    ObjectProperty,
-    ReferenceListProperty,
-    StringProperty
-)
+from kivy.properties import (NumericProperty, ObjectProperty,
+                             ReferenceListProperty, StringProperty)
 from kivy.lang import Builder
 from kivy.logger import Logger
 
@@ -63,10 +59,7 @@ class Dummy(ImageStack):
         if not self.collide_point(*touch.pos):
             return False
         self.pos_start = self.pos
-        self.pos_down = (
-            self.x - touch.x,
-            self.y - touch.y
-        )
+        self.pos_down = (self.x - touch.x, self.y - touch.y)
         touch.grab(self)
         self._touch = touch
         return True
@@ -75,10 +68,7 @@ class Dummy(ImageStack):
         """Follow the touch"""
         if touch is not self._touch:
             return False
-        self.pos = (
-            touch.x + self.x_down,
-            touch.y + self.y_down
-        )
+        self.pos = (touch.x + self.x_down, touch.y + self.y_down)
         return True
 
     def on_touch_up(self, touch):

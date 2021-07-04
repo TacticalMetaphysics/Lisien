@@ -12,7 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 """The big layout that you view all of ELiDE through.
 
 Handles touch, selection, and time control. Contains a graph, a stat
@@ -33,16 +32,10 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
 from kivy.logger import Logger
-from kivy.properties import (
-    BooleanProperty,
-    BoundedNumericProperty,
-    DictProperty,
-    ListProperty,
-    NumericProperty,
-    ObjectProperty,
-    ReferenceListProperty,
-    StringProperty
-)
+from kivy.properties import (BooleanProperty, BoundedNumericProperty,
+                             DictProperty, ListProperty, NumericProperty,
+                             ObjectProperty, ReferenceListProperty,
+                             StringProperty)
 from .stepper import RuleStepper
 from .charmenu import CharMenu
 from .graph.board import GraphBoardView
@@ -171,17 +164,16 @@ class TimePanel(BoxLayout):
         self.ids.tickfield.hint_text = str(self.screen.app.tick)
 
     def on_screen(self, *args):
-        if not all(field in self.ids for field in ('branchfield', 'turnfield', 'tickfield')):
+        if not all(field in self.ids
+                   for field in ('branchfield', 'turnfield', 'tickfield')):
             Clock.schedule_once(self.on_screen, 0)
             return
         self.ids.branchfield.hint_text = self.screen.app.branch
         self.ids.turnfield.hint_text = str(self.screen.app.turn)
         self.ids.tickfield.hint_text = str(self.screen.app.tick)
-        self.screen.app.bind(
-            branch=self._upd_branch_hint,
-            turn=self._upd_turn_hint,
-            tick=self._upd_tick_hint
-        )
+        self.screen.app.bind(branch=self._upd_branch_hint,
+                             turn=self._upd_turn_hint,
+                             tick=self._upd_tick_hint)
 
 
 class MainScreen(Screen):
@@ -241,36 +233,26 @@ class MainScreen(Screen):
             size=self.mainview.size,
             pos=self.mainview.pos,
             board=self.graphboards[self.app.character_name],
-            adding_portal=self.charmenu.portaladdbut.state == 'down'
-        )
-        self.mainview.bind(
-            size=self.boardview.setter('size'),
-            pos=self.boardview.setter('pos')
-        )
+            adding_portal=self.charmenu.portaladdbut.state == 'down')
+        self.mainview.bind(size=self.boardview.setter('size'),
+                           pos=self.boardview.setter('pos'))
         self.charmenu.portaladdbut.bind(state=self._update_adding_portal)
         self.app.bind(character_name=self._update_board)
-        self.calendar = Agenda(
-            update_mode='present'
-        )
-        self.calendar_view = ScrollView(
-            size=self.mainview.size,
-            pos=self.mainview.pos
-        )
+        self.calendar = Agenda(update_mode='present')
+        self.calendar_view = ScrollView(size=self.mainview.size,
+                                        pos=self.mainview.pos)
         self.gridview = GridBoardView(
             scale_min=0.2,
             scale_max=4.0,
             size=self.mainview.size,
             pos=self.mainview.pos,
-            board=self.gridboards[self.app.character_name]
-        )
+            board=self.gridboards[self.app.character_name])
         self.mainview.bind(
             size=self.calendar_view.setter('size'),
             pos=self.calendar_view.setter('pos'),
         )
-        self.mainview.bind(
-            size=self.gridview.setter('size'),
-            pos=self.gridview.setter('pos')
-        )
+        self.mainview.bind(size=self.gridview.setter('size'),
+                           pos=self.gridview.setter('pos'))
         self.calendar_view.add_widget(self.calendar)
         self.mainview.add_widget(self.boardview)
 
@@ -278,12 +260,10 @@ class MainScreen(Screen):
         if not self.app:
             Clock.schedule_once(self.on_statpanel, 0)
             return
-        self.app.bind(
-            selected_proxy=self._update_statlist,
-            branch=self._update_statlist,
-            turn=self._update_statlist,
-            tick=self._update_statlist
-        )
+        self.app.bind(selected_proxy=self._update_statlist,
+                      branch=self._update_statlist,
+                      turn=self._update_statlist,
+                      tick=self._update_statlist)
 
     @trigger
     def _update_statlist(self, *args):
@@ -292,7 +272,9 @@ class MainScreen(Screen):
         if not self.app.selected_proxy:
             self._update_statlist()
             return
-        self.app.update_calendar(self.statpanel.statlist, past_turns=0, future_turns=0)
+        self.app.update_calendar(self.statpanel.statlist,
+                                 past_turns=0,
+                                 future_turns=0)
 
     def pull_visibility(self, *args):
         self.visible = self.manager.current == 'main'
@@ -308,7 +290,8 @@ class MainScreen(Screen):
         """
         if hasattr(self, '_play_scheduled'):
             Clock.unschedule(self._play_scheduled)
-        self._play_scheduled = Clock.schedule_interval(self.play, 1.0 / self.play_speed)
+        self._play_scheduled = Clock.schedule_interval(self.play,
+                                                       1.0 / self.play_speed)
 
     def remake_display(self, *args):
         """Remake any affected widgets after a change in my ``kv``.
@@ -320,18 +303,14 @@ class MainScreen(Screen):
             del self._kv_layout
         self._kv_layout = KvLayout()
         self.add_widget(self._kv_layout)
+
     _trigger_remake_display = trigger(remake_display)
 
     def on_touch_down(self, touch):
         if self.visible:
             touch.grab(self)
-        for interceptor in (
-            self.timepanel,
-            self.charmenu,
-            self.statpanel,
-            self.dummyplace,
-            self.dummything
-        ):
+        for interceptor in (self.timepanel, self.charmenu, self.statpanel,
+                            self.dummyplace, self.dummything):
             if interceptor.collide_point(*touch.pos):
                 interceptor.dispatch('on_touch_down', touch)
                 self.boardview.keep_selection = \
@@ -359,6 +338,7 @@ class MainScreen(Screen):
         if not self.app.character:
             Clock.schedule_once(self.on_dummies, 0)
             return
+
         def renum_dummy(dummy, *args):
             dummy.num = dummynum(self.app.character, dummy.prefix) + 1
 
@@ -382,7 +362,8 @@ class MainScreen(Screen):
         # horrible hack
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
-    def _update_from_time_travel(self, command, branch, turn, tick, result, **kwargs):
+    def _update_from_time_travel(self, command, branch, turn, tick, result,
+                                 **kwargs):
         self._update_from_delta(command, branch, turn, tick, result[-1])
 
     def _update_from_delta(self, cmd, branch, turn, tick, delta, **kwargs):
@@ -390,13 +371,10 @@ class MainScreen(Screen):
         self.app.turn = turn
         self.app.tick = tick
         chardelta = delta.get(self.boardview.board.character.name, {})
-        for unwanted in (
-            'character_rulebook',
-            'avatar_rulebook',
-            'character_thing_rulebook',
-            'character_place_rulebook',
-            'character_portal_rulebook'
-        ):
+        for unwanted in ('character_rulebook', 'avatar_rulebook',
+                         'character_thing_rulebook',
+                         'character_place_rulebook',
+                         'character_portal_rulebook'):
             if unwanted in chardelta:
                 del chardelta[unwanted]
         self.boardview.board.trigger_update_from_delta(chardelta)
@@ -414,18 +392,22 @@ class MainScreen(Screen):
             return
         self.next_turn()
 
-    def _update_from_next_turn(self, command, branch, turn, tick, result, cb=None):
+    def _update_from_next_turn(self,
+                               command,
+                               branch,
+                               turn,
+                               tick,
+                               result,
+                               cb=None):
         todo, deltas = result
         if isinstance(todo, list):
             self.dialoglayout.todo = todo
             self.dialoglayout.idx = 0
         self._update_from_delta(command, branch, turn, tick, deltas)
         self.dialoglayout.advance_dialog()
-        self.app.bind(
-            branch=self.app._push_time,
-            turn=self.app._push_time,
-            tick=self.app._push_time
-        )
+        self.app.bind(branch=self.app._push_time,
+                      turn=self.app._push_time,
+                      tick=self.app._push_time)
         self.tmp_block = False
         if cb is not None:
             cb(command, branch, turn, tick, result)
@@ -439,17 +421,18 @@ class MainScreen(Screen):
         eng = self.app.engine
         dial = self.dialoglayout
         if eng.universal.get('block'):
-            Logger.info("MainScreen: next_turn blocked, delete universal['block'] to unblock")
+            Logger.info(
+                "MainScreen: next_turn blocked, delete universal['block'] to unblock"
+            )
             return
         if dial.idx < len(dial.todo):
-            Logger.info("MainScreen: not advancing time while there's a dialog")
+            Logger.info(
+                "MainScreen: not advancing time while there's a dialog")
             return
         self.tmp_block = True
-        self.app.unbind(
-            branch=self.app._push_time,
-            turn=self.app._push_time,
-            tick=self.app._push_time
-        )
+        self.app.unbind(branch=self.app._push_time,
+                        turn=self.app._push_time,
+                        tick=self.app._push_time)
         eng.next_turn(cb=partial(self._update_from_next_turn, cb=cb))
         self.ids.charmenu._switch_to_menu()
 
@@ -460,7 +443,8 @@ class MainScreen(Screen):
 
     def switch_to_boardview(self, *args):
         self.mainview.clear_widgets()
-        self.app.engine.handle('apply_choices', choices=[self.calendar.get_track()])
+        self.app.engine.handle('apply_choices',
+                               choices=[self.calendar.get_track()])
         self.mainview.add_widget(self.boardview)
 
     def toggle_gridview(self, *args):
@@ -487,10 +471,7 @@ class CharMenuContainer(BoxLayout):
 
     def __init__(self, **kwargs):
         super(CharMenuContainer, self).__init__(**kwargs)
-        self.charmenu = CharMenu(
-            screen=self.screen,
-            size_hint_y=0.9
-        )
+        self.charmenu = CharMenu(screen=self.screen, size_hint_y=0.9)
         self.bind(screen=self.charmenu.setter('screen'))
         self.dummyplace = self.charmenu.dummyplace
         self.charmenu.bind(dummyplace=self.setter('dummyplace'))
@@ -499,11 +480,9 @@ class CharMenuContainer(BoxLayout):
         self.portaladdbut = self.charmenu.portaladdbut
         self.charmenu.bind(portaladdbut=self.setter('portaladdbut'))
         self.stepper = RuleStepper(size_hint_y=0.9)
-        self.button = Button(
-            on_release=self._toggle,
-            text='Rule\nstepper',
-            size_hint_y=0.1
-        )
+        self.button = Button(on_release=self._toggle,
+                             text='Rule\nstepper',
+                             size_hint_y=0.1)
 
     def on_parent(self, *args):
         if not self.screen or not hasattr(self, 'charmenu') or not hasattr(
@@ -519,8 +498,7 @@ class CharMenuContainer(BoxLayout):
             engine = self.screen.app.engine
             self.clear_widgets()
             self.stepper.from_rules_handled_turn(
-                engine.handle('rules_handled_turn')
-            )
+                engine.handle('rules_handled_turn'))
             self.add_widget(self.stepper)
             self.button.text = 'Menu'
         else:
@@ -538,8 +516,7 @@ class CharMenuContainer(BoxLayout):
             self.add_widget(self.button)
 
 
-Builder.load_string(
-    """
+Builder.load_string("""
 #: import resource_find kivy.resources.resource_find
 <StatListPanel>:
     orientation: 'vertical'
@@ -701,5 +678,4 @@ Builder.load_string(
         y: timepanel.top
         width: charmenu.x - statpanel.right
         height: root.height - timepanel.top
-"""
-)
+""")

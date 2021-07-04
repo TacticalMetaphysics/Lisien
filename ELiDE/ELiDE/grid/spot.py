@@ -18,4 +18,3 @@ class GridSpot(ImageStackProxy, Layout):
     def add_widget(self, widget, index=0, canvas='after'):
         self._trigger_layout()
         return super().add_widget(widget, index, canvas)
-

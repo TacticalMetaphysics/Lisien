@@ -38,10 +38,9 @@ class ScreenTest(ELiDEAppTest):
         entity.engine = app.engine
         entity.name = 'name'
         app.selected_proxy = app.proxy = app.statcfg.proxy = entity
-        screen = MainScreen(graphboards={'physical': GraphBoard(
-            character=char)}, gridboards={
-            'physical': GridBoard(character=char)
-        })
+        screen = MainScreen(
+            graphboards={'physical': GraphBoard(character=char)},
+            gridboards={'physical': GridBoard(character=char)})
         win = window_with_widget(screen)
         idle_until(lambda: 'timepanel' in screen.ids)
         timepanel = screen.ids['timepanel']
@@ -73,10 +72,9 @@ class ScreenTest(ELiDEAppTest):
         entity.engine = app.engine
         entity.name = 'name'
         app.selected_proxy = app.proxy = app.statcfg.proxy = entity
-        screen = MainScreen(graphboards={'foo': GraphBoard(
-            character=char)}, gridboards={
-            'foo': GridBoard(character=char)
-        }, play_speed=1.0)
+        screen = MainScreen(graphboards={'foo': GraphBoard(character=char)},
+                            gridboards={'foo': GridBoard(character=char)},
+                            play_speed=1.0)
         win = window_with_widget(screen)
         idle_until(lambda: 'timepanel' in screen.ids)
         timepanel = screen.ids['timepanel']
@@ -87,4 +85,5 @@ class ScreenTest(ELiDEAppTest):
         motion = UnitTestTouch(*playbut.center)
         motion.touch_down()
         motion.touch_up()
-        idle_until(lambda: int(turnfield.hint_text) == 3, 400, "Time didn't advance fast enough")
+        idle_until(lambda: int(turnfield.hint_text) == 3, 400,
+                   "Time didn't advance fast enough")

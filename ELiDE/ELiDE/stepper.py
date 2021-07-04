@@ -1,9 +1,5 @@
 from kivy.app import App
-from kivy.properties import (
-    NumericProperty,
-    ObjectProperty,
-    StringProperty
-)
+from kivy.properties import (NumericProperty, ObjectProperty, StringProperty)
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.recycleview import RecycleView
@@ -33,10 +29,7 @@ class RuleStepper(RecycleView):
                 if tick == prev_tick:
                     continue
                 if not typed:
-                    data.append({
-                        'widget': 'RulebookTypeLabel',
-                        'name': rbtyp
-                    })
+                    data.append({'widget': 'RulebookTypeLabel', 'name': rbtyp})
                     typed = True
                 rulebook_per_entity = rbtyp in {'thing', 'place', 'portal'}
                 if not rulebook_per_entity:
@@ -48,10 +41,7 @@ class RuleStepper(RecycleView):
                         })
                 if entity != last_entity:
                     last_entity = entity
-                    data.append({
-                        'widget': 'EntityLabel',
-                        'name': entity
-                    })
+                    data.append({'widget': 'EntityLabel', 'name': entity})
                 if rulebook_per_entity:
                     if rulebook != last_rulebook:
                         rulebook = last_rulebook
@@ -94,10 +84,8 @@ class RuleStepperRuleButton(Button):
                 self.color_inst.rgba = [0, 0, 0, 0]
         else:
             with self.canvas:
-                self.color_inst = Color(
-                    rgba=([1, 0, 0, 1]
-                          if self.tick in (self.start_tick, self.end_tick)
-                          else [0, 0, 0, 0]))
+                self.color_inst = Color(rgba=([1, 0, 0, 1] if self.tick in (
+                    self.start_tick, self.end_tick) else [0, 0, 0, 0]))
                 self.line = Line(
                     points=[self.x, self.top, self.right, self.top])
 

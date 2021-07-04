@@ -38,14 +38,12 @@ def convert_to_networkx_graph(data, create_using=None, multigraph_input=False):
         result = networkx.convert.from_dict_of_dicts(
             data.adj,
             create_using=create_using,
-            multigraph_input=data.is_multigraph()
-        )
+            multigraph_input=data.is_multigraph())
         result.graph = dict(data.graph)
         result.node = {k: dict(v) for k, v in data.node.items()}
         return result
-    return networkx.convert.to_networkx_graph(
-        data, create_using, multigraph_input
-    )
+    return networkx.convert.to_networkx_graph(data, create_using,
+                                              multigraph_input)
 
 
 _alleged_receivers = defaultdict(list)
@@ -129,11 +127,16 @@ class AbstractEntityMapping(AllegedMapping):
             from functools import partial
             from .wrap import DictWrapper, ListWrapper, SetWrapper
             if isinstance(v, list):
-                return ListWrapper(partial(self._get_cache_now, key), partial(self._set_cache_now, key), self, key)
+                return ListWrapper(partial(self._get_cache_now, key),
+                                   partial(self._set_cache_now, key), self,
+                                   key)
             elif isinstance(v, dict):
-                return DictWrapper(partial(self._get_cache_now, key), partial(self._set_cache_now, key), self, key)
+                return DictWrapper(partial(self._get_cache_now, key),
+                                   partial(self._set_cache_now, key), self,
+                                   key)
             elif isinstance(v, set):
-                return SetWrapper(partial(self._get_cache_now, key), partial(self._set_cache_now, key), self, key)
+                return SetWrapper(partial(self._get_cache_now, key),
+                                  partial(self._set_cache_now, key), self, key)
             else:
                 return v
 
@@ -146,8 +149,7 @@ class AbstractEntityMapping(AllegedMapping):
         """Set key=value at the present branch and revision"""
         if value is None:
             raise ValueError(
-                "allegedb uses None to indicate that a key's been deleted"
-            )
+                "allegedb uses None to indicate that a key's been deleted")
         branch, turn, tick = self.db._nbtt()
         try:
             if self._get_cache(key, branch, turn, tick) != value:
@@ -194,9 +196,7 @@ class GraphMapping(AbstractEntityMapping):
 
     def _cache_contains(self, key, branch, turn, tick):
         contains_key, graphn = self._cache_contains_stuff
-        return contains_key(
-            graphn, key, branch, turn, tick
-        )
+        return contains_key(graphn, key, branch, turn, tick)
 
     def __len__(self):
         count_entities, graphn, btt = self._len_stuff
@@ -214,9 +214,7 @@ class GraphMapping(AbstractEntityMapping):
 
     def _get_cache(self, key, branch, turn, tick):
         retrieve, graphn = self._get_cache_stuff
-        return retrieve(
-            graphn, key, branch, turn, tick
-        )
+        return retrieve(graphn, key, branch, turn, tick)
 
     def _get(self, key):
         get_cache, btt = self._get_stuff
@@ -224,26 +222,15 @@ class GraphMapping(AbstractEntityMapping):
 
     def _set_db(self, key, branch, turn, tick, value):
         graph_val_set, graphn = self._set_db_stuff
-        graph_val_set(
-            graphn,
-            key,
-            branch, turn, tick,
-            value
-        )
+        graph_val_set(graphn, key, branch, turn, tick, value)
 
     def _set_cache(self, key, branch, turn, tick, value):
         store, graphn = self._set_cache_stuff
-        store(
-            graphn, key, branch, turn, tick, value
-        )
+        store(graphn, key, branch, turn, tick, value)
 
     def _del_db(self, key, branch, turn, tick):
         graph_val_set, graphn = self._del_db_stuff
-        graph_val_set(
-            graphn,
-            key,
-            branch, turn, tick, None
-        )
+        graph_val_set(graphn, key, branch, turn, tick, None)
 
     def clear(self):
         keys = set(self.keys())
@@ -252,7 +239,11 @@ class GraphMapping(AbstractEntityMapping):
             del self[k]
 
     def unwrap(self):
-        return {k: v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v for (k, v) in self.items()}
+        return {
+            k: v.unwrap()
+            if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
+            for (k, v) in self.items()
+        }
 
     def __eq__(self, other):
         if hasattr(other, 'unwrap'):
@@ -279,8 +270,9 @@ class Node(AbstractEntityMapping):
         if gnn in nobjs:
             ret = nobjs[gnn]
             if not isinstance(ret, cls):
-                raise EntityCollisionError("Already have node {} in graph {}, but it's of class {}".format(
-                    node, graph.name, type(ret)))
+                raise EntityCollisionError(
+                    "Already have node {} in graph {}, but it's of class {}".
+                    format(node, graph.name, type(ret)))
             return ret
         return super(Node, cls).__new__(cls)
 
@@ -294,17 +286,21 @@ class Node(AbstractEntityMapping):
         graphn = graph.name
         btt = db._btt
         self._iter_stuff = (node_val_cache.iter_entity_keys, graphn, node, btt)
-        self._cache_contains_stuff = (node_val_cache.contains_key, graphn, node)
+        self._cache_contains_stuff = (node_val_cache.contains_key, graphn,
+                                      node)
         self._len_stuff = (node_val_cache.count_entity_keys, graphn, node, btt)
         self._get_cache_stuff = (node_val_cache.retrieve, graphn, node)
         self._set_db_stuff = (db.query.node_val_set, graphn, node)
         self._set_cache_stuff = (db._node_val_cache.store, graphn, node)
 
     def __repr__(self):
-        return "{}(graph={}, node={})".format(self.__class__.__name__, self.graph, self.node)
+        return "{}(graph={}, node={})".format(self.__class__.__name__,
+                                              self.graph, self.node)
 
     def __str__(self):
-        return "{}(graph={}, node={}, data={})".format(self.__class__.__name__, self.graph, self.node, repr(dict(self)))
+        return "{}(graph={}, node={}, data={})".format(self.__class__.__name__,
+                                                       self.graph, self.node,
+                                                       repr(dict(self)))
 
     def __iter__(self):
         iter_entity_keys, graphn, node, btt = self._iter_stuff
@@ -312,9 +308,7 @@ class Node(AbstractEntityMapping):
 
     def _cache_contains(self, key, branch, turn, tick):
         contains_key, graphn, node = self._cache_contains_stuff
-        return contains_key(
-            graphn, node, key, branch, turn, tick
-        )
+        return contains_key(graphn, node, key, branch, turn, tick)
 
     def __len__(self):
         count_entity_keys, graphn, node, btt = self._len_stuff
@@ -322,30 +316,16 @@ class Node(AbstractEntityMapping):
 
     def _get_cache(self, key, branch, turn, tick):
         retrieve, graphn, node = self._get_cache_stuff
-        return retrieve(
-            graphn, node, key, branch, turn, tick
-        )
+        return retrieve(graphn, node, key, branch, turn, tick)
 
     def _set_db(self, key, branch, turn, tick, value):
         node_val_set, graphn, node = self._set_db_stuff
-        node_val_set(
-            graphn,
-            node,
-            key,
-            branch, turn, tick,
-            value
-        )
+        node_val_set(graphn, node, key, branch, turn, tick, value)
 
     def _set_cache(self, key, branch, turn, tick, value):
         store, graphn, node = self._set_cache_stuff
-        store(
-            graphn,
-            node,
-            key,
-            branch, turn, tick,
-            value
-        )
-    
+        store(graphn, node, key, branch, turn, tick, value)
+
     def __eq__(self, other):
         if not isinstance(other, type(self)):
             return False
@@ -367,10 +347,8 @@ class Edge(AbstractEntityMapping):
             ret = edgeobjs[gnodi]
             if not isinstance(ret, cls):
                 raise EntityCollisionError(
-                    "Already have an edge {}->{}[{}] in graph {}, but of class {}".format(
-                        orig, dest, idx, graph.name, type(ret)
-                    )
-                )
+                    "Already have an edge {}->{}[{}] in graph {}, but of class {}"
+                    .format(orig, dest, idx, graph.name, type(ret)))
             return ret
         return super(Edge, cls).__new__(cls)
 
@@ -389,18 +367,21 @@ class Edge(AbstractEntityMapping):
         edge_val_cache = db._edge_val_cache
         graphn = graph.name
         btt = db._btt
-        self._iter_stuff = (edge_val_cache.iter_entity_keys, graphn, orig, dest, idx, btt)
-        self._cache_contains_stuff = (edge_val_cache.contains_key, graphn, orig, dest, idx)
-        self._len_stuff = (edge_val_cache.count_entity_keys, graphn, orig, dest, idx, btt)
-        self._get_cache_stuff = (edge_val_cache.retrieve, graphn, orig, dest, idx)
+        self._iter_stuff = (edge_val_cache.iter_entity_keys, graphn, orig,
+                            dest, idx, btt)
+        self._cache_contains_stuff = (edge_val_cache.contains_key, graphn,
+                                      orig, dest, idx)
+        self._len_stuff = (edge_val_cache.count_entity_keys, graphn, orig,
+                           dest, idx, btt)
+        self._get_cache_stuff = (edge_val_cache.retrieve, graphn, orig, dest,
+                                 idx)
         self._set_db_stuff = (db.query.edge_val_set, graphn, orig, dest, idx)
         self._set_cache_stuff = (edge_val_cache.store, graphn, orig, dest, idx)
 
     def __repr__(self):
         return "<{} in graph {} from {} to {} containing {}>".format(
             self.__class__.__name__, self.graph, self.orig, self.dest,
-            dict(self)
-        )
+            dict(self))
 
     def __str__(self):
         return str(dict(self))
@@ -423,45 +404,27 @@ class Edge(AbstractEntityMapping):
 
     def _set_db(self, key, branch, turn, tick, value):
         edge_val_set, graphn, orig, dest, idx = self._set_db_stuff
-        edge_val_set(
-            graphn,
-            orig,
-            dest,
-            idx,
-            key,
-            branch, turn, tick,
-            value
-        )
+        edge_val_set(graphn, orig, dest, idx, key, branch, turn, tick, value)
 
     def _set_cache(self, key, branch, turn, tick, value):
         store, graphn, orig, dest, idx = self._set_cache_stuff
-        store(
-            graphn,
-            orig,
-            dest,
-            idx,
-            key,
-            branch, turn, tick,
-            value
-        )
+        store(graphn, orig, dest, idx, key, branch, turn, tick, value)
 
 
 class GraphNodeMapping(AllegedMapping):
     """Mapping for nodes in a graph"""
-    __slots__ = ('graph',)
+    __slots__ = ('graph', )
 
     db = getatt('graph.db')
     """Alias to ``self.graph.db``"""
-
     def __init__(self, graph):
         super().__init__()
         self.graph = graph
 
     def __iter__(self):
         """Iterate over the names of the nodes"""
-        return self.db._nodes_cache.iter_entities(
-            self.graph.name, *self.db._btt()
-        )
+        return self.db._nodes_cache.iter_entities(self.graph.name,
+                                                  *self.db._btt())
 
     def __eq__(self, other):
         from collections.abc import Mapping
@@ -483,15 +446,13 @@ class GraphNodeMapping(AllegedMapping):
 
     def __contains__(self, node):
         """Return whether the node exists presently"""
-        return self.db._nodes_cache.contains_entity(
-            self.graph.name, node, *self.db._btt()
-        )
+        return self.db._nodes_cache.contains_entity(self.graph.name, node,
+                                                    *self.db._btt())
 
     def __len__(self):
         """How many nodes exist right now?"""
-        return self.db._nodes_cache.count_entities(
-            self.graph.name, *self.db._btt()
-        )
+        return self.db._nodes_cache.count_entities(self.graph.name,
+                                                   *self.db._btt())
 
     def __getitem__(self, node):
         """If the node exists at present, return it, else throw KeyError"""
@@ -527,18 +488,10 @@ class GraphNodeMapping(AllegedMapping):
         for pred in self.graph.pred[node]:
             del self.graph.pred[node][pred]
         branch, turn, tick = self.db._nbtt()
-        self.db.query.exist_node(
-            self.graph.name,
-            node,
-            branch, turn, tick,
-            False
-        )
-        self.db._nodes_cache.store(
-            self.graph.name,
-            node,
-            branch, turn, tick,
-            False
-        )
+        self.db.query.exist_node(self.graph.name, node, branch, turn, tick,
+                                 False)
+        self.db._nodes_cache.store(self.graph.name, node, branch, turn, tick,
+                                   False)
         key = (self.graph.name, node)
         if node in self.db._node_objs:
             del self.db._node_objs[key]
@@ -554,7 +507,6 @@ class GraphEdgeMapping(AllegedMapping):
 
     db = getatt('graph.db')
     """Alias to ``self.graph.db``"""
-
     def __init__(self, graph):
         super().__init__()
         self.graph = graph
@@ -588,7 +540,6 @@ class AbstractSuccessors(GraphEdgeMapping):
 
     db = getatt('graph.db')
     """Alias to ``self.graph.db``"""
-
     def _order_nodes(self, node):
         raise NotImplementedError
 
@@ -600,29 +551,20 @@ class AbstractSuccessors(GraphEdgeMapping):
 
     def __iter__(self):
         """Iterate over node IDs that have an edge with my orig"""
-        return self.db._edges_cache.iter_successors(
-            self.graph.name,
-            self.orig,
-            *self.db._btt()
-        )
+        return self.db._edges_cache.iter_successors(self.graph.name, self.orig,
+                                                    *self.db._btt())
 
     def __contains__(self, dest):
         """Is there an edge leading to ``dest`` at the moment?"""
         orig, dest = self._order_nodes(dest)
-        return self.db._edges_cache.has_successor(
-            self.graph.name,
-            orig,
-            dest,
-            *self.db._btt()
-        )
+        return self.db._edges_cache.has_successor(self.graph.name, orig, dest,
+                                                  *self.db._btt())
 
     def __len__(self):
         """How many nodes touch an edge shared with my orig?"""
-        return self.db._edges_cache.count_successors(
-            self.graph.name,
-            self.orig,
-            *self.db._btt()
-        )
+        return self.db._edges_cache.count_successors(self.graph.name,
+                                                     self.orig,
+                                                     *self.db._btt())
 
     def _make_edge(self, dest):
         return Edge(self.graph, *self._order_nodes(dest))
@@ -647,22 +589,10 @@ class AbstractSuccessors(GraphEdgeMapping):
         if dest not in self.graph.node:
             self.graph.add_node(dest)
         branch, turn, tick = self.db._nbtt()
-        self.db.query.exist_edge(
-            self.graph.name,
-            orig,
-            dest,
-            0,
-            branch, turn, tick,
-            True
-        )
-        self.db._edges_cache.store(
-            self.graph.name,
-            orig,
-            dest,
-            0,
-            branch, turn, tick,
-            True
-        )
+        self.db.query.exist_edge(self.graph.name, orig, dest, 0, branch, turn,
+                                 tick, True)
+        self.db._edges_cache.store(self.graph.name, orig, dest, 0, branch,
+                                   turn, tick, True)
         e = self[real_dest]
         e.clear()
         e.update(value)
@@ -673,27 +603,16 @@ class AbstractSuccessors(GraphEdgeMapping):
         """Remove the edge between my orig and the given dest"""
         branch, turn, tick = self.db._nbtt()
         orig, dest = self._order_nodes(dest)
-        self.db.query.exist_edge(
-            self.graph.name,
-            orig,
-            dest,
-            0,
-            branch, turn, tick,
-            False
-        )
-        self.db._edges_cache.store(
-            self.graph.name,
-            orig,
-            dest,
-            0,
-            branch, turn, tick,
-            None
-        )
+        self.db.query.exist_edge(self.graph.name, orig, dest, 0, branch, turn,
+                                 tick, False)
+        self.db._edges_cache.store(self.graph.name, orig, dest, 0, branch,
+                                   turn, tick, None)
         self.send(self, orig=orig, dest=dest, idx=0, exists=False)
 
     def __repr__(self):
         cls = self.__class__
-        return "<{}.{} object containing {}>".format(cls.__module__, cls.__name__, dict(self))
+        return "<{}.{} object containing {}>".format(cls.__module__,
+                                                     cls.__name__, dict(self))
 
     def clear(self):
         """Delete every edge with origin at my orig"""
@@ -703,7 +622,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 
 class GraphSuccessorsMapping(GraphEdgeMapping):
     """Mapping for Successors (itself a MutableMapping)"""
-    __slots__ = ('graph',)
+    __slots__ = ('graph', )
 
     class Successors(AbstractSuccessors):
         __slots__ = ('graph', 'container', 'orig', '_cache')
@@ -755,13 +674,14 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
         cls = self.__class__
         return "<{}.{} object containing {}>".format(
             cls.__module__, cls.__name__, {
-                k: {k2: dict(v2) for (k2, v2) in v.items()}
+                k: {k2: dict(v2)
+                    for (k2, v2) in v.items()}
                 for (k, v) in self.items()
-        })
+            })
 
 
 class DiGraphSuccessorsMapping(GraphSuccessorsMapping):
-    __slots__ = ('graph',)
+    __slots__ = ('graph', )
 
     class Successors(AbstractSuccessors):
         __slots__ = ('graph', 'container', 'orig', '_cache')
@@ -775,7 +695,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
     the dest provided to this
 
     """
-    __slots__ = ('graph',)
+    __slots__ = ('graph', )
 
     def __contains__(self, dest):
         return dest in self.graph.node
@@ -830,27 +750,17 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
             """
             return self.db._edges_cache.iter_predecessors(
-                self.graph.name,
-                self.dest,
-                *self.db._btt()
-            )
+                self.graph.name, self.dest, *self.db._btt())
 
         def __contains__(self, orig):
             """Is there an edge from ``orig`` at the moment?"""
             return self.db._edges_cache.has_predecessor(
-                self.graph.name,
-                self.dest,
-                orig,
-                *self.db._btt()
-            )
+                self.graph.name, self.dest, orig, *self.db._btt())
 
         def __len__(self):
             """How many edges exist at this rev of this branch?"""
             return self.db._edges_cache.count_predecessors(
-                self.graph.name,
-                self.dest,
-                *self.db._btt()
-            )
+                self.graph.name, self.dest, *self.db._btt())
 
         def _make_edge(self, orig):
             return Edge(self.graph, orig, self.dest)
@@ -870,24 +780,12 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 e.clear()
                 created = False
             except KeyError:
-                self.db.query.exist_edge(
-                    self.graph.name,
-                    orig,
-                    self.dest,
-                    0,
-                    branch, turn, tick,
-                    True
-                )
+                self.db.query.exist_edge(self.graph.name, orig, self.dest, 0,
+                                         branch, turn, tick, True)
                 e = self._make_edge(orig)
             e.update(value)
-            self.db._edges_cache.store(
-                self.graph.name,
-                orig,
-                self.dest,
-                0,
-                branch, turn, tick,
-                True
-            )
+            self.db._edges_cache.store(self.graph.name, orig, self.dest, 0,
+                                       branch, turn, tick, True)
             self.send(self, key=orig, val=value)
 
         def __delitem__(self, orig):
@@ -895,48 +793,24 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             branch, turn, tick = self.db._nbtt()
             if 'Multi' in self.graph.__class__.__name__:
                 for idx in self[orig]:
-                    self.db.query.exist_edge(
-                        self.graph.name,
-                        orig,
-                        self.dest,
-                        idx,
-                        branch, turn, tick,
-                        False
-                    )
-                    self.db._edges_cache.store(
-                        self.graph.name,
-                        orig,
-                        self.dest,
-                        idx,
-                        branch, turn, tick,
-                        False
-                    )
+                    self.db.query.exist_edge(self.graph.name, orig, self.dest,
+                                             idx, branch, turn, tick, False)
+                    self.db._edges_cache.store(self.graph.name, orig,
+                                               self.dest, idx, branch, turn,
+                                               tick, False)
                     self.send(self, key=orig, val=None)
                     return
                 else:
                     raise KeyError("No edges from {}".format(orig))
-            self.db.query.exist_edge(
-                self.graph.name,
-                orig,
-                self.dest,
-                0,
-                branch, turn, tick,
-                False
-            )
-            self.db._edges_cache.store(
-                self.graph.name,
-                orig,
-                self.dest,
-                0,
-                branch, turn, tick,
-                None
-            )
+            self.db.query.exist_edge(self.graph.name, orig, self.dest, 0,
+                                     branch, turn, tick, False)
+            self.db._edges_cache.store(self.graph.name, orig, self.dest, 0,
+                                       branch, turn, tick, None)
             self.send(self, key=orig, val=None)
 
 
 def unwrapped_dict(d):
-    return {k: v.unwrap() if hasattr(v, 'unwrap') else v
-            for k, v in d.items()}
+    return {k: v.unwrap() if hasattr(v, 'unwrap') else v for k, v in d.items()}
 
 
 class DiGraph(networkx.DiGraph):
@@ -951,12 +825,13 @@ class DiGraph(networkx.DiGraph):
 
     def __repr__(self):
         return "<{} object named {} containing {} nodes, {} edges>".format(
-            self.__class__, self.name, len(self.nodes), len(self.edges)
-        )
+            self.__class__, self.name, len(self.nodes), len(self.edges))
 
     def _nodes_state(self):
-        return {noden: unwrapped_dict(node)
-                for noden, node in self._node.items()}
+        return {
+            noden: unwrapped_dict(node)
+            for noden, node in self._node.items()
+        }
 
     def _edges_state(self):
         ret = {}
@@ -984,9 +859,9 @@ class DiGraph(networkx.DiGraph):
         if name in db._graph_objs:
             ret = db._graph_objs[name]
             if not isinstance(ret, cls):
-                raise EntityCollisionError("Already have a graph named {}, but it's of class {}".format(
-                    name, type(ret)
-                ))
+                raise EntityCollisionError(
+                    "Already have a graph named {}, but it's of class {}".
+                    format(name, type(ret)))
             return ret
         return super(DiGraph, cls).__new__(cls)
 
@@ -1012,6 +887,7 @@ class DiGraph(networkx.DiGraph):
         if not hasattr(self, '_nodemap'):
             self._nodemap = self.node_map_cls(self)
         return self._nodemap
+
     _node = node
 
     @property
@@ -1019,6 +895,7 @@ class DiGraph(networkx.DiGraph):
         if not hasattr(self, '_adjmap'):
             self._adjmap = self.adj_cls(self)
         return self._adjmap
+
     edge = succ = _succ = _adj = adj
 
     @property
@@ -1051,19 +928,19 @@ class DiGraph(networkx.DiGraph):
         rev = self.db.rev
         (parent, parent_rev) = self.db.sql('parparrev', branch).fetchone()
         before_branch = parent if parent_rev == rev else branch
-        return (before_branch, rev-1, branch, rev)
+        return (before_branch, rev - 1, branch, rev)
 
     def remove_node(self, n):
         __doc__ = networkx.DiGraph.remove_node.__doc__
         if n not in self._node:
-            raise NetworkXError("The node %s is not in the digraph." % (n,))
+            raise NetworkXError("The node %s is not in the digraph." % (n, ))
         nbrs = self._succ[n]
         for u in nbrs:
-            del self._pred[u][n]   # remove all edges n-u in digraph
-        del self._succ[n]          # remove node from succ
+            del self._pred[u][n]  # remove all edges n-u in digraph
+        del self._succ[n]  # remove node from succ
         for u in self._pred[n]:
-            del self._succ[u][n]   # remove all edges n-u in digraph
-        del self._pred[n]          # remove node from pred
+            del self._succ[u][n]  # remove all edges n-u in digraph
+        del self._pred[n]  # remove node from pred
         del self._node[n]
 
     def remove_edge(self, u, v):
@@ -1075,9 +952,8 @@ class DiGraph(networkx.DiGraph):
         try:
             del self.succ[u][v]
         except KeyError:
-            raise NetworkXError(
-                "The edge {}-{} is not in the graph.".format(u, v)
-            )
+            raise NetworkXError("The edge {}-{} is not in the graph.".format(
+                u, v))
 
     def remove_edges_from(self, ebunch):
         """Version of remove_edges_from that's much like normal networkx but only
@@ -1099,8 +975,7 @@ class DiGraph(networkx.DiGraph):
                 attr_dict.update(attr)
             except AttributeError:
                 raise NetworkXError(
-                    "The attr_dict argument must be a dictionary."
-                )
+                    "The attr_dict argument must be a dictionary.")
         if u not in self.node:
             self.node[u] = {}
         if v not in self.node:
@@ -1121,9 +996,7 @@ class DiGraph(networkx.DiGraph):
             try:
                 attr_dict.update(attr)
             except AttributeError:
-                raise NetworkXError(
-                    "The attr_dict argument must be a dict."
-                )
+                raise NetworkXError("The attr_dict argument must be a dict.")
         for e in ebunch:
             ne = len(e)
             if ne == 3:
@@ -1134,8 +1007,7 @@ class DiGraph(networkx.DiGraph):
                 dd = {}
             else:
                 raise NetworkXError(
-                    "Edge tupse {} must be a 2-tuple or 3-tuple.".format(e)
-                )
+                    "Edge tupse {} must be a 2-tuple or 3-tuple.".format(e))
             if u not in self.node:
                 self.node[u] = {}
             if v not in self.node:
@@ -1144,8 +1016,8 @@ class DiGraph(networkx.DiGraph):
             datadict.update(attr_dict)
             datadict.update(dd)
             self.succ[u][v] = datadict
-            assert(u in self.succ)
-            assert(v in self.succ[u])
+            assert (u in self.succ)
+            assert (v in self.succ[u])
 
     def clear(self):
         """Remove all nodes and edges from the graph.

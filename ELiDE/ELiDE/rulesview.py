@@ -33,11 +33,9 @@ from kivy.uix.screenmanager import Screen
 from .card import Card, DeckBuilderView, DeckBuilderScrollBar
 from .util import trigger
 
-
 # TODO:
 # 1. Make it more obvious whose rules you are editing
 # 2. Allow re-ordering of the rules
-
 
 dbg = Logger.debug
 
@@ -80,10 +78,12 @@ class RulesList(RecycleView):
         if self.rulesview is None:
             Clock.schedule_once(self.redata, 0)
             return
-        data = [
-            {'rulesview': self.rulesview, 'rule': rule, 'index': i, 'ruleslist': self}
-            for i, rule in enumerate(self.rulebook)
-        ]
+        data = [{
+            'rulesview': self.rulesview,
+            'rule': rule,
+            'index': i,
+            'ruleslist': self
+        } for i, rule in enumerate(self.rulebook)]
         self.data = data
 
     def _trigger_redata(self, *args, **kwargs):
@@ -136,22 +136,23 @@ class RulesView(Widget):
             return
 
         deck_builder_kwargs = {
-            'pos_hint': {'x': 0, 'y': 0},
-            'starting_pos_hint': {'x': 0.05, 'top': 0.95},
+            'pos_hint': {
+                'x': 0,
+                'y': 0
+            },
+            'starting_pos_hint': {
+                'x': 0.05,
+                'top': 0.95
+            },
             'card_size_hint': (0.3, 0.4),
             'card_hint_step': (0, -0.1),
             'deck_x_hint_step': 0.4
         }
 
-        self._tabs = TabbedPanel(
-            size=self.size,
-            pos=self.pos,
-            do_default_tab=False
-        )
-        self.bind(
-            size=self._tabs.setter('size'),
-            pos=self._tabs.setter('pos')
-        )
+        self._tabs = TabbedPanel(size=self.size,
+                                 pos=self.pos,
+                                 do_default_tab=False)
+        self.bind(size=self._tabs.setter('size'), pos=self._tabs.setter('pos'))
         self.add_widget(self._tabs)
 
         for functyp in 'trigger', 'prereq', 'action':
@@ -160,22 +161,25 @@ class RulesView(Widget):
             self._tabs.add_widget(getattr(self, '_{}_tab'.format(functyp)))
             builder = DeckBuilderView(**deck_builder_kwargs)
             setattr(self, '_{}_builder'.format(functyp), builder)
-            builder.bind(decks=getattr(self, '_trigger_push_{}s'.format(functyp)))
-            scroll_left = DeckBuilderScrollBar(
-                size_hint_x=0.01,
-                pos_hint={'x': 0, 'y': 0},
-                deckbuilder=builder,
-                deckidx=0,
-                scroll_min=0
-            )
+            builder.bind(
+                decks=getattr(self, '_trigger_push_{}s'.format(functyp)))
+            scroll_left = DeckBuilderScrollBar(size_hint_x=0.01,
+                                               pos_hint={
+                                                   'x': 0,
+                                                   'y': 0
+                                               },
+                                               deckbuilder=builder,
+                                               deckidx=0,
+                                               scroll_min=0)
             setattr(self, '_scroll_left_' + functyp, scroll_left)
-            scroll_right = DeckBuilderScrollBar(
-                size_hint_x=0.01,
-                pos_hint={'right': 1, 'y': 0},
-                deckbuilder=builder,
-                deckidx=1,
-                scroll_min=0
-            )
+            scroll_right = DeckBuilderScrollBar(size_hint_x=0.01,
+                                                pos_hint={
+                                                    'right': 1,
+                                                    'y': 0
+                                                },
+                                                deckbuilder=builder,
+                                                deckidx=1,
+                                                scroll_min=0)
             setattr(self, '_scroll_right_' + functyp, scroll_right)
             layout = FloatLayout()
             setattr(self, '_{}_layout'.format(functyp), layout)
@@ -184,19 +188,19 @@ class RulesView(Widget):
             layout.add_widget(scroll_left)
             layout.add_widget(scroll_right)
             layout.add_widget(
-                Label(
-                    text='Used',
-                    pos_hint={'center_x': 0.1, 'center_y': 0.98},
-                    size_hint=(None, None)
-                )
-            )
+                Label(text='Used',
+                      pos_hint={
+                          'center_x': 0.1,
+                          'center_y': 0.98
+                      },
+                      size_hint=(None, None)))
             layout.add_widget(
-                Label(
-                    text='Unused',
-                    pos_hint={'center_x': 0.5, 'center_y': 0.98},
-                    size_hint=(None, None)
-                )
-            )
+                Label(text='Unused',
+                      pos_hint={
+                          'center_x': 0.5,
+                          'center_y': 0.98
+                      },
+                      size_hint=(None, None)))
             self.bind(rule=getattr(self, '_trigger_pull_{}s'.format(functyp)))
         self._finalized = True
 
@@ -209,32 +213,28 @@ class RulesView(Widget):
         """
         if not self.rule:
             return [], []
-        rulefuncnames = getattr(self.rule, what+'s')
+        rulefuncnames = getattr(self.rule, what + 's')
         unused = [
-            Card(
-                ud={
-                    'type': what,
-                    'funcname': name,
-                    'signature': sig
-                },
-                headline_text=name,
-                show_art=False,
-                midline_text=what.capitalize(),
-                text=source
-            )
-            for (name, source, sig) in allfuncs if name not in rulefuncnames
+            Card(ud={
+                'type': what,
+                'funcname': name,
+                'signature': sig
+            },
+                 headline_text=name,
+                 show_art=False,
+                 midline_text=what.capitalize(),
+                 text=source) for (name, source, sig) in allfuncs
+            if name not in rulefuncnames
         ]
         used = [
-            Card(
-                ud={
-                    'type': what,
-                    'funcname': name,
-                },
-                headline_text=name,
-                show_art=False,
-                midline_text=what.capitalize(),
-                text=str(getattr(getattr(self.engine, what), name))
-            )
+            Card(ud={
+                'type': what,
+                'funcname': name,
+            },
+                 headline_text=name,
+                 show_art=False,
+                 midline_text=what.capitalize(),
+                 text=str(getattr(getattr(self.engine, what), name)))
             for name in rulefuncnames
         ]
         return used, unused
@@ -247,24 +247,32 @@ class RulesView(Widget):
         ``get_function_cards`` method.
 
         """
-        setattr(getattr(self, '_{}_builder'.format(what)), 'decks', self.get_functions_cards(what, allfuncs))
+        setattr(getattr(self, '_{}_builder'.format(what)), 'decks',
+                self.get_functions_cards(what, allfuncs))
 
     def _pull_functions(self, what):
-        return self.get_functions_cards(what, list(map(self.inspect_func, getattr(self.engine, what)._cache.items())))
+        return self.get_functions_cards(
+            what,
+            list(
+                map(self.inspect_func,
+                    getattr(self.engine, what)._cache.items())))
 
     def pull_triggers(self, *args):
         """Refresh the cards in the trigger builder"""
         self._trigger_builder.decks = self._pull_functions('trigger')
+
     _trigger_pull_triggers = trigger(pull_triggers)
 
     def pull_prereqs(self, *args):
         """Refresh the cards in the prereq builder"""
         self._prereq_builder.decks = self._pull_functions('prereq')
+
     _trigger_pull_prereqs = trigger(pull_prereqs)
 
     def pull_actions(self, *args):
         """Refresh the cards in the action builder"""
         self._action_builder.decks = self._pull_functions('action')
+
     _trigger_pull_actions = trigger(pull_actions)
 
     def inspect_func(self, namesrc):
@@ -294,6 +302,7 @@ class RulesView(Widget):
         self.pull_triggers()
         self.pull_prereqs()
         self.pull_actions()
+
     _trigger_update_builders = trigger(update_builders)
 
     def _upd_unused(self, what):
@@ -323,38 +332,45 @@ class RulesView(Widget):
 
     def upd_unused_actions(self, *args):
         self._upd_unused('action')
+
     _trigger_upd_unused_actions = trigger(upd_unused_actions)
 
     def upd_unused_triggers(self, *args):
         self._upd_unused('trigger')
+
     _trigger_upd_unused_triggers = trigger(upd_unused_triggers)
 
     def upd_unused_prereqs(self, *args):
         self._upd_unused('prereq')
+
     _trigger_upd_unused_prereqs = trigger(upd_unused_prereqs)
 
     def _push_funcs(self, what):
         if not self.rule:
-            Logger.debug("RulesView: not pushing {} for lack of rule".format(what))
+            Logger.debug(
+                "RulesView: not pushing {} for lack of rule".format(what))
             return
         funcs = [
-            card.ud['funcname'] for card in
-            getattr(self, '_{}_builder'.format(what)).decks[0]
+            card.ud['funcname']
+            for card in getattr(self, '_{}_builder'.format(what)).decks[0]
         ]
-        funlist = getattr(self.rule, what+'s')
+        funlist = getattr(self.rule, what + 's')
         if funlist != funcs:
-            setattr(self.rule, what+'s', funcs)
+            setattr(self.rule, what + 's', funcs)
 
     def push_actions(self, *args):
         self._push_funcs('action')
+
     _trigger_push_actions = trigger(push_actions)
 
     def push_prereqs(self, *args):
         self._push_funcs('prereq')
+
     _trigger_push_prereqs = trigger(push_prereqs)
 
     def push_triggers(self, att, *args):
         self._push_funcs('trigger')
+
     _trigger_push_triggers = trigger(push_triggers)
 
 
@@ -392,7 +408,7 @@ class RulesBox(BoxLayout):
             return
         self._new_rule_name = self.new_rule_name
         new_rule = self.engine.rule.new_empty(self.new_rule_name)
-        assert(new_rule is not None)
+        assert (new_rule is not None)
         self.rulebook.append(new_rule)
         self.ruleslist.redata()
         self.ids.rulename.text = ''
@@ -438,26 +454,19 @@ class CharacterRulesScreen(Screen):
 
     def finalize(self, *args):
         assert not hasattr(self, '_finalized')
-        if not (
-            self.toggle and self.character
-        ):
+        if not (self.toggle and self.character):
             Clock.schedule_once(self.finalize, 0)
             return
         self._tabs = TabbedPanel(do_default_tab=False)
-        for rb, txt in (
-                ('character', 'character'),
-                ('avatar', 'avatar'),
-                ('character_thing', 'thing'),
-                ('character_place', 'place'),
-                ('character_portal', 'portal')
-        ):
+        for rb, txt in (('character', 'character'), ('avatar', 'avatar'),
+                        ('character_thing',
+                         'thing'), ('character_place',
+                                    'place'), ('character_portal', 'portal')):
             tab = TabbedPanelItem(text=txt)
             setattr(self, '_{}_tab'.format(rb), tab)
-            box = RulesBox(
-                rulebook=self._get_rulebook(rb),
-                entity=self.character,
-                toggle=self.toggle
-            )
+            box = RulesBox(rulebook=self._get_rulebook(rb),
+                           entity=self.character,
+                           toggle=self.toggle)
             setattr(self, '_{}_box'.format(rb), box)
             tab.add_widget(box)
             self._tabs.add_widget(tab)
@@ -468,10 +477,8 @@ class CharacterRulesScreen(Screen):
         if not hasattr(self, '_finalized'):
             self.finalize()
             return
-        for rb in (
-            'character', 'avatar', 'character_thing',
-            'character_place', 'character_portal'
-        ):
+        for rb in ('character', 'avatar', 'character_thing', 'character_place',
+                   'character_portal'):
             tab = getattr(self, '_{}_tab'.format(rb))
             tab.content.entity = self.character
             tab.content.rulebook = self._get_rulebook(rb)

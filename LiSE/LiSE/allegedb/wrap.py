@@ -33,8 +33,7 @@ class MutableWrapper(ABC):
 
     def __repr__(self):
         return "<{} instance at {}, wrapping {}>".format(
-            self.__class__.__name__, id(self), self._getter()
-        )
+            self.__class__.__name__, id(self), self._getter())
 
     def __str__(self):
         return str(self._getter())
@@ -72,11 +71,14 @@ class MutableWrapperDictList(MutableWrapper):
     def __getitem__(self, k):
         ret = self._getter()[k]
         if isinstance(ret, dict):
-            return SubDictWrapper(lambda: self._getter()[k], partial(self._subset, k))
+            return SubDictWrapper(lambda: self._getter()[k],
+                                  partial(self._subset, k))
         if isinstance(ret, list):
-            return SubListWrapper(lambda: self._getter()[k], partial(self._subset, k))
+            return SubListWrapper(lambda: self._getter()[k],
+                                  partial(self._subset, k))
         if isinstance(ret, set):
-            return SubSetWrapper(lambda: self._getter()[k], partial(self._subset, k))
+            return SubSetWrapper(lambda: self._getter()[k],
+                                 partial(self._subset, k))
         return ret
 
     def __setitem__(self, key, value):
@@ -115,7 +117,8 @@ class MutableMappingUnwrapper(MutableMapping):
     def unwrap(self):
         """Return a deep copy of myself as a dict, and unwrap any wrapper objects in me."""
         return {
-            k: v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
+            k: v.unwrap()
+            if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
             for (k, v) in self.items()
         }
 
@@ -162,10 +165,7 @@ class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence):
 
     def unwrap(self):
         """Return a deep copy of myself as a list, and unwrap any wrapper objects in me."""
-        return [
-            v.unwrap() if hasattr(v, 'unwrap') else v
-            for v in self
-        ]
+        return [v.unwrap() if hasattr(v, 'unwrap') else v for v in self]
 
 
 class SubListWrapper(MutableSequenceWrapper, list):
@@ -218,7 +218,11 @@ class MutableWrapperSet(MutableWrapper, MutableSet):
 
     def unwrap(self):
         """Return a deep copy of myself as a set, and unwrap any wrapper objects in me."""
-        return {v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v for v in self}
+        return {
+            v.unwrap()
+            if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
+            for v in self
+        }
 
 
 class SubSetWrapper(MutableWrapperSet, set):
@@ -305,7 +309,11 @@ class ListWrapper(MutableWrapperDictList, MutableSequence, list):
 
     def unwrap(self):
         """Return a deep copy of myself as a list, and unwrap any wrapper objects in me."""
-        return [v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v for v in self]
+        return [
+            v.unwrap()
+            if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
+            for v in self
+        ]
 
 
 class SetWrapper(MutableWrapperSet, set):

@@ -24,18 +24,10 @@ import numpy as np
 from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
 from kivy.graphics.fbo import Fbo
-from kivy.graphics import (
-    Translate, Rectangle, Quad, Color
-)
-from kivy.properties import (
-    ReferenceListProperty,
-    AliasProperty,
-    ObjectProperty,
-    NumericProperty,
-    ListProperty,
-    BooleanProperty,
-    StringProperty
-)
+from kivy.graphics import (Translate, Rectangle, Quad, Color)
+from kivy.properties import (ReferenceListProperty, AliasProperty,
+                             ObjectProperty, NumericProperty, ListProperty,
+                             BooleanProperty, StringProperty)
 from kivy.clock import Clock
 
 from ..dummy import Dummy
@@ -46,7 +38,6 @@ try:
 except (KeyError, ImportError):
     from ..collide import Collide2DPoly
 from ..util import get_thin_rect_vertices, fortyfive
-
 
 cos45 = cos(fortyfive)
 sin45 = sin(fortyfive)
@@ -72,10 +63,7 @@ def up_and_down(orig, dest, taillen):
     x1 = endx - off1
     x2 = endx + off1
     y1 = y2 = endy - off2 if oy < dy else endy + off2
-    return (
-        [x0, y0, endx, endy],
-        [x1, y1, endx, endy, x2, y2]
-    )
+    return ([x0, y0, endx, endy], [x1, y1, endx, endy, x2, y2])
 
 
 def left_and_right(orig, dest, taillen):
@@ -98,10 +86,7 @@ def left_and_right(orig, dest, taillen):
     y1 = endy - off1
     y2 = endy + off1
     x1 = x2 = endx - off2 if ox < dx else endx + off2
-    return (
-        [x0, y0, endx, endy],
-        [x1, y1, endx, endy, x2, y2]
-    )
+    return ([x0, y0, endx, endy], [x1, y1, endx, endy, x2, y2])
 
 
 def _get_points_first_part(orig, dest, taillen):
@@ -205,12 +190,9 @@ def get_points_multi(args):
     endxs = np.multiply(rightxs, xcos)
     endys = np.multiply(topys, ycos)
     for key, startx, starty, endx, endy, x1, y1, endx, endy, x2, y2 in zip(
-        keys, startxs, startys, endxs, endys, x1s, y1s, endxs, endys, x2s, y2s
-    ):
-        ret[key] = (
-            [startx, starty, endx, endy],
-            [x1, y1, endx, endy, x2, y2]
-        )
+            keys, startxs, startys, endxs, endys, x1s, y1s, endxs, endys, x2s,
+            y2s):
+        ret[key] = ([startx, starty, endx, endy], [x1, y1, endx, endy, x2, y2])
     return ret
 
 
@@ -249,10 +231,7 @@ def get_points(orig, dest, taillen):
     starty = boty * yco
     endx = rightx * xco
     endy = topy * yco
-    return (
-        [startx, starty, endx, endy],
-        [x1, y1, endx, endy, x2, y2]
-    )
+    return ([startx, starty, endx, endy], [x1, y1, endx, endy, x2, y2])
 
 
 eight0s = tuple([0] * 8)
@@ -311,16 +290,13 @@ class GraphArrowWidget(Widget):
         the properties I need to do so.
 
         """
-        if not (
-                self.board and
-                self.origin and
-                self.destination and
-                self.origin.name in self.board.character.portal and
-                self.destination.name in self.board.character.portal
-        ):
+        if not (self.board and self.origin and self.destination
+                and self.origin.name in self.board.character.portal
+                and self.destination.name in self.board.character.portal):
             Clock.schedule_once(self.on_portal, 0)
             return
-        self.name = '{}->{}'.format(self.portal['origin'], self.portal['destination'])
+        self.name = '{}->{}'.format(self.portal['origin'],
+                                    self.portal['destination'])
 
     def collide_point(self, x, y):
         """Delegate to my ``collider``, or return ``False`` if I don't have
@@ -336,10 +312,7 @@ class GraphArrowWidget(Widget):
         everything else.
 
         """
-        self._trigger_repoint = Clock.create_trigger(
-            self._repoint,
-            timeout=-1
-        )
+        self._trigger_repoint = Clock.create_trigger(self._repoint, timeout=-1)
         super().__init__(**kwargs)
 
     def on_origin(self, *args):
@@ -352,11 +325,13 @@ class GraphArrowWidget(Widget):
                 self._origin.unbind_uid('pos', self._origin._bound_pos_repoint)
                 del self._origin._bound_pos_repoint
             if hasattr(self._origin, '_bound_size_repoint'):
-                self._origin_unbind_uid('size', self._origin._bound_size_repoint)
+                self._origin_unbind_uid('size',
+                                        self._origin._bound_size_repoint)
                 del self._origin._bound_size
         origin = self._origin = self.origin
         origin._bound_pos_repoint = origin.fbind('pos', self._trigger_repoint)
-        origin._bound_size_repoint = origin.fbind('size', self._trigger_repoint)
+        origin._bound_size_repoint = origin.fbind('size',
+                                                  self._trigger_repoint)
 
     def on_destination(self, *args):
         """Make sure to redraw whenever the destination moves."""
@@ -365,14 +340,18 @@ class GraphArrowWidget(Widget):
             return
         if hasattr(self, '_destination'):
             if hasattr(self._destination, '_bound_pos_repoint'):
-                self._destination.unbind_uid('pos', self._destination._bound_pos_repoint)
+                self._destination.unbind_uid(
+                    'pos', self._destination._bound_pos_repoint)
                 del self._destination._bound_pos_repoint
             if hasattr(self._destination, '_bound_size_repoint'):
-                self.destination.unbind_uid('size', self._destination._bound_size_repoint)
+                self.destination.unbind_uid(
+                    'size', self._destination._bound_size_repoint)
                 del self._destination._bound_size_repoint
         destination = self._destination = self.destination
-        destination._bound_pos_repoint = destination.fbind('pos', self._trigger_repoint)
-        destination._bound_size_repoint = destination.fbind('size', self._trigger_repoint)
+        destination._bound_pos_repoint = destination.fbind(
+            'pos', self._trigger_repoint)
+        destination._bound_size_repoint = destination.fbind(
+            'size', self._trigger_repoint)
 
     def add_widget(self, wid, index=0, canvas=None):
         """Put the :class:`Pawn` at a point along my length proportionate to
@@ -385,17 +364,12 @@ class GraphArrowWidget(Widget):
         if not hasattr(wid, 'group'):
             return
         wid._no_use_canvas = True
-        mycanvas = (
-            self.canvas.before if canvas == 'before' else
-            self.canvas.after if canvas == 'after' else
-            self.canvas
-        )
+        mycanvas = (self.canvas.before if canvas == 'before' else
+                    self.canvas.after if canvas == 'after' else self.canvas)
         mycanvas.remove(wid.canvas)
-        pawncanvas = (
-            self.board.spotlayout.canvas.before if canvas == 'before' else
-            self.board.spotlayout.canvas.after if canvas == 'after' else
-            self.board.spotlayout.canvas
-        )
+        pawncanvas = (self.board.spotlayout.canvas.before if canvas == 'before'
+                      else self.board.spotlayout.canvas.after
+                      if canvas == 'after' else self.board.spotlayout.canvas)
         for child in self.children:
             if hasattr(child, 'group') and child.group in pawncanvas.children:
                 pawncanvas.remove(child.group)
@@ -442,22 +416,14 @@ class GraphArrowWidget(Widget):
             # I'll do my best..
             pawn.pos = self.pos_along(0)
             return
-        elif (
-                pawn.thing['next_arrival_time'] and
-                self._turn >= pawn.thing['next_arrival_time']
-        ):
+        elif (pawn.thing['next_arrival_time']
+              and self._turn >= pawn.thing['next_arrival_time']):
             pawn.pos = self.pos_along(1)
             return
         try:
             pawn.pos = self.pos_along(
-                (
-                    self._turn -
-                    pawn.thing['arrival_time']
-                ) / (
-                    pawn.thing['next_arrival_time'] -
-                    pawn.thing['arrival_time']
-                )
-            )
+                (self._turn - pawn.thing['arrival_time']) /
+                (pawn.thing['next_arrival_time'] - pawn.thing['arrival_time']))
         except (TypeError, ZeroDivisionError):
             pawn.pos = self.pos_along(0)
 
@@ -514,23 +480,18 @@ class GraphArrowWidget(Widget):
         bgr = r * self.bg_scale_selected if self.selected \
             else self.bg_scale_unselected
         self.trunk_quad_vertices_bg = get_thin_rect_vertices(
-            ox, oy, dx, dy, bgr
-        )
+            ox, oy, dx, dy, bgr)
         self.collider = Collide2DPoly(self.trunk_quad_vertices_bg)
         self.trunk_quad_vertices_fg = get_thin_rect_vertices(ox, oy, dx, dy, r)
         (x1, y1, endx, endy, x2, y2) = self.head_points
         self.left_head_quad_vertices_bg = get_thin_rect_vertices(
-            x1, y1, endx, endy, bgr
-        )
+            x1, y1, endx, endy, bgr)
         self.right_head_quad_vertices_bg = get_thin_rect_vertices(
-            x2, y2, endx, endy, bgr
-        )
+            x2, y2, endx, endy, bgr)
         self.left_head_quad_vertices_fg = get_thin_rect_vertices(
-            x1, y1, endx, endy, r
-        )
+            x1, y1, endx, endy, r)
         self.right_head_quad_vertices_fg = get_thin_rect_vertices(
-            x2, y2, endx, endy, r
-        )
+            x2, y2, endx, endy, r)
         self.slope = self._get_slope()
         self.repointed = True
 
@@ -592,50 +553,50 @@ class GraphArrowWidget(Widget):
         if hasattr(self, '_color0'):
             return
         with self.canvas:
-            self._color0 = Color(rgba=self.bg_color_selected if self.selected else self.bg_color_unselected)
+            self._color0 = Color(rgba=self.bg_color_selected if self.
+                                 selected else self.bg_color_unselected)
             for att in (
-                'bg_color_selected',
-                'bg_color_unselected',
-                'selected',
+                    'bg_color_selected',
+                    'bg_color_unselected',
+                    'selected',
             ):
                 self.fbind(att, self._pull_bg_color0)
             self._quad0 = Quad(points=self.trunk_quad_vertices_bg)
             self.fbind('trunk_quad_vertices_bg', self._pull_points_quad0)
-            self._color1 = Color(rgba=(self.bg_color_selected_head or self.bg_color_selected) if self.selected else (self.bg_color_unselected_head or self.bg_color_unselected))
-            for att in (
-                'bg_color_selected_head',
-                'bg_color_selected',
-                'bg_color_unselected_head',
-                'bg_color_unselected',
-                'selected'
-            ):
+            self._color1 = Color(rgba=(
+                self.bg_color_selected_head or self.bg_color_selected
+            ) if self.selected else (
+                self.bg_color_unselected_head or self.bg_color_unselected))
+            for att in ('bg_color_selected_head', 'bg_color_selected',
+                        'bg_color_unselected_head', 'bg_color_unselected',
+                        'selected'):
                 self.fbind(att, self._pull_head_bg_color1)
             self._quad1_0 = Quad(points=self.left_head_quad_vertices_bg)
-            self.fbind('left_head_quad_vertices_bg', self._pull_bg_left_head_points_quad1_0)
+            self.fbind('left_head_quad_vertices_bg',
+                       self._pull_bg_left_head_points_quad1_0)
             self._quad1_1 = Quad(points=self.right_head_quad_vertices_bg)
-            self.fbind('right_head_quad_vertices_bg', self._pull_bg_right_head_points_quad1_1)
-            self._color2 = Color(rgba=self.fg_color_selected if self.selected else self.fg_color_unselected)
-            for att in (
-                'fg_color_selected',
-                'fg_color_unselected',
-                'selected'
-            ):
+            self.fbind('right_head_quad_vertices_bg',
+                       self._pull_bg_right_head_points_quad1_1)
+            self._color2 = Color(rgba=self.fg_color_selected if self.
+                                 selected else self.fg_color_unselected)
+            for att in ('fg_color_selected', 'fg_color_unselected',
+                        'selected'):
                 self.fbind(att, self._pull_color2)
             self._quad2 = Quad(points=self.trunk_quad_vertices_fg)
             self.fbind('trunk_quad_vertices_fg', self._pull_quad2_points)
-            self._color3 = Color(rgba=(self.fg_color_selected_head or self.fg_color_selected) if self.selected else (self.fg_color_unselected_head or self.fg_color_unselected))
-            for att in (
-                'selected',
-                'fg_color_selected_head',
-                'fg_color_selected',
-                'fg_color_unselected_head',
-                'fg_color_unselected'
-            ):
+            self._color3 = Color(rgba=(
+                self.fg_color_selected_head or self.fg_color_selected
+            ) if self.selected else (
+                self.fg_color_unselected_head or self.fg_color_unselected))
+            for att in ('selected', 'fg_color_selected_head',
+                        'fg_color_selected', 'fg_color_unselected_head',
+                        'fg_color_unselected'):
                 self.fbind(att, self._pull_color3)
             self._quad3_0 = Quad(points=self.left_head_quad_vertices_fg)
             self.fbind('left_head_quad_vertices_fg', self._pull_points_quad3_0)
             self._quad3_1 = Quad(points=self.right_head_quad_vertices_fg)
-            self.fbind('right_head_quad_vertices_fg', self._pull_points_quad3_1)
+            self.fbind('right_head_quad_vertices_fg',
+                       self._pull_points_quad3_1)
 
 
 class GraphArrow(GraphArrowWidget):
@@ -650,12 +611,11 @@ class GraphArrow(GraphArrowWidget):
     destspot = ObjectProperty()
     portal = ObjectProperty()
     """The portal that I represent."""
-    reciprocal = AliasProperty(
-        lambda self: self._get_reciprocal()
-        if None not in (self.board, self.portal) else None,
-        lambda self, v: None,
-        bind=('portal',)
-    )
+    reciprocal = AliasProperty(lambda self: self._get_reciprocal()
+                               if None not in
+                               (self.board, self.portal) else None,
+                               lambda self, v: None,
+                               bind=('portal', ))
     grabbed = BooleanProperty(False)
     _turn = NumericProperty()
 
@@ -666,10 +626,7 @@ class GraphArrow(GraphArrowWidget):
         """
         orign = self.portal['origin']
         destn = self.portal['destination']
-        if (
-                destn in self.board.arrow and
-                orign in self.board.arrow[destn]
-        ):
+        if (destn in self.board.arrow and orign in self.board.arrow[destn]):
             return self.board.arrow[destn][orign]
         else:
             return None
@@ -695,7 +652,8 @@ class ArrowLayout(FloatLayout):
         with self.canvas:
             self._fbo = Fbo(size=self.size)
             self._translate = Translate(x=self.x, y=self.y)
-            self._rectangle = Rectangle(size=self.size, texture=self._fbo.texture)
+            self._rectangle = Rectangle(size=self.size,
+                                        texture=self._fbo.texture)
 
     def redraw(self, *args):
         if not hasattr(self, '_rectangle'):
@@ -712,13 +670,18 @@ class ArrowLayout(FloatLayout):
             if hasattr(child, redraw_bound):
                 child.unbind_uid('selected', getattr(child, redraw_bound))
             fbo.add(child.canvas)
-            setattr(child, redraw_bound, child.fbind('selected', trigger_redraw))
+            setattr(child, redraw_bound, child.fbind('selected',
+                                                     trigger_redraw))
             if hasattr(child.origspot, redraw_bound):
-                child.origspot.unbind_uid('pos',getattr(child.origspot, redraw_bound))
-            setattr(child.origspot, redraw_bound, child.origspot.fbind('pos', trigger_redraw))
+                child.origspot.unbind_uid(
+                    'pos', getattr(child.origspot, redraw_bound))
+            setattr(child.origspot, redraw_bound,
+                    child.origspot.fbind('pos', trigger_redraw))
             if hasattr(child.destspot, redraw_bound):
-                child.destspot.unbind_uid('pos', getattr(child.destspot, redraw_bound))
-            setattr(child.destspot, redraw_bound, child.destspot.fbind('pos', trigger_redraw))
+                child.destspot.unbind_uid(
+                    'pos', getattr(child.destspot, redraw_bound))
+            setattr(child.destspot, redraw_bound,
+                    child.destspot.fbind('pos', trigger_redraw))
 
     def on_pos(self, *args):
         if not hasattr(self, '_translate'):

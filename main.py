@@ -1,6 +1,7 @@
 from multiprocessing import freeze_support
 import sys
 import os
+
 wd = os.getcwd()
 sys.path.extend([wd + '/LiSE', wd + '/ELiDE'])
 

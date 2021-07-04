@@ -3,6 +3,7 @@ import LiSE
 from tempfile import NamedTemporaryFile
 import pytest
 from LiSE.allegedb import query
+
 query.QueryEngine.path = os.path.dirname(LiSE.__file__)
 
 

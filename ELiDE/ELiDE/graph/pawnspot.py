@@ -15,20 +15,10 @@
 """Code that draws the box around a Pawn or Spot when it's selected"""
 from collections import defaultdict
 
-from kivy.properties import (
-    ObjectProperty,
-    BooleanProperty,
-    ListProperty,
-    DictProperty
-)
-from kivy.graphics import (
-    InstructionGroup,
-    Translate,
-    PopMatrix,
-    PushMatrix,
-    Color,
-    Line
-)
+from kivy.properties import (ObjectProperty, BooleanProperty, ListProperty,
+                             DictProperty)
+from kivy.graphics import (InstructionGroup, Translate, PopMatrix, PushMatrix,
+                           Color, Line)
 from kivy.uix.layout import Layout
 from kivy.clock import Clock
 from ..util import trigger
@@ -65,10 +55,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
         """Call this after you've created all the PawnSpot you need and are ready to add them to the board."""
         if getattr(self, '_finalized', False):
             return
-        if (
-                self.proxy is None or
-                not hasattr(self.proxy, 'name')
-        ):
+        if (self.proxy is None or not hasattr(self.proxy, 'name')):
             Clock.schedule_once(self.finalize, 0)
             return
         if initial:
@@ -81,37 +68,29 @@ class GraphPawnSpot(ImageStackProxy, Layout):
                         raise ex
                     self.paths = self.default_image_paths
             else:
-                self.paths = self.proxy.setdefault(
-                    '_image_paths', self.default_image_paths
-                )
+                self.paths = self.proxy.setdefault('_image_paths',
+                                                   self.default_image_paths)
             zeroes = [0] * len(self.paths)
             self.offxs = self.proxy.setdefault('_offxs', zeroes)
             self.offys = self.proxy.setdefault('_offys', zeroes)
             self.proxy.connect(self._trigger_pull_from_proxy)
-        self.bind(
-            paths=self._trigger_push_image_paths,
-            offxs=self._trigger_push_offxs,
-            offys=self._trigger_push_offys
-        )
+        self.bind(paths=self._trigger_push_image_paths,
+                  offxs=self._trigger_push_offxs,
+                  offys=self._trigger_push_offys)
         self._finalized = True
         self.finalize_children()
 
     def unfinalize(self):
-        self.unbind(
-            paths=self._trigger_push_image_paths,
-            offxs=self._trigger_push_offxs,
-            offys=self._trigger_push_offys
-        )
+        self.unbind(paths=self._trigger_push_image_paths,
+                    offxs=self._trigger_push_offxs,
+                    offys=self._trigger_push_offys)
         self._finalized = False
 
     def pull_from_proxy(self, *args):
         initial = not hasattr(self, '_finalized')
         self.unfinalize()
-        for key, att in [
-                ('_image_paths', 'paths'),
-                ('_offxs', 'offxs'),
-                ('_offys', 'offys')
-        ]:
+        for key, att in [('_image_paths', 'paths'), ('_offxs', 'offxs'),
+                         ('_offys', 'offys')]:
             if key in self.proxy and self.proxy[key] != getattr(self, att):
                 setattr(self, att, self.proxy[key])
         self.finalize(initial)
@@ -150,7 +129,10 @@ class GraphPawnSpot(ImageStackProxy, Layout):
             self.box_translate.xy = self.pos
 
         def upd_box_points(*args):
-            self.box.points = [0, 0, self.width, 0, self.width, self.height, 0, self.height, 0, 0]
+            self.box.points = [
+                0, 0, self.width, 0, self.width, self.height, 0, self.height,
+                0, 0
+            ]
 
         self.boxgrp = boxgrp = InstructionGroup()
         self.color = Color(*self.linecolor)
@@ -160,10 +142,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
         boxgrp.add(self.color)
         self.box = Line()
         upd_box_points()
-        self.bind(
-            size=upd_box_points,
-            pos=upd_box_translate
-        )
+        self.bind(size=upd_box_points, pos=upd_box_translate)
         boxgrp.add(self.box)
         boxgrp.add(Color(1., 1., 1.))
         boxgrp.add(PopMatrix())
@@ -193,7 +172,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
         # leaving at least this much space on the sides
         xpad = self.proxy.get('_xpad', self.width / 4)
         ypad = self.proxy.get('_ypad', self.height / 4)
-        self.gutter = gutter = self.proxy.get('_gutter', xpad/2)
+        self.gutter = gutter = self.proxy.get('_gutter', xpad / 2)
         height = self.height - ypad
         content_height = 0
         too_tall = False
@@ -222,8 +201,10 @@ class GraphPawnSpot(ImageStackProxy, Layout):
                 else:
                     subgroup.append(member)
             subgroups.append(subgroup)
-            content_height = max((content_height, sum(wid.height for wid in subgroups[0])))
-            content_width += sum(max(wid.width for wid in subgrp) for subgrp in subgroups)
+            content_height = max(
+                (content_height, sum(wid.height for wid in subgroups[0])))
+            content_width += sum(
+                max(wid.width for wid in subgrp) for subgrp in subgroups)
             piles[group] = subgroups
         self.content_width = content_width + gutter * (len(piles) - 1)
         too_wide = content_width > width

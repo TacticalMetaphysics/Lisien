@@ -26,7 +26,8 @@ fortyfive = pi / 4
 """pi / 4"""
 
 
-class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout):
+class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior,
+                                 RecycleBoxLayout):
     pass
 
 
@@ -59,9 +60,8 @@ class trigger(object):
             # instantiates.  Don't try making any trigger in that
             # case.
             return
-        retval = Clock.create_trigger(
-            partial(self.func, instance), self.timeout
-        )
+        retval = Clock.create_trigger(partial(self.func, instance),
+                                      self.timeout)
         setattr(instance, self.func.__name__, retval)
         return retval
 
@@ -110,12 +110,7 @@ def get_thin_rect_vertices(ox, oy, dx, dy, r):
         rightx = dx * -1
         xco = -1
     else:
-        return [
-            ox - r, oy,
-            ox + r, oy,
-            ox + r, dy,
-            ox - r, dy
-        ]
+        return [ox - r, oy, ox + r, oy, ox + r, dy, ox - r, dy]
     if oy < dy:
         boty = oy
         topy = dy
@@ -125,16 +120,11 @@ def get_thin_rect_vertices(ox, oy, dx, dy, r):
         topy = dy * -1
         yco = -1
     else:
-        return [
-            ox, oy - r,
-            dx, oy - r,
-            dx, oy + r,
-            ox, oy + r
-        ]
+        return [ox, oy - r, dx, oy - r, dx, oy + r, ox, oy + r]
 
     rise = topy - boty
     run = rightx - leftx
-    theta = atan(rise/run)
+    theta = atan(rise / run)
     theta_prime = ninety - theta
     xoff = cos(theta_prime) * r
     yoff = sin(theta_prime) * r
@@ -147,8 +137,6 @@ def get_thin_rect_vertices(ox, oy, dx, dy, r):
     x4 = leftx - xoff
     y4 = boty + yoff
     return [
-        x1 * xco, y1 * yco,
-        x2 * xco, y2 * yco,
-        x3 * xco, y3 * yco,
-        x4 * xco, y4 * yco
+        x1 * xco, y1 * yco, x2 * xco, y2 * yco, x3 * xco, y3 * yco, x4 * xco,
+        y4 * yco
     ]

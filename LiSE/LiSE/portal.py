@@ -25,7 +25,6 @@ from .rule import RuleMapping as BaseRuleMapping
 
 class RuleMapping(BaseRuleMapping):
     """Mapping to get rules followed by a portal."""
-
     def __init__(self, portal):
         """Store portal, engine, and rulebook."""
         super().__init__(portal.engine, portal.rulebook)
@@ -59,8 +58,8 @@ class Portal(Edge, RuleFollower):
 
     @property
     def _cache(self):
-        return self.db._edge_val_cache[
-            self.character.name][self.orig][self.dest][0]
+        return self.db._edge_val_cache[self.character.name][self.orig][
+            self.dest][0]
 
     def _rule_name_activeness(self):
         rulebook_name = self._get_rulebook_name()
@@ -80,15 +79,12 @@ class Portal(Edge, RuleFollower):
                 except HistoryError as ex:
                     if ex.deleted:
                         break
-        raise KeyError("{}->{} has no rulebook?".format(
-            self.orig, self.dest
-        ))
+        raise KeyError("{}->{} has no rulebook?".format(self.orig, self.dest))
 
     def _get_rulebook_name(self):
         try:
             return self.engine._portals_rulebooks_cache.retrieve(
-                self.character.name, self.orig, self.dest, *self.engine._btt()
-            )
+                self.character.name, self.orig, self.dest, *self.engine._btt())
         except KeyError:
             return (self.character.name, self.orig, self.dest)
 
@@ -98,13 +94,15 @@ class Portal(Edge, RuleFollower):
         dest = self.dest
         cache = self.engine._portals_rulebooks_cache
         try:
-            if rulebook == cache.retrieve(character, orig, dest, *self.engine._btt()):
+            if rulebook == cache.retrieve(character, orig, dest,
+                                          *self.engine._btt()):
                 return
         except KeyError:
             pass
         branch, turn, tick = self.engine._nbtt()
         cache.store(character, orig, dest, branch, turn, tick, rulebook)
-        self.engine.query.set_portal_rulebook(character, orig, dest, branch, turn, tick, rulebook)
+        self.engine.query.set_portal_rulebook(character, orig, dest, branch,
+                                              turn, tick, rulebook)
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
@@ -128,13 +126,7 @@ class Portal(Edge, RuleFollower):
             except KeyError:
                 return False
         elif 'is_mirror' in self and self['is_mirror']:
-            return self.character.preportal[
-                self.orig
-            ][
-                self.dest
-            ][
-                key
-            ]
+            return self.character.preportal[self.orig][self.dest][key]
         else:
             return super().__getitem__(key)
 
@@ -151,30 +143,16 @@ class Portal(Edge, RuleFollower):
             self.reciprocal[key] = value
             return
         elif key == 'symmetrical' and value:
-            if (
-                    self.dest not in self.character.portal or
-                    self.orig not in
-                    self.character.portal[self.dest]
-            ):
+            if (self.dest not in self.character.portal
+                    or self.orig not in self.character.portal[self.dest]):
                 self.character.add_portal(self.dest, self.orig)
-            self.character.portal[
-                self.dest
-            ][
-                self.orig
-            ][
-                "is_mirror"
-            ] = True
+            self.character.portal[self.dest][self.orig]["is_mirror"] = True
             self.send(self, key='symmetrical', val=False)
             return
         elif key == 'symmetrical' and not value:
             try:
-                self.character.portal[
-                    self.dest
-                ][
-                    self.orig
-                ][
-                    "is_mirror"
-                ] = False
+                self.character.portal[self.dest][
+                    self.orig]["is_mirror"] = False
             except KeyError:
                 pass
             self.send(self, key='symmetrical', val=False)
@@ -184,11 +162,8 @@ class Portal(Edge, RuleFollower):
     def __repr__(self):
         """Describe character, origin, and destination"""
         return "{}.character[{}].portal[{}][{}]".format(
-            repr(self.engine),
-            repr(self['character']),
-            repr(self['origin']),
-            repr(self['destination'])
-        )
+            repr(self.engine), repr(self['character']), repr(self['origin']),
+            repr(self['destination']))
 
     def __bool__(self):
         """It means something that I exist, even if I have no data."""
@@ -215,10 +190,7 @@ class Portal(Edge, RuleFollower):
         ``self.engine.ticks_when``.
 
         """
-        return StatusAlias(
-            entity=self,
-            stat=stat
-        )
+        return StatusAlias(entity=self, stat=stat)
 
     def update(self, d):
         """Works like regular update, but only actually updates when the new
@@ -240,35 +212,22 @@ class Portal(Edge, RuleFollower):
         """
         self.clear()
         branch, turn, tick = self.engine._nbtt()
-        self.engine._edges_cache.store(
-            self.character.name,
-            self.origin.name,
-            self.destination.name,
-            0,
-            branch,
-            turn,
-            tick,
-            None
-        )
-        self.engine.query.exist_edge(
-            self.character.name,
-            self.origin.name,
-            self.destination.name,
-            branch, turn, tick, False
-        )
+        self.engine._edges_cache.store(self.character.name, self.origin.name,
+                                       self.destination.name, 0, branch, turn,
+                                       tick, None)
+        self.engine.query.exist_edge(self.character.name, self.origin.name,
+                                     self.destination.name, branch, turn, tick,
+                                     False)
         try:
-            del self.engine._edge_objs[
-                (self.graph.name, self.orig, self.dest)
-            ]
+            del self.engine._edge_objs[(self.graph.name, self.orig, self.dest)]
         except KeyError:
             pass
         self.character.portal[self.origin.name].send(
-            self.character.portal[self.origin.name],
-            key='dest', val=None
-        )
+            self.character.portal[self.origin.name], key='dest', val=None)
 
     def unwrap(self):
         return {
-            k: v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap')
-            else v for (k, v) in self.items()
+            k: v.unwrap()
+            if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
+            for (k, v) in self.items()
         }

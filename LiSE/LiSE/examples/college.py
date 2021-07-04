@@ -41,29 +41,23 @@ def install(eng):
     def time_passes(character):
         character.stat['hour'] = (character.stat['hour'] + 1) % 24
 
-
     # There's a character with all of the students in it, to make it easy to apply rules to all students.
     student_body = eng.new_character('student_body')
 
-
     classroom = phys.new_place('classroom')
-
 
     @student_body.avatar.rule
     def go_to_class(node):
         # There's just one really long class every day.
         node.travel_to(node.character.place['classroom'])
 
-
     @go_to_class.trigger
     def absent(node):
         return node.location != node.character.place['classroom']
 
-
     @go_to_class.prereq
     def class_in_session(node):
         return 8 <= node.engine.character['physical'].stat['hour'] < 15
-
 
     @go_to_class.prereq
     def be_timely(node):
@@ -80,7 +74,6 @@ def install(eng):
             if user.name not in ('physical', 'student_body'):
                 return not user.stat['lazy'] or node.engine.coinflip()
 
-
     @student_body.avatar.rule
     def leave_class(node):
         for user in node.users.values():
@@ -88,13 +81,11 @@ def install(eng):
                 node.travel_to(user.stat['room'])
                 return
 
-
     @leave_class.trigger
     def in_classroom_after_class(node):
         phys = node.character
         return node.location == phys.place['classroom'] \
                and phys.stat['hour'] >= 15
-
 
     # Let's make some rules and not assign them to anything yet.
     @eng.rule
@@ -104,17 +95,14 @@ def install(eng):
         for i in range(0, character.engine.randrange(1, 20)):
             braincells.pop()['drunk'] += 12
 
-
     @drink.trigger
     def party_time(character):
         phys = character.engine.character['physical']
         return 23 >= phys.stat['hour'] > 15
 
-
     @drink.prereq
     def is_drunkard(character):
         return character.stat['drunkard']
-
 
     @eng.rule
     def sloth(character):
@@ -122,7 +110,6 @@ def install(eng):
         character.engine.shuffle(braincells)
         for i in range(0, character.engine.randrange(1, 20)):
             braincells.pop()['slow'] += 1
-
 
     @sloth.trigger
     def out_of_class(character):
@@ -135,13 +122,11 @@ def install(eng):
 
     sloth.prereq(class_in_session)
 
-
     @eng.rule
     def learn(node):
         for user in node.users.values():
             if 'xp' in user.stat:
                 user.stat['xp'] += 1
-
 
     @learn.trigger
     def in_class(node):
@@ -154,26 +139,21 @@ def install(eng):
 
     learn.prereq(class_in_session)
 
-
     @learn.prereq
     def pay_attention(node):
         return node['drunk'] == node['slow'] == 0
-
 
     @eng.rule
     def sober_up(node):
         node['drunk'] -= 1
 
-
     @sober_up.trigger
     def somewhat_drunk(node):
         return node['drunk'] > 0
 
-
     @eng.rule
     def catch_up(node):
         node['slow'] -= 1
-
 
     @catch_up.trigger
     def somewhat_late(node):
@@ -188,7 +168,8 @@ def install(eng):
     student_body.stat['characters'] = []
     for n in range(0, 3):
         dorm = eng.new_character('dorm{}'.format(n))
-        common = phys.new_place('common{}'.format(n))  # A common room for students to meet in
+        common = phys.new_place(
+            'common{}'.format(n))  # A common room for students to meet in
         dorm.add_avatar(common)
         common.two_way(classroom)
         # All rooms in a dorm are connected via its common room
@@ -217,7 +198,9 @@ def install(eng):
                 # Students' nodes are their brain cells.
                 # They are useless if drunk or slow, but recover from both conditions a bit every hour.
                 for k in range(0, 100):
-                    cell = student.new_node('cell{}'.format(k), drunk=0, slow=0)
+                    cell = student.new_node('cell{}'.format(k),
+                                            drunk=0,
+                                            slow=0)
                     #  ``new_node`` is just an alias for ``new_place``;
                     #  perhaps more logical when the places don't really
                     #  represent potential locations

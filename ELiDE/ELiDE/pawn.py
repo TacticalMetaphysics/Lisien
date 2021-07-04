@@ -13,10 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from kivy.clock import Clock
-from kivy.properties import (
-    NumericProperty,
-    ObjectProperty
-)
+from kivy.properties import (NumericProperty, ObjectProperty)
 from .util import trigger
 
 
@@ -44,9 +41,7 @@ class PawnBehavior:
             Clock.schedule_once(self.on_parent, 0)
             return
         self.board = self.parent.board
-        self.bind(
-            loc_name=self._trigger_relocate
-        )
+        self.bind(loc_name=self._trigger_relocate)
         if self.proxy:
             self._trigger_relocate()
 
@@ -54,15 +49,11 @@ class PawnBehavior:
         if initial:
             self.loc_name = self.proxy['location']
             self.priority = self.proxy.get('_priority', 0.0)
-        self.bind(
-            loc_name=self._trigger_push_location
-        )
+        self.bind(loc_name=self._trigger_push_location)
         super().finalize(initial)
 
     def unfinalize(self):
-        self.unbind(
-            loc_name=self._trigger_push_location
-        )
+        self.unbind(loc_name=self._trigger_push_location)
         super().unfinalize()
 
     def pull_from_proxy(self, *args):
@@ -77,7 +68,9 @@ class PawnBehavior:
             self.relocate()
 
     def relocate(self, *args):
-        if not getattr(self, '_finalized', False) or not self.parent or not self.proxy or not self.proxy.exists:
+        if not getattr(
+                self, '_finalized', False
+        ) or not self.parent or not self.proxy or not self.proxy.exists:
             return
         try:
             location = self._get_location_wid()
@@ -87,6 +80,7 @@ class PawnBehavior:
             if self.parent:
                 self.parent.remove_widget(self)
             location.add_widget(self)
+
     _trigger_relocate = trigger(relocate)
 
     def on_priority(self, *args):
@@ -97,6 +91,7 @@ class PawnBehavior:
     def push_location(self, *args):
         if self.proxy['location'] != self.loc_name:
             self.proxy['location'] = self.loc_name
+
     _trigger_push_location = trigger(push_location)
 
     def _get_location_wid(self):

@@ -13,16 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from functools import partial
-from kivy.properties import(
-    DictProperty,
-    ObjectProperty,
-    OptionProperty,
-    ListProperty,
-    BooleanProperty,
-    BoundedNumericProperty,
-    NumericProperty,
-    StringProperty
-)
+from kivy.properties import (DictProperty, ObjectProperty, OptionProperty,
+                             ListProperty, BooleanProperty,
+                             BoundedNumericProperty, NumericProperty,
+                             StringProperty)
 from kivy.uix.widget import Widget
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
@@ -54,7 +48,6 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
     """The key to set in the entity"""
     value = ObjectProperty(allownone=True)
     """The value you want to set the key to"""
-
     def _update_disabledness(self, *args, **kwargs):
         if not self.parent:
             return
@@ -63,7 +56,8 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
     def _trigger_update_disabledness(self, *args, **kwargs):
         if hasattr(self, '_scheduled_update_disabledness'):
             Clock.unschedule(self._scheduled_update_disabledness)
-        self._scheduled_update_disabledness = Clock.schedule_once(self._update_disabledness)
+        self._scheduled_update_disabledness = Clock.schedule_once(
+            self._update_disabledness)
 
     def _set_value(self):
         entity = self.parent.parent.entity
@@ -103,11 +97,11 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
         if not self.parent:
             return
         self._trigger_update_disabledness()
-        self.parent.parent.entity.engine.time.connect(self._trigger_update_disabledness)
+        self.parent.parent.entity.engine.time.connect(
+            self._trigger_update_disabledness)
 
 
 class CalendarLabel(CalendarWidget, Label):
-
     def __init__(self, **kwargs):
         if 'text' not in kwargs or not kwargs['text']:
             kwargs['text'] = ''
@@ -119,7 +113,6 @@ class CalendarSlider(Slider, CalendarWidget):
 
 
 class CalendarTextInput(CalendarWidget, TextInput):
-
     def _parse_text(self, *args):
         from ast import literal_eval
         try:
@@ -128,6 +121,7 @@ class CalendarTextInput(CalendarWidget, TextInput):
             v = self.text
         self.value = self.hint_text = v
         self.text = ''
+
     _trigger_parse_text = trigger(_parse_text)
 
 
@@ -167,14 +161,19 @@ class CalendarOptionButton(CalendarWidget, Button):
         for option in self.options:
             if type(option) is tuple:
                 text, value = option
-                container.add_widget(Button(
-                    size_hint_y=None, height=30,
-                    text=text, on_release=partial(self._set_value_and_close, text)))
+                container.add_widget(
+                    Button(size_hint_y=None,
+                           height=30,
+                           text=text,
+                           on_release=partial(self._set_value_and_close,
+                                              text)))
             else:
-                container.add_widget(Button(
-                    text=str(option), on_release=partial(
-                    self._set_value_and_close, str(option)),
-                    size_hint_y=None, height=30))
+                container.add_widget(
+                    Button(text=str(option),
+                           on_release=partial(self._set_value_and_close,
+                                              str(option)),
+                           size_hint_y=None,
+                           height=30))
         container.size = container.minimum_size
 
     def _set_value_and_close(self, val, *args):
@@ -238,7 +237,6 @@ class AbstractCalendar(RecycleView):
     week instead.
     
     """
-
     def on_data(self, *args):
         idx = self.idx
         for item in self.data:
@@ -291,7 +289,8 @@ class Agenda(AbstractCalendar):
         curturn = start_turn
         endturn = curturn + len(next(iter(schedule.values())))
         data = []
-        stats = sorted((stat for stat in schedule if not stat.startswith('_')), key=key)
+        stats = sorted((stat for stat in schedule if not stat.startswith('_')),
+                       key=key)
         headers = self.headers
         turn_labels = self.turn_labels
         if headers:
@@ -300,12 +299,20 @@ class Agenda(AbstractCalendar):
             for stat in stats:
                 if stat.startswith('_'):
                     continue
-                data.append({'widget': 'Label', 'text': str(stat), 'bold': True})
+                data.append({
+                    'widget': 'Label',
+                    'text': str(stat),
+                    'bold': True
+                })
         cols = len(data)
         iters = {stat: iter(values) for (stat, values) in schedule.items()}
         for turn in range(curturn, endturn):
             if turn_labels:
-                data.append({'widget': 'Label', 'text': self.turn_label_transformer(turn), 'bold': True})
+                data.append({
+                    'widget': 'Label',
+                    'text': self.turn_label_transformer(turn),
+                    'bold': True
+                })
             if '_config' in iters:
                 config = next(iters['_config'])
             else:
@@ -314,13 +321,16 @@ class Agenda(AbstractCalendar):
                 datum = {'key': stat, 'value': next(iters[stat]), 'turn': turn}
                 if config and stat in config and 'control' in config[stat]:
                     datum.update(config[stat])
-                    datum['widget'] = control2wid.get(datum.pop('control', None), 'CalendarLabel')
+                    datum['widget'] = control2wid.get(
+                        datum.pop('control', None), 'CalendarLabel')
                     if datum['widget'] == 'CalendarToggleButton':
                         if datum['value']:
-                            datum['text'] = config[stat].get('true_text', 'True')
+                            datum['text'] = config[stat].get(
+                                'true_text', 'True')
                             datum['state'] = 'down'
                         else:
-                            datum['text'] = config[stat].get('false_text', 'False')
+                            datum['text'] = config[stat].get(
+                                'false_text', 'False')
                             datum['state'] = 'normal'
                     elif datum['widget'] == 'CalendarTextInput':
                         datum['hint_text'] = str(datum['value'])
@@ -340,30 +350,42 @@ class Calendar(AbstractCalendar):
         curturn = start_turn
         endturn = curturn + len(next(iter(schedule.values())))
         data = []
-        stats = sorted((stat for stat in schedule if not stat.startswith('_')), key=key)
+        stats = sorted((stat for stat in schedule if not stat.startswith('_')),
+                       key=key)
         iters = {stat: iter(values) for (stat, values) in schedule.items()}
         headers = self.headers
         turn_labels = self.turn_labels
         for turn in range(curturn, endturn):
             if turn_labels:
-                data.append({'widget': 'Label', 'text': self.turn_label_transformer(turn), 'bold': True})
+                data.append({
+                    'widget': 'Label',
+                    'text': self.turn_label_transformer(turn),
+                    'bold': True
+                })
             if '_config' in iters:
                 config = next(iters['_config'])
             else:
                 config = None
             for stat in stats:
                 if headers:
-                    data.append({'widget': 'Label', 'text': str(stat), 'bold': True})
+                    data.append({
+                        'widget': 'Label',
+                        'text': str(stat),
+                        'bold': True
+                    })
                 datum = {'key': stat, 'value': next(iters[stat]), 'turn': turn}
                 if config and stat in config and 'control' in config[stat]:
                     datum.update(config[stat])
-                    datum['widget'] = control2wid.get(datum.pop('control', None), 'CalendarLabel')
+                    datum['widget'] = control2wid.get(
+                        datum.pop('control', None), 'CalendarLabel')
                     if datum['widget'] == 'CalendarToggleButton':
                         if datum['value']:
-                            datum['text'] = config[stat].get('true_text', 'True')
+                            datum['text'] = config[stat].get(
+                                'true_text', 'True')
                             datum['state'] = 'down'
                         else:
-                            datum['text'] = config[stat].get('false_text', 'False')
+                            datum['text'] = config[stat].get(
+                                'false_text', 'False')
                             datum['state'] = 'normal'
                     elif datum['widget'] == 'CalendarTextInput':
                         datum['hint_text'] = str(datum['value'])
@@ -410,9 +432,9 @@ Builder.load_string("""
     on_text_validate: self._trigger_parse_text()
 """)
 
-
 if __name__ == '__main__':
     from kivy.app import App
+
     class CalendarTestApp(App):
         def build(self):
             self.wid = Calendar()

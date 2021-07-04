@@ -23,6 +23,7 @@ from sqlite3 import IntegrityError as sqliteIntegError
 from sqlite3.dbapi2 import connect
 
 from . import wrap
+
 wrappath = os.path.dirname(wrap.__file__)
 alchemyIntegError = None
 try:
@@ -32,8 +33,8 @@ except ImportError:
 from time import monotonic
 
 IntegrityError = (
-    alchemyIntegError, sqliteIntegError
-) if alchemyIntegError is not None else sqliteIntegError
+    alchemyIntegError,
+    sqliteIntegError) if alchemyIntegError is not None else sqliteIntegError
 
 
 class TimeError(ValueError):
@@ -84,10 +85,13 @@ class QueryEngine(object):
     """
     path = os.path.dirname(__file__)
     flush_edges_t = 0
-    def __init__(
-            self, dbstring, connect_args, alchemy,
-            pack=None, unpack=None
-    ):
+
+    def __init__(self,
+                 dbstring,
+                 connect_args,
+                 alchemy,
+                 pack=None,
+                 unpack=None):
         """If ``alchemy`` is True and ``dbstring`` is a legit database URI,
         instantiate an Alchemist and start a transaction with
         it. Otherwise use sqlite3.
@@ -108,15 +112,11 @@ class QueryEngine(object):
                 self.engine = dbstring
             else:
                 try:
-                    self.engine = create_engine(
-                        dbstring,
-                        connect_args=connect_args
-                    )
+                    self.engine = create_engine(dbstring,
+                                                connect_args=connect_args)
                 except ArgumentError:
-                    self.engine = create_engine(
-                        'sqlite:///' + dbstring,
-                        connect_args=connect_args
-                    )
+                    self.engine = create_engine('sqlite:///' + dbstring,
+                                                connect_args=connect_args)
             self.alchemist = Alchemist(self.engine)
             self.transaction = self.alchemist.conn.begin()
 
@@ -169,8 +169,7 @@ class QueryEngine(object):
         else:
             s = self.strings[stringname]
             return self.connection.cursor().execute(
-                s.format(**kwargs) if kwargs else s, args
-            )
+                s.format(**kwargs) if kwargs else s, args)
 
     def sqlmany(self, stringname, *args):
         """Wrapper for executing many SQL calls on my connection.
@@ -196,31 +195,38 @@ class QueryEngine(object):
         graph = self.pack(graph)
         return self.sql('graphs_insert', graph, typ)
 
-    def keyframes_insert(self, graph, branch, turn, tick, nodes, edges, graph_val):
-        graph, nodes, edges, graph_val = map(self.pack, (graph, nodes, edges, graph_val))
-        return self.sql('keyframes_insert', graph, branch, turn, tick, nodes, edges, graph_val)
+    def keyframes_insert(self, graph, branch, turn, tick, nodes, edges,
+                         graph_val):
+        graph, nodes, edges, graph_val = map(self.pack,
+                                             (graph, nodes, edges, graph_val))
+        return self.sql('keyframes_insert', graph, branch, turn, tick, nodes,
+                        edges, graph_val)
 
     def keyframes_insert_many(self, many):
         pack = self.pack
-        return self.sqlmany('keyframes_insert', *[
-            (pack(graph), branch, turn, tick, pack(nodes), pack(edges),
-             pack(graph_val))
-            for (graph, branch, turn, tick, nodes, edges, graph_val) in many
-        ])
+        return self.sqlmany(
+            'keyframes_insert',
+            *[(pack(graph), branch, turn, tick, pack(nodes), pack(edges),
+               pack(graph_val))
+              for (graph, branch, turn, tick, nodes, edges, graph_val) in many
+              ])
 
     def keyframes_dump(self):
         unpack = self.unpack
-        for (graph, branch, turn, tick, nodes, edges, graph_val) in self.sql('keyframes_dump'):
-            yield unpack(graph), branch, turn, tick, unpack(nodes), unpack(edges), unpack(graph_val)
-    
+        for (graph, branch, turn, tick, nodes, edges,
+             graph_val) in self.sql('keyframes_dump'):
+            yield unpack(graph), branch, turn, tick, unpack(nodes), unpack(
+                edges), unpack(graph_val)
+
     def keyframes_list(self):
         unpack = self.unpack
         for (graph, branch, turn, tick) in self.sql('keyframes_list'):
             yield unpack(graph), branch, turn, tick
-    
+
     def get_keyframe(self, graph, branch, turn, tick):
         unpack = self.unpack
-        stuff = self.sql('get_keyframe', self.pack(graph), branch, turn, tick).fetchone()
+        stuff = self.sql('get_keyframe', self.pack(graph), branch, turn,
+                         tick).fetchone()
         if stuff is None:
             return
         nodes, edges, graph_val = stuff
@@ -305,16 +311,22 @@ class QueryEngine(object):
         ``parent_turn``, ``parent_tick``
 
         """
-        return self.sql('branches_insert', branch, parent, parent_turn, parent_tick, parent_turn, parent_tick)
+        return self.sql('branches_insert', branch, parent, parent_turn,
+                        parent_tick, parent_turn, parent_tick)
 
-    def update_branch(self, branch, parent, parent_turn, parent_tick, end_turn, end_tick):
-        return self.sql('update_branches', parent, parent_turn, parent_tick, end_turn, end_tick, branch)
+    def update_branch(self, branch, parent, parent_turn, parent_tick, end_turn,
+                      end_tick):
+        return self.sql('update_branches', parent, parent_turn, parent_tick,
+                        end_turn, end_tick, branch)
 
-    def set_branch(self, branch, parent, parent_turn, parent_tick, end_turn, end_tick):
+    def set_branch(self, branch, parent, parent_turn, parent_tick, end_turn,
+                   end_tick):
         try:
-            self.sql('branches_insert', branch, parent, parent_turn, parent_tick, end_turn, end_tick)
+            self.sql('branches_insert', branch, parent, parent_turn,
+                     parent_tick, end_turn, end_tick)
         except IntegrityError:
-            self.update_branch(branch, parent, parent_turn, parent_tick, end_turn, end_tick)
+            self.update_branch(branch, parent, parent_turn, parent_tick,
+                               end_turn, end_tick)
 
     def new_turn(self, branch, turn, end_tick=0, plan_end_tick=0):
         return self.sql('turns_insert', branch, turn, end_tick, plan_end_tick)
@@ -324,9 +336,11 @@ class QueryEngine(object):
 
     def set_turn(self, branch, turn, end_tick, plan_end_tick):
         try:
-            return self.sql('turns_insert', branch, turn, end_tick, plan_end_tick)
+            return self.sql('turns_insert', branch, turn, end_tick,
+                            plan_end_tick)
         except IntegrityError:
-            return self.sql('update_turns', end_tick, plan_end_tick, branch, turn)
+            return self.sql('update_turns', end_tick, plan_end_tick, branch,
+                            turn)
 
     def turns_dump(self):
         return self.sql('turns_dump')
@@ -335,31 +349,30 @@ class QueryEngine(object):
         """Yield the entire contents of the graph_val table."""
         self._flush_graph_val()
         unpack = self.unpack
-        for (graph, key, branch, turn, tick, value) in self.sql('graph_val_dump'):
-            yield (
-                unpack(graph),
-                unpack(key),
-                branch,
-                turn,
-                tick,
-                unpack(value)
-            )
-    
-    def load_graph_val(self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None):
+        for (graph, key, branch, turn, tick,
+             value) in self.sql('graph_val_dump'):
+            yield (unpack(graph), unpack(key), branch, turn, tick,
+                   unpack(value))
+
+    def load_graph_val(self,
+                       graph,
+                       branch,
+                       turn_from,
+                       tick_from,
+                       turn_to=None,
+                       tick_to=None):
         if (turn_to is None) ^ (tick_to is None):
             raise TypeError("I need both or neither of turn_to and tick_to")
         self._flush_graph_val()
         pack = self.pack
         unpack = self.unpack
         if turn_to is None:
-            it = self.sql(
-                'load_graph_val_tick_to_end', pack(graph), branch, turn_from, turn_from, tick_from
-            )
+            it = self.sql('load_graph_val_tick_to_end', pack(graph), branch,
+                          turn_from, turn_from, tick_from)
         else:
-            it = self.sql(
-                'load_graph_val_tick_to_tick', pack(graph), branch, turn_from, turn_from, tick_from,
-                turn_to, turn_to, tick_to
-            )
+            it = self.sql('load_graph_val_tick_to_tick', pack(graph), branch,
+                          turn_from, turn_from, tick_from, turn_to, turn_to,
+                          tick_to)
         for (key, turn, tick, value) in it:
             yield graph, unpack(key), branch, turn, tick, unpack(value)
 
@@ -370,17 +383,14 @@ class QueryEngine(object):
         delafter = {}
         for graph, key, branch, turn, tick, value in self._graphvals2set:
             if (graph, key, branch) in delafter:
-                delafter[graph, key, branch] = min((
-                    (turn, tick),
-                    delafter[graph, key, branch]
-                ))
+                delafter[graph, key, branch] = min(
+                    ((turn, tick), delafter[graph, key, branch]))
             else:
                 delafter[graph, key, branch] = (turn, tick)
         self.sqlmany(
             'del_graph_val_after',
             *((graph, key, branch, turn, turn, tick)
-              for ((graph, key, branch), (turn, tick)) in delafter.items())
-        )
+              for ((graph, key, branch), (turn, tick)) in delafter.items()))
         self.sqlmany('graph_val_insert', *self._graphvals2set)
         self._graphvals2set = []
 
@@ -415,7 +425,8 @@ class QueryEngine(object):
         if (branch, turn, tick) in self._btts:
             raise TimeError
         self._btts.add((branch, turn, tick))
-        self._nodes2set.append((self.pack(graph), self.pack(node), branch, turn, tick, extant))
+        self._nodes2set.append(
+            (self.pack(graph), self.pack(node), branch, turn, tick, extant))
 
     def nodes_del_time(self, branch, turn, tick):
         self._flush_nodes()
@@ -426,31 +437,30 @@ class QueryEngine(object):
         """Dump the entire contents of the nodes table."""
         self._flush_nodes()
         unpack = self.unpack
-        for (graph, node, branch, turn,tick, extant) in self.sql('nodes_dump'):
-            yield (
-                unpack(graph),
-                unpack(node),
-                branch,
-                turn,
-                tick,
-                bool(extant)
-            )
-    
-    def load_nodes(self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None):
+        for (graph, node, branch, turn, tick,
+             extant) in self.sql('nodes_dump'):
+            yield (unpack(graph), unpack(node), branch, turn, tick,
+                   bool(extant))
+
+    def load_nodes(self,
+                   graph,
+                   branch,
+                   turn_from,
+                   tick_from,
+                   turn_to=None,
+                   tick_to=None):
         if (turn_to is None) ^ (tick_to is None):
             raise TypeError("I need both or neither of turn_to and tick_to")
         self._flush_nodes()
         pack = self.pack
         unpack = self.unpack
         if turn_to is None:
-            it = self.sql(
-                'load_nodes_tick_to_end', pack(graph), branch, turn_from, turn_from, tick_from
-            )
+            it = self.sql('load_nodes_tick_to_end', pack(graph), branch,
+                          turn_from, turn_from, tick_from)
         else:
-            it = self.sql(
-                'load_nodes_tick_to_tick', pack(graph), branch, turn_from, turn_from, tick_from,
-                turn_to, turn_to, tick_to
-            )
+            it = self.sql('load_nodes_tick_to_tick', pack(graph), branch,
+                          turn_from, turn_from, tick_from, turn_to, turn_to,
+                          tick_to)
         for (node, turn, tick, extant) in it:
             yield graph, unpack(node), branch, turn, tick, extant
 
@@ -458,36 +468,33 @@ class QueryEngine(object):
         """Yield the entire contents of the node_val table."""
         self._flush_node_val()
         unpack = self.unpack
-        for (
-                graph, node, key, branch, turn, tick, value
-        ) in self.sql('node_val_dump'):
-            yield (
-                unpack(graph),
-                unpack(node),
-                unpack(key),
-                branch,
-                turn,
-                tick,
-                unpack(value)
-            )
-    
-    def load_node_val(self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None):
+        for (graph, node, key, branch, turn, tick,
+             value) in self.sql('node_val_dump'):
+            yield (unpack(graph), unpack(node), unpack(key), branch, turn,
+                   tick, unpack(value))
+
+    def load_node_val(self,
+                      graph,
+                      branch,
+                      turn_from,
+                      tick_from,
+                      turn_to=None,
+                      tick_to=None):
         if (turn_to is None) ^ (tick_to is None):
             raise TypeError("I need both or neither of turn_to and tick_to")
         self._flush_node_val()
         pack = self.pack
         unpack = self.unpack
         if turn_to is None:
-            it = self.sql(
-                'load_node_val_tick_to_end', pack(graph), branch, turn_from, turn_from, tick_from
-            )
+            it = self.sql('load_node_val_tick_to_end', pack(graph), branch,
+                          turn_from, turn_from, tick_from)
         else:
-            it = self.sql(
-                'load_node_val_tick_to_tick', pack(graph), branch, turn_from, turn_from, tick_from,
-                turn_to, turn_to, tick_to
-            )
+            it = self.sql('load_node_val_tick_to_tick', pack(graph), branch,
+                          turn_from, turn_from, tick_from, turn_to, turn_to,
+                          tick_to)
         for (node, key, turn, tick, value) in it:
-            yield graph, unpack(node), unpack(key), branch, turn, tick, unpack(value)
+            yield graph, unpack(node), unpack(key), branch, turn, tick, unpack(
+                value)
 
     def _flush_node_val(self):
         if not self._nodevals2set:
@@ -501,7 +508,8 @@ class QueryEngine(object):
             raise TimeError
         self._btts.add((branch, turn, tick))
         graph, node, key, value = map(self.pack, (graph, node, key, value))
-        self._nodevals2set.append((graph, node, key, branch, turn, tick, value))
+        self._nodevals2set.append(
+            (graph, node, key, branch, turn, tick, value))
 
     def node_val_del_time(self, branch, turn, tick):
         self._flush_node_val()
@@ -512,48 +520,46 @@ class QueryEngine(object):
         """Dump the entire contents of the edges table."""
         self._flush_edges()
         unpack = self.unpack
-        for (
-                graph, orig, dest, idx, branch, turn, tick, extant
-        ) in self.sql('edges_dump'):
-            yield (
-                unpack(graph),
-                unpack(orig),
-                unpack(dest),
-                idx,
-                branch,
-                turn,
-                tick,
-                bool(extant)
-            )
-    
-    def load_edges(self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None):
+        for (graph, orig, dest, idx, branch, turn, tick,
+             extant) in self.sql('edges_dump'):
+            yield (unpack(graph), unpack(orig), unpack(dest), idx, branch,
+                   turn, tick, bool(extant))
+
+    def load_edges(self,
+                   graph,
+                   branch,
+                   turn_from,
+                   tick_from,
+                   turn_to=None,
+                   tick_to=None):
         if (turn_to is None) ^ (tick_to is None):
             raise TypeError("I need both or neither of turn_to and tick_to")
         self._flush_edge_val()
         pack = self.pack
         unpack = self.unpack
         if turn_to is None:
-            it = self.sql(
-                'load_edges_tick_to_end', pack(graph), branch, turn_from, turn_from, tick_from
-            )
+            it = self.sql('load_edges_tick_to_end', pack(graph), branch,
+                          turn_from, turn_from, tick_from)
         else:
-            it = self.sql(
-                'load_edges_tick_to_tick', pack(graph), branch, turn_from, turn_from, tick_from,
-                turn_to, turn_to, tick_to
-            )
+            it = self.sql('load_edges_tick_to_tick', pack(graph), branch,
+                          turn_from, turn_from, tick_from, turn_to, turn_to,
+                          tick_to)
         for (orig, dest, idx, turn, tick, extant) in it:
-            yield graph, unpack(orig), unpack(dest), idx, branch, turn, tick, extant
+            yield graph, unpack(orig), unpack(
+                dest), idx, branch, turn, tick, extant
 
     def _pack_edge2set(self, tup):
         graph, orig, dest, idx, branch, turn, tick, extant = tup
         pack = self.pack
-        return pack(graph), pack(orig), pack(dest), idx, branch, turn, tick, extant
+        return pack(graph), pack(orig), pack(
+            dest), idx, branch, turn, tick, extant
 
     def _flush_edges(self):
         start = monotonic()
         if not self._edges2set:
             return
-        self.sqlmany('edges_insert', *map(self._pack_edge2set, self._edges2set))
+        self.sqlmany('edges_insert',
+                     *map(self._pack_edge2set, self._edges2set))
         self._edges2set = []
         QueryEngine.flush_edges_t += monotonic() - start
 
@@ -574,58 +580,55 @@ class QueryEngine(object):
         """Yield the entire contents of the edge_val table."""
         self._flush_edge_val()
         unpack = self.unpack
-        for (
-                graph, orig, dest, idx, key, branch, turn, tick, value
-        ) in self.sql('edge_val_dump'):
-            yield (
-                unpack(graph),
-                unpack(orig),
-                unpack(dest),
-                idx,
-                unpack(key),
-                branch,
-                turn,
-                tick,
-                unpack(value)
-            )
-    
-    def load_edge_val(self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None):
+        for (graph, orig, dest, idx, key, branch, turn, tick,
+             value) in self.sql('edge_val_dump'):
+            yield (unpack(graph), unpack(orig), unpack(dest), idx, unpack(key),
+                   branch, turn, tick, unpack(value))
+
+    def load_edge_val(self,
+                      graph,
+                      branch,
+                      turn_from,
+                      tick_from,
+                      turn_to=None,
+                      tick_to=None):
         if (turn_to is None) ^ (tick_to is None):
             raise TypeError("I need both or neither of turn_to and tick_to")
         self._flush_edge_val()
         pack = self.pack
         unpack = self.unpack
         if turn_to is None:
-            it = self.sql(
-                'load_edge_val_tick_to_end', pack(graph), branch, turn_from, turn_from, tick_from
-            )
+            it = self.sql('load_edge_val_tick_to_end', pack(graph), branch,
+                          turn_from, turn_from, tick_from)
         else:
-            it = self.sql(
-                'load_edge_val_tick_to_tick', pack(graph), branch, turn_from, turn_from, tick_from,
-                turn_to, turn_to, tick_to
-            )
+            it = self.sql('load_edge_val_tick_to_tick', pack(graph), branch,
+                          turn_from, turn_from, tick_from, turn_to, turn_to,
+                          tick_to)
         for (orig, dest, idx, key, turn, tick, value) in it:
-            yield graph, unpack(orig), unpack(dest), idx, unpack(key), branch, turn, tick, unpack(value)
+            yield graph, unpack(orig), unpack(dest), idx, unpack(
+                key), branch, turn, tick, unpack(value)
 
     def _pack_edgeval2set(self, tup):
         graph, orig, dest, idx, key, branch, turn, tick, value = tup
         pack = self.pack
-        return pack(graph), pack(orig), pack(dest), idx, pack(key), branch, turn, tick, pack(value)
+        return pack(graph), pack(orig), pack(dest), idx, pack(
+            key), branch, turn, tick, pack(value)
 
     def _flush_edge_val(self):
         if not self._edgevals2set:
             return
-        self.sqlmany('edge_val_insert', *map(self._pack_edgeval2set, self._edgevals2set))
+        self.sqlmany('edge_val_insert',
+                     *map(self._pack_edgeval2set, self._edgevals2set))
         self._edgevals2set = []
 
-    def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick, value):
+    def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick,
+                     value):
         """Set this key of this edge to this value."""
         if (branch, turn, tick) in self._btts:
             raise TimeError
         self._btts.add((branch, turn, tick))
         self._edgevals2set.append(
-            (graph, orig, dest, idx, key, branch, turn, tick, value)
-        )
+            (graph, orig, dest, idx, key, branch, turn, tick, value))
 
     def edge_val_del_time(self, branch, turn, tick):
         self._flush_edge_val()
@@ -672,19 +675,9 @@ class QueryEngine(object):
         if 'tick' not in self.globl:
             self.globl['tick'] = 0
         strings = self.strings
-        for table in (
-            'branches',
-            'turns',
-            'graphs',
-            'graph_val',
-            'nodes',
-            'node_val',
-            'edges',
-            'edge_val',
-            'plans',
-            'plan_ticks',
-            'keyframes'
-        ):
+        for table in ('branches', 'turns', 'graphs', 'graph_val', 'nodes',
+                      'node_val', 'edges', 'edge_val', 'plans', 'plan_ticks',
+                      'keyframes'):
             try:
                 cursor.execute('SELECT * FROM ' + table + ';')
             except OperationalError:

@@ -17,12 +17,8 @@ import os
 from kivy.app import App
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.properties import (
-    AliasProperty,
-    BooleanProperty,
-    ObjectProperty,
-    NumericProperty
-)
+from kivy.properties import (AliasProperty, BooleanProperty, ObjectProperty,
+                             NumericProperty)
 from kivy.resources import resource_find
 from .app import ELiDEApp
 from kivy.uix.widget import Widget
@@ -46,7 +42,6 @@ class GameScreen(Screen):
     """Method to set the ``screen`` attribute of the main :class:`kivy.uix.screenmanager.ScreenManager`"""
     disabled = BooleanProperty(False)
     """If you bind your widgets' ``disabled`` to this, they will be disabled when a game command is in mid-execution"""
-
     @property
     def app(self):
         return App.get_running_app()
@@ -88,7 +83,10 @@ class GameScreen(Screen):
 
         """
         self.disable_input()
-        self.app.wait_travel(character, thing, dest, cb=partial(self.enable_input, cb))
+        self.app.wait_travel(character,
+                             thing,
+                             dest,
+                             cb=partial(self.enable_input, cb))
 
     def wait_turns(self, turns, cb=None):
         """Call ``self.app.engine.next_turn()`` ``n`` times, waiting ``self.app.turn_length`` in between
@@ -118,7 +116,13 @@ class GameScreen(Screen):
         start_func()
         self.app.wait_turns(turns, cb=partial(self.enable_input, end_func))
 
-    def wait_travel_command(self, character, thing, dest, start_func, turns=1, end_func=lambda: None):
+    def wait_travel_command(self,
+                            character,
+                            thing,
+                            dest,
+                            start_func,
+                            turns=1,
+                            end_func=lambda: None):
         """Schedule a thing to travel someplace and do something, then wait for it to finish.
 
         Input will be disabled for the duration.
@@ -133,7 +137,8 @@ class GameScreen(Screen):
 
         """
         self.disable_input()
-        self.app.wait_travel_command(character, thing, dest, start_func, turns, partial(self.enable_input, end_func))
+        self.app.wait_travel_command(character, thing, dest, start_func, turns,
+                                     partial(self.enable_input, end_func))
 
 
 class Screens(Widget):
@@ -167,7 +172,8 @@ class GameApp(ELiDEApp):
             return
         self.engine.next_turn()
         turns -= 1
-        Clock.schedule_once(partial(self.wait_turns, turns, cb=cb), self.turn_length)
+        Clock.schedule_once(partial(self.wait_turns, turns, cb=cb),
+                            self.turn_length)
 
     def wait_travel(self, character, thing, dest, cb=None):
         """Schedule a thing to travel someplace, then wait for it to finish, and call ``cb`` if provided
@@ -179,7 +185,9 @@ class GameApp(ELiDEApp):
         :return: ``None``
         
         """
-        self.wait_turns(self.engine.character[character].thing[thing].travel_to(dest), cb=cb)
+        self.wait_turns(
+            self.engine.character[character].thing[thing].travel_to(dest),
+            cb=cb)
 
     def wait_command(self, start_func, turns=1, end_func=None):
         """Call ``start_func``, and wait to call ``end_func`` after simulating ``turns`` (default 1)
@@ -193,7 +201,13 @@ class GameApp(ELiDEApp):
         start_func()
         self.wait_turns(turns, cb=end_func)
 
-    def wait_travel_command(self, character, thing, dest, start_func, turns=1, end_func=None):
+    def wait_travel_command(self,
+                            character,
+                            thing,
+                            dest,
+                            start_func,
+                            turns=1,
+                            end_func=None):
         """Schedule a thing to travel someplace and do something, then wait for it to finish.
 
         :param character: name of the character
@@ -204,9 +218,11 @@ class GameApp(ELiDEApp):
         :param end_func: optional. Function to call after waiting ``turns`` after start_func
         :return: ``None``
         """
-        self.wait_travel(character, thing, dest, cb=partial(
-            self.wait_command, start_func, turns, end_func)
-        )
+        self.wait_travel(character,
+                         thing,
+                         dest,
+                         cb=partial(self.wait_command, start_func, turns,
+                                    end_func))
 
     def on_engine(self, *args):
         self.branch, self.turn, self.tick = self.engine._btt()
@@ -220,10 +236,8 @@ class GameApp(ELiDEApp):
                 self.name + 'World.db' if self.name \
                 else 'LiSEWorld.db'
         return resource_find(filen) or filen
-    worlddb = AliasProperty(
-        _get_worlddb,
-        lambda self, v: None
-    )
+
+    worlddb = AliasProperty(_get_worlddb, lambda self, v: None)
 
     def build(self):
         have_world = False
@@ -233,12 +247,12 @@ class GameApp(ELiDEApp):
         except FileNotFoundError:
             pass
         self.procman = LiSE.proxy.EngineProcessManager()
-        self.engine = self.procman.start(
-            self.worlddb,
-            logger=Logger, loglevel=getattr(self, 'loglevel', 'debug'),
-            do_game_start=not have_world,
-            install_modules=self.modules
-        )
+        self.engine = self.procman.start(self.worlddb,
+                                         logger=Logger,
+                                         loglevel=getattr(
+                                             self, 'loglevel', 'debug'),
+                                         do_game_start=not have_world,
+                                         install_modules=self.modules)
         self.screen_manager = ScreenManager()
         self.screens = Screens(app=self)
         self.screens.bind(children=self._pull_screens)

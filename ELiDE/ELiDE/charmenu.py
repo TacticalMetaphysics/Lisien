@@ -16,11 +16,8 @@ from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 
-from kivy.properties import (
-    BooleanProperty,
-    ObjectProperty,
-    ReferenceListProperty
-)
+from kivy.properties import (BooleanProperty, ObjectProperty,
+                             ReferenceListProperty)
 from .graph.arrow import GraphArrowWidget
 from .util import try_load, dummynum
 from LiSE.proxy import CharStatProxy
@@ -47,25 +44,18 @@ class CharMenu(BoxLayout):
         return self.screen.app.engine
 
     def on_screen(self, *args):
-        if not (
-            self.screen and
-            self.screen.boardview and
-            self.screen.app
-        ):
+        if not (self.screen and self.screen.boardview and self.screen.app):
             Clock.schedule_once(self.on_screen, 0)
             return
         self.screen.boardview.reciprocal_portal = self.reciprocal_portal
         if self.reciprocal_portal:
             assert (self.revarrow is None)
-            self.revarrow = GraphArrowWidget(
-                board=self.screen.boardview.board,
-                origin=self.ids.emptyright,
-                destination=self.ids.emptyleft
-            )
+            self.revarrow = GraphArrowWidget(board=self.screen.boardview.board,
+                                             origin=self.ids.emptyright,
+                                             destination=self.ids.emptyleft)
             self.ids.portaladdbut.add_widget(self.revarrow)
-        self.bind(
-            reciprocal_portal=self.screen.boardview.setter('reciprocal_portal')
-        )
+        self.bind(reciprocal_portal=self.screen.boardview.setter(
+            'reciprocal_portal'))
 
     def spot_from_dummy(self, dummy):
         if self.screen.boardview.parent != self.screen.mainview:
@@ -89,7 +79,8 @@ class CharMenu(BoxLayout):
 
     def toggle_rules(self, *args):
         """Display or hide the view for constructing rules out of cards."""
-        if self.app.manager.current != 'rules' and not isinstance(self.app.selected_proxy, CharStatProxy):
+        if self.app.manager.current != 'rules' and not isinstance(
+                self.app.selected_proxy, CharStatProxy):
             self.app.rules.entity = self.app.selected_proxy
             self.app.rules.rulebook = self.app.selected_proxy.rulebook
         if isinstance(self.app.selected_proxy, CharStatProxy):
@@ -116,9 +107,8 @@ class CharMenu(BoxLayout):
             dummyplace.clear()
             if self.app.spotcfg.prefix:
                 dummyplace.prefix = self.app.spotcfg.prefix
-                dummyplace.num = dummynum(
-                    self.app.character, dummyplace.prefix
-                ) + 1
+                dummyplace.num = dummynum(self.app.character,
+                                          dummyplace.prefix) + 1
             if self.app.spotcfg.imgpaths:
                 dummyplace.paths = self.app.spotcfg.imgpaths
             else:
@@ -137,9 +127,8 @@ class CharMenu(BoxLayout):
             dummything.clear()
             if self.app.pawncfg.prefix:
                 dummything.prefix = self.app.pawncfg.prefix
-                dummything.num = dummynum(
-                    self.app.character, dummything.prefix
-                ) + 1
+                dummything.num = dummynum(self.app.character,
+                                          dummything.prefix) + 1
             if self.app.pawncfg.imgpaths:
                 dummything.paths = self.app.pawncfg.imgpaths
             else:
@@ -157,12 +146,10 @@ class CharMenu(BoxLayout):
         """
         self.screen.boardview.reciprocal_portal = not self.screen.boardview.reciprocal_portal
         if self.screen.boardview.reciprocal_portal:
-            assert(self.revarrow is None)
-            self.revarrow = GraphArrowWidget(
-                board=self.screen.boardview.board,
-                origin=self.ids.emptyright,
-                destination=self.ids.emptyleft
-            )
+            assert (self.revarrow is None)
+            self.revarrow = GraphArrowWidget(board=self.screen.boardview.board,
+                                             origin=self.ids.emptyright,
+                                             destination=self.ids.emptyleft)
             self.ids.portaladdbut.add_widget(self.revarrow)
         else:
             if hasattr(self, 'revarrow'):
@@ -170,15 +157,12 @@ class CharMenu(BoxLayout):
                 self.revarrow = None
 
     def new_character(self, but):
-        charn = try_load(
-            self.app.engine.unpack,
-            self.app.chars.ids.newname.text
-        )
+        charn = try_load(self.app.engine.unpack,
+                         self.app.chars.ids.newname.text)
         self.app.select_character(self.app.engine.new_character(charn))
         self.app.chars.ids.newname.text = ''
         self.app.chars.charsview.adapter.data = list(
-            self.engine.character.keys()
-        )
+            self.engine.character.keys())
         Clock.schedule_once(self.toggle_chars_screen, 0.01)
 
     def on_dummyplace(self, *args):
@@ -188,6 +172,7 @@ class CharMenu(BoxLayout):
     def on_dummything(self, *args):
         if not self.dummything.paths:
             self.dummything.paths = ["atlas://rltiles/base.atlas/unseen"]
+
 
 Builder.load_string("""
 <CharMenu>:

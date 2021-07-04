@@ -2,13 +2,8 @@ from functools import partial
 
 from kivy.clock import Clock
 from kivy.logger import Logger
-from kivy.properties import (
-    DictProperty,
-    ListProperty,
-    NumericProperty,
-    ObjectProperty,
-    ReferenceListProperty
-)
+from kivy.properties import (DictProperty, ListProperty, NumericProperty,
+                             ObjectProperty, ReferenceListProperty)
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.lang.builder import Builder
 from .spot import GridSpot
@@ -45,29 +40,20 @@ class GridBoard(RelativeLayout):
             tile.pos = gx * colw, gy * rowh
 
     def add_spot(self, placen, *args):
-        if (
-            placen in self.character.place and
-            placen not in self.spot
-        ):
+        if (placen in self.character.place and placen not in self.spot):
             self.add_widget(self.make_spot(self.character.place[placen]))
 
     def make_spot(self, place):
         if place["name"] in self.spot:
             raise KeyError("Already have a Spot for this Place")
-        r = self.spot_cls(
-            board=self,
-            proxy=place
-        )
+        r = self.spot_cls(board=self, proxy=place)
         self.spot[place["name"]] = r
         return r
 
     def make_pawn(self, thing):
         if thing["name"] in self.pawn:
             raise KeyError("Already have a Pawn for this Thing")
-        r = self.pawn_cls(
-            board=self,
-            proxy=thing
-        )
+        r = self.pawn_cls(board=self, proxy=thing)
         self.pawn[thing["name"]] = r
         return r
 
@@ -108,10 +94,7 @@ class GridBoard(RelativeLayout):
             add_widget(make_tile(place))
 
     def add_pawn(self, thingn, *args):
-        if (
-            thingn in self.character.thing and
-            thingn not in self.pawn
-        ):
+        if (thingn in self.character.thing and thingn not in self.pawn):
             pwn = self.make_pawn(self.character.thing[thingn])
             whereat = self.spot[pwn.proxy['location']]
             whereat.add_widget(pwn)
@@ -215,6 +198,7 @@ class GridBoard(RelativeLayout):
             pwn.parent.remove_widget(pwn)
 
         remove_widget = self.remove_widget
+
         def rm_spot(name):
             spot = spotmap.pop(name)
             if spot in selection_candidates:
@@ -222,6 +206,7 @@ class GridBoard(RelativeLayout):
             for pwn in spot.children:
                 del pawnmap[pwn.name]
             remove_widget(spot)
+
         if 'nodes' in delta:
             for node, extant in delta['nodes'].items():
                 if extant:
@@ -252,8 +237,7 @@ class GridBoard(RelativeLayout):
                 else:
                     Logger.warning(
                         "GridBoard: diff tried to change stats of node {}"
-                        "but I don't have a widget for it".format(node)
-                    )
+                        "but I don't have a widget for it".format(node))
 
     def trigger_update_from_delta(self, delta, *args):
         part = partial(self.update_from_delta, delta)

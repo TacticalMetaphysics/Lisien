@@ -20,19 +20,16 @@ as you ran this script from.
 
 """
 
-
 import networkx as nx
 
 
-def inittest(
-        engine,
-        mapsize=(10, 10),
-        dwarf_pos=(0, 0),
-        kobold_pos=(9, 9),
-        shrubberies=20,
-        dwarf_sight_radius=2,
-        kobold_sprint_chance=.1
-):
+def inittest(engine,
+             mapsize=(10, 10),
+             dwarf_pos=(0, 0),
+             kobold_pos=(9, 9),
+             shrubberies=20,
+             dwarf_sight_radius=2,
+             kobold_sprint_chance=.1):
     # initialize world
     phys = engine.new_character('physical', data=nx.grid_2d_graph(*mapsize))
     assert len(phys.place) == mapsize[0] * mapsize[1]
@@ -50,26 +47,29 @@ def inittest(
     shrub_places = []
     while len(shrub_places) < shrubberies:
         loc = locs.pop()
-        phys.add_thing(
-            "shrub" + str(len(shrub_places)),
-            loc,
-            cover=1,
-            _image_paths=['atlas://rltiles/dc-mon.atlas/fungus'],
-            _group='shrub'
-        )
+        phys.add_thing("shrub" + str(len(shrub_places)),
+                       loc,
+                       cover=1,
+                       _image_paths=['atlas://rltiles/dc-mon.atlas/fungus'],
+                       _group='shrub')
         shrub_places.append(loc)
     print('{} shrubberies: {}'.format(len(shrub_places), shrub_places))
     kobold['shrub_places'] = shrub_places
 
     # Basic day night cycle
     @engine.action
-    def time_slipping(character, *, daylen: int, nightlen: int, twilightlen: float=0.0):
+    def time_slipping(character,
+                      *,
+                      daylen: int,
+                      nightlen: int,
+                      twilightlen: float = 0.0):
         if 'hour' not in character.stat:
             character.stat['hour'] = 0
             character.stat['day_period'] = 'dawn' if twilightlen else 'day'
             return
         twi_margin = twilightlen / 2
-        hour = character.stat['hour'] = (character.stat['hour'] + 1) % (daylen + nightlen)
+        hour = character.stat['hour'] = (character.stat['hour'] +
+                                         1) % (daylen + nightlen)
         if twilightlen:
             if hour < twi_margin or hour > daylen + nightlen - twi_margin:
                 character.stat['day_period'] = 'dawn'
@@ -81,7 +81,6 @@ def inittest(
                 character.stat['day_period'] = 'night'
         else:
             character.stat['day_period'] = 'day' if hour < daylen else 'night'
-
 
     # If the kobold is not in a shrubbery, it will try to get to one.
     # If it is, there's a chance it will try to get to another.
@@ -111,7 +110,8 @@ def inittest(
     @shrubsprint.prereq
     def not_traveling(thing):
         if thing.next_location is not None:
-            thing.engine.info("kobold already travelling to {}".format(thing.next_location))
+            thing.engine.info("kobold already travelling to {}".format(
+                thing.next_location))
             return False
         else:
             return True
@@ -123,14 +123,14 @@ def inittest(
     @dwarf.rule
     def fight(thing):
         method = thing.engine.method
-        return "Kill kobold?", [("Kill", method.set_kill_flag), ("Spare", None)]
+        return "Kill kobold?", [("Kill", method.set_kill_flag),
+                                ("Spare", None)]
 
     @fight.trigger
     def sametile(thing):
         try:
-            return (
-                thing['location'] == thing.character.thing['kobold']['location']
-            )
+            return (thing['location'] == thing.character.thing['kobold']
+                    ['location'])
         except KeyError:
             return False
 
@@ -196,5 +196,4 @@ if __name__ == '__main__':
         inittest(engine, shrubberies=20, kobold_sprint_chance=.9)
         engine.commit()
         print('shrub_places beginning: {}'.format(
-            engine.character['physical'].thing['kobold']['shrub_places']
-        ))
+            engine.character['physical'].thing['kobold']['shrub_places']))

@@ -4,7 +4,10 @@ import unittest
 from copy import deepcopy
 from .. import ORM
 
-testkvs = [0, 1, 10, 10**10, 10**10**4, 'spam', 'eggs', 'ham',  '💧', '🔑', '𐦖',('spam', 'eggs', 'ham')]
+testkvs = [
+    0, 1, 10, 10**10, 10**10**4, 'spam', 'eggs', 'ham', '💧', '🔑', '𐦖',
+    ('spam', 'eggs', 'ham')
+]
 testvs = [['spam', 'eggs', 'ham'], {'foo': 'bar', 0: 1, '💧': '🔑'}]
 testdata = []
 for k in testkvs:
@@ -18,9 +21,7 @@ testdata.append(('lol', deepcopy(testdata)))
 class AllegedTest(unittest.TestCase):
     def setUp(self):
         self.engine = ORM('sqlite:///:memory:')
-        self.graphmakers = (
-            self.engine.new_digraph,
-        )
+        self.graphmakers = (self.engine.new_digraph, )
 
 
 class AbstractGraphTest:
@@ -142,10 +143,14 @@ class AbstractBranchLineageTest(AbstractGraphTest):
             self.assertTrue(self.engine.is_parent_of(gmn, gmn + '_no_edge'))
             self.assertTrue(self.engine.is_parent_of(gmn, gmn + '_triangle'))
             self.assertTrue(self.engine.is_parent_of(gmn, gmn + '_nothing'))
-            self.assertTrue(self.engine.is_parent_of(gmn + '_no_edge', gmn + '_triangle'))
-            self.assertTrue(self.engine.is_parent_of(gmn + '_square', gmn + '_nothing'))
-            self.assertFalse(self.engine.is_parent_of(gmn + '_nothing', 'trunk'))
-            self.assertFalse(self.engine.is_parent_of(gmn + '_triangle', gmn + '_no_edge'))
+            self.assertTrue(
+                self.engine.is_parent_of(gmn + '_no_edge', gmn + '_triangle'))
+            self.assertTrue(
+                self.engine.is_parent_of(gmn + '_square', gmn + '_nothing'))
+            self.assertFalse(
+                self.engine.is_parent_of(gmn + '_nothing', 'trunk'))
+            self.assertFalse(
+                self.engine.is_parent_of(gmn + '_triangle', gmn + '_no_edge'))
             g = self.engine.graph[gmn]
             self.engine.branch = gmn
             self.assertIn(0, g.node)
@@ -156,6 +161,7 @@ class AbstractBranchLineageTest(AbstractGraphTest):
 
             def badjump():
                 self.engine.branch = gmn + '_no_edge'
+
             self.assertRaises(ValueError, badjump)
             self.engine.turn = 2
             self.engine.branch = gmn + '_no_edge'
@@ -246,41 +252,78 @@ class DictStorageTest(AllegedTest):
             n = g.node[0]
             e = g.edge[0][1]
             for entity in g.graph, n, e:
-                entity[0] = {'spam': 'eggs', 'ham': {'baked beans': 'delicious'}, 'qux': ['quux', 'quuux'],
-                             'clothes': {'hats', 'shirts', 'pants'},
-                             'dicts': {'foo': {'bar': 'bas'}, 'qux': {'quux': 'quuux'}}
-                             }
+                entity[0] = {
+                    'spam': 'eggs',
+                    'ham': {
+                        'baked beans': 'delicious'
+                    },
+                    'qux': ['quux', 'quuux'],
+                    'clothes': {'hats', 'shirts', 'pants'},
+                    'dicts': {
+                        'foo': {
+                            'bar': 'bas'
+                        },
+                        'qux': {
+                            'quux': 'quuux'
+                        }
+                    }
+                }
             self.engine.turn = i + 1
             for entity in g.graph, n, e:
                 self.assertEqual(entity[0]['spam'], 'eggs')
                 entity[0]['spam'] = 'ham'
                 self.assertEqual(entity[0]['spam'], 'ham')
-                self.assertEqual(entity[0]['ham'], {'baked beans': 'delicious'})
+                self.assertEqual(entity[0]['ham'],
+                                 {'baked beans': 'delicious'})
                 entity[0]['ham']['baked beans'] = 'disgusting'
-                self.assertEqual(entity[0]['ham'], {'baked beans': 'disgusting'})
+                self.assertEqual(entity[0]['ham'],
+                                 {'baked beans': 'disgusting'})
                 self.assertEqual(entity[0]['qux'], ['quux', 'quuux'])
                 entity[0]['qux'] = ['quuux', 'quux']
                 self.assertEqual(entity[0]['qux'], ['quuux', 'quux'])
-                self.assertEqual(entity[0]['clothes'], {'hats', 'shirts', 'pants'})
+                self.assertEqual(entity[0]['clothes'],
+                                 {'hats', 'shirts', 'pants'})
                 entity[0]['clothes'].remove('hats')
                 self.assertEqual(entity[0]['clothes'], {'shirts', 'pants'})
-                self.assertEqual(entity[0]['dicts'], {'foo': {'bar': 'bas'}, 'qux': {'quux': 'quuux'}})
+                self.assertEqual(entity[0]['dicts'], {
+                    'foo': {
+                        'bar': 'bas'
+                    },
+                    'qux': {
+                        'quux': 'quuux'
+                    }
+                })
                 del entity[0]['dicts']['foo']
                 entity[0]['dicts']['qux']['foo'] = {'bar': 'bas'}
-                self.assertEqual(entity[0]['dicts'], {'qux': {'foo': {'bar': 'bas'}, 'quux': 'quuux'}})
+                self.assertEqual(
+                    entity[0]['dicts'],
+                    {'qux': {
+                        'foo': {
+                            'bar': 'bas'
+                        },
+                        'quux': 'quuux'
+                    }})
             self.engine.turn = i
             for entity in g.graph, n, e:
                 self.assertEqual(entity[0]['spam'], 'eggs')
-                self.assertEqual(entity[0]['ham'], {'baked beans': 'delicious'})
+                self.assertEqual(entity[0]['ham'],
+                                 {'baked beans': 'delicious'})
                 self.assertEqual(entity[0]['qux'], ['quux', 'quuux'])
-                self.assertEqual(entity[0]['clothes'], {'hats', 'shirts', 'pants'})
-                self.assertEqual(entity[0]['dicts'], {'foo': {'bar': 'bas'}, 'qux': {'quux': 'quuux'}})
+                self.assertEqual(entity[0]['clothes'],
+                                 {'hats', 'shirts', 'pants'})
+                self.assertEqual(entity[0]['dicts'], {
+                    'foo': {
+                        'bar': 'bas'
+                    },
+                    'qux': {
+                        'quux': 'quuux'
+                    }
+                })
             self.engine.del_graph('testgraph')
 
 
 class ListStorageTest(AllegedTest):
     """Make sure the list wrapper works"""
-
     def runTest(self):
         for i, graphmaker in enumerate(self.graphmakers):
             self.engine.turn = i
@@ -291,8 +334,11 @@ class ListStorageTest(AllegedTest):
             n = g.node[0]
             e = g.edge[0][1]
             for entity in g.graph, n, e:
-                entity[0] = ['spam', ('eggs', 'ham'), {'baked beans': 'delicious'}, ['qux', 'quux', 'quuux'],
-                             {'hats', 'shirts', 'pants'}]
+                entity[0] = [
+                    'spam', ('eggs', 'ham'), {
+                        'baked beans': 'delicious'
+                    }, ['qux', 'quux', 'quuux'], {'hats', 'shirts', 'pants'}
+                ]
             self.engine.turn = i + 1
             for entity in g.graph, n, e:
                 self.assertEqual(entity[0][0], 'spam')
@@ -303,7 +349,10 @@ class ListStorageTest(AllegedTest):
                 self.assertEqual(entity[0][1], ('ham', 'eggs'))
                 self.assertEqual(entity[0][2], {'baked beans': 'delicious'})
                 entity[0][2]['refried beans'] = 'deliciouser'
-                self.assertEqual(entity[0][2], {'baked beans': 'delicious', 'refried beans': 'deliciouser'})
+                self.assertEqual(entity[0][2], {
+                    'baked beans': 'delicious',
+                    'refried beans': 'deliciouser'
+                })
                 self.assertEqual(entity[0][3], ['qux', 'quux', 'quuux'])
                 entity[0][3].pop()
                 self.assertEqual(entity[0][3], ['qux', 'quux'])
@@ -324,7 +373,6 @@ class ListStorageTest(AllegedTest):
 
 class SetStorageTest(AllegedTest):
     """Make sure the set wrapper works"""
-
     def runTest(self):
         for i, graphmaker in enumerate(self.graphmakers):
             self.engine.turn = i
@@ -347,6 +395,7 @@ class SetStorageTest(AllegedTest):
                 self.assertEqual(entity[0], set(range(10)))
             self.engine.del_graph('testgraph')
 
+
 @unittest.skip
 class CompiledQueriesTest(AllegedTest):
     def runTest(self):
@@ -360,16 +409,10 @@ class CompiledQueriesTest(AllegedTest):
         from json import load
         with open(self.engine.query.path + '/sqlite.json', 'r') as jsonfile:
             precompiled = load(jsonfile)
-        self.assertEqual(
-            precompiled.keys(), self.engine.query.alchemist.sql.keys()
-        )
+        self.assertEqual(precompiled.keys(),
+                         self.engine.query.alchemist.sql.keys())
         for (k, query) in precompiled.items():
-            self.assertEqual(
-                query,
-                str(
-                    self.engine.query.alchemist.sql[k]
-                )
-            )
+            self.assertEqual(query, str(self.engine.query.alchemist.sql[k]))
 
 
 if __name__ == '__main__':

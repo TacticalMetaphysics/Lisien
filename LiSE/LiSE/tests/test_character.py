@@ -23,26 +23,30 @@ class CharacterTest(LiSE.allegedb.tests.test_all.AllegedTest):
     def setUp(self):
         self.tempdir = tempfile.mkdtemp(dir='.')
         self.engine = Engine(self.tempdir)
-        self.graphmakers = (self.engine.new_character,)
+        self.graphmakers = (self.engine.new_character, )
 
     def tearDown(self):
         self.engine.close()
         rmtree(self.tempdir)
 
 
-class CharacterBranchLineageTest(CharacterTest, LiSE.allegedb.tests.test_all.AbstractBranchLineageTest):
+class CharacterBranchLineageTest(
+        CharacterTest, LiSE.allegedb.tests.test_all.AbstractBranchLineageTest):
     pass
 
 
-class CharacterDictStorageTest(CharacterTest, LiSE.allegedb.tests.test_all.DictStorageTest):
+class CharacterDictStorageTest(CharacterTest,
+                               LiSE.allegedb.tests.test_all.DictStorageTest):
     pass
 
 
-class CharacterListStorageTest(CharacterTest, LiSE.allegedb.tests.test_all.ListStorageTest):
+class CharacterListStorageTest(CharacterTest,
+                               LiSE.allegedb.tests.test_all.ListStorageTest):
     pass
 
 
-class CharacterSetStorageTest(CharacterTest, LiSE.allegedb.tests.test_all.SetStorageTest):
+class CharacterSetStorageTest(CharacterTest,
+                              LiSE.allegedb.tests.test_all.SetStorageTest):
     pass
 
 
@@ -85,6 +89,7 @@ def update_char(char, *, stat=(), node=(), portal=()):
                 del d[k]
             else:
                 d[k] = v
+
     end_stats = char.stat.unwrap()
     for stat, v in stat:
         set_in_mapping(char.stat, stat, v)
@@ -167,22 +172,40 @@ def update_char(char, *, stat=(), node=(), portal=()):
     }
 
 
-CHAR_DATA = [
-    ('empty', {}, {}, [], [], [], []),
-    ('small',
-     {0: [1], 1: [0], 'kobold': []},
-     {'spam': 'eggs', 'ham': {'baked beans': 'delicious'}, 'qux': ['quux', 'quuux'],
-                             'clothes': {'hats', 'shirts', 'pants'}},
-     [('kobold', {'location': 0, 'evil': True}), (0, {'evil': False}), (1, {'evil': False})],
-     [('spam', None), ('qux', ['quux']), ('clothes', 'no')],
-     [(2, {'evil': False}), ('kobold', {'evil': False})],
-     [(0, 1, None), (0, 2, {'hi': 'hello'})]
-     )
-]
+CHAR_DATA = [('empty', {}, {}, [], [], [], []),
+             ('small', {
+                 0: [1],
+                 1: [0],
+                 'kobold': []
+             }, {
+                 'spam': 'eggs',
+                 'ham': {
+                     'baked beans': 'delicious'
+                 },
+                 'qux': ['quux', 'quuux'],
+                 'clothes': {'hats', 'shirts', 'pants'}
+             }, [('kobold', {
+                 'location': 0,
+                 'evil': True
+             }), (0, {
+                 'evil': False
+             }), (1, {
+                 'evil': False
+             })], [('spam', None), ('qux', ['quux']),
+                   ('clothes', 'no')], [(2, {
+                       'evil': False
+                   }), ('kobold', {
+                       'evil': False
+                   })], [(0, 1, None), (0, 2, {
+                       'hi': 'hello'
+                   })])]
 
 
-@pytest.mark.parametrize(['name', 'data', 'stat', 'nodestat', 'statup', 'nodeup', 'edgeup'], CHAR_DATA)
-def test_char_creation(tmpdir, name, data, stat, nodestat, statup, nodeup, edgeup):
+@pytest.mark.parametrize(
+    ['name', 'data', 'stat', 'nodestat', 'statup', 'nodeup', 'edgeup'],
+    CHAR_DATA)
+def test_char_creation(tmpdir, name, data, stat, nodestat, statup, nodeup,
+                       edgeup):
     with Engine(tmpdir) as eng:
         char = eng.new_character(name, data, **stat)
         assert set(char.node) == set(data)
@@ -194,8 +217,11 @@ def test_char_creation(tmpdir, name, data, stat, nodestat, statup, nodeup, edgeu
         assert char.stat == stat
 
 
-@pytest.mark.parametrize(['name', 'data', 'stat', 'nodestat', 'statup', 'nodeup', 'edgeup'], CHAR_DATA)
-def test_facade_creation(tmpdir, name, data, stat, nodestat, statup, nodeup, edgeup):
+@pytest.mark.parametrize(
+    ['name', 'data', 'stat', 'nodestat', 'statup', 'nodeup', 'edgeup'],
+    CHAR_DATA)
+def test_facade_creation(tmpdir, name, data, stat, nodestat, statup, nodeup,
+                         edgeup):
     with Engine(tmpdir) as eng:
         char = eng.new_character(name, data, **stat)
         fac = char.facade()
@@ -205,7 +231,6 @@ def test_facade_creation(tmpdir, name, data, stat, nodestat, statup, nodeup, edg
         assert set(fac.edges) == set(char.edges)
         assert fac.stat == char.stat
         assert dict(fac.stat) == dict(char.stat)
-
 
 
 # TODO parametrize bunch of characters
@@ -228,8 +253,7 @@ def test_facade(character_updates):
         for d in character.edge[o]:
             start_edge.setdefault(o, {})[d] = character.edge[o][d].unwrap()
     facade = character.facade()
-    updated = update_char(
-        facade, stat=statup, node=nodeup, portal=edgeup)
+    updated = update_char(facade, stat=statup, node=nodeup, portal=edgeup)
     assert facade.stat == updated['stat']
     assert facade.place == updated['place']
     assert facade.thing == updated['thing']

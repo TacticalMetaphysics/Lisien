@@ -13,12 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Widget representing things that move about from place to place."""
-from kivy.properties import (
-    AliasProperty,
-    ObjectProperty,
-    NumericProperty,
-    ReferenceListProperty
-)
+from kivy.properties import (AliasProperty, ObjectProperty, NumericProperty,
+                             ReferenceListProperty)
 from .pawnspot import GraphPawnSpot
 from ..pawn import PawnBehavior
 
@@ -44,8 +40,4 @@ class Pawn(GraphPawnSpot, PawnBehavior):
 
     def __repr__(self):
         """Give my ``thing``'s name and its location's name."""
-        return '<{}-in-{} at {}>'.format(
-            self.name,
-            self.loc_name,
-            id(self)
-        )
+        return '<{}-in-{} at {}>'.format(self.name, self.loc_name, id(self))

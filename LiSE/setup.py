@@ -13,38 +13,26 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import sys
-if sys.version_info[0] < 3 or (
-        sys.version_info[0] == 3 and
-        sys.version_info[1] < 6
-):
+if sys.version_info[0] < 3 or (sys.version_info[0] == 3
+                               and sys.version_info[1] < 6):
     raise RuntimeError("LiSE requires Python 3.6 or later")
 import os
 from setuptools import setup
 
-with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'requirements.txt'), 'rt') as inf:
+with open(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                     'requirements.txt'), 'rt') as inf:
     reqs = list(inf.readlines())
 
-
-setup(
-    name="LiSE",
-    version="0.12",
-    description="Rules engine for life simulation games",
-    author="Zachary Spector",
-    author_email="public@zacharyspector.com",
-    license="AGPL3",
-    keywords="game simulation",
-    url="https://github.com/LogicalDash/LiSE",
-    packages=[
-        "LiSE",
-        "LiSE.server",
-        "LiSE.examples",
-        "LiSE.allegedb"
-    ],
-    package_data={
-        'LiSE': ['sqlite.json']
-    },
-    install_requires=reqs,
-    project_urls={
-        "Documentation": "https://logicaldash.github.io/LiSE"
-    }
-)
+setup(name="LiSE",
+      version="0.12",
+      description="Rules engine for life simulation games",
+      author="Zachary Spector",
+      author_email="public@zacharyspector.com",
+      license="AGPL3",
+      keywords="game simulation",
+      url="https://github.com/LogicalDash/LiSE",
+      packages=["LiSE", "LiSE.server", "LiSE.examples", "LiSE.allegedb"],
+      package_data={'LiSE': ['sqlite.json']},
+      install_requires=reqs,
+      project_urls={"Documentation": "https://logicaldash.github.io/LiSE"})

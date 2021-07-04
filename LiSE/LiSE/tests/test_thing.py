@@ -19,7 +19,8 @@ import networkx as nx
 
 @pytest.fixture(scope='function')
 def something(engy):
-    yield engy.new_character('physical').new_place('somewhere').new_thing('something')
+    yield engy.new_character('physical').new_place('somewhere').new_thing(
+        'something')
 
 
 def test_contents(something):

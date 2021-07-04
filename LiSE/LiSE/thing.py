@@ -34,7 +34,6 @@ def roerror(*args, **kwargs):
 
 
 class Thing(Node):
-
     """The sort of item that has a particular location at any given time.
 
     If a Thing is in a Place, it is standing still. If it is in a
@@ -50,19 +49,16 @@ class Thing(Node):
     __slots__ = ('graph', 'db', 'node', '_rulebook', '_rulebooks',
                  '_real_rule_mapping')
 
-    extrakeys = {
-        'name',
-        'location'
-    }
+    extrakeys = {'name', 'location'}
 
     def _getname(self):
         return self.name
 
     def _getloc(self):
         try:
-            return self.engine._things_cache.retrieve(
-                self.character.name, self.name, *self.engine._btt()
-            )
+            return self.engine._things_cache.retrieve(self.character.name,
+                                                      self.name,
+                                                      *self.engine._btt())
         except:
             return None
 
@@ -88,22 +84,12 @@ class Thing(Node):
             raise ValueError("Couldn't find arrival time")
 
     def _set_loc(self, loc):
-        self.engine._set_thing_loc(
-            self.character.name,
-            self.name,
-            loc
-        )
+        self.engine._set_thing_loc(self.character.name, self.name, loc)
         self.send(self, key='location', val=loc)
 
-    _getitem_dispatch = {
-        'name': _getname,
-        'location': _getloc
-    }
+    _getitem_dispatch = {'name': _getname, 'location': _getloc}
 
-    _setitem_dispatch = {
-        'name': roerror,
-        'location': _set_loc
-    }
+    _setitem_dispatch = {'name': roerror, 'location': _set_loc}
 
     def __getitem__(self, key):
         """Return one of my stats stored in the database, or a few
@@ -139,16 +125,16 @@ class Thing(Node):
         super().__delitem__(key)
 
     def __repr__(self):
-        return "{}.character['{}'].thing['{}']".format(
-            self.engine,
-            self.character.name,
-            self.name
-        )
+        return "{}.character['{}'].thing['{}']".format(self.engine,
+                                                       self.character.name,
+                                                       self.name)
 
     def delete(self):
         super().delete()
         self._set_loc(None)
-        self.character.thing.send(self.character.thing, key=self.name, val=None)
+        self.character.thing.send(self.character.thing,
+                                  key=self.name,
+                                  val=None)
 
     def clear(self):
         """Unset everything."""
@@ -173,12 +159,16 @@ class Thing(Node):
     @property
     def next_location(self):
         branch = self.engine.branch
-        turn = self.engine._things_cache.turn_after(self.character.name, self.name, *self.engine.time)
+        turn = self.engine._things_cache.turn_after(self.character.name,
+                                                    self.name,
+                                                    *self.engine.time)
         if turn is None:
             return None
-        return self.engine._get_node(self.character, self.engine._things_cache.retrieve(
-            self.character.name, self.name, branch, turn, self.engine._turn_end_plan[branch, turn]
-        ))
+        return self.engine._get_node(
+            self.character,
+            self.engine._things_cache.retrieve(
+                self.character.name, self.name, branch, turn,
+                self.engine._turn_end_plan[branch, turn]))
 
     def go_to_place(self, place, weight=None):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
@@ -196,8 +186,8 @@ class Thing(Node):
             placen = place
         curloc = self["location"]
         orm = self.character.engine
-        turns = 1 if weight is None else self.engine._portal_objs[
-            (self.character.name, curloc, place)].get(weight, 1)
+        turns = 1 if weight is None else self.engine._portal_objs[(
+            self.character.name, curloc, place)].get(weight, 1)
         with self.engine.plan():
             orm.turn += turns
             self['location'] = placen
@@ -225,18 +215,13 @@ class Thing(Node):
                 raise ValueError("Path does not start at my present location")
             subpath = [prevplace]
             for place in path:
-                if (
-                        prevplace not in self.character.portal or
-                        place not in self.character.portal[prevplace]
-                ):
+                if (prevplace not in self.character.portal
+                        or place not in self.character.portal[prevplace]):
                     raise TravelException(
                         "Couldn't follow portal from {} to {}".format(
-                            prevplace,
-                            place
-                        ),
+                            prevplace, place),
                         path=subpath,
-                        traveller=self
-                    )
+                        traveller=self)
                 subpath.append(place)
                 prevplace = place
             turns_total = 0

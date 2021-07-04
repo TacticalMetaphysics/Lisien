@@ -1,6 +1,7 @@
 from LiSE.examples.college import install
 from LiSE.engine import Engine
 
+
 def test():
     eng = Engine(":memory:")
     install(eng)

@@ -60,16 +60,14 @@ class TravelException(Exception):
     because sometimes somebody SHOULD get confused finding a path.
 
     """
-    def __init__(
-            self,
-            message,
-            path=None,
-            followed=None,
-            traveller=None,
-            branch=None,
-            turn=None,
-            lastplace=None
-    ):
+    def __init__(self,
+                 message,
+                 path=None,
+                 followed=None,
+                 traveller=None,
+                 branch=None,
+                 turn=None,
+                 lastplace=None):
         """Store the message as usual, and also the optional arguments:
 
         ``path``: a list of Place names to show such a path as you found

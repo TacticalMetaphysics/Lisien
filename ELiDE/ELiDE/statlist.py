@@ -79,9 +79,9 @@ class StatRowListItem(Widget):
             Logger.info('StatRowListItem: {} deleted'.format(self.key))
         except TypeError:
             value = self.gett(self.key)
-            Logger.warning("StatRowListItem: couldn't set value {} because it is type {}".format(
-                value, type(value)
-            ))
+            Logger.warning(
+                "StatRowListItem: couldn't set value {} because it is type {}".
+                format(value, type(value)))
         self.bind(value=self._push)
 
     def _pull(self, *args, **kwargs):
@@ -104,11 +104,9 @@ class StatRowTextInput(StatRowListItem, TextInput):
             if not self.focus:
                 self.upd_value()
 
-        self.bind(
-            on_enter=self.upd_value,
-            on_text_validate=self.upd_value,
-            on_focus=lost_focus
-        )
+        self.bind(on_enter=self.upd_value,
+                  on_text_validate=self.upd_value,
+                  on_focus=lost_focus)
 
     @trigger
     def upd_value(self, *args):
@@ -123,7 +121,6 @@ class StatRowToggleButton(StatRowListItem, ToggleButton):
     """String to display when the stat is true."""
     false_text = StringProperty('0')
     """String to display when the stat is false."""
-
     def on_touch_up(self, *args):
         if self.parent is None:
             return
@@ -137,7 +134,6 @@ class StatRowSlider(StatRowListItem, Slider):
     """Display the current value of a numeric stat and let the user slide it."""
     need_set = BooleanProperty(False)
     """Internal. Usually False, becomes True briefly when the value has changed."""
-
     def __init__(self, **kwargs):
         self.value = kwargs['value']
         self.min = kwargs['min']
@@ -154,9 +150,9 @@ class StatRowSlider(StatRowListItem, Slider):
             Logger.info('StatRowListItem: {} deleted'.format(self.key))
         except TypeError:
             value = self.gett(self.key)
-            Logger.warning("StatRowListItem: couldn't set value {} because it is type {}".format(
-                value, type(value)
-            ))
+            Logger.warning(
+                "StatRowListItem: couldn't set value {} because it is type {}".
+                format(value, type(value)))
 
     def on_listen(self, *args):
         self.listen(self._pull)
@@ -207,7 +203,6 @@ class StatRowListItemContainer(BoxLayout):
     Other keys are specific to one widget type or another.
     
     """
-
     def set_value(self, *args):
         """Use my ``sett`` function to set my stat (``key``) to my new ``value``.
 
@@ -240,7 +235,8 @@ class StatRowListItemContainer(BoxLayout):
         """
         if not self.config:
             return
-        if not all((self.key, self.gett, self.sett, self.listen, self.unlisten)):
+        if not all(
+            (self.key, self.gett, self.sett, self.listen, self.unlisten)):
             Clock.schedule_once(self.remake, 0)
             return
         if not hasattr(self, 'label'):
@@ -248,6 +244,7 @@ class StatRowListItemContainer(BoxLayout):
 
             def updlabel(*args):
                 self.label.text = str(self.key)
+
             self.bind(key=updlabel)
             self.add_widget(self.label)
         if hasattr(self, 'wid'):
@@ -264,9 +261,9 @@ class StatRowListItemContainer(BoxLayout):
         if control == 'slider':
             cls = StatRowSlider
             try:
-               widkwargs['value'] = float(self.gett(self.key))
-               widkwargs['min'] = float(self.config['min'])
-               widkwargs['max'] = float(self.config['max'])
+                widkwargs['value'] = float(self.gett(self.key))
+                widkwargs['min'] = float(self.config['min'])
+                widkwargs['max'] = float(self.config['max'])
             except (KeyError, ValueError):
                 return
         elif control == 'togglebutton':
@@ -281,13 +278,11 @@ class StatRowListItemContainer(BoxLayout):
         else:
             cls = StatRowLabel
         self.wid = cls(**widkwargs)
-        self.bind(
-            key=self.wid.setter('key'),
-            gett=self.wid.setter('gett'),
-            sett=self.wid.setter('sett'),
-            listen=self.wid.setter('listen'),
-            unlisten=self.wid.setter('unlisten')
-        )
+        self.bind(key=self.wid.setter('key'),
+                  gett=self.wid.setter('gett'),
+                  sett=self.wid.setter('sett'),
+                  listen=self.wid.setter('listen'),
+                  unlisten=self.wid.setter('unlisten'))
         if control == 'slider':
             self.unbind(config=self._toggle_update_config)
             self.bind(config=self._slider_update_config)
@@ -395,17 +390,9 @@ class BaseStatListView(RecycleView):
 
     def iter_data(self):
         """Iterate over key-value pairs that are really meant to be displayed"""
-        invalid = {
-            'character',
-            'name',
-            'location',
-            'rulebooks'
-        }
+        invalid = {'character', 'name', 'location', 'rulebooks'}
         for (k, v) in self.proxy.items():
-            if (
-                not (isinstance(k, str) and k[0] == '_') and
-                k not in invalid
-            ):
+            if (not (isinstance(k, str) and k[0] == '_') and k not in invalid):
                 yield k, v
 
     def munge(self, k, v):
@@ -445,6 +432,7 @@ class BaseStatListView(RecycleView):
                 return
             if w.value != self.proxy[w.key]:
                 w.value = self.proxy[w.key]
+
         self._listeners[w.key] = listen
         self.proxy.connect(listen)
 
@@ -457,8 +445,7 @@ class StatListView(BaseStatListView):
     """The type of StatListView that shows only stats and their values"""
 
 
-Builder.load_string(
-    """
+Builder.load_string("""
 <StatRowListItem>:
     height: 30
 <StatRowLabel>:
@@ -484,5 +471,4 @@ Builder.load_string(
         size_hint_y: None
         height: self.minimum_height
         orientation: 'vertical'
-"""
-)
+""")

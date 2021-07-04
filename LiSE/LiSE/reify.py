@@ -37,7 +37,6 @@ class reify(object):
          first_time = self.lazy   # lazy is reify obj, reify.__get__() runs
          second_time = self.lazy  # lazy is hard_to_compute_int
     '''
-
     def __init__(self, func):
         self.func = func
         self.__doc__ = func.__doc__

@@ -24,7 +24,7 @@ class GridGeneratorDialog(BoxLayout):
     xval = NumericProperty()
     yval = NumericProperty()
     directions = OptionProperty(None, options=[None, 4, 8])
-    
+
     def generate(self, engine):
         x = int(self.xval)
         y = int(self.yval)
@@ -39,7 +39,7 @@ class GridGeneratorDialog(BoxLayout):
             return True
         else:
             return False
-    
+
     def validate(self):
         return self.directions and int(self.xval) and int(self.yval)
 

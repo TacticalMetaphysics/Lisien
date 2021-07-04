@@ -21,7 +21,6 @@ from LiSE.engine import Engine
 from LiSE.examples.kobold import inittest
 
 
-
 def test_keyframe_load_init(tempdir):
     """Can load a keyframe at start of branch, including locations"""
     eng = Engine(tempdir)
@@ -45,25 +44,26 @@ def test_multi_keyframe(tempdir):
     del eng.character['physical'].place[3, 3]
     eng.snap_keyframe()
     tick1 = eng.tick
-    assert ('physical',) in eng._nodes_cache.keyframe
-    assert 'trunk' in eng._nodes_cache.keyframe['physical',]
-    assert 1 in eng._nodes_cache.keyframe['physical',]['trunk']
-    assert tick1 in eng._nodes_cache.keyframe['physical',]['trunk'][1]
-    assert (1, 1) in eng._nodes_cache.keyframe['physical',]['trunk'][1][tick1]
-    assert (3, 3) not in eng._nodes_cache.keyframe['physical',]['trunk'][1][tick1]
+    assert ('physical', ) in eng._nodes_cache.keyframe
+    assert 'trunk' in eng._nodes_cache.keyframe['physical', ]
+    assert 1 in eng._nodes_cache.keyframe['physical', ]['trunk']
+    assert tick1 in eng._nodes_cache.keyframe['physical', ]['trunk'][1]
+    assert (1, 1) in eng._nodes_cache.keyframe['physical', ]['trunk'][1][tick1]
+    assert (
+        3, 3) not in eng._nodes_cache.keyframe['physical', ]['trunk'][1][tick1]
     eng.close()
     eng = Engine(tempdir)
-    assert 1 in eng._nodes_cache.keyframe['physical',]['trunk']
-    assert tick1 in eng._nodes_cache.keyframe['physical',]['trunk'][1]
+    assert 1 in eng._nodes_cache.keyframe['physical', ]['trunk']
+    assert tick1 in eng._nodes_cache.keyframe['physical', ]['trunk'][1]
     eng._load_at('trunk', 0, tick0)
     assert eng._time_is_loaded('trunk', 0, tick0)
-    assert eng._time_is_loaded('trunk', 0, tick0+1)
-    assert eng._time_is_loaded('trunk', 1, tick1-1)
+    assert eng._time_is_loaded('trunk', 0, tick0 + 1)
+    assert eng._time_is_loaded('trunk', 1, tick1 - 1)
     assert eng._time_is_loaded('trunk', 1, tick1)
-    assert 0 in eng._nodes_cache.keyframe['physical',]['trunk']
-    assert tick0 in eng._nodes_cache.keyframe['physical',]['trunk'][0]
-    assert 1 in eng._nodes_cache.keyframe['physical',]['trunk']
-    assert tick1 in eng._nodes_cache.keyframe['physical',]['trunk'][1]
+    assert 0 in eng._nodes_cache.keyframe['physical', ]['trunk']
+    assert tick0 in eng._nodes_cache.keyframe['physical', ]['trunk'][0]
+    assert 1 in eng._nodes_cache.keyframe['physical', ]['trunk']
+    assert tick1 in eng._nodes_cache.keyframe['physical', ]['trunk'][1]
     assert eng._nodes_cache.keyframe['physical', ]['trunk'][0][tick0]\
            != eng._nodes_cache.keyframe['physical', ]['trunk'][1][tick1]
 

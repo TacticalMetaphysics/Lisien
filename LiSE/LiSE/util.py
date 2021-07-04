@@ -47,13 +47,19 @@ def singleton_get(s):
 
 class EntityStatAccessor(object):
     __slots__ = [
-        'engine', 'entity', 'branch', 'turn', 'tick', 'stat', 'current', 'mungers'
+        'engine', 'entity', 'branch', 'turn', 'tick', 'stat', 'current',
+        'mungers'
     ]
 
-    def __init__(
-            self, entity, stat,
-            engine=None, branch=None, turn=None, tick=None, current=False, mungers=[]
-    ):
+    def __init__(self,
+                 entity,
+                 stat,
+                 engine=None,
+                 branch=None,
+                 turn=None,
+                 tick=None,
+                 current=False,
+                 mungers=[]):
         if engine is None:
             engine = entity.engine
         if branch is None:
@@ -95,12 +101,9 @@ class EntityStatAccessor(object):
 
     def __repr__(self):
         return "EntityStatAccessor({}[{}]{}), {} mungers".format(
-            self.entity,
-            self.stat,
-            "" if self.current else
-            ", branch={}, turn={}, tick={}".format(self.branch, self.turn, self.tick),
-            len(self.mungers)
-        )
+            self.entity, self.stat,
+            "" if self.current else ", branch={}, turn={}, tick={}".format(
+                self.branch, self.turn, self.tick), len(self.mungers))
 
     def __gt__(self, other):
         return self() > other
@@ -118,15 +121,9 @@ class EntityStatAccessor(object):
         return self == other
 
     def munge(self, munger):
-        return EntityStatAccessor(
-            self.entity,
-            self.stat,
-            self.engine,
-            self.branch,
-            self.tick,
-            self.current,
-            self.mungers + [munger]
-        )
+        return EntityStatAccessor(self.entity, self.stat, self.engine,
+                                  self.branch, self.tick, self.current,
+                                  self.mungers + [munger])
 
     def __add__(self, other):
         return self.munge(partial(add, other))
@@ -162,7 +159,7 @@ class EntityStatAccessor(object):
         oldturn = engine.turn
         oldtick = engine.tick
         stat = self.stat
-        for turn in range(beginning, end+1):
+        for turn in range(beginning, end + 1):
             engine.turn = turn
             try:
                 y = entity[stat]
@@ -181,14 +178,14 @@ def dedent_source(source):
     if nlidx is None:
         raise ValueError("Invalid source")
     while source[:nlidx].strip().startswith('@'):
-        source = source[nlidx+1:]
+        source = source[nlidx + 1:]
         nlidx = source.index('\n')
     return dedent(source)
 
 
 def _sort_set_key(v):
     if isinstance(v, tuple):
-        return (2,) + tuple(map(repr, v))
+        return (2, ) + tuple(map(repr, v))
     if isinstance(v, str):
         return 1, repr(v)
     return 0, repr(v)

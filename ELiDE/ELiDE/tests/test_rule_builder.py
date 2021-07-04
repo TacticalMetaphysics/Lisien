@@ -51,9 +51,11 @@ class TestRuleBuilderKobold(RuleBuilderTest):
     def test_rule_builder_display_trigger(self):
         rules_list = self.rules_list
         rules_view = self.rules_view
-        idle_until(lambda: 'shrubsprint' in {
-            rulebut.text for rulebut in rules_list.children[0].children}, 100,
-                   'Never made shrubsprint button')
+        idle_until(
+            lambda: 'shrubsprint' in
+            {rulebut.text
+             for rulebut in rules_list.children[0].children}, 100,
+            'Never made shrubsprint button')
         for rulebut in rules_list.children[0].children:
             if rulebut.text == 'shrubsprint':
                 rulebut.state = 'down'
@@ -62,19 +64,27 @@ class TestRuleBuilderKobold(RuleBuilderTest):
         idle_until(lambda: hasattr(rules_view, '_trigger_tab'), 100,
                    'Never made trigger tab')
         builder = rules_view._trigger_builder
-        idle_until(lambda: [child for child in builder.children if isinstance(child, Card)], 100,
-                   'Never filled trigger builder')
-        card_names = {card.headline_text for card in builder.children
-                      if isinstance(card, Card)}
-        assert card_names == {'standing_still', 'aware', 'uncovered',
-                              'sametile', 'breakcover', 'kobold_alive'}
+        idle_until(
+            lambda:
+            [child for child in builder.children if isinstance(child, Card)],
+            100, 'Never filled trigger builder')
+        card_names = {
+            card.headline_text
+            for card in builder.children if isinstance(card, Card)
+        }
+        assert card_names == {
+            'standing_still', 'aware', 'uncovered', 'sametile', 'breakcover',
+            'kobold_alive'
+        }
 
     def test_rule_builder_remove_trigger(self):
         rules_list = self.rules_list
         rules_view = self.rules_view
-        idle_until(lambda: 'shrubsprint' in {
-            rulebut.text for rulebut in rules_list.children[0].children}, 100,
-                   'Never made shrubsprint button')
+        idle_until(
+            lambda: 'shrubsprint' in
+            {rulebut.text
+             for rulebut in rules_list.children[0].children}, 100,
+            'Never made shrubsprint button')
         for rulebut in rules_list.children[0].children:
             if rulebut.text == 'shrubsprint':
                 rulebut.state = 'down'
@@ -83,8 +93,10 @@ class TestRuleBuilderKobold(RuleBuilderTest):
         idle_until(lambda: hasattr(rules_view, '_trigger_tab'), 100,
                    'Never made trigger tab')
         builder = rules_view._trigger_builder
-        idle_until(lambda: [child for child in builder.children if isinstance(child, Card)], 100,
-                   'Never filled trigger builder')
+        idle_until(
+            lambda:
+            [child for child in builder.children if isinstance(child, Card)],
+            100, 'Never filled trigger builder')
         for card in builder.children:
             if not isinstance(card, Card):
                 continue
@@ -111,14 +123,18 @@ class TestRuleBuilderKobold(RuleBuilderTest):
             self.advance_frames(1)
         mov.touch_up(foundation.center_x, foundation.y)
         idle_until(lambda: card.x == foundation.x, 100, "card didn't move")
-        idle_until(lambda: 'breakcover' not in self.app.engine.rule['shrubsprint'].triggers, 100, 'breakcover never removed from rulebook')
+        idle_until(
+            lambda: 'breakcover' not in self.app.engine.rule['shrubsprint'].
+            triggers, 100, 'breakcover never removed from rulebook')
 
     def test_rule_builder_add_trigger(self):
         rules_list = self.rules_list
         rules_view = self.rules_view
-        idle_until(lambda: 'shrubsprint' in {
-            rulebut.text for rulebut in rules_list.children[0].children}, 100,
-                   'Never made shrubsprint button')
+        idle_until(
+            lambda: 'shrubsprint' in
+            {rulebut.text
+             for rulebut in rules_list.children[0].children}, 100,
+            'Never made shrubsprint button')
         for rulebut in rules_list.children[0].children:
             if rulebut.text == 'shrubsprint':
                 rulebut.state = 'down'
@@ -127,8 +143,10 @@ class TestRuleBuilderKobold(RuleBuilderTest):
         idle_until(lambda: hasattr(rules_view, '_trigger_tab'), 100,
                    'Never made trigger tab')
         builder = rules_view._trigger_builder
-        idle_until(lambda: [child for child in builder.children if isinstance(child, Card)], 100,
-                   'Never filled trigger builder')
+        idle_until(
+            lambda:
+            [child for child in builder.children if isinstance(child, Card)],
+            100, 'Never filled trigger builder')
         aware = breakcover = None
         for card in builder.children:
             if not isinstance(card, Card):
@@ -137,7 +155,8 @@ class TestRuleBuilderKobold(RuleBuilderTest):
                 aware = card
             elif card.headline_text == 'breakcover':
                 breakcover = card
-        assert None not in (aware, breakcover), "Didn't get 'aware' and 'breakcover' cards"
+        assert None not in (
+            aware, breakcover), "Didn't get 'aware' and 'breakcover' cards"
         start_x = aware.center_x
         start_y = aware.top - 10
         mov = UnitTestTouch(start_x, start_y)
@@ -154,8 +173,11 @@ class TestRuleBuilderKobold(RuleBuilderTest):
             mov.touch_move(x, y)
             self.advance_frames(1)
         mov.touch_up(*breakcover.center)
-        idle_until(lambda: aware.x == breakcover.x, 100, "aware didn't move to its new place")
-        idle_until(lambda: 'aware' in self.app.engine.rule['shrubsprint'].triggers, 100, 'aware never added to rulebook')
+        idle_until(lambda: aware.x == breakcover.x, 100,
+                   "aware didn't move to its new place")
+        idle_until(
+            lambda: 'aware' in self.app.engine.rule['shrubsprint'].triggers,
+            100, 'aware never added to rulebook')
 
 
 class TestCharRuleBuilder(ELiDEAppTest):
@@ -163,10 +185,11 @@ class TestCharRuleBuilder(ELiDEAppTest):
         super(TestCharRuleBuilder, self).setUp()
         with Engine(self.prefix) as eng:
             polygons.install(eng)
-            assert list(eng.character['triangle'].avatar.rule[
-                            'relocate'].triggers) == [
-                   eng.trigger.similar_neighbors,
-                   eng.trigger.dissimilar_neighbors]
+            assert list(eng.character['triangle'].avatar.rule['relocate'].
+                        triggers) == [
+                            eng.trigger.similar_neighbors,
+                            eng.trigger.dissimilar_neighbors
+                        ]
         app = self.app
         mgr = app.build()
         self.win = window_with_widget(mgr)
@@ -179,7 +202,8 @@ class TestCharRuleBuilder(ELiDEAppTest):
 
     def test_char_rule_builder_remove_avatar_trigger(self):
         app = self.app
-        idle_until(lambda: getattr(app.charrules, '_finalized', False), 100, "Never finalized charrules")
+        idle_until(lambda: getattr(app.charrules, '_finalized', False), 100,
+                   "Never finalized charrules")
         tabitem = app.charrules._avatar_tab
         idle_until(lambda: tabitem.content, 100,
                    'avatar tab never got content')
@@ -189,34 +213,44 @@ class TestCharRuleBuilder(ELiDEAppTest):
         idle_until(lambda: app.charrules._tabs.current_tab == tabitem, 100,
                    'Never switched tab')
         rules_box = app.charrules._avatar_box
-        idle_until(lambda: rules_box.parent, 100, 'avatar box never got parent')
-        idle_until(lambda: getattr(rules_box.rulesview, '_finalized', False), 100, "Never finalized avatar rules view")
-        idle_until(lambda: rules_box.children, 100, '_avatar_box never got children')
+        idle_until(lambda: rules_box.parent, 100,
+                   'avatar box never got parent')
+        idle_until(lambda: getattr(rules_box.rulesview, '_finalized', False),
+                   100, "Never finalized avatar rules view")
+        idle_until(lambda: rules_box.children, 100,
+                   '_avatar_box never got children')
         idle_until(lambda: rules_box.rulesview.children, 100,
                    'Never filled rules view')
         rules_list = rules_box.ruleslist
         idle_until(lambda: rules_list.children[0].children, 100,
                    'Never filled rules list')
-        idle_until(lambda: 'relocate' in {
-            rulebut.text for rulebut in rules_list.children[0].children}, 100,
-                   'Never made relocate button')
+        idle_until(
+            lambda: 'relocate' in
+            {rulebut.text
+             for rulebut in rules_list.children[0].children}, 100,
+            'Never made relocate button')
         for rulebut in rules_list.children[0].children:
             if rulebut.text == 'relocate':
                 rulebut.state = 'down'
                 break
         builder = rules_box.rulesview._trigger_builder
         assert rules_box.rulesview._tabs.current_tab == rules_box.rulesview._trigger_tab
-        idle_until(lambda: builder.children, 100, 'trigger builder never got children')
+        idle_until(lambda: builder.children, 100,
+                   'trigger builder never got children')
+
         def builder_foundation():
             for child in builder.children:
                 if not isinstance(child, Card):
                     return True
             return False
-        idle_until(builder_foundation, 100,
-                   'Never filled trigger builder')
-        idle_until(lambda: builder.parent, 100, "trigger builder never got parent")
-        card_names = {card.headline_text for card in builder.children
-                      if isinstance(card, Card)}
+
+        idle_until(builder_foundation, 100, 'Never filled trigger builder')
+        idle_until(lambda: builder.parent, 100,
+                   "trigger builder never got parent")
+        card_names = {
+            card.headline_text
+            for card in builder.children if isinstance(card, Card)
+        }
         assert card_names == {'similar_neighbors', 'dissimilar_neighbors'}
         for card in builder.children:
             if not isinstance(card, Card):
@@ -231,7 +265,8 @@ class TestCharRuleBuilder(ELiDEAppTest):
         for cardother in builder.children:
             if not isinstance(cardother, Card) or cardother == card:
                 continue
-            assert not cardother.collide_point(startx, starty), "other card will grab the touch"
+            assert not cardother.collide_point(
+                startx, starty), "other card will grab the touch"
         touch = UnitTestTouch(startx, starty)
         for target in builder.children:
             if isinstance(target, Card):
@@ -256,5 +291,5 @@ class TestCharRuleBuilder(ELiDEAppTest):
         self.advance_frames(5)
         app.stop()
         with Engine(self.prefix) as eng:
-            assert list(eng.character['triangle'].avatar.rule['relocate'].triggers) == [
-                eng.trigger.dissimilar_neighbors]
+            assert list(eng.character['triangle'].avatar.rule['relocate'].
+                        triggers) == [eng.trigger.dissimilar_neighbors]

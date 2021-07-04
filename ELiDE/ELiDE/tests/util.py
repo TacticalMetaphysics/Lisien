@@ -47,7 +47,8 @@ def all_arrows_placed(board, char=None):
 def board_is_arranged(board, char=None):
     if char is None:
         char = board.character
-    return all_spots_placed(board, char) and all_pawns_placed(board, char) and all_arrows_placed(board, char)
+    return all_spots_placed(board, char) and all_pawns_placed(
+        board, char) and all_arrows_placed(board, char)
 
 
 def idle_until(condition=None, timeout=None, message="Timed out"):

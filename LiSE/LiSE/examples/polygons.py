@@ -31,7 +31,8 @@ def install(eng):
         home = poly.location
         similar = 0
         n = 0
-        for n, neighbor_home in enumerate(map(attrgetter('destination'), home.portal.values()), 1):
+        for n, neighbor_home in enumerate(
+                map(attrgetter('destination'), home.portal.values()), 1):
             # assume only 1 poly per home for now; this is faithful to the original
             try:
                 neighbor = next(iter(neighbor_home.contents()))
@@ -47,7 +48,10 @@ def install(eng):
     def relocate(poly):
         """Move to a random unoccupied place"""
         if 'unoccupied' not in poly.engine.universal:
-            poly.engine.universal['unoccupied'] = [place for place in poly.character.place.values() if not place.content]
+            poly.engine.universal['unoccupied'] = [
+                place for place in poly.character.place.values()
+                if not place.content
+            ]
         unoccupied = poly.engine.universal['unoccupied']
         newloc = unoccupied.pop(poly.engine.randrange(0, len(unoccupied)))
         while not newloc:  # the unoccupied location may have been deleted
@@ -59,38 +63,47 @@ def install(eng):
     def similar_neighbors(poly):
         """Trigger when my neighborhood fails to be enough like me"""
         from operator import ge
-        return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
+        return poly.engine.function.cmp_neighbor_shapes(
+            poly, ge, 'min_sameness')
 
     @relocate.trigger
     def dissimilar_neighbors(poly):
         """Trigger when my neighborhood gets too much like me"""
         from operator import lt
-        return poly.engine.function.cmp_neighbor_shapes(poly, lt, 'max_sameness')
-
+        return poly.engine.function.cmp_neighbor_shapes(
+            poly, lt, 'max_sameness')
 
     eng.rulebook['parable'] = [relocate]
 
-
-    physical = eng.new_character(
-        'physical', min_sameness=.1, max_sameness=.9,
-        _config={
-            'min_sameness': {'control': 'slider', 'min': 0.0, 'max': 1.0},
-            'max_sameness': {'control': 'slider', 'min': 0.0, 'max': 1.0}
-        },
-        data=grid_2d_8graph(20, 20)
-    )
+    physical = eng.new_character('physical',
+                                 min_sameness=.1,
+                                 max_sameness=.9,
+                                 _config={
+                                     'min_sameness': {
+                                         'control': 'slider',
+                                         'min': 0.0,
+                                         'max': 1.0
+                                     },
+                                     'max_sameness': {
+                                         'control': 'slider',
+                                         'min': 0.0,
+                                         'max': 1.0
+                                     }
+                                 },
+                                 data=grid_2d_8graph(20, 20))
     square = eng.new_character('square')
     triangle = eng.new_character('triangle')
     square.avatar.rulebook = triangle.avatar.rulebook = 'parable'
-
 
     empty = list(physical.place.values())
     eng.shuffle(empty)
     # distribute 30 of each shape randomly among the empty places
     for i in range(1, 31):
-        square.add_avatar(empty.pop().new_thing('square%i' % i, _image_paths=['atlas://polygons/meh_square']))
+        square.add_avatar(empty.pop().new_thing(
+            'square%i' % i, _image_paths=['atlas://polygons/meh_square']))
     for i in range(1, 31):
-        triangle.add_avatar(empty.pop().new_thing('triangle%i' % i, _image_paths=['atlas://polygons/meh_triangle']))
+        triangle.add_avatar(empty.pop().new_thing(
+            'triangle%i' % i, _image_paths=['atlas://polygons/meh_triangle']))
 
 
 if __name__ == '__main__':

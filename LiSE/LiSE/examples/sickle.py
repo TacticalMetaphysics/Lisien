@@ -20,21 +20,18 @@ as you ran this script from.
 
 """
 
-
 import networkx as nx
 from LiSE import Engine
 from os import remove
 
 
-def install(
-        engine,
-        n_creatures=5,
-        n_sickles=3,
-        malaria_chance=.05,
-        mate_chance=.05,
-        mapsize=(1, 1),
-        startpos=(0, 0)
-):
+def install(engine,
+            n_creatures=5,
+            n_sickles=3,
+            malaria_chance=.05,
+            mate_chance=.05,
+            mapsize=(1, 1),
+            startpos=(0, 0)):
     """Natural Selection on Sickle Cell Anemia
 
     If anyone carries a pair of sickle betaglobin genes, they die of
@@ -54,17 +51,16 @@ def install(
     )
     for n in range(0, n_creatures):
         name = "critter" + str(n)
-        phys.add_thing(
-            name=name,
-            location=startpos,
-            sickle_a=(n < n_sickles),
-            sickle_b=False,
-            male=engine.coinflip(),
-            last_mate_turn=-1
-        )
+        phys.add_thing(name=name,
+                       location=startpos,
+                       sickle_a=(n < n_sickles),
+                       sickle_b=False,
+                       male=engine.coinflip(),
+                       last_mate_turn=-1)
         assert name in phys.thing
         assert name not in phys.place
-        assert name in phys.node, "couldn't add node {} to phys.node".format(name)
+        assert name in phys.node, "couldn't add node {} to phys.node".format(
+            name)
         assert hasattr(phys.node[name], 'location')
         species.add_avatar("physical", name)
         assert hasattr(species.avatar['physical'][name], 'location')
@@ -83,29 +79,23 @@ def install(
     @species.avatar.rule
     def mate(critter):
         """If I share my location with another critter, attempt to mate"""
-        suitors = list(
-            oc for oc in critter.location.contents()
-            if oc['male'] != critter['male']
-        )
+        suitors = list(oc for oc in critter.location.contents()
+                       if oc['male'] != critter['male'])
         assert (len(suitors) > 0)
         other_critter = critter.engine.choice(suitors)
         sickles = [
-            critter['sickle_a'],
-            critter['sickle_b'],
-            other_critter['sickle_a'],
-            other_critter['sickle_b']
+            critter['sickle_a'], critter['sickle_b'],
+            other_critter['sickle_a'], other_critter['sickle_b']
         ]
         engine.shuffle(sickles)
         name = "critter" + str(species.stat["n_creatures"])
         species.stat["n_creatures"] += 1
-        engine.character["physical"].add_thing(
-            name,
-            critter["location"],
-            sickle_a=sickles.pop(),
-            sickle_b=sickles.pop(),
-            male=engine.coinflip(),
-            last_mate_turn=engine.turn
-        )
+        engine.character["physical"].add_thing(name,
+                                               critter["location"],
+                                               sickle_a=sickles.pop(),
+                                               sickle_b=sickles.pop(),
+                                               male=engine.coinflip(),
+                                               last_mate_turn=engine.turn)
         species.add_avatar("physical", name)
         critter['last_mate_turn'] = other_critter['last_mate_turn'] = \
             engine.turn
@@ -135,10 +125,8 @@ def install(
 
     @dieoff.trigger
     def malaria(critter):
-        r = (
-                critter.engine.random() < critter.user.stat['malaria_chance'] and not
-        (critter['sickle_a'] or critter['sickle_b'])
-        )
+        r = (critter.engine.random() < critter.user.stat['malaria_chance']
+             and not (critter['sickle_a'] or critter['sickle_b']))
         if r:
             critter['from_malaria'] = True
         return r
@@ -161,28 +149,22 @@ def install(
         return len(critter.character.place) > 1
 
 
-def sickle_cell_test(
-        engine,
-        n_creatures=5,
-        n_sickles=3,
-        malaria_chance=.05,
-        mate_chance=.05,
-        mapsize=(1, 1),
-        startpos=(0, 0),
-        turns=100
-):
-    install(engine, n_creatures, n_sickles, malaria_chance, mate_chance, mapsize, startpos)
+def sickle_cell_test(engine,
+                     n_creatures=5,
+                     n_sickles=3,
+                     malaria_chance=.05,
+                     mate_chance=.05,
+                     mapsize=(1, 1),
+                     startpos=(0, 0),
+                     turns=100):
+    install(engine, n_creatures, n_sickles, malaria_chance, mate_chance,
+            mapsize, startpos)
     species = engine.character['species']
-    print(
-        "Starting with {} creatures, of which {} have "
-        "at least one sickle betaglobin.".format(
-            len(species.avatar['physical']),
-            sum(
-                1 for critter in species.avatar['physical'].values()
-                if critter['sickle_a'] or critter['sickle_b']
-            )
-        )
-    )
+    print("Starting with {} creatures, of which {} have "
+          "at least one sickle betaglobin.".format(
+              len(species.avatar['physical']),
+              sum(1 for critter in species.avatar['physical'].values()
+                  if critter['sickle_a'] or critter['sickle_b'])))
 
     for i in range(0, turns):
         malaria_dead = 0
@@ -205,17 +187,11 @@ def sickle_cell_test(
               "{} died of malaria, and {} of sickle cell anemia, "
               "leaving {} alive.".format(
                   i, born, malaria_dead, anemia_dead,
-                  len(engine.character['species'].avatar['physical'])
-              ))
-    print(
-        "Of the remaining {} creatures, {} have a sickle betaglobin.".format(
-            len(species.avatar['physical']),
-            sum(
-                1 for critter in species.avatar['physical'].values()
-                if critter['sickle_a'] or critter['sickle_b']
-            )
-        )
-    )
+                  len(engine.character['species'].avatar['physical'])))
+    print("Of the remaining {} creatures, {} have a sickle betaglobin.".format(
+        len(species.avatar['physical']),
+        sum(1 for critter in species.avatar['physical'].values()
+            if critter['sickle_a'] or critter['sickle_b'])))
 
 
 if __name__ == '__main__':

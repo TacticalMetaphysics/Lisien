@@ -27,17 +27,22 @@ from itertools import chain
 try:
     import cython
 except ImportError:
+
     class cython:
         def locals(**kwargs):
             def passthru(fun):
                 return fun
+
             return passthru
+
         cfunc = locals
         int = None
         bint = None
 
+
 get0 = itemgetter(0)
 get1 = itemgetter(1)
+
 
 # TODO: cancel changes that would put something back to where it was at the start
 # This will complicate the update_window functions though, and I don't think it'll
@@ -47,34 +52,34 @@ def update_window(turn_from, tick_from, turn_to, tick_to, updfun, branchd):
     """Iterate over a window of time in ``branchd`` and call ``updfun`` on the values"""
     if turn_from in branchd:
         # Not including the exact tick you started from because deltas are *changes*
-        for past_state in branchd[turn_from][tick_from+1:]:
+        for past_state in branchd[turn_from][tick_from + 1:]:
             updfun(*past_state)
-    for midturn in range(turn_from+1, turn_to):
+    for midturn in range(turn_from + 1, turn_to):
         if midturn in branchd:
             for past_state in branchd[midturn][:]:
                 updfun(*past_state)
     if turn_to in branchd:
-        for past_state in branchd[turn_to][:tick_to+1]:
+        for past_state in branchd[turn_to][:tick_to + 1]:
             updfun(*past_state)
 
 
-def update_backward_window(turn_from, tick_from, turn_to, tick_to, updfun, branchd):
+def update_backward_window(turn_from, tick_from, turn_to, tick_to, updfun,
+                           branchd):
     """Iterate backward over a window of time in ``branchd`` and call ``updfun`` on the values"""
     if turn_from in branchd:
         for future_state in reversed(branchd[turn_from][:tick_from]):
             updfun(*future_state)
-    for midturn in range(turn_from-1, turn_to, -1):
+    for midturn in range(turn_from - 1, turn_to, -1):
         if midturn in branchd:
             for future_state in reversed(branchd[midturn][:]):
                 updfun(*future_state)
     if turn_to in branchd:
-        for future_state in reversed(branchd[turn_to][tick_to+1:]):
+        for future_state in reversed(branchd[turn_to][tick_to + 1:]):
             updfun(*future_state)
 
 
 class HistoryError(KeyError):
     """You tried to access the past in a bad way."""
-
     def __init__(self, *args, deleted=False):
         super().__init__(*args)
         self.deleted = deleted
@@ -212,7 +217,7 @@ class WindowDictValuesView(ValuesView):
 
 class WindowDictPastFutureView(Mapping):
     """Abstract class for historical views on WindowDict"""
-    __slots__ = ('stack',)
+    __slots__ = ('stack', )
 
     def __init__(self, stack):
         self.stack = stack
@@ -295,7 +300,8 @@ class WindowDictSlice:
             return
         slic = self.slice
         if slic.step is not None:
-            for i in range(slic.start or dic.beginning, slic.stop or dic.end+1, slic.step):
+            for i in range(slic.start or dic.beginning, slic.stop
+                           or dic.end + 1, slic.step):
                 yield dic[i]
             return
         if slic.start is None and slic.stop is None:
@@ -365,7 +371,8 @@ class WindowDictReverseSlice:
             return
         slic = self.slice
         if slic.step is not None:
-            for i in range(slic.start or dic.end, slic.stop or dic.beginning, slic.step):
+            for i in range(slic.start or dic.end, slic.stop or dic.beginning,
+                           slic.step):
                 yield dic[i]
             return
         if slic.start is None and slic.stop is None:
@@ -446,7 +453,9 @@ class WindowDict(MutableMapping):
             self.seek(rev)
         return WindowDictPastView(self._past)
 
-    @cython.locals(rev=cython.int, past_end=cython.int, future_start=cython.int)
+    @cython.locals(rev=cython.int,
+                   past_end=cython.int,
+                   future_start=cython.int)
     def seek(self, rev):
         """Arrange the caches to help look up the given revision."""
         # TODO: binary search? Perhaps only when one or the other
@@ -586,8 +595,7 @@ class WindowDict(MutableMapping):
         past = self._past
         if not past:
             raise HistoryError(
-                "Revision {} is before the start of history".format(rev)
-            )
+                "Revision {} is before the start of history".format(rev))
         return past[-1][1]
 
     @cython.locals(rev=cython.int)
@@ -660,8 +668,7 @@ class FuturistWindowDict(WindowDict):
         future = self._future
         if future:
             raise HistoryError(
-                "Already have some history after {}".format(rev)
-            )
+                "Already have some history after {}".format(rev))
         if not past:
             self.beginning = rev
             past.append((rev, v))
@@ -670,10 +677,8 @@ class FuturistWindowDict(WindowDict):
         elif rev == past[-1][0]:
             past[-1] = (rev, v)
         else:
-            raise HistoryError(
-                "Already have some history after {} "
-                "(and my seek function is broken?)".format(rev)
-            )
+            raise HistoryError("Already have some history after {} "
+                               "(and my seek function is broken?)".format(rev))
         if self.end is None or rev > self.end:
             self.end = rev
         self._keys.add(rev)

@@ -25,6 +25,7 @@ def tempdir():
     yield directory
     shutil.rmtree(directory)
 
+
 @pytest.fixture(scope='function')
 def engy(tempdir):
     with Engine(tempdir) as eng:

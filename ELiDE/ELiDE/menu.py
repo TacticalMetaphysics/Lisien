@@ -62,10 +62,8 @@ class MenuIntInput(MenuTextInput):
     """Special text input for setting the turn or tick"""
     def insert_text(self, s, from_undo=False):
         """Natural numbers only."""
-        return super().insert_text(
-            ''.join(c for c in s if c in '0123456789'),
-            from_undo
-        )
+        return super().insert_text(''.join(c for c in s if c in '0123456789'),
+                                   from_undo)
 
 
 class GeneratorButton(Button):
@@ -85,10 +83,12 @@ class WorldStartConfigurator(BoxLayout):
     def on_generator_dropdown(self, *args):
         def select_txt(btn):
             self.generator_dropdown.select(btn.text)
+
         for opt in ['None', 'Grid']:
-            self.generator_dropdown.add_widget(GeneratorButton(text=opt, on_release=select_txt))
+            self.generator_dropdown.add_widget(
+                GeneratorButton(text=opt, on_release=select_txt))
         self.generator_dropdown.bind(on_select=self.select_generator_type)
-    
+
     def select_generator_type(self, instance, value):
         self.ids.drop.text = value
         if value == 'None':
@@ -133,15 +133,13 @@ class DirPicker(Screen):
                     grid_config=GridGeneratorDialog(),
                     dismiss=self.config_popover.dismiss,
                     toggle=self.toggle,
-                    generator_dropdown=DropDown()
-                )
+                    generator_dropdown=DropDown())
                 self.config_popover.add_widget(self.configurator)
             self.config_popover.open()
             return
         App.get_running_app().start_subprocess()
         App.get_running_app().init_board()
         self.toggle()
-
 
 
 Builder.load_string("""
