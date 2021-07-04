@@ -22,10 +22,11 @@ from collections import defaultdict
 from collections.abc import Mapping
 from operator import attrgetter
 from types import FunctionType, MethodType, ModuleType
-from typing import Type, Union
+from typing import Type, Union, Tuple
 from os import PathLike
 from abc import ABC, abstractmethod
 
+from networkx import Graph
 import msgpack
 from blinker import Signal
 from .allegedb import ORM as gORM
@@ -35,6 +36,9 @@ from .util import sort_set
 from .xcollections import StringStore, FunctionStore, MethodStore
 
 from . import exc
+
+
+Keyable = Union[Tuple, str]
 
 
 class getnoplan:
@@ -454,7 +458,7 @@ class NextTurn(Signal):
 
 
 class AbstractSchema(ABC):
-    def __init__(self, engine):
+    def __init__(self, engine: AbstractEngine):
         self.engine = engine
 
     @abstractmethod
@@ -870,7 +874,8 @@ class Engine(AbstractEngine, gORM):
     def _make_edge(self, graph, orig, dest, idx=0):
         return self.portal_cls(graph, orig, dest)
 
-    def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
+    def get_delta(self, branch: str, turn_from: int, tick_from: int,
+                  turn_to: int, tick_to: int):
         """Get a dictionary describing changes to the world.
 
         Most keys will be character names, and their values will be
@@ -1602,12 +1607,12 @@ class Engine(AbstractEngine, gORM):
         #     self._rules_iter = self._follow_rules()
         #     return ex
 
-    def new_character(self, name, data=None, **kwargs):
+    def new_character(self, name: Keyable, data: Graph = None, **kwargs):
         """Create and return a new :class:`Character`."""
         self.add_character(name, data, **kwargs)
         return self.character[name]
 
-    def add_character(self, name, data=None, **kwargs):
+    def add_character(self, name: Keyable, data: Graph = None, **kwargs):
         """Create a new character.
 
         You'll be able to access it as a :class:`Character` object by
@@ -1624,7 +1629,7 @@ class Engine(AbstractEngine, gORM):
         if kwargs:
             graph_obj.stat.update(kwargs)
 
-    def del_character(self, name):
+    def del_character(self, name: Keyable):
         """Remove the Character from the database entirely.
 
         This also deletes all its history. You'd better be sure.
@@ -1652,7 +1657,7 @@ class Engine(AbstractEngine, gORM):
             loc
         )
 
-    def alias(self, v, stat='dummy'):
+    def alias(self, v, stat: Keyable = 'dummy'):
         """Return a pointer to a value for use in historical queries.
 
         It will behave much as if you assigned the value to some entity
@@ -1728,7 +1733,7 @@ class Engine(AbstractEngine, gORM):
                 character, node, *self._btt()
         )
 
-    def apply_choices(self, choices, dry_run=False, perfectionist=False):
+    def apply_choices(self, choices: list, dry_run=False, perfectionist=False):
         """Validate changes a player wants to make, and apply if acceptable.
 
         Returns a pair of lists containing acceptance and rejection messages,
