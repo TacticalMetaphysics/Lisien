@@ -6,9 +6,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ELiDE.charsview &#8212; LiSE 0.9dev documentation</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
@@ -36,8 +36,7 @@
 <span class="c1">#</span>
 <span class="c1"># This program is free software: you can redistribute it and/or modify</span>
 <span class="c1"># it under the terms of the GNU Affero General Public License as published by</span>
-<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
-<span class="c1"># (at your option) any later version.</span>
+<span class="c1"># the Free Software Foundation, version 3.</span>
 <span class="c1">#</span>
 <span class="c1"># This program is distributed in the hope that it will be useful,</span>
 <span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
@@ -48,6 +47,7 @@
 <span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 
+<span class="kn">from</span> <span class="nn">kivy.app</span> <span class="kn">import</span> <span class="n">App</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span>
 <span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="kn">import</span> <span class="n">Builder</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="kn">import</span> <span class="n">Screen</span>
@@ -56,9 +56,9 @@
 
 <span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">SelectableRecycleBoxLayout</span>
 
-
 <span class="c1"># TODO: Visual preview</span>
 <span class="c1"># TODO: Background image chooser</span>
+
 
 <div class="viewcode-block" id="CharactersRecycleBoxLayout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charsview.CharactersRecycleBoxLayout">[docs]</a><span class="k">class</span> <span class="nc">CharactersRecycleBoxLayout</span><span class="p">(</span><span class="n">SelectableRecycleBoxLayout</span><span class="p">):</span>
     <span class="n">character_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
@@ -81,12 +81,15 @@
 <div class="viewcode-block" id="CharactersScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charsview.CharactersScreen">[docs]</a><span class="k">class</span> <span class="nc">CharactersScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
     <span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
     <span class="n">charsview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
     <span class="n">character_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
     <span class="n">wallpaper_path</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
     <span class="n">names</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
     <span class="n">new_board</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
     <span class="n">push_character_name</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">engine</span>
 
     <span class="k">def</span> <span class="nf">new_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">add_character</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
@@ -186,7 +189,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../LiSE/LiSE/allegedb/index.html">allegedb</a></li>
 </ul>
 
 <div class="relations">
@@ -224,7 +226,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

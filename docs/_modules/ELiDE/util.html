@@ -6,9 +6,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ELiDE.util &#8212; LiSE 0.9dev documentation</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
@@ -36,8 +36,7 @@
 <span class="c1">#</span>
 <span class="c1"># This program is free software: you can redistribute it and/or modify</span>
 <span class="c1"># it under the terms of the GNU Affero General Public License as published by</span>
-<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
-<span class="c1"># (at your option) any later version.</span>
+<span class="c1"># the Free Software Foundation, version 3.</span>
 <span class="c1">#</span>
 <span class="c1"># This program is distributed in the hope that it will be useful,</span>
 <span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
@@ -60,7 +59,8 @@
 <span class="sd">&quot;&quot;&quot;pi / 4&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="SelectableRecycleBoxLayout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.SelectableRecycleBoxLayout">[docs]</a><span class="k">class</span> <span class="nc">SelectableRecycleBoxLayout</span><span class="p">(</span><span class="n">FocusBehavior</span><span class="p">,</span> <span class="n">LayoutSelectionBehavior</span><span class="p">,</span> <span class="n">RecycleBoxLayout</span><span class="p">):</span>
+<div class="viewcode-block" id="SelectableRecycleBoxLayout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.SelectableRecycleBoxLayout">[docs]</a><span class="k">class</span> <span class="nc">SelectableRecycleBoxLayout</span><span class="p">(</span><span class="n">FocusBehavior</span><span class="p">,</span> <span class="n">LayoutSelectionBehavior</span><span class="p">,</span>
+                                 <span class="n">RecycleBoxLayout</span><span class="p">):</span>
     <span class="k">pass</span></div>
 
 
@@ -93,9 +93,8 @@
             <span class="c1"># instantiates.  Don&#39;t try making any trigger in that</span>
             <span class="c1"># case.</span>
             <span class="k">return</span>
-        <span class="n">retval</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">create_trigger</span><span class="p">(</span>
-            <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="n">instance</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span>
-        <span class="p">)</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">create_trigger</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="n">instance</span><span class="p">),</span>
+                                      <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">retval</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">retval</span></div>
 
@@ -144,12 +143,7 @@
         <span class="n">rightx</span> <span class="o">=</span> <span class="n">dx</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
         <span class="n">xco</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">[</span>
-            <span class="n">ox</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span>
-            <span class="n">ox</span> <span class="o">+</span> <span class="n">r</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span>
-            <span class="n">ox</span> <span class="o">+</span> <span class="n">r</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span>
-            <span class="n">ox</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span> <span class="n">dy</span>
-        <span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">ox</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">ox</span> <span class="o">+</span> <span class="n">r</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">ox</span> <span class="o">+</span> <span class="n">r</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">ox</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span> <span class="n">dy</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">oy</span> <span class="o">&lt;</span> <span class="n">dy</span><span class="p">:</span>
         <span class="n">boty</span> <span class="o">=</span> <span class="n">oy</span>
         <span class="n">topy</span> <span class="o">=</span> <span class="n">dy</span>
@@ -159,16 +153,11 @@
         <span class="n">topy</span> <span class="o">=</span> <span class="n">dy</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
         <span class="n">yco</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">[</span>
-            <span class="n">ox</span><span class="p">,</span> <span class="n">oy</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span>
-            <span class="n">dx</span><span class="p">,</span> <span class="n">oy</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span>
-            <span class="n">dx</span><span class="p">,</span> <span class="n">oy</span> <span class="o">+</span> <span class="n">r</span><span class="p">,</span>
-            <span class="n">ox</span><span class="p">,</span> <span class="n">oy</span> <span class="o">+</span> <span class="n">r</span>
-        <span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">oy</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">oy</span> <span class="o">+</span> <span class="n">r</span><span class="p">,</span> <span class="n">ox</span><span class="p">,</span> <span class="n">oy</span> <span class="o">+</span> <span class="n">r</span><span class="p">]</span>
 
     <span class="n">rise</span> <span class="o">=</span> <span class="n">topy</span> <span class="o">-</span> <span class="n">boty</span>
     <span class="n">run</span> <span class="o">=</span> <span class="n">rightx</span> <span class="o">-</span> <span class="n">leftx</span>
-    <span class="n">theta</span> <span class="o">=</span> <span class="n">atan</span><span class="p">(</span><span class="n">rise</span><span class="o">/</span><span class="n">run</span><span class="p">)</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">atan</span><span class="p">(</span><span class="n">rise</span> <span class="o">/</span> <span class="n">run</span><span class="p">)</span>
     <span class="n">theta_prime</span> <span class="o">=</span> <span class="n">ninety</span> <span class="o">-</span> <span class="n">theta</span>
     <span class="n">xoff</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">theta_prime</span><span class="p">)</span> <span class="o">*</span> <span class="n">r</span>
     <span class="n">yoff</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">theta_prime</span><span class="p">)</span> <span class="o">*</span> <span class="n">r</span>
@@ -181,10 +170,8 @@
     <span class="n">x4</span> <span class="o">=</span> <span class="n">leftx</span> <span class="o">-</span> <span class="n">xoff</span>
     <span class="n">y4</span> <span class="o">=</span> <span class="n">boty</span> <span class="o">+</span> <span class="n">yoff</span>
     <span class="k">return</span> <span class="p">[</span>
-        <span class="n">x1</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y1</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
-        <span class="n">x2</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y2</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
-        <span class="n">x3</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y3</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
-        <span class="n">x4</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y4</span> <span class="o">*</span> <span class="n">yco</span>
+        <span class="n">x1</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y1</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span> <span class="n">x2</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y2</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span> <span class="n">x3</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y3</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span> <span class="n">x4</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span>
+        <span class="n">y4</span> <span class="o">*</span> <span class="n">yco</span>
     <span class="p">]</span></div>
 </pre></div>
 
@@ -209,7 +196,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../LiSE/LiSE/allegedb/index.html">allegedb</a></li>
 </ul>
 
 <div class="relations">
@@ -247,7 +233,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

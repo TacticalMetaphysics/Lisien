@@ -13,7 +13,6 @@ Welcome to LiSE's documentation!
    manual
    LiSE/index
    ELiDE/index
-   LiSE/LiSE/allegedb/index
 
 
 

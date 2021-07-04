@@ -6,9 +6,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ELiDE.pallet &#8212; LiSE 0.9dev documentation</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
@@ -36,8 +36,7 @@
 <span class="c1">#</span>
 <span class="c1"># This program is free software: you can redistribute it and/or modify</span>
 <span class="c1"># it under the terms of the GNU Affero General Public License as published by</span>
-<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
-<span class="c1"># (at your option) any later version.</span>
+<span class="c1"># the Free Software Foundation, version 3.</span>
 <span class="c1">#</span>
 <span class="c1"># This program is distributed in the hope that it will be useful,</span>
 <span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
@@ -52,15 +51,9 @@
 <span class="sd">from the :class:`Pallet`, and the :class:`Pallet` updates its</span>
 <span class="sd">``selection`` list to show what the user selected.&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span>
-<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">DictProperty</span><span class="p">,</span>
-    <span class="n">NumericProperty</span><span class="p">,</span>
-    <span class="n">ObjectProperty</span><span class="p">,</span>
-    <span class="n">OptionProperty</span><span class="p">,</span>
-    <span class="n">ListProperty</span><span class="p">,</span>
-    <span class="n">ReferenceListProperty</span><span class="p">,</span>
-    <span class="n">StringProperty</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span><span class="n">DictProperty</span><span class="p">,</span> <span class="n">NumericProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span><span class="p">,</span>
+                             <span class="n">OptionProperty</span><span class="p">,</span> <span class="n">ListProperty</span><span class="p">,</span>
+                             <span class="n">ReferenceListProperty</span><span class="p">,</span> <span class="n">StringProperty</span><span class="p">)</span>
 <span class="kn">from</span> <span class="nn">kivy.resources</span> <span class="kn">import</span> <span class="n">resource_find</span>
 <span class="kn">from</span> <span class="nn">kivy.atlas</span> <span class="kn">import</span> <span class="n">Atlas</span>
 <span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="kn">import</span> <span class="n">Builder</span>
@@ -79,10 +72,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">tex</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
     <span class="sd">&quot;&quot;&quot;Texture to display here&quot;&quot;&quot;</span>
-
     <span class="k">def</span> <span class="nf">on_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;down&#39;</span><span class="p">:</span>
-            <span class="k">assert</span><span class="p">(</span><span class="bp">self</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection_mode</span> <span class="o">==</span> <span class="s1">&#39;single&#39;</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">wid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">wid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">:</span>
@@ -100,11 +92,9 @@
             <span class="k">return</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">after</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">after</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_img_rect</span> <span class="o">=</span> <span class="n">Rectangle</span><span class="p">(</span>
-                <span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_img_rect_pos</span><span class="p">(),</span>
-                <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tex</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
-                <span class="n">texture</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tex</span>
-            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_img_rect</span> <span class="o">=</span> <span class="n">Rectangle</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_img_rect_pos</span><span class="p">(),</span>
+                                       <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tex</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+                                       <span class="n">texture</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tex</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upd_img_rect_pos</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;tex&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upd_img_rect_tex</span><span class="p">)</span>
 
@@ -112,8 +102,7 @@
         <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span>
         <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span>
         <span class="n">tw</span><span class="p">,</span> <span class="n">th</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tex</span><span class="o">.</span><span class="n">size</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="p">(</span><span class="n">width</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">tw</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
-                <span class="n">y</span> <span class="o">+</span> <span class="n">height</span> <span class="o">-</span> <span class="n">th</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="p">(</span><span class="n">width</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">tw</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">y</span> <span class="o">+</span> <span class="n">height</span> <span class="o">-</span> <span class="n">th</span><span class="p">)</span>
 
     <span class="nd">@trigger</span>
     <span class="k">def</span> <span class="nf">_upd_img_rect_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -147,13 +136,9 @@
     <span class="sd">&quot;&quot;&quot;List of :class:`SwatchButton`s that are selected&quot;&quot;&quot;</span>
     <span class="n">selection_mode</span> <span class="o">=</span> <span class="n">OptionProperty</span><span class="p">(</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="s1">&#39;multiple&#39;</span><span class="p">])</span>
     <span class="sd">&quot;&quot;&quot;Whether to allow only a &#39;single&#39; selected :class:`SwatchButton` (default), or &#39;multiple&#39;&quot;&quot;&quot;</span>
-
     <span class="k">def</span> <span class="nf">on_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-            <span class="s1">&#39;Pallet: </span><span class="si">{}</span><span class="s1"> got selection </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
+        <span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Pallet: </span><span class="si">{}</span><span class="s1"> got selection </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">on_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>
@@ -187,18 +172,18 @@
             <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">swatches</span> <span class="ow">and</span> <span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">!=</span> <span class="n">tex</span><span class="p">:</span>
                 <span class="n">remove_widget</span><span class="p">(</span><span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
             <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">swatches</span> <span class="ow">or</span> <span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">!=</span> <span class="n">tex</span><span class="p">:</span>
-                <span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">SwatchButton</span><span class="p">(</span>
-                    <span class="n">text</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-                    <span class="n">tex</span><span class="o">=</span><span class="n">tex</span><span class="p">,</span>
-                    <span class="n">size_hint</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-                    <span class="n">size</span><span class="o">=</span><span class="n">swatch_size</span>
-                <span class="p">)</span>
+                <span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">SwatchButton</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                                              <span class="n">tex</span><span class="o">=</span><span class="n">tex</span><span class="p">,</span>
+                                              <span class="n">size_hint</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                                              <span class="n">size</span><span class="o">=</span><span class="n">swatch_size</span><span class="p">)</span>
                 <span class="n">add_widget</span><span class="p">(</span><span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">])</span></div>
 
     <span class="k">def</span> <span class="nf">_trigger_upd_textures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scheduled_upd_textures&#39;</span><span class="p">):</span>
             <span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_upd_textures</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_upd_textures</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_upd_textures</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_upd_textures</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_upd_textures</span><span class="p">)</span></div>
+
 
 <span class="n">kv</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">&lt;Pallet&gt;:</span>
@@ -235,7 +220,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../LiSE/LiSE/allegedb/index.html">allegedb</a></li>
 </ul>
 
 <div class="relations">
@@ -273,7 +257,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

@@ -6,9 +6,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ELiDE.card &#8212; LiSE 0.9dev documentation</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
@@ -36,8 +36,7 @@
 <span class="c1">#</span>
 <span class="c1"># This program is free software: you can redistribute it and/or modify</span>
 <span class="c1"># it under the terms of the GNU Affero General Public License as published by</span>
-<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
-<span class="c1"># (at your option) any later version.</span>
+<span class="c1"># the Free Software Foundation, version 3.</span>
 <span class="c1">#</span>
 <span class="c1"># This program is distributed in the hope that it will be useful,</span>
 <span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
@@ -52,22 +51,13 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span>
 <span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="kn">import</span> <span class="n">Builder</span>
 <span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="kn">import</span> <span class="n">Logger</span>
-<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">AliasProperty</span><span class="p">,</span>
-    <span class="n">BooleanProperty</span><span class="p">,</span>
-    <span class="n">DictProperty</span><span class="p">,</span>
-    <span class="n">ListProperty</span><span class="p">,</span>
-    <span class="n">NumericProperty</span><span class="p">,</span>
-    <span class="n">ObjectProperty</span><span class="p">,</span>
-    <span class="n">OptionProperty</span><span class="p">,</span>
-    <span class="n">ReferenceListProperty</span><span class="p">,</span>
-    <span class="n">StringProperty</span><span class="p">,</span>
-    <span class="n">BoundedNumericProperty</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span><span class="n">AliasProperty</span><span class="p">,</span> <span class="n">BooleanProperty</span><span class="p">,</span> <span class="n">DictProperty</span><span class="p">,</span>
+                             <span class="n">ListProperty</span><span class="p">,</span> <span class="n">NumericProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span><span class="p">,</span>
+                             <span class="n">OptionProperty</span><span class="p">,</span> <span class="n">ReferenceListProperty</span><span class="p">,</span>
+                             <span class="n">StringProperty</span><span class="p">,</span> <span class="n">BoundedNumericProperty</span><span class="p">)</span>
 <span class="kn">from</span> <span class="nn">kivy.graphics</span> <span class="kn">import</span> <span class="n">InstructionGroup</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.boxlayout</span> <span class="kn">import</span> <span class="n">BoxLayout</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.floatlayout</span> <span class="kn">import</span> <span class="n">FloatLayout</span>
@@ -75,7 +65,6 @@
 <span class="kn">from</span> <span class="nn">kivy.uix.stencilview</span> <span class="kn">import</span> <span class="n">StencilView</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.image</span> <span class="kn">import</span> <span class="n">Image</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.widget</span> <span class="kn">import</span> <span class="n">Widget</span>
-
 
 <span class="n">dbg</span> <span class="o">=</span> <span class="n">Logger</span><span class="o">.</span><span class="n">debug</span>
 
@@ -89,15 +78,9 @@
         <span class="k">return</span> <span class="n">poshints</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span>
     <span class="k">elif</span> <span class="n">sizehintx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="s1">&#39;center_x&#39;</span> <span class="ow">in</span> <span class="n">poshints</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">(</span>
-                <span class="n">poshints</span><span class="p">[</span><span class="s1">&#39;center_x&#39;</span><span class="p">]</span> <span class="o">-</span>
-                <span class="n">sizehintx</span> <span class="o">/</span> <span class="mi">2</span>
-            <span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">poshints</span><span class="p">[</span><span class="s1">&#39;center_x&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">sizehintx</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
         <span class="k">elif</span> <span class="s1">&#39;right&#39;</span> <span class="ow">in</span> <span class="n">poshints</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">(</span>
-                <span class="n">poshints</span><span class="p">[</span><span class="s1">&#39;right&#39;</span><span class="p">]</span> <span class="o">-</span>
-                <span class="n">sizehintx</span>
-            <span class="p">)</span></div>
+            <span class="k">return</span> <span class="p">(</span><span class="n">poshints</span><span class="p">[</span><span class="s1">&#39;right&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">sizehintx</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_pos_hint_y"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.get_pos_hint_y">[docs]</a><span class="k">def</span> <span class="nf">get_pos_hint_y</span><span class="p">(</span><span class="n">poshints</span><span class="p">,</span> <span class="n">sizehinty</span><span class="p">):</span>
@@ -109,15 +92,9 @@
         <span class="k">return</span> <span class="n">poshints</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span>
     <span class="k">elif</span> <span class="n">sizehinty</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="s1">&#39;center_y&#39;</span> <span class="ow">in</span> <span class="n">poshints</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">(</span>
-                <span class="n">poshints</span><span class="p">[</span><span class="s1">&#39;center_y&#39;</span><span class="p">]</span> <span class="o">-</span>
-                <span class="n">sizehinty</span> <span class="o">/</span> <span class="mi">2</span>
-            <span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">poshints</span><span class="p">[</span><span class="s1">&#39;center_y&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">sizehinty</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
         <span class="k">elif</span> <span class="s1">&#39;top&#39;</span> <span class="ow">in</span> <span class="n">poshints</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">(</span>
-                <span class="n">poshints</span><span class="p">[</span><span class="s1">&#39;top&#39;</span><span class="p">]</span> <span class="o">-</span>
-                <span class="n">sizehinty</span>
-            <span class="p">)</span></div>
+            <span class="k">return</span> <span class="p">(</span><span class="n">poshints</span><span class="p">[</span><span class="s1">&#39;top&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">sizehinty</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_pos_hint"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.get_pos_hint">[docs]</a><span class="k">def</span> <span class="nf">get_pos_hint</span><span class="p">(</span><span class="n">poshints</span><span class="p">,</span> <span class="n">sizehintx</span><span class="p">,</span> <span class="n">sizehinty</span><span class="p">):</span>
@@ -127,10 +104,8 @@
 <span class="sd">    and ``size_hint_y``.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="p">(</span>
-        <span class="n">get_pos_hint_x</span><span class="p">(</span><span class="n">poshints</span><span class="p">,</span> <span class="n">sizehintx</span><span class="p">),</span>
-        <span class="n">get_pos_hint_y</span><span class="p">(</span><span class="n">poshints</span><span class="p">,</span> <span class="n">sizehinty</span><span class="p">)</span>
-    <span class="p">)</span></div>
+    <span class="k">return</span> <span class="p">(</span><span class="n">get_pos_hint_x</span><span class="p">(</span><span class="n">poshints</span><span class="p">,</span>
+                           <span class="n">sizehintx</span><span class="p">),</span> <span class="n">get_pos_hint_y</span><span class="p">(</span><span class="n">poshints</span><span class="p">,</span> <span class="n">sizehinty</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="ColorTextureBox"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.ColorTextureBox">[docs]</a><span class="k">class</span> <span class="nc">ColorTextureBox</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
@@ -188,7 +163,7 @@
     <span class="n">foreground_texture</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="n">background_source</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
-    <span class="n">background_color</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="o">.</span><span class="mi">7</span><span class="p">,</span> <span class="o">.</span><span class="mi">7</span><span class="p">,</span> <span class="o">.</span><span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">background_color</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mf">.7</span><span class="p">,</span> <span class="mf">.7</span><span class="p">,</span> <span class="mf">.7</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
     <span class="n">background_image</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">background_texture</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -306,10 +281,7 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">dragging</span><span class="p">:</span>
             <span class="n">touch</span><span class="o">.</span><span class="n">ungrab</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
             <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">touch</span><span class="o">.</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">collide_x</span><span class="p">,</span>
-            <span class="n">touch</span><span class="o">.</span><span class="n">y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">collide_y</span>
-        <span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">touch</span><span class="o">.</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">collide_x</span><span class="p">,</span> <span class="n">touch</span><span class="o">.</span><span class="n">y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">collide_y</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Card.on_touch_up"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Card.on_touch_up">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Stop dragging if needed.&quot;&quot;&quot;</span>
@@ -321,48 +293,20 @@
 <div class="viewcode-block" id="Card.copy"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Card.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return a new :class:`Card` just like me.&quot;&quot;&quot;</span>
         <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="p">(</span>
-                <span class="s1">&#39;deck&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;idx&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;ud&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;foreground_source&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;foreground_color&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;foreground_image&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;foreground_texture&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;background_source&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;background_color&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;background_image&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;background_texture&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;outline_color&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;content_outline_color&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;foreground_outline_color&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;art_outline_color&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;art_source&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;art_color&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;art_image&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;art_texture&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;show_art&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;headline_text&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;headline_markup&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;headline_font_name&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;headline_font_size&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;headline_color&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;midline_text&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;midline_markup&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;midline_font_name&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;midline_font_size&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;midline_color&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;footer_text&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;footer_markup&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;footer_font_name&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;footer_font_size&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;footer_color&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;text&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;text_color&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;markup&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;font_name&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;font_size&#39;</span>
-        <span class="p">):</span>
+        <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;deck&#39;</span><span class="p">,</span> <span class="s1">&#39;idx&#39;</span><span class="p">,</span> <span class="s1">&#39;ud&#39;</span><span class="p">,</span> <span class="s1">&#39;foreground_source&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;foreground_color&#39;</span><span class="p">,</span> <span class="s1">&#39;foreground_image&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;foreground_texture&#39;</span><span class="p">,</span> <span class="s1">&#39;background_source&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;background_color&#39;</span><span class="p">,</span> <span class="s1">&#39;background_image&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;background_texture&#39;</span><span class="p">,</span> <span class="s1">&#39;outline_color&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;content_outline_color&#39;</span><span class="p">,</span> <span class="s1">&#39;foreground_outline_color&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;art_outline_color&#39;</span><span class="p">,</span> <span class="s1">&#39;art_source&#39;</span><span class="p">,</span> <span class="s1">&#39;art_color&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;art_image&#39;</span><span class="p">,</span> <span class="s1">&#39;art_texture&#39;</span><span class="p">,</span> <span class="s1">&#39;show_art&#39;</span><span class="p">,</span> <span class="s1">&#39;headline_text&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;headline_markup&#39;</span><span class="p">,</span> <span class="s1">&#39;headline_font_name&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;headline_font_size&#39;</span><span class="p">,</span> <span class="s1">&#39;headline_color&#39;</span><span class="p">,</span> <span class="s1">&#39;midline_text&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;midline_markup&#39;</span><span class="p">,</span> <span class="s1">&#39;midline_font_name&#39;</span><span class="p">,</span> <span class="s1">&#39;midline_font_size&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;midline_color&#39;</span><span class="p">,</span> <span class="s1">&#39;footer_text&#39;</span><span class="p">,</span> <span class="s1">&#39;footer_markup&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;footer_font_name&#39;</span><span class="p">,</span> <span class="s1">&#39;footer_font_size&#39;</span><span class="p">,</span> <span class="s1">&#39;footer_color&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;text&#39;</span><span class="p">,</span> <span class="s1">&#39;text_color&#39;</span><span class="p">,</span> <span class="s1">&#39;markup&#39;</span><span class="p">,</span> <span class="s1">&#39;font_name&#39;</span><span class="p">,</span> <span class="s1">&#39;font_size&#39;</span><span class="p">):</span>
             <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">d</span><span class="p">[</span><span class="n">att</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
@@ -378,7 +322,6 @@
     <span class="sd">&quot;&quot;&quot;Color of the outline&quot;&quot;&quot;</span>
     <span class="n">deck</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
     <span class="sd">&quot;&quot;&quot;Index of the deck in the parent :class:`DeckLayout`&quot;&quot;&quot;</span>
-
 <div class="viewcode-block" id="Foundation.upd_pos"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Foundation.upd_pos">[docs]</a>    <span class="k">def</span> <span class="nf">upd_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Ask the foundation where I should be, based on what deck I&#39;m</span>
 <span class="sd">        for.</span>
@@ -388,10 +331,8 @@
 
 <div class="viewcode-block" id="Foundation.upd_size"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Foundation.upd_size">[docs]</a>    <span class="k">def</span> <span class="nf">upd_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;I&#39;m the same size as any given card in my :class:`DeckLayout`.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">card_size_hint_x</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">width</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">card_size_hint_y</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">height</span>
-        <span class="p">)</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">card_size_hint_x</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">width</span><span class="p">,</span>
+                     <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">card_size_hint_y</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">height</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="DeckBuilderLayout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderLayout">[docs]</a><span class="k">class</span> <span class="nc">DeckBuilderLayout</span><span class="p">(</span><span class="n">Layout</span><span class="p">):</span>
@@ -400,9 +341,8 @@
 <span class="sd">    cards.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">direction</span> <span class="o">=</span> <span class="n">OptionProperty</span><span class="p">(</span>
-        <span class="s1">&#39;ascending&#39;</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ascending&#39;</span><span class="p">,</span> <span class="s1">&#39;descending&#39;</span><span class="p">]</span>
-    <span class="p">)</span>
+    <span class="n">direction</span> <span class="o">=</span> <span class="n">OptionProperty</span><span class="p">(</span><span class="s1">&#39;ascending&#39;</span><span class="p">,</span>
+                               <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ascending&#39;</span><span class="p">,</span> <span class="s1">&#39;descending&#39;</span><span class="p">])</span>
     <span class="sd">&quot;&quot;&quot;Should the beginning card of each deck appear on the bottom</span>
 <span class="sd">    (&#39;ascending&#39;), or the top (&#39;descending&#39;)?</span>
 
@@ -465,21 +405,18 @@
     <span class="sd">&quot;&quot;&quot;Index within the current deck that a card is being dragged into.&quot;&quot;&quot;</span>
     <span class="n">_foundations</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([])</span>
     <span class="sd">&quot;&quot;&quot;Private. A list of :class:`Foundation` widgets, one per deck.&quot;&quot;&quot;</span>
-
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Bind most of my custom properties to ``_trigger_layout``.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
-            <span class="n">card_size_hint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
-            <span class="n">starting_pos_hint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
-            <span class="n">card_hint_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
-            <span class="n">deck_hint_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
-            <span class="n">decks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
-            <span class="n">deck_x_hint_offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
-            <span class="n">deck_y_hint_offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
-            <span class="n">insertion_deck</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
-            <span class="n">insertion_card</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span>
-        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">card_size_hint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
+                  <span class="n">starting_pos_hint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
+                  <span class="n">card_hint_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
+                  <span class="n">deck_hint_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
+                  <span class="n">decks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
+                  <span class="n">deck_x_hint_offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
+                  <span class="n">deck_y_hint_offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
+                  <span class="n">insertion_deck</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
+                  <span class="n">insertion_card</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DeckBuilderLayout.scroll_deck_x"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderLayout.scroll_deck_x">[docs]</a>    <span class="k">def</span> <span class="nf">scroll_deck_x</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decknum</span><span class="p">,</span> <span class="n">scroll_x</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Move a deck left or right.&quot;&quot;&quot;</span>
@@ -487,8 +424,7 @@
             <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;I have no deck at </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">decknum</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">decknum</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span>
-                <span class="n">decknum</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-            <span class="p">)</span>
+                <span class="n">decknum</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">[</span><span class="n">decknum</span><span class="p">]</span> <span class="o">+=</span> <span class="n">scroll_x</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span></div>
 
@@ -498,8 +434,7 @@
             <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;I have no deck at </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">decknum</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">decknum</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span>
-                <span class="n">decknum</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-            <span class="p">)</span>
+                <span class="n">decknum</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">[</span><span class="n">decknum</span><span class="p">]</span> <span class="o">+=</span> <span class="n">scroll_y</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span></div>
 
@@ -515,9 +450,7 @@
 <span class="sd">        ``deck_y_hint_offsets``.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="p">(</span><span class="n">phx</span><span class="p">,</span> <span class="n">phy</span><span class="p">)</span> <span class="o">=</span> <span class="n">get_pos_hint</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">starting_pos_hint</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">card_size_hint</span>
-        <span class="p">)</span>
+        <span class="p">(</span><span class="n">phx</span><span class="p">,</span> <span class="n">phy</span><span class="p">)</span> <span class="o">=</span> <span class="n">get_pos_hint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">starting_pos_hint</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">card_size_hint</span><span class="p">)</span>
         <span class="n">phx</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_step</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
         <span class="n">phy</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_step</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">phx</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span>
@@ -536,21 +469,16 @@
                 <span class="n">oldfound</span> <span class="o">+=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">extend</span>
             <span class="n">width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">card_size_hint_x</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span>
             <span class="n">height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">card_size_hint_y</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span>
-            <span class="n">found</span> <span class="o">=</span> <span class="n">Foundation</span><span class="p">(</span>
-                <span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_foundation_pos</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">),</span> <span class="n">deck</span><span class="o">=</span><span class="n">i</span>
-            <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
-                <span class="n">pos</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_pos</span><span class="p">,</span>
-                <span class="n">card_size_hint</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_pos</span><span class="p">,</span>
-                <span class="n">deck_hint_step</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_pos</span><span class="p">,</span>
-                <span class="n">size</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_pos</span><span class="p">,</span>
-                <span class="n">deck_x_hint_offsets</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_pos</span><span class="p">,</span>
-                <span class="n">deck_y_hint_offsets</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_pos</span>
-            <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
-                <span class="n">size</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_size</span><span class="p">,</span>
-                <span class="n">card_size_hint</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_size</span>
-            <span class="p">)</span>
+            <span class="n">found</span> <span class="o">=</span> <span class="n">Foundation</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_foundation_pos</span><span class="p">(</span><span class="n">i</span><span class="p">),</span>
+                               <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">),</span>
+                               <span class="n">deck</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_pos</span><span class="p">,</span>
+                      <span class="n">card_size_hint</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_pos</span><span class="p">,</span>
+                      <span class="n">deck_hint_step</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_pos</span><span class="p">,</span>
+                      <span class="n">size</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_pos</span><span class="p">,</span>
+                      <span class="n">deck_x_hint_offsets</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_pos</span><span class="p">,</span>
+                      <span class="n">deck_y_hint_offsets</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_pos</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_size</span><span class="p">,</span> <span class="n">card_size_hint</span><span class="o">=</span><span class="n">found</span><span class="o">.</span><span class="n">upd_size</span><span class="p">)</span>
             <span class="n">oldfound</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">found</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_foundations</span> <span class="o">=</span> <span class="n">oldfound</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_foundations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
@@ -561,12 +489,8 @@
 <span class="sd">        a layout.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span>
-        <span class="p">):</span>
+        <span class="k">if</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">):</span>
             <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_decks</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
             <span class="k">return</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
@@ -586,12 +510,10 @@
             <span class="n">decknum</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span>
-                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">)</span>
-            <span class="p">)</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">))</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span>
-                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">)</span>
-            <span class="p">)</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DeckBuilderLayout.point_before_card"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderLayout.point_before_card">[docs]</a>    <span class="k">def</span> <span class="nf">point_before_card</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">card</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
@@ -612,6 +534,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># stacking downward</span>
                 <span class="k">return</span> <span class="n">y</span> <span class="o">&gt;</span> <span class="n">card</span><span class="o">.</span><span class="n">top</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">card_x_hint_step</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="c1"># stacking to the right</span>
             <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">card</span><span class="o">.</span><span class="n">x</span><span class="p">:</span>
@@ -643,6 +566,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># stacking downward</span>
                 <span class="k">return</span> <span class="n">y</span> <span class="o">&lt;</span> <span class="n">card</span><span class="o">.</span><span class="n">y</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">card_x_hint_step</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="c1"># stacking to the right</span>
             <span class="k">if</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="n">card</span><span class="o">.</span><span class="n">right</span><span class="p">:</span>
@@ -661,16 +585,11 @@
 <span class="sd">        where the dragged card will go if you drop it.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="p">(</span>
-                <span class="s1">&#39;card&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">touch</span><span class="o">.</span><span class="n">ud</span> <span class="ow">or</span>
-                <span class="s1">&#39;layout&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">touch</span><span class="o">.</span><span class="n">ud</span> <span class="ow">or</span>
-                <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span>
-        <span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;card&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">touch</span><span class="o">.</span><span class="n">ud</span> <span class="ow">or</span> <span class="s1">&#39;layout&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">touch</span><span class="o">.</span><span class="n">ud</span>
+                <span class="ow">or</span> <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="p">):</span>
             <span class="k">return</span>
-        <span class="k">if</span> <span class="p">(</span>
-                <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span> <span class="ow">and</span>
-                <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;card&#39;</span><span class="p">],</span> <span class="s1">&#39;_topdecked&#39;</span><span class="p">)</span>
-        <span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span>
+                <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;card&#39;</span><span class="p">],</span> <span class="s1">&#39;_topdecked&#39;</span><span class="p">)):</span>
             <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;card&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_topdecked</span> <span class="o">=</span> <span class="n">InstructionGroup</span><span class="p">()</span>
             <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;card&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_topdecked</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;card&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">canvas</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">after</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;card&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_topdecked</span><span class="p">)</span>
@@ -689,19 +608,15 @@
                         <span class="n">collided</span> <span class="o">=</span> <span class="n">card</span>
                 <span class="k">if</span> <span class="n">collided</span><span class="o">.</span><span class="n">deck</span> <span class="o">==</span> <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;deck&#39;</span><span class="p">]:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="mi">1</span> <span class="k">if</span> <span class="n">collided</span><span class="o">.</span><span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span>
-                        <span class="n">maxidx</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">collided</span><span class="o">.</span><span class="n">idx</span> <span class="o">==</span> <span class="n">maxidx</span> <span class="k">else</span>
-                        <span class="n">collided</span><span class="o">.</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">collided</span><span class="o">.</span><span class="n">idx</span> <span class="o">&gt;</span> <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">]</span>
-                        <span class="k">else</span> <span class="n">collided</span><span class="o">.</span><span class="n">idx</span>
-                    <span class="p">)</span>
+                        <span class="mi">1</span> <span class="k">if</span> <span class="n">collided</span><span class="o">.</span><span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">maxidx</span> <span class="o">+</span>
+                        <span class="mi">1</span> <span class="k">if</span> <span class="n">collided</span><span class="o">.</span><span class="n">idx</span> <span class="o">==</span> <span class="n">maxidx</span> <span class="k">else</span> <span class="n">collided</span><span class="o">.</span><span class="n">idx</span> <span class="o">+</span>
+                        <span class="mi">1</span> <span class="k">if</span> <span class="n">collided</span><span class="o">.</span><span class="n">idx</span> <span class="o">&gt;</span> <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">]</span> <span class="k">else</span> <span class="n">collided</span><span class="o">.</span><span class="n">idx</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">dropdeck</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">[</span><span class="n">collided</span><span class="o">.</span><span class="n">deck</span><span class="p">]</span>
                     <span class="n">maxidx</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">card</span><span class="o">.</span><span class="n">idx</span> <span class="k">for</span> <span class="n">card</span> <span class="ow">in</span> <span class="n">dropdeck</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="mi">1</span> <span class="k">if</span> <span class="n">collided</span><span class="o">.</span><span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span>
-                        <span class="n">maxidx</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">collided</span><span class="o">.</span><span class="n">idx</span> <span class="o">==</span> <span class="n">maxidx</span> <span class="k">else</span>
-                        <span class="n">collided</span><span class="o">.</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span>
-                    <span class="p">)</span>
+                        <span class="mi">1</span> <span class="k">if</span> <span class="n">collided</span><span class="o">.</span><span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">maxidx</span> <span class="o">+</span>
+                        <span class="mi">1</span> <span class="k">if</span> <span class="n">collided</span><span class="o">.</span><span class="n">idx</span> <span class="o">==</span> <span class="n">maxidx</span> <span class="k">else</span> <span class="n">collided</span><span class="o">.</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">insertion_deck</span> <span class="o">!=</span> <span class="n">collided</span><span class="o">.</span><span class="n">deck</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">insertion_deck</span> <span class="o">=</span> <span class="n">collided</span><span class="o">.</span><span class="n">deck</span>
                 <span class="k">return</span>
@@ -709,20 +624,14 @@
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">insertion_deck</span> <span class="o">==</span> <span class="n">i</span><span class="p">:</span>
                     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">deck</span><span class="p">)):</span>
                         <span class="k">pass</span>
-                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">point_before_card</span><span class="p">(</span>
-                            <span class="n">cards</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span>
-                    <span class="p">):</span>
+                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">point_before_card</span><span class="p">(</span><span class="n">cards</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span> <span class="o">=</span> <span class="mi">0</span>
-                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">point_after_card</span><span class="p">(</span>
-                        <span class="n">cards</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span>
-                    <span class="p">):</span>
+                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">point_after_card</span><span class="p">(</span><span class="n">cards</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span> <span class="o">=</span> <span class="n">cards</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">idx</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">found</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_foundations</span><span class="p">):</span>
-                        <span class="k">if</span> <span class="p">(</span>
-                                <span class="n">found</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
-                                <span class="n">found</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
-                        <span class="p">):</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">found</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                                <span class="ow">and</span> <span class="n">found</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">)):</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">insertion_deck</span> <span class="o">=</span> <span class="n">j</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span> <span class="o">=</span> <span class="mi">0</span>
                             <span class="k">return</span></div>
@@ -732,11 +641,8 @@
 <span class="sd">        and trigger a layout.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="p">(</span>
-                <span class="s1">&#39;card&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">touch</span><span class="o">.</span><span class="n">ud</span> <span class="ow">or</span>
-                <span class="s1">&#39;layout&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">touch</span><span class="o">.</span><span class="n">ud</span> <span class="ow">or</span>
-                <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span>
-        <span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;card&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">touch</span><span class="o">.</span><span class="n">ud</span> <span class="ow">or</span> <span class="s1">&#39;layout&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">touch</span><span class="o">.</span><span class="n">ud</span>
+                <span class="ow">or</span> <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="p">):</span>
             <span class="k">return</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;card&#39;</span><span class="p">],</span> <span class="s1">&#39;_topdecked&#39;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">after</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;card&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_topdecked</span><span class="p">)</span>
@@ -781,6 +687,7 @@
                 <span class="k">if</span> <span class="n">card</span><span class="o">.</span><span class="n">dragging</span><span class="p">:</span>
                     <span class="k">return</span> <span class="n">j</span>
                 <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
+
         <span class="c1"># Put a None in the card list in place of the card you&#39;re</span>
         <span class="c1"># hovering over, if you&#39;re dragging another card. This will</span>
         <span class="c1"># result in an empty space where the card will go if you drop</span>
@@ -812,10 +719,7 @@
                 <span class="k">if</span> <span class="n">card</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="n">card</span><span class="p">)</span>
                 <span class="p">(</span><span class="n">shw</span><span class="p">,</span> <span class="n">shh</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">card_size_hint</span>
-                <span class="n">card</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">x</span> <span class="o">+</span> <span class="n">phx</span> <span class="o">*</span> <span class="n">w</span><span class="p">,</span>
-                    <span class="n">y</span> <span class="o">+</span> <span class="n">phy</span> <span class="o">*</span> <span class="n">h</span>
-                <span class="p">)</span>
+                <span class="n">card</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">phx</span> <span class="o">*</span> <span class="n">w</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">phy</span> <span class="o">*</span> <span class="n">h</span><span class="p">)</span>
                 <span class="n">card</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">shw</span><span class="p">,</span> <span class="n">h</span> <span class="o">*</span> <span class="n">shh</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">card</span><span class="p">)</span>
             <span class="n">phx</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">card_x_hint_step</span>
@@ -849,10 +753,8 @@
 <span class="sd">    within a :class:`DeckBuilderLayout`.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">orientation</span> <span class="o">=</span> <span class="n">OptionProperty</span><span class="p">(</span>
-        <span class="s1">&#39;vertical&#39;</span><span class="p">,</span>
-        <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;horizontal&#39;</span><span class="p">,</span> <span class="s1">&#39;vertical&#39;</span><span class="p">]</span>
-    <span class="p">)</span>
+    <span class="n">orientation</span> <span class="o">=</span> <span class="n">OptionProperty</span><span class="p">(</span><span class="s1">&#39;vertical&#39;</span><span class="p">,</span>
+                                 <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;horizontal&#39;</span><span class="p">,</span> <span class="s1">&#39;vertical&#39;</span><span class="p">])</span>
     <span class="sd">&quot;&quot;&quot;Which way to scroll? Options are &#39;horizontal&#39; and &#39;vertical&#39;.&quot;&quot;&quot;</span>
     <span class="n">deckbuilder</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
     <span class="sd">&quot;&quot;&quot;The :class:`DeckBuilderLayout` of the deck to scroll.&quot;&quot;&quot;</span>
@@ -877,17 +779,15 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">scroll_hint</span> <span class="o">=</span> <span class="n">AliasProperty</span><span class="p">(</span>
-        <span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scroll_max</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">scroll_min</span><span class="p">),</span>
+        <span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scroll_max</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">scroll_min</span><span class="p">),</span>
         <span class="k">lambda</span> <span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">bind</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;scroll_min&#39;</span><span class="p">,</span> <span class="s1">&#39;scroll_max&#39;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">bind</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;scroll_min&#39;</span><span class="p">,</span> <span class="s1">&#39;scroll_max&#39;</span><span class="p">))</span>
     <span class="sd">&quot;&quot;&quot;The distance between ``scroll_max`` and ``scroll_min``.&quot;&quot;&quot;</span>
     <span class="n">_scroll</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
     <span class="sd">&quot;&quot;&quot;Private. The current adjustment to the deck&#39;s ``pos_hint_x`` or</span>
 <span class="sd">    ``pos_hint_y``.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="k">def</span> <span class="nf">_get_scroll</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">zero</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scroll</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">scroll_min</span>
         <span class="k">return</span> <span class="n">zero</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">scroll_hint</span>
@@ -900,11 +800,9 @@
         <span class="n">normal</span> <span class="o">=</span> <span class="n">v</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scroll_hint</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_scroll</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scroll_min</span> <span class="o">+</span> <span class="n">normal</span>
 
-    <span class="n">scroll</span> <span class="o">=</span> <span class="n">AliasProperty</span><span class="p">(</span>
-        <span class="n">_get_scroll</span><span class="p">,</span>
-        <span class="n">_set_scroll</span><span class="p">,</span>
-        <span class="n">bind</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;_scroll&#39;</span><span class="p">,</span> <span class="s1">&#39;scroll_min&#39;</span><span class="p">,</span> <span class="s1">&#39;scroll_max&#39;</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">scroll</span> <span class="o">=</span> <span class="n">AliasProperty</span><span class="p">(</span><span class="n">_get_scroll</span><span class="p">,</span>
+                           <span class="n">_set_scroll</span><span class="p">,</span>
+                           <span class="n">bind</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;_scroll&#39;</span><span class="p">,</span> <span class="s1">&#39;scroll_min&#39;</span><span class="p">,</span> <span class="s1">&#39;scroll_max&#39;</span><span class="p">))</span>
     <span class="sd">&quot;&quot;&quot;A number between 0 and 1 representing how far beyond ``scroll_min``</span>
 <span class="sd">    toward ``scroll_max`` I am presently scrolled.</span>
 
@@ -921,11 +819,10 @@
         <span class="n">sy</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scroll</span><span class="p">))</span>
         <span class="n">py</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ph</span><span class="p">)</span> <span class="o">*</span> <span class="n">sy</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">py</span><span class="p">,</span> <span class="n">ph</span><span class="p">)</span>
-    <span class="n">vbar</span> <span class="o">=</span> <span class="n">AliasProperty</span><span class="p">(</span>
-        <span class="n">_get_vbar</span><span class="p">,</span>
-        <span class="kc">None</span><span class="p">,</span>
-        <span class="n">bind</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;_scroll&#39;</span><span class="p">,</span> <span class="s1">&#39;scroll_min&#39;</span><span class="p">,</span> <span class="s1">&#39;scroll_max&#39;</span><span class="p">)</span>
-    <span class="p">)</span>
+
+    <span class="n">vbar</span> <span class="o">=</span> <span class="n">AliasProperty</span><span class="p">(</span><span class="n">_get_vbar</span><span class="p">,</span>
+                         <span class="kc">None</span><span class="p">,</span>
+                         <span class="n">bind</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;_scroll&#39;</span><span class="p">,</span> <span class="s1">&#39;scroll_min&#39;</span><span class="p">,</span> <span class="s1">&#39;scroll_max&#39;</span><span class="p">))</span>
     <span class="sd">&quot;&quot;&quot;A tuple of ``(y, height)`` for my scroll bar, if it&#39;s vertical.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">_get_hbar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -940,15 +837,13 @@
         <span class="n">px</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">pw</span><span class="p">)</span> <span class="o">*</span> <span class="n">sx</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">px</span><span class="p">,</span> <span class="n">pw</span><span class="p">)</span>
 
-    <span class="n">hbar</span> <span class="o">=</span> <span class="n">AliasProperty</span><span class="p">(</span>
-        <span class="n">_get_hbar</span><span class="p">,</span>
-        <span class="kc">None</span><span class="p">,</span>
-        <span class="n">bind</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;_scroll&#39;</span><span class="p">,</span> <span class="s1">&#39;scroll_min&#39;</span><span class="p">,</span> <span class="s1">&#39;scroll_max&#39;</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">hbar</span> <span class="o">=</span> <span class="n">AliasProperty</span><span class="p">(</span><span class="n">_get_hbar</span><span class="p">,</span>
+                         <span class="kc">None</span><span class="p">,</span>
+                         <span class="n">bind</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;_scroll&#39;</span><span class="p">,</span> <span class="s1">&#39;scroll_min&#39;</span><span class="p">,</span> <span class="s1">&#39;scroll_max&#39;</span><span class="p">))</span>
     <span class="sd">&quot;&quot;&quot;A tuple of ``(x, width)`` for my scroll bar, if it&#39;s horizontal.&quot;&quot;&quot;</span>
-    <span class="n">bar_color</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="o">.</span><span class="mi">7</span><span class="p">,</span> <span class="o">.</span><span class="mi">7</span><span class="p">,</span> <span class="o">.</span><span class="mi">7</span><span class="p">,</span> <span class="o">.</span><span class="mi">9</span><span class="p">])</span>
+    <span class="n">bar_color</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mf">.7</span><span class="p">,</span> <span class="mf">.7</span><span class="p">,</span> <span class="mf">.7</span><span class="p">,</span> <span class="mf">.9</span><span class="p">])</span>
     <span class="sd">&quot;&quot;&quot;Color to use for the scroll bar when scrolling. RGBA format.&quot;&quot;&quot;</span>
-    <span class="n">bar_inactive_color</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="o">.</span><span class="mi">7</span><span class="p">,</span> <span class="o">.</span><span class="mi">7</span><span class="p">,</span> <span class="o">.</span><span class="mi">7</span><span class="p">,</span> <span class="o">.</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">bar_inactive_color</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mf">.7</span><span class="p">,</span> <span class="mf">.7</span><span class="p">,</span> <span class="mf">.7</span><span class="p">,</span> <span class="mf">.2</span><span class="p">])</span>
     <span class="sd">&quot;&quot;&quot;Color to use for the scroll bar when not scrolling. RGBA format.&quot;&quot;&quot;</span>
     <span class="n">bar_texture</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="sd">&quot;&quot;&quot;Texture for the scroll bar, normally ``None``.&quot;&quot;&quot;</span>
@@ -959,11 +854,9 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
-            <span class="n">_scroll</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
-            <span class="n">scroll_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
-            <span class="n">scroll_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span>
-        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">_scroll</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
+                  <span class="n">scroll_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">,</span>
+                  <span class="n">scroll_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DeckBuilderScrollBar.do_layout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderScrollBar.do_layout">[docs]</a>    <span class="k">def</span> <span class="nf">do_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Put the bar where it&#39;s supposed to be, and size it in proportion to</span>
@@ -986,9 +879,8 @@
 <span class="sd">        scrolled.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">att</span> <span class="o">=</span> <span class="s1">&#39;deck_</span><span class="si">{}</span><span class="s1">_hint_offsets&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="s1">&#39;x&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span> <span class="o">==</span> <span class="s1">&#39;horizontal&#39;</span> <span class="k">else</span> <span class="s1">&#39;y&#39;</span>
-        <span class="p">)</span>
+        <span class="n">att</span> <span class="o">=</span> <span class="s1">&#39;deck_</span><span class="si">{}</span><span class="s1">_hint_offsets&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;x&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span> <span class="o">==</span>
+                                            <span class="s1">&#39;horizontal&#39;</span> <span class="k">else</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_scroll</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="p">,</span> <span class="n">att</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">deckidx</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="DeckBuilderScrollBar.on_deckbuilder"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderScrollBar.on_deckbuilder">[docs]</a>    <span class="k">def</span> <span class="nf">on_deckbuilder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -998,9 +890,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span>
-        <span class="n">att</span> <span class="o">=</span> <span class="s1">&#39;deck_</span><span class="si">{}</span><span class="s1">_hint_offsets&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="s1">&#39;x&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span> <span class="o">==</span> <span class="s1">&#39;horizontal&#39;</span> <span class="k">else</span> <span class="s1">&#39;y&#39;</span>
-        <span class="p">)</span>
+        <span class="n">att</span> <span class="o">=</span> <span class="s1">&#39;deck_</span><span class="si">{}</span><span class="s1">_hint_offsets&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;x&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span> <span class="o">==</span>
+                                            <span class="s1">&#39;horizontal&#39;</span> <span class="k">else</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span>
         <span class="n">offs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="p">,</span> <span class="n">att</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">offs</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deckidx</span><span class="p">:</span>
             <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_deckbuilder</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
@@ -1018,9 +909,8 @@
         <span class="k">if</span> <span class="s1">&#39;bar&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">:</span>
             <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">handle_scroll</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
             <span class="k">return</span>
-        <span class="n">att</span> <span class="o">=</span> <span class="s1">&#39;deck_</span><span class="si">{}</span><span class="s1">_hint_offsets&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="s1">&#39;x&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span> <span class="o">==</span> <span class="s1">&#39;horizontal&#39;</span> <span class="k">else</span> <span class="s1">&#39;y&#39;</span>
-        <span class="p">)</span>
+        <span class="n">att</span> <span class="o">=</span> <span class="s1">&#39;deck_</span><span class="si">{}</span><span class="s1">_hint_offsets&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;x&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span> <span class="o">==</span>
+                                            <span class="s1">&#39;horizontal&#39;</span> <span class="k">else</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span>
         <span class="n">offs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="p">,</span> <span class="n">att</span><span class="p">))</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">offs</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deckidx</span><span class="p">:</span>
             <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_scroll</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
@@ -1033,14 +923,12 @@
         <span class="sd">&quot;&quot;&quot;Start scrolling, and record where I started scrolling.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">scrolling</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_start_bar_pos_hint</span> <span class="o">=</span> <span class="n">get_pos_hint</span><span class="p">(</span><span class="n">bar</span><span class="o">.</span><span class="n">pos_hint</span><span class="p">,</span> <span class="o">*</span><span class="n">bar</span><span class="o">.</span><span class="n">size_hint</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_start_touch_pos_hint</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">touch</span><span class="o">.</span><span class="n">x</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">,</span>
-            <span class="n">touch</span><span class="o">.</span><span class="n">y</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_start_bar_touch_hint</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_start_touch_pos_hint</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_bar_pos_hint</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_start_touch_pos_hint</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_bar_pos_hint</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_start_touch_pos_hint</span> <span class="o">=</span> <span class="p">(</span><span class="n">touch</span><span class="o">.</span><span class="n">x</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">,</span>
+                                      <span class="n">touch</span><span class="o">.</span><span class="n">y</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_start_bar_touch_hint</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_start_touch_pos_hint</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span>
+                                      <span class="bp">self</span><span class="o">.</span><span class="n">_start_bar_pos_hint</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                      <span class="bp">self</span><span class="o">.</span><span class="n">_start_touch_pos_hint</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span>
+                                      <span class="bp">self</span><span class="o">.</span><span class="n">_start_bar_pos_hint</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">touch</span><span class="o">.</span><span class="n">grab</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DeckBuilderScrollBar.on_touch_move"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderScrollBar.on_touch_move">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
@@ -1175,60 +1063,53 @@
 <span class="s2">&quot;&quot;&quot;</span>
 <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="n">kv</span><span class="p">)</span>
 
-
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
     <span class="n">deck0</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">Card</span><span class="p">(</span>
-            <span class="n">background_color</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="n">headline_text</span><span class="o">=</span><span class="s1">&#39;Card </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">),</span>
-            <span class="n">art_color</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="n">midline_text</span><span class="o">=</span><span class="s1">&#39;0deck&#39;</span><span class="p">,</span>
-            <span class="n">foreground_color</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="n">text</span><span class="o">=</span><span class="s1">&#39;The quick brown fox jumps over the lazy dog&#39;</span><span class="p">,</span>
-            <span class="n">text_color</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="n">footer_text</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
+        <span class="n">Card</span><span class="p">(</span><span class="n">background_color</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+             <span class="n">headline_text</span><span class="o">=</span><span class="s1">&#39;Card </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">),</span>
+             <span class="n">art_color</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+             <span class="n">midline_text</span><span class="o">=</span><span class="s1">&#39;0deck&#39;</span><span class="p">,</span>
+             <span class="n">foreground_color</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+             <span class="n">text</span><span class="o">=</span><span class="s1">&#39;The quick brown fox jumps over the lazy dog&#39;</span><span class="p">,</span>
+             <span class="n">text_color</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+             <span class="n">footer_text</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
     <span class="p">]</span>
     <span class="n">deck1</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">Card</span><span class="p">(</span>
-            <span class="n">background_color</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="n">headline_text</span><span class="o">=</span><span class="s1">&#39;Card </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">),</span>
-            <span class="n">art_color</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="n">show_art</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">midline_text</span><span class="o">=</span><span class="s1">&#39;1deck&#39;</span><span class="p">,</span>
-            <span class="n">foreground_color</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Have a steak at the porter house bar&#39;</span><span class="p">,</span>
-            <span class="n">text_color</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="n">footer_text</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
+        <span class="n">Card</span><span class="p">(</span><span class="n">background_color</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+             <span class="n">headline_text</span><span class="o">=</span><span class="s1">&#39;Card </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">),</span>
+             <span class="n">art_color</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+             <span class="n">show_art</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+             <span class="n">midline_text</span><span class="o">=</span><span class="s1">&#39;1deck&#39;</span><span class="p">,</span>
+             <span class="n">foreground_color</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+             <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Have a steak at the porter house bar&#39;</span><span class="p">,</span>
+             <span class="n">text_color</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+             <span class="n">footer_text</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
     <span class="p">]</span>
     <span class="kn">from</span> <span class="nn">kivy.base</span> <span class="kn">import</span> <span class="n">runTouchApp</span>
     <span class="kn">from</span> <span class="nn">kivy.core.window</span> <span class="kn">import</span> <span class="n">Window</span>
     <span class="kn">from</span> <span class="nn">kivy.modules</span> <span class="kn">import</span> <span class="n">inspector</span>
-    <span class="n">builder</span> <span class="o">=</span> <span class="n">DeckBuilderLayout</span><span class="p">(</span>
-        <span class="n">card_size_hint</span><span class="o">=</span><span class="p">(</span><span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">),</span>
-        <span class="n">pos_hint</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
-        <span class="n">starting_pos_hint</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s1">&#39;top&#39;</span><span class="p">:</span> <span class="mf">0.9</span><span class="p">},</span>
-        <span class="n">card_hint_step</span><span class="o">=</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">),</span>
-        <span class="n">deck_hint_step</span><span class="o">=</span><span class="p">(</span><span class="mf">0.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-        <span class="n">decks</span><span class="o">=</span><span class="p">[</span><span class="n">deck0</span><span class="p">,</span> <span class="n">deck1</span><span class="p">],</span>
-        <span class="n">deck_y_hint_offsets</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-    <span class="p">)</span>
+    <span class="n">builder</span> <span class="o">=</span> <span class="n">DeckBuilderLayout</span><span class="p">(</span><span class="n">card_size_hint</span><span class="o">=</span><span class="p">(</span><span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">),</span>
+                                <span class="n">pos_hint</span><span class="o">=</span><span class="p">{</span>
+                                    <span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                                    <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="mi">0</span>
+                                <span class="p">},</span>
+                                <span class="n">starting_pos_hint</span><span class="o">=</span><span class="p">{</span>
+                                    <span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+                                    <span class="s1">&#39;top&#39;</span><span class="p">:</span> <span class="mf">0.9</span>
+                                <span class="p">},</span>
+                                <span class="n">card_hint_step</span><span class="o">=</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">),</span>
+                                <span class="n">deck_hint_step</span><span class="o">=</span><span class="p">(</span><span class="mf">0.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                                <span class="n">decks</span><span class="o">=</span><span class="p">[</span><span class="n">deck0</span><span class="p">,</span> <span class="n">deck1</span><span class="p">],</span>
+                                <span class="n">deck_y_hint_offsets</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
     <span class="n">layout</span> <span class="o">=</span> <span class="n">BoxLayout</span><span class="p">(</span><span class="n">orientation</span><span class="o">=</span><span class="s1">&#39;horizontal&#39;</span><span class="p">)</span>
-    <span class="n">left_bar</span> <span class="o">=</span> <span class="n">DeckBuilderScrollBar</span><span class="p">(</span>
-        <span class="n">deckbuilder</span><span class="o">=</span><span class="n">builder</span><span class="p">,</span>
-        <span class="n">orientation</span><span class="o">=</span><span class="s1">&#39;vertical&#39;</span><span class="p">,</span>
-        <span class="n">size_hint_x</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-        <span class="n">deckidx</span><span class="o">=</span><span class="mi">0</span>
-    <span class="p">)</span>
-    <span class="n">right_bar</span> <span class="o">=</span> <span class="n">DeckBuilderScrollBar</span><span class="p">(</span>
-        <span class="n">deckbuilder</span><span class="o">=</span><span class="n">builder</span><span class="p">,</span>
-        <span class="n">orientation</span><span class="o">=</span><span class="s1">&#39;vertical&#39;</span><span class="p">,</span>
-        <span class="n">size_hint_x</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-        <span class="n">deckidx</span><span class="o">=</span><span class="mi">1</span>
-    <span class="p">)</span>
+    <span class="n">left_bar</span> <span class="o">=</span> <span class="n">DeckBuilderScrollBar</span><span class="p">(</span><span class="n">deckbuilder</span><span class="o">=</span><span class="n">builder</span><span class="p">,</span>
+                                    <span class="n">orientation</span><span class="o">=</span><span class="s1">&#39;vertical&#39;</span><span class="p">,</span>
+                                    <span class="n">size_hint_x</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                                    <span class="n">deckidx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">right_bar</span> <span class="o">=</span> <span class="n">DeckBuilderScrollBar</span><span class="p">(</span><span class="n">deckbuilder</span><span class="o">=</span><span class="n">builder</span><span class="p">,</span>
+                                     <span class="n">orientation</span><span class="o">=</span><span class="s1">&#39;vertical&#39;</span><span class="p">,</span>
+                                     <span class="n">size_hint_x</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                                     <span class="n">deckidx</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">layout</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">left_bar</span><span class="p">)</span>
     <span class="n">layout</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">builder</span><span class="p">)</span>
     <span class="n">layout</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">right_bar</span><span class="p">)</span>
@@ -1257,7 +1138,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../LiSE/LiSE/allegedb/index.html">allegedb</a></li>
 </ul>
 
 <div class="relations">
@@ -1295,7 +1175,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
