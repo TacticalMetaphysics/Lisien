@@ -21,16 +21,16 @@ from setuptools import setup
 
 with open(
         os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                     'requirements.txt'), 'rt') as inf:
+                     'ELiDE', 'requirements.txt'), 'rt') as inf:
     reqs = list(inf.readlines())
 with open(
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                 'README.md'), 'rt'
+    os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                 'ELiDE', 'README.md'), 'rt'
 ) as inf:
     longdesc = inf.read()
 
 setup(name="ELiDE",
-      version="0.12.0",
+      version="0.12.1",
       license="AGPL3",
       packages=[
           "ELiDE", "ELiDE.graph", "ELiDE.grid", "ELiDE.kivygarden.texturestack"
@@ -42,7 +42,7 @@ setup(name="ELiDE",
       package_data={
           "ELiDE": [
               "assets/*.png", "assets/*.jpg", "assets/*.ttf", "assets/*.atlas",
-              "assets/rltiles/*"
+              "assets/rltiles/*", "requirements.txt", "README.md"
           ]
       },
       url="https://github.com/Tactical-Metaphysics/LiSE",

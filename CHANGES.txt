@@ -1,4 +1,4 @@
-== 0.12.0 | 2021-07-04 ==
+== 0.12.1 | 2021-07-04 ==
 * Optimize interprocess synchronization
 * Fix some inconsistencies in the rulebook sync
 * Crush all of a character's initial state into the one keyframe, fixing integrity problems
