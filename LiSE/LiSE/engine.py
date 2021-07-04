@@ -17,7 +17,6 @@ stores for game data and entities, as well as properties for manipulating the
 flow of time.
 
 """
-from abc import ABC
 from functools import partial
 from collections import defaultdict
 from collections.abc import Mapping
