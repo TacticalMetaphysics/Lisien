@@ -40,4 +40,5 @@ setup(name="ELiDE",
               "assets/rltiles/*"
           ]
       },
+      url="https://github.com/Tactical-Metaphysics/LiSE",
       zip_safe=False)
