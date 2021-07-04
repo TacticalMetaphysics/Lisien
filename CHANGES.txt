@@ -1,3 +1,19 @@
+== 0.12.0 | 2021-07-04 ==
+* Optimize interprocess synchronization
+* Fix some inconsistencies in the rulebook sync
+* Crush all of a character's initial state into the one keyframe, fixing integrity problems
+* License change; no longer accept later versions of the AGPL
+* Support networkx 2.5
+* ELiDE changes
+  * Rule stepper to help you view the state of the game after one rule's run, just before the next
+  * Don't crash when resuming the game on non-trunk branches
+  * Fix stats configurator
+  * Fix rules configurators
+  * Accept a prefix on the command line
+  * Grid view shows characters other than the one you started with
+  * Dialog options from the game itself don't appear more than requested
+  * Fix crash when laying out one-dimensional boards
+
 == 0.11.2 | 2021-04-19 ==
 * Fix the branch input in ELiDE
 * Performance improvements
