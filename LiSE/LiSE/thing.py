@@ -180,7 +180,7 @@ class Thing(Node):
             self.character.name, self.name, branch, turn, self.engine._turn_end_plan[branch, turn]
         ))
 
-    def go_to_place(self, place, weight=''):
+    def go_to_place(self, place, weight=None):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
         to the given :class:`Place`, schedule myself to travel to the
         given :class:`Place`, taking an amount of time indicated by
@@ -196,7 +196,7 @@ class Thing(Node):
             placen = place
         curloc = self["location"]
         orm = self.character.engine
-        turns = self.engine._portal_objs[
+        turns = 1 if weight is None else self.engine._portal_objs[
             (self.character.name, curloc, place)].get(weight, 1)
         with self.engine.plan():
             orm.turn += turns
@@ -244,7 +244,7 @@ class Thing(Node):
             subsubpath = [prevsubplace]
             for subplace in subpath:
                 portal = self.character.portal[prevsubplace][subplace]
-                turn_inc = portal.get(weight, 1)
+                turn_inc = 1 if weight is None else portal.get(weight, 1)
                 eng.turn += turn_inc
                 self.location = subplace
                 turns_total += turn_inc
