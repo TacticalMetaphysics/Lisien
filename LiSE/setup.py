@@ -25,7 +25,7 @@ with open(
     reqs = list(inf.readlines())
 
 setup(name="LiSE",
-      version="0.12",
+      version="0.12.0",
       description="Rules engine for life simulation games",
       author="Zachary Spector",
       author_email="public@zacharyspector.com",

@@ -25,7 +25,7 @@ with open(
     reqs = list(inf.readlines())
 
 setup(name="ELiDE",
-      version="0.12",
+      version="0.12.0",
       license="AGPL3",
       packages=[
           "ELiDE", "ELiDE.graph", "ELiDE.grid", "ELiDE.kivygarden.texturestack"
