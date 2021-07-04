@@ -624,8 +624,7 @@ class ORM(object):
             self,
             dbstring,
             alchemy=True,
-            connect_args={},
-            validate=False
+            connect_args=None
     ):
         """Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
         either case, begin a transaction.
@@ -636,9 +635,9 @@ class ORM(object):
         SQLAlchemy is available.
         :arg connect_args: Dictionary of keyword arguments to be used for the database
         connection.
-        :arg validate: Whether to perform an integrity test on the data.
 
         """
+        connect_args = connect_args or {}
         self._planning = False
         self._forward = False
         self._no_kc = False

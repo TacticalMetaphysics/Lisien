@@ -661,8 +661,7 @@ class Engine(AbstractEngine, gORM):
         super().__init__(
             connect_string or os.path.join(prefix, 'world.db'),
             connect_args=connect_args,
-            alchemy=alchemy,
-            validate=validate
+            alchemy=alchemy
         )
         self._things_cache.setdb = self.query.set_thing_loc
         self._universal_cache.setdb = self.query.universal_set
