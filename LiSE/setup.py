@@ -23,6 +23,11 @@ with open(
         os.path.join(os.path.dirname(os.path.abspath(__file__)),
                      'requirements.txt'), 'rt') as inf:
     reqs = list(inf.readlines())
+with open(
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                 'README.md'), 'rt'
+) as inf:
+    longdesc = inf.read()
 
 setup(name="LiSE",
       version="0.12.0",
@@ -35,4 +40,6 @@ setup(name="LiSE",
       packages=["LiSE", "LiSE.server", "LiSE.examples", "LiSE.allegedb"],
       package_data={'LiSE': ['sqlite.json']},
       install_requires=reqs,
-      project_urls={"Documentation": "https://logicaldash.github.io/LiSE"})
+      project_urls={"Documentation": "https://tactical-metaphysics.github.io/LiSE/"},
+      long_description=longdesc,
+      long_description_content_type='text/markdown')
