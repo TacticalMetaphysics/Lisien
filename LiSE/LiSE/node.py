@@ -285,6 +285,8 @@ class Node(graph.Node, rule.RuleFollower):
     the abilities to follow rules; to be connected by portals; and to
     contain things.
 
+    This is truthy if it exists, falsy if it's been deleted.
+
     """
     __slots__ = ('_real_rule_mapping',)
     character = getatt('graph')

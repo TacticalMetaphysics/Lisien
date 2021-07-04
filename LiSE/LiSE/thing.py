@@ -43,6 +43,9 @@ class Thing(Node):
     in another Thing, then it is wherever that is, and moving the
     same.
 
+    LiSE entities are truthy so long as they exist, falsy if they've
+    been deleted.
+
     """
     __slots__ = ('graph', 'db', 'node', '_rulebook', '_rulebooks',
                  '_real_rule_mapping')

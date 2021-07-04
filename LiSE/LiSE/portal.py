@@ -42,6 +42,9 @@ class Portal(Edge, RuleFollower):
     stats of this one, and attempting to set a stat on it will
     set it here instead.
 
+    LiSE entities are truthy so long as they exist, falsy if they've
+    been deleted.
+
     """
     __slots__ = ('graph', 'orig', 'dest', 'idx', 'origin', 'destination',
                  '_rulebook', '_real_rule_mapping')

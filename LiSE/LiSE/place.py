@@ -24,7 +24,12 @@ from .node import Node
 
 
 class Place(Node):
-    """The kind of node where a thing might ultimately be located."""
+    """The kind of node where a thing might ultimately be located.
+
+    LiSE entities are truthy so long as they exist, falsy if they've
+    been deleted.
+
+    """
     __slots__ = ('graph', 'db', 'node', '_rulebook',
                  '_rulebooks', '_real_rule_mapping')
 
