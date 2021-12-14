@@ -61,7 +61,7 @@ class DummyEntity(dict):
     """Something to use in place of a node or edge"""
     __slots__ = ['engine']
 
-    def __init__(self, engine):
+    def __init__(self, engine: 'AbstractEngine'):
         self.engine = engine
 
 
@@ -842,13 +842,14 @@ class Engine(AbstractEngine, gORM):
                                                     charn,
                                                     init_rulebooks=False)
 
-    def _make_node(self, graph, node):
+    def _make_node(self, graph: Character, node: Union[Thing, Place]):
         if self._is_thing(graph.name, node):
             return self.thing_cls(graph, node)
         else:
             return self.place_cls(graph, node)
 
-    def _make_edge(self, graph, orig, dest, idx=0):
+    def _make_edge(self, graph: Character, orig: Union[Thing, Place],
+                   dest: Union[Thing, Place], idx=0):
         return self.portal_cls(graph, orig, dest)
 
     def get_delta(self, branch: str, turn_from: int, tick_from: int,
@@ -1181,9 +1182,9 @@ class Engine(AbstractEngine, gORM):
         raise NotImplementedError("Can't delete rulebooks yet")
 
     def _remember_avatarness(self,
-                             character,
-                             graph,
-                             node,
+                             character: Character,
+                             graph: Character,
+                             node: Union[Thing, Place],
                              is_avatar=True,
                              branch: str = None,
                              turn: int = None,
@@ -1290,8 +1291,8 @@ class Engine(AbstractEngine, gORM):
         if v > oldtick and newrando and newrando != oldrando:
             self._rando.setstate(newrando)
 
-    def _handled_char(self, charn, rulebook, rulen, branch: str, turn: int,
-                      tick: int):
+    def _handled_char(self, charn: Keyable, rulebook: Keyable, rulen: Keyable,
+                      branch: str, turn: int, tick: int):
         try:
             self._character_rules_handled_cache.store(charn, rulebook, rulen,
                                                       branch, turn, tick)
@@ -1302,8 +1303,9 @@ class Engine(AbstractEngine, gORM):
         self.query.handled_character_rule(charn, rulebook, rulen, branch, turn,
                                           tick)
 
-    def _handled_av(self, character, graph, avatar, rulebook, rule,
-                    branch: str, turn: int, tick: int):
+    def _handled_av(self, character: Keyable, graph: Keyable,
+                    avatar: Keyable, rulebook: Keyable,
+                    rule: Keyable, branch: str, turn: int, tick: int):
         try:
             self._avatar_rules_handled_cache.store(character, graph, avatar,
                                                    rulebook, rule, branch,
@@ -1319,8 +1321,9 @@ class Engine(AbstractEngine, gORM):
         self.query.handled_avatar_rule(character, rulebook, rule, graph,
                                        avatar, branch, turn, tick)
 
-    def _handled_char_thing(self, character, thing, rulebook, rule, branch,
-                            turn, tick):
+    def _handled_char_thing(self, character: Keyable, thing: Keyable,
+                            rulebook: Keyable, rule: Keyable,
+                            branch: str, turn: int, tick: int):
         try:
             self._character_thing_rules_handled_cache.store(
                 character, thing, rulebook, rule, branch, turn, tick)
@@ -1331,7 +1334,8 @@ class Engine(AbstractEngine, gORM):
         self.query.handled_character_thing_rule(character, rulebook, rule,
                                                 thing, branch, turn, tick)
 
-    def _handled_char_place(self, character, place, rulebook, rule,
+    def _handled_char_place(self, character: Keyable, place: Keyable,
+                            rulebook: Keyable, rule: Keyable,
                             branch: str, turn: int, tick: int):
         try:
             self._character_place_rules_handled_cache.store(
@@ -1343,7 +1347,8 @@ class Engine(AbstractEngine, gORM):
         self.query.handled_character_place_rule(character, rulebook, rule,
                                                 place, branch, turn, tick)
 
-    def _handled_char_port(self, character, orig, dest, rulebook, rule,
+    def _handled_char_port(self, character: Keyable, orig: Keyable,
+                           dest: Keyable, rulebook: Keyable, rule: Keyable,
                            branch: str, turn: int, tick: int):
         try:
             self._character_portal_rules_handled_cache.store(
@@ -1356,7 +1361,8 @@ class Engine(AbstractEngine, gORM):
                                                  rulebook, rule, branch, turn,
                                                  tick)
 
-    def _handled_node(self, character, node, rulebook, rule, branch: str,
+    def _handled_node(self, character: Keyable, node: Keyable,
+                      rulebook: Keyable, rule: Keyable, branch: str,
                       turn: int, tick: int):
         try:
             self._node_rules_handled_cache.store(character, node, rulebook,
@@ -1370,7 +1376,8 @@ class Engine(AbstractEngine, gORM):
         self.query.handled_node_rule(character, node, rulebook, rule, branch,
                                      turn, tick)
 
-    def _handled_portal(self, character, orig, dest, rulebook, rule,
+    def _handled_portal(self, character: Keyable, orig: Keyable, dest: Keyable,
+                        rulebook: Keyable, rule: Keyable,
                         branch: str, turn: int, tick: int):
         try:
             self._portal_rules_handled_cache.store(character, orig, dest,
@@ -1655,7 +1662,7 @@ class Engine(AbstractEngine, gORM):
         for branch, turn in qry.iter_turns():
             yield turn
 
-    def _node_contents(self, character, node):
+    def _node_contents(self, character: Keyable, node: Keyable):
         return self._node_contents_cache.retrieve(character, node,
                                                   *self._btt())
 
