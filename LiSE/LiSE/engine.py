@@ -290,10 +290,19 @@ class AbstractEngine(ABC):
                 return handlers[code](data)
             return msgpack.ExtType(code, data)
 
-        unpacker = partial(msgpack.unpackb,
-                           ext_hook=unpack_handler,
-                           raw=False,
-                           strict_map_key=False)
+        def unpacker(b: bytes):
+            the_unpacker = msgpack.Unpacker(
+                ext_hook=unpack_handler,
+                raw=False,
+                strict_map_key=False
+            )
+            the_unpacker.feed(b)
+            # Deliberately only returning the initial item;
+            # others are likely to be null bytes as a result of the
+            # way browsers work, and anyway if you really want more
+            # you can just pack a list
+            return the_unpacker.unpack()
+
         return unpacker
 
     def coinflip(self):
