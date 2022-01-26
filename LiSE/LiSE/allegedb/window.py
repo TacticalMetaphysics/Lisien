@@ -24,20 +24,6 @@ from collections import deque
 from collections.abc import Mapping, MutableMapping, KeysView, ItemsView, ValuesView
 from operator import itemgetter, lt, le
 from itertools import chain
-try:
-    import cython
-except ImportError:
-
-    class cython:
-        def locals(**kwargs):
-            def passthru(fun):
-                return fun
-
-            return passthru
-
-        cfunc = locals
-        int = None
-        bint = None
 
 
 get0 = itemgetter(0)
@@ -453,17 +439,12 @@ class WindowDict(MutableMapping):
             self.seek(rev)
         return WindowDictPastView(self._past)
 
-    @cython.locals(rev=cython.int,
-                   past_end=cython.int,
-                   future_start=cython.int)
     def seek(self, rev):
         """Arrange the caches to help look up the given revision."""
         # TODO: binary search? Perhaps only when one or the other
         # stack is very large?
         if rev == self._last:
             return
-        if type(rev) is not int:
-            raise TypeError("rev must be int")
         past = self._past
         future = self._future
         if future:
@@ -598,7 +579,6 @@ class WindowDict(MutableMapping):
                 "Revision {} is before the start of history".format(rev))
         return past[-1][1]
 
-    @cython.locals(rev=cython.int)
     def __setitem__(self, rev, v):
         past = self._past
         if past or self._future:
@@ -619,7 +599,6 @@ class WindowDict(MutableMapping):
             self.beginning = self.end = self._last = rev
         self._keys.add(rev)
 
-    @cython.locals(rev=cython.int, past_end=cython.int)
     def __delitem__(self, rev):
         # Not checking for rev's presence at the beginning because
         # to do so would likely require iterating thru history,
