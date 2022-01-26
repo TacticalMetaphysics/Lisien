@@ -20,10 +20,12 @@ you asked for (and thus, keys must be orderable). It is optimized for retrieval
 of the same key and neighboring ones repeatedly and in sequence.
 
 """
+from abc import abstractmethod, ABC
 from collections import deque
 from collections.abc import Mapping, MutableMapping, KeysView, ItemsView, ValuesView
-from operator import itemgetter, lt, le
 from itertools import chain
+from operator import itemgetter, lt, le
+from typing import Union
 
 
 get0 = itemgetter(0)
@@ -71,7 +73,7 @@ class HistoryError(KeyError):
         self.deleted = deleted
 
 
-def within_history(rev, windowdict):
+def within_history(rev, windowdict: 'WindowDict'):
     """Return whether the windowdict has history at the revision."""
     if not windowdict:
         return False
@@ -82,8 +84,10 @@ def within_history(rev, windowdict):
     return begin <= rev <= end
 
 
-class WindowDictKeysView(KeysView):
+class WindowDictKeysView(ABC, KeysView):
     """Look through all the keys a WindowDict contains."""
+    _mapping: 'WindowDict'
+
     def __contains__(self, rev):
         return rev in self._mapping._keys
 
@@ -96,8 +100,10 @@ class WindowDictKeysView(KeysView):
             yield from map(get0, reversed(future))
 
 
-class WindowDictItemsView(ItemsView):
+class WindowDictItemsView(ABC, ItemsView):
     """Look through everything a WindowDict contains."""
+    _mapping: 'WindowDict'
+
     def __contains__(self, item):
         (rev, v) = item
         mapp = self._mapping
@@ -120,8 +126,10 @@ class WindowDictItemsView(ItemsView):
             yield from future
 
 
-class WindowDictPastFutureKeysView(KeysView):
+class WindowDictPastFutureKeysView(ABC, KeysView):
     """View on a WindowDict's keys relative to last lookup"""
+    _mapping: Union['WindowDictPastView', 'WindowDictFutureView']
+
     def __iter__(self):
         if not self._mapping.stack:
             return
@@ -131,7 +139,14 @@ class WindowDictPastFutureKeysView(KeysView):
         return item in self._mapping and item in map(get0, self._mapping.stack)
 
 
-class WindowDictPastFutureItemsView(ItemsView):
+class WindowDictPastFutureItemsView(ABC, ItemsView):
+    _mapping: Union['WindowDictPastView', 'WindowDictFutureView']
+
+    @staticmethod
+    @abstractmethod
+    def _out_of_range(item: tuple, stack: list):
+        pass
+
     def __iter__(self):
         if not self._mapping.stack:
             return
@@ -151,19 +166,21 @@ class WindowDictPastFutureItemsView(ItemsView):
 
 class WindowDictPastItemsView(WindowDictPastFutureItemsView):
     @staticmethod
-    def _out_of_range(item, stack):
+    def _out_of_range(item: tuple, stack: list):
         return item[0] < stack[0][0] or item[0] > stack[-1][0]
 
 
 class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
     """View on a WindowDict's future items relative to last lookup"""
     @staticmethod
-    def _out_of_range(item, stack):
+    def _out_of_range(item: tuple, stack: list):
         return item[0] < stack[-1][0] or item[0] > stack[0][0]
 
 
-class WindowDictPastFutureValuesView(ValuesView):
+class WindowDictPastFutureValuesView(ABC, ValuesView):
     """Abstract class for views on the past or future values of a WindowDict"""
+    _mapping: Union['WindowDictPastView', 'WindowDictFutureView']
+
     def __iter__(self):
         stack = self._mapping.stack
         if not stack:
@@ -177,8 +194,10 @@ class WindowDictPastFutureValuesView(ValuesView):
         return item in map(get1, stack)
 
 
-class WindowDictValuesView(ValuesView):
+class WindowDictValuesView(ABC, ValuesView):
     """Look through all the values that a WindowDict contains."""
+    _mapping: 'WindowDict'
+
     def __contains__(self, value):
         past = self._mapping._past
         future = self._mapping._future
@@ -201,7 +220,7 @@ class WindowDictValuesView(ValuesView):
             yield from map(get1, future)
 
 
-class WindowDictPastFutureView(Mapping):
+class WindowDictPastFutureView(ABC, Mapping):
     """Abstract class for historical views on WindowDict"""
     __slots__ = ('stack', )
 
@@ -344,7 +363,7 @@ class WindowDictReverseSlice:
     """A slice of history in which the start is later than the stop"""
     __slots__ = ['dict', 'slice']
 
-    def __init__(self, dict, slice):
+    def __init__(self, dict: 'WindowDict', slice: slice):
         self.dict = dict
         self.slice = slice
 
@@ -469,19 +488,19 @@ class WindowDict(MutableMapping):
                     break
         self._last = rev
 
-    def rev_gettable(self, rev: int) -> bool:
+    def rev_gettable(self, rev) -> bool:
         beg = self.beginning
         if beg is None:
             return False
         return rev >= beg
 
-    def rev_before(self, rev: int) -> int:
+    def rev_before(self, rev):
         """Return the latest past rev on which the value changed."""
         self.seek(rev)
         if self._past:
             return self._past[-1][0]
 
-    def rev_after(self, rev: int) -> int:
+    def rev_after(self, rev):
         """Return the earliest future rev on which the value will change."""
         self.seek(rev)
         if self._future:
@@ -503,7 +522,7 @@ class WindowDict(MutableMapping):
             return self._past[-1][1]
         raise KeyError("No data")
 
-    def truncate(self, rev: int, direction='forward') -> None:
+    def truncate(self, rev, direction='forward') -> None:
         """Delete everything after the given revision, exclusive.
 
         With direction='backward', delete everything before the revision,
