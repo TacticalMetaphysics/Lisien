@@ -156,8 +156,6 @@ class WindowDictPastFutureItemsView(ABC, ItemsView):
         if self._out_of_range(item, self._mapping.stack):
             return False
         i0, i1 = item
-        if i0 not in self._mapping:
-            return False
         for j0, j1 in self._mapping.stack:
             if i0 == j0:
                 return i1 == j1
