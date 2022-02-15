@@ -443,7 +443,6 @@ if __name__ == '__main__':
     r = {}
     table = tables_for_meta(meta)
     dia = SQLiteDialect_pysqlite()
-    print(list(table))
     for (n, t) in table.items():
         r["create_" + n] = str(CreateTable(t).compile(dialect=dia))
         r["truncate_" + n] = str(t.delete().compile(dialect=dia))
