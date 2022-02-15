@@ -649,10 +649,9 @@ class Engine(AbstractEngine, gORM):
         if connect_string and not alchemy:
             connect_string = connect_string.split('sqlite:///')[-1]
         super().__init__(connect_string or os.path.join(prefix, 'world.db'),
+                         clear=clear,
                          connect_args=connect_args,
                          alchemy=alchemy)
-        if clear:
-            self.query.truncate_all()
         self._things_cache.setdb = self.query.set_thing_loc
         self._universal_cache.setdb = self.query.universal_set
         self._rulebooks_cache.setdb = self.query.rulebook_set
