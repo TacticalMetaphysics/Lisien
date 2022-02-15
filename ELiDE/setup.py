@@ -1,4 +1,4 @@
-# This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
+# This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector, public@zacharyspector.com
 #
 # This program is free software: you can redistribute it and/or modify
@@ -15,38 +15,36 @@
 import sys
 if sys.version_info[0] < 3 or (sys.version_info[0] == 3
                                and sys.version_info[1] < 6):
-    raise RuntimeError("ELiDE requires Python 3.6 or later")
+    raise RuntimeError("LiSE requires Python 3.6 or later")
 import os
 from setuptools import setup
 
 with open(
         os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                     'ELiDE', 'requirements.txt'), 'rt') as inf:
-    reqs = list(inf.readlines())
-with open(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                 'ELiDE', 'README.md'), 'rt'
-) as inf:
-    longdesc = inf.read()
+                     'requirements.txt'), 'rt') as inf:
+    reqs = inf.readlines()
 
-setup(name="ELiDE",
+shortdesc = "Rules engine for life simulation games"
+
+readmepath = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                 'README.md')
+if os.path.exists(readmepath):
+    with open(readmepath, 'rt') as inf:
+        longdesc = inf.read()
+else:
+    longdesc = shortdesc
+
+setup(name="LiSE",
       version="0.12.1",
+      description=shortdesc,
+      author="Zachary Spector",
+      author_email="public@zacharyspector.com",
       license="AGPL3",
-      packages=[
-          "ELiDE", "ELiDE.graph", "ELiDE.grid", "ELiDE.kivygarden.texturestack"
-      ],
-      package_dir={
-          'ELiDE.kivygarden.texturestack': 'ELiDE/kivygarden/texturestack'
-      },
-      install_requires=reqs,
-      package_data={
-          "ELiDE": [
-              "assets/*.png", "assets/*.jpg", "assets/*.ttf", "assets/*.atlas",
-              "assets/rltiles/*", "requirements.txt", "README.md"
-          ]
-      },
+      keywords="game simulation",
       url="https://github.com/Tactical-Metaphysics/LiSE",
+      packages=["LiSE", "LiSE.server", "LiSE.examples", "LiSE.allegedb"],
+      package_data={'LiSE': ['sqlite.json']},
+      install_requires=reqs,
       project_urls={"Documentation": "https://tactical-metaphysics.github.io/LiSE/"},
       long_description=longdesc,
-      long_description_content_type='text/markdown',
-      zip_safe=False)
+      long_description_content_type='text/markdown')
