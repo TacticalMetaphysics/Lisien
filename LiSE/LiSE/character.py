@@ -1898,7 +1898,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             self.add_portal(orig, dest, **kwargs)
 
     def add_unit(self, a, b=None):
-        """Start keeping track of an unit"""
+        """Start keeping track of a unit"""
         if self.engine._planning:
             raise NotImplementedError(
                 "Currently can't add units within a plan")
