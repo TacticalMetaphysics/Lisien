@@ -91,21 +91,22 @@ class InitializedEntitylessCache(EntitylessCache, InitializedCache):
     __slots__ = ()
 
 
-class AvatarnessCache(Cache):
-    """A cache for remembering when a node is an avatar of a character."""
-    __slots__ = ('user_order', 'user_shallow', 'graphs', 'graphavs', 'charavs',
-                 'soloav', 'uniqav', 'uniqgraph', 'users')
+class UnitnessCache(Cache):
+    """A cache for remembering when a node is a unit of a character."""
+    __slots__ = ('user_order', 'user_shallow', 'graphs', 'graph_units',
+                 'char_units', 'solo_unit', 'unique_unit',
+                 'unique_graph', 'users')
 
     def __init__(self, engine):
         Cache.__init__(self, engine)
         self.user_order = StructuredDefaultDict(3, TurnDict)
         self.user_shallow = PickyDefaultDict(TurnDict)
         self.graphs = StructuredDefaultDict(1, TurnDict)
-        self.graphavs = StructuredDefaultDict(1, TurnDict)
-        self.charavs = StructuredDefaultDict(1, TurnDict)
-        self.soloav = StructuredDefaultDict(1, TurnDict)
-        self.uniqav = StructuredDefaultDict(1, TurnDict)
-        self.uniqgraph = StructuredDefaultDict(1, TurnDict)
+        self.graph_units = StructuredDefaultDict(1, TurnDict)
+        self.char_units = StructuredDefaultDict(1, TurnDict)
+        self.solo_unit = StructuredDefaultDict(1, TurnDict)
+        self.unique_unit = StructuredDefaultDict(1, TurnDict)
+        self.unique_graph = StructuredDefaultDict(1, TurnDict)
         self.users = StructuredDefaultDict(1, TurnDict)
 
     def store(self,
@@ -115,40 +116,40 @@ class AvatarnessCache(Cache):
               branch,
               turn,
               tick,
-              is_avatar,
+              is_unit,
               *,
               planning=None,
               forward=None,
               loading=False,
               contra=True):
-        is_avatar = True if is_avatar else None
+        is_unit = True if is_unit else None
         super().store(character,
                       graph,
                       node,
                       branch,
                       turn,
                       tick,
-                      is_avatar,
+                      is_unit,
                       planning=planning,
                       forward=forward,
                       loading=loading,
                       contra=contra)
         userturns = self.user_order[graph][node][character][branch]
         if turn in userturns:
-            userturns[turn][tick] = is_avatar
+            userturns[turn][tick] = is_unit
         else:
-            userturns[turn] = {tick: is_avatar}
+            userturns[turn] = {tick: is_unit}
         usershal = self.user_shallow[(graph, node, character, branch)]
         if turn in usershal:
-            usershal[turn][tick] = is_avatar
+            usershal[turn][tick] = is_unit
         else:
-            usershal[turn] = {tick: is_avatar}
-        charavs = self.charavs[character][branch]
-        graphavs = self.graphavs[(character, graph)][branch]
+            usershal[turn] = {tick: is_unit}
+        charavs = self.char_units[character][branch]
+        graphavs = self.graph_units[(character, graph)][branch]
         graphs = self.graphs[character][branch]
-        uniqgraph = self.uniqgraph[character][branch]
-        soloav = self.soloav[(character, graph)][branch]
-        uniqav = self.uniqav[character][branch]
+        uniqgraph = self.unique_graph[character][branch]
+        soloav = self.solo_unit[(character, graph)][branch]
+        uniqav = self.unique_unit[character][branch]
         users = self.users[graph, node][branch]
 
         def add_something(cache, what):
@@ -177,7 +178,7 @@ class AvatarnessCache(Cache):
             else:
                 raise ValueError
 
-        if is_avatar:
+        if is_unit:
             add_something(graphavs, node)
             add_something(charavs, (graph, node))
             add_something(graphs, graph)
@@ -238,18 +239,18 @@ class AvatarnessCache(Cache):
             uniqgraph[turn] = uniqgraph.cls({tick: graph})
 
     def get_char_graph_avs(self, char, graph, branch, turn, tick):
-        return self._valcache_lookup(self.graphavs[(char, graph)], branch,
+        return self._valcache_lookup(self.graph_units[(char, graph)], branch,
                                      turn, tick) or set()
 
     def get_char_graph_solo_av(self, char, graph, branch, turn, tick):
-        return self._valcache_lookup(self.soloav[(char, graph)], branch, turn,
+        return self._valcache_lookup(self.solo_unit[(char, graph)], branch, turn,
                                      tick)
 
     def get_char_only_av(self, char, branch, turn, tick):
-        return self._valcache_lookup(self.uniqav[char], branch, turn, tick)
+        return self._valcache_lookup(self.unique_unit[char], branch, turn, tick)
 
     def get_char_only_graph(self, char, branch, turn, tick):
-        return self._valcache_lookup(self.uniqgraph[char], branch, turn, tick)
+        return self._valcache_lookup(self.unique_graph[char], branch, turn, tick)
 
     def get_char_graphs(self, char, branch, turn, tick):
         return self._valcache_lookup(self.graphs[char], branch, turn,
@@ -388,19 +389,19 @@ class CharacterRulesHandledCache(RulesHandledCache):
                 yield character, rb, rule
 
 
-class AvatarRulesHandledCache(RulesHandledCache):
+class UnitRulesHandledCache(RulesHandledCache):
     def get_rulebook(self, character, branch, turn, tick):
         try:
-            return self.engine._avatars_rulebooks_cache.retrieve(
+            return self.engine._units_rulebooks_cache.retrieve(
                 character, branch, turn, tick)
         except KeyError:
-            return character, 'avatar'
+            return character, 'unit'
 
     def iter_unhandled_rules(self, branch, turn, tick):
         charm = self.engine.character
         for character in sort_set(charm.keys()):
             rulebook = self.get_rulebook(character, branch, turn, tick)
-            charavm = charm[character].avatar
+            charavm = charm[character].unit
             for graph in sort_set(charavm.keys()):
                 for avatar in sort_set(charavm[graph].keys()):
                     try:

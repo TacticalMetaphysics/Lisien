@@ -93,16 +93,16 @@ def install(eng):
                                  data=grid_2d_8graph(20, 20))
     square = eng.new_character('square')
     triangle = eng.new_character('triangle')
-    square.avatar.rulebook = triangle.avatar.rulebook = 'parable'
+    square.unit.rulebook = triangle.unit.rulebook = 'parable'
 
     empty = list(physical.place.values())
     eng.shuffle(empty)
     # distribute 30 of each shape randomly among the empty places
     for i in range(1, 31):
-        square.add_avatar(empty.pop().new_thing(
+        square.add_unit(empty.pop().new_thing(
             'square%i' % i, _image_paths=['atlas://polygons/meh_square']))
     for i in range(1, 31):
-        triangle.add_avatar(empty.pop().new_thing(
+        triangle.add_unit(empty.pop().new_thing(
             'triangle%i' % i, _image_paths=['atlas://polygons/meh_triangle']))
 
 

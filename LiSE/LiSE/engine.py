@@ -687,11 +687,11 @@ class Engine(AbstractEngine, gORM):
         from .rule import Rule
         q = self.query
         super()._init_load()
-        self._avatarness_cache.load(q.avatars_dump())
+        self._unitness_cache.load(q.units_dump())
         self._universal_cache.load(q.universals_dump())
         self._rulebooks_cache.load(q.rulebooks_dump())
         self._characters_rulebooks_cache.load(q.character_rulebook_dump())
-        self._avatars_rulebooks_cache.load(q.avatar_rulebook_dump())
+        self._units_rulebooks_cache.load(q.unit_rulebook_dump())
         self._characters_things_rulebooks_cache.load(
             q.character_thing_rulebook_dump())
         self._characters_places_rulebooks_cache.load(
@@ -706,8 +706,8 @@ class Engine(AbstractEngine, gORM):
         store_crh = self._character_rules_handled_cache.store
         for row in q.character_rules_handled_dump():
             store_crh(*row, loading=True)
-        store_arh = self._avatar_rules_handled_cache.store
-        for row in q.avatar_rules_handled_dump():
+        store_arh = self._unit_rules_handled_cache.store
+        for row in q.unit_rules_handled_dump():
             store_arh(*row, loading=True)
         store_ctrh = self._character_thing_rules_handled_cache.store
         for row in q.character_thing_rules_handled_dump():
@@ -755,7 +755,7 @@ class Engine(AbstractEngine, gORM):
                                    UniversalMapping)
         from .cache import (NodeContentsCache, InitializedCache,
                             EntitylessCache, InitializedEntitylessCache,
-                            AvatarnessCache, AvatarRulesHandledCache,
+                            UnitnessCache, UnitRulesHandledCache,
                             CharacterThingRulesHandledCache,
                             CharacterPlaceRulesHandledCache,
                             CharacterPortalRulesHandledCache,
@@ -773,8 +773,8 @@ class Engine(AbstractEngine, gORM):
         self._rulebooks_cache.name = 'rulebooks_cache'
         self._characters_rulebooks_cache = InitializedEntitylessCache(self)
         self._characters_rulebooks_cache.name = 'characters_rulebooks_cache'
-        self._avatars_rulebooks_cache = InitializedEntitylessCache(self)
-        self._avatars_rulebooks_cache.name = 'avatars_rulebooks_cache'
+        self._units_rulebooks_cache = InitializedEntitylessCache(self)
+        self._units_rulebooks_cache.name = 'units_rulebooks_cache'
         self._characters_things_rulebooks_cache = \
             InitializedEntitylessCache(self)
         self._characters_things_rulebooks_cache.name = \
@@ -804,8 +804,8 @@ class Engine(AbstractEngine, gORM):
         self._character_rules_handled_cache = CharacterRulesHandledCache(self)
         self._character_rules_handled_cache.name = \
             'character_rules_handled_cache'
-        self._avatar_rules_handled_cache = AvatarRulesHandledCache(self)
-        self._avatar_rules_handled_cache.name = 'avatar_rules_handled_cache'
+        self._unit_rules_handled_cache = UnitRulesHandledCache(self)
+        self._unit_rules_handled_cache.name = 'unit_rules_handled_cache'
         self._character_thing_rules_handled_cache \
             = CharacterThingRulesHandledCache(self)
         self._character_thing_rules_handled_cache.name = \
@@ -818,8 +818,8 @@ class Engine(AbstractEngine, gORM):
             = CharacterPortalRulesHandledCache(self)
         self._character_portal_rules_handled_cache.name = \
             'character_portal_rules_handled_cache'
-        self._avatarness_cache = AvatarnessCache(self)
-        self._avatarness_cache.name = 'avatarness_cache'
+        self._unitness_cache = UnitnessCache(self)
+        self._unitness_cache.name = 'unitness_cache'
         self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
         """The last turn when the rules engine ran in each branch"""
         self.universal = UniversalMapping(self)
@@ -869,7 +869,7 @@ class Engine(AbstractEngine, gORM):
         they have:
 
         * 'character_rulebook'
-        * 'avatar_rulebook'
+        * 'unit_rulebook'
         * 'character_thing_rulebook'
         * 'character_place_rulebook'
         * 'character_portal_rulebook'
@@ -898,14 +898,14 @@ class Engine(AbstractEngine, gORM):
             updater = partial(update_window, turn_from, tick_from, turn_to,
                               tick_to)
             univbranches = self._universal_cache.settings
-            avbranches = self._avatarness_cache.settings
+            avbranches = self._unitness_cache.settings
             thbranches = self._things_cache.settings
             rbbranches = self._rulebooks_cache.settings
             trigbranches = self._triggers_cache.settings
             preqbranches = self._prereqs_cache.settings
             actbranches = self._actions_cache.settings
             charrbbranches = self._characters_rulebooks_cache.settings
-            avrbbranches = self._avatars_rulebooks_cache.settings
+            avrbbranches = self._units_rulebooks_cache.settings
             charthrbbranches = self._characters_things_rulebooks_cache.settings
             charplrbbranches = self._characters_places_rulebooks_cache.settings
             charporbbranches = \
@@ -917,14 +917,14 @@ class Engine(AbstractEngine, gORM):
             updater = partial(update_backward_window, turn_from, tick_from,
                               turn_to, tick_to)
             univbranches = self._universal_cache.presettings
-            avbranches = self._avatarness_cache.presettings
+            avbranches = self._unitness_cache.presettings
             thbranches = self._things_cache.presettings
             rbbranches = self._rulebooks_cache.presettings
             trigbranches = self._triggers_cache.presettings
             preqbranches = self._prereqs_cache.presettings
             actbranches = self._actions_cache.presettings
             charrbbranches = self._characters_rulebooks_cache.presettings
-            avrbbranches = self._avatars_rulebooks_cache.presettings
+            avrbbranches = self._units_rulebooks_cache.presettings
             charthrbbranches = \
                 self._characters_things_rulebooks_cache.presettings
             charplrbbranches = \
@@ -942,7 +942,7 @@ class Engine(AbstractEngine, gORM):
 
         def updav(char, graph, node, av):
             delta.setdefault(char,
-                             {}).setdefault('avatars',
+                             {}).setdefault('units',
                                             {}).setdefault(graph,
                                                            {})[node] = bool(av)
 
@@ -989,7 +989,7 @@ class Engine(AbstractEngine, gORM):
                     charrbbranches[branch])
 
         if branch in avrbbranches:
-            updater(partial(updcrb, 'avatar_rulebook'), avrbbranches[branch])
+            updater(partial(updcrb, 'unit_rulebook'), avrbbranches[branch])
 
         if branch in charthrbbranches:
             updater(partial(updcrb, 'character_thing_rulebook'),
@@ -1058,14 +1058,14 @@ class Engine(AbstractEngine, gORM):
         tick = tick or self.tick
         delta = super().get_turn_delta(branch, turn, start_tick, tick)
         if start_tick < tick:
-            avatarness_settings = self._avatarness_cache.settings
+            avatarness_settings = self._unitness_cache.settings
             things_settings = self._things_cache.settings
             rulebooks_settings = self._rulebooks_cache.settings
             triggers_settings = self._triggers_cache.settings
             prereqs_settings = self._prereqs_cache.settings
             actions_settings = self._actions_cache.settings
             character_rulebooks_settings = self._characters_rulebooks_cache.settings
-            avatar_rulebooks_settings = self._avatars_rulebooks_cache.settings
+            avatar_rulebooks_settings = self._units_rulebooks_cache.settings
             character_thing_rulebooks_settings = self._characters_things_rulebooks_cache.settings
             character_place_rulebooks_settings = self._characters_places_rulebooks_cache.settings
             character_portal_rulebooks_settings = self._characters_portals_rulebooks_cache.settings
@@ -1073,14 +1073,14 @@ class Engine(AbstractEngine, gORM):
             portal_rulebooks_settings = self._portals_rulebooks_cache.settings
             tick += 1
         else:
-            avatarness_settings = self._avatarness_cache.presettings
+            avatarness_settings = self._unitness_cache.presettings
             things_settings = self._things_cache.presettings
             rulebooks_settings = self._rulebooks_cache.presettings
             triggers_settings = self._triggers_cache.presettings
             prereqs_settings = self._prereqs_cache.presettings
             actions_settings = self._actions_cache.presettings
             character_rulebooks_settings = self._characters_rulebooks_cache.presettings
-            avatar_rulebooks_settings = self._avatars_rulebooks_cache.presettings
+            avatar_rulebooks_settings = self._units_rulebooks_cache.presettings
             character_thing_rulebooks_settings = self._characters_things_rulebooks_cache.presettings
             character_place_rulebooks_settings = self._characters_places_rulebooks_cache.presettings
             character_portal_rulebooks_settings = self._characters_portals_rulebooks_cache.presettings
@@ -1091,7 +1091,7 @@ class Engine(AbstractEngine, gORM):
             for chara, graph, node, is_av in avatarness_settings[branch][turn][
                     start_tick:tick]:
                 delta.setdefault(chara,
-                                 {}).setdefault('avatars', {}).setdefault(
+                                 {}).setdefault('units', {}).setdefault(
                                      graph, {})[node] = is_av
         if branch in things_settings \
                 and turn in things_settings[branch]:
@@ -1135,7 +1135,7 @@ class Engine(AbstractEngine, gORM):
             for _, character, rulebook in \
                     avatar_rulebooks_settings[
                         branch][turn][start_tick:tick]:
-                delta.setdefault(character, {})['avatar_rulebook'] = rulebook
+                delta.setdefault(character, {})['unit_rulebook'] = rulebook
         if branch in character_thing_rulebooks_settings \
                 and turn in character_thing_rulebooks_settings[
                     branch]:
@@ -1181,31 +1181,31 @@ class Engine(AbstractEngine, gORM):
     def _del_rulebook(self, rulebook):
         raise NotImplementedError("Can't delete rulebooks yet")
 
-    def _remember_avatarness(self,
-                             character: Character,
-                             graph: Character,
-                             node: Union[Thing, Place],
-                             is_avatar=True,
-                             branch: str = None,
-                             turn: int = None,
-                             tick: int = None):
-        """Use this to record a change in avatarness.
+    def _remember_unitness(self,
+                           character: Character,
+                           graph: Character,
+                           node: Union[Thing, Place],
+                           is_unit=True,
+                           branch: str = None,
+                           turn: int = None,
+                           tick: int = None):
+        """Use this to record a change in unitness.
 
-        Should be called whenever a node that wasn't an avatar of a
-        character now is, and whenever a node that was an avatar of a
+        Should be called whenever a node that wasn't an unit of a
+        character now is, and whenever a node that was an unit of a
         character now isn't.
 
-        ``character`` is the one using the node as an avatar,
+        ``character`` is the one using the node as an unit,
         ``graph`` is the character the node is in.
 
         """
         branch = branch or self.branch
         turn = turn or self.turn
         tick = tick or self.tick
-        self._avatarness_cache.store(character, graph, node, branch, turn,
-                                     tick, is_avatar)
-        self.query.avatar_set(character, graph, node, branch, turn, tick,
-                              is_avatar)
+        self._unitness_cache.store(character, graph, node, branch, turn,
+                                   tick, is_unit)
+        self.query.unit_set(character, graph, node, branch, turn, tick,
+                            is_unit)
 
     @property
     def stores(self):
@@ -1307,19 +1307,19 @@ class Engine(AbstractEngine, gORM):
                     avatar: Keyable, rulebook: Keyable,
                     rule: Keyable, branch: str, turn: int, tick: int):
         try:
-            self._avatar_rules_handled_cache.store(character, graph, avatar,
-                                                   rulebook, rule, branch,
-                                                   turn, tick)
+            self._unit_rules_handled_cache.store(character, graph, avatar,
+                                                 rulebook, rule, branch,
+                                                 turn, tick)
         except ValueError:
-            assert rule in self._avatar_rules_handled_cache.handled[character,
-                                                                    graph,
-                                                                    avatar,
-                                                                    rulebook,
-                                                                    branch,
-                                                                    turn]
+            assert rule in self._unit_rules_handled_cache.handled[character,
+                                                                  graph,
+                                                                  avatar,
+                                                                  rulebook,
+                                                                  branch,
+                                                                  turn]
             return
-        self.query.handled_avatar_rule(character, rulebook, rule, graph,
-                                       avatar, branch, turn, tick)
+        self.query.handled_unit_rule(character, rulebook, rule, graph,
+                                     avatar, branch, turn, tick)
 
     def _handled_char_thing(self, character: Keyable, thing: Keyable,
                             rulebook: Keyable, rule: Keyable,
@@ -1442,11 +1442,11 @@ class Engine(AbstractEngine, gORM):
             entity = charmap[charactername]
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
-        avcache_retr = self._avatarness_cache._base_retrieve
+        avcache_retr = self._unitness_cache._base_retrieve
         node_exists = self._node_exists
         get_node = self._get_node
         for (charn, graphn, avn, rulebook,
-             rulen) in self._avatar_rules_handled_cache.iter_unhandled_rules(
+             rulen) in self._unit_rules_handled_cache.iter_unhandled_rules(
                  branch, turn, tick):
             if not node_exists(graphn, avn) or avcache_retr(
                 (charn, graphn, avn, branch, turn, tick)) in (KeyError, None):

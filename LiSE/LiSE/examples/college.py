@@ -46,7 +46,7 @@ def install(eng):
 
     classroom = phys.new_place('classroom')
 
-    @student_body.avatar.rule
+    @student_body.unit.rule
     def go_to_class(node):
         # There's just one really long class every day.
         node.travel_to(node.character.place['classroom'])
@@ -74,7 +74,7 @@ def install(eng):
             if user.name not in ('physical', 'student_body'):
                 return not user.stat['lazy'] or node.engine.coinflip()
 
-    @student_body.avatar.rule
+    @student_body.unit.rule
     def leave_class(node):
         for user in node.users.values():
             if user.name != 'student_body':
@@ -116,9 +116,9 @@ def install(eng):
         # You don't want to use the global variable for the classroom
         # because it won't be around (or at least, won't work) after
         # the engine restarts.
-        avatar = character.avatar['physical'].only
-        classroom = avatar.character.place['classroom']
-        return avatar.location != classroom
+        unit = character.unit['physical'].only
+        classroom = unit.character.place['classroom']
+        return unit.location != classroom
 
     sloth.prereq(class_in_session)
 
@@ -132,10 +132,10 @@ def install(eng):
     def in_class(node):
         classroom = node.engine.character['physical'].place['classroom']
         if hasattr(node, 'location'):
-            assert node == node.character.avatar['physical'].only
+            assert node == node.character.unit['physical'].only
             return node.location == classroom
         else:
-            return node.character.avatar['physical'].only.location == classroom
+            return node.character.unit['physical'].only.location == classroom
 
     learn.prereq(class_in_session)
 
@@ -170,24 +170,24 @@ def install(eng):
         dorm = eng.new_character('dorm{}'.format(n))
         common = phys.new_place(
             'common{}'.format(n))  # A common room for students to meet in
-        dorm.add_avatar(common)
+        dorm.add_unit(common)
         common.two_way(classroom)
         # All rooms in a dorm are connected via its common room
         for i in range(0, 6):
             room = phys.new_place('dorm{}room{}'.format(n, i))
-            dorm.add_avatar(room)
+            dorm.add_unit(room)
             room.two_way(common)
             student0 = eng.new_character('dorm{}room{}student0'.format(n, i))
             body0 = room.new_thing('dorm{}room{}student0'.format(n, i))
-            student0.add_avatar(body0)
+            student0.add_unit(body0)
             assert (student0 in body0.users.values())
-            student_body.add_avatar(body0)
+            student_body.add_unit(body0)
             assert (student_body in body0.users.values())
             assert (student0 in body0.users.values())
             student1 = eng.new_character('dorm{}room{}student1'.format(n, i))
             body1 = room.new_thing('dorm{}room{}student1'.format(n, i))
-            student1.add_avatar(body1)
-            student_body.add_avatar(body1)
+            student1.add_unit(body1)
+            student_body.add_unit(body1)
             student0.stat['room'] = student1.stat['room'] = room
             assert student0.stat['room'] == student1.stat['room'] == room
             student0.stat['roommate'] = student1

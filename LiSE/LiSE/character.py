@@ -238,11 +238,11 @@ class AbstractCharacter(Mapping):
             self.remove_node(node)
 
     @abstractmethod
-    def add_avatar(self, a, b=None):
+    def add_unit(self, a, b=None):
         pass
 
     @abstractmethod
-    def remove_avatar(self, a, b=None):
+    def remove_unit(self, a, b=None):
         pass
 
     def __eq__(self, other):
@@ -271,7 +271,7 @@ class AbstractCharacter(Mapping):
         'PortalSuccessorsMapping')
     preportal = pred = _pred = SpecialMappingDescriptor(
         'PortalPredecessorsMapping')
-    avatar = SpecialMappingDescriptor('AvatarGraphMapping')
+    unit = SpecialMappingDescriptor('UnitGraphMapping')
     stat = getatt('graph')
 
     def historical(self, stat):
@@ -876,8 +876,8 @@ class Facade(AbstractCharacter, nx.DiGraph):
         for it in seq:
             self.add_portal(*it, **attrs)
 
-    def remove_avatar(self, a, b=None):
-        raise NotImplementedError("Facades don't have avatars")
+    def remove_unit(self, a, b=None):
+        raise NotImplementedError("Facades don't have units")
 
     def add_place(self, name, **kwargs):
         self.place[name] = kwargs
@@ -914,8 +914,8 @@ class Facade(AbstractCharacter, nx.DiGraph):
     def add_edge(self, orig, dest, **kwargs):
         self.add_portal(orig, dest, **kwargs)
 
-    def add_avatar(self, a, b=None):
-        raise NotImplementedError("Facades don't have avatars")
+    def add_unit(self, a, b=None):
+        raise NotImplementedError("Facades don't have units")
 
     def __init__(self, character=None):
         """Store the character."""
@@ -1027,17 +1027,17 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
     mappings -- but in situations where the distinction does not matter,
     you may simply address the Character as a mapping, as in NetworkX.
 
-    Characters may have avatars in other Characters. These are just
-    nodes. You can apply rules to a Character's avatars, and thus to
+    Characters may have units in other Characters. These are just
+    nodes. You can apply rules to a Character's units, and thus to
     any collection of nodes you want, perhaps in many different
-    Characters. The `avatar` attribute handles this. It is a mapping,
+    Characters. The `unit` attribute handles this. It is a mapping,
     keyed by the other Character's name, then by the name of the node
-    that is this Character's avatar. In the common case where a
-    Character has exactly one avatar, it may be retrieved as
-    `avatar.only`. When it has more than one avatar, but only has
-    any avatars in a single other Character, you can get the mapping
-    of avatars in that Character as `avatar.node`. Add avatars with the
-    `add_avatar` method and remove them with `del_avatar`.
+    that is this Character's unit. In the common case where a
+    Character has exactly one unit, it may be retrieved as
+    `unit.only`. When it has more than one unit, but only has
+    any units in a single other Character, you can get the mapping
+    of units in that Character as `unit.node`. Add units with the
+    `add_unit` method and remove them with `del_unit`.
 
     You can assign rules to Characters with their `rule` attribute,
     typically using it as a decorator (see the documentation for
@@ -1050,9 +1050,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
       every turn
     * `node.rule` to make a rule run on all Things and Places in this
       Character every turn
-    * `avatar.rule` to make a rule run on all the avatars this
+    * `unit.rule` to make a rule run on all the units this
       Character has every turn, regardless of what Character the
-      avatar is in
+      unit is in
     * `adj.rule` to make a rule run on all the edges this Character
       has every turn
 
@@ -1077,7 +1077,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             return
         cachemap = {
             'character': engine._characters_rulebooks_cache,
-            'avatar': engine._avatars_rulebooks_cache,
+            'unit': engine._units_rulebooks_cache,
             'character_thing': engine._characters_things_rulebooks_cache,
             'character_place': engine._characters_places_rulebooks_cache,
             'character_portal': engine._characters_portals_rulebooks_cache
@@ -1633,18 +1633,15 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
     pred_cls = PortalPredecessorsMapping
 
-    class AvatarGraphMapping(Mapping, RuleFollower):
-        """A mapping of other characters in which one has an avatar.
+    class UnitGraphMapping(Mapping, RuleFollower):
+        """A mapping of other characters in which one has a unit.
 
-        Maps to a mapping of the avatars themselves, unless there's
-        only one other character you have avatars in, in which case
+        Maps to a mapping of the units themselves, unless there's
+        only one other character you have units in, in which case
         this maps to those.
 
-        If you have only one avatar anywhere, you can pretend this
-        is that entity.
-
         """
-        _book = "avatar"
+        _book = "unit"
 
         engine = getatt('character.engine')
         name = getatt('character.name')
@@ -1657,9 +1654,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             self.character = char
             self._char_av_cache = {}
             engine = char.engine
-            self._avrc = engine._avatars_rulebooks_cache
-            self._add_av = char.add_avatar
-            avcache = engine._avatarness_cache
+            self._avrc = engine._units_rulebooks_cache
+            self._add_av = char.add_unit
+            avcache = engine._unitness_cache
             get_char_graphs = avcache.get_char_graphs
             charn = char.name
             btt = engine._btt
@@ -1670,17 +1667,17 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                                 engine._get_node, engine.character)
 
         def __call__(self, av):
-            """Add the avatar
+            """Add the unit
 
             It must be an instance of Place or Thing.
 
             """
             if av.__class__ not in (Place, Thing):
-                raise TypeError("Only Things and Places may be avatars")
+                raise TypeError("Only Things and Places may be units")
             self._add_av(av.name, av.character.name)
 
         def __iter__(self):
-            """Iterate over graphs with avatar nodes in them"""
+            """Iterate over graphs with unit nodes in them"""
             get_char_graphs, charn, btt = self._iter_stuff
             return iter(get_char_graphs(charn, *btt()))
 
@@ -1689,7 +1686,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             return k in get_char_graphs(charn, *btt())
 
         def __len__(self):
-            """Number of graphs in which I have an avatar."""
+            """Number of graphs in which I have a unit."""
             get_char_graphs, charn, btt = self._iter_stuff
             return len(get_char_graphs(charn, *btt()))
 
@@ -1697,7 +1694,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             if g not in self:
                 raise KeyError
             if g not in self._char_av_cache:
-                self._char_av_cache[g] = self.CharacterAvatarMapping(self, g)
+                self._char_av_cache[g] = self.CharacterUnitMapping(self, g)
             return self._char_av_cache[g]
 
         def __getitem__(self, g):
@@ -1705,7 +1702,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         @property
         def node(self):
-            """If I have avatars in only one graph, return a map of them
+            """If I have units in only one graph, return a map of them
 
             Otherwise, raise AttributeError.
 
@@ -1716,11 +1713,11 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 return get_char_av_cache(get_char_only_graph(charn, *btt()))
             except KeyError:
                 raise AttributeError(
-                    "I have no avatar, or I have avatars in many graphs")
+                    "I have no unit, or I have units in many graphs")
 
         @property
         def only(self):
-            """If I have only one avatar, return it
+            """If I have only one unit, this is it
 
             Otherwise, raise AttributeError.
 
@@ -1731,17 +1728,17 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 return get_node(charmap[charn], noden)
             except KeyError:
                 raise AttributeError(
-                    "I have no avatar, or more than one avatar")
+                    "I have no unit, or more than one unit")
 
-        class CharacterAvatarMapping(Mapping):
-            """Mapping of avatars of one Character in another Character."""
+        class CharacterUnitMapping(Mapping):
+            """Mapping of units of one Character in another Character."""
             def __init__(self, outer, graphn):
                 """Store this character and the name of the other one"""
                 self.character = character = outer.character
                 self.engine = engine = outer.engine
                 self.name = name = outer.name
                 self.graph = graphn
-                avcache = engine._avatarness_cache
+                avcache = engine._unitness_cache
                 btt = engine._btt
                 self._iter_stuff = iter_stuff = (avcache.get_char_graph_avs,
                                                  name, graphn, btt)
@@ -1751,7 +1748,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 self._only_stuff = (get_node, engine.character, graphn)
 
             def __iter__(self):
-                """Iterate over names of avatar nodes"""
+                """Iterate over names of unit nodes"""
                 get_char_graph_avs, name, graphn, btt = self._iter_stuff
                 return iter(get_char_graph_avs(name, graphn, *btt()))
 
@@ -1760,7 +1757,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 return av in get_char_graph_avs(name, graphn, *btt())
 
             def __len__(self):
-                """Number of avatars of this character in that graph"""
+                """Number of units of this character in that graph"""
                 get_char_graph_avs, name, graphn, btt = self._iter_stuff
                 return len(get_char_graph_avs(name, graphn, *btt()))
 
@@ -1769,19 +1766,19 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                  charmap) = self._getitem_stuff
                 if av in get_char_graph_avs(name, graphn, *btt()):
                     return get_node(charmap[graphn], av)
-                raise KeyError("No avatar: {}".format(av))
+                raise KeyError("No unit: {}".format(av))
 
             @property
             def only(self):
-                """If I have only one avatar, return it; else error"""
+                """If I have only one unit, return it; else error"""
                 mykey = singleton_get(self.keys())
                 if mykey is None:
-                    raise AttributeError("No avatar, or more than one")
+                    raise AttributeError("No unit, or more than one")
                 get_node, charmap, graphn = self._only_stuff
                 return get_node(charmap[graphn], mykey)
 
             def __repr__(self):
-                return "{}.character[{}].avatar".format(
+                return "{}.character[{}].unit".format(
                     repr(self.engine), repr(self.name))
 
     def facade(self):
@@ -1900,11 +1897,11 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 kwargs['symmetrical'] = True
             self.add_portal(orig, dest, **kwargs)
 
-    def add_avatar(self, a, b=None):
-        """Start keeping track of an avatar"""
+    def add_unit(self, a, b=None):
+        """Start keeping track of an unit"""
         if self.engine._planning:
             raise NotImplementedError(
-                "Currently can't add avatars within a plan")
+                "Currently can't add units within a plan")
         if b is None:
             if not (isinstance(a, Place) or isinstance(a, Thing)):
                 raise TypeError('when called with one argument, '
@@ -1929,31 +1926,31 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         # This will create the node if it doesn't exist. Otherwise
         # it's redundant but harmless.
         self.engine._exist_node(g, n)
-        # Declare that the node is my avatar
+        # Declare that the node is my unit
         branch, turn, tick = self.engine._nbtt()
-        self.engine._remember_avatarness(self.name,
-                                         g,
-                                         n,
-                                         branch=branch,
-                                         turn=turn,
-                                         tick=tick)
+        self.engine._remember_unitness(self.name,
+                                       g,
+                                       n,
+                                       branch=branch,
+                                       turn=turn,
+                                       tick=tick)
 
-    def remove_avatar(self, a, b=None):
-        """This is no longer my avatar, though it still exists"""
+    def remove_unit(self, a, b=None):
+        """This is no longer my unit, though it still exists"""
         if self.engine._planning:
             raise NotImplementedError(
-                "Currently can't remove avatars within a plan")
+                "Currently can't remove units within a plan")
         if b is None:
             if not isinstance(a, Node):
                 raise TypeError("In single argument form, "
-                                "del_avatar requires a Node object "
+                                "del_unit requires a Node object "
                                 "(Thing or Place).")
             g = a.character.name
             n = a.name
         else:
             g = a.name if isinstance(a, Character) else a
             n = b.name if isinstance(b, Node) else b
-        self.engine._remember_avatarness(self.character.name, g, n, False)
+        self.engine._remember_unitness(self.character.name, g, n, False)
 
     def portals(self):
         """Iterate over all portals."""
@@ -1964,8 +1961,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                                                       *self.engine._btt()):
             yield make_edge(char, o, d)
 
-    def avatars(self):
-        """Iterate over all my avatars
+    def units(self):
+        """Iterate over all my units
 
         Regardless of what character they are in.
 
@@ -1973,7 +1970,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         charname = self.character.name
         branch, turn, tick = self.engine._btt()
         charmap = self.engine.character
-        avit = self.engine._avatarness_cache.iter_entities
+        avit = self.engine._unitness_cache.iter_entities
         makenode = self.engine._get_node
         for graph in avit(charname, branch, turn, tick):
             for node in avit(charname, graph, branch, turn, tick):

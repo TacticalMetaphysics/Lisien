@@ -271,11 +271,11 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">remove_node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
 
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">add_avatar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">add_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">pass</span>
 
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">remove_avatar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">remove_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">pass</span>
 
     <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
@@ -304,7 +304,7 @@
         <span class="s1">&#39;PortalSuccessorsMapping&#39;</span><span class="p">)</span>
     <span class="n">preportal</span> <span class="o">=</span> <span class="n">pred</span> <span class="o">=</span> <span class="n">_pred</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span>
         <span class="s1">&#39;PortalPredecessorsMapping&#39;</span><span class="p">)</span>
-    <span class="n">avatar</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span><span class="s1">&#39;AvatarGraphMapping&#39;</span><span class="p">)</span>
+    <span class="n">unit</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span><span class="s1">&#39;UnitGraphMapping&#39;</span><span class="p">)</span>
     <span class="n">stat</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
@@ -909,8 +909,8 @@
         <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="o">*</span><span class="n">it</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">remove_avatar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Facades don&#39;t have avatars&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">remove_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Facades don&#39;t have units&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">add_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span>
@@ -947,8 +947,8 @@
 <div class="viewcode-block" id="Facade.add_edge"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Facade.add_edge">[docs]</a>    <span class="k">def</span> <span class="nf">add_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">add_avatar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Facades don&#39;t have avatars&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">add_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Facades don&#39;t have units&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Store the character.&quot;&quot;&quot;</span>
@@ -1060,17 +1060,17 @@
 <span class="sd">    mappings -- but in situations where the distinction does not matter,</span>
 <span class="sd">    you may simply address the Character as a mapping, as in NetworkX.</span>
 
-<span class="sd">    Characters may have avatars in other Characters. These are just</span>
-<span class="sd">    nodes. You can apply rules to a Character&#39;s avatars, and thus to</span>
+<span class="sd">    Characters may have units in other Characters. These are just</span>
+<span class="sd">    nodes. You can apply rules to a Character&#39;s units, and thus to</span>
 <span class="sd">    any collection of nodes you want, perhaps in many different</span>
-<span class="sd">    Characters. The `avatar` attribute handles this. It is a mapping,</span>
+<span class="sd">    Characters. The `unit` attribute handles this. It is a mapping,</span>
 <span class="sd">    keyed by the other Character&#39;s name, then by the name of the node</span>
-<span class="sd">    that is this Character&#39;s avatar. In the common case where a</span>
-<span class="sd">    Character has exactly one avatar, it may be retrieved as</span>
-<span class="sd">    `avatar.only`. When it has more than one avatar, but only has</span>
-<span class="sd">    any avatars in a single other Character, you can get the mapping</span>
-<span class="sd">    of avatars in that Character as `avatar.node`. Add avatars with the</span>
-<span class="sd">    `add_avatar` method and remove them with `del_avatar`.</span>
+<span class="sd">    that is this Character&#39;s unit. In the common case where a</span>
+<span class="sd">    Character has exactly one unit, it may be retrieved as</span>
+<span class="sd">    `unit.only`. When it has more than one unit, but only has</span>
+<span class="sd">    any units in a single other Character, you can get the mapping</span>
+<span class="sd">    of units in that Character as `unit.node`. Add units with the</span>
+<span class="sd">    `add_unit` method and remove them with `del_unit`.</span>
 
 <span class="sd">    You can assign rules to Characters with their `rule` attribute,</span>
 <span class="sd">    typically using it as a decorator (see the documentation for</span>
@@ -1083,9 +1083,9 @@
 <span class="sd">      every turn</span>
 <span class="sd">    * `node.rule` to make a rule run on all Things and Places in this</span>
 <span class="sd">      Character every turn</span>
-<span class="sd">    * `avatar.rule` to make a rule run on all the avatars this</span>
+<span class="sd">    * `unit.rule` to make a rule run on all the units this</span>
 <span class="sd">      Character has every turn, regardless of what Character the</span>
-<span class="sd">      avatar is in</span>
+<span class="sd">      unit is in</span>
 <span class="sd">    * `adj.rule` to make a rule run on all the edges this Character</span>
 <span class="sd">      has every turn</span>
 
@@ -1110,7 +1110,7 @@
             <span class="k">return</span>
         <span class="n">cachemap</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;character&#39;</span><span class="p">:</span> <span class="n">engine</span><span class="o">.</span><span class="n">_characters_rulebooks_cache</span><span class="p">,</span>
-            <span class="s1">&#39;avatar&#39;</span><span class="p">:</span> <span class="n">engine</span><span class="o">.</span><span class="n">_avatars_rulebooks_cache</span><span class="p">,</span>
+            <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="n">engine</span><span class="o">.</span><span class="n">_units_rulebooks_cache</span><span class="p">,</span>
             <span class="s1">&#39;character_thing&#39;</span><span class="p">:</span> <span class="n">engine</span><span class="o">.</span><span class="n">_characters_things_rulebooks_cache</span><span class="p">,</span>
             <span class="s1">&#39;character_place&#39;</span><span class="p">:</span> <span class="n">engine</span><span class="o">.</span><span class="n">_characters_places_rulebooks_cache</span><span class="p">,</span>
             <span class="s1">&#39;character_portal&#39;</span><span class="p">:</span> <span class="n">engine</span><span class="o">.</span><span class="n">_characters_portals_rulebooks_cache</span>
@@ -1666,18 +1666,15 @@
 
     <span class="n">pred_cls</span> <span class="o">=</span> <span class="n">PortalPredecessorsMapping</span>
 
-<div class="viewcode-block" id="Character.AvatarGraphMapping"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Character.AvatarGraphMapping">[docs]</a>    <span class="k">class</span> <span class="nc">AvatarGraphMapping</span><span class="p">(</span><span class="n">Mapping</span><span class="p">,</span> <span class="n">RuleFollower</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;A mapping of other characters in which one has an avatar.</span>
+<div class="viewcode-block" id="Character.UnitGraphMapping"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Character.UnitGraphMapping">[docs]</a>    <span class="k">class</span> <span class="nc">UnitGraphMapping</span><span class="p">(</span><span class="n">Mapping</span><span class="p">,</span> <span class="n">RuleFollower</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;A mapping of other characters in which one has a unit.</span>
 
-<span class="sd">        Maps to a mapping of the avatars themselves, unless there&#39;s</span>
-<span class="sd">        only one other character you have avatars in, in which case</span>
+<span class="sd">        Maps to a mapping of the units themselves, unless there&#39;s</span>
+<span class="sd">        only one other character you have units in, in which case</span>
 <span class="sd">        this maps to those.</span>
 
-<span class="sd">        If you have only one avatar anywhere, you can pretend this</span>
-<span class="sd">        is that entity.</span>
-
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">_book</span> <span class="o">=</span> <span class="s2">&quot;avatar&quot;</span>
+        <span class="n">_book</span> <span class="o">=</span> <span class="s2">&quot;unit&quot;</span>
 
         <span class="n">engine</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;character.engine&#39;</span><span class="p">)</span>
         <span class="n">name</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;character.name&#39;</span><span class="p">)</span>
@@ -1690,9 +1687,9 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">character</span> <span class="o">=</span> <span class="n">char</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_char_av_cache</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="n">engine</span> <span class="o">=</span> <span class="n">char</span><span class="o">.</span><span class="n">engine</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_avrc</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_avatars_rulebooks_cache</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_add_av</span> <span class="o">=</span> <span class="n">char</span><span class="o">.</span><span class="n">add_avatar</span>
-            <span class="n">avcache</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_avatarness_cache</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_avrc</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_units_rulebooks_cache</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_av</span> <span class="o">=</span> <span class="n">char</span><span class="o">.</span><span class="n">add_unit</span>
+            <span class="n">avcache</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_unitness_cache</span>
             <span class="n">get_char_graphs</span> <span class="o">=</span> <span class="n">avcache</span><span class="o">.</span><span class="n">get_char_graphs</span>
             <span class="n">charn</span> <span class="o">=</span> <span class="n">char</span><span class="o">.</span><span class="n">name</span>
             <span class="n">btt</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_btt</span>
@@ -1703,17 +1700,17 @@
                                 <span class="n">engine</span><span class="o">.</span><span class="n">_get_node</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">av</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Add the avatar</span>
+            <span class="sd">&quot;&quot;&quot;Add the unit</span>
 
 <span class="sd">            It must be an instance of Place or Thing.</span>
 
 <span class="sd">            &quot;&quot;&quot;</span>
             <span class="k">if</span> <span class="n">av</span><span class="o">.</span><span class="vm">__class__</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">Place</span><span class="p">,</span> <span class="n">Thing</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Only Things and Places may be avatars&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Only Things and Places may be units&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_add_av</span><span class="p">(</span><span class="n">av</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">av</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Iterate over graphs with avatar nodes in them&quot;&quot;&quot;</span>
+            <span class="sd">&quot;&quot;&quot;Iterate over graphs with unit nodes in them&quot;&quot;&quot;</span>
             <span class="n">get_char_graphs</span><span class="p">,</span> <span class="n">charn</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iter_stuff</span>
             <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="n">get_char_graphs</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">()))</span>
 
@@ -1722,7 +1719,7 @@
             <span class="k">return</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">get_char_graphs</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
         <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Number of graphs in which I have an avatar.&quot;&quot;&quot;</span>
+            <span class="sd">&quot;&quot;&quot;Number of graphs in which I have a unit.&quot;&quot;&quot;</span>
             <span class="n">get_char_graphs</span><span class="p">,</span> <span class="n">charn</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iter_stuff</span>
             <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">get_char_graphs</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">()))</span>
 
@@ -1730,7 +1727,7 @@
             <span class="k">if</span> <span class="n">g</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">KeyError</span>
             <span class="k">if</span> <span class="n">g</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_char_av_cache</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_char_av_cache</span><span class="p">[</span><span class="n">g</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CharacterAvatarMapping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_char_av_cache</span><span class="p">[</span><span class="n">g</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CharacterUnitMapping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_char_av_cache</span><span class="p">[</span><span class="n">g</span><span class="p">]</span>
 
         <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
@@ -1738,7 +1735,7 @@
 
         <span class="nd">@property</span>
         <span class="k">def</span> <span class="nf">node</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;If I have avatars in only one graph, return a map of them</span>
+            <span class="sd">&quot;&quot;&quot;If I have units in only one graph, return a map of them</span>
 
 <span class="sd">            Otherwise, raise AttributeError.</span>
 
@@ -1749,11 +1746,11 @@
                 <span class="k">return</span> <span class="n">get_char_av_cache</span><span class="p">(</span><span class="n">get_char_only_graph</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">()))</span>
             <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
-                    <span class="s2">&quot;I have no avatar, or I have avatars in many graphs&quot;</span><span class="p">)</span>
+                    <span class="s2">&quot;I have no unit, or I have units in many graphs&quot;</span><span class="p">)</span>
 
         <span class="nd">@property</span>
         <span class="k">def</span> <span class="nf">only</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;If I have only one avatar, return it</span>
+            <span class="sd">&quot;&quot;&quot;If I have only one unit, this is it</span>
 
 <span class="sd">            Otherwise, raise AttributeError.</span>
 
@@ -1764,17 +1761,17 @@
                 <span class="k">return</span> <span class="n">get_node</span><span class="p">(</span><span class="n">charmap</span><span class="p">[</span><span class="n">charn</span><span class="p">],</span> <span class="n">noden</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
-                    <span class="s2">&quot;I have no avatar, or more than one avatar&quot;</span><span class="p">)</span>
+                    <span class="s2">&quot;I have no unit, or more than one unit&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Character.AvatarGraphMapping.CharacterAvatarMapping"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Character.AvatarGraphMapping.CharacterAvatarMapping">[docs]</a>        <span class="k">class</span> <span class="nc">CharacterAvatarMapping</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Mapping of avatars of one Character in another Character.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Character.UnitGraphMapping.CharacterUnitMapping"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Character.UnitGraphMapping.CharacterUnitMapping">[docs]</a>        <span class="k">class</span> <span class="nc">CharacterUnitMapping</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Mapping of units of one Character in another Character.&quot;&quot;&quot;</span>
             <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outer</span><span class="p">,</span> <span class="n">graphn</span><span class="p">):</span>
                 <span class="sd">&quot;&quot;&quot;Store this character and the name of the other one&quot;&quot;&quot;</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">character</span> <span class="o">=</span> <span class="n">character</span> <span class="o">=</span> <span class="n">outer</span><span class="o">.</span><span class="n">character</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span> <span class="o">=</span> <span class="n">outer</span><span class="o">.</span><span class="n">engine</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="o">=</span> <span class="n">outer</span><span class="o">.</span><span class="n">name</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">graphn</span>
-                <span class="n">avcache</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_avatarness_cache</span>
+                <span class="n">avcache</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_unitness_cache</span>
                 <span class="n">btt</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_btt</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_iter_stuff</span> <span class="o">=</span> <span class="n">iter_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">avcache</span><span class="o">.</span><span class="n">get_char_graph_avs</span><span class="p">,</span>
                                                  <span class="n">name</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">btt</span><span class="p">)</span>
@@ -1784,7 +1781,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_only_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">get_node</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="n">graphn</span><span class="p">)</span>
 
             <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-                <span class="sd">&quot;&quot;&quot;Iterate over names of avatar nodes&quot;&quot;&quot;</span>
+                <span class="sd">&quot;&quot;&quot;Iterate over names of unit nodes&quot;&quot;&quot;</span>
                 <span class="n">get_char_graph_avs</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iter_stuff</span>
                 <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="n">get_char_graph_avs</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">()))</span>
 
@@ -1793,7 +1790,7 @@
                 <span class="k">return</span> <span class="n">av</span> <span class="ow">in</span> <span class="n">get_char_graph_avs</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
             <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-                <span class="sd">&quot;&quot;&quot;Number of avatars of this character in that graph&quot;&quot;&quot;</span>
+                <span class="sd">&quot;&quot;&quot;Number of units of this character in that graph&quot;&quot;&quot;</span>
                 <span class="n">get_char_graph_avs</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iter_stuff</span>
                 <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">get_char_graph_avs</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">()))</span>
 
@@ -1802,19 +1799,19 @@
                  <span class="n">charmap</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getitem_stuff</span>
                 <span class="k">if</span> <span class="n">av</span> <span class="ow">in</span> <span class="n">get_char_graph_avs</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">()):</span>
                     <span class="k">return</span> <span class="n">get_node</span><span class="p">(</span><span class="n">charmap</span><span class="p">[</span><span class="n">graphn</span><span class="p">],</span> <span class="n">av</span><span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No avatar: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">av</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No unit: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">av</span><span class="p">))</span>
 
             <span class="nd">@property</span>
             <span class="k">def</span> <span class="nf">only</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-                <span class="sd">&quot;&quot;&quot;If I have only one avatar, return it; else error&quot;&quot;&quot;</span>
+                <span class="sd">&quot;&quot;&quot;If I have only one unit, return it; else error&quot;&quot;&quot;</span>
                 <span class="n">mykey</span> <span class="o">=</span> <span class="n">singleton_get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
                 <span class="k">if</span> <span class="n">mykey</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;No avatar, or more than one&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;No unit, or more than one&quot;</span><span class="p">)</span>
                 <span class="n">get_node</span><span class="p">,</span> <span class="n">charmap</span><span class="p">,</span> <span class="n">graphn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_only_stuff</span>
                 <span class="k">return</span> <span class="n">get_node</span><span class="p">(</span><span class="n">charmap</span><span class="p">[</span><span class="n">graphn</span><span class="p">],</span> <span class="n">mykey</span><span class="p">)</span>
 
             <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-                <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.character[</span><span class="si">{}</span><span class="s2">].avatar&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.character[</span><span class="si">{}</span><span class="s2">].unit&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">),</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span></div></div>
 
     <span class="k">def</span> <span class="nf">facade</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1933,11 +1930,11 @@
                 <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;symmetrical&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Character.add_avatar"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Character.add_avatar">[docs]</a>    <span class="k">def</span> <span class="nf">add_avatar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Start keeping track of an avatar&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Character.add_unit"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Character.add_unit">[docs]</a>    <span class="k">def</span> <span class="nf">add_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Start keeping track of an unit&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_planning</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-                <span class="s2">&quot;Currently can&#39;t add avatars within a plan&quot;</span><span class="p">)</span>
+                <span class="s2">&quot;Currently can&#39;t add units within a plan&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">Place</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">Thing</span><span class="p">)):</span>
                 <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;when called with one argument, &#39;</span>
@@ -1962,31 +1959,31 @@
         <span class="c1"># This will create the node if it doesn&#39;t exist. Otherwise</span>
         <span class="c1"># it&#39;s redundant but harmless.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_exist_node</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
-        <span class="c1"># Declare that the node is my avatar</span>
+        <span class="c1"># Declare that the node is my unit</span>
         <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_remember_avatarness</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                                         <span class="n">g</span><span class="p">,</span>
-                                         <span class="n">n</span><span class="p">,</span>
-                                         <span class="n">branch</span><span class="o">=</span><span class="n">branch</span><span class="p">,</span>
-                                         <span class="n">turn</span><span class="o">=</span><span class="n">turn</span><span class="p">,</span>
-                                         <span class="n">tick</span><span class="o">=</span><span class="n">tick</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_remember_unitness</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                                       <span class="n">g</span><span class="p">,</span>
+                                       <span class="n">n</span><span class="p">,</span>
+                                       <span class="n">branch</span><span class="o">=</span><span class="n">branch</span><span class="p">,</span>
+                                       <span class="n">turn</span><span class="o">=</span><span class="n">turn</span><span class="p">,</span>
+                                       <span class="n">tick</span><span class="o">=</span><span class="n">tick</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Character.remove_avatar"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Character.remove_avatar">[docs]</a>    <span class="k">def</span> <span class="nf">remove_avatar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;This is no longer my avatar, though it still exists&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Character.remove_unit"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Character.remove_unit">[docs]</a>    <span class="k">def</span> <span class="nf">remove_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;This is no longer my unit, though it still exists&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_planning</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-                <span class="s2">&quot;Currently can&#39;t remove avatars within a plan&quot;</span><span class="p">)</span>
+                <span class="s2">&quot;Currently can&#39;t remove units within a plan&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;In single argument form, &quot;</span>
-                                <span class="s2">&quot;del_avatar requires a Node object &quot;</span>
+                                <span class="s2">&quot;del_unit requires a Node object &quot;</span>
                                 <span class="s2">&quot;(Thing or Place).&quot;</span><span class="p">)</span>
             <span class="n">g</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
             <span class="n">n</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">g</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">Character</span><span class="p">)</span> <span class="k">else</span> <span class="n">a</span>
             <span class="n">n</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">Node</span><span class="p">)</span> <span class="k">else</span> <span class="n">b</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_remember_avatarness</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_remember_unitness</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Character.portals"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Character.portals">[docs]</a>    <span class="k">def</span> <span class="nf">portals</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Iterate over all portals.&quot;&quot;&quot;</span>
@@ -1997,8 +1994,8 @@
                                                       <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()):</span>
             <span class="k">yield</span> <span class="n">make_edge</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">o</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Character.avatars"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Character.avatars">[docs]</a>    <span class="k">def</span> <span class="nf">avatars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Iterate over all my avatars</span>
+<div class="viewcode-block" id="Character.units"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Character.units">[docs]</a>    <span class="k">def</span> <span class="nf">units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Iterate over all my units</span>
 
 <span class="sd">        Regardless of what character they are in.</span>
 
@@ -2006,7 +2003,7 @@
         <span class="n">charname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
         <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
         <span class="n">charmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span>
-        <span class="n">avit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_avatarness_cache</span><span class="o">.</span><span class="n">iter_entities</span>
+        <span class="n">avit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">iter_entities</span>
         <span class="n">makenode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_get_node</span>
         <span class="k">for</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">avit</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">avit</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
@@ -2085,7 +2082,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.4.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

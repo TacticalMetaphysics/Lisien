@@ -86,7 +86,7 @@
         <span class="n">engine</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span>
         <span class="n">charn</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
         <span class="n">nn</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span>
-        <span class="n">cache</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_avatarness_cache</span><span class="o">.</span><span class="n">user_order</span>
+        <span class="n">cache</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">user_order</span>
         <span class="k">if</span> <span class="n">charn</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cache</span> <span class="ow">or</span> \
            <span class="n">nn</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cache</span><span class="p">[</span><span class="n">charn</span><span class="p">]:</span>
             <span class="k">return</span>
@@ -129,10 +129,10 @@
     <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">:</span>
             <span class="n">item</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="s1">&#39;avatar&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="s1">&#39;unit&#39;</span><span class="p">):</span>
             <span class="n">charn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
             <span class="n">nn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">name</span>
-            <span class="k">return</span> <span class="n">charn</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">avatar</span> <span class="ow">and</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">avatar</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">charn</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">unit</span> <span class="ow">and</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">unit</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span>
         <span class="k">return</span> <span class="kc">False</span>
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
@@ -140,7 +140,7 @@
         <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span>
         <span class="n">charn</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
         <span class="n">nn</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span>
-        <span class="n">avatar</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">avatar</span>
+        <span class="n">avatar</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">unit</span>
         <span class="k">if</span> <span class="n">charn</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">avatar</span> <span class="ow">or</span> <span class="n">nn</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">avatar</span><span class="p">[</span><span class="n">charn</span><span class="p">]:</span>
             <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> not used by </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">ret</span></div>
@@ -476,7 +476,7 @@
         <span class="k">for</span> <span class="n">contained</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">contents</span><span class="p">()):</span>
             <span class="n">contained</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
-            <span class="n">user</span><span class="o">.</span><span class="n">remove_avatar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">remove_unit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nodes_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span>
                                        <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
@@ -582,7 +582,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.4.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

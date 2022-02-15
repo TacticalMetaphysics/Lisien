@@ -62,12 +62,12 @@ def install(engine,
         assert name in phys.node, "couldn't add node {} to phys.node".format(
             name)
         assert hasattr(phys.node[name], 'location')
-        species.add_avatar("physical", name)
-        assert hasattr(species.avatar['physical'][name], 'location')
+        species.add_unit("physical", name)
+        assert hasattr(species.unit['physical'][name], 'location')
 
     # putting dieoff earlier in the code than mate means that dieoff will
     # be followed before mate is
-    @species.avatar.rule
+    @species.unit.rule
     def dieoff(critter):
         critter.delete()
         assert (critter.name not in critter.character.node)
@@ -76,7 +76,7 @@ def install(engine,
         else:
             return 'anemia'
 
-    @species.avatar.rule
+    @species.unit.rule
     def mate(critter):
         """If I share my location with another critter, attempt to mate"""
         suitors = list(oc for oc in critter.location.contents()
@@ -96,7 +96,7 @@ def install(engine,
                                                sickle_b=sickles.pop(),
                                                male=engine.coinflip(),
                                                last_mate_turn=engine.turn)
-        species.add_avatar("physical", name)
+        species.add_unit("physical", name)
         critter['last_mate_turn'] = other_critter['last_mate_turn'] = \
             engine.turn
         return 'mated'
@@ -162,8 +162,8 @@ def sickle_cell_test(engine,
     species = engine.character['species']
     print("Starting with {} creatures, of which {} have "
           "at least one sickle betaglobin.".format(
-              len(species.avatar['physical']),
-              sum(1 for critter in species.avatar['physical'].values()
+              len(species.unit['physical']),
+              sum(1 for critter in species.unit['physical'].values()
                   if critter['sickle_a'] or critter['sickle_b'])))
 
     for i in range(0, turns):
@@ -187,10 +187,10 @@ def sickle_cell_test(engine,
               "{} died of malaria, and {} of sickle cell anemia, "
               "leaving {} alive.".format(
                   i, born, malaria_dead, anemia_dead,
-                  len(engine.character['species'].avatar['physical'])))
+                  len(engine.character['species'].unit['physical'])))
     print("Of the remaining {} creatures, {} have a sickle betaglobin.".format(
-        len(species.avatar['physical']),
-        sum(1 for critter in species.avatar['physical'].values()
+        len(species.unit['physical']),
+        sum(1 for critter in species.unit['physical'].values()
             if critter['sickle_a'] or critter['sickle_b'])))
 
 

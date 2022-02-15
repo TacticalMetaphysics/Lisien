@@ -360,7 +360,7 @@ PHYSICAL_INITIAL_COPY = {
     'rulebooks': {
         'character': ('physical', 'character'),
         'thing': ('physical', 'character_thing'),
-        'avatar': ('physical', 'avatar'),
+        'unit': ('physical', 'unit'),
         'place': ('physical', 'character_place'),
         'portal': ('physical', 'character_portal')
     }
@@ -369,12 +369,12 @@ DORM_INITIAL_COPY = {
     'rulebooks': {
         'thing': ('dorm0', 'character_thing'),
         'character': ('dorm0', 'character'),
-        'avatar': ('dorm0', 'avatar'),
+        'unit': ('dorm0', 'unit'),
         'portal': ('dorm0', 'character_portal'),
         'place': ('dorm0', 'character_place')
     },
     'name': 'dorm0',
-    'avatars': {
+    'units': {
         'physical':
         frozenset({
             'dorm0room1', 'dorm0room2', 'dorm0room4', 'dorm0room5',
@@ -383,7 +383,7 @@ DORM_INITIAL_COPY = {
     }
 }
 STUDENT_INITIAL_COPY = {
-    'avatars': {
+    'units': {
         'physical': frozenset({'dorm0room0student0'})
     },
     'xp': 0,
@@ -392,7 +392,7 @@ STUDENT_INITIAL_COPY = {
     'name': 'dorm0room0student0',
     'rulebooks': {
         'place': ('dorm0room0student0', 'character_place'),
-        'avatar': ('dorm0room0student0', 'avatar'),
+        'unit': ('dorm0room0student0', 'unit'),
         'portal': ('dorm0room0student0', 'character_portal'),
         'thing': ('dorm0room0student0', 'character_thing'),
         'character': ('dorm0room0student0', 'character')

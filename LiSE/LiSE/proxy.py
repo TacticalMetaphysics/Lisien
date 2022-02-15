@@ -161,9 +161,9 @@ class RulebookProxyDescriptor(object):
 
 
 class ProxyUserMapping(UserMapping):
-    """A mapping to the ``CharacterProxy``s that have this node as an avatar"""
+    """A mapping to the ``CharacterProxy``s that have this node as a unit"""
     def _user_names(self):
-        for user, avatars in self.node.engine._avatar_characters_cache[
+        for user, avatars in self.node.engine._unit_characters_cache[
                 self.node._charname].items():
             if self.node.name in avatars:
                 yield user
@@ -295,7 +295,7 @@ class ThingProxy(NodeProxy):
             if v.character != self.character:
                 raise ValueError(
                     "Things can only be located in their character. "
-                    "Maybe you want an avatar?")
+                    "Maybe you want a unit?")
             locn = v.name
         elif v in self.character.node:
             locn = v
@@ -1073,23 +1073,23 @@ class RuleBookProxy(MutableSequence, Signal):
             self.send(self, i=j, val=self[j])
 
 
-class AvatarMapProxy(Mapping):
+class UnitMapProxy(Mapping):
     rulebook = RulebookProxyDescriptor()
     engine = getatt('character.engine')
 
     def _get_default_rulebook_name(self):
-        return self.character.name, 'avatar'
+        return self.character.name, 'unit'
 
     def _get_rulebook_proxy(self):
         return self.engine._character_rulebooks_cache[
-            self.character.name]['avatar']
+            self.character.name]['unit']
 
     def _set_rulebook_proxy(self, rb):
         self.engine._character_rulebooks_cache[
-            self.character.name]['avatar'] = RuleBookProxy(self.engine, rb)
+            self.character.name]['unit'] = RuleBookProxy(self.engine, rb)
 
     def _set_rulebook(self, rb):
-        self.engine.handle('set_avatar_rulebook',
+        self.engine.handle('set_unit_rulebook',
                            char=self.character.name,
                            rulebook=rb,
                            block=False,
@@ -1099,23 +1099,23 @@ class AvatarMapProxy(Mapping):
         self.character = character
 
     def __iter__(self):
-        yield from self.character.engine._character_avatars_cache[
+        yield from self.character.engine._character_units_cache[
             self.character.name]
 
     def __len__(self):
-        return len(self.character.engine._character_avatars_cache[
+        return len(self.character.engine._character_units_cache[
             self.character.name])
 
     def __contains__(self, k):
-        return k in self.character.engine._character_avatars_cache[
+        return k in self.character.engine._character_units_cache[
             self.character.name]
 
     def __getitem__(self, k):
         if k not in self:
-            raise KeyError("{} has no avatar in {}".format(
+            raise KeyError("{} has no unit in {}".format(
                 self.character.name, k))
-        return self.GraphAvatarsProxy(self.character,
-                                      self.character.engine.character[k])
+        return self.GraphUnitsProxy(self.character,
+                                    self.character.engine.character[k])
 
     def __getattr__(self, attr):
         vals = self.values()
@@ -1128,41 +1128,36 @@ class AvatarMapProxy(Mapping):
         else:
             return getattr(next(iter(vals)), attr)
 
-    class GraphAvatarsProxy(Mapping):
+    class GraphUnitsProxy(Mapping):
         def __init__(self, character, graph):
             self.character = character
             self.graph = graph
 
         def __iter__(self):
-            yield from self.character.engine._character_avatars_cache[
+            yield from self.character.engine._character_units_cache[
                 self.character.name][self.graph.name]
 
         def __len__(self):
-            return len(self.character.engine._character_avatars_cache[
+            return len(self.character.engine._character_units_cache[
                 self.character.name][self.graph.name])
 
         def __contains__(self, k):
-            cache = self.character.engine._character_avatars_cache[
+            cache = self.character.engine._character_units_cache[
                 self.character.name]
             return self.graph.name in cache and k in cache[self.graph.name]
 
         def __getitem__(self, k):
             if k not in self:
-                raise KeyError("{} has no avatar {} in graph {}".format(
+                raise KeyError("{} has no unit {} in graph {}".format(
                     self.character.name, k, self.graph.name))
             return self.graph.node[k]
 
-        def __getattr__(self, attr):
-            vals = self.values()
-            if not vals:
-                raise AttributeError(
-                    "No attribute {}, "
-                    "and no avatar to delegate to".format(attr))
-            elif len(vals) > 1:
-                raise AttributeError(
-                    "No attribute {}, and more than one avatar")
-            else:
-                return getattr(next(iter(vals)), attr)
+        @property
+        def only(self):
+            if len(self) != 1:
+                raise AttributeError("No unit, or more than one")
+            return next(iter(self.values()))
+
 
 
 class CharacterProxy(AbstractCharacter):
@@ -1220,8 +1215,8 @@ class CharacterProxy(AbstractCharacter):
                            branching=True)
 
     @reify
-    def avatar(self):
-        return AvatarMapProxy(self)
+    def unit(self):
+        return UnitMapProxy(self)
 
     @staticmethod
     def PortalSuccessorsMapping(self):
@@ -1320,9 +1315,9 @@ class CharacterProxy(AbstractCharacter):
             charrb = rulebooks.pop('character', self.rulebook.name)
             if charrb != self.rulebook.name:
                 self._set_rulebook_proxy(charrb)
-            avrb = rulebooks.pop('avatar', self.avatar.rulebook.name)
-            if avrb != self.avatar.rulebook.name:
-                self.avatar._set_rulebook_proxy(avrb)
+            avrb = rulebooks.pop('unit', self.unit.rulebook.name)
+            if avrb != self.unit.rulebook.name:
+                self.unit._set_rulebook_proxy(avrb)
             cthrb = rulebooks.pop('thing', self.thing.rulebook.name)
             if cthrb != self.thing.rulebook.name:
                 self.thing._set_rulebook_proxy(cthrb)
@@ -1520,26 +1515,26 @@ class CharacterProxy(AbstractCharacter):
         yield from self.engine.handle(command='character_portals',
                                       char=self.name)
 
-    def add_avatar(self, graph, node):
+    def add_unit(self, graph, node):
         # TODO: cache
-        self.engine.handle(command='add_avatar',
+        self.engine.handle(command='add_unit',
                            char=self.name,
                            graph=graph,
                            node=node,
                            block=False,
                            branching=True)
 
-    def remove_avatar(self, graph, node):
+    def remove_unit(self, graph, node):
         # TODO: cache
-        self.engine.handle(command='remove_avatar',
+        self.engine.handle(command='remove_unit',
                            char=self.name,
                            graph=graph,
                            node=node,
                            block=False,
                            branching=True)
 
-    def avatars(self):
-        yield from self.engine.handle(command='character_avatars',
+    def units(self):
+        yield from self.engine.handle(command='character_units',
                                       char=self.name)
 
     def facade(self):
@@ -2061,8 +2056,8 @@ class EngineProxy(AbstractEngine):
                 'bookname': (inst.parent.key, inst.key, k)
             })
         self._character_portals_cache = PortalObjCache()
-        self._character_avatars_cache = PickyDefaultDict(dict)
-        self._avatar_characters_cache = PickyDefaultDict(dict)
+        self._character_units_cache = PickyDefaultDict(dict)
+        self._unit_characters_cache = PickyDefaultDict(dict)
         self._rule_obj_cache = {}
         self._rulebook_obj_cache = {}
         self._char_cache = {}

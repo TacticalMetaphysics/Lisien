@@ -402,7 +402,7 @@ class QueryEngine(query.QueryEngine):
 
     character_rulebook_dump = partialmethod(_charactery_rulebook_dump,
                                             'character')
-    avatar_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'avatar')
+    unit_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'unit')
     character_thing_rulebook_dump = partialmethod(_charactery_rulebook_dump,
                                                   'character_thing')
     character_place_rulebook_dump = partialmethod(_charactery_rulebook_dump,
@@ -423,19 +423,19 @@ class QueryEngine(query.QueryEngine):
             yield (unpack(character), unpack(rulebook), rule, branch, turn,
                    tick, handled_branch, handled_turn)
 
-    def avatar_rules_handled_dump(self):
+    def unit_rules_handled_dump(self):
         unpack = self.unpack
-        for character, rulebook, rule, graph, avatar, branch, turn, tick in self.sql(
-                'avatar_rules_handled_dump'):
+        for character, rulebook, rule, graph, unit, branch, turn, tick in self.sql(
+                'unit_rules_handled_dump'):
             yield (unpack(character), unpack(rulebook), rule, unpack(graph),
-                   unpack(avatar), branch, turn, tick)
+                   unpack(unit), branch, turn, tick)
 
-    def avatar_rules_changes_dump(self):
+    def unit_rules_changes_dump(self):
         jl = self.unpack
-        for (character, rulebook, rule, graph, avatar, branch, turn, tick,
+        for (character, rulebook, rule, graph, unit, branch, turn, tick,
              handled_branch,
-             handled_turn) in self.sql('avatar_rules_changes_dump'):
-            yield (jl(character), jl(rulebook), rule, jl(graph), jl(avatar),
+             handled_turn) in self.sql('unit_rules_changes_dump'):
+            yield (jl(character), jl(rulebook), rule, jl(graph), jl(unit),
                    branch, turn, tick, handled_branch, handled_turn)
 
     def character_thing_rules_handled_dump(self):
@@ -552,12 +552,12 @@ class QueryEngine(query.QueryEngine):
                 yield character, unpack(thing), branch, turn, tick, unpack(
                     location)
 
-    def avatars_dump(self):
+    def units_dump(self):
         unpack = self.unpack
-        for character_graph, avatar_graph, avatar_node, branch, turn, tick, is_av in self.sql(
-                'avatars_dump'):
-            yield (unpack(character_graph), unpack(avatar_graph),
-                   unpack(avatar_node), branch, turn, tick, is_av)
+        for character_graph, unit_graph, unit_node, branch, turn, tick, is_av in self.sql(
+                'units_dump'):
+            yield (unpack(character_graph), unpack(unit_graph),
+                   unpack(unit_node), branch, turn, tick, is_av)
 
     def universal_set(self, key, branch, turn, tick, val):
         key, val = map(self.pack, (key, val))
@@ -624,7 +624,7 @@ class QueryEngine(query.QueryEngine):
 
     set_character_rulebook = partialmethod(_set_rulebook_on_character,
                                            'character')
-    set_avatar_rulebook = partialmethod(_set_rulebook_on_character, 'avatar')
+    set_unit_rulebook = partialmethod(_set_rulebook_on_character, 'unit')
     set_character_thing_rulebook = partialmethod(_set_rulebook_on_character,
                                                  'character_thing')
     set_character_place_rulebook = partialmethod(_set_rulebook_on_character,
@@ -682,11 +682,11 @@ class QueryEngine(query.QueryEngine):
             tick,
         )
 
-    def handled_avatar_rule(self, character, rulebook, rule, graph, av, branch,
-                            turn, tick):
+    def handled_unit_rule(self, character, rulebook, rule, graph, av, branch,
+                          turn, tick):
         character, graph, av, rulebook = map(self.pack,
                                              (character, graph, av, rulebook))
-        return self.sql('avatar_rules_handled_insert', character, rulebook,
+        return self.sql('unit_rules_handled_insert', character, rulebook,
                         rule, graph, av, branch, turn, tick)
 
     def handled_character_thing_rule(self, character, rulebook, rule, thing,
@@ -737,11 +737,11 @@ class QueryEngine(query.QueryEngine):
                  tick)
         self.sql('things_insert', character, thing, branch, turn, tick, loc)
 
-    def avatar_set(self, character, graph, node, branch, turn, tick, isav):
+    def unit_set(self, character, graph, node, branch, turn, tick, isav):
         (character, graph, node) = map(self.pack, (character, graph, node))
-        self.sql('del_avatars_after', character, graph, node, branch, turn,
+        self.sql('del_units_after', character, graph, node, branch, turn,
                  turn, tick)
-        self.sql('avatars_insert', character, graph, node, branch, turn, tick,
+        self.sql('units_insert', character, graph, node, branch, turn, tick,
                  isav)
 
     def rulebooks_rules(self):
@@ -778,7 +778,7 @@ class QueryEngine(query.QueryEngine):
         except IntegrityError:
             self.sql('turns_completed_update', turn, branch)
         self.sql('del_character_rules_handled_turn', branch, turn)
-        self.sql('del_avatar_rules_handled_turn', branch, turn)
+        self.sql('del_unit_rules_handled_turn', branch, turn)
         self.sql('del_character_thing_rules_handled_turn', branch, turn)
         self.sql('del_character_place_rules_handled_turn', branch, turn)
         self.sql('del_character_portal_rules_handled_turn', branch, turn)
@@ -791,11 +791,11 @@ class QueryEngine(query.QueryEngine):
         super().initdb()
         init_table = self.init_table
         for table in ('universals', 'rules', 'rulebooks', 'things',
-                      'character_rulebook', 'avatar_rulebook',
+                      'character_rulebook', 'unit_rulebook',
                       'character_thing_rulebook', 'character_place_rulebook',
                       'character_portal_rulebook', 'node_rulebook',
-                      'portal_rulebook', 'avatars', 'character_rules_handled',
-                      'avatar_rules_handled', 'character_thing_rules_handled',
+                      'portal_rulebook', 'units', 'character_rules_handled',
+                      'unit_rules_handled', 'character_thing_rules_handled',
                       'character_place_rules_handled',
                       'character_portal_rules_handled', 'node_rules_handled',
                       'portal_rules_handled', 'rule_triggers', 'rule_prereqs',

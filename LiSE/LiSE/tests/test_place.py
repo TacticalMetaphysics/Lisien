@@ -63,13 +63,13 @@ def test_user(someplace):
     with pytest.raises(AmbiguousUserError):
         someplace.user
     someone = someplace.engine.new_character('someone')
-    someone.add_avatar(someplace)
+    someone.add_unit(someplace)
     assert someplace.user is someone
     assert 'someone' in someplace.users
     assert someplace.users['someone'] is someone
     noone = someplace.engine.new_character('noone')
     assert 'noone' not in someplace.users
-    noone.add_avatar(someplace)
+    noone.add_unit(someplace)
     with pytest.raises(AmbiguousUserError):
         someplace.user
     assert 'noone' in someplace.users

@@ -54,8 +54,8 @@ def roommate_collisions(college24_premade):
 
         same_loc_turns = list(
             engine.turns_when(
-                student.avatar.only.historical('location') ==
-                other_student.avatar.only.historical('location')))
+                student.unit.only.historical('location') ==
+                other_student.unit.only.historical('location')))
         assert same_loc_turns, "{} and {} don't seem to share a room".format(
             student.name, other_student.name)
         assert len(
@@ -87,7 +87,7 @@ def sober_collisions(college24_premade):
     def sameClasstime(stu0, stu1):
         assert list(
             engine.turns_when(
-                stu0.avatar.only.historical('location') == stu1.avatar.only.
+                stu0.unit.only.historical('location') == stu1.unit.only.
                 historical('location') == engine.alias('classroom'))
         ), """{stu0} seems not to have been in the classroom 
                 at the same time as {stu1}.
@@ -97,11 +97,11 @@ def sober_collisions(college24_premade):
             stu1=stu1.name,
             turns0=list(
                 engine.turns_when(
-                    stu0.avatar.only.historical('location') == engine.alias(
+                    stu0.unit.only.historical('location') == engine.alias(
                         'classroom'))),
             turns1=list(
                 engine.turns_when(
-                    stu1.avatar.only.historical('location') == engine.alias(
+                    stu1.unit.only.historical('location') == engine.alias(
                         'classroom'))))
         return stu1
 
@@ -131,8 +131,8 @@ def noncollision(college24_premade):
                     for stu1 in dorm[d][rr].values():
                         assert not list(
                             engine.turns_when(
-                                stu0.avatar.only.historical('location') ==
-                                stu1.avatar.only.historical('location') ==
+                                stu0.unit.only.historical('location') ==
+                                stu1.unit.only.historical('location') ==
                                 engine.alias('dorm{}room{}'.format(d, r)))
                         ), "{} seems to share a room with {}".format(
                             stu0.name, stu1.name)
@@ -142,8 +142,8 @@ def noncollision(college24_premade):
                         for stu1 in dorm[dd][rr].values():
                             assert not list(
                                 engine.turns_when(
-                                    stu0.avatar.only.historical('location') ==
-                                    stu1.avatar.only.historical(
+                                    stu0.unit.only.historical('location') ==
+                                    stu1.unit.only.historical(
                                         'location') == engine.alias(common))
                             ), "{} seems to have been in the same common room  as {}".format(
                                 stu0.name, stu1.name)

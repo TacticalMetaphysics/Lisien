@@ -94,7 +94,7 @@
     <span class="sd">&quot;&quot;&quot;Something to use in place of a node or edge&quot;&quot;&quot;</span>
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;engine&#39;</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="s1">&#39;AbstractEngine&#39;</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span></div>
 
 
@@ -323,10 +323,19 @@
                 <span class="k">return</span> <span class="n">handlers</span><span class="p">[</span><span class="n">code</span><span class="p">](</span><span class="n">data</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
 
-        <span class="n">unpacker</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">msgpack</span><span class="o">.</span><span class="n">unpackb</span><span class="p">,</span>
-                           <span class="n">ext_hook</span><span class="o">=</span><span class="n">unpack_handler</span><span class="p">,</span>
-                           <span class="n">raw</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                           <span class="n">strict_map_key</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">unpacker</span><span class="p">(</span><span class="n">b</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">):</span>
+            <span class="n">the_unpacker</span> <span class="o">=</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">Unpacker</span><span class="p">(</span>
+                <span class="n">ext_hook</span><span class="o">=</span><span class="n">unpack_handler</span><span class="p">,</span>
+                <span class="n">raw</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">strict_map_key</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+            <span class="n">the_unpacker</span><span class="o">.</span><span class="n">feed</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+            <span class="c1"># Deliberately only returning the initial item;</span>
+            <span class="c1"># others are likely to be null bytes as a result of the</span>
+            <span class="c1"># way browsers work, and anyway if you really want more</span>
+            <span class="c1"># you can just pack a list</span>
+            <span class="k">return</span> <span class="n">the_unpacker</span><span class="o">.</span><span class="n">unpack</span><span class="p">()</span>
+
         <span class="k">return</span> <span class="n">unpacker</span>
 
 <div class="viewcode-block" id="AbstractEngine.coinflip"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.AbstractEngine.coinflip">[docs]</a>    <span class="k">def</span> <span class="nf">coinflip</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -711,11 +720,11 @@
         <span class="kn">from</span> <span class="nn">.rule</span> <span class="kn">import</span> <span class="n">Rule</span>
         <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_init_load</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_avatarness_cache</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">avatars_dump</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">units_dump</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_universal_cache</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">universals_dump</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">rulebooks_dump</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_characters_rulebooks_cache</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">character_rulebook_dump</span><span class="p">())</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_avatars_rulebooks_cache</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">avatar_rulebook_dump</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_units_rulebooks_cache</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">unit_rulebook_dump</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_characters_things_rulebooks_cache</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
             <span class="n">q</span><span class="o">.</span><span class="n">character_thing_rulebook_dump</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_characters_places_rulebooks_cache</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
@@ -730,8 +739,8 @@
         <span class="n">store_crh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_character_rules_handled_cache</span><span class="o">.</span><span class="n">store</span>
         <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">q</span><span class="o">.</span><span class="n">character_rules_handled_dump</span><span class="p">():</span>
             <span class="n">store_crh</span><span class="p">(</span><span class="o">*</span><span class="n">row</span><span class="p">,</span> <span class="n">loading</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">store_arh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avatar_rules_handled_cache</span><span class="o">.</span><span class="n">store</span>
-        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">q</span><span class="o">.</span><span class="n">avatar_rules_handled_dump</span><span class="p">():</span>
+        <span class="n">store_arh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unit_rules_handled_cache</span><span class="o">.</span><span class="n">store</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">q</span><span class="o">.</span><span class="n">unit_rules_handled_dump</span><span class="p">():</span>
             <span class="n">store_arh</span><span class="p">(</span><span class="o">*</span><span class="n">row</span><span class="p">,</span> <span class="n">loading</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">store_ctrh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_character_thing_rules_handled_cache</span><span class="o">.</span><span class="n">store</span>
         <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">q</span><span class="o">.</span><span class="n">character_thing_rules_handled_dump</span><span class="p">():</span>
@@ -779,7 +788,7 @@
                                    <span class="n">UniversalMapping</span><span class="p">)</span>
         <span class="kn">from</span> <span class="nn">.cache</span> <span class="kn">import</span> <span class="p">(</span><span class="n">NodeContentsCache</span><span class="p">,</span> <span class="n">InitializedCache</span><span class="p">,</span>
                             <span class="n">EntitylessCache</span><span class="p">,</span> <span class="n">InitializedEntitylessCache</span><span class="p">,</span>
-                            <span class="n">AvatarnessCache</span><span class="p">,</span> <span class="n">AvatarRulesHandledCache</span><span class="p">,</span>
+                            <span class="n">UnitnessCache</span><span class="p">,</span> <span class="n">UnitRulesHandledCache</span><span class="p">,</span>
                             <span class="n">CharacterThingRulesHandledCache</span><span class="p">,</span>
                             <span class="n">CharacterPlaceRulesHandledCache</span><span class="p">,</span>
                             <span class="n">CharacterPortalRulesHandledCache</span><span class="p">,</span>
@@ -797,8 +806,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;rulebooks_cache&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_characters_rulebooks_cache</span> <span class="o">=</span> <span class="n">InitializedEntitylessCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_characters_rulebooks_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;characters_rulebooks_cache&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_avatars_rulebooks_cache</span> <span class="o">=</span> <span class="n">InitializedEntitylessCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_avatars_rulebooks_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;avatars_rulebooks_cache&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_units_rulebooks_cache</span> <span class="o">=</span> <span class="n">InitializedEntitylessCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_units_rulebooks_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;units_rulebooks_cache&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_characters_things_rulebooks_cache</span> <span class="o">=</span> \
             <span class="n">InitializedEntitylessCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_characters_things_rulebooks_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> \
@@ -828,8 +837,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_character_rules_handled_cache</span> <span class="o">=</span> <span class="n">CharacterRulesHandledCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_character_rules_handled_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> \
             <span class="s1">&#39;character_rules_handled_cache&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_avatar_rules_handled_cache</span> <span class="o">=</span> <span class="n">AvatarRulesHandledCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_avatar_rules_handled_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;avatar_rules_handled_cache&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unit_rules_handled_cache</span> <span class="o">=</span> <span class="n">UnitRulesHandledCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unit_rules_handled_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;unit_rules_handled_cache&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_character_thing_rules_handled_cache</span> \
             <span class="o">=</span> <span class="n">CharacterThingRulesHandledCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_character_thing_rules_handled_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> \
@@ -842,8 +851,8 @@
             <span class="o">=</span> <span class="n">CharacterPortalRulesHandledCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_character_portal_rules_handled_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> \
             <span class="s1">&#39;character_portal_rules_handled_cache&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_avatarness_cache</span> <span class="o">=</span> <span class="n">AvatarnessCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_avatarness_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;avatarness_cache&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span> <span class="o">=</span> <span class="n">UnitnessCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;unitness_cache&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_turns_completed</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="nb">max</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
         <span class="sd">&quot;&quot;&quot;The last turn when the rules engine ran in each branch&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">universal</span> <span class="o">=</span> <span class="n">UniversalMapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
@@ -866,13 +875,14 @@
                                                     <span class="n">charn</span><span class="p">,</span>
                                                     <span class="n">init_rulebooks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_make_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">Character</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Thing</span><span class="p">,</span> <span class="n">Place</span><span class="p">]):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_thing</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">thing_cls</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">place_cls</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_make_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">Character</span><span class="p">,</span> <span class="n">orig</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Thing</span><span class="p">,</span> <span class="n">Place</span><span class="p">],</span>
+                   <span class="n">dest</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Thing</span><span class="p">,</span> <span class="n">Place</span><span class="p">],</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal_cls</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Engine.get_delta"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Engine.get_delta">[docs]</a>    <span class="k">def</span> <span class="nf">get_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn_from</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick_from</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -892,7 +902,7 @@
 <span class="sd">        they have:</span>
 
 <span class="sd">        * &#39;character_rulebook&#39;</span>
-<span class="sd">        * &#39;avatar_rulebook&#39;</span>
+<span class="sd">        * &#39;unit_rulebook&#39;</span>
 <span class="sd">        * &#39;character_thing_rulebook&#39;</span>
 <span class="sd">        * &#39;character_place_rulebook&#39;</span>
 <span class="sd">        * &#39;character_portal_rulebook&#39;</span>
@@ -921,14 +931,14 @@
             <span class="n">updater</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">update_window</span><span class="p">,</span> <span class="n">turn_from</span><span class="p">,</span> <span class="n">tick_from</span><span class="p">,</span> <span class="n">turn_to</span><span class="p">,</span>
                               <span class="n">tick_to</span><span class="p">)</span>
             <span class="n">univbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_universal_cache</span><span class="o">.</span><span class="n">settings</span>
-            <span class="n">avbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avatarness_cache</span><span class="o">.</span><span class="n">settings</span>
+            <span class="n">avbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">thbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">rbbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">trigbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">preqbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prereqs_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">actbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">charrbbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_characters_rulebooks_cache</span><span class="o">.</span><span class="n">settings</span>
-            <span class="n">avrbbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avatars_rulebooks_cache</span><span class="o">.</span><span class="n">settings</span>
+            <span class="n">avrbbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units_rulebooks_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">charthrbbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_characters_things_rulebooks_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">charplrbbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_characters_places_rulebooks_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">charporbbranches</span> <span class="o">=</span> \
@@ -940,14 +950,14 @@
             <span class="n">updater</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">update_backward_window</span><span class="p">,</span> <span class="n">turn_from</span><span class="p">,</span> <span class="n">tick_from</span><span class="p">,</span>
                               <span class="n">turn_to</span><span class="p">,</span> <span class="n">tick_to</span><span class="p">)</span>
             <span class="n">univbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_universal_cache</span><span class="o">.</span><span class="n">presettings</span>
-            <span class="n">avbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avatarness_cache</span><span class="o">.</span><span class="n">presettings</span>
+            <span class="n">avbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">thbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">rbbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">trigbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">preqbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prereqs_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">actbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">charrbbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_characters_rulebooks_cache</span><span class="o">.</span><span class="n">presettings</span>
-            <span class="n">avrbbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avatars_rulebooks_cache</span><span class="o">.</span><span class="n">presettings</span>
+            <span class="n">avrbbranches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units_rulebooks_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">charthrbbranches</span> <span class="o">=</span> \
                 <span class="bp">self</span><span class="o">.</span><span class="n">_characters_things_rulebooks_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">charplrbbranches</span> <span class="o">=</span> \
@@ -965,7 +975,7 @@
 
         <span class="k">def</span> <span class="nf">updav</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">av</span><span class="p">):</span>
             <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">char</span><span class="p">,</span>
-                             <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;avatars&#39;</span><span class="p">,</span>
+                             <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;units&#39;</span><span class="p">,</span>
                                             <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span>
                                                            <span class="p">{})[</span><span class="n">node</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">av</span><span class="p">)</span>
 
@@ -1012,7 +1022,7 @@
                     <span class="n">charrbbranches</span><span class="p">[</span><span class="n">branch</span><span class="p">])</span>
 
         <span class="k">if</span> <span class="n">branch</span> <span class="ow">in</span> <span class="n">avrbbranches</span><span class="p">:</span>
-            <span class="n">updater</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">updcrb</span><span class="p">,</span> <span class="s1">&#39;avatar_rulebook&#39;</span><span class="p">),</span> <span class="n">avrbbranches</span><span class="p">[</span><span class="n">branch</span><span class="p">])</span>
+            <span class="n">updater</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">updcrb</span><span class="p">,</span> <span class="s1">&#39;unit_rulebook&#39;</span><span class="p">),</span> <span class="n">avrbbranches</span><span class="p">[</span><span class="n">branch</span><span class="p">])</span>
 
         <span class="k">if</span> <span class="n">branch</span> <span class="ow">in</span> <span class="n">charthrbbranches</span><span class="p">:</span>
             <span class="n">updater</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">updcrb</span><span class="p">,</span> <span class="s1">&#39;character_thing_rulebook&#39;</span><span class="p">),</span>
@@ -1081,14 +1091,14 @@
         <span class="n">tick</span> <span class="o">=</span> <span class="n">tick</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span>
         <span class="n">delta</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_turn_delta</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">start_tick</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">start_tick</span> <span class="o">&lt;</span> <span class="n">tick</span><span class="p">:</span>
-            <span class="n">avatarness_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avatarness_cache</span><span class="o">.</span><span class="n">settings</span>
+            <span class="n">avatarness_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">things_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">triggers_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">prereqs_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prereqs_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">actions_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">character_rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_characters_rulebooks_cache</span><span class="o">.</span><span class="n">settings</span>
-            <span class="n">avatar_rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avatars_rulebooks_cache</span><span class="o">.</span><span class="n">settings</span>
+            <span class="n">avatar_rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units_rulebooks_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">character_thing_rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_characters_things_rulebooks_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">character_place_rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_characters_places_rulebooks_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">character_portal_rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_characters_portals_rulebooks_cache</span><span class="o">.</span><span class="n">settings</span>
@@ -1096,14 +1106,14 @@
             <span class="n">portal_rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_portals_rulebooks_cache</span><span class="o">.</span><span class="n">settings</span>
             <span class="n">tick</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">avatarness_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avatarness_cache</span><span class="o">.</span><span class="n">presettings</span>
+            <span class="n">avatarness_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">things_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">triggers_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">prereqs_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prereqs_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">actions_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">character_rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_characters_rulebooks_cache</span><span class="o">.</span><span class="n">presettings</span>
-            <span class="n">avatar_rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avatars_rulebooks_cache</span><span class="o">.</span><span class="n">presettings</span>
+            <span class="n">avatar_rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units_rulebooks_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">character_thing_rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_characters_things_rulebooks_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">character_place_rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_characters_places_rulebooks_cache</span><span class="o">.</span><span class="n">presettings</span>
             <span class="n">character_portal_rulebooks_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_characters_portals_rulebooks_cache</span><span class="o">.</span><span class="n">presettings</span>
@@ -1114,7 +1124,7 @@
             <span class="k">for</span> <span class="n">chara</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">is_av</span> <span class="ow">in</span> <span class="n">avatarness_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">][</span><span class="n">turn</span><span class="p">][</span>
                     <span class="n">start_tick</span><span class="p">:</span><span class="n">tick</span><span class="p">]:</span>
                 <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">chara</span><span class="p">,</span>
-                                 <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;avatars&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+                                 <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;units&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
                                      <span class="n">graph</span><span class="p">,</span> <span class="p">{})[</span><span class="n">node</span><span class="p">]</span> <span class="o">=</span> <span class="n">is_av</span>
         <span class="k">if</span> <span class="n">branch</span> <span class="ow">in</span> <span class="n">things_settings</span> \
                 <span class="ow">and</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">things_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">]:</span>
@@ -1158,7 +1168,7 @@
             <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span> <span class="ow">in</span> \
                     <span class="n">avatar_rulebooks_settings</span><span class="p">[</span>
                         <span class="n">branch</span><span class="p">][</span><span class="n">turn</span><span class="p">][</span><span class="n">start_tick</span><span class="p">:</span><span class="n">tick</span><span class="p">]:</span>
-                <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})[</span><span class="s1">&#39;avatar_rulebook&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rulebook</span>
+                <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})[</span><span class="s1">&#39;unit_rulebook&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rulebook</span>
         <span class="k">if</span> <span class="n">branch</span> <span class="ow">in</span> <span class="n">character_thing_rulebooks_settings</span> \
                 <span class="ow">and</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">character_thing_rulebooks_settings</span><span class="p">[</span>
                     <span class="n">branch</span><span class="p">]:</span>
@@ -1204,31 +1214,31 @@
     <span class="k">def</span> <span class="nf">_del_rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t delete rulebooks yet&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_remember_avatarness</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                             <span class="n">character</span><span class="p">,</span>
-                             <span class="n">graph</span><span class="p">,</span>
-                             <span class="n">node</span><span class="p">,</span>
-                             <span class="n">is_avatar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                             <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                             <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                             <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Use this to record a change in avatarness.</span>
+    <span class="k">def</span> <span class="nf">_remember_unitness</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                           <span class="n">character</span><span class="p">:</span> <span class="n">Character</span><span class="p">,</span>
+                           <span class="n">graph</span><span class="p">:</span> <span class="n">Character</span><span class="p">,</span>
+                           <span class="n">node</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Thing</span><span class="p">,</span> <span class="n">Place</span><span class="p">],</span>
+                           <span class="n">is_unit</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                           <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                           <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                           <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Use this to record a change in unitness.</span>
 
-<span class="sd">        Should be called whenever a node that wasn&#39;t an avatar of a</span>
-<span class="sd">        character now is, and whenever a node that was an avatar of a</span>
+<span class="sd">        Should be called whenever a node that wasn&#39;t an unit of a</span>
+<span class="sd">        character now is, and whenever a node that was an unit of a</span>
 <span class="sd">        character now isn&#39;t.</span>
 
-<span class="sd">        ``character`` is the one using the node as an avatar,</span>
+<span class="sd">        ``character`` is the one using the node as an unit,</span>
 <span class="sd">        ``graph`` is the character the node is in.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">branch</span> <span class="o">=</span> <span class="n">branch</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">branch</span>
         <span class="n">turn</span> <span class="o">=</span> <span class="n">turn</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span>
         <span class="n">tick</span> <span class="o">=</span> <span class="n">tick</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_avatarness_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span>
-                                     <span class="n">tick</span><span class="p">,</span> <span class="n">is_avatar</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">avatar_set</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
-                              <span class="n">is_avatar</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span>
+                                   <span class="n">tick</span><span class="p">,</span> <span class="n">is_unit</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">unit_set</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
+                            <span class="n">is_unit</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">stores</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1314,8 +1324,8 @@
         <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="n">oldtick</span> <span class="ow">and</span> <span class="n">newrando</span> <span class="ow">and</span> <span class="n">newrando</span> <span class="o">!=</span> <span class="n">oldrando</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_rando</span><span class="o">.</span><span class="n">setstate</span><span class="p">(</span><span class="n">newrando</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_handled_char</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">charn</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rulen</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-                      <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_handled_char</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">charn</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">rulen</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span>
+                      <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_character_rules_handled_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rulen</span><span class="p">,</span>
                                                       <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
@@ -1326,25 +1336,27 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">handled_character_rule</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rulen</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span>
                                           <span class="n">tick</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_handled_av</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">avatar</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span>
-                    <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_handled_av</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span>
+                    <span class="n">avatar</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span>
+                    <span class="n">rule</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_avatar_rules_handled_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">avatar</span><span class="p">,</span>
-                                                   <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span>
-                                                   <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_unit_rules_handled_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">avatar</span><span class="p">,</span>
+                                                 <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span>
+                                                 <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avatar_rules_handled_cache</span><span class="o">.</span><span class="n">handled</span><span class="p">[</span><span class="n">character</span><span class="p">,</span>
-                                                                    <span class="n">graph</span><span class="p">,</span>
-                                                                    <span class="n">avatar</span><span class="p">,</span>
-                                                                    <span class="n">rulebook</span><span class="p">,</span>
-                                                                    <span class="n">branch</span><span class="p">,</span>
-                                                                    <span class="n">turn</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unit_rules_handled_cache</span><span class="o">.</span><span class="n">handled</span><span class="p">[</span><span class="n">character</span><span class="p">,</span>
+                                                                  <span class="n">graph</span><span class="p">,</span>
+                                                                  <span class="n">avatar</span><span class="p">,</span>
+                                                                  <span class="n">rulebook</span><span class="p">,</span>
+                                                                  <span class="n">branch</span><span class="p">,</span>
+                                                                  <span class="n">turn</span><span class="p">]</span>
             <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">handled_avatar_rule</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span>
-                                       <span class="n">avatar</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">handled_unit_rule</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span>
+                                     <span class="n">avatar</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_handled_char_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span>
-                            <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_handled_char_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">thing</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span>
+                            <span class="n">rulebook</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">rule</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span>
+                            <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_character_thing_rules_handled_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
                 <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
@@ -1355,7 +1367,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">handled_character_thing_rule</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span>
                                                 <span class="n">thing</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_handled_char_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">place</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">_handled_char_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">place</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span>
+                            <span class="n">rulebook</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">rule</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span>
                             <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_character_place_rules_handled_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
@@ -1367,7 +1380,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">handled_character_place_rule</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span>
                                                 <span class="n">place</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_handled_char_port</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">_handled_char_port</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">orig</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span>
+                           <span class="n">dest</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">rule</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span>
                            <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_character_portal_rules_handled_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
@@ -1380,7 +1394,8 @@
                                                  <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span>
                                                  <span class="n">tick</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_handled_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">_handled_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span>
+                      <span class="n">rulebook</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">rule</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                       <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_node_rules_handled_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span>
@@ -1394,7 +1409,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">handled_node_rule</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span>
                                      <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_handled_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">_handled_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">orig</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">dest</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span>
+                        <span class="n">rulebook</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">rule</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span>
                         <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_portal_rules_handled_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span>
@@ -1459,11 +1475,11 @@
             <span class="n">entity</span> <span class="o">=</span> <span class="n">charmap</span><span class="p">[</span><span class="n">charactername</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">check_triggers</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span><span class="p">):</span>
                 <span class="n">todo</span><span class="p">[</span><span class="n">rulebook</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span><span class="p">))</span>
-        <span class="n">avcache_retr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avatarness_cache</span><span class="o">.</span><span class="n">_base_retrieve</span>
+        <span class="n">avcache_retr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">_base_retrieve</span>
         <span class="n">node_exists</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_exists</span>
         <span class="n">get_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_node</span>
         <span class="k">for</span> <span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">avn</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span>
-             <span class="n">rulen</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avatar_rules_handled_cache</span><span class="o">.</span><span class="n">iter_unhandled_rules</span><span class="p">(</span>
+             <span class="n">rulen</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unit_rules_handled_cache</span><span class="o">.</span><span class="n">iter_unhandled_rules</span><span class="p">(</span>
                  <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">node_exists</span><span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="n">avn</span><span class="p">)</span> <span class="ow">or</span> <span class="n">avcache_retr</span><span class="p">(</span>
                 <span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">avn</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">))</span> <span class="ow">in</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
@@ -1679,7 +1695,7 @@
         <span class="k">for</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">qry</span><span class="o">.</span><span class="n">iter_turns</span><span class="p">():</span>
             <span class="k">yield</span> <span class="n">turn</span></div>
 
-    <span class="k">def</span> <span class="nf">_node_contents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_node_contents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Keyable</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_contents_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span>
                                                   <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_btt</span><span class="p">())</span>
 
@@ -1811,7 +1827,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.4.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

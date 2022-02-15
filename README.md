@@ -152,16 +152,16 @@ inside the `with` block of `polygons.py`:
 
 ```python
     empty = list(phys.place.values())
-    eng.shuffle(empty)
-    # distribute 30 of each shape randomly among the empty places
-    for i in range(1, 31):
-        place = empty.pop()
-        square = place.new_thing('square%i' % i, _image_paths=['atlas://polygons/meh_square'])
-        sq.add_avatar(square)
-    for i in range(1, 31):
-        place = empty.pop()
-        triangle = place.new_thing('triangle%i' % i, _image_paths=['atlas://polygons/meh_triangle'])
-        tri.add_avatar(triangle)
+eng.shuffle(empty)
+# distribute 30 of each shape randomly among the empty places
+for i in range(1, 31):
+    place = empty.pop()
+    square = place.new_thing('square%i' % i, _image_paths=['atlas://polygons/meh_square'])
+    sq.add_unit(square)
+for i in range(1, 31):
+    place = empty.pop()
+    triangle = place.new_thing('triangle%i' % i, _image_paths=['atlas://polygons/meh_triangle'])
+    tri.add_unit(triangle)
 ```
 
 Now there are thirty each of squares and triangles in the world. They
@@ -283,30 +283,33 @@ some of the shapes, like so:
 
 ```python
     # this needs to replace any existing rule code you've written,
-    # it won't work so well together with eg. @phys.thing.rule
-    @tri.avatar.rule
-    def tri_relocate(poly):
-        """Move to a random unoccupied place"""
-        unoccupied = [place for place in poly.character.place.values() if not place.content]
-        poly.location = poly.engine.choice(unoccupied)
+# it won't work so well together with eg. @phys.thing.rule
+@tri.unit.rule
+def tri_relocate(poly):
+    """Move to a random unoccupied place"""
+    unoccupied = [place for place in poly.character.place.values() if not place.content]
+    poly.location = poly.engine.choice(unoccupied)
 
-    @tri_relocate.trigger
-    def similar_neighbors(poly):
-        """Trigger when my neighborhood fails to be enough like me"""
-        from operator import ge
-        return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
 
-    @sq.avatar.rule
-    def sq_relocate(poly):
-        """Move to a random unoccupied place"""
-        unoccupied = [place for place in poly.character.place.values() if not place.content]
-        poly.location = poly.engine.choice(unoccupied)
-        
-    @sq_relocate.trigger
-    def dissimilar_neighbors(poly):
-        """Trigger when my neighborhood gets too much like me"""
-        from operator import lt
-        return poly.engine.function.cmp_neighbor_shapes(poly, lt, 'max_sameness')
+@tri_relocate.trigger
+def similar_neighbors(poly):
+    """Trigger when my neighborhood fails to be enough like me"""
+    from operator import ge
+    return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
+
+
+@sq.unit.rule
+def sq_relocate(poly):
+    """Move to a random unoccupied place"""
+    unoccupied = [place for place in poly.character.place.values() if not place.content]
+    poly.location = poly.engine.choice(unoccupied)
+
+
+@sq_relocate.trigger
+def dissimilar_neighbors(poly):
+    """Trigger when my neighborhood gets too much like me"""
+    from operator import lt
+    return poly.engine.function.cmp_neighbor_shapes(poly, lt, 'max_sameness')
 ```
 
 Now the triangles only relocate whenever their neighborhood looks too
@@ -318,7 +321,7 @@ necessary for assigning rules by name rather than decorator; you could
 make triangles move in response to dissimilar neighbors like so:
 
 ```python
-    tri.avatar.rulebook.append('sq_relocate')
+    tri.unit.rulebook.append('sq_relocate')
 ```
 
 In this case you didn't really *have* to use the name of the rule,
@@ -332,7 +335,7 @@ entities, and you can't just make them all avatars, you can have the
 entities share a rulebook. This works:
 
 ```python
-    sq.avatar.rulebook = tri.avatar.rulebook
+    sq.unit.rulebook = tri.unit.rulebook
 ```
 
 And would result in pretty much the same simulation as in the first

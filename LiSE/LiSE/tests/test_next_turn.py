@@ -39,15 +39,15 @@ def test_character_dot_rule(engy):
     assert char.stat['run']
 
 
-def test_avatar_dot_rule(engy):
+def test_unit_dot_rule(engy):
     """Test that a rule applied to a character's avatars is polled correctly"""
     char = engy.new_character('char')
     graph = engy.new_character('graph')
     av = graph.new_place('av')
-    char.add_avatar(av)
+    char.add_unit(av)
     starttick = engy.tick
 
-    @char.avatar.rule(always=True)
+    @char.unit.rule(always=True)
     def yes(av):
         av['run'] = True
 

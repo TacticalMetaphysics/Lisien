@@ -569,15 +569,15 @@ class EngineHandle(object):
                                                self.character_stat_copy,
                                                store=store)
 
-    def character_avatars_copy(self, char):
+    def character_units_copy(self, char):
         return {
             graph: frozenset(nodes.keys())
-            for (graph, nodes) in self._real.character[char].avatar.items()
+            for (graph, nodes) in self._real.character[char].unit.items()
         }
 
-    def character_avatars_delta(self, char, *, store=True):
+    def character_units_delta(self, char, *, store=True):
         old = self._char_av_cache.get(char, {})
-        new = self.character_avatars_copy(char)
+        new = self.character_units_copy(char)
         ret = {}
         oldkeys = set(old.keys())
         newkeys = set(new.keys())
@@ -601,7 +601,7 @@ class EngineHandle(object):
         chara = self._real.character[char]
         return {
             'character': chara.rulebook.name,
-            'avatar': chara.avatar.rulebook.name,
+            'unit': chara.unit.rulebook.name,
             'thing': chara.thing.rulebook.name,
             'place': chara.place.rulebook.name,
             'portal': chara.portal.rulebook.name
@@ -679,9 +679,9 @@ class EngineHandle(object):
         ev = self.character_portals_stat_copy(char)
         if ev:
             ret['edge_val'] = ev
-        avs = self.character_avatars_copy(char)
+        avs = self.character_units_copy(char)
         if avs:
-            ret['avatars'] = avs
+            ret['units'] = avs
         rbs = self.character_rulebooks_copy(char)
         if rbs:
             ret['rulebooks'] = rbs
@@ -722,9 +722,9 @@ class EngineHandle(object):
         edges = self.character_portals_delta(char, store=store)
         if edges:
             ret['edges'] = edges
-        avs = self.character_avatars_delta(char, store=store)
+        avs = self.character_units_delta(char, store=store)
         if avs:
-            ret['avatars'] = avs
+            ret['units'] = avs
         rbs = self.character_rulebooks_delta(char, store=store)
         if rbs:
             ret['rulebooks'] = rbs
@@ -1183,13 +1183,13 @@ class EngineHandle(object):
         return branch
 
     @timely
-    def add_avatar(self, char, graph, node):
-        self._real.character[char].add_avatar(graph, node)
+    def add_unit(self, char, graph, node):
+        self._real.character[char].add_unit(graph, node)
         self._char_av_cache.setdefault(char, {})[graph].add(node)
 
     @timely
-    def remove_avatar(self, char, graph, node):
-        self._real.character[char].remove_avatar(graph, node)
+    def remove_unit(self, char, graph, node):
+        self._real.character[char].remove_unit(graph, node)
         self._char_av_cache.setdefault(char, {})[graph].remove(node)
 
     @timely
@@ -1251,8 +1251,8 @@ class EngineHandle(object):
         self._real.character[char].rulebook = rulebook
 
     @timely
-    def set_avatar_rulebook(self, char, rulebook):
-        self._real.character[char].avatar.rulebook = rulebook
+    def set_unit_rulebook(self, char, rulebook):
+        self._real.character[char].unit.rulebook = rulebook
 
     @timely
     def set_character_thing_rulebook(self, char, rulebook):
@@ -1400,8 +1400,8 @@ class EngineHandle(object):
         return {
             'character':
             eng._character_rules_handled_cache.handled_deep[branch][turn],
-            'avatar':
-            eng._avatar_rules_handled_cache.handled_deep[branch][turn],
+            'unit':
+            eng._unit_rules_handled_cache.handled_deep[branch][turn],
             'character_thing':
             eng._character_thing_rules_handled_cache.handled_deep[branch]
             [turn],

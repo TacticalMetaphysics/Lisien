@@ -446,7 +446,7 @@ class CharacterRulesScreen(Screen):
     def _get_rulebook(self, rb):
         return {
             'character': self.character.rulebook,
-            'avatar': self.character.avatar.rulebook,
+            'unit': self.character.unit.rulebook,
             'character_thing': self.character.thing.rulebook,
             'character_place': self.character.place.rulebook,
             'character_portal': self.character.portal.rulebook
@@ -458,7 +458,7 @@ class CharacterRulesScreen(Screen):
             Clock.schedule_once(self.finalize, 0)
             return
         self._tabs = TabbedPanel(do_default_tab=False)
-        for rb, txt in (('character', 'character'), ('avatar', 'avatar'),
+        for rb, txt in (('character', 'character'), ('unit', 'unit'),
                         ('character_thing',
                          'thing'), ('character_place',
                                     'place'), ('character_portal', 'portal')):
@@ -477,7 +477,7 @@ class CharacterRulesScreen(Screen):
         if not hasattr(self, '_finalized'):
             self.finalize()
             return
-        for rb in ('character', 'avatar', 'character_thing', 'character_place',
+        for rb in ('character', 'unit', 'character_thing', 'character_place',
                    'character_portal'):
             tab = getattr(self, '_{}_tab'.format(rb))
             tab.content.entity = self.character

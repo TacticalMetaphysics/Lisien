@@ -105,11 +105,11 @@ def tables_for_meta(meta):
           sqlite_with_rowid=False)
 
     # The top level of the LiSE world model, the character. Includes
-    # rulebooks for the character itself, its avatars, and all the things,
+    # rulebooks for the character itself, its units, and all the things,
     # places, and portals it contains--though those may have their own
     # rulebooks as well.
 
-    for name in ('character_rulebook', 'avatar_rulebook',
+    for name in ('character_rulebook', 'unit_rulebook',
                  'character_thing_rulebook', 'character_place_rulebook',
                  'character_portal_rulebook'):
         Table(name,
@@ -208,28 +208,28 @@ def tables_for_meta(meta):
                                ['edges.graph', 'edges.orig', 'edges.dest']),
           sqlite_with_rowid=False)
 
-    # The avatars representing one Character in another.
+    # The units representing one Character in another.
     #
     # In the common situation where a Character, let's say Alice has her
     # own stats and skill tree and social graph, and also has a location
     # in physical space, you can represent this by creating a Thing in
     # the Character that represents physical space, and then making that
-    # Thing an avatar of Alice. On its own this doesn't do anything,
+    # Thing an unit of Alice. On its own this doesn't do anything,
     # it's just a convenient way of indicating the relation -- but if
-    # you like, you can make rules that affect all avatars of some
-    # Character, irrespective of what Character the avatar is actually
+    # you like, you can make rules that affect all units of some
+    # Character, irrespective of what Character the unit is actually
     # *in*.
-    Table('avatars',
+    Table('units',
           meta,
           Column('character_graph', TEXT, primary_key=True),
-          Column('avatar_graph', TEXT, primary_key=True),
-          Column('avatar_node', TEXT, primary_key=True),
+          Column('unit_graph', TEXT, primary_key=True),
+          Column('unit_node', TEXT, primary_key=True),
           Column('branch', TEXT, primary_key=True, default='trunk'),
           Column('turn', INT, primary_key=True, default=0),
           Column('tick', INT, primary_key=True, default=0),
-          Column('is_avatar', BOOLEAN),
+          Column('is_unit', BOOLEAN),
           ForeignKeyConstraint(['character_graph'], ['graphs.graph']),
-          ForeignKeyConstraint(['avatar_graph', 'avatar_node'],
+          ForeignKeyConstraint(['unit_graph', 'unit_node'],
                                ['nodes.graph', 'nodes.node']),
           sqlite_with_rowid=False)
 
@@ -247,19 +247,19 @@ def tables_for_meta(meta):
             ['character_rulebook.character', 'character_rulebook.rulebook']),
         sqlite_with_rowid=False)
 
-    arh = Table('avatar_rules_handled',
+    arh = Table('unit_rules_handled',
                 meta,
                 Column('character', TEXT, primary_key=True),
                 Column('rulebook', TEXT, primary_key=True),
                 Column('rule', TEXT, primary_key=True),
                 Column('graph', TEXT, primary_key=True),
-                Column('avatar', TEXT, primary_key=True),
+                Column('unit', TEXT, primary_key=True),
                 Column('branch', TEXT, primary_key=True, default='trunk'),
                 Column('turn', INT, primary_key=True),
                 Column('tick', INT),
                 ForeignKeyConstraint(
                     ['character', 'rulebook'],
-                    ['avatar_rulebook.character', 'avatar_rulebook.rulebook']),
+                    ['unit_rulebook.character', 'unit_rulebook.rulebook']),
                 sqlite_with_rowid=False)
 
     ctrh = Table('character_thing_rules_handled',
@@ -372,8 +372,8 @@ def queries(table):
     r['del_char_things'] = table['things'].delete().where(
         table['things'].c.character == bindparam('character'))
 
-    r['del_char_avatars'] = table['avatars'].delete().where(
-        table['avatars'].c.character_graph == bindparam('character'))
+    r['del_char_units'] = table['units'].delete().where(
+        table['units'].c.character_graph == bindparam('character'))
     things = table['things']
     r['del_things_after'] = things.delete().where(
         and_(
@@ -384,17 +384,17 @@ def queries(table):
                 things.c.turn > bindparam('turn'),
                 and_(things.c.turn == bindparam('turn'),
                      things.c.tick >= bindparam('tick')))))
-    avatars = table['avatars']
-    r['del_avatars_after'] = avatars.delete().where(
+    units = table['units']
+    r['del_units_after'] = units.delete().where(
         and_(
-            avatars.c.character_graph == bindparam('character'),
-            avatars.c.avatar_graph == bindparam('graph'),
-            avatars.c.avatar_node == bindparam('avatar'),
-            avatars.c.branch == bindparam('branch'),
+            units.c.character_graph == bindparam('character'),
+            units.c.unit_graph == bindparam('graph'),
+            units.c.unit_node == bindparam('unit'),
+            units.c.branch == bindparam('branch'),
             or_(
-                avatars.c.turn > bindparam('turn'),
-                and_(avatars.c.turn == bindparam('turn'),
-                     avatars.c.tick >= bindparam('tick')))))
+                units.c.turn > bindparam('turn'),
+                and_(units.c.turn == bindparam('turn'),
+                     units.c.tick >= bindparam('tick')))))
     things_to_end_clause = and_(
         things.c.character == bindparam('character'),
         things.c.branch == bindparam('branch'),
@@ -415,7 +415,7 @@ def queries(table):
                      and_(things.c.turn == bindparam('turn_to_b'),
                           things.c.tick <= bindparam('tick_to')))))
 
-    for handledtab in ('character_rules_handled', 'avatar_rules_handled',
+    for handledtab in ('character_rules_handled', 'unit_rules_handled',
                        'character_thing_rules_handled',
                        'character_place_rules_handled',
                        'character_portal_rules_handled', 'node_rules_handled',

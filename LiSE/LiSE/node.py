@@ -53,7 +53,7 @@ class UserMapping(Mapping):
         engine = self.engine
         charn = node.character.name
         nn = node.name
-        cache = engine._avatarness_cache.user_order
+        cache = engine._unitness_cache.user_order
         if charn not in cache or \
            nn not in cache[charn]:
             return
@@ -96,10 +96,10 @@ class UserMapping(Mapping):
     def __contains__(self, item):
         if item in self.engine.character:
             item = self.engine.character[item]
-        if hasattr(item, 'avatar'):
+        if hasattr(item, 'unit'):
             charn = self.node.character.name
             nn = self.node.name
-            return charn in item.avatar and nn in item.avatar[charn]
+            return charn in item.unit and nn in item.unit[charn]
         return False
 
     def __getitem__(self, k):
@@ -107,7 +107,7 @@ class UserMapping(Mapping):
         node = self.node
         charn = node.character.name
         nn = node.name
-        avatar = ret.avatar
+        avatar = ret.unit
         if charn not in avatar or nn not in avatar[charn]:
             raise KeyError("{} not used by {}".format(self.node.name, k))
         return ret
@@ -443,7 +443,7 @@ class Node(graph.Node, rule.RuleFollower):
         for contained in list(self.contents()):
             contained.delete()
         for user in list(self.users.values()):
-            user.remove_avatar(self.character.name, self.name)
+            user.remove_unit(self.character.name, self.name)
         branch, turn, tick = self.engine._nbtt()
         self.engine._nodes_cache.store(self.character.name, self.name, branch,
                                        turn, tick, False)

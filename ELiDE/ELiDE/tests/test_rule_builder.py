@@ -185,7 +185,7 @@ class TestCharRuleBuilder(ELiDEAppTest):
         super(TestCharRuleBuilder, self).setUp()
         with Engine(self.prefix) as eng:
             polygons.install(eng)
-            assert list(eng.character['triangle'].avatar.rule['relocate'].
+            assert list(eng.character['triangle'].unit.rule['relocate'].
                         triggers) == [
                             eng.trigger.similar_neighbors,
                             eng.trigger.dissimilar_neighbors
@@ -200,25 +200,25 @@ class TestCharRuleBuilder(ELiDEAppTest):
         idle_until(lambda: getattr(app.charrules, '_finalized', False), 100,
                    'Never finalized')
 
-    def test_char_rule_builder_remove_avatar_trigger(self):
+    def test_char_rule_builder_remove_unit_trigger(self):
         app = self.app
         idle_until(lambda: getattr(app.charrules, '_finalized', False), 100,
                    "Never finalized charrules")
-        tabitem = app.charrules._avatar_tab
+        tabitem = app.charrules._unit_tab
         idle_until(lambda: tabitem.content, 100,
-                   'avatar tab never got content')
+                   'unit tab never got content')
         tabitem.on_press()
         self.advance_frames(1)
         tabitem.on_release()
         idle_until(lambda: app.charrules._tabs.current_tab == tabitem, 100,
                    'Never switched tab')
-        rules_box = app.charrules._avatar_box
+        rules_box = app.charrules._unit_box
         idle_until(lambda: rules_box.parent, 100,
-                   'avatar box never got parent')
+                   'unit box never got parent')
         idle_until(lambda: getattr(rules_box.rulesview, '_finalized', False),
-                   100, "Never finalized avatar rules view")
+                   100, "Never finalized unit rules view")
         idle_until(lambda: rules_box.children, 100,
-                   '_avatar_box never got children')
+                   '_unit_box never got children')
         idle_until(lambda: rules_box.rulesview.children, 100,
                    'Never filled rules view')
         rules_list = rules_box.ruleslist
@@ -291,5 +291,5 @@ class TestCharRuleBuilder(ELiDEAppTest):
         self.advance_frames(5)
         app.stop()
         with Engine(self.prefix) as eng:
-            assert list(eng.character['triangle'].avatar.rule['relocate'].
+            assert list(eng.character['triangle'].unit.rule['relocate'].
                         triggers) == [eng.trigger.dissimilar_neighbors]
