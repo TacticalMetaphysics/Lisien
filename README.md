@@ -83,8 +83,6 @@ python3 -m pip install kivy.deps.sdl2 kivy.deps.glew
 # install LiSE and the ELiDE frontend
 git clone https://github.com/LogicalDash/LiSE.git
 cd LiSE
-git submodule init
-git submodule update
 pip3 install --user LiSE\ ELiDE\
 ```
 
@@ -99,8 +97,6 @@ USE_GSTREAMER=0 pip3 install --user kivy
 # install LiSE and the ELiDE frontend
 git clone https://github.com/LogicalDash/LiSE.git
 cd LiSE
-git submodule init
-git submodule update
 pip3 install --user LiSE/ ELiDE/
 ```
 
@@ -117,8 +113,6 @@ USE_GSTREAMER=0 pip3 install --user kivy
 # install LiSE and the ELiDE frontend
 git clone https://github.com/LogicalDash/LiSE.git
 cd LiSE
-git submodule init
-git submodule update
 pip3 install --user LiSE/ ELiDE/
 ```
 

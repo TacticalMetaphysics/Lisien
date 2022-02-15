@@ -31,7 +31,6 @@ ELiDE.ini
 .coverage
 .pytest_cache
 breakage.diff
-ELiDE/ELiDE/kivygarden/texturestack
 .venv
 venv
 flame.svg
@@ -39,6 +38,5 @@ test.py
 _build
 .vscode/launch.json
 .vscode/settings.json
-ELiDE/ELiDE/kivygarden/texturestack
 */.idea
 */.tox
