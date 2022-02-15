@@ -21,13 +21,21 @@ from setuptools import setup
 
 with open(
         os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                     'ELiDE', 'requirements.txt'), 'rt') as inf:
+                     'requirements.txt'), 'rt') as inf:
     reqs = list(inf.readlines())
-with open(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                 'ELiDE', 'README.md'), 'rt'
-) as inf:
-    longdesc = inf.read()
+
+shortdesc = "Extensible Life Simulator Engine Development Environment"
+
+readmepath = os.path.join(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')), 'README.md')
+
+if os.path.exists(readmepath):
+    with open(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                     'ELiDE', 'README.md'), 'rt'
+    ) as inf:
+        longdesc = inf.read()
+else:
+    longdesc = shortdesc
 
 setup(name="ELiDE",
       version="0.12.1",
@@ -42,7 +50,7 @@ setup(name="ELiDE",
       package_data={
           "ELiDE": [
               "assets/*.png", "assets/*.jpg", "assets/*.ttf", "assets/*.atlas",
-              "assets/rltiles/*", "requirements.txt", "README.md"
+              "assets/rltiles/*"
           ]
       },
       url="https://github.com/Tactical-Metaphysics/LiSE",
