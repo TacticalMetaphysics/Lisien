@@ -145,7 +145,7 @@ just for keeping track of things in ``physical``. Add the following
 inside the `with` block of `polygons.py`:
 
 ```python
-    empty = list(phys.place.values())
+empty = list(phys.place.values())
 eng.shuffle(empty)
 # distribute 30 of each shape randomly among the empty places
 for i in range(1, 31):
