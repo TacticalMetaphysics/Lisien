@@ -445,6 +445,7 @@ if __name__ == '__main__':
     dia = SQLiteDialect_pysqlite()
     for (n, t) in table.items():
         r["create_" + n] = str(CreateTable(t).compile(dialect=dia))
+        r["truncate_" + n] = str(t.delete().compile(dialect=dia))
     index = indices_for_table_dict(table)
     for (n, x) in index.items():
         r["index_" + n] = str(CreateIndex(x).compile(dialect=dia))

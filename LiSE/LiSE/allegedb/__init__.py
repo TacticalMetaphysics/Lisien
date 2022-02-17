@@ -619,7 +619,7 @@ class ORM(object):
                 raise NotImplementedError("Only DiGraph for now")
             self._graph_objs[graph] = DiGraph(self, graph)
 
-    def __init__(self, dbstring, alchemy=True, connect_args=None):
+    def __init__(self, dbstring, clear=False, alchemy=True, connect_args=None):
         """Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
         either case, begin a transaction.
 
@@ -645,6 +645,8 @@ class ORM(object):
             self.query = self.query_engine_cls(dbstring, connect_args, alchemy,
                                                getattr(self, 'pack', None),
                                                getattr(self, 'unpack', None))
+        if clear:
+            self.query.truncate_all()
         self._edge_val_cache.setdb = self.query.edge_val_set
         self._edge_val_cache.deldb = self.query.edge_val_del_time
         self._node_val_cache.setdb = self.query.node_val_set
