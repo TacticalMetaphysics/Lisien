@@ -77,6 +77,9 @@ tester knew to look for it.
 # Getting started
 
 ## Windows
+The Microsoft Store version of Python is currently incompatible with ELiDE;
+please use [the python.org version](https://www.python.org/downloads/)
+instead.
 ```
 # install the Kivy app framework
 python3 -m pip install kivy.deps.sdl2 kivy.deps.glew
