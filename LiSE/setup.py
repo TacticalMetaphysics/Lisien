@@ -21,24 +21,29 @@ from setuptools import setup
 
 with open(
         os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                     'LiSE', 'requirements.txt'), 'rt') as inf:
-    reqs = list(inf.readlines())
-with open(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                 'LiSE', 'README.md'), 'rt'
-) as inf:
-    longdesc = inf.read()
+                     'requirements.txt'), 'rt') as inf:
+    reqs = inf.readlines()
+
+shortdesc = "Rules engine for life simulation games"
+
+readmepath = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                 'README.md')
+if os.path.exists(readmepath):
+    with open(readmepath, 'rt') as inf:
+        longdesc = inf.read()
+else:
+    longdesc = shortdesc
 
 setup(name="LiSE",
       version="0.12.1",
-      description="Rules engine for life simulation games",
+      description=shortdesc,
       author="Zachary Spector",
       author_email="public@zacharyspector.com",
       license="AGPL3",
       keywords="game simulation",
       url="https://github.com/Tactical-Metaphysics/LiSE",
       packages=["LiSE", "LiSE.server", "LiSE.examples", "LiSE.allegedb"],
-      package_data={'LiSE': ['sqlite.json', 'requirements.txt', 'README.md']},
+      package_data={'LiSE': ['sqlite.json']},
       install_requires=reqs,
       project_urls={"Documentation": "https://tactical-metaphysics.github.io/LiSE/"},
       long_description=longdesc,
