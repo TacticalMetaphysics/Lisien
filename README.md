@@ -176,7 +176,7 @@ ones are; [read about
 atlases](https://kivy.org/doc/stable/api-kivy.atlas.html) if you like,
 or just use some .png files you have lying around.
 
-The add_avatar method of a character object marks a thing or place so
+The add_unit method of a character object marks a thing or place so
 that it's considered part of a character whose graph it is not
 in. This doesn't do anything yet, but we'll be using it to write our
 rules in a little while.
@@ -240,7 +240,7 @@ with the operators ``ge`` and ``lt`` here.
 ``cmp_neighbor_shapes`` looks over the places that are directly
 connected to the one a given shape is in, counts the number that
 contain the same shape, and compares the result to a stat of the
-``user``--the character of which this thing is an avatar. When called
+``user``--the character of which this thing is a unit. When called
 in ``similar_neighbors`` and ``dissimilar_neighbors``, the stats in
 question are 'min_sameness' and 'max_sameness' respectively, so let's
 set those:
@@ -254,7 +254,7 @@ set those:
 
 Here we diverge from the original simulation a bit by setting these
 values differently for the different shapes, demonstrating an
-advantage of avatars.
+advantage of units.
 
 Run ``python3 polygons.py`` to generate the simulation. To view it,
 run ``python3 -m ELiDE`` in the same directory.  Just click the big
@@ -327,8 +327,8 @@ always. And, anyway, rules are evaluated in an order similar to
 alphabetical order, so having two rules with the same name would be
 unacceptably ambiguous.
 
-When you have a set of rules that needs to apply to many different
-entities, and you can't just make them all avatars, you can have the
+When you have a set of rules that needs to apply to many
+entities, and you can't just make them all units, you can have the
 entities share a rulebook. This works:
 
 ```python
