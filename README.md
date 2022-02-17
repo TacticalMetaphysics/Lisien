@@ -77,6 +77,9 @@ tester knew to look for it.
 # Getting started
 
 ## Windows
+The Microsoft Store version of Python is currently incompatible with ELiDE;
+please use [the python.org version](https://www.python.org/downloads/)
+instead.
 ```
 # install the Kivy app framework
 python3 -m pip install kivy.deps.sdl2 kivy.deps.glew
@@ -173,7 +176,7 @@ ones are; [read about
 atlases](https://kivy.org/doc/stable/api-kivy.atlas.html) if you like,
 or just use some .png files you have lying around.
 
-The add_avatar method of a character object marks a thing or place so
+The add_unit method of a character object marks a thing or place so
 that it's considered part of a character whose graph it is not
 in. This doesn't do anything yet, but we'll be using it to write our
 rules in a little while.
@@ -237,7 +240,7 @@ with the operators ``ge`` and ``lt`` here.
 ``cmp_neighbor_shapes`` looks over the places that are directly
 connected to the one a given shape is in, counts the number that
 contain the same shape, and compares the result to a stat of the
-``user``--the character of which this thing is an avatar. When called
+``user``--the character of which this thing is a unit. When called
 in ``similar_neighbors`` and ``dissimilar_neighbors``, the stats in
 question are 'min_sameness' and 'max_sameness' respectively, so let's
 set those:
@@ -251,7 +254,7 @@ set those:
 
 Here we diverge from the original simulation a bit by setting these
 values differently for the different shapes, demonstrating an
-advantage of avatars.
+advantage of units.
 
 Run ``python3 polygons.py`` to generate the simulation. To view it,
 run ``python3 -m ELiDE`` in the same directory.  Just click the big
@@ -272,11 +275,17 @@ can browse it in ELiDE at your leisure.  If you want to travel through
 time programmatically, set the properties ``eng.branch`` (to a
 string), ``eng.turn``, and ``eng.tick`` (to integers).
 
+To prevent locking when running `next_turn()`, you might want to run LiSE in a subprocess. This is done by
+instantiating [EngineProcessManager](https://github.com/Tactical-Metaphysics/LiSE/blob/master/LiSE/LiSE/proxy.py#L2575),
+getting a proxy to the engine from its `start()` method, and treating that proxy much as you would an actual LiSE
+engine, except that you can call `next_turn()` in a thread and then do something else in parallel. Call
+`EngineProcessManager.shutdown()` when it's time to quit the game.
+
 What next? If you wanted, you could set rules to be followed by only
 some of the shapes, like so:
 
 ```python
-    # this needs to replace any existing rule code you've written,
+# this needs to replace any existing rule code you've written,
 # it won't work so well together with eg. @phys.thing.rule
 @tri.unit.rule
 def tri_relocate(poly):
@@ -324,8 +333,8 @@ always. And, anyway, rules are evaluated in an order similar to
 alphabetical order, so having two rules with the same name would be
 unacceptably ambiguous.
 
-When you have a set of rules that needs to apply to many different
-entities, and you can't just make them all avatars, you can have the
+When you have a set of rules that needs to apply to many
+entities, and you can't just make them all units, you can have the
 entities share a rulebook. This works:
 
 ```python
@@ -371,6 +380,11 @@ objects, and convenience methods for common game actions like
 travelling along a path (``Thing.travel_to``) accessible on thing and
 place objects.  The API for these isn't really solid yet, but tell me
 how you like them.
+
+If you want to make a game in some non-Python engine, such as a web browser, you can run `python3 -m LiSE.server`
+-- you'll need to install the `cherrypy` module first. This will start a LiSE web server that you can talk to from
+other applications. It accepts payloads of lz4-compressed messagepack data with [a few custom types](
+https://github.com/Tactical-Metaphysics/LiSE/blob/master/LiSE/LiSE/engine.py#L79).
 
 # License Information
 
