@@ -285,7 +285,7 @@ What next? If you wanted, you could set rules to be followed by only
 some of the shapes, like so:
 
 ```python
-    # this needs to replace any existing rule code you've written,
+# this needs to replace any existing rule code you've written,
 # it won't work so well together with eg. @phys.thing.rule
 @tri.unit.rule
 def tri_relocate(poly):
