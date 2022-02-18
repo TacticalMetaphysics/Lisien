@@ -75,11 +75,15 @@ tester knew to look for it.
 * Edit rule functions with syntax highlighting
 
 # Getting started
+Kivy does not yet support Python 3.10, so if you want to use ELiDE, please use a version from 3.6 to 3.9. The LiSE core
+doesn't have this problem.
 
 ## Windows
-The Microsoft Store version of Python is currently incompatible with ELiDE;
-please use [the python.org version](https://www.python.org/downloads/)
+
+The Microsoft Store version of Python is currently incompatible with ELiDE; please
+use [the python.org version](https://www.python.org/downloads/release/python-3910/)
 instead.
+
 ```
 # install the Kivy app framework
 python3 -m pip install kivy.deps.sdl2 kivy.deps.glew
