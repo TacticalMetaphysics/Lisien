@@ -17,8 +17,7 @@ from argparse import ArgumentParser
 from . import LiSEHandleWebService
 
 parser = ArgumentParser()
-parser.add_argument('world', action='store', required=True)
-parser.add_argument('-c', '--code', action='store')
+parser.add_argument('--prefix', action='store', default='.')
 args = parser.parse_args()
 conf = {
     '/': {
@@ -31,4 +30,4 @@ conf = {
         'tools.encode.encoding': 'utf-8'
     }
 }
-cherrypy.quickstart(LiSEHandleWebService(args.world, args.code), '/', conf)
+cherrypy.quickstart(LiSEHandleWebService(args.prefix), '/', conf)
