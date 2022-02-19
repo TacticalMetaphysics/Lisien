@@ -475,9 +475,15 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
                 rulebook = self.get_rulebook(character, branch, turn, tick)
             except KeyError:
                 continue
-            charp = charm[character].portal
+            char = charm[character]
+            charn = char.node
+            charp = char.portal
             for orig in sort_set(charp.keys()):
+                if orig not in charn:
+                    continue
                 for dest in sort_set(charp[orig].keys()):
+                    if dest not in charn:
+                        continue
                     try:
                         rules = self.unhandled_rulebook_rules(
                             character, orig, dest, rulebook, branch, turn,
@@ -522,10 +528,16 @@ class PortalRulesHandledCache(RulesHandledCache):
     def iter_unhandled_rules(self, branch, turn, tick):
         charm = self.engine.character
         for character in sort_set(charm.keys()):
-            charp = charm[character].portal
+            char = charm[character]
+            charn = char.node
+            charp = char.portal
             for orig in sort_set(charp.keys()):
+                if orig not in charn:
+                    continue
                 dests = charp[orig]
                 for dest in sort_set(dests.keys()):
+                    if dest not in charn:
+                        continue
                     try:
                         rulebook = self.get_rulebook(character, orig, dest,
                                                      branch, turn, tick)
