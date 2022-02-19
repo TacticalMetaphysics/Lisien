@@ -333,7 +333,10 @@ class WindowDictSlice:
             it = iter(past)
             p0, p1 = next(it)
             while cmp(p0, left):
-                p0, p1 = next(it)
+                try:
+                    p0, p1 = next(it)
+                except StopIteration:
+                    return
             else:
                 yield p1
             yield from map(get1, it)
