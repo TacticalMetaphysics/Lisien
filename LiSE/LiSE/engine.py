@@ -1528,6 +1528,8 @@ class Engine(AbstractEngine, gORM):
         # TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
         for rulebook in sort_set(todo.keys()):
             for rule, handled, entity in todo[rulebook]:
+                if not entity:
+                    continue
                 if check_prereqs(rule, handled, entity):
                     try:
                         yield do_actions(rule, handled, entity)
