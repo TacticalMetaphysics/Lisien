@@ -118,11 +118,14 @@ class NodeContentValues(ValuesView):
         node = self._mapping.node
         nodem = node.character.node
         try:
-            for name in node.engine._node_contents(node.character.name,
-                                                   node.name):
-                yield nodem[name]
+            conts = node.engine._node_contents(node.character.name,
+                                                   node.name)
         except KeyError:
             return
+        for name in conts:
+            if name not in nodem:
+                return
+            yield nodem[name]
 
     def __contains__(self, item):
         return item.location == self._mapping.node
@@ -136,11 +139,12 @@ class NodeContent(Mapping):
 
     def __iter__(self):
         try:
-            yield from self.node.engine._node_contents_cache.retrieve(
+            it =  self.node.engine._node_contents_cache.retrieve(
                 self.node.character.name, self.node.name,
                 *self.node.engine._btt())
         except KeyError:
             return
+        yield from it
 
     def __len__(self):
         try:
@@ -436,12 +440,12 @@ class Node(graph.Node, rule.RuleFollower):
 
         """
         self.clear()
+        for contained in list(self.contents()):
+            contained.delete()
         if self.name in self.character.portal:
             del self.character.portal[self.name]
         if self.name in self.character.preportal:
             del self.character.preportal[self.name]
-        for contained in list(self.contents()):
-            contained.delete()
         for user in list(self.users.values()):
             user.remove_unit(self.character.name, self.name)
         branch, turn, tick = self.engine._nbtt()
