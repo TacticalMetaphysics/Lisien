@@ -21,5 +21,5 @@ def test_polygons(engy):
 
 def test_sickle(engy):
     sickle.install(engy)
-    for i in range(10):
+    for i in range(100):
         engy.next_turn()
