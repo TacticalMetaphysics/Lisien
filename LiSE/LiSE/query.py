@@ -820,5 +820,8 @@ class QueryEngine(query.QueryEngine):
                 'character_thing_rules_handled',
                 'character_place_rules_handled',
                 'character_portal_rules_handled', 'turns_completed'):
-            self.sql('truncate_' + table)
+            try:
+                self.sql('truncate_' + table)
+            except OperationalError:
+                pass  # table wasn't created yet
         self.commit()
