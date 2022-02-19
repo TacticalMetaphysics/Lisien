@@ -22,7 +22,6 @@ as you ran this script from.
 
 import networkx as nx
 from LiSE import Engine
-from os import remove
 
 
 def install(engine,
@@ -69,16 +68,16 @@ def install(engine,
     # be followed before mate is
     @species.unit.rule
     def dieoff(critter):
+        ret = 'malaria' if critter['from_malaria'] else 'anemia'
         critter.delete()
-        assert (critter.name not in critter.character.node)
-        if critter['from_malaria']:
-            return 'malaria'
-        else:
-            return 'anemia'
+        # assert (critter.name not in critter.character.node)
+        return ret
 
     @species.unit.rule
     def mate(critter):
         """If I share my location with another critter, attempt to mate"""
+        engine = critter.engine
+        species = critter.user
         suitors = list(oc for oc in critter.location.contents()
                        if oc['male'] != critter['male'])
         assert (len(suitors) > 0)
