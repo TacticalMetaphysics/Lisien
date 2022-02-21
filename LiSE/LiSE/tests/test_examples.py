@@ -1,3 +1,5 @@
+import networkx as nx
+
 from LiSE import Engine
 from LiSE.examples import college, kobold, polygons, sickle
 
@@ -22,6 +24,7 @@ def test_polygons(engy):
 
 def test_char_stat_startup(tempdir):
     with Engine(tempdir) as eng:
+        eng.new_character('physical', nx.hexagonal_lattice_graph(20, 20))
         tri = eng.new_character('triangle')
         sq = eng.new_character('square')
 
