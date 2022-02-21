@@ -953,11 +953,10 @@ class ORM(object):
         for graph in self.graph:
             stuff = keyframed[graph] = get_keyframe(graph, past_branch,
                                                     past_turn, past_tick)
-            if stuff is None:
-                continue
-            nodes, edges, graph_val = stuff
-            snap_keyframe(graph, past_branch, past_turn, past_tick, nodes,
-                          edges, graph_val)
+            if stuff is not None:
+                nodes, edges, graph_val = stuff
+                snap_keyframe(graph, past_branch, past_turn, past_tick, nodes,
+                              edges, graph_val)
             if earliest_future_keyframe is None:
                 start_turn, start_tick, end_turn, end_tick = loaded.get(
                     branch, (turn_now, tick_now, turn_now, tick_now))
