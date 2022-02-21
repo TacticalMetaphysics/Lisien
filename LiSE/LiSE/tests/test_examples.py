@@ -1,3 +1,4 @@
+from LiSE import Engine
 from LiSE.examples import college, kobold, polygons, sickle
 
 
@@ -17,6 +18,14 @@ def test_polygons(engy):
     polygons.install(engy)
     for i in range(10):
         engy.next_turn()
+
+
+def test_polygons_startup(tempdir):
+    with Engine(tempdir) as eng:
+        polygons.install(eng)
+    with Engine(tempdir) as eng:
+        for i in range(10):
+            eng.next_turn()
 
 
 def test_sickle(engy):
