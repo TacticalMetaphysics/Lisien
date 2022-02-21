@@ -380,17 +380,6 @@ class QueryEngine(object):
         """Send all new and changed graph values to the database."""
         if not self._graphvals2set:
             return
-        delafter = {}
-        for graph, key, branch, turn, tick, value in self._graphvals2set:
-            if (graph, key, branch) in delafter:
-                delafter[graph, key, branch] = min(
-                    ((turn, tick), delafter[graph, key, branch]))
-            else:
-                delafter[graph, key, branch] = (turn, tick)
-        self.sqlmany(
-            'del_graph_val_after',
-            *((graph, key, branch, turn, turn, tick)
-              for ((graph, key, branch), (turn, tick)) in delafter.items()))
         self.sqlmany('graph_val_insert', *self._graphvals2set)
         self._graphvals2set = []
 
