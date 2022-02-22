@@ -385,13 +385,6 @@ travelling along a path (``Thing.travel_to``) accessible on thing and
 place objects.  The API for these isn't really solid yet, but tell me
 how you like them.
 
-If you want to make a game in some non-Python engine, such as a web browser, install the `cherrypy` package, then
-run `python3 -m LiSE.server`. This will start a LiSE web server on localhost port 8080 that you can talk to from other
-applications. It accepts payloads of [messagepack](https://msgpack.org/) data, compressed
-with [lz4](https://lz4.github.io/lz4/), with [a few custom types](
-https://github.com/Tactical-Metaphysics/LiSE/blob/master/LiSE/LiSE/engine.py#L79). The endpoints are all named as in the
-methods of [the EngineHandle class](https://github.com/Tactical-Metaphysics/LiSE/blob/master/LiSE/LiSE/handle.py#L70)
-
 # License Information
 
 ELiDE uses third-party graphics sets:
