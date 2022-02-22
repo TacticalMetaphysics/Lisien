@@ -380,14 +380,18 @@ class QueryEngine(object):
         """Send all new and changed graph values to the database."""
         if not self._graphvals2set:
             return
-        self.sqlmany('graph_val_insert', *self._graphvals2set)
+        pack = self.pack
+        self.sqlmany('graph_val_insert', *(
+            (pack(graph), pack(key), branch, turn, tick, pack(value))
+            for (graph, key, branch, turn, tick, value)
+            in self._graphvals2set
+        ))
         self._graphvals2set = []
 
     def graph_val_set(self, graph, key, branch, turn, tick, value):
         if (branch, turn, tick) in self._btts:
             raise TimeError
         self._btts.add((branch, turn, tick))
-        graph, key, value = map(self.pack, (graph, key, value))
         self._graphvals2set.append((graph, key, branch, turn, tick, value))
 
     def graph_val_del_time(self, branch, turn, tick):
@@ -402,7 +406,12 @@ class QueryEngine(object):
     def _flush_nodes(self):
         if not self._nodes2set:
             return
-        self.sqlmany('nodes_insert', *self._nodes2set)
+        pack = self.pack
+        self.sqlmany('nodes_insert', *(
+            (pack(graph), pack(node), branch, turn, tick, bool(extant))
+            for (graph, node, branch, turn, tick, extant)
+            in self._nodes2set
+        ))
         self._nodes2set = []
 
     def exist_node(self, graph, node, branch, turn, tick, extant):
@@ -415,7 +424,7 @@ class QueryEngine(object):
             raise TimeError
         self._btts.add((branch, turn, tick))
         self._nodes2set.append(
-            (self.pack(graph), self.pack(node), branch, turn, tick, extant))
+            (graph, node, branch, turn, tick, extant))
 
     def nodes_del_time(self, branch, turn, tick):
         self._flush_nodes()
@@ -488,7 +497,12 @@ class QueryEngine(object):
     def _flush_node_val(self):
         if not self._nodevals2set:
             return
-        self.sqlmany('node_val_insert', *self._nodevals2set)
+        pack = self.pack
+        self.sqlmany('node_val_insert', *(
+            (pack(graph), pack(node), pack(key), branch, turn, tick, pack(value))
+            for (graph, node, key, branch, turn, tick, value)
+            in self._nodevals2set
+        ))
         self._nodevals2set = []
 
     def node_val_set(self, graph, node, key, branch, turn, tick, value):
@@ -496,7 +510,6 @@ class QueryEngine(object):
         if (branch, turn, tick) in self._btts:
             raise TimeError
         self._btts.add((branch, turn, tick))
-        graph, node, key, value = map(self.pack, (graph, node, key, value))
         self._nodevals2set.append(
             (graph, node, key, branch, turn, tick, value))
 
