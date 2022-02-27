@@ -152,8 +152,6 @@ class QueryEngine(object):
             from ast import literal_eval as unpack
         self.pack = pack or repr
         self.unpack = unpack
-        self._exist_edge_stuff = (self._btts, self._edges2set)
-        self._edge_val_set_stuff = (self._btts, self._edgevals2set)
 
     def sql(self, stringname, *args, **kwargs):
         """Wrapper for the various prewritten or compiled SQL calls.
@@ -567,11 +565,10 @@ class QueryEngine(object):
 
     def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant):
         """Declare whether or not this edge exists."""
-        btts, edges2set = self._exist_edge_stuff
-        if (branch, turn, tick) in btts:
+        if (branch, turn, tick) in self._btts:
             raise TimeError
-        btts.add((branch, turn, tick))
-        edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant))
+        self._btts.add((branch, turn, tick))
+        self._edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant))
 
     def edges_del_time(self, branch, turn, tick):
         self._flush_edges()
