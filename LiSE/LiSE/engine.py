@@ -113,15 +113,15 @@ class AbstractEngine(ABC):
             lambda char: msgpack.ExtType(MSGPACK_CHARACTER, packer(char.name)),
             self.place_cls:
             lambda place: msgpack.ExtType(
-                MSGPACK_PLACE, packer((place.character.name, place.name))),
+                MSGPACK_PLACE, packer([place.character.name, place.name])),
             self.thing_cls:
             lambda thing: msgpack.ExtType(
-                MSGPACK_THING, packer((thing.character.name, thing.name))),
+                MSGPACK_THING, packer([thing.character.name, thing.name])),
             self.portal_cls:
             lambda port: msgpack.ExtType(
                 MSGPACK_PORTAL,
-                packer((port.character.name, port.origin.name, port.destination
-                        .name))),
+                packer([port.character.name, port.origin.name, port.destination
+                        .name])),
             tuple:
             lambda tup: msgpack.ExtType(MSGPACK_TUPLE, packer(list(tup))),
             frozenset:
