@@ -2,9 +2,6 @@ LiSE is an application for developing life simulation games.
 
 [Documentation](https://logicaldash.github.io/LiSE/manual.html)
 
-[Development
-blog](http://forums.tigsource.com/index.php?topic=35227.0)
-
 # What is a life simulation game?
 
 Life simulation games simulate the world in relatively high detail,
