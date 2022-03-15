@@ -29,6 +29,12 @@ class ThornyRectangle(Label):
         )
         self._trigger_redraw()
 
+    def collide_point(self, x, y):
+        return (
+            self.x + self.left_margin < x < self.right - self.right_margin and
+            self.y + self.bottom_margin < y < self.top - self.top_margin
+        )
+
     def _redraw_line(self, enabled, name, point_lambda):
         if enabled:
             points = point_lambda()
