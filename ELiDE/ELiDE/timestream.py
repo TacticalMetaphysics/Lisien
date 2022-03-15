@@ -41,6 +41,7 @@ class ThornyRectangle(Label):
         elif hasattr(self, name) and \
                 getattr(self, name) in self.canvas.children:
             self.canvas.remove(getattr(self, name))
+            delattr(self, name)
 
     def _get_left_line_points(self):
         return [
