@@ -167,7 +167,7 @@ class Timestream(RecycleView):
 
 Builder.load_string("""
 <Timestream>:
-    viewclass: 'ThornyRectangle'
+    key_viewclass: 'widget'
     effect_cls: 'ScrollEffect'
     RecycleGridLayout:
         cols: 30
@@ -188,6 +188,6 @@ if __name__ == '__main__':
     ts = Timestream()
     layout = BoxLayout()
     layout.add_widget(ts)
-    ts.data = [{'text': str(i)} for i in range(500)]
+    ts.data = [{'text': str(i), 'widget': 'ThornyRectangle' if i % 5 != 0 else 'Cross'} for i in range(500)]
     inspector.create_inspector(Window, layout)
     runTouchApp(layout)
