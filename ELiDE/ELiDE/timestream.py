@@ -5,6 +5,7 @@ from kivy.properties import BooleanProperty, NumericProperty
 from kivy.graphics import Color, Line
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.label import Label
+from kivy.uix.widget import Widget
 
 
 class ThornyRectangle(Label):
@@ -91,6 +92,71 @@ class ThornyRectangle(Label):
                           self._get_top_line_points)
         self._redraw_line(self.bottom_thorn, '_bot_line',
                           self._get_bottom_line_points)
+
+    _trigger_redraw = trigger(_redraw)
+
+
+class Cross(Widget):
+    draw_left = BooleanProperty(True)
+    draw_right = BooleanProperty(True)
+    draw_up = BooleanProperty(True)
+    draw_down = BooleanProperty(True)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(
+            draw_left=self._trigger_redraw,
+            draw_right=self._trigger_redraw,
+            draw_up=self._trigger_redraw,
+            draw_down=self._trigger_redraw,
+            size=self._trigger_redraw,
+            pos=self._trigger_redraw
+        )
+
+    def _draw_line(self, enabled, name, get_points):
+        if enabled:
+            points = get_points()
+            if hasattr(self, name):
+                getattr(self, name).points = points
+            else:
+                the_line = Line(points=points)
+                setattr(self, name, the_line)
+                self.canvas.add(the_line)
+        elif hasattr(self, name):
+            the_line = getattr(self, name)
+            if the_line in self.canvas:
+                self.canvas.remove(the_line)
+            delattr(self, name)
+
+    def _get_left_points(self):
+        return [
+            self.x, self.center_y,
+            self.center_x, self.center_y
+        ]
+
+    def _get_right_points(self):
+        return [
+            self.center_x, self.center_y,
+            self.right, self.center_y
+        ]
+
+    def _get_up_points(self):
+        return [
+            self.center_x, self.center_y,
+            self.center_x, self.top
+        ]
+
+    def _get_down_points(self):
+        return [
+            self.center_x, self.center_y,
+            self.center_x, self.y
+        ]
+
+    def _redraw(self, *args):
+        self._draw_line(self.draw_left, '_left_line', self._get_left_points)
+        self._draw_line(self.draw_right, '_right_line', self._get_right_points)
+        self._draw_line(self.draw_up, '_up_line', self._get_up_points)
+        self._draw_line(self.draw_down, '_down_line', self._get_down_points)
 
     _trigger_redraw = trigger(_redraw)
 
