@@ -39,6 +39,7 @@ import ELiDE.statcfg
 import ELiDE.spritebuilder
 import ELiDE.rulesview
 import ELiDE.charsview
+import ELiDE.timestream
 from ELiDE.graph.board import GraphBoard
 from ELiDE.graph.arrow import GraphArrowWidget
 from ELiDE.graph.spot import GraphSpot
@@ -317,6 +318,10 @@ class ELiDEApp(App):
 
         self.bind(selected_proxy=self.statcfg.setter('proxy'))
 
+        self.timestream = ELiDE.timestream.TimestreamScreen(
+            name='timestream', toggle=toggler('timestream')
+        )
+
         self.mainscreen = ELiDE.screen.MainScreen(
             use_kv=config['ELiDE']['user_kv'] == 'yes',
             play_speed=int(config['ELiDE']['play_speed']))
@@ -327,7 +332,7 @@ class ELiDEApp(App):
                   character=self.refresh_selected_proxy)
         for wid in (self.mainmenu, self.mainscreen, self.pawncfg, self.spotcfg,
                     self.statcfg, self.rules, self.charrules, self.chars,
-                    self.strings, self.funcs):
+                    self.strings, self.funcs, self.timestream):
             self.manager.add_widget(wid)
         self.manager.current = 'mainmenu'
         if (os.environ['KIVY_NO_ARGS']

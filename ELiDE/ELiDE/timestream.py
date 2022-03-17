@@ -1,10 +1,16 @@
+from collections import defaultdict
+from threading import Thread
+
 from ELiDE.util import trigger
 
+from kivy.app import App
 from kivy.lang import Builder
-from kivy.properties import BooleanProperty, NumericProperty
+from kivy.logger import Logger
+from kivy.properties import BooleanProperty, NumericProperty, ObjectProperty
 from kivy.graphics import Color, Line
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.label import Label
+from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 
 
@@ -130,7 +136,7 @@ class Cross(Widget):
                 self.canvas.add(the_line)
         elif hasattr(self, name):
             the_line = getattr(self, name)
-            if the_line in self.canvas:
+            if the_line in self.canvas.children:
                 self.canvas.remove(the_line)
             delattr(self, name)
 
@@ -168,7 +174,79 @@ class Cross(Widget):
 
 
 class Timestream(RecycleView):
-    pass
+    cols = NumericProperty(1)  # should be equal to the number of turns on which branches were created + 1
+
+
+class TimestreamScreen(Screen):
+    toggle = ObjectProperty()
+    timestream = ObjectProperty()
+
+    def on_pre_enter(self, *args):
+        self.timestream.disabled = True
+        self._thread = Thread(target=self._get_branch_lineage)
+        self._thread.start()
+
+    def _get_branch_lineage(self, *args):
+        Logger.debug("Timestream: getting branch lineage")
+        engine = App.get_running_app().engine
+        branch_lineage = engine.handle('branch_lineage')
+        start_turn_branches = defaultdict(set)
+        branch_split_turns_todo = defaultdict(set)
+        branch_split_turns_done = defaultdict(set)
+        for branch, (parent, parent_turn, parent_tick,
+                     end_turn, end_tick) in branch_lineage.items():
+            start_turn_branches[parent_turn].add(branch)
+            branch_split_turns_todo[parent].add(parent_turn)
+        branch_split_turns_todo['trunk'].add(0)
+        col2turn = list(sorted(start_turn_branches.keys()))
+        data = []
+        if not col2turn:
+            self.timestream.cols = 1
+            self.timestream.data = []
+            self.timestream.disabled = False
+            return
+        Logger.debug("Timestream: read branch lineage, processing...")
+        trunk_lineage = branch_lineage.pop('trunk')
+        sorted_branches = ['trunk'] + sorted(branch_lineage)
+        branch_lineage['trunk'] = trunk_lineage
+        for row, branch in enumerate(sorted_branches):
+            for turn in col2turn:
+                if branch == 'trunk' and turn == 0:
+                    data.append({
+                        'widget': 'ThornyRectangle',
+                        'text': 'NEW',
+                        'left_thorn': False,
+                        'top_thorn': False,
+                        'bot_thorn': len(start_turn_branches[turn]) > 1,
+                        'right_thorn': bool(branch_split_turns_todo[branch])
+                    })
+                elif branch in start_turn_branches[turn]:
+                    data.append({
+                        'widget': 'ThornyRectangle',
+                        'text': f'{branch=}\n{turn=}',
+                        'left_thorn': turn > branch_lineage[branch][1],
+                        'top_thorn': turn == branch_lineage[branch][1],
+                        'bot_thorn': len(start_turn_branches[turn]) > 1,
+                        'right_thorn': bool(branch_split_turns_todo[branch])
+                    })
+                elif start_turn_branches[turn]:
+                    data.append({
+                        'widget': 'Cross',
+                        'left_thorn': turn > branch_lineage[branch][1],
+                        'top_thorn': row > 0,
+                        'bot_thorn': bool(start_turn_branches[turn]),
+                        'right_thorn': bool(branch_split_turns_todo[branch])
+                    })
+                else:
+                    data.append({'widget': 'Widget'})
+                start_turn_branches[turn].discard(branch)
+                branch_split_turns_todo[branch].discard(turn)
+                branch_split_turns_done[branch].add(turn)
+            Logger.debug(f"Timestream: processed branch {branch}")
+        self.timestream.cols = len(col2turn)
+        self.timestream.data = data
+        Logger.debug("Timestream: loaded!")
+        self.timestream.disabled = False
 
 
 Builder.load_string("""
@@ -176,13 +254,26 @@ Builder.load_string("""
     key_viewclass: 'widget'
     effect_cls: 'ScrollEffect'
     RecycleGridLayout:
-        cols: 30
+        cols: root.cols
         default_width: 100
         default_height: 100
         default_size_hint: None, None
         height: self.minimum_height
         width: self.minimum_width
         size_hint: None, None
+<TimestreamScreen>:
+    name: 'timestream'
+    timestream: timestream
+    BoxLayout:
+        orientation: 'vertical'
+        Timestream:
+            id: timestream
+            size_hint_y: 0.95
+        BoxLayout:
+            size_hint_y: 0.05
+            Button:
+                text: 'Cancel'
+                on_press: root.toggle()
 """)
 
 if __name__ == '__main__':

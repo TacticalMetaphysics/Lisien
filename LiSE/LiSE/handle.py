@@ -1416,3 +1416,6 @@ class EngineHandle(object):
             'portal':
             eng._portal_rules_handled_cache.handled_deep[branch][turn]
         }
+
+    def branch_lineage(self):
+        return self._real._branches
