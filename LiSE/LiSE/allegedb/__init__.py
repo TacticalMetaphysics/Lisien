@@ -912,6 +912,9 @@ class ORM(object):
         if latest_past_keyframe is None:  # happens in very short games
 
             def updload(branch, turn, tick):
+                if branch not in loaded:
+                    loaded[branch] = (turn, tick, turn, tick)
+                    return
                 (early_turn, early_tick, late_turn, late_tick) = loaded[branch]
                 if turn < early_turn or (turn == early_turn
                                          and tick < early_tick):
