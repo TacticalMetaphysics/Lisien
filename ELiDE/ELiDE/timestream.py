@@ -223,7 +223,7 @@ class TimestreamScreen(Screen):
                 elif branch in start_turn_branches[turn]:
                     data.append({
                         'widget': 'ThornyRectangle',
-                        'text': f'{branch=}\n{turn=}',
+                        'text': f'{branch}\n{turn}',
                         'left_thorn': turn > branch_lineage[branch][1],
                         'top_thorn': turn == branch_lineage[branch][1],
                         'bot_thorn': len(start_turn_branches[turn]) > 1,
