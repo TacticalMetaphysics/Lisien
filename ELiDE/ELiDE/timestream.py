@@ -20,18 +20,24 @@ class ThornyRectangle(Label):
     top_margin = NumericProperty(10)
     bottom_margin = NumericProperty(10)
 
-    left_thorn = BooleanProperty(True)
-    right_thorn = BooleanProperty(True)
-    top_thorn = BooleanProperty(True)
-    bottom_thorn = BooleanProperty(True)
+    draw_left = BooleanProperty(True)
+    draw_right = BooleanProperty(True)
+    draw_up = BooleanProperty(True)
+    draw_down = BooleanProperty(True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.bind(
-            **{prop: self._trigger_redraw for prop in
-               ['pos', 'size', 'left_margin', 'right_margin',
-                'top_margin', 'bottom_margin', 'left_thorn',
-                'right_thorn', 'top_thorn', 'bottom_thorn']}
+            pos=self._trigger_redraw,
+            size=self._trigger_redraw,
+            left_margin=self._trigger_redraw,
+            right_margin=self._trigger_redraw,
+            top_margin=self._trigger_redraw,
+            bottom_margin=self._trigger_redraw,
+            draw_left=self._trigger_redraw,
+            draw_right=self._trigger_redraw,
+            draw_up=self._trigger_redraw,
+            draw_down=self._trigger_redraw,
         )
         self._trigger_redraw()
 
@@ -51,8 +57,7 @@ class ThornyRectangle(Label):
                 the_line = Line(points=points)
             if the_line not in self.canvas.children:
                 self.canvas.add(the_line)
-        elif hasattr(self, name) and \
-                getattr(self, name) in self.canvas.children:
+        elif hasattr(self, name):
             self.canvas.remove(getattr(self, name))
             delattr(self, name)
 
@@ -96,14 +101,15 @@ class ThornyRectangle(Label):
         else:
             self._rect = Line(points=rectpoints)
             self.canvas.add(self._rect)
-        self._redraw_line(self.left_thorn, '_left_line',
+        self._redraw_line(self.draw_left, '_left_line',
                           self._get_left_line_points)
-        self._redraw_line(self.right_thorn, '_right_line',
+        self._redraw_line(self.draw_right, '_right_line',
                           self._get_right_line_points)
-        self._redraw_line(self.top_thorn, '_top_line',
+        self._redraw_line(self.draw_up, '_top_line',
                           self._get_top_line_points)
-        self._redraw_line(self.bottom_thorn, '_bot_line',
+        self._redraw_line(self.draw_down, '_bot_line',
                           self._get_bottom_line_points)
+        self.canvas.ask_update()
 
     _trigger_redraw = trigger(_redraw)
 
@@ -169,6 +175,7 @@ class Cross(Widget):
         self._draw_line(self.draw_right, '_right_line', self._get_right_points)
         self._draw_line(self.draw_up, '_up_line', self._get_up_points)
         self._draw_line(self.draw_down, '_down_line', self._get_down_points)
+        self.canvas.ask_update()
 
     _trigger_redraw = trigger(_redraw)
 
@@ -215,27 +222,27 @@ class TimestreamScreen(Screen):
                     data.append({
                         'widget': 'ThornyRectangle',
                         'text': 'NEW',
-                        'left_thorn': False,
-                        'top_thorn': False,
-                        'bot_thorn': len(start_turn_branches[turn]) > 1,
-                        'right_thorn': bool(branch_split_turns_todo[branch])
+                        'draw_left': False,
+                        'draw_up': False,
+                        'draw_down': len(start_turn_branches[turn]) > 1,
+                        'draw_right': bool(branch_split_turns_todo[branch])
                     })
                 elif branch in start_turn_branches[turn]:
                     data.append({
                         'widget': 'ThornyRectangle',
                         'text': f'{branch}\n{turn}',
-                        'left_thorn': turn > branch_lineage[branch][1],
-                        'top_thorn': turn == branch_lineage[branch][1],
-                        'bot_thorn': len(start_turn_branches[turn]) > 1,
-                        'right_thorn': bool(branch_split_turns_todo[branch])
+                        'draw_left': turn > branch_lineage[branch][1],
+                        'draw_up': turn == branch_lineage[branch][1],
+                        'draw_down': len(start_turn_branches[turn]) > 1,
+                        'draw_right': bool(branch_split_turns_todo[branch])
                     })
                 elif start_turn_branches[turn]:
                     data.append({
                         'widget': 'Cross',
-                        'left_thorn': turn > branch_lineage[branch][1],
-                        'top_thorn': row > 0,
-                        'bot_thorn': bool(start_turn_branches[turn]),
-                        'right_thorn': bool(branch_split_turns_todo[branch])
+                        'draw_left': turn > branch_lineage[branch][1],
+                        'draw_up': row > 0,
+                        'draw_down': bool(start_turn_branches[turn]),
+                        'draw_right': bool(branch_split_turns_todo[branch])
                     })
                 else:
                     data.append({'widget': 'Widget'})
