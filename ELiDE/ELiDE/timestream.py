@@ -242,7 +242,7 @@ class TimestreamScreen(Screen):
                         'draw_left': turn > branch_lineage[branch][1],
                         'draw_up': row > 0,
                         'draw_down': bool(start_turn_branches[turn]),
-                        'draw_right': bool(branch_split_turns_todo[branch])
+                        'draw_right': turn < col2turn[-1]
                     })
                 else:
                     data.append({'widget': 'Widget'})
