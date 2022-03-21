@@ -91,9 +91,9 @@ def windows_intersection(windows):
     def intersect2(left, right):
         if left == right:
             return left
-        elif left is (None, None):
+        elif left == (None, None):
             return right
-        elif right is (None, None):
+        elif right == (None, None):
             return left
         elif left[0] is None:
             if right[0] is None:

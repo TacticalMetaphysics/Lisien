@@ -175,6 +175,10 @@ class TimePanel(BoxLayout):
                              turn=self._upd_turn_hint,
                              tick=self._upd_tick_hint)
 
+    @trigger
+    def show_timestream(self, *args):
+        self.screen.manager.current = 'timestream'
+
 
 class MainScreen(Screen):
     """A master layout that contains one graph and some menus.
@@ -621,7 +625,7 @@ Builder.load_string("""
                     set_value: root.set_tick
                     hint_text: str(root.screen.app.tick) if root.screen else ''
     BoxLayout:
-        size_hint_y: 0.6
+        size_hint_y: 0.5
         SimulateButton:
             id: playbut
             font_size: root.buttons_font_size
@@ -630,6 +634,10 @@ Builder.load_string("""
             font_size: root.buttons_font_size
             screen: root.screen
             disabled: root.disable_one_turn or app.edit_locked
+    Button:
+        size_hint_y: 0.1
+        text: 'Timestream'
+        on_release: root.show_timestream()
 <MainScreen>:
     name: 'main'
     dummyplace: charmenu.dummyplace
