@@ -425,10 +425,10 @@ class QueryEngine(query.QueryEngine):
 
     def unit_rules_handled_dump(self):
         unpack = self.unpack
-        for character, rulebook, rule, graph, unit, branch, turn, tick in self.sql(
+        for character, graph, unit, rulebook, rule, branch, turn, tick in self.sql(
                 'unit_rules_handled_dump'):
-            yield (unpack(character), unpack(rulebook), rule, unpack(graph),
-                   unpack(unit), branch, turn, tick)
+            yield (unpack(character), unpack(graph), unpack(unit), unpack(rulebook), rule,
+                   branch, turn, tick)
 
     def unit_rules_changes_dump(self):
         jl = self.unpack
