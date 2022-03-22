@@ -686,8 +686,8 @@ class QueryEngine(query.QueryEngine):
                           turn, tick):
         character, graph, av, rulebook = map(self.pack,
                                              (character, graph, av, rulebook))
-        return self.sql('unit_rules_handled_insert', character, rulebook,
-                        rule, graph, av, branch, turn, tick)
+        return self.sql('unit_rules_handled_insert', character, graph, av, rulebook,
+                        rule, branch, turn, tick)
 
     def handled_character_thing_rule(self, character, rulebook, rule, thing,
                                      branch, turn, tick):
