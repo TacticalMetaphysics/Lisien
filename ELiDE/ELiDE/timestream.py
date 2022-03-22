@@ -218,6 +218,7 @@ class TimestreamScreen(Screen):
         branch_lineage['trunk'] = trunk_lineage
         for row, branch in enumerate(sorted_branches):
             for turn in col2turn:
+                branch_split_turns_todo[branch].discard(turn)
                 if branch == 'trunk' and turn == 0:
                     data.append({
                         'widget': 'ThornyRectangle',
@@ -247,7 +248,6 @@ class TimestreamScreen(Screen):
                 else:
                     data.append({'widget': 'Widget'})
                 start_turn_branches[turn].discard(branch)
-                branch_split_turns_todo[branch].discard(turn)
                 branch_split_turns_done[branch].add(turn)
             Logger.debug(f"Timestream: processed branch {branch}")
         self.timestream.cols = len(col2turn)
