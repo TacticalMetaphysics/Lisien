@@ -22,6 +22,7 @@ from functools import partial
 from ast import literal_eval
 
 from kivy.app import App
+from kivy.clock import mainthread
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.uix.togglebutton import ToggleButton
@@ -154,12 +155,15 @@ class TimePanel(BoxLayout):
         self.screen.app.tick = tick
         self.screen.charmenu._switch_to_menu()
 
+    @mainthread
     def _upd_branch_hint(self, *args):
         self.ids.branchfield.hint_text = self.screen.app.branch
 
+    @mainthread
     def _upd_turn_hint(self, *args):
         self.ids.turnfield.hint_text = str(self.screen.app.turn)
 
+    @mainthread
     def _upd_tick_hint(self, *args):
         self.ids.tickfield.hint_text = str(self.screen.app.tick)
 
