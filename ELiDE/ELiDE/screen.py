@@ -156,16 +156,16 @@ class TimePanel(BoxLayout):
         self.screen.charmenu._switch_to_menu()
 
     @mainthread
-    def _upd_branch_hint(self, *args):
-        self.ids.branchfield.hint_text = self.screen.app.branch
+    def _upd_branch_hint(self, app, *args):
+        self.ids.branchfield.hint_text = app.branch
 
     @mainthread
-    def _upd_turn_hint(self, *args):
-        self.ids.turnfield.hint_text = str(self.screen.app.turn)
+    def _upd_turn_hint(self, app, *args):
+        self.ids.turnfield.hint_text = str(app.turn)
 
     @mainthread
-    def _upd_tick_hint(self, *args):
-        self.ids.tickfield.hint_text = str(self.screen.app.tick)
+    def _upd_tick_hint(self, app, *args):
+        self.ids.tickfield.hint_text = str(app.tick)
 
     def on_screen(self, *args):
         if not all(field in self.ids
