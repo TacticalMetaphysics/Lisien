@@ -1057,6 +1057,8 @@ class Engine(AbstractEngine, gORM):
         branch = branch or self.branch
         turn = turn or self.turn
         tick = tick or self.tick
+        if tick == start_tick:
+            return {}
         delta = super().get_turn_delta(branch, turn, start_tick, tick)
         if start_tick < tick:
             avatarness_settings = self._unitness_cache.settings
