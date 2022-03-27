@@ -1570,6 +1570,8 @@ class Engine(AbstractEngine, gORM):
         self.add_character(name, data, **kwargs)
         return self.character[name]
 
+    new_graph = new_character
+
     def add_character(self, name: Keyable, data: Graph = None, **kwargs):
         """Create a new character.
 
