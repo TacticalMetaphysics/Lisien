@@ -8,4 +8,6 @@ def test_resume(tempdir):
         install(eng)
         eng.next_turn()
     with Engine(tempdir) as eng:
+        curturn = eng.turn
         eng.next_turn()
+        assert eng.turn == curturn + 1
