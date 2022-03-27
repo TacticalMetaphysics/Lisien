@@ -341,10 +341,8 @@ class AbstractEngine(ABC):
             '==': eq,
             '!=': ne
         }
-        try:
-            comparator = comps.get(comparator, comparator)
-        except TypeError:
-            pass
+        if not callable(comparator):
+            comparator = comps[comparator]
         return comparator(sum(self.dice(n, d)), target)
 
     def percent_chance(self, pct):
