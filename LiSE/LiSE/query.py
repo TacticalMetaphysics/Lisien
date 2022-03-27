@@ -440,25 +440,25 @@ class QueryEngine(query.QueryEngine):
 
     def character_thing_rules_handled_dump(self):
         unpack = self.unpack
-        for character, rulebook, rule, thing, branch, turn, tick in self.sql(
+        for character, thing, rulebook, rule, branch, turn, tick in self.sql(
                 'character_thing_rules_handled_dump'):
-            yield unpack(character), unpack(rulebook), rule, unpack(
-                thing), branch, turn, tick
+            yield unpack(character), unpack(thing), unpack(rulebook), rule, \
+                  branch, turn, tick
 
     def character_thing_rules_changes_dump(self):
         jl = self.unpack
-        for (character, rulebook, rule, thing, branch, turn, tick,
+        for (character,  thing, rulebook, rule, branch, turn, tick,
              handled_branch,
              handled_turn) in self.sql('character_thing_rules_changes_dump'):
-            yield (jl(character), jl(rulebook), rule, jl(thing), branch, turn,
+            yield (jl(character), jl(thing), jl(rulebook), rule, branch, turn,
                    tick, handled_branch, handled_turn)
 
     def character_place_rules_handled_dump(self):
         unpack = self.unpack
-        for character, rulebook, rule, place, branch, turn, tick in self.sql(
+        for character, place, rulebook, rule, branch, turn, tick in self.sql(
                 'character_place_rules_handled_dump'):
-            yield unpack(character), unpack(rulebook), rule, unpack(
-                place), branch, turn, tick
+            yield unpack(character), unpack(place), unpack(rulebook), rule, \
+                  branch, turn, tick
 
     def character_place_rules_changes_dump(self):
         jl = self.unpack
@@ -472,8 +472,8 @@ class QueryEngine(query.QueryEngine):
         unpack = self.unpack
         for character, rulebook, rule, orig, dest, branch, turn, tick in self.sql(
                 'character_portal_rules_handled_dump'):
-            yield (unpack(character), unpack(rulebook), rule, unpack(orig),
-                   unpack(dest), branch, turn, tick)
+            yield (unpack(character), unpack(rulebook), unpack(orig), unpack(
+                dest), rule, branch, turn, tick)
 
     def character_portal_rules_changes_dump(self):
         jl = self.unpack
