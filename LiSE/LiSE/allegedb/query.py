@@ -707,5 +707,7 @@ class QueryEngine(object):
     def close(self):
         """Commit the transaction, then close the connection"""
         self.commit()
-        if hasattr(self, 'connection'):
+        if hasattr(self, 'transaction'):
+            self.transaction.connection.close()
+        elif hasattr(self, 'connection'):
             self.connection.close()
