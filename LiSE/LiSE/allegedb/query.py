@@ -340,6 +340,12 @@ class QueryEngine(object):
             return self.sql('update_turns', end_tick, plan_end_tick, branch,
                             turn)
 
+    def set_turn_completed(self, branch, turn):
+        try:
+            return self.sql('turns_completed_insert', branch, turn)
+        except IntegrityError:
+            return self.sql('turns_completed_update', turn, branch)
+
     def turns_dump(self):
         return self.sql('turns_dump')
 
@@ -701,5 +707,7 @@ class QueryEngine(object):
     def close(self):
         """Commit the transaction, then close the connection"""
         self.commit()
-        if hasattr(self, 'connection'):
+        if hasattr(self, 'transaction'):
+            self.transaction.connection.close()
+        elif hasattr(self, 'connection'):
             self.connection.close()

@@ -425,10 +425,10 @@ class QueryEngine(query.QueryEngine):
 
     def unit_rules_handled_dump(self):
         unpack = self.unpack
-        for character, rulebook, rule, graph, unit, branch, turn, tick in self.sql(
+        for character, graph, unit, rulebook, rule, branch, turn, tick in self.sql(
                 'unit_rules_handled_dump'):
-            yield (unpack(character), unpack(rulebook), rule, unpack(graph),
-                   unpack(unit), branch, turn, tick)
+            yield (unpack(character), unpack(graph), unpack(unit), unpack(rulebook), rule,
+                   branch, turn, tick)
 
     def unit_rules_changes_dump(self):
         jl = self.unpack
@@ -440,25 +440,25 @@ class QueryEngine(query.QueryEngine):
 
     def character_thing_rules_handled_dump(self):
         unpack = self.unpack
-        for character, rulebook, rule, thing, branch, turn, tick in self.sql(
+        for character, thing, rulebook, rule, branch, turn, tick in self.sql(
                 'character_thing_rules_handled_dump'):
-            yield unpack(character), unpack(rulebook), rule, unpack(
-                thing), branch, turn, tick
+            yield unpack(character), unpack(thing), unpack(rulebook), rule, \
+                  branch, turn, tick
 
     def character_thing_rules_changes_dump(self):
         jl = self.unpack
-        for (character, rulebook, rule, thing, branch, turn, tick,
+        for (character,  thing, rulebook, rule, branch, turn, tick,
              handled_branch,
              handled_turn) in self.sql('character_thing_rules_changes_dump'):
-            yield (jl(character), jl(rulebook), rule, jl(thing), branch, turn,
+            yield (jl(character), jl(thing), jl(rulebook), rule, branch, turn,
                    tick, handled_branch, handled_turn)
 
     def character_place_rules_handled_dump(self):
         unpack = self.unpack
-        for character, rulebook, rule, place, branch, turn, tick in self.sql(
+        for character, place, rulebook, rule, branch, turn, tick in self.sql(
                 'character_place_rules_handled_dump'):
-            yield unpack(character), unpack(rulebook), rule, unpack(
-                place), branch, turn, tick
+            yield unpack(character), unpack(place), unpack(rulebook), rule, \
+                  branch, turn, tick
 
     def character_place_rules_changes_dump(self):
         jl = self.unpack
@@ -472,8 +472,8 @@ class QueryEngine(query.QueryEngine):
         unpack = self.unpack
         for character, rulebook, rule, orig, dest, branch, turn, tick in self.sql(
                 'character_portal_rules_handled_dump'):
-            yield (unpack(character), unpack(rulebook), rule, unpack(orig),
-                   unpack(dest), branch, turn, tick)
+            yield (unpack(character), unpack(rulebook), unpack(orig), unpack(
+                dest), rule, branch, turn, tick)
 
     def character_portal_rules_changes_dump(self):
         jl = self.unpack
@@ -686,29 +686,29 @@ class QueryEngine(query.QueryEngine):
                           turn, tick):
         character, graph, av, rulebook = map(self.pack,
                                              (character, graph, av, rulebook))
-        return self.sql('unit_rules_handled_insert', character, rulebook,
-                        rule, graph, av, branch, turn, tick)
+        return self.sql('unit_rules_handled_insert', character, graph, av, rulebook,
+                        rule, branch, turn, tick)
 
     def handled_character_thing_rule(self, character, rulebook, rule, thing,
                                      branch, turn, tick):
         character, thing, rulebook = map(self.pack,
                                          (character, thing, rulebook))
         return self.sql('character_thing_rules_handled_insert', character,
-                        rulebook, rule, thing, branch, turn, tick)
+                        thing, rulebook, rule, branch, turn, tick)
 
     def handled_character_place_rule(self, character, rulebook, rule, place,
                                      branch, turn, tick):
         character, rulebook, place = map(self.pack,
                                          (character, rulebook, place))
         return self.sql('character_place_rules_handled_insert', character,
-                        rulebook, rule, place, branch, turn, tick)
+                        place, rulebook, rule, branch, turn, tick)
 
     def handled_character_portal_rule(self, character, rulebook, rule, orig,
                                       dest, branch, turn, tick):
         character, rulebook, orig, dest = map(
             self.pack, (character, rulebook, orig, dest))
         return self.sql('character_portal_rules_handled_insert', character,
-                        rulebook, rule, orig, dest, branch, turn, tick)
+                        orig, dest, rulebook, rule, branch, turn, tick)
 
     def handled_node_rule(self, character, node, rulebook, rule, branch, turn,
                           tick):

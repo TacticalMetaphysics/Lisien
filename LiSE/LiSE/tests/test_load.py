@@ -66,6 +66,7 @@ def test_multi_keyframe(tempdir):
     assert tick1 in eng._nodes_cache.keyframe['physical', ]['trunk'][1]
     assert eng._nodes_cache.keyframe['physical', ]['trunk'][0][tick0]\
            != eng._nodes_cache.keyframe['physical', ]['trunk'][1][tick1]
+    eng.close()
 
 
 def test_keyframe_load_unload(tempdir):

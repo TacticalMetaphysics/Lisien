@@ -341,10 +341,8 @@ class AbstractEngine(ABC):
             '==': eq,
             '!=': ne
         }
-        try:
-            comparator = comps.get(comparator, comparator)
-        except TypeError:
-            pass
+        if not callable(comparator):
+            comparator = comps[comparator]
         return comparator(sum(self.dice(n, d)), target)
 
     def percent_chance(self, pct):
@@ -822,6 +820,7 @@ class Engine(AbstractEngine, gORM):
         self._unitness_cache = UnitnessCache(self)
         self._unitness_cache.name = 'unitness_cache'
         self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
+        self._turns_completed_previous = self._turns_completed.copy()
         """The last turn when the rules engine ran in each branch"""
         self.universal = UniversalMapping(self)
         if hasattr(self, '_action_file'):
@@ -1057,6 +1056,8 @@ class Engine(AbstractEngine, gORM):
         branch = branch or self.branch
         turn = turn or self.turn
         tick = tick or self.tick
+        if tick == start_tick:
+            return {}
         delta = super().get_turn_delta(branch, turn, start_tick, tick)
         if start_tick < tick:
             avatarness_settings = self._unitness_cache.settings
@@ -1245,6 +1246,15 @@ class Engine(AbstractEngine, gORM):
             self.universal['rando_state'] = self._rando.getstate()
             self.turn = turn
             self.tick = tick
+        turns_completed_previous = self._turns_completed_previous
+        turns_completed = self._turns_completed
+        set_turn_completed = self.query.set_turn_completed
+        for branch, turn_late in turns_completed.items():
+            turn_early = turns_completed_previous.get(branch)
+            if turn_late != turn_early:
+                assert turn_early is None or turn_late > turn_early, "Incoherent turns_completed cache"
+                set_turn_completed(branch, turn_late)
+        self._turns_completed_previous = turns_completed.copy()
         super().commit()
 
     def close(self):
@@ -1559,6 +1569,8 @@ class Engine(AbstractEngine, gORM):
         """Create and return a new :class:`Character`."""
         self.add_character(name, data, **kwargs)
         return self.character[name]
+
+    new_graph = new_character
 
     def add_character(self, name: Keyable, data: Graph = None, **kwargs):
         """Create a new character.
