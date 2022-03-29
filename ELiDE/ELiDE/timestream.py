@@ -20,10 +20,10 @@ class ThornyRectangle(Label):
     top_margin = NumericProperty(10)
     bottom_margin = NumericProperty(10)
 
-    draw_left = BooleanProperty(True)
-    draw_right = BooleanProperty(True)
-    draw_up = BooleanProperty(True)
-    draw_down = BooleanProperty(True)
+    draw_left = BooleanProperty(False)
+    draw_right = BooleanProperty(False)
+    draw_up = BooleanProperty(False)
+    draw_down = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -198,14 +198,16 @@ class TimestreamScreen(Screen):
         engine = App.get_running_app().engine
         branch_lineage = engine.handle('branch_lineage')
         start_turn_branches = defaultdict(set)
+        end_turn_branches = defaultdict(set)
         branch_split_turns_todo = defaultdict(set)
         branch_split_turns_done = defaultdict(set)
         for branch, (parent, parent_turn, parent_tick,
                      end_turn, end_tick) in branch_lineage.items():
             start_turn_branches[parent_turn].add(branch)
+            end_turn_branches[end_turn].add(branch)
             branch_split_turns_todo[parent].add(parent_turn)
         branch_split_turns_todo['trunk'].add(0)
-        col2turn = list(sorted(start_turn_branches.keys()))
+        col2turn = list(sorted(start_turn_branches.keys() | end_turn_branches.keys()))
         data = []
         if not col2turn:
             self.timestream.cols = 1
@@ -218,7 +220,6 @@ class TimestreamScreen(Screen):
         branch_lineage['trunk'] = trunk_lineage
         for row, branch in enumerate(sorted_branches):
             for turn in col2turn:
-                branch_split_turns_todo[branch].discard(turn)
                 if branch == 'trunk' and turn == 0:
                     data.append({
                         'widget': 'ThornyRectangle',
@@ -232,14 +233,24 @@ class TimestreamScreen(Screen):
                     data.append({
                         'widget': 'ThornyRectangle',
                         'text': f'{branch}\n{turn}',
-                        'draw_left': turn > branch_lineage[branch][1],
+                        'draw_left': False,
                         'draw_up': turn == branch_lineage[branch][1],
                         'draw_down': len(start_turn_branches[turn]) > 1,
-                        'draw_right': bool(branch_split_turns_todo[branch])
+                        'draw_right': branch_lineage[branch][3] > turn
                     })
-                elif start_turn_branches[turn]:
+                elif branch in end_turn_branches[turn]:
                     data.append({
-                        'widget': 'Cross',
+                        'widget': 'ThornyRectangle',
+                        'text': f'{branch}\n{turn}',
+                        'draw_left': True,
+                        'draw_up': row > 0 and branch_lineage[branch_lineage[branch][0]][3] == turn,
+                        'draw_down': bool(start_turn_branches[turn]),
+                        'draw_right': False
+                    })
+                elif start_turn_branches[turn] and turn <= end_turn_branches[turn]:
+                    data.append({
+                        'widget': 'ThornyRectangle',
+                        'text': f'{branch}\n{turn}',
                         'draw_left': turn > branch_lineage[branch][1],
                         'draw_up': row > 0,
                         'draw_down': bool(start_turn_branches[turn]),
@@ -247,7 +258,10 @@ class TimestreamScreen(Screen):
                     })
                 else:
                     data.append({'widget': 'Widget'})
+                branch_split_turns_todo[branch].discard(turn)
                 start_turn_branches[turn].discard(branch)
+                if turn in end_turn_branches:
+                    end_turn_branches[turn].discard(branch)
                 branch_split_turns_done[branch].add(turn)
             Logger.debug(f"Timestream: processed branch {branch}")
         self.timestream.cols = len(col2turn)
