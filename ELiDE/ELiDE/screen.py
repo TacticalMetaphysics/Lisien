@@ -681,7 +681,7 @@ Builder.load_string("""
         screen: root
         pos_hint: {'bot': 0}
         size_hint: (0.25, 0.2)
-        disabled: root.tmp_block
+        disable_one_turn: root.tmp_block
     CharMenuContainer:
         id: charmenu
         orientation: 'vertical'
