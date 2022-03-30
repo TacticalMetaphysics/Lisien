@@ -232,15 +232,3 @@ Builder.load_string("""
                 on_press: root.toggle()
 """)
 
-if __name__ == '__main__':
-    from kivy.base import runTouchApp
-    from kivy.core.window import Window
-    from kivy.modules import inspector
-    from kivy.uix.boxlayout import BoxLayout
-
-    ts = Timestream()
-    layout = BoxLayout()
-    layout.add_widget(ts)
-    ts.data = [{'text': str(i), 'widget': 'ThornyRectangle' if i % 7 != 0 else 'Cross'} for i in range(500)]
-    inspector.create_inspector(Window, layout)
-    runTouchApp(layout)
