@@ -538,7 +538,7 @@ class Engine(AbstractEngine, gORM):
     illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val', 'things']
 
     def __init__(self,
-                 prefix: PathLike = '.',
+                 prefix: Union[PathLike, str] = '.',
                  *,
                  string: Union[StringStore, dict] = None,
                  trigger: Union[FunctionStore, ModuleType] = None,
