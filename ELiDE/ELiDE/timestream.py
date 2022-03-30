@@ -151,9 +151,9 @@ class TimestreamScreen(Screen):
             return
         Logger.debug("Timestream: read branch lineage, processing...")
         trunk_lineage = branch_lineage.pop('trunk')
-        sorted_branches = ['trunk'] + sorted(branch_lineage)
+        sorted_branches = [('trunk', (None, 0, 0, 0, 0))] + sorted(branch_lineage.items(), key=lambda x: x[1][1])
         branch_lineage['trunk'] = trunk_lineage
-        for row, branch in enumerate(sorted_branches):
+        for row, (branch, _) in enumerate(sorted_branches):
             for turn in col2turn:
                 if branch == 'trunk' and turn == 0:
                     data.append({
