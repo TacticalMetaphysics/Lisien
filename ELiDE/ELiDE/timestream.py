@@ -57,6 +57,7 @@ class ThornyRectangle(Label):
                 the_line = Line(points=points)
             if the_line not in self.canvas.children:
                 self.canvas.add(the_line)
+            setattr(self, name, the_line)
         elif hasattr(self, name):
             self.canvas.remove(getattr(self, name))
             delattr(self, name)
