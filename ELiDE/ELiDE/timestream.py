@@ -4,6 +4,7 @@ from threading import Thread
 from ELiDE.util import trigger
 
 from kivy.app import App
+from kivy.clock import triggered
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.properties import BooleanProperty, NumericProperty, ObjectProperty, StringProperty
@@ -124,7 +125,7 @@ class ThornyRectangle(Button):
         app.mainscreen.toggle_timestream()
         self._push_time()
 
-    @trigger
+    @triggered(timeout=0.1)
     def _push_time(self, *args):
         app = App.get_running_app()
         (app.branch, app.turn) = (self.branch, self.turn)
