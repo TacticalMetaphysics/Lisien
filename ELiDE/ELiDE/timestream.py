@@ -268,14 +268,6 @@ class TimestreamScreen(Screen):
                         'draw_down': bool(start_turn_branches[turn]),
                         'draw_right': False
                     })
-                # elif start_turn_branches[turn]:
-                #     data.append({
-                #         'widget': 'Cross',
-                #         'draw_left': turn > branch_lineage[branch][1],
-                #         'draw_up': row > 0,
-                #         'draw_down': bool(start_turn_branches[turn]),
-                #         'draw_right': turn < col2turn[-1]
-                #     })
                 elif branch_lineage[branch][1] <= turn < branch_lineage[branch][3]:
                     here_branches = [(branch_lineage[b][1], b) for b in start_turn_branches[turn] if b != branch]
                     data.append({
