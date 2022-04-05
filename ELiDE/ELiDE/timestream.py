@@ -9,12 +9,12 @@ from kivy.logger import Logger
 from kivy.properties import BooleanProperty, NumericProperty, ObjectProperty, StringProperty
 from kivy.graphics import Color, Line
 from kivy.uix.recycleview import RecycleView
-from kivy.uix.label import Label
+from kivy.uix.button import Button
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 
 
-class ThornyRectangle(Label):
+class ThornyRectangle(Button):
     left_margin = NumericProperty(10)
     right_margin = NumericProperty(10)
     top_margin = NumericProperty(10)
@@ -116,6 +116,18 @@ class ThornyRectangle(Label):
         self.canvas.ask_update()
 
     _trigger_redraw = trigger(_redraw)
+
+    def on_release(self):
+        if self.branch is None or self.turn is None:
+            return
+        app = App.get_running_app()
+        app.mainscreen.toggle_timestream()
+        self._push_time()
+
+    @trigger
+    def _push_time(self, *args):
+        app = App.get_running_app()
+        (app.branch, app.turn) = (self.branch, self.turn)
 
 
 class Cross(Widget):
