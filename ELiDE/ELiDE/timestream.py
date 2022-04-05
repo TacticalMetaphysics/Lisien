@@ -6,7 +6,7 @@ from ELiDE.util import trigger
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.logger import Logger
-from kivy.properties import BooleanProperty, NumericProperty, ObjectProperty
+from kivy.properties import BooleanProperty, NumericProperty, ObjectProperty, StringProperty
 from kivy.graphics import Color, Line
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.label import Label
@@ -24,6 +24,9 @@ class ThornyRectangle(Label):
     draw_right = BooleanProperty(False)
     draw_up = BooleanProperty(False)
     draw_down = BooleanProperty(False)
+
+    branch = StringProperty()
+    turn = NumericProperty()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -224,7 +227,8 @@ class TimestreamScreen(Screen):
                 if branch == 'trunk' and turn == 0:
                     data.append({
                         'widget': 'ThornyRectangle',
-                        'text': 'NEW',
+                        'branch': 'trunk',
+                        'turn': 0,
                         'draw_left': False,
                         'draw_up': False,
                         'draw_down': len(start_turn_branches[turn]) > 1,
@@ -235,7 +239,8 @@ class TimestreamScreen(Screen):
                     if branch == min(here_branches)[1]:
                         data.append({
                             'widget': 'ThornyRectangle',
-                            'text': f'{branch}\n{turn}',
+                            'branch': branch,
+                            'turn': turn,
                             'draw_left': False,
                             'draw_up': turn == branch_lineage[branch][1],
                             'draw_down': len(start_turn_branches[turn]) > 1,
@@ -244,7 +249,8 @@ class TimestreamScreen(Screen):
                     elif branch == max(here_branches)[1]:
                         data.append({
                             'widget': 'ThornyRectangle',
-                            'text': f'{branch}\n{turn}',
+                            'branch': branch,
+                            'turn': turn,
                             'draw_left': branch_lineage[branch][1] > turn,
                             'draw_up': False,
                             'draw_down': len(start_turn_branches[turn]) > 1,
@@ -261,7 +267,8 @@ class TimestreamScreen(Screen):
                 elif branch in end_turn_branches[turn]:
                     data.append({
                         'widget': 'ThornyRectangle',
-                        'text': f'{branch}\n{turn}',
+                        'branch': branch,
+                        'turn': turn,
                         'draw_left': True,
                         'draw_up': row > 0 and branch_lineage[branch_lineage[branch][0]][3] == turn,
                         'draw_down': bool(start_turn_branches[turn]),
@@ -291,7 +298,9 @@ class TimestreamScreen(Screen):
         self.timestream.disabled = False
 
 
-Builder.load_string("""
+Builder.load_string(r"""
+<ThornyRectangle>:
+    text: f"{self.branch}\n{int(self.turn)}"
 <Timestream>:
     key_viewclass: 'widget'
     effect_cls: 'ScrollEffect'
