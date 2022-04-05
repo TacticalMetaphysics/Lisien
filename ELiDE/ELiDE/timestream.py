@@ -1,5 +1,4 @@
 from collections import defaultdict
-from operator import itemgetter
 from threading import Thread
 
 from ELiDE.util import trigger
