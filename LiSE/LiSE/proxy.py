@@ -37,7 +37,7 @@ import msgpack
 from .allegedb import HistoryError
 from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
-from .engine import AbstractEngine
+from .engine import AbstractEngine, MSGPACK_TUPLE
 from .character import Facade, AbstractCharacter
 from .reify import reify
 from .util import getatt
@@ -2168,7 +2168,8 @@ class EngineProxy(AbstractEngine):
             assert not kwargs.get('silent')
             self.debug('EngineProxy: sending {}'.format(kwargs))
             self.send_bytes(self.pack(kwargs))
-            command, branch, turn, tick, r = self.unpack(self.recv_bytes())
+            received = self.recv_bytes()
+            command, branch, turn, tick, r = self.unpack(received)
             assert cmd == command, \
                 "Sent command {} but received results for {}".format(
                     cmd, command
@@ -2523,7 +2524,6 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
     compress = lz4.frame.compress
     decompress = lz4.frame.decompress
     pack = engine_handle.pack
-    pack_array_header = msgpack.Packer().pack_array_header
 
     while True:
         inst = decompress(handle_out_pipe.recv_bytes())
@@ -2555,11 +2555,21 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
             continue
         if silent:
             continue
-        resp = pack_array_header(5)
+        resp = msgpack.Packer().pack_array_header(5)
         resp += pack(cmd) + pack(engine_handle.branch) \
             + pack(engine_handle.turn) + pack(engine_handle.tick)
-        if hasattr(getattr(engine_handle, cmd), 'packing'):
-            resp += r
+        if hasattr(getattr(engine_handle, cmd), 'prepacked'):
+            if isinstance(r, dict):
+                resp += msgpack.Packer().pack_map_header(len(r))
+                for k, v in r.items():
+                    resp += k + v
+            elif isinstance(r, tuple):
+                resp += msgpack.Packer().pack_ext_type(
+                    MSGPACK_TUPLE, msgpack.Packer().pack_array_header(len(r)) + b''.join(r))
+            elif isinstance(r, list):
+                resp += msgpack.Packer().pack_array_header(len(r)) + b''.join(r)
+            else:
+                resp += r
         else:
             resp += pack(r)
         handle_in_pipe.send_bytes(compress(resp))

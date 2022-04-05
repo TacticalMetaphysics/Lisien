@@ -88,33 +88,17 @@ def test_fast_delta(handle_initialized):
     # so don't test that
     tick = hand._real.tick
     ret, diff = hand.next_turn()
-    slowd = hand.get_slow_delta()
+    slowd = hand.unpack(hand.get_slow_delta())
     assert diff == slowd, "Fast delta differs from slow delta"
     ret, diff2 = hand.time_travel('trunk', 0, tick)
-    slowd2 = hand.get_slow_delta()
+    slowd2 = hand.unpack(hand.get_slow_delta())
     assert diff2 == slowd2, "Fast delta differs from slow delta"
     ret, diff3 = hand.time_travel('trunk', 3)
-    slowd3 = hand.get_slow_delta()
+    slowd3 = hand.unpack(hand.get_slow_delta())
     assert diff3 == slowd3, "Fast delta differs from slow delta"
     ret, diff4 = hand.time_travel('trunk', 1)
-    slowd4 = hand.get_slow_delta()
+    slowd4 = hand.unpack(hand.get_slow_delta())
     assert diff4 == slowd4, "Fast delta differs from slow delta"
-
-
-def test_assignment(handle):
-    hand = handle
-    eng = hand._real
-    with eng.advancing():
-        college.install(eng)
-    physical_copy = hand.character_copy('physical')
-    assert physical_copy == data.PHYSICAL_INITIAL_COPY
-    dorm_copy = hand.character_copy('dorm0')
-    assert dorm_copy == data.DORM_INITIAL_COPY
-    student_initial_copy = data.STUDENT_INITIAL_COPY
-    student_initial_copy['roommate'] = eng.character['dorm0room0student1']
-    student_initial_copy['room'] = eng.character['physical'].place[
-        'dorm0room0']
-    assert hand.character_copy('dorm0room0student0') == student_initial_copy
 
 
 def test_serialize_deleted(engy):
