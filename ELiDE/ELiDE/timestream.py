@@ -1,4 +1,5 @@
 from collections import defaultdict
+from operator import itemgetter
 from threading import Thread
 
 from ELiDE.util import trigger
@@ -231,14 +232,33 @@ class TimestreamScreen(Screen):
                         'draw_right': bool(branch_split_turns_todo[branch])
                     })
                 elif branch in start_turn_branches[turn]:
-                    data.append({
-                        'widget': 'ThornyRectangle',
-                        'text': f'{branch}\n{turn}',
-                        'draw_left': False,
-                        'draw_up': turn == branch_lineage[branch][1],
-                        'draw_down': len(start_turn_branches[turn]) > 1,
-                        'draw_right': branch_lineage[branch][3] > turn
-                    })
+                    here_branches = [(branch_lineage[b][1], b) for b in start_turn_branches[turn]]
+                    if branch == min(here_branches)[1]:
+                        data.append({
+                            'widget': 'ThornyRectangle',
+                            'text': f'{branch}\n{turn}',
+                            'draw_left': False,
+                            'draw_up': turn == branch_lineage[branch][1],
+                            'draw_down': len(start_turn_branches[turn]) > 1,
+                            'draw_right': branch_lineage[branch][3] > turn
+                        })
+                    elif branch == max(here_branches)[1]:
+                        data.append({
+                            'widget': 'ThornyRectangle',
+                            'text': f'{branch}\n{turn}',
+                            'draw_left': branch_lineage[branch][1] > turn,
+                            'draw_up': False,
+                            'draw_down': len(start_turn_branches[turn]) > 1,
+                            'draw_right': False
+                        })
+                    else:
+                        data.append({
+                            'widget': 'Cross',
+                            'draw_left': False,
+                            'draw_up': True,
+                            'draw_down': len(start_turn_branches[turn]) > 1,
+                            'draw_right': branch_lineage[branch][3] > turn
+                        })
                 elif branch in end_turn_branches[turn]:
                     data.append({
                         'widget': 'ThornyRectangle',
@@ -248,22 +268,23 @@ class TimestreamScreen(Screen):
                         'draw_down': bool(start_turn_branches[turn]),
                         'draw_right': False
                     })
-                elif start_turn_branches[turn]:
-                    data.append({
-                        'widget': 'ThornyRectangle',
-                        'text': f'{branch}\n{turn}',
-                        'draw_left': turn > branch_lineage[branch][1],
-                        'draw_up': row > 0,
-                        'draw_down': bool(start_turn_branches[turn]),
-                        'draw_right': turn < col2turn[-1]
-                    })
-                elif branch_lineage[branch][1] < turn < branch_lineage[branch][3]:
+                # elif start_turn_branches[turn]:
+                #     data.append({
+                #         'widget': 'Cross',
+                #         'draw_left': turn > branch_lineage[branch][1],
+                #         'draw_up': row > 0,
+                #         'draw_down': bool(start_turn_branches[turn]),
+                #         'draw_right': turn < col2turn[-1]
+                #     })
+                elif branch_lineage[branch][1] <= turn < branch_lineage[branch][3]:
+                    here_branches = [(branch_lineage[b][1], b) for b in start_turn_branches[turn] if b != branch]
                     data.append({
                         'widget': 'Cross',
                         'draw_left': True,
                         'draw_right': True,
-                        'draw_up': False,
-                        'draw_down': False
+                        'draw_up': branch in branch_lineage and branch_lineage[branch][0] in branch_lineage
+                        and branch_lineage[branch_lineage[branch][0]][3] >= turn,
+                        'draw_down': bool(here_branches)
                     })
                 else:
                     data.append({'widget': 'Widget'})
