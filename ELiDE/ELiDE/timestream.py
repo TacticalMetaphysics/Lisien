@@ -248,7 +248,7 @@ class TimestreamScreen(Screen):
                         'draw_down': bool(start_turn_branches[turn]),
                         'draw_right': False
                     })
-                elif start_turn_branches[turn] and turn <= end_turn_branches[turn]:
+                elif start_turn_branches[turn]:
                     data.append({
                         'widget': 'ThornyRectangle',
                         'text': f'{branch}\n{turn}',
@@ -256,6 +256,14 @@ class TimestreamScreen(Screen):
                         'draw_up': row > 0,
                         'draw_down': bool(start_turn_branches[turn]),
                         'draw_right': turn < col2turn[-1]
+                    })
+                elif branch_lineage[branch][1] < turn < branch_lineage[branch][3]:
+                    data.append({
+                        'widget': 'Cross',
+                        'draw_left': True,
+                        'draw_right': True,
+                        'draw_up': False,
+                        'draw_down': False
                     })
                 else:
                     data.append({'widget': 'Widget'})
