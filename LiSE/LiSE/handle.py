@@ -19,7 +19,7 @@ ordinary method calls.
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from re import match
 from collections import defaultdict
-from functools import partial
+from functools import partial, wraps
 from importlib import import_module
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
@@ -62,14 +62,13 @@ def set_delta(old, new):
 
 
 def timely(fun):
+    @wraps(fun)
     def run_timely(self, *args, **kwargs):
         ret = fun(self, *args, **kwargs)
         self.branch, self.turn, self.tick = self._real._btt()
         return ret
 
     run_timely.timely = True
-    if hasattr(fun, 'prepacked'):
-        run_timely.prepacked = fun.prepacked
     return run_timely
 
 
