@@ -576,28 +576,29 @@ class EngineHandle(object):
                                                self.character_stat_copy,
                                                store=store)
 
-    def character_units_copy(self, char):
+    def _character_units_copy(self, char):
+        pack = self._real.pack
         return {
-            graph: frozenset(nodes.keys())
+            pack(graph): frozenset(map(pack, nodes.keys()))
             for (graph, nodes) in self._real.character[char].unit.items()
         }
 
-    def character_units_delta(self, char, *, store=True):
+    def _character_units_delta(self, char, *, store=True):
         old = self._char_av_cache.get(char, {})
-        new = self.character_units_copy(char)
+        new = self._character_units_copy(char)
         ret = {}
         oldkeys = set(old.keys())
         newkeys = set(new.keys())
         for graph in oldkeys.difference(newkeys):
-            ret[graph] = {node: False for node in old[graph]}
+            ret[graph] = {node: false for node in old[graph]}
         for graph in newkeys.difference(oldkeys):
-            ret[graph] = {node: True for node in new[graph]}
+            ret[graph] = {node: true for node in new[graph]}
         for graph in oldkeys.intersection(newkeys):
             graph_nodes = {}
             for node in old[graph].difference(new[graph]):
-                graph_nodes[node] = False
+                graph_nodes[node] = false
             for node in new[graph].difference(old[graph]):
-                graph_nodes[node] = True
+                graph_nodes[node] = true
             if graph_nodes:
                 ret[graph] = graph_nodes
         if store:
@@ -686,6 +687,7 @@ class EngineHandle(object):
         except KeyError:
             return None
 
+    @prepacked
     def character_delta(self, char, *, store=True) -> bytes:
         """Return a dictionary of changes to ``char`` since previous call."""
         def concat_d(r):
@@ -697,7 +699,7 @@ class EngineHandle(object):
         ret_fut = self.threadpool.submit(self.character_stat_delta, char, store=store)
         nodes_fut = self.threadpool.submit(self.character_nodes_delta, char, store=store)
         edges_fut = self.threadpool.submit(self.character_portals_delta, char, store=store)
-        units_fut = self.threadpool.submit(self.character_units_delta, char, store=store)
+        units_fut = self.threadpool.submit(self._character_units_delta, char, store=store)
         rbs_fut = self.threadpool.submit(self.character_rulebooks_delta, char, store=store)
         nrbs_fut = self.threadpool.submit(self.character_nodes_rulebooks_delta, char, store=store)
         porbs_fut = self.threadpool.submit(self.character_portals_rulebooks_delta, char, store=store)
@@ -716,7 +718,10 @@ class EngineHandle(object):
             ret[pack('edges')] = concat_d(edge_origs)
         units = units_fut.result()
         if units:
-            ret[pack('units')] = concat_d(units)
+            graph_units = {}
+            for graph, unitss in units.items():
+                graph_units[graph] = concat_d(unitss)
+            ret[pack('units')] = concat_d(graph_units)
         rbs = rbs_fut.result()
         if rbs:
             ret[pack('rulebooks')] = concat_d(rbs)
