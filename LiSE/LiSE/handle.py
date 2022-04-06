@@ -61,6 +61,13 @@ def set_delta(old, new):
     return r
 
 
+def concat_d(r):
+    resp = msgpack.Packer().pack_map_header(len(r))
+    for k, v in r.items():
+        resp += k + v
+    return resp
+
+
 def timely(fun):
     @wraps(fun)
     def run_timely(self, *args, **kwargs):
@@ -691,11 +698,6 @@ class EngineHandle(object):
     @prepacked
     def character_delta(self, char, *, store=True) -> bytes:
         """Return a dictionary of changes to ``char`` since previous call."""
-        def concat_d(r):
-            resp = msgpack.Packer().pack_map_header(len(r))
-            for k, v in r.items():
-                resp += k + v
-            return resp
         pack = self._real.pack
         ret_fut = self.threadpool.submit(self.character_stat_delta, char, store=store)
         nodes_fut = self.threadpool.submit(self.character_nodes_delta, char, store=store)
