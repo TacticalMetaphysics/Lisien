@@ -696,7 +696,7 @@ class EngineHandle(object):
             return None
 
     @prepacked
-    def character_delta(self, char, *, store=True) -> bytes:
+    def character_delta(self, char, *, store=True) -> dict:
         """Return a dictionary of changes to ``char`` since previous call."""
         pack = self._real.pack
         ret_fut = self.threadpool.submit(self.character_stat_delta, char, store=store)
