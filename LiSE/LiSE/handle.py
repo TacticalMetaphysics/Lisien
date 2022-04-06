@@ -68,6 +68,8 @@ def timely(fun):
         return ret
 
     run_timely.timely = True
+    if hasattr(fun, 'prepacked'):
+        run_timely.prepacked = fun.prepacked
     return run_timely
 
 

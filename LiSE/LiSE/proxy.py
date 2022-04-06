@@ -2564,8 +2564,10 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
                 for k, v in r.items():
                     resp += k + v
             elif isinstance(r, tuple):
-                resp += msgpack.Packer().pack_ext_type(
+                pacr = msgpack.Packer()
+                pacr.pack_ext_type(
                     MSGPACK_TUPLE, msgpack.Packer().pack_array_header(len(r)) + b''.join(r))
+                resp += pacr.bytes()
             elif isinstance(r, list):
                 resp += msgpack.Packer().pack_array_header(len(r)) + b''.join(r)
             else:
