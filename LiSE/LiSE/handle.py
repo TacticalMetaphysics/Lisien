@@ -566,7 +566,7 @@ class EngineHandle(object):
             k, v = kv
             return pack(k), pack(v)
         old = cache.get(char, {})
-        new = dict(self.threadpool.map(pack_pair, copier(char, *args).items()))
+        new = dict(map(pack_pair, copier(char, *args).items()))
         if store:
             cache[char] = new
         return self._packed_dict_delta(old, new)
