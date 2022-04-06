@@ -64,6 +64,7 @@ class AbstractGraphTest:
             self.assertIn(0, g)
             self.assertIn(1, g)
             self.engine.branch = graphmaker.__name__ + '_no_edge'
+            self.assertIn(3, g.node)
             self.assertIn(0, g)
             self.assertIn(1, g)
             self.assertIn(1, g.adj[0])
@@ -82,6 +83,7 @@ class AbstractGraphTest:
             self.assertNotIn(1, g.adj[0])
             self.assertNotIn(1, list(g.adj[0]))
             self.engine.branch = graphmaker.__name__ + '_triangle'
+            self.assertIn(3, g.node)
             self.assertIn(2, g)
             g.add_edge(0, 1)
             self.assertIn(1, g.adj[0])
@@ -97,6 +99,7 @@ class AbstractGraphTest:
             self.assertIn(2, g.adj[0])
             self.assertIn(2, list(g.adj[0]))
             self.engine.branch = graphmaker.__name__ + '_square'
+            self.assertIn(3, g.node)
             self.assertIn(2, list(g.adj[0]))
             self.engine.turn = 2
             self.assertIn(2, g)
@@ -113,6 +116,7 @@ class AbstractGraphTest:
                 self.assertIn(2, g.pred[3])
                 self.assertIn(3, g.pred[0])
             self.engine.branch = graphmaker.__name__ + '_de_edge'
+            self.assertIn(3, g.node)
             g.remove_node(3)
             self.assertNotIn(3, g.node)
             self.assertNotIn(3, g.adj)
@@ -121,7 +125,9 @@ class AbstractGraphTest:
                 self.assertNotIn(3, g.pred)
                 self.assertNotIn(3, g.pred[0])
             self.engine.branch = graphmaker.__name__ + '_square'
+            self.assertIn(3, g.node)
             self.engine.branch = graphmaker.__name__ + '_nothing'
+            self.assertIn(3, g.node)
             g.remove_nodes_from((0, 1, 2, 3))
             for n in (0, 1, 2, 3):
                 self.assertNotIn(n, g.node)
