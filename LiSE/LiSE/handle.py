@@ -84,6 +84,44 @@ def prepacked(fun):
     return fun
 
 
+def _packed_dict_delta(old, new):
+    """`_dict_delta` but the keys, values, and output are all bytes"""
+
+    r = {}
+    oldkeys = set(old.keys())
+    newkeys = set(new.keys())
+    added_thread = Thread(target=_dict_delta_added,
+                          args=(oldkeys, new, newkeys, r))
+    removed_thread = Thread(target=_dict_delta_removed,
+                            args=(oldkeys, newkeys, r))
+    added_thread.start()
+    removed_thread.start()
+    ks = oldkeys.intersection(newkeys)
+    oldv_l = []
+    newv_l = []
+    k_l = []
+    for k in ks:
+        oldv_l.append(old[k])
+        newv_l.append(new[k])
+        k_l.append(k)
+    oldvs = np.array(oldv_l)
+    newvs = np.array(newv_l)
+    ks = np.array(k_l)
+    changes = oldvs != newvs
+    added_thread.join()
+    removed_thread.join()
+    if not (changes.any() or r):
+        return {}
+    changed_keys = ks[changes]
+    changed_values = newvs[changes]
+    ret = {}
+    for (k, v) in r.items():
+        ret[k] = v
+    for (k, v) in zip(changed_keys, changed_values):
+        ret[k] = v
+    return ret
+
+
 class EngineHandle(object):
     """A wrapper for a :class:`LiSE.Engine` object that runs in the same
     process, but with an API built to be used in a command-processing
@@ -140,43 +178,6 @@ class EngineHandle(object):
         self._rulebook_cache = defaultdict(list)
         self._stores_cache = defaultdict(dict)
         self.threadpool = ThreadPoolExecutor(cpu_count())
-
-    def _packed_dict_delta(self, old, new):
-        """`_dict_delta` but the keys, values, and output are all bytes"""
-
-        r = {}
-        oldkeys = set(old.keys())
-        newkeys = set(new.keys())
-        added_thread = Thread(target=_dict_delta_added,
-                              args=(oldkeys, new, newkeys, r))
-        removed_thread = Thread(target=_dict_delta_removed,
-                                args=(oldkeys, newkeys, r))
-        added_thread.start()
-        removed_thread.start()
-        ks = oldkeys.intersection(newkeys)
-        oldv_l = []
-        newv_l = []
-        k_l = []
-        for k in ks:
-            oldv_l.append(old[k])
-            newv_l.append(new[k])
-            k_l.append(k)
-        oldvs = np.array(oldv_l)
-        newvs = np.array(newv_l)
-        ks = np.array(k_l)
-        changes = oldvs != newvs
-        added_thread.join()
-        removed_thread.join()
-        if not (changes.any() or r):
-            return {}
-        changed_keys = ks[changes]
-        changed_values = newvs[changes]
-        ret = {}
-        for (k, v) in r.items():
-            ret[k] = v
-        for (k, v) in zip(changed_keys, changed_values):
-            ret[k] = v
-        return ret
 
     def log(self, level, message):
         if isinstance(level, str):
@@ -456,7 +457,7 @@ class EngineHandle(object):
             return pack(k), pack(v)
         old = self._strings_cache
         new = dict(self.threadpool.map(pack_pair, self._real.string.items()))
-        ret = self._packed_dict_delta(old, new)
+        ret = _packed_dict_delta(old, new)
         self._strings_cache = new
         return ret
 
@@ -502,7 +503,7 @@ class EngineHandle(object):
         new = dict(self.threadpool.map(pack_pair, self._real.eternal.items()))
         if store:
             self._eternal_cache = new
-        return self._packed_dict_delta(old, new)
+        return _packed_dict_delta(old, new)
 
     def get_universal(self, k):
         ret = self._universal_cache[k] = self._real.universal[k]
@@ -531,7 +532,7 @@ class EngineHandle(object):
         new = self.universal_copy()
         if store:
             self._universal_cache = new
-        return self._packed_dict_delta(old, new)
+        return _packed_dict_delta(old, new)
 
     @timely
     def init_character(self, char, statdict={}):
@@ -575,7 +576,7 @@ class EngineHandle(object):
         new = dict(map(pack_pair, copier(char, *args).items()))
         if store:
             cache[char] = new
-        return self._packed_dict_delta(old, new)
+        return _packed_dict_delta(old, new)
 
     @prepacked
     def character_stat_delta(self, char, *, store=True):
@@ -685,7 +686,7 @@ class EngineHandle(object):
             result = {}
             for origin in old:
                 if origin in new:
-                    result[origin] = self._packed_dict_delta(old[origin], new[origin])
+                    result[origin] = _packed_dict_delta(old[origin], new[origin])
                 else:
                     result[origin] = None
             for origin in new:
@@ -843,7 +844,7 @@ class EngineHandle(object):
             new = self.node_stat_copy(self._real.character[char].node[node])
             if store:
                 self._node_stat_cache[char][node] = new
-            r = self._packed_dict_delta(old, new)
+            r = _packed_dict_delta(old, new)
             return r
         except KeyError:
             return None
@@ -1155,7 +1156,7 @@ class EngineHandle(object):
             new = self.portal_stat_copy(char, orig, dest)
             if store:
                 self._portal_stat_cache[char][orig][dest] = new
-            return self._packed_dict_delta(old, new)
+            return _packed_dict_delta(old, new)
         except KeyError:
             return None
 
@@ -1346,7 +1347,7 @@ class EngineHandle(object):
     def source_delta(self, store):
         old = self._stores_cache.get(store, {})
         new = self._stores_cache[store] = self.source_copy(store)
-        return self._packed_dict_delta(old, new)
+        return _packed_dict_delta(old, new)
 
     def get_source(self, store, name):
         return getattr(self._real, store).get_source(name)
