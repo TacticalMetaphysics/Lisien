@@ -212,3 +212,23 @@ def sort_set(s):
     if s not in _sort_set_memo:
         _sort_set_memo[s] = sorted(s, key=_sort_set_key)
     return _sort_set_memo[s]
+
+
+def fake_submit(func, *args, **kwargs):
+    """A replacement for `concurrent.futures.Executor.submit` that works in serial
+
+    This is for testing. Use, eg., `@patch.object(executor, 'submit', new=fake_submit)`
+    to make normally parallel operations serial.
+
+    """
+    class FakeFuture:
+        def __init__(self, func, *args, **kwargs):
+            self._func = func
+            self._args = args
+            self._kwargs = kwargs
+
+        def result(self):
+            return self._func(*self._args, **self._kwargs)
+
+    return FakeFuture(func(*args, **kwargs))
+
