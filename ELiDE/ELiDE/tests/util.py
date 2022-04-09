@@ -58,6 +58,8 @@ def idle_until(condition=None, timeout=None, message="Timed out"):
     raising ``TimeoutError``. You can customize its ``message``.
 
     """
+    if not (timeout or condition):
+        raise ValueError("Need timeout or condition")
     if condition is None:
         return partial(idle_until, timeout=timeout, message=message)
     if timeout is None:
