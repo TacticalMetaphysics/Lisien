@@ -278,8 +278,6 @@ class EngineHandle(object):
 
         def updd(d0, d1):
             for k, v in d1.items():
-                assert not isinstance(k, bytes)
-                assert not isinstance(v, bytes)
                 k = pack(k)
                 v = pack(v)
                 if v == none:
