@@ -104,7 +104,7 @@ def _packed_dict_delta(old, new):
         # the integer zero.
         oldv_l.append(old[k] + b'\xc1')
         newv_l.append(new[k] + b'\xc1')
-        k_l.append(k)
+        k_l.append(k + b'\xc1')
     oldvs = np.array(oldv_l)
     newvs = np.array(newv_l)
     ks = np.array(k_l)
@@ -119,7 +119,7 @@ def _packed_dict_delta(old, new):
     for (k, v) in r.items():
         ret[k] = v
     for (k, v) in zip(changed_keys, changed_values):
-        ret[k] = v[:-1]
+        ret[k[:-1]] = v[:-1]
     return ret
 
 
