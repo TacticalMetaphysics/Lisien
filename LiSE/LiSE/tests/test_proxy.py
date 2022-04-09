@@ -88,17 +88,17 @@ def test_fast_delta(handle_initialized):
     # so don't test that
     tick = hand._real.tick
     ret, diff = hand.next_turn()
-    slowd = hand.unpack(hand.get_slow_delta())
+    slowd = hand.unpack_dict(hand.get_slow_delta())
     assert diff == slowd, "Fast delta differs from slow delta"
     ret, diff2 = hand.time_travel('trunk', 0, tick)
-    slowd2 = hand.unpack(hand.get_slow_delta())
-    assert diff2 == slowd2, "Fast delta differs from slow delta"
+    slowd2 = hand.unpack_dict(hand.get_slow_delta())
+    assert hand.unpack(diff2) == slowd2, "Fast delta differs from slow delta"
     ret, diff3 = hand.time_travel('trunk', 3)
-    slowd3 = hand.unpack(hand.get_slow_delta())
-    assert diff3 == slowd3, "Fast delta differs from slow delta"
+    slowd3 = hand.unpack_dict(hand.get_slow_delta())
+    assert hand.unpack(diff3) == slowd3, "Fast delta differs from slow delta"
     ret, diff4 = hand.time_travel('trunk', 1)
-    slowd4 = hand.unpack(hand.get_slow_delta())
-    assert diff4 == slowd4, "Fast delta differs from slow delta"
+    slowd4 = hand.unpack_dict(hand.get_slow_delta())
+    assert hand.unpack(diff4) == slowd4, "Fast delta differs from slow delta"
 
 
 def test_serialize_deleted(engy):

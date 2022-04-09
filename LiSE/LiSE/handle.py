@@ -29,6 +29,7 @@ import numpy as np
 import msgpack
 
 from .engine import Engine
+from .util import fake_submit
 
 
 def _dict_delta_added(oldkeys, new, newkeys, d):
@@ -101,8 +102,12 @@ def _packed_dict_delta(old, new):
     newv_l = []
     k_l = []
     for k in ks:
-        oldv_l.append(old[k])
-        newv_l.append(new[k])
+        # \xc1 is unused by msgpack.
+        # I append it here so that the last byte will never be \x00,
+        # which numpy uses as a terminator, but msgpack uses for
+        # the integer zero.
+        oldv_l.append(old[k] + b'\xc1')
+        newv_l.append(new[k] + b'\xc1')
         k_l.append(k)
     oldvs = np.array(oldv_l)
     newvs = np.array(newv_l)
@@ -118,7 +123,7 @@ def _packed_dict_delta(old, new):
     for (k, v) in r.items():
         ret[k] = v
     for (k, v) in zip(changed_keys, changed_values):
-        ret[k] = v
+        ret[k] = v[:-1]
     return ret
 
 
@@ -152,23 +157,38 @@ class EngineHandle(object):
             kwargs = {}
         kwargs.setdefault('logfun', self.log)
         self._real = Engine(*args, **kwargs)
-        self.pack = self._real.pack
-        self.unpack = self._real.unpack
+        self.pack = pack = self._real.pack
+
+        def pack_pair(pair):
+            k, v = pair
+            return pack(k), pack(v)
+
+        self.pack_pair = pack_pair
+        self.unpack = unpack = self._real.unpack
+
+        def unpack_pair(pair):
+            k, v = pair
+            return unpack(k), unpack(v)
+
+        def unpack_dict(d: dict):
+            return dict(map(unpack_pair, d.items()))
+
+        self.unpack_dict = unpack_dict
         self._logq = logq
         self._loglevel = loglevel
         self._muted_chars = set()
         self.branch = self._real.branch
         self.turn = self._real.turn
         self.tick = self._real.tick
-        self._node_stat_cache = defaultdict(dict)
-        self._portal_stat_cache = defaultdict(lambda: defaultdict(dict))
-        self._char_stat_cache = {}
+        self._node_stat_cache = defaultdict(lambda: defaultdict(dict))
+        self._portal_stat_cache = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+        self._char_stat_cache = defaultdict(dict)
         self._char_av_cache = defaultdict(lambda: defaultdict(set))
         self._char_rulebooks_cache = {}
         self._char_nodes_rulebooks_cache = defaultdict(dict)
         self._char_portals_rulebooks_cache = defaultdict(
             lambda: defaultdict(dict))
-        self._char_nodes_cache = {}
+        self._char_nodes_cache = defaultdict(set)
         self._char_portals_cache = {}
         self._node_successors_cache = defaultdict(dict)
         self._strings_cache = {}
@@ -227,35 +247,27 @@ class EngineHandle(object):
         for char in it:
             delt = self.character_delta(char, store=store)
             if delt:
-                ret[pack(char)] = delt
+                ret[pack(char)] = concat_d(delt)
         return ret
 
     def _upd_local_caches(self, delta=None):
-        pack = self._real.pack
-
-        def pack_pair(kv):
-            k, v = kv
-            return pack(k), pack(v)
         if delta is None:
-            self._eternal_cache = dict(self.threadpool.map(pack_pair, self._real.eternal.items()))
-            self._universal_cache = dict(self.threadpool.map(pack_pair, self._real.universal.items()))
+            self._eternal_cache = dict(map(self.pack_pair, self._real.eternal.items()))
+            self._universal_cache = dict(map(self.pack_pair, self._real.universal.items()))
             self._rulebook_cache = {
                 rb: self.rulebook_copy(rb)
                 for rb in self._real.rulebook
             }
             self._rule_cache = {r: self.rule_copy(r) for r in self._real.rule}
             self._strings_cache = self.strings_copy()
-            # stores?
             for charn, char in self._real.character.items():
                 self._char_stat_cache[charn] = self.character_stat_copy(charn)
-                self._node_stat_cache[charn] = {
-                    node: self.node_stat_copy(charn, node)
-                    for node in char.node
-                }
+                node_stat_cache = self._node_stat_cache[charn]
+                for node in char.node:
+                    node_stat_cache[node] = self.node_stat_copy(charn, node)
                 portst = self._portal_stat_cache[charn]
                 for port in char.portals():
-                    portst.setdefault(port.orig,
-                                      {})[port.dest] = self.portal_stat_copy(
+                    portst[port.orig][port.dest] = self.portal_stat_copy(
                                           charn, port.orig, port.dest)
                 self._char_nodes_cache[charn] = self.character_nodes(char)
                 self._char_portals_cache[charn] = self.character_portals(char)
@@ -276,17 +288,18 @@ class EngineHandle(object):
         updd(self._rulebook_cache, delta.pop('rulebooks', {}))
         updd(self._strings_cache, delta.pop('strings', {}))
         for rule, d in delta.pop('rules', {}).items():
-            updd(self._rulebook_cache.setdefault(rule, {}), d)
+            updd(self._rule_cache.setdefault(rule, {}), d)
         for char, d in delta.items():
-            nodeset = set(self._char_nodes_cache.setdefault(char, ()))
+            nodeset = self._char_nodes_cache[char]
+            d = self.unpack(d)  # TODO: break up the bytestream instead of unpacking it entirely
             for n, ex in d.pop('nodes', {}).items():
                 if ex:
                     nodeset.add(n)
                 else:
                     nodeset.remove(n)
-            nodevd = self._node_stat_cache.setdefault(char, {})
+            nodevd = self._node_stat_cache[char]
             for node, val in d.pop('node_val', {}).items():
-                nodenvd = nodevd.setdefault(node, {})
+                nodenvd = nodevd[node]
                 for k, v in val.items():
                     if k != 'location' and v is None:
                         if k in nodenvd:
@@ -358,7 +371,9 @@ class EngineHandle(object):
         return none, packdelta
 
     @timely
-    def increment_branch(self, chars=[]):
+    def increment_branch(self, chars: list = None):
+        if chars is None:
+            chars = []
         branch = self._real.branch
         m = match('(.*)([0-9]+)', branch)
         if m:
@@ -383,17 +398,31 @@ class EngineHandle(object):
 
     @timely
     def add_character(self, char, data, attr):
+        pack_pair = self.pack_pair
         character = self._real.new_character(char, **attr)
+        self._char_stat_cache[char] = dict(map(pack_pair, attr.items()))
         placedata = data.get('place', data.get('node', {}))
+        node_stat_cache = self._node_stat_cache
         for place, stats in placedata.items():
             character.add_place(place, **stats)
+            if place in node_stat_cache:
+                del node_stat_cache[place]
+            node_stat_cache[place].update(map(pack_pair, stats.items()))
         thingdata = data.get('thing', {})
         for thing, stats in thingdata.items():
             character.add_thing(thing, **stats)
+            if thing in node_stat_cache:
+                del node_stat_cache[thing]
+            node_stat_cache[thing].update(map(pack_pair, stats.items()))
         portdata = data.get('edge', data.get('portal', data.get('adj', {})))
+        port_stat_cache = self._portal_stat_cache[char]
         for orig, dests in portdata.items():
+            porig_stat_cache = port_stat_cache[orig]
             for dest, stats in dests.items():
                 character.add_portal(orig, dest, **stats)
+                if dest in porig_stat_cache:
+                    del porig_stat_cache[dest]
+                porig_stat_cache[dest].update(map(pack_pair, stats.items()))
 
     def commit(self):
         self._real.commit()
@@ -450,13 +479,8 @@ class EngineHandle(object):
         return dict(self._real.string.lang_items(lang))
 
     def strings_delta(self):
-        pack = self._real.pack
-
-        def pack_pair(pair):
-            k, v = pair
-            return pack(k), pack(v)
         old = self._strings_cache
-        new = dict(self.threadpool.map(pack_pair, self._real.string.items()))
+        new = dict(self._real.string.items())
         ret = _packed_dict_delta(old, new)
         self._strings_cache = new
         return ret
@@ -494,13 +518,8 @@ class EngineHandle(object):
         return dict(self._real.eternal)
 
     def eternal_delta(self, *, store=True):
-        pack = self._real.pack
-
-        def pack_pair(kv):
-            k, v = kv
-            return pack(k), pack(v)
         old = self._eternal_cache
-        new = dict(self.threadpool.map(pack_pair, self._real.eternal.items()))
+        new = dict(map(self.pack_pair, self._real.eternal.items()))
         if store:
             self._eternal_cache = new
         return _packed_dict_delta(old, new)
@@ -519,14 +538,11 @@ class EngineHandle(object):
         del self._real.universal[k]
         del self._universal_cache[k]
 
+    @prepacked
     def universal_copy(self):
-        pack = self._real.pack
+        return dict(map(self.pack_pair, self._real.universal.items()))
 
-        def pack_pair(pair):
-            k, v = pair
-            return pack(k), pack(v)
-        return dict(self.threadpool.map(pack_pair, self._real.universal.items()))
-
+    @prepacked
     def universal_delta(self, *, store=True):
         old = self._universal_cache
         new = self.universal_copy()
@@ -535,11 +551,14 @@ class EngineHandle(object):
         return _packed_dict_delta(old, new)
 
     @timely
-    def init_character(self, char, statdict={}):
+    def init_character(self, char, statdict: dict = None):
         if char in self._real.character:
             raise KeyError("Already have character {}".format(char))
+        if statdict is None:
+            statdict = {}
         self._real.character[char] = {}
         self._real.character[char].stat.update(statdict)
+        self._char_stat_cache[char] = dict(map(self.pack_pair, statdict.items()))
 
     @timely
     def del_character(self, char):
@@ -553,27 +572,24 @@ class EngineHandle(object):
             if char in cache:
                 del cache[char]
 
+    @prepacked
     def character_stat_copy(self, char):
-        pack = self._real.pack
+        pack = self.pack
         return {
             pack(k): pack(v.unwrap())
             if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else pack(v)
             for (k, v) in self._real.character[char].stat.items()
         }
 
+    @prepacked
     def _character_something_delta(self,
                                    char,
                                    cache,
                                    copier,
                                    *args,
                                    store=True):
-        pack = self._real.pack
-
-        def pack_pair(kv):
-            k, v = kv
-            return pack(k), pack(v)
         old = cache.get(char, {})
-        new = dict(map(pack_pair, copier(char, *args).items()))
+        new = copier(char, *args)
         if store:
             cache[char] = new
         return _packed_dict_delta(old, new)
@@ -588,13 +604,14 @@ class EngineHandle(object):
     def _character_units_copy(self, char):
         pack = self._real.pack
         return {
-            pack(graph): frozenset(map(pack, nodes.keys()))
+            pack(graph): set(map(pack, nodes.keys()))
             for (graph, nodes) in self._real.character[char].unit.items()
         }
 
     def _character_units_delta(self, char, *, store=True):
         old = self._char_av_cache.get(char, {})
-        new = self._character_units_copy(char)
+        new = defaultdict(set)
+        new.update(self._character_units_copy(char))
         ret = {}
         oldkeys = set(old.keys())
         newkeys = set(new.keys())
@@ -614,15 +631,16 @@ class EngineHandle(object):
             self._char_av_cache[char] = new
         return ret
 
+    @prepacked
     def character_rulebooks_copy(self, char):
         chara = self._real.character[char]
-        return {
-            'character': chara.rulebook.name,
-            'unit': chara.unit.rulebook.name,
-            'thing': chara.thing.rulebook.name,
-            'place': chara.place.rulebook.name,
-            'portal': chara.portal.rulebook.name
-        }
+        return dict(map(self.pack_pair,
+                        [('character', chara.rulebook.name),
+                         ('unit', chara.unit.rulebook.name),
+                         ('thing', chara.thing.rulebook.name),
+                         ('place', chara.place.rulebook.name),
+                         ('portal', chara.portal.rulebook.name)]))
+
 
     @prepacked
     def character_rulebooks_delta(self, char, *, store=True):
@@ -631,13 +649,15 @@ class EngineHandle(object):
                                                self.character_rulebooks_copy,
                                                store=store)
 
+    @prepacked
     def character_nodes_rulebooks_copy(self, char, nodes='all'):
         chara = self._real.character[char]
         if nodes == 'all':
             nodeiter = iter(chara.node.values())
         else:
             nodeiter = (chara.node[k] for k in nodes)
-        return {node.name: node.rulebook.name for node in nodeiter}
+        pack = self.pack
+        return {pack(node.name): pack(node.rulebook.name) for node in nodeiter}
 
     @prepacked
     def character_nodes_rulebooks_delta(self,
@@ -664,25 +684,21 @@ class EngineHandle(object):
                 = portal.rulebook.name
         return result
 
-    def character_portals_rulebooks_delta(self,
-                                          char,
-                                          portals='all',
-                                          *,
-                                          store=True):
-
-        pack = self._real.pack
-
-        def pack_pair(kv):
-            k, v = kv
-            return pack(k), pack(v)
+    def _character_portals_rulebooks_delta(self,
+                                           char,
+                                           portals='all',
+                                           *,
+                                           store=True):
         try:
             old = self._char_portals_rulebooks_cache.get(
                 char, {})
             new = {}
             for orig, dests in self.character_portals_rulebooks_copy(char, portals):
-                new[orig] = dict(self.threadpool.map(pack_pair, dests.items()))
+                new[orig] = dict(map(self.pack_pair, dests.items()))
             if store:
-                self._char_portals_rulebooks_cache[char] = new
+                if char in self._char_portals_rulebooks_cache:
+                    del self._char_portals_rulebooks_cache[char]
+                self._char_portals_rulebooks_cache[char].update(new)
             result = {}
             for origin in old:
                 if origin in new:
@@ -706,9 +722,9 @@ class EngineHandle(object):
         units_fut = self.threadpool.submit(self._character_units_delta, char, store=store)
         rbs_fut = self.threadpool.submit(self.character_rulebooks_delta, char, store=store)
         nrbs_fut = self.threadpool.submit(self.character_nodes_rulebooks_delta, char, store=store)
-        porbs_fut = self.threadpool.submit(self.character_portals_rulebooks_delta, char, store=store)
-        nv_fut = self.threadpool.submit(self.character_nodes_stat_delta, char, store=store)
-        ev_fut = self.threadpool.submit(self.character_portals_stat_delta, char, store=store)
+        porbs_fut = self.threadpool.submit(self._character_portals_rulebooks_delta, char, store=store)
+        nv_fut = self.threadpool.submit(self._character_nodes_stat_delta, char, store=store)
+        ev_fut = self.threadpool.submit(self._character_portals_stat_delta, char, store=store)
         chara = self._real.character[char]
         ret = ret_fut.result()
         nodes = nodes_fut.result()
@@ -728,22 +744,23 @@ class EngineHandle(object):
             ret[pack('units')] = concat_d(graph_units)
         rbs = rbs_fut.result()
         if rbs:
-            ret[pack('rulebooks')] = concat_d(rbs)
+            ret[pack('rulebooks')] = self.pack(rbs)
         nv = nv_fut.result()
         nrbs = nrbs_fut.result()
+        rulebook_b = pack('rulebook')
         if nrbs:
             for node, rb in nrbs.items():
                 if node not in chara.node:
                     continue
                 if node in nv:
-                    nv[node][pack('rulebook')] = rb
+                    nv[node][rulebook_b] = rb
                 else:
-                    nv[node] = {pack('rulebook'): rb}
+                    nv[node] = {rulebook_b: rb}
         if nv:
             packed_nv = {}
             for node, stats in nv.items():
                 packed_nv[node] = concat_d(stats)
-            ret[pack('node_val')] = packed_nv
+            ret[pack('node_val')] = concat_d(packed_nv)
         ev = ev_fut.result()
         porbs = porbs_fut.result()
         if porbs:
@@ -755,7 +772,7 @@ class EngineHandle(object):
                     if dest not in portals:
                         continue
                     ev.setdefault(orig, {}).setdefault(
-                                       dest, {})[pack('rulebook')] = rb
+                                       dest, {})[rulebook_b] = rb
         if ev:
             packed_ev_dests = {}
             for orig, dests in ev.items():
@@ -769,32 +786,19 @@ class EngineHandle(object):
         return ret
 
     @timely
-    def character_become(self, char, nodes, adj):
-        chara = self._real.character[char]
-        chara.clear()
-        chara.place.update(nodes)
-        chara.adj.update(adj)
-
-    @timely
-    def character_copy_from(self, char, nodes, adj):
-        chara = self._real.character[char]
-        chara.place.update(nodes)
-        chara.adj.update(adj)
-
-    @timely
     def set_character_stat(self, char, k, v):
         self._real.character[char].stat[k] = v
-        self._char_stat_cache.setdefault(char, {})[k] = v
+        self._char_stat_cache[char][self.pack(k)] = self.pack(v)
 
     @timely
     def del_character_stat(self, char, k):
         del self._real.character[char].stat[k]
-        del self._char_stat_cache[char][k]
+        del self._char_stat_cache[char][self.pack(k)]
 
     @timely
     def update_character_stats(self, char, patch):
         self._real.character[char].stat.update(patch)
-        self._char_stat_cache.setdefault(char, {}).update(patch)
+        self._char_stat_cache[char].update(map(self.pack_pair, patch.items()))
 
     @timely
     def update_character(self, char, patch):
@@ -806,13 +810,9 @@ class EngineHandle(object):
         return list(self._real.character.keys())
 
     @timely
-    def set_character(self, char, v):
-        self._real.character[char] = v
-
-    @timely
     def set_node_stat(self, char, node, k, v):
         self._real.character[char].node[node][k] = v
-        self._node_stat_cache.setdefault(char, {})[node][k] = v
+        self._node_stat_cache[char][node][self.pack(k)] = self.pack(v)
 
     @timely
     def del_node_stat(self, char, node, k):
@@ -840,7 +840,7 @@ class EngineHandle(object):
 
         """
         try:
-            old = self._node_stat_cache[char].get(node, {})
+            old = self._node_stat_cache[char][node]
             new = self.node_stat_copy(self._real.character[char].node[node])
             if store:
                 self._node_stat_cache[char][node] = new
@@ -849,7 +849,7 @@ class EngineHandle(object):
         except KeyError:
             return None
 
-    def character_nodes_stat_delta(self, char, *, store=True):
+    def _character_nodes_stat_delta(self, char, *, store=True):
         """Return a dictionary of ``node_stat_delta`` output for each node in a
         character.
 
@@ -867,7 +867,7 @@ class EngineHandle(object):
                 del nsc[node]
         return r
 
-    def character_nodes_stat_copy(self, char):
+    def _character_nodes_stat_copy(self, char):
         pack = self._real.pack
         return {
             pack(node): self.node_stat_copy(char, node)
@@ -891,6 +891,7 @@ class EngineHandle(object):
             return
         else:
             character.node[node].update(patch)
+        self._node_stat_cache[char][node].update(map(self.pack_pair, patch.items()))
 
     @timely
     def update_nodes(self, char, patch, backdate=False):
@@ -898,6 +899,7 @@ class EngineHandle(object):
         dictionary.
 
         """
+        # Performance could be improved by preserving the packed values
         if backdate:
             parbranch, parrev = self._real._parentbranch_rev.get(
                 self._real.branch, ('trunk', 0))
@@ -912,6 +914,7 @@ class EngineHandle(object):
     def del_node(self, char, node):
         """Remove a node from a character."""
         del self._real.character[char].node[node]
+        node = self.pack(node)
         for cache in (self._char_nodes_rulebooks_cache, self._node_stat_cache,
                       self._node_successors_cache):
             try:
@@ -920,8 +923,7 @@ class EngineHandle(object):
                 pass
         if char in self._char_nodes_cache and node in self._char_nodes_cache[
                 char]:
-            self._char_nodes_cache[
-                char] = self._char_nodes_cache[char] - frozenset([node])
+            self._char_nodes_cache[char].remove(node)
         if char in self._portal_stat_cache:
             portal_stat_cache_char = self._portal_stat_cache[char]
             if node in portal_stat_cache_char:
@@ -938,19 +940,18 @@ class EngineHandle(object):
                 if node in porto:
                     del porto[node]
 
+    @prepacked
     def character_nodes(self, char):
-        pack = self._real.pack
-        return frozenset(self.threadpool.map(pack, self._real.character[char].node))
+        pack = self.pack
+        return set(map(pack, self._real.character[char].node))
 
+    @prepacked
     def character_nodes_delta(self, char, *, store=True):
-        try:
-            old = self._char_nodes_cache.get(char, [])
-            new = self.character_nodes(char)
-            if store:
-                self._char_nodes_cache[char] = new
-            return set_delta(old, new)
-        except KeyError:
-            return None
+        old = self._char_nodes_cache[char]
+        new = self.character_nodes(char)
+        if store:
+            self._char_nodes_cache[char] = new
+        return set_delta(old, new)
 
     def node_predecessors(self, char, node):
         return list(self._real.character[char].pred[node].keys())
@@ -961,65 +962,66 @@ class EngineHandle(object):
     def character_del_node_predecessors(self, char, node):
         del self._real.character[char].pred[node]
 
+    @prepacked
     def node_successors(self, char, node):
-        return list(self._real.character[char].portal[node].keys())
+        return set(map(self.pack, self._real.character[char].portal[node].keys()))
 
+    @prepacked
     def node_successors_delta(self, char, node):
-        try:
-            old = self._node_successors_cache[char].get(node, [])
-            new = self.node_successors(char, node)
-            self._node_successors_cache[char][node] = new
-            return set_delta(old, new)
-        except KeyError:
+        if char not in self._real.character or node not in self._real.character.portal:
             return None
+        old = self._node_successors_cache[char].get(node, [])
+        new = self.node_successors(char, node)
+        self._node_successors_cache[char][node] = new
+        return set_delta(old, new)
 
     def character_set_node_successors(self, char, node, val):
         self._real.character[char].adj[node] = val
+        self._char_portals_cache[char][node] = dict(map(self.pack_pair, val.items()))
 
     def character_del_node_successors(self, char, node):
         del self._real.character[char].adj[node]
+        self._char_portals_cache[char][node] = {}
 
     def nodes_connected(self, char, orig, dest):
         return dest in self._real.character[char].portal[orig]
 
     @timely
-    def init_thing(self, char, thing, statdict={}):
+    def init_thing(self, char, thing, statdict: dict = None):
         if thing in self._real.character[char].thing:
             raise KeyError('Already have thing in character {}: {}'.format(
                 char, thing))
+        if statdict is None:
+            statdict = {}
         return self.set_thing(char, thing, statdict)
 
     @timely
     def set_thing(self, char, thing, statdict):
         self._real.character[char].thing[thing] = statdict
-        self._node_stat_cache.setdefault(char, {})[thing] = statdict
-        if char in self._char_nodes_cache:
-            cache = self._char_nodes_cache[char]
-        else:
-            cache = frozenset()
-        self._char_nodes_cache[char] = cache.union((thing, ))
+        statdict = dict(map(self.pack_pair, statdict.items()))
+        self._node_stat_cache[char][thing] = statdict
+        self._char_nodes_cache[char].add(self.pack(thing))
 
     @timely
     def add_thing(self, char, thing, loc, statdict):
         self._real.character[char].add_thing(thing, loc, **statdict)
-        self._node_stat_cache.setdefault(char, {})[thing] = statdict
-        if char in self._char_nodes_cache:
-            cache = self._char_nodes_cache[char]
-        else:
-            cache = frozenset()
-        self._char_nodes_cache[char] = cache.union((thing, ))
+        self._node_stat_cache[char][thing] = dict(map(self.pack_pair, statdict.items()))
+        self._char_nodes_cache[char].add(self.pack(thing))
 
     @timely
     def place2thing(self, char, node, loc):
         self._real.character[char].place2thing(node, loc)
+        self._node_stat_cache[char][node][self.pack('location')] = self.pack(loc)
 
     @timely
     def thing2place(self, char, node):
         self._real.character[char].thing2place(node)
+        del self._node_stat_cache[char][node][self.pack('location')]
 
     @timely
     def add_things_from(self, char, seq):
-        self._real.character[char].add_things_from(seq)
+        for thing in seq:
+            self.add_thing(char, *thing)
 
     def get_thing_location(self, char, thing):
         try:
@@ -1030,9 +1032,7 @@ class EngineHandle(object):
     @timely
     def set_thing_location(self, char, thing, loc):
         self._real.character[char].thing[thing]['location'] = loc
-        self._node_stat_cache.setdefault(char,
-                                         {}).setdefault(thing,
-                                                        {})['location'] = loc
+        self._node_stat_cache[char][thing][self.pack('location')] = self.pack(loc)
 
     @timely
     def thing_follow_path(self, char, thing, path, weight):
@@ -1058,16 +1058,23 @@ class EngineHandle(object):
             dest, weight, graph)
 
     @timely
-    def init_place(self, char, place, statdict={}):
+    def init_place(self, char, place, statdict=None):
         if place in self._real.character[char].place:
             raise KeyError('Already have place in character {}: {}'.format(
                 char, place))
+        if statdict is None:
+            statdict = {}
         return self.set_place(char, place, statdict)
 
     @timely
     def set_place(self, char, place, statdict):
+        pack = self.pack
+
+        def pack_pair(pair):
+            k, v = pair
+            return pack(k), pack(v)
         self._real.character[char].place[place] = statdict
-        self._node_stat_cache.setdefault(char, {})[place] = statdict
+        self._node_stat_cache[char][place] = dict(map(pack_pair, statdict.items()))
 
     @timely
     def add_places_from(self, char, seq):
@@ -1087,6 +1094,7 @@ class EngineHandle(object):
         self._real.character[char].portal[orig][dest] = statdict
         self._portal_stat_cache.setdefault(char, {})[orig][dest] = statdict
 
+    @prepacked
     def character_portals(self, char):
         pack = self._real.pack
         r = set()
@@ -1096,6 +1104,7 @@ class EngineHandle(object):
                 r.add((pack(o), pack(d)))
         return r
 
+    @prepacked
     def character_portals_delta(self, char, *, store=True):
         old = self._char_portals_cache.get(char, {})
         new = self.character_portals(char)
@@ -1133,13 +1142,14 @@ class EngineHandle(object):
 
     def set_portal_stat(self, char, orig, dest, k, v):
         self._real.character[char].portal[orig][dest][k] = v
-        self._portal_stat_cache.setdefault(char,
-                                           {}).setdefault(orig, {}).setdefault(
-                                               dest, {})[k] = v
+        self._portal_stat_cache[char][orig][dest][self.pack(k)] = self.pack(v)
 
     def del_portal_stat(self, char, orig, dest, k):
         del self._real.character[char][orig][dest][k]
-        del self._portal_stat_cache[char][orig][dest][k]
+        try:
+            del self._portal_stat_cache[char][orig][dest][k]
+        except KeyError:
+            pass
 
     def portal_stat_copy(self, char, orig, dest):
         pack = self._real.pack
@@ -1160,7 +1170,7 @@ class EngineHandle(object):
         except KeyError:
             return None
 
-    def character_portals_stat_copy(self, char):
+    def _character_portals_stat_copy(self, char):
         r = {}
         chara = self._real.character[char]
         for orig, dests in chara.portal.items():
@@ -1170,7 +1180,7 @@ class EngineHandle(object):
                 r[orig][dest] = self.portal_stat_copy(char, orig, dest)
         return r
 
-    def character_portals_stat_delta(self, char, *, store=True):
+    def _character_portals_stat_delta(self, char, *, store=True):
         r = {}
         for orig in self._real.character[char].portal:
             for dest in self._real.character[char].portal[orig]:
@@ -1186,28 +1196,39 @@ class EngineHandle(object):
         character = self._real.character[char]
         if patch is None:
             del character.portal[orig][dest]
+            dest = self.pack(dest)
+            try:
+                self._char_portals_cache[char][orig].discard(dest)
+            except KeyError:
+                pass
+            try:
+                del self._portal_stat_cache[char][orig][dest]
+            except KeyError:
+                pass
         elif orig not in character.portal \
              or dest not in character.portal[orig]:
             character.portal[orig][dest] = patch
+            self._char_portals_cache[char][orig].add(self.pack(dest))
+            self._portal_stat_cache[char][orig][dest] = dict(map(self.pack_pair, patch.items()))
         else:
             character.portal[orig][dest].update(patch)
+            self._char_portals_cache[char][orig].add(self.pack(dest))
+            self._portal_stat_cache[char][orig][dest].update(map(self.pack_pair, patch.items()))
 
     @timely
     def update_portals(self, char, patch):
-        branch = self.branch
         for ((orig, dest), ppatch) in patch.items():
-            branch = self.update_portal(char, orig, dest, ppatch)
-        return branch
+            self.update_portal(char, orig, dest, ppatch)
 
     @timely
     def add_unit(self, char, graph, node):
         self._real.character[char].add_unit(graph, node)
-        self._char_av_cache.setdefault(char, {})[graph].add(node)
+        self._char_av_cache[char][graph].add(self.pack(node))
 
     @timely
     def remove_unit(self, char, graph, node):
         self._real.character[char].remove_unit(graph, node)
-        self._char_av_cache.setdefault(char, {})[graph].remove(node)
+        self._char_av_cache[char][graph].remove(self.pack(node))
 
     @timely
     def new_empty_rule(self, rule):
@@ -1336,14 +1357,11 @@ class EngineHandle(object):
                 pass
         return ret
 
+    @prepacked
     def source_copy(self, store):
-        pack = self._real.pack
+        return dict(map(self.pack_pair, getattr(self._real, store).iterplain()))
 
-        def pack_pair(pair):
-            k, v = pair
-            return pack(k), pack(v)
-        return dict(self.threadpool.map(pack_pair, getattr(self._real, store).iterplain()))
-
+    @prepacked
     def source_delta(self, store):
         old = self._stores_cache.get(store, {})
         new = self._stores_cache[store] = self.source_copy(store)

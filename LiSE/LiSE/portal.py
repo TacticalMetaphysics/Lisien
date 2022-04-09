@@ -161,7 +161,7 @@ class Portal(Edge, RuleFollower):
 
     def __repr__(self):
         """Describe character, origin, and destination"""
-        return "{}.character[{}].portal[{}][{}]".format(
+        return "<{}.character[{}].portal[{}][{}]>".format(
             repr(self.engine), repr(self['character']), repr(self['origin']),
             repr(self['destination']))
 
