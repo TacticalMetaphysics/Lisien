@@ -1090,12 +1090,14 @@ class EngineHandle(object):
         self._real.character[char].add_places_from(seq)
 
     @timely
-    def init_portal(self, char, orig, dest, statdict={}):
+    def init_portal(self, char, orig, dest, statdict=None):
         if (orig in self._real.character[char].portal
                 and dest in self._real.character[char].portal[orig]):
             raise KeyError(
                 'Already have portal in character {}: {}->{}'.format(
                     char, orig, dest))
+        if statdict is None:
+            statdict = {}
         return self.set_portal(char, orig, dest, statdict)
 
     @timely
