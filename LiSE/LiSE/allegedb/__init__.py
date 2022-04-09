@@ -14,7 +14,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM, and some supporting functions and classes"""
 from contextlib import ContextDecorator, contextmanager
+from functools import wraps
 import gc
+from threading import Lock, RLock
 from weakref import WeakValueDictionary
 
 from blinker import Signal
@@ -33,6 +35,14 @@ def loaded_keep_test(test_turn, test_tick, past_turn, past_tick, future_turn,
             (past_turn == test_turn and past_tick <= test_tick)) and (
                 future_turn > test_turn or
                 (future_turn == test_turn and future_tick >= test_tick))
+
+
+def world_locked(fn):
+    @wraps(fn)
+    def lockedy(*args, **kwargs):
+        with args[0].world_lock:
+            return fn(*args, **kwargs)
+    return lockedy
 
 
 class GraphNameError(KeyError):
@@ -69,6 +79,7 @@ class PlanningContext(ContextDecorator):
         orm = self.orm
         if orm._planning:
             raise ValueError("Already planning")
+        orm.plan_lock.acquire()
         orm._planning = True
         branch, turn, tick = orm._btt()
         self.id = myid = orm._last_plan = orm._last_plan + 1
@@ -84,6 +95,7 @@ class PlanningContext(ContextDecorator):
         self.orm._planning = False
         if self.forward:
             self.orm._forward = True
+        self.orm.plan_lock.release()
 
 
 class TimeSignal:
@@ -389,7 +401,8 @@ class ORM(object):
         if self._forward:
             raise ValueError("Already advancing")
         self._forward = True
-        yield
+        with self.forward_lock:
+            yield
         self._forward = False
 
     @contextmanager
@@ -407,7 +420,8 @@ class ORM(object):
         gc_was_active = gc.isenabled()
         if gc_was_active:
             gc.disable()
-        yield
+        with self.kcless_lock:
+            yield
         if gc_was_active:
             gc.enable()
             gc.collect()
@@ -631,6 +645,10 @@ class ORM(object):
         connection.
 
         """
+        self.world_lock = RLock()
+        self.plan_lock = Lock()
+        self.forward_lock = Lock()
+        self.kcless_lock = Lock()
         connect_args = connect_args or {}
         self._planning = False
         self._forward = False
@@ -728,6 +746,7 @@ class ORM(object):
             parent, _, _, _, _ = self._branches[parent]
             self._branch_parents[child].add(parent)
 
+    @world_locked
     def _snap_keyframe(self, graph, branch, turn, tick, nodes, edges,
                        graph_val):
         nodes_keyframes_branch_d = self._nodes_cache.keyframe[graph, ][branch]
@@ -771,6 +790,7 @@ class ORM(object):
         else:
             gvkb[turn] = {tick: graph_val}
 
+    @world_locked
     def snap_keyframe(self):
         branch, turn, tick = self._btt()
         snapp = self._snap_keyframe
@@ -799,6 +819,7 @@ class ORM(object):
             else:
                 kfd[branch][turn].add(tick)
 
+    @world_locked
     def _load_at(self, branch, turn, tick):
         snap_keyframe = self._snap_keyframe
         latest_past_keyframe = None
@@ -1172,6 +1193,7 @@ class ORM(object):
                keyframed, noderows, edgerows, graphvalrows, \
                nodevalrows, edgevalrows
 
+    @world_locked
     def unload(self):
         """Remove everything from memory we can"""
         # find the slices of time that need to stay loaded
@@ -1292,6 +1314,7 @@ class ORM(object):
     def _get_branch(self):
         return self._obranch
 
+    @world_locked
     def _set_branch(self, v):
         if self._planning:
             raise ValueError("Don't change branches while planning")
@@ -1335,6 +1358,7 @@ class ORM(object):
                 (curturn == start_turn and tick < start_tick)):
             self._load_at(v, curturn, tick)
 
+    @world_locked
     def _copy_plans(self, branch_from, turn_from, tick_from):
         """Collect all plans that are active at the given time and copy them to the current branch"""
         plan_ticks = self._plan_ticks
@@ -1374,6 +1398,7 @@ class ORM(object):
                         time_plan[branch, turn, tick] = last_plan
                         turn_end_plan[branch, turn] = tick
 
+    @world_locked
     def delete_plan(self, plan):
         """Delete the portion of a plan that has yet to occur.
 
@@ -1417,6 +1442,7 @@ class ORM(object):
     def _get_turn(self):
         return self._oturn
 
+    @world_locked
     def _set_turn(self, v):
         branch = self.branch
         loaded = self._loaded
@@ -1480,6 +1506,7 @@ class ORM(object):
     def _get_tick(self):
         return self._otick
 
+    @world_locked
     def _set_tick(self, v):
         if not isinstance(v, int):
             raise TypeError("tick must be an integer")
@@ -1524,6 +1551,7 @@ class ORM(object):
         """Return the branch, turn, and tick."""
         return self._obranch, self._oturn, self._otick
 
+    @world_locked
     def _nbtt(self):
         """Increment the tick and return branch, turn, tick
 
@@ -1577,6 +1605,7 @@ class ORM(object):
         self._otick = tick
         return branch, turn, tick
 
+    @world_locked
     def commit(self):
         """Write the state of all graphs to the database and commit the transaction.
 
@@ -1623,6 +1652,7 @@ class ORM(object):
         else:
             loaded[branch] = turn, tick, turn, tick
 
+    @world_locked
     def _init_graph(self, name, type_s='DiGraph', data=None):
         if self.query.have_graph(name):
             raise GraphNameError("Already have a graph by that name")
@@ -1752,6 +1782,7 @@ class ORM(object):
         """
         return self._graph_objs[name]
 
+    @world_locked
     def del_graph(self, name):
         """Remove all traces of a graph's existence from the database
 
@@ -1826,6 +1857,7 @@ class ORM(object):
         except KeyError:
             return False
 
+    @world_locked
     def _exist_node(self, character, node, exist=True):
         nbtt, exist_node, store = self._exist_node_stuff
         branch, turn, tick = nbtt()
@@ -1839,6 +1871,7 @@ class ORM(object):
         except KeyError:
             return False
 
+    @world_locked
     def _exist_edge(self, character, orig, dest, idx=0, exist=True):
         nbtt, exist_edge, store = self._exist_edge_stuff
         branch, turn, tick = nbtt()

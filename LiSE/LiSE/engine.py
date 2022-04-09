@@ -21,6 +21,7 @@ from functools import partial
 from collections import defaultdict
 from collections.abc import Mapping
 from operator import attrgetter
+from threading import Lock
 from types import FunctionType, MethodType, ModuleType
 from typing import Type, Union, Tuple
 from os import PathLike
@@ -30,7 +31,7 @@ from networkx import Graph
 import msgpack
 from blinker import Signal
 from .allegedb import ORM as gORM
-from .allegedb import HistoryError
+from .allegedb import HistoryError, world_locked
 from .reify import reify
 from .util import sort_set
 from .xcollections import StringStore, FunctionStore, MethodStore
@@ -391,8 +392,10 @@ class NextTurn(Signal):
     def __init__(self, engine: AbstractEngine):
         super().__init__()
         self.engine = engine
+        self.lock = Lock()
 
     def __call__(self):
+        self.lock.acquire()
         engine = self.engine
         start_branch, start_turn, start_tick = engine._btt()
         latest_turn = engine._turns_completed[start_branch]
@@ -438,11 +441,13 @@ class NextTurn(Signal):
                   branch=engine.branch,
                   turn=engine.turn,
                   tick=engine.tick)
-        return [], engine.get_delta(branch=engine.branch,
-                                    turn_from=start_turn,
-                                    turn_to=engine.turn,
-                                    tick_from=start_tick,
-                                    tick_to=engine.tick)
+        delta = engine.get_delta(branch=engine.branch,
+                                 turn_from=start_turn,
+                                 turn_to=engine.turn,
+                                 tick_from=start_tick,
+                                 tick_to=engine.tick)
+        self.lock.release()
+        return [], delta
 
 
 class AbstractSchema(ABC):
