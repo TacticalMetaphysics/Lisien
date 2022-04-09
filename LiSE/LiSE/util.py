@@ -230,5 +230,5 @@ def fake_submit(func, *args, **kwargs):
         def result(self):
             return self._func(*self._args, **self._kwargs)
 
-    return FakeFuture(func(*args, **kwargs))
+    return FakeFuture(func, *args, **kwargs)
 
