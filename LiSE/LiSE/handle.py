@@ -24,6 +24,7 @@ from importlib import import_module
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
+from typing import Dict
 
 import numpy as np
 import msgpack
@@ -126,6 +127,13 @@ def _packed_dict_delta(old, new):
     return ret
 
 
+class BytesDict(dict):
+    def __setitem__(self, key, value):
+        assert isinstance(key, bytes)
+        assert isinstance(value, bytes)
+        super().__setitem__(key, value)
+
+
 class EngineHandle(object):
     """A wrapper for a :class:`LiSE.Engine` object that runs in the same
     process, but with an API built to be used in a command-processing
@@ -179,23 +187,23 @@ class EngineHandle(object):
         self.branch = self._real.branch
         self.turn = self._real.turn
         self.tick = self._real.tick
-        self._node_stat_cache = defaultdict(lambda: defaultdict(dict))
-        self._portal_stat_cache = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
-        self._char_stat_cache = defaultdict(dict)
+        self._node_stat_cache = defaultdict(lambda: defaultdict(BytesDict))
+        self._portal_stat_cache = defaultdict(lambda: defaultdict(lambda: defaultdict(BytesDict)))
+        self._char_stat_cache = defaultdict(BytesDict)
         self._char_av_cache = defaultdict(lambda: defaultdict(set))
-        self._char_rulebooks_cache = {}
-        self._char_nodes_rulebooks_cache = defaultdict(dict)
+        self._char_rulebooks_cache = defaultdict(BytesDict)
+        self._char_nodes_rulebooks_cache = defaultdict(BytesDict)
         self._char_portals_rulebooks_cache = defaultdict(
-            lambda: defaultdict(dict))
+            lambda: defaultdict(BytesDict))
         self._char_nodes_cache = defaultdict(set)
-        self._char_portals_cache = {}
-        self._node_successors_cache = defaultdict(dict)
+        self._char_portals_cache = defaultdict(lambda: defaultdict(set))
+        self._node_successors_cache = defaultdict(BytesDict)
         self._strings_cache = {}
-        self._eternal_cache = {}
-        self._universal_cache = {}
-        self._rule_cache = {}
+        self._eternal_cache = BytesDict()
+        self._universal_cache = BytesDict()
+        self._rule_cache = defaultdict(dict)
         self._rulebook_cache = defaultdict(list)
-        self._stores_cache = defaultdict(dict)
+        self._stores_cache = defaultdict(BytesDict)
         self.threadpool = ThreadPoolExecutor(cpu_count())
 
     def log(self, level, message):
@@ -251,8 +259,8 @@ class EngineHandle(object):
 
     def _upd_local_caches(self, delta=None):
         if delta is None:
-            self._eternal_cache = dict(map(self.pack_pair, self._real.eternal.items()))
-            self._universal_cache = dict(map(self.pack_pair, self._real.universal.items()))
+            self._eternal_cache = BytesDict(map(self.pack_pair, self._real.eternal.items()))
+            self._universal_cache = BytesDict(map(self.pack_pair, self._real.universal.items()))
             self._rulebook_cache = {
                 rb: self.rulebook_copy(rb)
                 for rb in self._real.rulebook
@@ -266,8 +274,8 @@ class EngineHandle(object):
                     node_stat_cache[node] = self.node_stat_copy(charn, node)
                 portst = self._portal_stat_cache[charn]
                 for port in char.portals():
-                    portst[port.orig][port.dest] = self.portal_stat_copy(
-                                          charn, port.orig, port.dest)
+                    portst[port.orig][port.dest] = BytesDict(self.portal_stat_copy(
+                                          charn, port.orig, port.dest))
                 self._char_nodes_cache[charn] = self.character_nodes(char)
                 self._char_portals_cache[charn] = self.character_portals(char)
                 self._char_rulebooks_cache[

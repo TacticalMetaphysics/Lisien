@@ -2546,6 +2546,8 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
                     r = getattr(engine_handle, cmd)(**instruction)
             else:
                 r = getattr(engine_handle, cmd)(**instruction)
+        except AssertionError:
+            raise
         except Exception as e:
             handle_in_pipe.send_bytes(
                 compress(
