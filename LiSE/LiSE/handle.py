@@ -413,7 +413,7 @@ class EngineHandle(object):
     def add_character(self, char, data, attr):
         pack_pair = self.pack_pair
         character = self._real.new_character(char, **attr)
-        self._char_stat_cache[char] = dict(map(pack_pair, attr.items()))
+        self._char_stat_cache[char] = BytesDict(map(pack_pair, attr.items()))
         placedata = data.get('place', data.get('node', {}))
         node_stat_cache = self._node_stat_cache
         for place, stats in placedata.items():
@@ -572,7 +572,7 @@ class EngineHandle(object):
             statdict = {}
         self._real.character[char] = {}
         self._real.character[char].stat.update(statdict)
-        self._char_stat_cache[char] = dict(map(self.pack_pair, statdict.items()))
+        self._char_stat_cache[char] = BytesDict(map(self.pack_pair, statdict.items()))
 
     @timely
     def del_character(self, char):
@@ -991,11 +991,14 @@ class EngineHandle(object):
 
     def character_set_node_successors(self, char, node, val):
         self._real.character[char].adj[node] = val
-        self._char_portals_cache[char][node] = dict(map(self.pack_pair, val.items()))
+        self._char_portals_cache[char][node].update(map(self.pack, val.keys()))
+        for dest, stats in val.items():
+            self._portal_stat_cache[char][node][dest] = BytesDict(stats)
 
     def character_del_node_successors(self, char, node):
         del self._real.character[char].adj[node]
-        self._char_portals_cache[char][node] = {}
+        del self._char_portals_cache[char][node]
+        del self._portal_stat_cache[char][node]
 
     def nodes_connected(self, char, orig, dest):
         return dest in self._real.character[char].portal[orig]
@@ -1019,7 +1022,7 @@ class EngineHandle(object):
     @timely
     def add_thing(self, char, thing, loc, statdict):
         self._real.character[char].add_thing(thing, loc, **statdict)
-        self._node_stat_cache[char][thing] = dict(map(self.pack_pair, statdict.items()))
+        self._node_stat_cache[char][thing] = BytesDict(map(self.pack_pair, statdict.items()))
         self._char_nodes_cache[char].add(self.pack(thing))
 
     @timely
@@ -1088,7 +1091,7 @@ class EngineHandle(object):
             k, v = pair
             return pack(k), pack(v)
         self._real.character[char].place[place] = statdict
-        self._node_stat_cache[char][place] = dict(map(pack_pair, statdict.items()))
+        self._node_stat_cache[char][place] = BytesDict(map(pack_pair, statdict.items()))
 
     @timely
     def add_places_from(self, char, seq):
@@ -1225,7 +1228,7 @@ class EngineHandle(object):
              or dest not in character.portal[orig]:
             character.portal[orig][dest] = patch
             self._char_portals_cache[char][orig].add(self.pack(dest))
-            self._portal_stat_cache[char][orig][dest] = dict(map(self.pack_pair, patch.items()))
+            self._portal_stat_cache[char][orig][dest] = BytesDict(map(self.pack_pair, patch.items()))
         else:
             character.portal[orig][dest].update(patch)
             self._char_portals_cache[char][orig].add(self.pack(dest))
