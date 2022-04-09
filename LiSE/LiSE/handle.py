@@ -52,8 +52,6 @@ def _set_delta_added(old, new, d):
 
 
 def set_delta(old, new):
-    old = set(old)
-    new = set(new)
     r = {}
     added_thread = Thread(target=_set_delta_added, args=(old, new, r))
     added_thread.start()
