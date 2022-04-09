@@ -575,7 +575,7 @@ class NodeMapProxy(MutableMapping, Signal):
         self.engine.handle('update_nodes',
                            char=self.character.name,
                            patch=patch,
-                           block=False)
+                           block=True)
         for node, stats in patch.items():
             nodeproxycache = self[node]._cache
             for k, v in stats.items():
@@ -937,14 +937,14 @@ class CharStatProxy(CachingEntityProxy):
                            char=self.name,
                            k=k,
                            v=v,
-                           block=False,
+                           block=True,
                            branching=True)
 
     def _del_item(self, k):
         self.engine.handle(command='del_character_stat',
                            char=self.name,
                            k=k,
-                           block=False,
+                           block=True,
                            branching=True)
 
 

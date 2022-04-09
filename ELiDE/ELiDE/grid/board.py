@@ -87,7 +87,10 @@ class GridBoard(RelativeLayout):
                 if patch:
                     nodes_patch[place_name] = patch
         if nodes_patch:
-            self.character.node.patch(nodes_patch)
+            try:
+                self.character.node.patch(nodes_patch)
+            except:
+                pass
         make_tile = self.make_spot
         add_widget = self.add_widget
         for place in places2add:
@@ -128,7 +131,10 @@ class GridBoard(RelativeLayout):
                 if patch:
                     nodes_patch[thingn] = patch
         if nodes_patch:
-            self.character.node.patch(nodes_patch)
+            try:
+                self.character.node.patch(nodes_patch)
+            except:
+                pass
         make_pawn = self.make_pawn
         tilemap = self.spot
         for thing in things2add:

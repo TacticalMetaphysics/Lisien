@@ -274,10 +274,15 @@ class EngineHandle(object):
                 self._char_rulebooks_cache[
                     charn] = self.character_rulebooks_copy(char)
             return
+        pack = self.pack
 
         def updd(d0, d1):
             for k, v in d1.items():
-                if v is None:
+                assert not isinstance(k, bytes)
+                assert not isinstance(v, bytes)
+                k = pack(k)
+                v = pack(v)
+                if v == none:
                     if k in d0:
                         del d0[k]
                 else:
@@ -298,10 +303,13 @@ class EngineHandle(object):
                 else:
                     nodeset.remove(n)
             nodevd = self._node_stat_cache[char]
+            location_b = pack('location')
             for node, val in d.pop('node_val', {}).items():
                 nodenvd = nodevd[node]
                 for k, v in val.items():
-                    if k != 'location' and v is None:
+                    k = pack(k)
+                    v = pack(v)
+                    if k != location_b and v == none:
                         if k in nodenvd:
                             del nodenvd[k]
                     else:
@@ -334,13 +342,13 @@ class EngineHandle(object):
             delta = self.get_char_deltas(chars, store=store)
         etd = self.eternal_delta(store=store)
         if etd:
-            delta[pack('eternal')] = etd
+            delta[pack('eternal')] = concat_d(etd)
         unid = self.universal_delta(store=store)
         if unid:
-            delta[pack('universal')] = unid
+            delta[pack('universal')] = concat_d(unid)
         rud = self.all_rules_delta(store=store)
         if rud:
-            delta[pack('rules')] = rud
+            delta[pack('rules')] = pack(rud)
         rbd = self.all_rulebooks_delta(store=store)
         if rbd:
             delta[pack('rulebooks')] = rbd
@@ -499,13 +507,14 @@ class EngineHandle(object):
         del self._real.string[k]
         del self._strings_cache[k]
 
+    @prepacked
     def get_eternal(self, k):
-        ret = self._eternal_cache[k] = self._real.eternal[k]
+        ret = self._eternal_cache[self.pack(k)] = self.pack(self._real.eternal[k])
         return ret
 
     def set_eternal(self, k, v):
         self._real.eternal[k] = v
-        self._eternal_cache[k] = v
+        self._eternal_cache[self.pack(k)] = self.pack(v)
 
     def del_eternal(self, k):
         del self._real.eternal[k]
