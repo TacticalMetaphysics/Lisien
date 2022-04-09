@@ -649,7 +649,6 @@ class EngineHandle(object):
                          ('place', chara.place.rulebook.name),
                          ('portal', chara.portal.rulebook.name)]))
 
-
     @prepacked
     def character_rulebooks_delta(self, char, *, store=True):
         return self._character_something_delta(char,
@@ -752,7 +751,7 @@ class EngineHandle(object):
             ret[pack('units')] = concat_d(graph_units)
         rbs = rbs_fut.result()
         if rbs:
-            ret[pack('rulebooks')] = self.pack(rbs)
+            ret[pack('rulebooks')] = concat_d(rbs)
         nv = nv_fut.result()
         nrbs = nrbs_fut.result()
         rulebook_b = pack('rulebook')
