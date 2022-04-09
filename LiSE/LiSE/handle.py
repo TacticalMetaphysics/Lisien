@@ -32,8 +32,8 @@ import msgpack
 from .engine import Engine
 
 
-def _dict_delta_added(oldkeys, new, newkeys, d):
-    for k in newkeys.difference(oldkeys):
+def _dict_delta_added(oldkeys, new, d):
+    for k in new.keys() - oldkeys:
         d[k] = new[k]
 
 
@@ -43,7 +43,7 @@ none = b'\xc0'
 
 
 def _dict_delta_removed(oldkeys, newkeys, d):
-    for k in oldkeys.difference(newkeys):
+    for k in oldkeys - newkeys:
         d[k] = none
 
 
@@ -89,15 +89,13 @@ def _packed_dict_delta(old, new):
     """`_dict_delta` but the keys, values, and output are all bytes"""
 
     r = {}
-    oldkeys = set(old.keys())
-    newkeys = set(new.keys())
     added_thread = Thread(target=_dict_delta_added,
-                          args=(oldkeys, new, newkeys, r))
+                          args=(old.keys(), new, r))
     removed_thread = Thread(target=_dict_delta_removed,
-                            args=(oldkeys, newkeys, r))
+                            args=(old.keys(), new.keys(), r))
     added_thread.start()
     removed_thread.start()
-    ks = oldkeys.intersection(newkeys)
+    ks = old.keys() & new.keys()
     oldv_l = []
     newv_l = []
     k_l = []
@@ -627,13 +625,11 @@ class EngineHandle(object):
         new = defaultdict(set)
         new.update(self._character_units_copy(char))
         ret = {}
-        oldkeys = set(old.keys())
-        newkeys = set(new.keys())
-        for graph in oldkeys.difference(newkeys):
+        for graph in old.keys() - new.keys():
             ret[graph] = {node: false for node in old[graph]}
-        for graph in newkeys.difference(oldkeys):
+        for graph in new.keys() - old.keys():
             ret[graph] = {node: true for node in new[graph]}
-        for graph in oldkeys.intersection(newkeys):
+        for graph in old.keys() & new.keys():
             graph_nodes = {}
             for node in old[graph].difference(new[graph]):
                 graph_nodes[node] = false
