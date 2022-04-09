@@ -29,7 +29,6 @@ import numpy as np
 import msgpack
 
 from .engine import Engine
-from .util import fake_submit
 
 
 def _dict_delta_added(oldkeys, new, newkeys, d):
