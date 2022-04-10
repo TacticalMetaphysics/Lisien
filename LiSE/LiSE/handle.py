@@ -112,10 +112,11 @@ def _packed_dict_delta(old, new):
     removed_thread.join()
     if not (changes.any() or r):
         return {}
-    changed_keys = ks[changes]
-    changed_values = newvs[changes]
-    for (k, v) in zip(changed_keys, changed_values):
-        r[k[:-1]] = v[:-1]
+    if changes.any():
+        changed_keys = ks[changes]
+        changed_values = newvs[changes]
+        for (k, v) in zip(changed_keys, changed_values):
+            r[k[:-1]] = v[:-1]
     return r
 
 
