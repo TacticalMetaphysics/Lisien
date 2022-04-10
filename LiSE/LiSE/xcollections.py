@@ -347,7 +347,7 @@ class CharacterMapping(MutableMapping, Signal):
             raise KeyError("No such character")
         cache = self.engine._graph_objs
         if name not in cache:
-            cache[name] = Character(self.engine, name, init_rulebooks=False)
+            cache[name] = Character(self.engine, name, init_rulebooks=name not in self)
         ret = cache[name]
         if not isinstance(ret, Character):
             raise TypeError("""Tried to get a graph that isn't a Character.
@@ -366,12 +366,11 @@ class CharacterMapping(MutableMapping, Signal):
             return
         if name in self.engine._graph_objs:
             ch = self.engine._graph_objs[name]
-            ch.stat.clear()
-            ch.stat.update(value)
         else:
-            ch = self.engine._graph_objs[name] = Character(self.engine,
-                                                           name,
-                                                           data=value)
+            ch = self.engine._graph_objs[name] = Character(self.engine, name, init_rulebooks=name not in self)
+        ch.stat.clear()
+        if value:
+            ch.stat.update(value)
         self.send(self, key=name, val=ch)
 
     def __delitem__(self, name):
