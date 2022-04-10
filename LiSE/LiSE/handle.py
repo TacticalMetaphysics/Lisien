@@ -24,7 +24,6 @@ from importlib import import_module
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import cpu_count
-from typing import Dict
 
 import numpy as np
 import msgpack
@@ -115,12 +114,9 @@ def _packed_dict_delta(old, new):
         return {}
     changed_keys = ks[changes]
     changed_values = newvs[changes]
-    ret = {}
-    for (k, v) in r.items():
-        ret[k] = v
     for (k, v) in zip(changed_keys, changed_values):
-        ret[k[:-1]] = v[:-1]
-    return ret
+        r[k[:-1]] = v[:-1]
+    return r
 
 
 class BytesDict(dict):
