@@ -347,7 +347,7 @@ class CharacterMapping(MutableMapping, Signal):
             raise KeyError("No such character")
         cache = self.engine._graph_objs
         if name not in cache:
-            cache[name] = Character(self.engine, name)
+            cache[name] = Character(self.engine, name, init_rulebooks=False)
         ret = cache[name]
         if not isinstance(ret, Character):
             raise TypeError("""Tried to get a graph that isn't a Character.

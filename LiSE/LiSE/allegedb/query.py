@@ -17,17 +17,21 @@ code that's more to do with the queries than with the data per se
 doesn't pollute the other files so much.
 
 """
+from threading import Thread, Lock
+from queue import Queue
 import os
 from collections.abc import MutableMapping
 from sqlite3 import IntegrityError as sqliteIntegError
-from sqlite3.dbapi2 import connect
+from sqlite3 import OperationalError as sqliteOperationalError
 
 from . import wrap
 
 wrappath = os.path.dirname(wrap.__file__)
 alchemyIntegError = None
+alchemyOperationalError = None
 try:
     from sqlalchemy.exc import IntegrityError as alchemyIntegError
+    from sqlalchemy.exc import OperationalError as alchemyOperationalError
 except ImportError:
     pass
 from time import monotonic
@@ -35,6 +39,9 @@ from time import monotonic
 IntegrityError = (
     alchemyIntegError,
     sqliteIntegError) if alchemyIntegError is not None else sqliteIntegError
+OperationalError = (
+    alchemyOperationalError,
+    sqliteOperationalError) if alchemyOperationalError is not None else sqliteOperationalError
 
 
 class TimeError(ValueError):
@@ -49,109 +56,46 @@ class GlobalKeyValueStore(MutableMapping):
     """
     def __init__(self, qe):
         self.qe = qe
+        self._cache = dict(qe.global_items())
 
     def __iter__(self):
-        if hasattr(self.qe, '_global_cache'):
-            yield from self.qe._global_cache
-            return
-        for (k, v) in self.qe.global_items():
-            yield k
+        yield from self._cache
 
     def __len__(self):
-        if hasattr(self.qe, '_global_cache'):
-            return len(self.qe._global_cache)
-        return self.qe.ctglobal()
+        return len(self._cache)
 
     def __getitem__(self, k):
-        if hasattr(self.qe, '_global_cache'):
-            return self.qe._global_cache[k]
-        return self.qe.global_get(k)
+        return self._cache[k]
 
     def __setitem__(self, k, v):
         self.qe.global_set(k, v)
-        if hasattr(self.qe, '_global_cache'):
-            self.qe._global_cache[k] = v
+        self._cache[k] = v
 
     def __delitem__(self, k):
+        del self._cache[k]
         self.qe.global_del(k)
-        if hasattr(self.qe, '_global_cache'):
-            del self.qe._global_cache[k]
 
 
-class QueryEngine(object):
-    """Wrapper around either a DBAPI2.0 connection or an
-    Alchemist. Provides methods to run queries using either.
+class ConnectionHolder:
+    def __init__(self, dbstring, connect_args, alchemy, inq, outq, fn):
+        self.lock = Lock()
+        self.existence_lock = Lock()
+        self.existence_lock.acquire()
+        self._dbstring = dbstring
+        self._connect_args = connect_args
+        self._alchemy = alchemy
+        self._fn = fn
+        self.inq = inq
+        self.outq = outq
 
-    """
-    path = os.path.dirname(__file__)
-    flush_edges_t = 0
+    def commit(self):
+        if hasattr(self, 'transaction') and self.transaction.is_active:
+            self.transaction.commit()
+        elif hasattr(self, 'connection'):
+            self.connection.commit()
 
-    def __init__(self,
-                 dbstring,
-                 connect_args,
-                 alchemy,
-                 pack=None,
-                 unpack=None):
-        """If ``alchemy`` is True and ``dbstring`` is a legit database URI,
-        instantiate an Alchemist and start a transaction with
-        it. Otherwise use sqlite3.
-
-        You may pass an already created sqlalchemy :class:`Engine`
-        object in place of ``dbstring`` if you wish. I'll still create
-        my own transaction though.
-
-        """
-        dbstring = dbstring or 'sqlite:///:memory:'
-
-        def alchem_init(dbstring, connect_args):
-            from sqlalchemy import create_engine
-            from sqlalchemy.engine.base import Engine
-            from sqlalchemy.exc import ArgumentError
-            from .alchemy import Alchemist
-            if isinstance(dbstring, Engine):
-                self.engine = dbstring
-            else:
-                try:
-                    self.engine = create_engine(dbstring,
-                                                connect_args=connect_args)
-                except ArgumentError:
-                    self.engine = create_engine('sqlite:///' + dbstring,
-                                                connect_args=connect_args)
-            self.alchemist = Alchemist(self.engine)
-            self.transaction = self.alchemist.conn.begin()
-
-        def lite_init(dbstring, connect_args):
-            from sqlite3 import connect, Connection
-            from json import load
-            with open(os.path.join(self.path, 'sqlite.json')) as strf:
-                self.strings = load(strf)
-            if isinstance(dbstring, Connection):
-                self.connection = dbstring
-            else:
-                if dbstring.startswith('sqlite:///'):
-                    dbstring = dbstring[10:]
-                self.connection = connect(dbstring)
-
-        if alchemy:
-            try:
-                alchem_init(dbstring, connect_args)
-            except ImportError:
-                lite_init(dbstring, connect_args)
-        else:
-            lite_init(dbstring, connect_args)
-
-        self.globl = GlobalKeyValueStore(self)
-        self._branches = {}
-        self._nodevals2set = []
-        self._edgevals2set = []
-        self._graphvals2set = []
-        self._nodes2set = []
-        self._edges2set = []
-        self._btts = set()
-        if unpack is None:
-            from ast import literal_eval as unpack
-        self.pack = pack or repr
-        self.unpack = unpack
+    def init_table(self, tbl):
+        return self.sql('create_{}'.format(tbl))
 
     def sql(self, stringname, *args, **kwargs):
         """Wrapper for the various prewritten or compiled SQL calls.
@@ -183,10 +127,179 @@ class QueryEngine(object):
         s = self.strings[stringname]
         return self.connection.cursor().executemany(s, args)
 
+    def run(self):
+        alchemy = self._alchemy
+        dbstring = self._dbstring
+        connect_args = self._connect_args
+        if alchemy:
+            from sqlalchemy import create_engine
+            from sqlalchemy.engine.base import Engine
+            from sqlalchemy.exc import ArgumentError
+            from sqlalchemy.pool import NullPool
+            from .alchemy import Alchemist
+            if isinstance(dbstring, Engine):
+                self.engine = dbstring
+            else:
+                try:
+                    self.engine = create_engine(dbstring,
+                                                connect_args=connect_args,
+                                                poolclass=NullPool)
+                except ArgumentError:
+                    self.engine = create_engine('sqlite:///' + dbstring,
+                                                connect_args=connect_args,
+                                                poolclass=NullPool)
+            self.alchemist = Alchemist(self.engine)
+            self.transaction = self.alchemist.conn.begin()
+        else:
+            from sqlite3 import connect, Connection
+            from json import load
+            with open(self._fn) as strf:
+                self.strings = load(strf)
+            assert not isinstance(dbstring, Connection)
+            if dbstring.startswith('sqlite:///'):
+                dbstring = dbstring[10:]
+            self.connection = connect(dbstring)
+        while True:
+            inst = self.inq.get()
+            if inst == 'shutdown':
+                self.commit()
+                if hasattr(self, 'alchemist'):
+                    self.alchemist.conn.close()
+                    self.engine.dispose()
+                else:
+                    self.connection.close()
+                self.existence_lock.release()
+                return
+            if inst == 'commit':
+                self.commit()
+                continue
+            if inst == 'initdb':
+                self.outq.put(self.initdb())
+                continue
+            silent = False
+            if inst[0] == 'silent':
+                inst = inst[1:]
+                silent = True
+            if inst[0] == 'one':
+                try:
+                    res = self.sql(inst[1], *inst[2], **inst[3])
+                    if not silent:
+                        if hasattr(res, 'returns_rows'):
+                            if res.returns_rows:
+                                o = list(res)
+                                self.outq.put(o)
+                            else:
+                                self.outq.put(None)
+                        else:
+                            o = list(res)
+                            self.outq.put(o)
+                except Exception as ex:
+                    if not silent:
+                        self.outq.put(ex)
+            elif inst[0] != 'many':
+                raise ValueError(f"Invalid instruction: {inst[0]}")
+            else:
+                try:
+                    res = self.sqlmany(inst[1], *inst[2])
+                    if not silent:
+                        if hasattr(res, 'returns_rows'):
+                            if res.returns_rows:
+                                self.outq.put(list(res))
+                            else:
+                                self.outq.put(None)
+                        else:
+                            rez = list(res.fetchall())
+                            self.outq.put(rez or None)
+                except Exception as ex:
+                    if not silent:
+                        self.outq.put(ex)
+
+    def initdb(self):
+        """Create tables and indices as needed."""
+        for table in ('branches', 'turns', 'graphs', 'graph_val', 'nodes',
+                      'node_val', 'edges', 'edge_val', 'plans', 'plan_ticks',
+                      'keyframes', 'global'):
+            try:
+                ret = self.init_table(table)
+            except OperationalError:
+                pass
+            except Exception as ex:
+                return ex
+        self.commit()
+
+
+class QueryEngine(object):
+    """Wrapper around either a DBAPI2.0 connection or an
+    Alchemist. Provides methods to run queries using either.
+
+    """
+    flush_edges_t = 0
+    holder_cls = ConnectionHolder
+
+    def __init__(self,
+                 dbstring,
+                 connect_args,
+                 alchemy,
+                 strings_filename,
+                 pack=None,
+                 unpack=None):
+        """If ``alchemy`` is True and ``dbstring`` is a legit database URI,
+        instantiate an Alchemist and start a transaction with
+        it. Otherwise use sqlite3.
+
+        You may pass an already created sqlalchemy :class:`Engine`
+        object in place of ``dbstring`` if you wish. I'll still create
+        my own transaction though.
+
+        """
+        dbstring = dbstring or 'sqlite:///:memory:'
+        self._inq = Queue()
+        self._outq = Queue()
+        self._holder = self.holder_cls(
+            dbstring,
+            connect_args,
+            alchemy,
+            self._inq,
+            self._outq,
+            strings_filename
+        )
+
+        if unpack is None:
+            from ast import literal_eval as unpack
+        self.pack = pack or repr
+        self.unpack = unpack
+        self._branches = {}
+        self._nodevals2set = []
+        self._edgevals2set = []
+        self._graphvals2set = []
+        self._nodes2set = []
+        self._edges2set = []
+        self._btts = set()
+        self._t = Thread(target=self._holder.run)
+        self._t.start()
+
+    def sql(self, string, *args, **kwargs):
+        __doc__ = ConnectionHolder.sql.__doc__
+        with self._holder.lock:
+            self._inq.put(('one', string, args, kwargs))
+            ret = self._outq.get()
+            if isinstance(ret, Exception):
+                raise ret
+            return ret
+
+    def sqlmany(self, string, *args):
+        __doc__ = ConnectionHolder.sqlmany.__doc__
+        with self._holder.lock:
+            self._inq.put(('many', string, args))
+            ret = self._outq.get()
+            if isinstance(ret, Exception):
+                raise ret
+            return ret
+
     def have_graph(self, graph):
         """Return whether I have a graph by this name."""
         graph = self.pack(graph)
-        return bool(self.sql('graphs_named', graph).fetchone()[0])
+        return bool(self.sql('graphs_named', graph)[0][0])
 
     def new_graph(self, graph, typ):
         """Declare a new graph by this name of this type."""
@@ -224,10 +337,10 @@ class QueryEngine(object):
     def get_keyframe(self, graph, branch, turn, tick):
         unpack = self.unpack
         stuff = self.sql('get_keyframe', self.pack(graph), branch, turn,
-                         tick).fetchone()
-        if stuff is None:
+                         tick)
+        if not stuff:
             return
-        nodes, edges, graph_val = stuff
+        nodes, edges, graph_val = stuff[0]
         return unpack(nodes), unpack(edges), unpack(graph_val)
 
     def del_graph(self, graph):
@@ -243,23 +356,23 @@ class QueryEngine(object):
     def graph_type(self, graph):
         """What type of graph is this?"""
         graph = self.pack(graph)
-        return self.sql('graph_type', graph).fetchone()[0]
+        return self.sql('graph_type', graph)[0][0]
 
     def have_branch(self, branch):
         """Return whether the branch thus named exists in the database."""
-        return bool(self.sql('ctbranch', branch).fetchone()[0])
+        return bool(self.sql('ctbranch', branch)[0][0])
 
     def all_branches(self):
         """Return all the branch data in tuples of (branch, parent,
         parent_turn).
 
         """
-        return self.sql('branches_dump').fetchall()
+        return self.sql('branches_dump')
 
     def global_get(self, key):
         """Return the value for the given key in the ``globals`` table."""
         key = self.pack(key)
-        r = self.sql('global_get', key).fetchone()
+        r = self.sql('global_get', key)[0]
         if r is None:
             raise KeyError("Not set")
         return self.unpack(r[0])
@@ -267,23 +380,24 @@ class QueryEngine(object):
     def global_items(self):
         """Iterate over (key, value) pairs in the ``globals`` table."""
         unpack = self.unpack
-        for (k, v) in self.sql('global_dump'):
+        dumped = self.sql('global_dump')
+        for (k, v) in dumped:
             yield (unpack(k), unpack(v))
 
     def get_branch(self):
-        v = self.sql('global_get', self.pack('branch')).fetchone()
+        v = self.sql('global_get', self.pack('branch'))[0]
         if v is None:
             return 'trunk'
         return self.unpack(v[0])
 
     def get_turn(self):
-        v = self.sql('global_get', self.pack('turn')).fetchone()
+        v = self.sql('global_get', self.pack('turn'))[0]
         if v is None:
             return 0
         return self.unpack(v[0])
 
     def get_tick(self):
-        v = self.sql('global_get', self.pack('tick')).fetchone()
+        v = self.sql('global_get', self.pack('tick'))[0]
         if v is None:
             return 0
         return self.unpack(v[0])
@@ -658,36 +772,6 @@ class QueryEngine(object):
     def plan_ticks_dump(self):
         return self.sql('plan_ticks_dump')
 
-    def initdb(self):
-        """Create tables and indices as needed."""
-        if hasattr(self, 'alchemist'):
-            self.alchemist.meta.create_all(self.engine)
-            if 'branch' not in self.globl:
-                self.globl['branch'] = 'trunk'
-            if 'rev' not in self.globl:
-                self.globl['rev'] = 0
-            return
-        from sqlite3 import OperationalError
-        cursor = self.connection.cursor()
-        try:
-            cursor.execute('SELECT * FROM global;')
-        except OperationalError:
-            cursor.execute(self.strings['create_global'])
-        if 'branch' not in self.globl:
-            self.globl['branch'] = 'trunk'
-        if 'turn' not in self.globl:
-            self.globl['turn'] = 0
-        if 'tick' not in self.globl:
-            self.globl['tick'] = 0
-        strings = self.strings
-        for table in ('branches', 'turns', 'graphs', 'graph_val', 'nodes',
-                      'node_val', 'edges', 'edge_val', 'plans', 'plan_ticks',
-                      'keyframes'):
-            try:
-                cursor.execute('SELECT * FROM ' + table + ';')
-            except OperationalError:
-                cursor.execute(strings['create_' + table])
-
     def flush(self):
         """Put all pending changes into the SQL transaction."""
         self._flush_nodes()
@@ -699,15 +783,25 @@ class QueryEngine(object):
     def commit(self):
         """Commit the transaction"""
         self.flush()
-        if hasattr(self, 'transaction') and self.transaction.is_active:
-            self.transaction.commit()
-        elif hasattr(self, 'connection'):
-            self.connection.commit()
+        self._inq.put('commit')
 
     def close(self):
         """Commit the transaction, then close the connection"""
-        self.commit()
-        if hasattr(self, 'transaction'):
-            self.transaction.connection.close()
-        elif hasattr(self, 'connection'):
-            self.connection.close()
+        self._inq.put('shutdown')
+        self._holder.existence_lock.acquire()
+        self._holder.existence_lock.release()
+        self._t.join()
+
+    def initdb(self):
+        with self._holder.lock:
+            self._inq.put('initdb')
+            ret = self._outq.get()
+            if isinstance(ret, Exception):
+                raise ret
+        self.globl = GlobalKeyValueStore(self)
+        if 'branch' not in self.globl:
+            self.globl['branch'] = 'trunk'
+        if 'turn' not in self.globl:
+            self.globl['turn'] = 0
+        if 'tick' not in self.globl:
+            self.globl['tick'] = 0

@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM, and some supporting functions and classes"""
+import os
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
 import gc
@@ -633,7 +634,7 @@ class ORM(object):
                 raise NotImplementedError("Only DiGraph for now")
             self._graph_objs[graph] = DiGraph(self, graph)
 
-    def __init__(self, dbstring, clear=False, alchemy=True, connect_args=None):
+    def __init__(self, dbstring, sqlfilename=None, clear=False, alchemy=True, connect_args=None):
         """Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
         either case, begin a transaction.
 
@@ -660,7 +661,7 @@ class ORM(object):
         if hasattr(self, '_post_init_cache_hook'):
             self._post_init_cache_hook()
         if not hasattr(self, 'query'):
-            self.query = self.query_engine_cls(dbstring, connect_args, alchemy,
+            self.query = self.query_engine_cls(dbstring, connect_args, alchemy, sqlfilename,
                                                getattr(self, 'pack', None),
                                                getattr(self, 'unpack', None))
         if clear:

@@ -297,7 +297,8 @@ class EngineHandle(object):
             updd(self._rule_cache.setdefault(rule, {}), d)
         for char, d in delta.items():
             nodeset = self._char_nodes_cache[char]
-            d = self.unpack(d)  # TODO: break up the bytestream instead of unpacking it entirely
+            if isinstance(d, bytes):
+                d = self.unpack(d)  # TODO: break up the bytestream instead of unpacking it entirely
             for n, ex in d.pop('nodes', {}).items():
                 if ex:
                     nodeset.add(n)
