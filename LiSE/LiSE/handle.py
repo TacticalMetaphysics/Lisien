@@ -22,7 +22,7 @@ from collections import defaultdict
 from functools import partial, wraps
 from importlib import import_module
 from threading import Thread
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import cpu_count
 from typing import Dict
 
@@ -865,10 +865,15 @@ class EngineHandle(object):
         pack = self._real.pack
         r = {}
         nodes = set(self._real.character[char].node.keys())
+        futs = []
         for node in nodes:
-            delta = self.node_stat_delta(char, node, store=store)
+            fut = self.threadpool.submit(self.node_stat_delta, char, node, store=store)
+            fut.node = node
+            futs.append(fut)
+        for fut in as_completed(futs):
+            delta = fut.result()
             if delta:
-                r[pack(node)] = delta
+                r[pack(fut.node)] = delta
         nsc = self._node_stat_cache[char]
         for node in list(nsc.keys()):
             if node not in nodes:
@@ -1195,13 +1200,21 @@ class EngineHandle(object):
 
     def _character_portals_stat_delta(self, char, *, store=True):
         r = {}
+        futs = []
         for orig in self._real.character[char].portal:
             for dest in self._real.character[char].portal[orig]:
-                delta = self.portal_stat_delta(char, orig, dest, store=store)
-                if delta:
-                    if orig not in r:
-                        r[orig] = {}
-                    r[orig][dest] = delta
+                fut = self.threadpool.submit(self.portal_stat_delta, char, orig, dest, store=store)
+                fut.orig = orig
+                fut.dest = dest
+                futs.append(fut)
+        for fut in as_completed(futs):
+            delta = fut.result()
+            orig = fut.orig
+            dest = fut.dest
+            if delta:
+                if orig not in r:
+                    r[orig] = {}
+                r[orig][dest] = delta
         return r
 
     @timely
