@@ -83,7 +83,12 @@ def prepacked(fun):
 
 
 def _packed_dict_delta(old, new):
-    """`_dict_delta` but the keys, values, and output are all bytes"""
+    """Describe changes from one msgpack-encoded shallow dictionary to another
+
+    The returned dictionary indicates deleted keys with the value \xc0.
+    Added or changed keys have their actual value.
+
+    """
 
     r = {}
     added_thread = Thread(target=_dict_delta_added,
