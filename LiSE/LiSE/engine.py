@@ -658,7 +658,7 @@ class Engine(AbstractEngine, gORM):
                          clear=clear,
                          connect_args=connect_args,
                          alchemy=alchemy,
-                         cache_arranger=True)
+                         cache_arranger=False)
         self._things_cache.setdb = self.query.set_thing_loc
         self._universal_cache.setdb = self.query.universal_set
         self._rulebooks_cache.setdb = self.query.rulebook_set
@@ -668,6 +668,8 @@ class Engine(AbstractEngine, gORM):
                 self.query, self._string_file,
                 self.eternal.setdefault('language', 'eng'))
         self.next_turn = NextTurn(self)
+        self._locks.append(self.next_turn.lock)
+        self._cache_arrange_thread.start()
         if logfun is None:
             from logging import getLogger
             logger = getLogger(__name__)

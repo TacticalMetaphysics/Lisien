@@ -772,9 +772,9 @@ class ORM(object):
         self._keyframes_times = set()
         self._loaded = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
         self._init_load()
+        self.cache_arrange_queue = Queue()
+        self._cache_arrange_thread = Thread(target=self._arrange_cache_loop)
         if cache_arranger:
-            self.cache_arrange_queue = Queue()
-            self._cache_arrange_thread = Thread(target=self._arrange_cache_loop)
             self._cache_arrange_thread.start()
 
     def _init_load(self):
