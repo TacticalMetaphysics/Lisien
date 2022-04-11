@@ -13,11 +13,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM, and some supporting functions and classes"""
-import os
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
 import gc
-from threading import Lock, RLock
+from queue import Queue
+from threading import Lock, RLock, Thread
 from weakref import WeakValueDictionary
 
 from blinker import Signal
@@ -278,6 +278,19 @@ def setedgeval(delta, is_multigraph, graph, orig, dest, idx, key, value):
             .setdefault(orig, {}).setdefault(dest, {})[key] = value
 
 
+class MultiLock:
+    def __init__(self, *args):
+        self._locks = args
+
+    def __enter__(self):
+        for lock in self._locks:
+            lock.acquire()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for lock in self._locks:
+            lock.release()
+
+
 class ORM(object):
     """Instantiate this with the same string argument you'd use for a
     SQLAlchemy ``create_engine`` call. This will be your interface to
@@ -427,6 +440,57 @@ class ORM(object):
             gc.enable()
             gc.collect()
         self._no_kc = False
+
+    def _arrange_caches_at_time(self, branch, turn, tick):
+        locks = MultiLock(*self._locks)
+        with locks:
+            graphs = list(self.graph)
+        for graph in graphs:
+            with locks:
+                graph_stats = self._graph_val_cache._get_keycache((graph,), branch, turn, tick, forward=False)
+            for stat in graph_stats:
+                with locks:
+                    self._graph_val_cache._base_retrieve((graph, stat, branch, turn, tick))
+            with locks:
+                nodes = self._nodes_cache._get_keycache((graph,), branch, turn, tick, forward=False)
+            for node in nodes:
+                with locks:
+                    self._nodes_cache._base_retrieve((graph, node, branch, turn, tick))
+                with locks:
+                    node_stats = self._node_val_cache._get_keycache((graph, node), branch, turn, tick, forward=False)
+                for stat in node_stats:
+                    with locks:
+                        self._node_val_cache._base_retrieve((graph, node, stat, branch, turn, tick))
+                with locks:
+                    dests = self._edges_cache._get_destcache(graph, node, branch, turn, tick, forward=False)
+                for dest in dests:
+                    with locks:
+                        self._edges_cache._base_retrieve((graph, node, dest, branch, turn, tick))
+                    with locks:
+                        edge_stats = self._edge_val_cache._get_keycache(
+                            (graph, node, dest), branch, turn, tick, forward=False)
+                    for stat in edge_stats:
+                        with locks:
+                            self._edge_val_cache._base_retrieve(
+                                (graph, node, dest, stat, branch, turn, tick)
+                            )
+
+    def _arrange_cache_loop(self):
+        q = self.cache_arrange_queue
+        while True:
+            inst = q.get()
+            if inst == 'shutdown':
+                return
+            if not isinstance(inst, tuple):
+                raise TypeError("cache_arrange_queue needs tuples of length 2 or 3")
+            if len(inst) == 2:
+                branch, turn = inst
+                tick = self._turn_end_plan[branch, turn]
+            elif len(inst) == 3:
+                branch, turn, tick = inst
+            else:
+                raise ValueError("cache_arrange_queue tuples must be length 2 or 3")
+            self._arrange_caches_at_time(branch, turn, tick)
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
         """Get a dictionary describing changes to all graphs.
@@ -634,7 +698,7 @@ class ORM(object):
                 raise NotImplementedError("Only DiGraph for now")
             self._graph_objs[graph] = DiGraph(self, graph)
 
-    def __init__(self, dbstring, sqlfilename=None, clear=False, alchemy=True, connect_args=None):
+    def __init__(self, dbstring, sqlfilename=None, clear=False, alchemy=True, connect_args=None, cache_arranger=False):
         """Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
         either case, begin a transaction.
 
@@ -650,6 +714,7 @@ class ORM(object):
         self.plan_lock = Lock()
         self.forward_lock = Lock()
         self.kcless_lock = Lock()
+        self._locks = [self.world_lock, self.plan_lock, self.forward_lock, self.kcless_lock]
         connect_args = connect_args or {}
         self._planning = False
         self._forward = False
@@ -707,6 +772,10 @@ class ORM(object):
         self._keyframes_times = set()
         self._loaded = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
         self._init_load()
+        if cache_arranger:
+            self.cache_arrange_queue = Queue()
+            self._cache_arrange_thread = Thread(target=self._arrange_cache_loop)
+            self._cache_arrange_thread.start()
 
     def _init_load(self):
         keyframes_list = self._keyframes_list
@@ -1638,6 +1707,9 @@ class ORM(object):
 
     def close(self):
         """Write changes to database and close the connection"""
+        if hasattr(self, 'cache_arrange_queue'):
+            self.cache_arrange_queue.put('shutdown')
+            self._cache_arrange_thread.join()
         self.commit()
         self.query.close()
 

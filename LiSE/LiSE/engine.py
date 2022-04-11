@@ -657,7 +657,8 @@ class Engine(AbstractEngine, gORM):
                          ),
                          clear=clear,
                          connect_args=connect_args,
-                         alchemy=alchemy)
+                         alchemy=alchemy,
+                         cache_arranger=True)
         self._things_cache.setdb = self.query.set_thing_loc
         self._universal_cache.setdb = self.query.universal_set
         self._rulebooks_cache.setdb = self.query.rulebook_set
@@ -689,6 +690,9 @@ class Engine(AbstractEngine, gORM):
             self.universal['rando_state'] = self._rando.getstate()
         if hasattr(self.method, 'init'):
             self.method.init(self)
+        for branch, (parent, turn_start, turn_end, tick_start, tick_end) in self._branches.items():
+            self.cache_arrange_queue.put((branch, turn_start))
+            self.cache_arrange_queue.put((branch, turn_end))
 
     def _init_load(self):
         from .rule import Rule
