@@ -24,6 +24,7 @@ from importlib import import_module
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import cpu_count
+from typing import Dict
 
 import numpy as np
 import msgpack
@@ -59,7 +60,8 @@ def set_delta(old, new):
     return r
 
 
-def concat_d(r):
+def concat_d(r: Dict[bytes, bytes]) -> bytes:
+    """Pack a dictionary of msgpack-encoded keys and values into msgpack bytes"""
     resp = msgpack.Packer().pack_map_header(len(r))
     for k, v in r.items():
         resp += k + v
@@ -82,7 +84,7 @@ def prepacked(fun):
     return fun
 
 
-def _packed_dict_delta(old, new):
+def _packed_dict_delta(old: Dict[bytes, bytes], new: Dict[bytes, bytes]) -> Dict[bytes, bytes]:
     """Describe changes from one msgpack-encoded shallow dictionary to another
 
     The returned dictionary indicates deleted keys with the value \xc0.
@@ -126,7 +128,10 @@ def _packed_dict_delta(old, new):
 
 
 class BytesDict(dict):
-    def __setitem__(self, key, value):
+    def __getitem__(self, item: bytes) -> bytes:
+        return super().__getitem__(item)
+
+    def __setitem__(self, key: bytes, value: bytes):
         assert isinstance(key, bytes)
         assert isinstance(value, bytes)
         super().__setitem__(key, value)
