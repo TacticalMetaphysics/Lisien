@@ -692,9 +692,10 @@ class Engine(AbstractEngine, gORM):
             self.universal['rando_state'] = self._rando.getstate()
         if hasattr(self.method, 'init'):
             self.method.init(self)
-        for branch, (parent, turn_start, turn_end, tick_start, tick_end) in self._branches.items():
-            self.cache_arrange_queue.put((branch, turn_start))
-            self.cache_arrange_queue.put((branch, turn_end))
+        for branch, (parent, turn_start, tick_start, turn_end, tick_end) in self._branches.items():
+            self.cache_arrange_queue.put((branch, turn_start, tick_start))
+            if (turn_start, tick_start) != (turn_end, tick_end):
+                self.cache_arrange_queue.put((branch, turn_end, tick_end))
 
     def _init_load(self):
         from .rule import Rule
