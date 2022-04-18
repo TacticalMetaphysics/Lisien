@@ -441,7 +441,7 @@ class ORM(object):
             gc.collect()
         self._no_kc = False
 
-    def _arrange_caches_at_time(self, branch, turn, tick):
+    def _arrange_caches_at_time(self, sender, *, branch, turn, tick):
         locks = MultiLock(*self._locks)
         with locks:
             graphs = list(self.graph)
@@ -491,7 +491,7 @@ class ORM(object):
                 branch, turn, tick = inst
             else:
                 raise ValueError("cache_arrange_queue tuples must be length 2 or 3")
-            self._arrange_caches_at_time(branch, turn, tick)
+            self.arrange_cache_signal.send(self, branch=branch, turn=turn, tick=tick)
             q.task_done()
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
@@ -776,6 +776,8 @@ class ORM(object):
         self._init_load()
         self.cache_arrange_queue = Queue()
         self._cache_arrange_thread = Thread(target=self._arrange_cache_loop)
+        self.arrange_cache_signal = Signal()
+        self.arrange_cache_signal.connect(self._arrange_caches_at_time)
         if cache_arranger:
             self._cache_arrange_thread.start()
 

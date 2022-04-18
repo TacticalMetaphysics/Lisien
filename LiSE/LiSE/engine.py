@@ -559,7 +559,8 @@ class Engine(AbstractEngine, gORM):
                  random_seed: int = None,
                  logfun: FunctionType = None,
                  clear=False,
-                 keep_rules_journal=True):
+                 keep_rules_journal=True,
+                 cache_arranger=True):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
 
@@ -658,7 +659,7 @@ class Engine(AbstractEngine, gORM):
                          clear=clear,
                          connect_args=connect_args,
                          alchemy=alchemy,
-                         cache_arranger=False)
+                         cache_arranger=cache_arranger)
         self._things_cache.setdb = self.query.set_thing_loc
         self._universal_cache.setdb = self.query.universal_set
         self._rulebooks_cache.setdb = self.query.rulebook_set
@@ -669,7 +670,6 @@ class Engine(AbstractEngine, gORM):
                 self.eternal.setdefault('language', 'eng'))
         self.next_turn = NextTurn(self)
         self._locks.append(self.next_turn.lock)
-        self._cache_arrange_thread.start()
         if logfun is None:
             from logging import getLogger
             logger = getLogger(__name__)
@@ -692,10 +692,16 @@ class Engine(AbstractEngine, gORM):
             self.universal['rando_state'] = self._rando.getstate()
         if hasattr(self.method, 'init'):
             self.method.init(self)
-        for branch, (parent, turn_start, tick_start, turn_end, tick_end) in self._branches.items():
-            self.cache_arrange_queue.put((branch, turn_start, tick_start))
-            if (turn_start, tick_start) != (turn_end, tick_end):
-                self.cache_arrange_queue.put((branch, turn_end, tick_end))
+        if cache_arranger:
+            self._start_cache_arranger()
+
+    def _start_cache_arranger(self):
+            for branch, (parent, turn_start, tick_start, turn_end, tick_end) in self._branches.items():
+                self.cache_arrange_queue.put((branch, turn_start, tick_start))
+                if (turn_start, tick_start) != (turn_end, tick_end):
+                    self.cache_arrange_queue.put((branch, turn_end, tick_end))
+            if not self._cache_arrange_thread.is_alive():
+                self._cache_arrange_thread.start()
 
     def _init_load(self):
         from .rule import Rule

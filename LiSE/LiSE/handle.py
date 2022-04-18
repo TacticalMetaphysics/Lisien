@@ -22,13 +22,14 @@ from collections import defaultdict
 from functools import partial, wraps
 from importlib import import_module
 from threading import Thread
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from multiprocessing import cpu_count
 from typing import Dict
 
 import numpy as np
 import msgpack
 
+from .allegedb import MultiLock
 from .engine import Engine
 
 
@@ -166,7 +167,7 @@ class EngineHandle(object):
         if kwargs is None:
             kwargs = {}
         kwargs.setdefault('logfun', self.log)
-        self._real = Engine(*args, **kwargs)
+        self._real = Engine(*args, cache_arranger=False, **kwargs)
         self.pack = pack = self._real.pack
 
         def pack_pair(pair):
@@ -223,7 +224,18 @@ class EngineHandle(object):
         self._rulebook_cache = defaultdict(list)
         self._stores_cache = defaultdict(BytesDict)
         self._character_delta_memo = defaultdict(lambda: defaultdict(BytesDict))
+        self._real.arrange_cache_signal.connect(self._precompute_delta_at_time)
         self.threadpool = ThreadPoolExecutor(cpu_count())
+        self._real._start_cache_arranger()
+
+    def _precompute_delta_at_time(self, sender, *, branch, turn, tick):
+        with MultiLock(*self._real._locks):
+            current_btt = self._real._btt()
+            if current_btt != (branch, turn, tick):
+                (self._real._obranch, self._real._oturn, self._real._otick) = (branch, turn, tick)
+            futs = [self.threadpool.submit(self.character_delta, char) for char in self._real.character]
+            wait(futs)
+            (self._real._obranch, self._real._oturn, self._real._otick) = current_btt
 
     def log(self, level, message):
         if isinstance(level, str):
