@@ -191,19 +191,34 @@ class EngineHandle(object):
         self.turn = self._real.turn
         self.tick = self._real.tick
         self._node_stat_cache = defaultdict(lambda: defaultdict(BytesDict))
+        # It's possible that the memoization I've done could break if this handle observes the world while it's in
+        # a planning context. This shouldn't happen, I think
+        self._node_stat_copy_memo = {}
         self._portal_stat_cache = defaultdict(lambda: defaultdict(lambda: defaultdict(BytesDict)))
+        self._portal_stat_copy_memo = {}
         self._char_stat_cache = defaultdict(BytesDict)
+        self._char_stat_copy_memo = {}
         self._char_av_cache = defaultdict(lambda: defaultdict(set))
+        self._char_units_copy_memo = {}
         self._char_rulebooks_cache = defaultdict(BytesDict)
+        self._char_rulebooks_copy_memo = {}
         self._char_nodes_rulebooks_cache = defaultdict(BytesDict)
+        self._char_nodes_rulebooks_copy_memo = {}
         self._char_portals_rulebooks_cache = defaultdict(
             lambda: defaultdict(BytesDict))
+        self._char_portals_rulebooks_copy_memo = {}
         self._char_nodes_cache = defaultdict(set)
+        self._char_nodes_copy_memo = {}
         self._char_portals_cache = defaultdict(lambda: defaultdict(set))
+        self._char_portals_copy_memo = {}
         self._node_successors_cache = defaultdict(BytesDict)
+        self._node_successors_copy_memo = {}
         self._strings_cache = {}
+        self._strings_copy_memo = {}
         self._eternal_cache = BytesDict()
+        self._eternal_copy_memo = {}
         self._universal_cache = BytesDict()
+        self._universal_copy_memo = {}
         self._rule_cache = defaultdict(dict)
         self._rulebook_cache = defaultdict(list)
         self._stores_cache = defaultdict(BytesDict)
@@ -262,8 +277,10 @@ class EngineHandle(object):
 
     def _upd_local_caches(self, delta=None):
         if delta is None:
+            branch, turn, tick = self._real._btt()
             self._eternal_cache = BytesDict(map(self.pack_pair, self._real.eternal.items()))
-            self._universal_cache = BytesDict(map(self.pack_pair, self._real.universal.items()))
+            self._universal_cache = self._universal_copy_memo[branch, turn, tick] \
+                = BytesDict(map(self.pack_pair, self._real.universal.items()))
             self._rulebook_cache = {
                 rb: self.rulebook_copy(rb)
                 for rb in self._real.rulebook
@@ -366,6 +383,10 @@ class EngineHandle(object):
     @timely
     @prepacked
     def time_travel(self, branch, turn, tick=None, chars='all'):
+        # TODO: detect if you're headed to sometime outside of the already simulated past, and respond appropriately
+        #       - refuse to time travel to a plan
+        #       - refuse to go too far outside the past (I think no more than one turn)
+        #       That last would also make a lot of sense as a restriction of the LiSE core...
         branch_from, turn_from, tick_from = self._real._btt()
         slow_delta = branch != branch_from
         self._real.time = (branch, turn)
@@ -493,11 +514,17 @@ class EngineHandle(object):
     def strings_copy(self, lang=None):
         if lang is None:
             lang = self._real.string.language
-        return dict(self._real.string.lang_items(lang))
+        btt = self._real._btt()
+        key = btt + (lang,)
+        if key in self._strings_copy_memo:
+            ret = self._strings_copy_memo[key]
+        else:
+            ret = self._strings_copy_memo[key] = dict(self._real.string.lang_items(lang))
+        return ret
 
     def strings_delta(self):
         old = self._strings_cache
-        new = dict(self._real.string.items())
+        new = self.strings_copy()
         ret = _packed_dict_delta(old, new)
         self._strings_cache = new
         return ret
@@ -518,7 +545,10 @@ class EngineHandle(object):
 
     @prepacked
     def get_eternal(self, k):
-        ret = self._eternal_cache[self.pack(k)] = self.pack(self._real.eternal[k])
+        packed_k = self.pack(k)
+        if packed_k in self._eternal_cache:
+            return self._eternal_cache[packed_k]
+        ret = self._eternal_cache[packed_k] = self.pack(self._real.eternal[k])
         return ret
 
     def set_eternal(self, k, v):
@@ -532,12 +562,14 @@ class EngineHandle(object):
     def have_eternal(self, k):
         return k in self._real.eternal
 
+    @prepacked
     def eternal_copy(self):
-        return dict(self._real.eternal)
+        return dict(map(self.pack_pair, self._real.eternal.items()))
 
+    @prepacked
     def eternal_delta(self, *, store=True):
         old = self._eternal_cache
-        new = dict(map(self.pack_pair, self._real.eternal.items()))
+        new = self.eternal_copy()
         if store:
             self._eternal_cache = new
         return _packed_dict_delta(old, new)
@@ -558,7 +590,11 @@ class EngineHandle(object):
 
     @prepacked
     def universal_copy(self):
-        return dict(map(self.pack_pair, self._real.universal.items()))
+        btt = self._real._btt()
+        if btt in self._universal_copy_memo:
+            return self._universal_copy_memo[btt]
+        ret = self._universal_copy_memo[btt] = dict(map(self.pack_pair, self._real.universal.items()))
+        return ret
 
     @prepacked
     def universal_delta(self, *, store=True):
@@ -593,11 +629,15 @@ class EngineHandle(object):
     @prepacked
     def character_stat_copy(self, char):
         pack = self.pack
-        return {
+        key = self._real._btt() + (char,)
+        if key in self._char_stat_copy_memo:
+            return self._char_stat_copy_memo[key]
+        ret = self._char_stat_copy_memo[key] = {
             pack(k): pack(v.unwrap())
             if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else pack(v)
             for (k, v) in self._real.character[char].stat.items()
         }
+        return ret
 
     @prepacked
     def _character_something_delta(self,
@@ -621,10 +661,14 @@ class EngineHandle(object):
 
     def _character_units_copy(self, char):
         pack = self._real.pack
-        return {
+        key = self._real._btt() + (char,)
+        if key in self._char_units_copy_memo:
+            return self._char_units_copy_memo[key]
+        ret = self._char_units_copy_memo[key] =  {
             pack(graph): set(map(pack, nodes.keys()))
             for (graph, nodes) in self._real.character[char].unit.items()
         }
+        return ret
 
     def _character_units_delta(self, char, *, store=True):
         old = self._char_av_cache.get(char, {})
@@ -650,12 +694,16 @@ class EngineHandle(object):
     @prepacked
     def character_rulebooks_copy(self, char):
         chara = self._real.character[char]
-        return dict(map(self.pack_pair,
-                        [('character', chara.rulebook.name),
-                         ('unit', chara.unit.rulebook.name),
-                         ('thing', chara.thing.rulebook.name),
-                         ('place', chara.place.rulebook.name),
-                         ('portal', chara.portal.rulebook.name)]))
+        key = self._real._btt() + (char,)
+        if key in self._char_rulebooks_copy_memo:
+            return self._char_rulebooks_copy_memo[key]
+        ret = self._char_rulebooks_copy_memo[key] = dict(map(self.pack_pair,
+                                                             [('character', chara.rulebook.name),
+                                                              ('unit', chara.unit.rulebook.name),
+                                                              ('thing', chara.thing.rulebook.name),
+                                                              ('place', chara.place.rulebook.name),
+                                                              ('portal', chara.portal.rulebook.name)]))
+        return ret
 
     @prepacked
     def character_rulebooks_delta(self, char, *, store=True):
@@ -666,13 +714,18 @@ class EngineHandle(object):
 
     @prepacked
     def character_nodes_rulebooks_copy(self, char, nodes='all'):
+        key = self._real._btt() + (char, nodes)
+        if key in self._char_nodes_rulebooks_copy_memo:
+            return self._char_nodes_rulebooks_copy_memo[key]
         chara = self._real.character[char]
         if nodes == 'all':
             nodeiter = iter(chara.node.values())
         else:
             nodeiter = (chara.node[k] for k in nodes)
         pack = self.pack
-        return {pack(node.name): pack(node.rulebook.name) for node in nodeiter}
+        ret = self._char_nodes_rulebooks_copy_memo[key] = {
+            pack(node.name): pack(node.rulebook.name) for node in nodeiter}
+        return ret
 
     @prepacked
     def character_nodes_rulebooks_delta(self,
