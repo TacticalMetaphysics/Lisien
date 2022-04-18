@@ -210,7 +210,7 @@ class EngineHandle(object):
         self._char_portals_rulebooks_copy_memo = {}
         self._char_nodes_cache = defaultdict(set)
         self._char_nodes_copy_memo = {}
-        self._char_portals_cache = defaultdict(lambda: defaultdict(set))
+        self._char_portals_cache = defaultdict(set)
         self._char_portals_copy_memo = {}
         self._node_successors_cache = defaultdict(BytesDict)
         self._node_successors_copy_memo = {}
@@ -353,13 +353,12 @@ class EngineHandle(object):
                             del nodenvd[k]
                     else:
                         nodenvd[k] = v
-            edges = set(self._char_portals_cache.setdefault(char, ()))
-            for orig, dests in d.pop('edges', {}).items():
-                for dest, exists in dests.items():
-                    if exists:
-                        edges.add((orig, dest))
-                    else:
-                        edges.remove((orig, dest))
+            edges = self._char_portals_cache[char]
+            for (orig, dest), exists in d.pop('edges', {}).items():
+                if exists:
+                    edges.add((orig, dest))
+                else:
+                    edges.remove((orig, dest))
             edgevd = self._portal_stat_cache.setdefault(char, {})
             for orig, dests in d.pop('edge_val', {}).items():
                 for dest, val in dests.items():
@@ -1065,7 +1064,7 @@ class EngineHandle(object):
 
     def character_set_node_successors(self, char, node, val):
         self._real.character[char].adj[node] = val
-        self._char_portals_cache[char][node].update(map(self.pack, val.keys()))
+        self._char_portals_cache.update((node, k) for k in map(self.pack, val.keys()))
         for dest, stats in val.items():
             self._portal_stat_cache[char][node][dest] = BytesDict(stats)
 
@@ -1285,23 +1284,15 @@ class EngineHandle(object):
         character = self._real.character[char]
         if patch is None:
             del character.portal[orig][dest]
-            dest = self.pack(dest)
-            try:
-                self._char_portals_cache[char][orig].discard(dest)
-            except KeyError:
-                pass
-            try:
-                del self._portal_stat_cache[char][orig][dest]
-            except KeyError:
-                pass
+            self._char_portals_cache[char].discard(self.pack((orig, dest)))
         elif orig not in character.portal \
-             or dest not in character.portal[orig]:
+                or dest not in character.portal[orig]:
             character.portal[orig][dest] = patch
-            self._char_portals_cache[char][orig].add(self.pack(dest))
+            self._char_portals_cache[char].add(self.pack((orig, dest)))
             self._portal_stat_cache[char][orig][dest] = BytesDict(map(self.pack_pair, patch.items()))
         else:
             character.portal[orig][dest].update(patch)
-            self._char_portals_cache[char][orig].add(self.pack(dest))
+            self._char_portals_cache[char].add(self.pack((orig, dest)))
             self._portal_stat_cache[char][orig][dest].update(map(self.pack_pair, patch.items()))
 
     @timely
