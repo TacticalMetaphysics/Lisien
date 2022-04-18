@@ -222,6 +222,7 @@ class EngineHandle(object):
         self._rule_cache = defaultdict(dict)
         self._rulebook_cache = defaultdict(list)
         self._stores_cache = defaultdict(BytesDict)
+        self._character_delta_memo = defaultdict(lambda: defaultdict(BytesDict))
         self.threadpool = ThreadPoolExecutor(cpu_count())
 
     def log(self, level, message):
@@ -783,6 +784,10 @@ class EngineHandle(object):
     @prepacked
     def character_delta(self, char, *, store=True) -> dict:
         """Return a dictionary of changes to ``char`` since previous call."""
+        observed_btt = (self.branch, self.turn, self.tick)
+        actual_btt = self._real._btt()
+        if observed_btt in self._character_delta_memo and actual_btt in self._character_delta_memo[observed_btt]:
+            return self._character_delta_memo[observed_btt][actual_btt]
         pack = self._real.pack
         ret_fut = self.threadpool.submit(self.character_stat_delta, char, store=store)
         nodes_fut = self.threadpool.submit(self.character_nodes_delta, char, store=store)
@@ -848,6 +853,7 @@ class EngineHandle(object):
             for orig, dests in packed_ev_dests.items():
                 packed_ev_origs[orig] = concat_d(dests)
             ret[pack('edge_val')] = concat_d(packed_ev_origs)
+        self._character_delta_memo[observed_btt][actual_btt] = ret
         return ret
 
     @timely
