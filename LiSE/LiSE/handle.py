@@ -217,7 +217,7 @@ class EngineHandle(object):
                 'warning': 30,
                 'error': 40,
                 'critical': 50
-            }[level]
+            }[level.lower()]
         if self._logq and level >= self._loglevel:
             self._logq.put((level, message))
 
