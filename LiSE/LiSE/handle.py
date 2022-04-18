@@ -355,7 +355,7 @@ class EngineHandle(object):
             delta[pack('rules')] = pack(rud)
         rbd = self.all_rulebooks_delta(store=store)
         if rbd:
-            delta[pack('rulebooks')] = rbd
+            delta[pack('rulebooks')] = pack(rbd)
         return delta
 
     @timely
