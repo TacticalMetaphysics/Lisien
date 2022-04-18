@@ -800,15 +800,9 @@ class CharSuccessorsMappingProxy(CachingProxy):
 
     def _apply_delta(self, delta):
         for o, ds in delta.items():
-            for d, ex in ds.items():
-                if ex:
-                    if d not in self._cache[o]:
-                        self._cache[o][d] = PortalProxy(self.character, o, d)
-                else:
-                    if o in self._cache and d in self._cache[o]:
-                        del self._cache[o][d]
-                        if len(self._cache[o]) == 0:
-                            del self._cache[o]
+            cache = self._cache[o]
+            for d, stats in ds.items():
+                cache[d]._apply_delta(stats)
 
     def _set_item(self, orig, val):
         self.engine.handle(command='character_set_node_successors',
@@ -1280,7 +1274,16 @@ class CharacterProxy(AbstractCharacter):
                         "Diff deleted {} but it was never created here".format(
                             node))
                 self.node.send(self.node, key=node, value=None)
-        self.portal._apply_delta(delta.pop('edges', {}))
+        for (orig, dest), ex in delta.pop('edges', {}).items():
+            if ex:
+                if orig not in self.portal or dest not in self.portal[orig]:
+                    self.portal._cache[orig][dest] = PortalProxy(self, orig, dest)
+            else:
+                if orig in self.portal and dest in self.portal[orig]:
+                    del self.portal._cache[orig][dest]
+                    if not self.portal._cache[orig]:
+                        del self.portal._cache[orig]
+        self.portal._apply_delta(delta.pop('edge_val', {}))
         nodemap = self.node
         name = self.name
         engine = self.engine

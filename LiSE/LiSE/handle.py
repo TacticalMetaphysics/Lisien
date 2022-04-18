@@ -742,10 +742,7 @@ class EngineHandle(object):
             ret[pack('nodes')] = concat_d(nodes)
         edges = edges_fut.result()
         if edges:
-            edge_origs = {}
-            for orig, dests in edges.items():
-                edge_origs[orig] = concat_d(dests)
-            ret[pack('edges')] = concat_d(edge_origs)
+            ret[pack('edges')] = concat_d(edges)
         units = units_fut.result()
         if units:
             graph_units = {}
@@ -1121,28 +1118,16 @@ class EngineHandle(object):
         portal = self._real.character[char].portal
         for o in portal:
             for d in portal[o]:
-                r.add((pack(o), pack(d)))
+                r.add(pack((o, d)))
         return r
 
     @prepacked
     def character_portals_delta(self, char, *, store=True):
-        old = self._char_portals_cache.get(char, {})
+        old = self._char_portals_cache.get(char, set())
         new = self.character_portals(char)
         if store:
             self._char_portals_cache[char] = new
-        ret = {}
-        for orig, dest in old:
-            if (orig, dest) not in new:
-                ret.setdefault(orig, {})[dest] = false
-                if store:
-                    try:
-                        del self._portal_stat_cache[char][orig][dest]
-                    except KeyError:
-                        pass
-        for orig, dest in new:
-            if (orig, dest) not in old:
-                ret.setdefault(orig, {})[dest] = true
-        return ret
+        return set_delta(old, new)
 
     @timely
     def add_portal(self, char, orig, dest, symmetrical, statdict):
