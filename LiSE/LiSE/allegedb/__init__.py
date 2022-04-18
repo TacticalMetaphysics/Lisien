@@ -480,6 +480,7 @@ class ORM(object):
         while True:
             inst = q.get()
             if inst == 'shutdown':
+                q.task_done()
                 return
             if not isinstance(inst, tuple):
                 raise TypeError("cache_arrange_queue needs tuples of length 2 or 3")
@@ -491,6 +492,7 @@ class ORM(object):
             else:
                 raise ValueError("cache_arrange_queue tuples must be length 2 or 3")
             self._arrange_caches_at_time(branch, turn, tick)
+            q.task_done()
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
         """Get a dictionary describing changes to all graphs.
