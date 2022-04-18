@@ -85,7 +85,7 @@ def prepacked(fun):
 
 
 def _packed_dict_delta(old: Dict[bytes, bytes], new: Dict[bytes, bytes]) -> Dict[bytes, bytes]:
-    """Describe changes from one msgpack-encoded shallow dictionary to another
+    """Describe changes from one shallow dictionary of msgpack data to another
 
     The returned dictionary indicates deleted keys with the value \xc0.
     Added or changed keys have their actual value.
