@@ -249,11 +249,9 @@ def setnodeval(delta, graph, node, key, value):
 def setedge(delta, is_multigraph, graph, orig, dest, idx, exists):
     """Change a delta to say that an edge was created or deleted"""
     if is_multigraph(graph):
-        delta.setdefault(graph, {}).setdefault('edges', {})\
-            .setdefault(orig, {}).setdefault(dest, {})[idx] = bool(exists)
+        delta.setdefault(graph, {}).setdefault('edges', {})[orig, dest, idx] = bool(exists)
     else:
-        delta.setdefault(graph, {}).setdefault('edges', {})\
-            .setdefault(orig, {})[dest] = bool(exists)
+        delta.setdefault(graph, {}).setdefault('edges', {})[orig, dest] = bool(exists)
 
 
 def setedgeval(delta, is_multigraph, graph, orig, dest, idx, key, value):
@@ -627,16 +625,14 @@ class ORM(object):
                             and idx in delta[graph]['edges'][orig][dest]
                             and not delta[graph]['edges'][orig][dest][idx]):
                         continue
-                    delta.setdefault(graph, {}).setdefault('edges', {})\
-                        .setdefault(orig, {}).setdefault(dest, {})[idx] = bool(exists)
+                    delta.setdefault(graph, {}).setdefault('edges', {})[orig, dest] = bool(exists)
                 else:
                     if (graph in delta and 'edges' in delta[graph]
                             and orig in delta[graph]['edges']
                             and dest in delta[graph]['edges'][orig]
                             and not delta[graph]['edges'][orig][dest]):
                         continue
-                    delta.setdefault(graph, {}).setdefault('edges', {})\
-                        .setdefault(orig, {})[dest] = bool(exists)
+                    delta.setdefault(graph, {}).setdefault('edges', {})[orig, dest] = bool(exists)
 
         if branch in evbranches and turn in evbranches[branch]:
             for graph, orig, dest, idx, key, value in evbranches[branch][turn][
