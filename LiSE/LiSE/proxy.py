@@ -1232,7 +1232,8 @@ class CharacterProxy(AbstractCharacter):
     def ThingPlaceMapping(self):
         return NodeMapProxy(self.engine, self.name)
 
-    def __init__(self, engine_proxy, charname):
+    def __init__(self, engine_proxy, charname, *, init_rulebooks=False):
+        assert not init_rulebooks, "Can't initialize rulebooks in CharacterProxy"
         self.db = engine_proxy
         self.name = charname
         self.graph = CharStatProxy(self.engine, self.name)
