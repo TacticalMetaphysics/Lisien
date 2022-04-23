@@ -83,9 +83,9 @@ instead.
 # install the Kivy app framework
 python3 -m pip install kivy.deps.sdl2 kivy.deps.glew
 # install LiSE and the ELiDE frontend
-git clone https://github.com/LogicalDash/LiSE.git
+git clone https://github.com/Tactical-Metaphysics/LiSE.git
 cd LiSE
-pip3 install --user LiSE\ ELiDE\
+set PYTHONPATH=%cd%\LiSE:%cd%\ELiDE
 ```
 
 ## Linux
@@ -97,9 +97,9 @@ libsdl2-ttf-dev
 # ELiDE doesn't play movies, so disable gstreamer
 USE_GSTREAMER=0 pip3 install --user kivy
 # install LiSE and the ELiDE frontend
-git clone https://github.com/LogicalDash/LiSE.git
+git clone https://github.com/Tactical-Metaphysics/LiSE.git
 cd LiSE
-pip3 install --user LiSE/ ELiDE/
+export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE
 ```
 
 ## Mac
@@ -113,9 +113,9 @@ brew install cython
 # ELiDE doesn't play movies, so disable gstreamer
 USE_GSTREAMER=0 pip3 install --user kivy
 # install LiSE and the ELiDE frontend
-git clone https://github.com/LogicalDash/LiSE.git
+git clone https://github.com/Tactical-Metaphysics/LiSE.git
 cd LiSE
-pip3 install --user LiSE/ ELiDE/
+export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE
 ```
 
 You could now start the graphical frontend with ``python3 -mELiDE``,
