@@ -226,7 +226,7 @@ class EngineHandle(object):
         self._character_delta_memo = defaultdict(lambda: defaultdict(BytesDict))
         self._real.arrange_cache_signal.connect(self._precompute_delta_at_time)
         self.threadpool = ThreadPoolExecutor(cpu_count())
-        self._real._start_cache_arranger()
+        self._cache_arranger_started = False
 
     def _precompute_delta_at_time(self, sender, *, branch, turn, tick):
         with MultiLock(*self._real._locks):
@@ -286,6 +286,9 @@ class EngineHandle(object):
             delt = self.character_delta(char, store=store)
             if delt:
                 ret[pack(char)] = concat_d(delt)
+        if not self._cache_arranger_started:
+            self._real._start_cache_arranger()
+            self._cache_arranger_started = True
         return ret
 
     def _upd_local_caches(self, delta=None):
