@@ -38,25 +38,37 @@ def _dict_delta_added(oldkeys, new, d):
         d[k] = new[k]
 
 
-true = b'\xc3'
-false = b'\xc2'
-none = b'\xc0'
+TRUE = msgpack.packb(True)
+FALSE = msgpack.packb(False)
+NONE = msgpack.packb(None)
+NODES = msgpack.packb('nodes')
+EDGES = msgpack.packb('edges')
+UNITS = msgpack.packb('units')
+RULEBOOK = msgpack.packb('rulebook')
+RULEBOOKS = msgpack.packb('rulebooks')
+NODE_VAL = msgpack.packb('node_val')
+EDGE_VAL = msgpack.packb('edge_val')
+ETERNAL = msgpack.packb('eternal')
+UNIVERSAL = msgpack.packb('universal')
+STRINGS = msgpack.packb('strings')
+RULES = msgpack.packb('rules')
+LOCATION = msgpack.packb('location')
 
 
 def _dict_delta_removed(oldkeys, newkeys, d):
     for k in oldkeys - newkeys:
-        d[k] = none
+        d[k] = NONE
 
 
 def _set_delta_added(old, new, d):
-    d.update((item, true) for item in new.difference(old))
+    d.update((item, TRUE) for item in new.difference(old))
 
 
 def set_delta(old, new):
     r = {}
     added_thread = Thread(target=_set_delta_added, args=(old, new, r))
     added_thread.start()
-    r.update((item, false) for item in old.difference(new))
+    r.update((item, FALSE) for item in old.difference(new))
     added_thread.join()
     return r
 
@@ -233,7 +245,7 @@ class EngineHandle(object):
             current_btt = self._real._btt()
             if current_btt != (branch, turn, tick):
                 (self._real._obranch, self._real._oturn, self._real._otick) = (branch, turn, tick)
-            futs = [self.threadpool.submit(self.character_delta, char) for char in self._real.character]
+            futs = [self.threadpool.submit(self._character_delta, char) for char in self._real.character]
             wait(futs)
             (self._real._obranch, self._real._oturn, self._real._otick) = current_btt
 
@@ -273,8 +285,7 @@ class EngineHandle(object):
         """Run one rule"""
         self._real.advance()
 
-    @prepacked
-    def get_char_deltas(self, chars, *, store=True):
+    def _get_char_deltas(self, chars, *, store=True):
         """Return a dict describing changes to characters since last call"""
         pack = self._real.pack
         ret = {}
@@ -283,17 +294,38 @@ class EngineHandle(object):
         else:
             it = iter(chars)
         for char in it:
-            delt = self.character_delta(char, store=store)
+            delt = self._character_delta(char, store=store)
             if delt:
-                ret[pack(char)] = concat_d(delt)
+                ret[pack(char)] = delt
+        return ret
+
+    @prepacked
+    def get_char_deltas(self, chars):
+        delt = self._get_char_deltas(chars)
+        ret = {}
+        for char, delta in delt.items():
+            charret = ret[char] = {}
+            if NODES in delta:
+                charret[NODES] = concat_d(delta[NODES])
+            if EDGES in delta:
+                charret[EDGES] = concat_d(delta[EDGES])
+            if UNITS in delta:
+                graph_units = {}
+                for graph, unitss in delta[UNITS].items():
+                    graph_units[graph] = concat_d(unitss)
+                charret[UNITS] = concat_d(graph_units)
+            if RULEBOOKS in delta:
+                charret[RULEBOOKS] = concat_d(delta[RULEBOOKS])
+            if NODE_VAL in delta:
+                charret[NODE_VAL] = concat_d({node: concat_d(vals) for node, vals in delta[NODE_VAL].items()})
+        self._after_ret = partial(self._upd_local_caches, self.branch, self.turn, self.tick, *self._real._btt(), delt)
         if not self._cache_arranger_started:
             self._real._start_cache_arranger()
             self._cache_arranger_started = True
-        return ret
+        return {char: concat_d(charret) for char, charret in ret.items()}
 
-    def _upd_local_caches(self, delta=None):
+    def _upd_local_caches(self, branch_from, turn_from, tick_from, branch, turn, tick, delta=None):
         if delta is None:
-            branch, turn, tick = self._real._btt()
             self._eternal_cache = BytesDict(map(self.pack_pair, self._real.eternal.items()))
             self._universal_cache = self._universal_copy_memo[branch, turn, tick] \
                 = BytesDict(map(self.pack_pair, self._real.universal.items()))
@@ -323,7 +355,7 @@ class EngineHandle(object):
             for k, v in d1.items():
                 k = pack(k)
                 v = pack(v)
-                if v == none:
+                if v == NONE:
                     if k in d0:
                         del d0[k]
                 else:
@@ -337,62 +369,114 @@ class EngineHandle(object):
             updd(self._rule_cache.setdefault(rule, {}), d)
         for char, d in delta.items():
             nodeset = self._char_nodes_cache[char]
-            if isinstance(d, bytes):
-                d = self.unpack(d)  # TODO: break up the bytestream instead of unpacking it entirely
-            for n, ex in d.pop('nodes', {}).items():
+            for n, ex in d.pop(NODES, {}).items():
                 if ex:
                     nodeset.add(n)
                 else:
                     nodeset.remove(n)
             nodevd = self._node_stat_cache[char]
-            location_b = pack('location')
-            for node, val in d.pop('node_val', {}).items():
+            for node, val in d.pop(NODE_VAL, {}).items():
                 nodenvd = nodevd[node]
                 for k, v in val.items():
                     k = pack(k)
                     v = pack(v)
-                    if k != location_b and v == none:
+                    if k != LOCATION and v == NONE:
                         if k in nodenvd:
                             del nodenvd[k]
                     else:
                         nodenvd[k] = v
-            edges = self._char_portals_cache[char]
-            for (orig, dest), exists in d.pop('edges', {}).items():
-                if exists:
-                    edges.add((orig, dest))
+            edges_d = self._char_portals_cache[char]
+            for origdest, exists in d.pop(EDGES, {}).items():
+                if exists not in {NONE, FALSE}:
+                    edges_d.add(origdest)
                 else:
-                    edges.remove((orig, dest))
-            edgevd = self._portal_stat_cache.setdefault(char, {})
-            for orig, dests in d.pop('edge_val', {}).items():
+                    edges_d.remove(origdest)
+            edgevd = self._portal_stat_cache[char]
+            for orig, dests in d.pop(EDGE_VAL, {}).items():
                 for dest, val in dests.items():
-                    updd(edgevd.setdefault(orig, {}).setdefault(dest, {}), val)
+                    updd(edgevd[orig][dest], val)
+
+    def _pack_delta(self, delta):
+        pack = self.pack
+        slightly_packed_delta = {}
+        mostly_packed_delta = {}
+        for char, chardelta in delta.items():
+            pchar = pack(char)
+            chard = slightly_packed_delta[pchar] = {}
+            packd = mostly_packed_delta[pchar] = {}
+            if 'nodes' in chardelta:
+                nd = chard[NODES] = {pack(node): pack(ex) for node, ex in chardelta['nodes']}
+                packd[NODES] = concat_d(nd)
+            if 'node_val' in chardelta:
+                slightnoded = chard[NODE_VAL] = {}
+                packnodevd = {}
+                for node, vals in chardelta['node_val'].items():
+                    pnode = pack(node)
+                    pvals = dict(map(self.pack_pair, vals.items()))
+                    slightnoded[pnode] = pvals
+                    packnodevd[pnode] = concat_d(pvals)
+                packd[NODE_VAL] = concat_d(packnodevd)
+            if 'edges' in chardelta:
+                ed = chard[EDGES] = {pack(origdest): pack(ex) for origdest, ex in chardelta['edges']}
+                packd[EDGES] = concat_d(ed)
+            if 'edge_val' in chardelta:
+                slightorigd = chard[EDGE_VAL] = {}
+                packorigd = {}
+                for orig, dests in chardelta['edge_val'].items():
+                    porig = pack(orig)
+                    slightdestd = slightorigd[porig] = {}
+                    packdestd = {}
+                    for dest, port in dests.items():
+                        pdest = pack(dest)
+                        slightportd = slightdestd[pdest] = dict(map(self.pack_pair, port.items()))
+                        packdestd[pdest] = concat_d(slightportd)
+                    packorigd[porig] = concat_d(packdestd)
+                packd[EDGE_VAL] = concat_d(packorigd)
+            if 'units' in chardelta:
+                slightgraphd = chard[UNITS] = {}
+                packunitd = {}
+                for graph, unitss in chardelta['units'].items():
+                    pgraph = pack(graph)
+                    slightunitd = slightgraphd[pgraph] = dict(map(self.pack_pair, unitss.items()))
+                    packunitd[pgraph] = concat_d(slightunitd)
+                packd[UNITS] = concat_d(packunitd)
+            if 'rulebooks' in chardelta:
+                chard[RULEBOOKS] = slightrbd = dict(map(self.pack_pair, chardelta['rulebooks'].items()))
+                packd[RULEBOOKS] = concat_d(slightrbd)
+        return slightly_packed_delta, concat_d({charn: concat_d(stuff) for charn, stuff in mostly_packed_delta.items()})
 
     @timely
+    @prepacked
     def next_turn(self):
+        pack = self.pack
         self.debug(
             'calling next_turn at {}, {}, {}'.format(*self._real._btt()))
         ret, delta = self._real.next_turn()
-        self._after_ret = partial(self._upd_local_caches, delta)
-        return ret, delta
+        slightly_packed_delta, packed_delta = self._pack_delta(delta)
+        self.debug(
+            'got results from next_turn at {}, {}, {}. Packing...'.format(*self._real._btt())
+        )
+        self._after_ret = partial(self._upd_local_caches, self.branch, self.turn, self.tick,
+                                  *self._real._btt(), delta=slightly_packed_delta)
+        return pack(ret), packed_delta
 
-    @prepacked
-    def get_slow_delta(self, chars='all', store=True):
+    def _get_slow_delta(self, chars='all', store=True):
         pack = self._real.pack
         delta = {}
         if chars:
-            delta = self.get_char_deltas(chars, store=store)
+            delta = self._get_char_deltas(chars, store=store)
         etd = self.eternal_delta(store=store)
         if etd:
-            delta[pack('eternal')] = concat_d(etd)
+            delta[ETERNAL] = concat_d(etd)
         unid = self.universal_delta(store=store)
         if unid:
-            delta[pack('universal')] = concat_d(unid)
+            delta[UNIVERSAL] = concat_d(unid)
         rud = self.all_rules_delta(store=store)
         if rud:
-            delta[pack('rules')] = pack(rud)
+            delta[RULES] = pack(rud)
         rbd = self.all_rulebooks_delta(store=store)
         if rbd:
-            delta[pack('rulebooks')] = pack(rbd)
+            delta[RULEBOOKS] = pack(rbd)
         return delta
 
     @timely
@@ -412,16 +496,14 @@ class EngineHandle(object):
         self.branch = branch
         self.turn = turn
         if slow_delta:
-            delta = self.get_slow_delta(chars)
+            delta = self._get_slow_delta(chars)
+            slightly_packed_delta, packed_delta = self._pack_delta(delta)
         else:
-            pack = self.pack
-            delta = {pack(k): pack(v) for (k, v) in self._real.get_delta(branch, turn_from, tick_from, turn,
-                                         tick).items()}
-            self._after_ret = partial(self._upd_local_caches, delta)
-        packdelta = msgpack.Packer().pack_map_header(len(delta))
-        for (k, v) in delta.items():
-            packdelta += k + v
-        return none, packdelta
+            delta = self._real.get_delta(branch, turn_from, tick_from, turn, tick)
+            slightly_packed_delta, packed_delta = self._pack_delta(delta)
+        self._after_ret = partial(self._upd_local_caches, self.branch, self.turn, self.tick, *self._real._btt(),
+                                  delta=slightly_packed_delta)
+        return NONE, packed_delta
 
     @timely
     def increment_branch(self, chars: list = None):
@@ -446,7 +528,7 @@ class EngineHandle(object):
         ret = {'branch': branch}
         self._real.branch = self.branch = branch
         if chars:
-            ret.update(self.get_char_deltas(chars))
+            ret.update(self._get_char_deltas(chars))
         return ret
 
     @timely
@@ -691,15 +773,15 @@ class EngineHandle(object):
         new.update(self._character_units_copy(char))
         ret = {}
         for graph in old.keys() - new.keys():
-            ret[graph] = {node: false for node in old[graph]}
+            ret[graph] = {node: FALSE for node in old[graph]}
         for graph in new.keys() - old.keys():
-            ret[graph] = {node: true for node in new[graph]}
+            ret[graph] = {node: TRUE for node in new[graph]}
         for graph in old.keys() & new.keys():
             graph_nodes = {}
             for node in old[graph].difference(new[graph]):
-                graph_nodes[node] = false
+                graph_nodes[node] = FALSE
             for node in new[graph].difference(old[graph]):
-                graph_nodes[node] = true
+                graph_nodes[node] = TRUE
             if graph_nodes:
                 ret[graph] = graph_nodes
         if store:
@@ -795,15 +877,13 @@ class EngineHandle(object):
         except KeyError:
             return None
 
-    @prepacked
-    def character_delta(self, char, *, store=True) -> dict:
+    def _character_delta(self, char, *, store=True) -> dict:
         """Return a dictionary of changes to ``char`` since previous call."""
         observed_btt = (self.branch, self.turn, self.tick)
         actual_btt = self._real._btt()
-        if observed_btt in self._character_delta_memo and actual_btt in self._character_delta_memo[observed_btt]:
+        memo = self._character_delta_memo[char]
+        if observed_btt in memo and actual_btt in memo[observed_btt]:
             return self._character_delta_memo[observed_btt][actual_btt]
-        pack = self._real.pack
-        ret_fut = self.threadpool.submit(self.character_stat_delta, char, store=store)
         nodes_fut = self.threadpool.submit(self.character_nodes_delta, char, store=store)
         edges_fut = self.threadpool.submit(self.character_portals_delta, char, store=store)
         units_fut = self.threadpool.submit(self._character_units_delta, char, store=store)
@@ -813,38 +893,31 @@ class EngineHandle(object):
         nv_fut = self.threadpool.submit(self._character_nodes_stat_delta, char, store=store)
         ev_fut = self.threadpool.submit(self._character_portals_stat_delta, char, store=store)
         chara = self._real.character[char]
-        ret = ret_fut.result()
-        nodes = nodes_fut.result()
-        if nodes:
-            ret[pack('nodes')] = concat_d(nodes)
-        edges = edges_fut.result()
-        if edges:
-            ret[pack('edges')] = concat_d(edges)
-        units = units_fut.result()
-        if units:
-            graph_units = {}
-            for graph, unitss in units.items():
-                graph_units[graph] = concat_d(unitss)
-            ret[pack('units')] = concat_d(graph_units)
+        ret = self.character_stat_delta(char, store=store)
+        nodes_res = nodes_fut.result()
+        if nodes_res:
+            ret[NODES] = nodes_res
+        edges_res = edges_fut.result()
+        if edges_res:
+            ret[EDGES] = edges_res
+        units_res = units_fut.result()
+        if units_res:
+            ret[UNITS] = units_res
         rbs = rbs_fut.result()
         if rbs:
-            ret[pack('rulebooks')] = concat_d(rbs)
+            ret[RULEBOOKS] = rbs
         nv = nv_fut.result()
         nrbs = nrbs_fut.result()
-        rulebook_b = pack('rulebook')
         if nrbs:
             for node, rb in nrbs.items():
                 if node not in chara.node:
                     continue
                 if node in nv:
-                    nv[node][rulebook_b] = rb
+                    nv[node][RULEBOOK] = rb
                 else:
-                    nv[node] = {rulebook_b: rb}
+                    nv[node] = {RULEBOOK: rb}
         if nv:
-            packed_nv = {}
-            for node, stats in nv.items():
-                packed_nv[node] = concat_d(stats)
-            ret[pack('node_val')] = concat_d(packed_nv)
+            ret[NODE_VAL] = nv
         ev = ev_fut.result()
         porbs = porbs_fut.result()
         if porbs:
@@ -856,18 +929,10 @@ class EngineHandle(object):
                     if dest not in portals:
                         continue
                     ev.setdefault(orig, {}).setdefault(
-                                       dest, {})[rulebook_b] = rb
+                                       dest, {})[RULEBOOK] = rb
         if ev:
-            packed_ev_dests = {}
-            for orig, dests in ev.items():
-                packed_ev_dests[orig] = here = {}
-                for dest, stats in dests.items():
-                    here[dest] = concat_d(stats)
-            packed_ev_origs = {}
-            for orig, dests in packed_ev_dests.items():
-                packed_ev_origs[orig] = concat_d(dests)
-            ret[pack('edge_val')] = concat_d(packed_ev_origs)
-        self._character_delta_memo[observed_btt][actual_btt] = ret
+            ret[EDGE_VAL] = ev
+        self._character_delta_memo[char][observed_btt][actual_btt] = ret  # canon
         return ret
 
     @timely
@@ -1369,35 +1434,35 @@ class EngineHandle(object):
 
     @timely
     def set_character_rulebook(self, char, rulebook):
-        self._real.character[char].rulebook = rulebook
+        self._real.character[char].RULEBOOK = rulebook
 
     @timely
     def set_unit_rulebook(self, char, rulebook):
-        self._real.character[char].unit.rulebook = rulebook
+        self._real.character[char].unit.RULEBOOK = rulebook
 
     @timely
     def set_character_thing_rulebook(self, char, rulebook):
-        self._real.character[char].thing.rulebook = rulebook
+        self._real.character[char].thing.RULEBOOK = rulebook
 
     @timely
     def set_character_place_rulebook(self, char, rulebook):
-        self._real.character[char].place.rulebook = rulebook
+        self._real.character[char].place.RULEBOOK = rulebook
 
     @timely
     def set_character_node_rulebook(self, char, rulebook):
-        self._real.character[char].node.rulebook = rulebook
+        self._real.character[char].node.RULEBOOK = rulebook
 
     @timely
     def set_character_portal_rulebook(self, char, rulebook):
-        self._real.character[char].portal.rulebook = rulebook
+        self._real.character[char].portal.RULEBOOK = rulebook
 
     @timely
     def set_node_rulebook(self, char, node, rulebook):
-        self._real.character[char].node[node].rulebook = rulebook
+        self._real.character[char].node[node].RULEBOOK = rulebook
 
     @timely
     def set_portal_rulebook(self, char, orig, dest, rulebook):
-        self._real.character[char].portal[orig][dest].rulebook = rulebook
+        self._real.character[char].portal[orig][dest].RULEBOOK = rulebook
 
     def rule_copy(self, rule):
         branch, turn, tick = self.branch, self.turn, self.tick
@@ -1506,12 +1571,12 @@ class EngineHandle(object):
     @timely
     def grid_2d_8graph(self, character, m, n):
         self._real.character[character].grid_2d_8graph(m, n)
-        return self.get_char_deltas([character])
+        return self._get_char_deltas([character])
 
     @timely
     def grid_2d_graph(self, character, m, n, periodic):
         self._real.character[character].grid_2d_graph(m, n, periodic)
-        return self.get_char_deltas([character])
+        return self._get_char_deltas([character])
 
     def rules_handled_turn(self, branch=None, turn=None):
         if branch is None:

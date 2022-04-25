@@ -82,22 +82,22 @@ def handle_initialized(request, handle):
 def test_fast_delta(handle_initialized):
     hand = handle_initialized
     # just set a baseline for the diff
-    hand.get_slow_delta()
+    hand._get_slow_delta()
     # there's currently no way to do fast delta past the time when
     # a character was created, due to the way keyframes work...
     # so don't test that
     tick = hand._real.tick
     ret, diff = hand.next_turn()
-    slowd = hand.unpack_dict(hand.get_slow_delta())
+    slowd = hand.unpack_dict(hand._get_slow_delta())
     assert diff == slowd, "Fast delta differs from slow delta"
     ret, diff2 = hand.time_travel('trunk', 0, tick)
-    slowd2 = hand.unpack_dict(hand.get_slow_delta())
+    slowd2 = hand.unpack_dict(hand._get_slow_delta())
     assert hand.unpack(diff2) == slowd2, "Fast delta differs from slow delta"
     ret, diff3 = hand.time_travel('trunk', 3)
-    slowd3 = hand.unpack_dict(hand.get_slow_delta())
+    slowd3 = hand.unpack_dict(hand._get_slow_delta())
     assert hand.unpack(diff3) == slowd3, "Fast delta differs from slow delta"
     ret, diff4 = hand.time_travel('trunk', 1)
-    slowd4 = hand.unpack_dict(hand.get_slow_delta())
+    slowd4 = hand.unpack_dict(hand._get_slow_delta())
     assert hand.unpack(diff4) == slowd4, "Fast delta differs from slow delta"
 
 
