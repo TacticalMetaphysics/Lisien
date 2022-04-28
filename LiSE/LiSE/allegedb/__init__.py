@@ -13,11 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM, and some supporting functions and classes"""
+import os
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
 import gc
 from queue import Queue
 from threading import Lock, RLock, Thread
+from types import Callable
 from weakref import WeakValueDictionary
 
 from blinker import Signal
@@ -38,7 +40,7 @@ def loaded_keep_test(test_turn, test_tick, past_turn, past_tick, future_turn,
                 (future_turn == test_turn and future_tick >= test_tick))
 
 
-def world_locked(fn):
+def world_locked(fn: Callable) -> Callable:
     @wraps(fn)
     def lockedy(*args, **kwargs):
         with args[0].world_lock:
@@ -277,12 +279,16 @@ def setedgeval(delta, is_multigraph, graph, orig, dest, idx, key, value):
 
 
 class MultiLock:
-    def __init__(self, *args):
+    def __init__(self, *args, releasing: list = None):
         self._locks = args
+        self._releasing = releasing or []
 
     def __enter__(self):
         for lock in self._locks:
             lock.acquire()
+        for lock in self._releasing:
+            lock.acquire()
+            lock.release()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         for lock in self._locks:
@@ -301,6 +307,10 @@ class ORM(object):
     illegal_graph_names = ['global']
     illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val']
     time = TimeSignalDescriptor()
+
+    @property
+    def locks(self):
+        return MultiLock(*self._locks, releasing=self._releasing_locks)
 
     def _graph_state_hash(self, nodes, edges, vals):
         from hashlib import blake2b
@@ -440,7 +450,7 @@ class ORM(object):
         self._no_kc = False
 
     def _arrange_caches_at_time(self, sender, *, branch, turn, tick):
-        locks = MultiLock(*self._locks)
+        locks = self.locks
         with locks:
             graphs = list(self.graph)
         for graph in graphs:
@@ -712,7 +722,8 @@ class ORM(object):
         self.plan_lock = Lock()
         self.forward_lock = Lock()
         self.kcless_lock = Lock()
-        self._locks = [self.world_lock, self.plan_lock, self.forward_lock, self.kcless_lock]
+        self._locks = [self.world_lock, self.plan_lock, self.forward_lock]
+        self._releasing_locks = [self.kcless_lock]
         connect_args = connect_args or {}
         self._planning = False
         self._forward = False
@@ -1620,6 +1631,9 @@ class ORM(object):
     def _btt(self):
         """Return the branch, turn, and tick."""
         return self._obranch, self._oturn, self._otick
+
+    def _set_btt(self, branch, turn, tick):
+        (self._obranch, self._oturn, self._otick) = (branch, turn, tick)
 
     @world_locked
     def _nbtt(self):

@@ -280,21 +280,25 @@ class QueryEngine(object):
 
     def sql(self, string, *args, **kwargs):
         __doc__ = ConnectionHolder.sql.__doc__
+        with open("locklog.txt", "a") as outf:
+            outf.write("About to acquire SQL lock for " + string + "\n")
         with self._holder.lock:
             self._inq.put(('one', string, args, kwargs))
             ret = self._outq.get()
-            if isinstance(ret, Exception):
-                raise ret
-            return ret
+        with open("locklog.txt", "a") as outf:
+            outf.write("Released SQL lock for " + string + "\n")
+        if isinstance(ret, Exception):
+            raise ret
+        return ret
 
     def sqlmany(self, string, *args):
         __doc__ = ConnectionHolder.sqlmany.__doc__
         with self._holder.lock:
             self._inq.put(('many', string, args))
             ret = self._outq.get()
-            if isinstance(ret, Exception):
-                raise ret
-            return ret
+        if isinstance(ret, Exception):
+            raise ret
+        return ret
 
     def have_graph(self, graph):
         """Return whether I have a graph by this name."""

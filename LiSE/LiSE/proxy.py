@@ -1626,7 +1626,7 @@ class StringStoreProxy(Signal):
         self.engine = engine_proxy
 
     def load(self):
-        self._cache = self.engine.handle('strings_delta')
+        self._cache = self.engine.handle('strings_copy')
 
     def __getattr__(self, k):
         try:
@@ -1822,13 +1822,13 @@ class FuncStoreProxy(Signal):
         self._store = store
 
     def load(self):
-        self._cache = self.engine.handle('source_delta', store=self._store)
+        self._cache = self.engine.handle('source_copy', store=self._store)
 
     def __getattr__(self, k):
-        if k in self._cache:
+        if k in super().__getattribute__('_cache'):
             return FuncProxy(self, k)
         else:
-            raise AttributeError
+            raise AttributeError(k)
 
     def __setattr__(self, func_name, source):
         if func_name in ('engine', '_store', '_cache', 'receivers',
@@ -2090,7 +2090,7 @@ class EngineProxy(AbstractEngine):
         for rule in self._rules_cache:
             self._rule_obj_cache[rule] = RuleProxy(self, rule)
         self._rulebooks_cache = self.handle('all_rulebooks_delta')
-        self._eternal_cache = self.handle('eternal_delta')
+        self._eternal_cache = self.handle('eternal_copy')
         self._universal_cache = self.handle('universal_delta')
         deltas = self.handle('get_char_deltas', chars='all')
         for char, delta in deltas.items():
