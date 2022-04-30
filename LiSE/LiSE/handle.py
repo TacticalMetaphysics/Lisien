@@ -1436,18 +1436,11 @@ class EngineHandle(object):
         character = self._real.character[char]
         if patch is None:
             del character.portal[orig][dest]
-            self._char_portals_cache[char].discard(self.pack((orig, dest)))
         elif orig not in character.portal \
                 or dest not in character.portal[orig]:
             character.portal[orig][dest] = patch
-            self._char_portals_cache[char].add(self.pack((orig, dest)))
-            self._portal_stat_cache[char][orig][dest] = BytesDict(
-                map(self.pack_pair, patch.items()))
         else:
             character.portal[orig][dest].update(patch)
-            self._char_portals_cache[char].add(self.pack((orig, dest)))
-            self._portal_stat_cache[char][orig][dest].update(
-                map(self.pack_pair, patch.items()))
 
     @timely
     def update_portals(self, char, patch):
@@ -1457,12 +1450,10 @@ class EngineHandle(object):
     @timely
     def add_unit(self, char, graph, node):
         self._real.character[char].add_unit(graph, node)
-        self._char_av_cache[char][graph].add(self.pack(node))
 
     @timely
     def remove_unit(self, char, graph, node):
         self._real.character[char].remove_unit(graph, node)
-        self._char_av_cache[char][graph].remove(self.pack(node))
 
     @timely
     def new_empty_rule(self, rule):
@@ -1528,7 +1519,6 @@ class EngineHandle(object):
     @timely
     def del_rulebook_rule(self, rulebook, i):
         del self._real.rulebook[rulebook][i]
-        del self._rulebook_cache[rulebook][i]
         branch, turn, tick = self._real._btt()
         memo = self._rulebook_copy_memo
         if (rulebook, branch, turn, tick) in memo:
