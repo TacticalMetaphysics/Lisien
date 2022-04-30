@@ -1389,16 +1389,16 @@ class EngineHandle(object):
         pack = self.pack
         r = {}
         chara = self._real.character[char]
-        for orig, dests in chara.portal.items():
+        origtime = self._real._btt()
+        self._real._set_btt(*btt)
+        portals = set(chara.portals())
+        self._real._set_btt(*origtime)
+        for orig, dest in portals:
             porig = pack(orig)
-            for dest in dests:
-                pdest = pack(dest)
-                if porig not in r:
-                    r[porig] = {}
-                r[porig][pdest] = self.portal_stat_copy(char,
-                                                        orig,
-                                                        dest,
-                                                        btt=btt)
+            pdest = pack(dest)
+            if porig not in r:
+                r[porig] = {}
+            r[porig][pdest] = self.portal_stat_copy(char, orig, dest, btt=btt)
         return r
 
     def _character_portals_stat_delta(self,
