@@ -19,7 +19,7 @@ from functools import wraps
 import gc
 from queue import Queue
 from threading import Lock, RLock, Thread
-from types import Callable
+from typing import Callable
 from weakref import WeakValueDictionary
 
 from blinker import Signal
