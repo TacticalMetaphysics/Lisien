@@ -376,6 +376,22 @@ class QueryEngine(query.QueryEngine):
     IntegrityError = IntegrityError
     OperationalError = OperationalError
     holder_cls = ConnectionHolder
+    tables = (
+                'global', 'branches', 'turns', 'graphs', 'keyframes',
+                'graph_val',
+                'nodes', 'node_val', 'edges', 'edge_val', 'plans',
+                'plan_ticks',
+                'universals', 'rules', 'rulebooks', 'rule_triggers',
+                'rule_prereqs',
+                'rule_actions', 'character_rulebook', 'unit_rulebook',
+                'character_thing_rulebook', 'character_place_rulebook',
+                'character_portal_rulebook', 'node_rules_handled',
+                'portal_rules_handled', 'things', 'node_rulebook',
+                'portal_rulebook',
+                'units', 'character_rules_handled', 'unit_rules_handled',
+                'character_thing_rules_handled',
+                'character_place_rules_handled',
+                'character_portal_rules_handled', 'turns_completed')
 
     def universals_dump(self):
         unpack = self.unpack
@@ -806,30 +822,6 @@ class QueryEngine(query.QueryEngine):
         self.sql('del_character_thing_rules_handled_turn', branch, turn)
         self.sql('del_character_place_rules_handled_turn', branch, turn)
         self.sql('del_character_portal_rules_handled_turn', branch, turn)
-
-    def truncate_all(self):
-        """Delete all data from every table"""
-        for table in (
-                'global', 'branches', 'turns', 'graphs', 'keyframes',
-                'graph_val',
-                'nodes', 'node_val', 'edges', 'edge_val', 'plans',
-                'plan_ticks',
-                'universals', 'rules', 'rulebooks', 'rule_triggers',
-                'rule_prereqs',
-                'rule_actions', 'character_rulebook', 'unit_rulebook',
-                'character_thing_rulebook', 'character_place_rulebook',
-                'character_portal_rulebook', 'node_rules_handled',
-                'portal_rules_handled', 'things', 'node_rulebook',
-                'portal_rulebook',
-                'units', 'character_rules_handled', 'unit_rules_handled',
-                'character_thing_rules_handled',
-                'character_place_rules_handled',
-                'character_portal_rules_handled', 'turns_completed'):
-            try:
-                self.sql('truncate_' + table)
-            except OperationalError:
-                pass  # table wasn't created yet
-        self.commit()
 
 
 class QueryEngineProxy:

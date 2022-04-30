@@ -77,7 +77,7 @@ class GlobalKeyValueStore(MutableMapping):
 
 
 class ConnectionHolder:
-    def __init__(self, dbstring, connect_args, alchemy, inq, outq, fn):
+    def __init__(self, dbstring, connect_args, alchemy, inq, outq, fn, tables):
         self.lock = Lock()
         self.existence_lock = Lock()
         self.existence_lock.acquire()
@@ -87,6 +87,7 @@ class ConnectionHolder:
         self._fn = fn
         self.inq = inq
         self.outq = outq
+        self.tables = tables
 
     def commit(self):
         if hasattr(self, 'transaction') and self.transaction.is_active:
@@ -235,6 +236,9 @@ class QueryEngine(object):
     """
     flush_edges_t = 0
     holder_cls = ConnectionHolder
+    tables = (
+        'global', 'branches', 'turns', 'graphs', 'keyframes', 'graph_val', 'nodes', 'node_val', 'edges', 'edge_val',
+        'plans', 'plan_ticks', 'universals')
 
     def __init__(self,
                  dbstring,
@@ -261,7 +265,8 @@ class QueryEngine(object):
             alchemy,
             self._inq,
             self._outq,
-            strings_filename
+            strings_filename,
+            self.tables
         )
 
         if unpack is None:
@@ -809,3 +814,12 @@ class QueryEngine(object):
             self.globl['turn'] = 0
         if 'tick' not in self.globl:
             self.globl['tick'] = 0
+
+    def truncate_all(self):
+        """Delete all data from every table"""
+        for table in self.tables:
+            try:
+                self.sql('truncate_' + table)
+            except OperationalError:
+                pass  # table wasn't created yet
+        self.commit()
