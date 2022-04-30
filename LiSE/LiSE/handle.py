@@ -1084,7 +1084,13 @@ class EngineHandle(object):
         """
         pack = self._real.pack
         r = {}
-        nodes = set(self._real.character[char].node.keys())
+        origtime = self._real._btt()
+        self._real._set_btt(*btt_from)
+        nodes_from = set(self._real.character[char].node.keys())
+        self._real._set_btt(*btt_to)
+        nodes_to = set(self._real.character[char].node.keys())
+        self._real._set_btt(*origtime)
+        nodes = nodes_from & nodes_to
         futs = []
         for node in nodes:
             fut = self.threadpool.submit(self.node_stat_delta,
