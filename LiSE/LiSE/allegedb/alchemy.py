@@ -404,7 +404,7 @@ def queries_for_table_dict(table):
     return r
 
 
-def compile_sql(dialect, meta):
+def gather_sql(meta):
     from sqlalchemy.sql.ddl import CreateTable, CreateIndex
     r = {}
     table = tables_for_meta(meta)
@@ -412,13 +412,19 @@ def compile_sql(dialect, meta):
     query = queries_for_table_dict(table)
 
     for t in table.values():
-        r['create_' + t.name] = CreateTable(t).compile(dialect=dialect)
+        r['create_' + t.name] = CreateTable(t)
     for (tab, idx) in index.items():
-        r['index_' + tab] = CreateIndex(idx).compile(dialect=dialect)
-    for (name, q) in query.items():
-        r[name] = q.compile(dialect=dialect)
+        r['index_' + tab] = CreateIndex(idx)
+    r.update(query)
 
     return r
+
+
+def compile_sql(dialect, meta):
+    return {
+        k: v.compile(dialect=dialect)
+        for (k, v) in gather_sql(meta).items()
+    }
 
 
 class Alchemist(object):
@@ -430,19 +436,19 @@ class Alchemist(object):
         self.engine = engine
         self.conn = self.engine.connect()
         self.meta = MetaData()
-        self.sql = compile_sql(self.engine.dialect, self.meta)
+        self.sql = gather_sql(self.meta)
 
         def caller(k, *largs):
-            statement = self.sql[k]
+            statement = self.sql[k].compile(dialect=self.conn.engine.dialect)
             if hasattr(statement, 'positiontup'):
                 return self.conn.execute(
                     statement, **dict(zip(statement.positiontup, largs)))
             elif largs:
                 raise TypeError("{} is a DDL query, I think".format(k))
-            return self.conn.execute(statement)
+            return self.conn.execute(self.sql[k])
 
         def manycaller(k, *largs):
-            statement = self.sql[k]
+            statement = self.sql[k].compile(dialect=self.conn.engine.dialect)
             return self.conn.execute(
                 statement,
                 *(dict(zip(statement.positiontup, larg)) for larg in largs))
