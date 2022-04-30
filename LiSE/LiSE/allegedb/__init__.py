@@ -1765,6 +1765,7 @@ class ORM(object):
         """Write changes to database and close the connection"""
         if hasattr(self, 'cache_arrange_queue'):
             self.cache_arrange_queue.put('shutdown')
+        if self._cache_arrange_thread.is_alive():
             self._cache_arrange_thread.join()
         self.commit()
         self.query.close()
