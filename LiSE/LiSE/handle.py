@@ -694,11 +694,14 @@ class EngineHandle(object):
         return ret
 
     @prepacked
-    def universal_delta(self, *, store=True):
-        old = self._universal_cache
-        new = self.universal_copy()
-        if store:
-            self._universal_cache = new
+    def universal_delta(self,
+                        *,
+                        btt_from: Tuple[str, int, int] = None,
+                        btt_to: Tuple[str, int, int] = None):
+        old = self.universal_copy(btt=self._get_watched_btt(btt_from))
+        btt_now = self._get_btt(btt_to)
+        new = self._universal_copy_memo[btt_now] = self.universal_copy(
+            btt=btt_now)
         return _packed_dict_delta(old, new)
 
     @timely
