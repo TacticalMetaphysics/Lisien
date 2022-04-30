@@ -1405,17 +1405,22 @@ class EngineHandle(object):
         futs = []
         btt_from = self._get_watched_btt(btt_from)
         btt_to = self._get_btt(btt_to)
-        for orig in self._real.character[char].portal:
-            for dest in self._real.character[char].portal[orig]:
-                fut = self.threadpool.submit(self.portal_stat_delta,
-                                             char,
-                                             orig,
-                                             dest,
-                                             btt_from=btt_from,
-                                             btt_to=btt_to)
-                fut.orig = orig
-                fut.dest = dest
-                futs.append(fut)
+        origtime = self._real._btt()
+        self._real._set_btt(*btt_from)
+        ports_from = set(self._real.character[char].portals())
+        self._real._set_btt(*btt_to)
+        ports_to = set(self._real.character[char].portals())
+        self._real._set_btt(*origtime)
+        for orig, dest in ports_from & ports_to:
+            fut = self.threadpool.submit(self.portal_stat_delta,
+                                         char,
+                                         orig,
+                                         dest,
+                                         btt_from=btt_from,
+                                         btt_to=btt_to)
+            fut.orig = orig
+            fut.dest = dest
+            futs.append(fut)
         for fut in as_completed(futs):
             delta = fut.result()
             orig = fut.orig
