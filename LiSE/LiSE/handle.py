@@ -1104,11 +1104,6 @@ class EngineHandle(object):
             delta = fut.result()
             if delta:
                 r[pack(fut.node)] = delta
-        nsc = self._character_nodes_stat_copy(
-            char, btt=self._get_watched_btt(btt_from))
-        for node in list(nsc.keys()):
-            if node not in nodes:
-                del nsc[node]
         return r
 
     def _character_nodes_stat_copy(
