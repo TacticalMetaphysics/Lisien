@@ -24,12 +24,12 @@ from importlib import import_module
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import cpu_count
-from typing import Dict, Tuple, Set, KeysView, Callable
+from typing import Dict, Tuple, Set, KeysView, Callable, Union
 
 import numpy as np
 import msgpack
 
-from .engine import Engine
+from .engine import Engine, MSGPACK_SET
 
 
 def _dict_delta_added(oldkeys: KeysView[bytes], new: Dict[bytes, bytes],
@@ -80,6 +80,36 @@ def concat_d(r: Dict[bytes, bytes]) -> bytes:
     for k, v in r.items():
         resp += k + v
     return resp
+
+
+def concat_s(s: Set[bytes]) -> bytes:
+    """Pack a set of msgpack-encoded values into a msgpack array with ext code"""
+    resp = msgpack.Packer().pack_array_header(len(s))
+    for v in s:
+        resp += v
+    data_len = len(resp)
+    set_code = MSGPACK_SET.to_bytes(1, "big", signed=False)
+    if data_len == 1:
+        return b"\xd4" + set_code + resp
+    elif data_len == 2:
+        return b"\xd5" + set_code + resp
+    elif data_len == 4:
+        return b"\xd6" + set_code + resp
+    elif data_len == 8:
+        return b"\xd7" + set_code + resp
+    elif data_len == 16:
+        return b"\xd8" + set_code + resp
+    elif data_len < 2**8:
+        return b"\xc7" + data_len.to_bytes(1, "big",
+                                           signed=False) + set_code + resp
+    elif data_len < 2**16:
+        return b"\xc8" + data_len.to_bytes(2, "big",
+                                           signed=False) + set_code + resp
+    elif data_len < 2**32:
+        return b"\xc9" + data_len.to_bytes(4, "big",
+                                           signed=False) + set_code + resp
+    else:
+        raise ValueError("Too long")
 
 
 def timely(fun: Callable) -> Callable:
@@ -313,12 +343,53 @@ class EngineHandle(object):
         return ret
 
     @prepacked
+    def copy_character(self, char, *, btt=None) -> Dict[bytes, bytes]:
+        units = self._character_units_copy(char, btt=btt)
+        ports = self._character_portals_stat_copy(char, btt=btt)
+        ported = {}
+        for orig, dests in ports.items():
+            dest_stats = {}
+            for dest, stats in dests.items():
+                dest_stats[dest] = concat_d(stats)
+            ported[orig] = concat_d(dest_stats)
+        return {
+            NODES:
+            concat_d(
+                {node: TRUE
+                 for node in self.character_nodes(char, btt=btt)}),
+            EDGES:
+            concat_d({
+                origdest: TRUE
+                for origdest in self.character_portals(char, btt=btt)
+            }),
+            UNITS:
+            concat_d({k: concat_s(v)
+                      for (k, v) in units.items()}),
+            RULEBOOKS:
+            concat_d(self.character_rulebooks_copy(char, btt=btt)),
+            NODE_VAL:
+            concat_d(self._character_nodes_stat_copy(char, btt=btt)),
+            EDGE_VAL:
+            concat_d(ported)
+        }
+
+    @prepacked
+    def copy_chars(self, chars: Union[str, list]):
+        if chars == 'all':
+            it = iter(self._real.character.keys())
+        else:
+            it = iter(chars)
+        return {
+            self.pack(char): concat_d(self.copy_character(char))
+            for char in it
+        }
+
+    @prepacked
     def get_char_deltas(self,
                         chars,
                         *,
                         btt_from: Tuple[str, int, int] = None,
                         btt_to: Tuple[str, int, int] = None):
-        # slow
         delt = self._get_char_deltas(chars, btt_from=btt_from, btt_to=btt_to)
         ret = {}
         for char, delta in delt.items():
@@ -958,7 +1029,10 @@ class EngineHandle(object):
         return btt
 
     @prepacked
-    def node_stat_copy(self, char, node, btt: Tuple[str, int, int] = None):
+    def node_stat_copy(self,
+                       char,
+                       node,
+                       btt: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
         branch, turn, tick = self._get_btt(btt)
         memo = self._node_stat_copy_memo
         if (char, node, branch, turn, tick) in memo:
@@ -1028,12 +1102,13 @@ class EngineHandle(object):
                 del nsc[node]
         return r
 
-    def _character_nodes_stat_copy(self,
-                                   char,
-                                   btt: Tuple[str, int, int] = None):
+    def _character_nodes_stat_copy(
+            self,
+            char,
+            btt: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
         pack = self._real.pack
         return {
-            pack(node): self.node_stat_copy(char, node, btt=btt)
+            pack(node): concat_d(self.node_stat_copy(char, node, btt=btt))
             for node in self._real.character[char].node
         }
 
@@ -1297,19 +1372,24 @@ class EngineHandle(object):
         new = self.portal_stat_copy(char, orig, dest, btt=btt_to)
         return _packed_dict_delta(old, new)
 
-    def _character_portals_stat_copy(self,
-                                     char,
-                                     btt: Tuple[str, int, int] = None):
+    def _character_portals_stat_copy(
+        self,
+        char,
+        btt: Tuple[str, int, int] = None
+    ) -> Dict[bytes, Dict[bytes, Dict[bytes, bytes]]]:
+        pack = self.pack
         r = {}
         chara = self._real.character[char]
         for orig, dests in chara.portal.items():
+            porig = pack(orig)
             for dest in dests:
-                if orig not in r:
-                    r[orig] = {}
-                r[orig][dest] = self.portal_stat_copy(char,
-                                                      orig,
-                                                      dest,
-                                                      btt=btt)
+                pdest = pack(dest)
+                if porig not in r:
+                    r[porig] = {}
+                r[porig][pdest] = self.portal_stat_copy(char,
+                                                        orig,
+                                                        dest,
+                                                        btt=btt)
         return r
 
     def _character_portals_stat_delta(self,

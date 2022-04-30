@@ -2116,7 +2116,7 @@ class EngineProxy(AbstractEngine):
         self._rulebooks_cache = self.handle('all_rulebooks_delta')
         self._eternal_cache = self.handle('eternal_copy')
         self._universal_cache = self.handle('universal_delta')
-        deltas = self.handle('get_char_deltas', chars='all')
+        deltas = self.handle('copy_chars', chars='all')
         for char, delta in deltas.items():
             if char not in self.character:
                 self._char_cache[char] = CharacterProxy(self, char)
