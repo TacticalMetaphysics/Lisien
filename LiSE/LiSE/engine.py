@@ -103,6 +103,7 @@ class AbstractEngine(ABC):
     block, in which deserialized entities will be created as needed.
 
     """
+
     def __getattr__(self, item):
         meth = super().__getattribute__('method').__getattr__(item)
         return MethodType(meth, self)
@@ -121,8 +122,10 @@ class AbstractEngine(ABC):
             self.portal_cls:
             lambda port: msgpack.ExtType(
                 MSGPACK_PORTAL,
-                packer([port.character.name, port.origin.name, port.destination
-                        .name])),
+                packer([
+                    port.character.name, port.origin.name, port.destination.
+                    name
+                ])),
             tuple:
             lambda tup: msgpack.ExtType(MSGPACK_TUPLE, packer(list(tup))),
             frozenset:
@@ -292,11 +295,9 @@ class AbstractEngine(ABC):
             return msgpack.ExtType(code, data)
 
         def unpacker(b: bytes):
-            the_unpacker = msgpack.Unpacker(
-                ext_hook=unpack_handler,
-                raw=False,
-                strict_map_key=False
-            )
+            the_unpacker = msgpack.Unpacker(ext_hook=unpack_handler,
+                                            raw=False,
+                                            strict_map_key=False)
             the_unpacker.feed(b)
             # Deliberately only returning the initial item;
             # others are likely to be null bytes as a result of the
@@ -389,6 +390,7 @@ class NextTurn(Signal):
     method.
 
     """
+
     def __init__(self, engine: AbstractEngine):
         super().__init__()
         self.engine = engine
@@ -450,6 +452,7 @@ class NextTurn(Signal):
 
 
 class AbstractSchema(ABC):
+
     def __init__(self, engine: AbstractEngine):
         self.engine = engine
 
@@ -463,6 +466,7 @@ class AbstractSchema(ABC):
 
 
 class NullSchema(AbstractSchema):
+
     def entity_permitted(self, entity):
         return True
 
@@ -654,8 +658,7 @@ class Engine(AbstractEngine, gORM):
         super().__init__(connect_string or os.path.join(prefix, 'world.db'),
                          sqlfilename=os.path.join(
                              os.path.dirname(os.path.abspath(__file__)),
-                             'sqlite.json'
-                         ),
+                             'sqlite.json'),
                          clear=clear,
                          connect_args=connect_args,
                          alchemy=alchemy,
@@ -696,7 +699,8 @@ class Engine(AbstractEngine, gORM):
             self._start_cache_arranger()
 
     def _start_cache_arranger(self):
-        for branch, (parent, turn_start, tick_start, turn_end, tick_end) in self._branches.items():
+        for branch, (parent, turn_start, tick_start, turn_end,
+                     tick_end) in self._branches.items():
             self.cache_arrange_queue.put((branch, turn_start, tick_start))
             if (turn_start, tick_start) != (turn_end, tick_end):
                 self.cache_arrange_queue.put((branch, turn_end, tick_end))
@@ -773,14 +777,12 @@ class Engine(AbstractEngine, gORM):
     def _init_caches(self):
         from .xcollections import (FunctionStore, CharacterMapping,
                                    UniversalMapping)
-        from .cache import (NodeContentsCache, InitializedCache,
-                            EntitylessCache, InitializedEntitylessCache,
-                            UnitnessCache, UnitRulesHandledCache,
-                            CharacterThingRulesHandledCache,
-                            CharacterPlaceRulesHandledCache,
-                            CharacterPortalRulesHandledCache,
-                            NodeRulesHandledCache, PortalRulesHandledCache,
-                            CharacterRulesHandledCache, ThingsCache)
+        from .cache import (
+            NodeContentsCache, InitializedCache, EntitylessCache,
+            InitializedEntitylessCache, UnitnessCache, UnitRulesHandledCache,
+            CharacterThingRulesHandledCache, CharacterPlaceRulesHandledCache,
+            CharacterPortalRulesHandledCache, NodeRulesHandledCache,
+            PortalRulesHandledCache, CharacterRulesHandledCache, ThingsCache)
         from .rule import AllRuleBooks, AllRules
 
         super()._init_caches()
@@ -869,8 +871,11 @@ class Engine(AbstractEngine, gORM):
         else:
             return self.place_cls(graph, node)
 
-    def _make_edge(self, graph: Character, orig: Union[Thing, Place],
-                   dest: Union[Thing, Place], idx=0):
+    def _make_edge(self,
+                   graph: Character,
+                   orig: Union[Thing, Place],
+                   dest: Union[Thing, Place],
+                   idx=0):
         return self.portal_cls(graph, orig, dest)
 
     def get_delta(self, branch: str, turn_from: int, tick_from: int,
@@ -1113,9 +1118,8 @@ class Engine(AbstractEngine, gORM):
                 and turn in avatarness_settings[branch]:
             for chara, graph, node, is_av in avatarness_settings[branch][turn][
                     start_tick:tick]:
-                delta.setdefault(chara,
-                                 {}).setdefault('units', {}).setdefault(
-                                     graph, {})[node] = is_av
+                delta.setdefault(chara, {}).setdefault('units', {}).setdefault(
+                    graph, {})[node] = is_av
         if branch in things_settings \
                 and turn in things_settings[branch]:
             for chara, thing, location in things_settings[branch][turn][
@@ -1225,8 +1229,8 @@ class Engine(AbstractEngine, gORM):
         branch = branch or self.branch
         turn = turn or self.turn
         tick = tick or self.tick
-        self._unitness_cache.store(character, graph, node, branch, turn,
-                                   tick, is_unit)
+        self._unitness_cache.store(character, graph, node, branch, turn, tick,
+                                   is_unit)
         self.query.unit_set(character, graph, node, branch, turn, tick,
                             is_unit)
 
@@ -1335,27 +1339,26 @@ class Engine(AbstractEngine, gORM):
         self.query.handled_character_rule(charn, rulebook, rulen, branch, turn,
                                           tick)
 
-    def _handled_av(self, character: Keyable, graph: Keyable,
-                    avatar: Keyable, rulebook: Keyable,
-                    rule: Keyable, branch: str, turn: int, tick: int):
+    def _handled_av(self, character: Keyable, graph: Keyable, avatar: Keyable,
+                    rulebook: Keyable, rule: Keyable, branch: str, turn: int,
+                    tick: int):
         try:
             self._unit_rules_handled_cache.store(character, graph, avatar,
-                                                 rulebook, rule, branch,
-                                                 turn, tick)
+                                                 rulebook, rule, branch, turn,
+                                                 tick)
         except ValueError:
             assert rule in self._unit_rules_handled_cache.handled[character,
                                                                   graph,
                                                                   avatar,
                                                                   rulebook,
-                                                                  branch,
-                                                                  turn]
+                                                                  branch, turn]
             return
-        self.query.handled_unit_rule(character, rulebook, rule, graph,
-                                     avatar, branch, turn, tick)
+        self.query.handled_unit_rule(character, rulebook, rule, graph, avatar,
+                                     branch, turn, tick)
 
     def _handled_char_thing(self, character: Keyable, thing: Keyable,
-                            rulebook: Keyable, rule: Keyable,
-                            branch: str, turn: int, tick: int):
+                            rulebook: Keyable, rule: Keyable, branch: str,
+                            turn: int, tick: int):
         try:
             self._character_thing_rules_handled_cache.store(
                 character, thing, rulebook, rule, branch, turn, tick)
@@ -1367,8 +1370,8 @@ class Engine(AbstractEngine, gORM):
                                                 thing, branch, turn, tick)
 
     def _handled_char_place(self, character: Keyable, place: Keyable,
-                            rulebook: Keyable, rule: Keyable,
-                            branch: str, turn: int, tick: int):
+                            rulebook: Keyable, rule: Keyable, branch: str,
+                            turn: int, tick: int):
         try:
             self._character_place_rules_handled_cache.store(
                 character, place, rulebook, rule, branch, turn, tick)
@@ -1394,8 +1397,8 @@ class Engine(AbstractEngine, gORM):
                                                  tick)
 
     def _handled_node(self, character: Keyable, node: Keyable,
-                      rulebook: Keyable, rule: Keyable, branch: str,
-                      turn: int, tick: int):
+                      rulebook: Keyable, rule: Keyable, branch: str, turn: int,
+                      tick: int):
         try:
             self._node_rules_handled_cache.store(character, node, rulebook,
                                                  rule, branch, turn, tick)
@@ -1409,8 +1412,8 @@ class Engine(AbstractEngine, gORM):
                                      turn, tick)
 
     def _handled_portal(self, character: Keyable, orig: Keyable, dest: Keyable,
-                        rulebook: Keyable, rule: Keyable,
-                        branch: str, turn: int, tick: int):
+                        rulebook: Keyable, rule: Keyable, branch: str,
+                        turn: int, tick: int):
         try:
             self._portal_rules_handled_cache.store(character, orig, dest,
                                                    rulebook, rule, branch,

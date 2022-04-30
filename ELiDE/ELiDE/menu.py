@@ -60,6 +60,7 @@ class MenuTextInput(TextInput):
 
 class MenuIntInput(MenuTextInput):
     """Special text input for setting the turn or tick"""
+
     def insert_text(self, s, from_undo=False):
         """Natural numbers only."""
         return super().insert_text(''.join(c for c in s if c in '0123456789'),
@@ -81,6 +82,7 @@ class WorldStartConfigurator(BoxLayout):
     generator_dropdown = ObjectProperty()
 
     def on_generator_dropdown(self, *args):
+
         def select_txt(btn):
             self.generator_dropdown.select(btn.text)
 

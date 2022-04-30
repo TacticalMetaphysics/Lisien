@@ -42,6 +42,7 @@ class GameScreen(Screen):
     """Method to set the ``screen`` attribute of the main :class:`kivy.uix.screenmanager.ScreenManager`"""
     disabled = BooleanProperty(False)
     """If you bind your widgets' ``disabled`` to this, they will be disabled when a game command is in mid-execution"""
+
     @property
     def app(self):
         return App.get_running_app()

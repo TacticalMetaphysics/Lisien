@@ -48,6 +48,7 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
     """The key to set in the entity"""
     value = ObjectProperty(allownone=True)
     """The value you want to set the key to"""
+
     def _update_disabledness(self, *args, **kwargs):
         if not self.parent:
             return
@@ -102,6 +103,7 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
 
 
 class CalendarLabel(CalendarWidget, Label):
+
     def __init__(self, **kwargs):
         if 'text' not in kwargs or not kwargs['text']:
             kwargs['text'] = ''
@@ -113,6 +115,7 @@ class CalendarSlider(Slider, CalendarWidget):
 
 
 class CalendarTextInput(CalendarWidget, TextInput):
+
     def _parse_text(self, *args):
         from ast import literal_eval
         try:
@@ -237,6 +240,7 @@ class AbstractCalendar(RecycleView):
     week instead.
     
     """
+
     def on_data(self, *args):
         idx = self.idx
         for item in self.data:
@@ -280,6 +284,7 @@ class AbstractCalendar(RecycleView):
 
 
 class Agenda(AbstractCalendar):
+
     def from_schedule(self, schedule, start_turn=None, key=str):
         # It should be convenient to style the calendar using data from the core;
         # not sure what the API should be like
@@ -436,6 +441,7 @@ if __name__ == '__main__':
     from kivy.app import App
 
     class CalendarTestApp(App):
+
         def build(self):
             self.wid = Calendar()
             return self.wid

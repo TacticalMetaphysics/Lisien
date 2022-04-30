@@ -172,6 +172,7 @@ class RuleFuncList(MutableSequence, Signal):
 
 class TriggerList(RuleFuncList):
     """A list of trigger functions for rules"""
+
     @reify
     def _funcstore(self):
         return self.rule.engine.trigger
@@ -187,6 +188,7 @@ class TriggerList(RuleFuncList):
 
 class PrereqList(RuleFuncList):
     """A list of prereq functions for rules"""
+
     @reify
     def _funcstore(self):
         return self.rule.engine.prereq
@@ -202,6 +204,7 @@ class PrereqList(RuleFuncList):
 
 class ActionList(RuleFuncList):
     """A list of action functions for rules"""
+
     @reify
     def _funcstore(self):
         return self.rule.engine.action
@@ -356,6 +359,7 @@ class RuleBook(MutableSequence, Signal):
     anyway.
 
     """
+
     def _get_cache(self, branch, turn, tick):
         try:
             return self.engine._rulebooks_cache.retrieve(
@@ -468,6 +472,7 @@ class RuleMapping(MutableMapping, Signal):
     so long as the rule already exists.
 
     """
+
     def __init__(self, engine, rulebook):
         super().__init__()
         self.engine = engine
@@ -520,6 +525,7 @@ class RuleMapping(MutableMapping, Signal):
             self.rulebook.append(v)
 
     def __call__(self, v=None, name=None, always=False):
+
         def wrap(name, always, v):
             name = name if name is not None else v.__name__
             self[name] = v
@@ -646,6 +652,7 @@ class AllRules(MutableMapping, Signal):
     to anything.
 
     """
+
     def __init__(self, engine):
         super().__init__()
         self.engine = engine

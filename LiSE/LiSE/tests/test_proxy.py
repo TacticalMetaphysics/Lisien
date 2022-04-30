@@ -24,6 +24,7 @@ from . import data
 
 
 class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
+
     def setUp(self):
         self.manager = EngineProcessManager()
         self.tempdir = tempfile.mkdtemp(dir='.')

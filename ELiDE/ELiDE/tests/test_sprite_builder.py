@@ -5,6 +5,7 @@ from .util import ELiDEAppTest, idle_until, window_with_widget
 
 
 class TestSpriteBuilder(ELiDEAppTest):
+
     def test_build_pawn(self):
         app = self.app
         win = window_with_widget(app.build())

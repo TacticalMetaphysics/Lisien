@@ -26,6 +26,7 @@ from .statlist import BaseStatListView
 
 
 class FloatInput(TextInput):
+
     def insert_text(self, s, from_undo=False):
         return super().insert_text(''.join(c for c in s if c in '0123456789.'),
                                    from_undo)

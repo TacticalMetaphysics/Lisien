@@ -68,6 +68,7 @@ class StoreButton(RecycleToggleButton):
     """Text of this item"""
     select = ObjectProperty()
     """Function that gets called with my ``index`` when I'm selected"""
+
     def on_parent(self, *args):
         if self.name == '+':
             self.state = 'down'
@@ -89,6 +90,7 @@ class StoreList(RecycleView):
     """The ``name`` of the ``StoreButton`` currently selected"""
     boxl = ObjectProperty()
     """Instance of ``SelectableRecycleBoxLayout``"""
+
     def __init__(self, **kwargs):
         self._i2name = {}
         self._name2i = {}
@@ -153,6 +155,7 @@ class LanguageInput(TextInput):
     """Widget to enter the language you want to edit"""
     screen = ObjectProperty()
     """The instance of ``StringsEdScreen`` that I'm in"""
+
     def on_focus(self, instance, value, *largs):
         if not value:
             if self.screen.language != self.text:
@@ -174,6 +177,7 @@ class StringsEdScreen(Screen):
     """Code identifying the language we're editing"""
     edbox = ObjectProperty()
     """Widget containing editors for the current string and its name"""
+
     def on_language(self, *args):
         if self.edbox is None:
             Clock.schedule_once(self.on_language, 0)
@@ -268,6 +272,7 @@ class StringInput(Editor):
     """Editor for human-readable strings"""
     validate_name_input = ObjectProperty()
     """Boolean function for checking if a string name is acceptable"""
+
     def on_name_wid(self, *args):
         if not self.validate_name_input:
             Clock.schedule_once(self.on_name_wid, 0)
@@ -320,6 +325,7 @@ class EdBox(BoxLayout):
     """Function to show or hide my screen"""
     disable_text_input = BooleanProperty(False)
     """Set to ``True`` to prevent entering text in the editor"""
+
     def on_store_name(self, *args):
         app = App.get_running_app()
         if app.engine is None:
@@ -515,6 +521,7 @@ class FuncsEdBox(EdBox):
     FuncEditor showing the source of the selected one, and a close button.
 
     """
+
     def get_default_text(self, newname):
         return self.editor.get_default_text(newname)
 

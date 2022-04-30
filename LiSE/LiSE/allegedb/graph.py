@@ -123,6 +123,7 @@ class AbstractEntityMapping(AllegedMapping):
         value of the key and return that
 
         """
+
         def wrapval(v):
             from functools import partial
             from .wrap import DictWrapper, ListWrapper, SetWrapper
@@ -417,6 +418,7 @@ class GraphNodeMapping(AllegedMapping):
 
     db = getatt('graph.db')
     """Alias to ``self.graph.db``"""
+
     def __init__(self, graph):
         super().__init__()
         self.graph = graph
@@ -507,6 +509,7 @@ class GraphEdgeMapping(AllegedMapping):
 
     db = getatt('graph.db')
     """Alias to ``self.graph.db``"""
+
     def __init__(self, graph):
         super().__init__()
         self.graph = graph
@@ -540,6 +543,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 
     db = getatt('graph.db')
     """Alias to ``self.graph.db``"""
+
     def _order_nodes(self, node):
         raise NotImplementedError
 
@@ -1040,6 +1044,7 @@ class DiGraph(networkx.DiGraph):
 
 
 class GraphsMapping(MutableMapping):
+
     def __init__(self, orm):
         self.orm = orm
 

@@ -46,10 +46,9 @@ class ThornyRectangle(Button):
         self._trigger_redraw()
 
     def collide_point(self, x, y):
-        return (
-            self.x + self.left_margin < x < self.right - self.right_margin and
-            self.y + self.bottom_margin < y < self.top - self.top_margin
-        )
+        return (self.x + self.left_margin < x < self.right - self.right_margin
+                and
+                self.y + self.bottom_margin < y < self.top - self.top_margin)
 
     def _redraw_line(self, enabled, name, point_lambda):
         if enabled:
@@ -68,26 +67,23 @@ class ThornyRectangle(Button):
 
     def _get_left_line_points(self):
         return [
-            self.x, self.center_y,
-            self.x + self.left_margin, self.center_y
+            self.x, self.center_y, self.x + self.left_margin, self.center_y
         ]
 
     def _get_right_line_points(self):
         return [
-            self.right - self.right_margin, self.center_y,
-            self.right, self.center_y
+            self.right - self.right_margin, self.center_y, self.right,
+            self.center_y
         ]
 
     def _get_top_line_points(self):
         return [
-            self.center_x, self.top,
-            self.center_x, self.top - self.top_margin
+            self.center_x, self.top, self.center_x, self.top - self.top_margin
         ]
 
     def _get_bottom_line_points(self):
         return [
-            self.center_x, self.y,
-            self.center_x, self.y + self.bottom_margin
+            self.center_x, self.y, self.center_x, self.y + self.bottom_margin
         ]
 
     def _redraw(self, *args):
@@ -110,8 +106,7 @@ class ThornyRectangle(Button):
                           self._get_left_line_points)
         self._redraw_line(self.draw_right, '_right_line',
                           self._get_right_line_points)
-        self._redraw_line(self.draw_up, '_top_line',
-                          self._get_top_line_points)
+        self._redraw_line(self.draw_up, '_top_line', self._get_top_line_points)
         self._redraw_line(self.draw_down, '_bot_line',
                           self._get_bottom_line_points)
         self.canvas.ask_update()
@@ -139,14 +134,12 @@ class Cross(Widget):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.bind(
-            draw_left=self._trigger_redraw,
-            draw_right=self._trigger_redraw,
-            draw_up=self._trigger_redraw,
-            draw_down=self._trigger_redraw,
-            size=self._trigger_redraw,
-            pos=self._trigger_redraw
-        )
+        self.bind(draw_left=self._trigger_redraw,
+                  draw_right=self._trigger_redraw,
+                  draw_up=self._trigger_redraw,
+                  draw_down=self._trigger_redraw,
+                  size=self._trigger_redraw,
+                  pos=self._trigger_redraw)
 
     def _draw_line(self, enabled, name, get_points):
         if enabled:
@@ -164,28 +157,16 @@ class Cross(Widget):
             delattr(self, name)
 
     def _get_left_points(self):
-        return [
-            self.x, self.center_y,
-            self.center_x, self.center_y
-        ]
+        return [self.x, self.center_y, self.center_x, self.center_y]
 
     def _get_right_points(self):
-        return [
-            self.center_x, self.center_y,
-            self.right, self.center_y
-        ]
+        return [self.center_x, self.center_y, self.right, self.center_y]
 
     def _get_up_points(self):
-        return [
-            self.center_x, self.center_y,
-            self.center_x, self.top
-        ]
+        return [self.center_x, self.center_y, self.center_x, self.top]
 
     def _get_down_points(self):
-        return [
-            self.center_x, self.center_y,
-            self.center_x, self.y
-        ]
+        return [self.center_x, self.center_y, self.center_x, self.y]
 
     def _redraw(self, *args):
         self._draw_line(self.draw_left, '_left_line', self._get_left_points)
@@ -198,7 +179,9 @@ class Cross(Widget):
 
 
 class Timestream(RecycleView):
-    cols = NumericProperty(1)  # should be equal to the number of turns on which branches were created + 1
+    cols = NumericProperty(
+        1
+    )  # should be equal to the number of turns on which branches were created + 1
 
 
 class TimestreamScreen(Screen):
@@ -218,13 +201,14 @@ class TimestreamScreen(Screen):
         end_turn_branches = defaultdict(set)
         branch_split_turns_todo = defaultdict(set)
         branch_split_turns_done = defaultdict(set)
-        for branch, (parent, parent_turn, parent_tick,
-                     end_turn, end_tick) in branch_lineage.items():
+        for branch, (parent, parent_turn, parent_tick, end_turn,
+                     end_tick) in branch_lineage.items():
             start_turn_branches[parent_turn].add(branch)
             end_turn_branches[end_turn].add(branch)
             branch_split_turns_todo[parent].add(parent_turn)
         branch_split_turns_todo['trunk'].add(0)
-        col2turn = list(sorted(start_turn_branches.keys() | end_turn_branches.keys()))
+        col2turn = list(
+            sorted(start_turn_branches.keys() | end_turn_branches.keys()))
         data = []
         if not col2turn:
             self.timestream.cols = 1
@@ -233,69 +217,114 @@ class TimestreamScreen(Screen):
             return
         Logger.debug("Timestream: read branch lineage, processing...")
         trunk_lineage = branch_lineage.pop('trunk')
-        sorted_branches = [('trunk', (None, 0, 0, 0, 0))] + sorted(branch_lineage.items(), key=lambda x: x[1][1])
+        sorted_branches = [('trunk', (None, 0, 0, 0, 0))] + sorted(
+            branch_lineage.items(), key=lambda x: x[1][1])
         branch_lineage['trunk'] = trunk_lineage
         for row, (branch, _) in enumerate(sorted_branches):
             for turn in col2turn:
                 if branch == 'trunk' and turn == 0:
                     data.append({
-                        'widget': 'ThornyRectangle',
-                        'branch': 'trunk',
-                        'turn': 0,
-                        'draw_left': False,
-                        'draw_up': False,
-                        'draw_down': len(start_turn_branches[turn]) > 1,
-                        'draw_right': bool(branch_split_turns_todo[branch])
+                        'widget':
+                        'ThornyRectangle',
+                        'branch':
+                        'trunk',
+                        'turn':
+                        0,
+                        'draw_left':
+                        False,
+                        'draw_up':
+                        False,
+                        'draw_down':
+                        len(start_turn_branches[turn]) > 1,
+                        'draw_right':
+                        bool(branch_split_turns_todo[branch])
                     })
                 elif branch in start_turn_branches[turn]:
-                    here_branches = [(branch_lineage[b][1], b) for b in start_turn_branches[turn]]
+                    here_branches = [(branch_lineage[b][1], b)
+                                     for b in start_turn_branches[turn]]
                     if branch == min(here_branches)[1]:
                         data.append({
-                            'widget': 'ThornyRectangle',
-                            'branch': branch,
-                            'turn': turn,
-                            'draw_left': False,
-                            'draw_up': turn == branch_lineage[branch][1],
-                            'draw_down': len(start_turn_branches[turn]) > 1,
-                            'draw_right': branch_lineage[branch][3] > turn
+                            'widget':
+                            'ThornyRectangle',
+                            'branch':
+                            branch,
+                            'turn':
+                            turn,
+                            'draw_left':
+                            False,
+                            'draw_up':
+                            turn == branch_lineage[branch][1],
+                            'draw_down':
+                            len(start_turn_branches[turn]) > 1,
+                            'draw_right':
+                            branch_lineage[branch][3] > turn
                         })
                     elif branch == max(here_branches)[1]:
                         data.append({
-                            'widget': 'ThornyRectangle',
-                            'branch': branch,
-                            'turn': turn,
-                            'draw_left': branch_lineage[branch][1] > turn,
-                            'draw_up': False,
-                            'draw_down': len(start_turn_branches[turn]) > 1,
-                            'draw_right': False
+                            'widget':
+                            'ThornyRectangle',
+                            'branch':
+                            branch,
+                            'turn':
+                            turn,
+                            'draw_left':
+                            branch_lineage[branch][1] > turn,
+                            'draw_up':
+                            False,
+                            'draw_down':
+                            len(start_turn_branches[turn]) > 1,
+                            'draw_right':
+                            False
                         })
                     else:
                         data.append({
-                            'widget': 'Cross',
-                            'draw_left': False,
-                            'draw_up': True,
-                            'draw_down': len(start_turn_branches[turn]) > 1,
-                            'draw_right': branch_lineage[branch][3] > turn
+                            'widget':
+                            'Cross',
+                            'draw_left':
+                            False,
+                            'draw_up':
+                            True,
+                            'draw_down':
+                            len(start_turn_branches[turn]) > 1,
+                            'draw_right':
+                            branch_lineage[branch][3] > turn
                         })
                 elif branch in end_turn_branches[turn]:
                     data.append({
-                        'widget': 'ThornyRectangle',
-                        'branch': branch,
-                        'turn': turn,
-                        'draw_left': True,
-                        'draw_up': row > 0 and branch_lineage[branch_lineage[branch][0]][3] == turn,
-                        'draw_down': bool(start_turn_branches[turn]),
-                        'draw_right': False
+                        'widget':
+                        'ThornyRectangle',
+                        'branch':
+                        branch,
+                        'turn':
+                        turn,
+                        'draw_left':
+                        True,
+                        'draw_up':
+                        row > 0 and
+                        branch_lineage[branch_lineage[branch][0]][3] == turn,
+                        'draw_down':
+                        bool(start_turn_branches[turn]),
+                        'draw_right':
+                        False
                     })
-                elif branch_lineage[branch][1] <= turn < branch_lineage[branch][3]:
-                    here_branches = [(branch_lineage[b][1], b) for b in start_turn_branches[turn] if b != branch]
+                elif branch_lineage[branch][1] <= turn < branch_lineage[
+                        branch][3]:
+                    here_branches = [(branch_lineage[b][1], b)
+                                     for b in start_turn_branches[turn]
+                                     if b != branch]
                     data.append({
-                        'widget': 'Cross',
-                        'draw_left': True,
-                        'draw_right': True,
-                        'draw_up': branch in branch_lineage and branch_lineage[branch][0] in branch_lineage
-                        and branch_lineage[branch_lineage[branch][0]][3] >= turn,
-                        'draw_down': bool(here_branches)
+                        'widget':
+                        'Cross',
+                        'draw_left':
+                        True,
+                        'draw_right':
+                        True,
+                        'draw_up':
+                        branch in branch_lineage
+                        and branch_lineage[branch][0] in branch_lineage and
+                        branch_lineage[branch_lineage[branch][0]][3] >= turn,
+                        'draw_down':
+                        bool(here_branches)
                     })
                 else:
                     data.append({'widget': 'Widget'})
@@ -339,4 +368,3 @@ Builder.load_string(r"""
                 text: 'Cancel'
                 on_press: root.toggle()
 """)
-

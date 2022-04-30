@@ -189,6 +189,7 @@ def indices_for_table_dict(table):
 
 
 def queries_for_table_dict(table):
+
     def tick_to_end_clause(tab):
         return and_(
             tab.c.graph == bindparam('graph'),
@@ -424,6 +425,7 @@ class Alchemist(object):
     """Holds an engine and runs queries on it.
 
     """
+
     def __init__(self, engine):
         self.engine = engine
         self.conn = self.engine.connect()

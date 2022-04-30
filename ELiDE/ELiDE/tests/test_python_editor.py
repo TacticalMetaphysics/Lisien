@@ -4,6 +4,7 @@ from .util import ELiDEAppTest, window_with_widget, idle_until
 
 
 class TestPythonEditor(ELiDEAppTest):
+
     def setUp(self):
         super().setUp()
         with Engine(self.prefix) as eng:

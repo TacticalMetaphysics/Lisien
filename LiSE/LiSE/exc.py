@@ -60,6 +60,7 @@ class TravelException(Exception):
     because sometimes somebody SHOULD get confused finding a path.
 
     """
+
     def __init__(self,
                  message,
                  path=None,

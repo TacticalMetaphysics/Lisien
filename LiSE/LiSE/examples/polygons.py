@@ -19,6 +19,7 @@ from LiSE.character import grid_2d_8graph
 
 
 def install(eng):
+
     @eng.function
     def cmp_neighbor_shapes(poly, cmp, stat):
         """Compare the proportion of neighboring polys with the same shape as this one

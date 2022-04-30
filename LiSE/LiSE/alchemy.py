@@ -333,6 +333,7 @@ def queries(table):
     of all the rest of the queries I need.
 
     """
+
     def update_where(updcols, wherecols):
         """Return an ``UPDATE`` statement that updates the columns ``updcols``
         when the ``wherecols`` match. Every column has a bound parameter of

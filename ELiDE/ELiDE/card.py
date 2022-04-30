@@ -289,6 +289,7 @@ class Foundation(ColorTextureBox):
     """Color of the outline"""
     deck = NumericProperty(0)
     """Index of the deck in the parent :class:`DeckLayout`"""
+
     def upd_pos(self, *args):
         """Ask the foundation where I should be, based on what deck I'm
         for.
@@ -372,6 +373,7 @@ class DeckBuilderLayout(Layout):
     """Index within the current deck that a card is being dragged into."""
     _foundations = ListProperty([])
     """Private. A list of :class:`Foundation` widgets, one per deck."""
+
     def __init__(self, **kwargs):
         """Bind most of my custom properties to ``_trigger_layout``."""
         super().__init__(**kwargs)
@@ -492,6 +494,7 @@ class DeckBuilderLayout(Layout):
         of the card.
 
         """
+
         def ycmp():
             if self.card_y_hint_step == 0:
                 return False
@@ -524,6 +527,7 @@ class DeckBuilderLayout(Layout):
         of ``card``.
 
         """
+
         def ycmp():
             if self.card_y_hint_step == 0:
                 return False
@@ -648,6 +652,7 @@ class DeckBuilderLayout(Layout):
         by ``card_pos_hint``
 
         """
+
         def get_dragidx(cards):
             j = 0
             for card in cards:
@@ -706,6 +711,7 @@ class ScrollBarBar(ColorTextureBox):
     :class:`DeckBuilderScrollBar`
 
     """
+
     def on_touch_down(self, touch):
         """Tell my parent if I've been touched"""
         if self.parent is None:
@@ -755,6 +761,7 @@ class DeckBuilderScrollBar(FloatLayout):
     ``pos_hint_y``.
 
     """
+
     def _get_scroll(self):
         zero = self._scroll - self.scroll_min
         return zero / self.scroll_hint

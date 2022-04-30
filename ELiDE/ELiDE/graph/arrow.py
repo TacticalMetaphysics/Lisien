@@ -640,6 +640,7 @@ class GraphArrow(GraphArrowWidget):
 
 
 class ArrowLayout(FloatLayout):
+
     def __init__(self, **kwargs):
         self._trigger_redraw = Clock.create_trigger(self.redraw)
         self.bind(children=self._trigger_redraw)

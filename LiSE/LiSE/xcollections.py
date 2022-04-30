@@ -44,6 +44,7 @@ class Language(str):
 
 
 class AbstractLanguageDescriptor(Signal):
+
     def __get__(self, instance, owner=None):
         if not hasattr(self, 'lang'):
             self.lang = Language(self, self._get_language(instance))
@@ -59,6 +60,7 @@ class AbstractLanguageDescriptor(Signal):
 
 
 class LanguageDescriptor(AbstractLanguageDescriptor):
+
     def _get_language(self, inst):
         return inst._language
 
@@ -137,6 +139,7 @@ class FunctionStore(Signal):
     the function itself.
 
     """
+
     def __init__(self, filename):
         if not filename.endswith(".py"):
             raise ValueError(
@@ -252,6 +255,7 @@ class FunctionStore(Signal):
 
 
 class MethodStore(FunctionStore):
+
     def __init__(self, engine):
         self.engine = engine
         super().__init__('method.py')
@@ -347,7 +351,9 @@ class CharacterMapping(MutableMapping, Signal):
             raise KeyError("No such character")
         cache = self.engine._graph_objs
         if name not in cache:
-            cache[name] = Character(self.engine, name, init_rulebooks=name not in self)
+            cache[name] = Character(self.engine,
+                                    name,
+                                    init_rulebooks=name not in self)
         ret = cache[name]
         if not isinstance(ret, Character):
             raise TypeError("""Tried to get a graph that isn't a Character.
@@ -367,7 +373,10 @@ class CharacterMapping(MutableMapping, Signal):
         if name in self.engine._graph_objs:
             ch = self.engine._graph_objs[name]
         else:
-            ch = self.engine._graph_objs[name] = Character(self.engine, name, init_rulebooks=name not in self)
+            ch = self.engine._graph_objs[name] = Character(self.engine,
+                                                           name,
+                                                           init_rulebooks=name
+                                                           not in self)
         ch.stat.clear()
         if value:
             ch.stat.update(value)

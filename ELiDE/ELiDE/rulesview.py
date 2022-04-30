@@ -33,7 +33,6 @@ from kivy.uix.screenmanager import Screen
 from .card import Card, DeckBuilderView, DeckBuilderScrollBar
 from .util import trigger
 
-
 dbg = Logger.debug
 
 

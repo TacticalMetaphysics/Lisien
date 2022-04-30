@@ -20,6 +20,7 @@ from LiSE.engine import Engine
 
 
 class CharacterTest(LiSE.allegedb.tests.test_all.AllegedTest):
+
     def setUp(self):
         self.tempdir = tempfile.mkdtemp(dir='.')
         self.engine = Engine(self.tempdir)
@@ -83,6 +84,7 @@ def set_in_mapping(mapp, stat, v):
 
 def update_char(char, *, stat=(), node=(), portal=()):
     """Make a bunch of changes to a character-like object"""
+
     def update(d, dd):
         for k, v in dd.items():
             if v is None and k in d:

@@ -39,6 +39,7 @@ class SwatchButton(ToggleButton):
     """
     tex = ObjectProperty()
     """Texture to display here"""
+
     def on_state(self, *args):
         if self.state == 'down':
             assert (self not in self.parent.selection)
@@ -103,6 +104,7 @@ class Pallet(StackLayout):
     """List of :class:`SwatchButton`s that are selected"""
     selection_mode = OptionProperty('single', options=['single', 'multiple'])
     """Whether to allow only a 'single' selected :class:`SwatchButton` (default), or 'multiple'"""
+
     def on_selection(self, *args):
         Logger.debug('Pallet: {} got selection {}'.format(
             self.filename, self.selection))

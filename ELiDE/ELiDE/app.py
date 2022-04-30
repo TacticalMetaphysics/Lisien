@@ -131,17 +131,17 @@ class ELiDEApp(App):
                 cb=self.mainscreen._update_from_time_travel)
 
     def time_travel(self, branch, turn, tick=None):
-        self.engine.time_travel(
-            branch,
-            turn,
-            tick,
-            chars='all',
-            cb=self._update_from_time_travel
-        )
+        self.engine.time_travel(branch,
+                                turn,
+                                tick,
+                                chars='all',
+                                cb=self._update_from_time_travel)
 
-    def _update_from_time_travel(self, command, branch, turn, tick, result, **kwargs):
+    def _update_from_time_travel(self, command, branch, turn, tick, result,
+                                 **kwargs):
         (self.branch, self.turn, self.tick) = (branch, turn, tick)
-        self.mainscreen._update_from_time_travel(command, branch, turn, tick, result, **kwargs)
+        self.mainscreen._update_from_time_travel(command, branch, turn, tick,
+                                                 result, **kwargs)
 
     def set_tick(self, t):
         """Set my tick to the given value, cast to an integer."""
@@ -284,7 +284,9 @@ class ELiDEApp(App):
         self.selected_proxy = self._get_selected_proxy()
 
     def _add_screens(self, *args):
+
         def toggler(screenname):
+
             def tog(*args):
                 if self.manager.current == screenname:
                     self.manager.current = 'main'
@@ -332,8 +334,7 @@ class ELiDEApp(App):
         self.bind(selected_proxy=self.statcfg.setter('proxy'))
 
         self.timestream = ELiDE.timestream.TimestreamScreen(
-            name='timestream', toggle=toggler('timestream')
-        )
+            name='timestream', toggle=toggler('timestream'))
 
         self.mainscreen = ELiDE.screen.MainScreen(
             use_kv=config['ELiDE']['user_kv'] == 'yes',

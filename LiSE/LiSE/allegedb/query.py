@@ -40,8 +40,8 @@ IntegrityError = (
     alchemyIntegError,
     sqliteIntegError) if alchemyIntegError is not None else sqliteIntegError
 OperationalError = (
-    alchemyOperationalError,
-    sqliteOperationalError) if alchemyOperationalError is not None else sqliteOperationalError
+    alchemyOperationalError, sqliteOperationalError
+) if alchemyOperationalError is not None else sqliteOperationalError
 
 
 class TimeError(ValueError):
@@ -54,6 +54,7 @@ class GlobalKeyValueStore(MutableMapping):
     Mostly this is for holding the current branch and revision.
 
     """
+
     def __init__(self, qe):
         self.qe = qe
         self._cache = dict(qe.global_items())
@@ -77,6 +78,7 @@ class GlobalKeyValueStore(MutableMapping):
 
 
 class ConnectionHolder:
+
     def __init__(self, dbstring, connect_args, alchemy, inq, outq, fn, tables):
         self.lock = Lock()
         self.existence_lock = Lock()
@@ -236,9 +238,9 @@ class QueryEngine(object):
     """
     flush_edges_t = 0
     holder_cls = ConnectionHolder
-    tables = (
-        'global', 'branches', 'turns', 'graphs', 'keyframes', 'graph_val', 'nodes', 'node_val', 'edges', 'edge_val',
-        'plans', 'plan_ticks', 'universals')
+    tables = ('global', 'branches', 'turns', 'graphs', 'keyframes',
+              'graph_val', 'nodes', 'node_val', 'edges', 'edge_val', 'plans',
+              'plan_ticks', 'universals')
 
     def __init__(self,
                  dbstring,
@@ -259,15 +261,9 @@ class QueryEngine(object):
         dbstring = dbstring or 'sqlite:///:memory:'
         self._inq = Queue()
         self._outq = Queue()
-        self._holder = self.holder_cls(
-            dbstring,
-            connect_args,
-            alchemy,
-            self._inq,
-            self._outq,
-            strings_filename,
-            self.tables
-        )
+        self._holder = self.holder_cls(dbstring, connect_args, alchemy,
+                                       self._inq, self._outq, strings_filename,
+                                       self.tables)
 
         if unpack is None:
             from ast import literal_eval as unpack
@@ -327,9 +323,8 @@ class QueryEngine(object):
         return self.sqlmany(
             'keyframes_insert',
             *[(pack(graph), branch, turn, tick, pack(nodes), pack(edges),
-               pack(graph_val))
-              for (graph, branch, turn, tick, nodes, edges, graph_val) in many
-              ])
+               pack(graph_val)) for (graph, branch, turn, tick, nodes, edges,
+                                     graph_val) in many])
 
     def keyframes_dump(self):
         unpack = self.unpack
@@ -345,8 +340,7 @@ class QueryEngine(object):
 
     def get_keyframe(self, graph, branch, turn, tick):
         unpack = self.unpack
-        stuff = self.sql('get_keyframe', self.pack(graph), branch, turn,
-                         tick)
+        stuff = self.sql('get_keyframe', self.pack(graph), branch, turn, tick)
         if not stuff:
             return
         nodes, edges, graph_val = stuff[0]
@@ -508,11 +502,11 @@ class QueryEngine(object):
         if not self._graphvals2set:
             return
         pack = self.pack
-        self.sqlmany('graph_val_insert', *(
-            (pack(graph), pack(key), branch, turn, tick, pack(value))
-            for (graph, key, branch, turn, tick, value)
-            in self._graphvals2set
-        ))
+        self.sqlmany(
+            'graph_val_insert',
+            *((pack(graph), pack(key), branch, turn, tick, pack(value))
+              for (graph, key, branch, turn, tick,
+                   value) in self._graphvals2set))
         self._graphvals2set = []
 
     def graph_val_set(self, graph, key, branch, turn, tick, value):
@@ -534,11 +528,11 @@ class QueryEngine(object):
         if not self._nodes2set:
             return
         pack = self.pack
-        self.sqlmany('nodes_insert', *(
-            (pack(graph), pack(node), branch, turn, tick, bool(extant))
-            for (graph, node, branch, turn, tick, extant)
-            in self._nodes2set
-        ))
+        self.sqlmany(
+            'nodes_insert',
+            *((pack(graph), pack(node), branch, turn, tick, bool(extant))
+              for (graph, node, branch, turn, tick,
+                   extant) in self._nodes2set))
         self._nodes2set = []
 
     def exist_node(self, graph, node, branch, turn, tick, extant):
@@ -550,8 +544,7 @@ class QueryEngine(object):
         if (branch, turn, tick) in self._btts:
             raise TimeError
         self._btts.add((branch, turn, tick))
-        self._nodes2set.append(
-            (graph, node, branch, turn, tick, extant))
+        self._nodes2set.append((graph, node, branch, turn, tick, extant))
 
     def nodes_del_time(self, branch, turn, tick):
         self._flush_nodes()
@@ -625,11 +618,11 @@ class QueryEngine(object):
         if not self._nodevals2set:
             return
         pack = self.pack
-        self.sqlmany('node_val_insert', *(
-            (pack(graph), pack(node), pack(key), branch, turn, tick, pack(value))
-            for (graph, node, key, branch, turn, tick, value)
-            in self._nodevals2set
-        ))
+        self.sqlmany(
+            'node_val_insert',
+            *((pack(graph), pack(node), pack(key), branch, turn, tick,
+               pack(value)) for (graph, node, key, branch, turn, tick,
+                                 value) in self._nodevals2set))
         self._nodevals2set = []
 
     def node_val_set(self, graph, node, key, branch, turn, tick, value):
@@ -687,8 +680,8 @@ class QueryEngine(object):
         start = monotonic()
         if not self._edges2set:
             return
-        self.sqlmany('edges_insert',
-                     *map(self._pack_edge2set, self._edges2set))
+        self.sqlmany('edges_insert', *map(self._pack_edge2set,
+                                          self._edges2set))
         self._edges2set = []
         QueryEngine.flush_edges_t += monotonic() - start
 
@@ -697,7 +690,8 @@ class QueryEngine(object):
         if (branch, turn, tick) in self._btts:
             raise TimeError
         self._btts.add((branch, turn, tick))
-        self._edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant))
+        self._edges2set.append(
+            (graph, orig, dest, idx, branch, turn, tick, extant))
 
     def edges_del_time(self, branch, turn, tick):
         self._flush_edges()

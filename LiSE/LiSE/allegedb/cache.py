@@ -1070,6 +1070,7 @@ class EdgesCache(Cache):
         return self.parents
 
     def __init__(self, db):
+
         def gettest(k):
             assert len(k) == 3, "Bad key: " + repr(k)
 

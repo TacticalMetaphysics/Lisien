@@ -81,6 +81,7 @@ def window_with_widget(wid):
 
 
 class MockTouch(MotionEvent):
+
     def depack(self, args):
         self.is_touch = True
         self.sx = args['sx']
@@ -89,6 +90,7 @@ class MockTouch(MotionEvent):
 
 
 class ListenableDict(dict, Signal):
+
     def __init__(self):
         Signal.__init__(self)
 
@@ -128,6 +130,7 @@ class MockEngine(Signal):
 
 
 class ELiDEAppTest(GraphicUnitTest):
+
     def setUp(self):
         super(ELiDEAppTest, self).setUp()
         self.prefix = mkdtemp()

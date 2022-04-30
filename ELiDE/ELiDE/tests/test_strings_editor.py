@@ -6,6 +6,7 @@ from LiSE import Engine
 
 
 class StringsEditorTest(ELiDEAppTest):
+
     def test_strings_editor(self):
         assert 'LiSE' in self.app.config
         app = self.app

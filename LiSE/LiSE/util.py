@@ -221,7 +221,9 @@ def fake_submit(func, *args, **kwargs):
     to make normally parallel operations serial.
 
     """
+
     class FakeFuture:
+
         def __init__(self, func, *args, **kwargs):
             self._func = func
             self._args = args
@@ -231,4 +233,3 @@ def fake_submit(func, *args, **kwargs):
             return self._func(*self._args, **self._kwargs)
 
     return FakeFuture(func, *args, **kwargs)
-

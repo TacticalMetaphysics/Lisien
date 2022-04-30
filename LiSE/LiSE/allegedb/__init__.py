@@ -41,10 +41,12 @@ def loaded_keep_test(test_turn, test_tick, past_turn, past_tick, future_turn,
 
 
 def world_locked(fn: Callable) -> Callable:
+
     @wraps(fn)
     def lockedy(*args, **kwargs):
         with args[0].world_lock:
             return fn(*args, **kwargs)
+
     return lockedy
 
 
@@ -108,6 +110,7 @@ class TimeSignal:
     or turn changes, pass it to my ``connect`` method.
 
     """
+
     def __init__(self, engine, sig):
         self.engine = engine
         self.branch = self.engine.branch
@@ -251,9 +254,11 @@ def setnodeval(delta, graph, node, key, value):
 def setedge(delta, is_multigraph, graph, orig, dest, idx, exists):
     """Change a delta to say that an edge was created or deleted"""
     if is_multigraph(graph):
-        delta.setdefault(graph, {}).setdefault('edges', {})[orig, dest, idx] = bool(exists)
+        delta.setdefault(graph, {}).setdefault('edges', {})[orig, dest,
+                                                            idx] = bool(exists)
     else:
-        delta.setdefault(graph, {}).setdefault('edges', {})[orig, dest] = bool(exists)
+        delta.setdefault(graph, {}).setdefault('edges',
+                                               {})[orig, dest] = bool(exists)
 
 
 def setedgeval(delta, is_multigraph, graph, orig, dest, idx, key, value):
@@ -279,6 +284,7 @@ def setedgeval(delta, is_multigraph, graph, orig, dest, idx, key, value):
 
 
 class MultiLock:
+
     def __init__(self, *args, releasing: list = None):
         self._locks = args
         self._releasing = releasing or []
@@ -455,33 +461,51 @@ class ORM(object):
             graphs = list(self.graph)
         for graph in graphs:
             with locks:
-                graph_stats = self._graph_val_cache._get_keycache((graph,), branch, turn, tick, forward=False)
+                graph_stats = self._graph_val_cache._get_keycache(
+                    (graph, ), branch, turn, tick, forward=False)
             for stat in graph_stats:
                 with locks:
-                    self._graph_val_cache._base_retrieve((graph, stat, branch, turn, tick))
+                    self._graph_val_cache._base_retrieve(
+                        (graph, stat, branch, turn, tick))
             with locks:
-                nodes = self._nodes_cache._get_keycache((graph,), branch, turn, tick, forward=False)
+                nodes = self._nodes_cache._get_keycache((graph, ),
+                                                        branch,
+                                                        turn,
+                                                        tick,
+                                                        forward=False)
             for node in nodes:
                 with locks:
-                    self._nodes_cache._base_retrieve((graph, node, branch, turn, tick))
+                    self._nodes_cache._base_retrieve(
+                        (graph, node, branch, turn, tick))
                 with locks:
-                    node_stats = self._node_val_cache._get_keycache((graph, node), branch, turn, tick, forward=False)
+                    node_stats = self._node_val_cache._get_keycache(
+                        (graph, node), branch, turn, tick, forward=False)
                 for stat in node_stats:
                     with locks:
-                        self._node_val_cache._base_retrieve((graph, node, stat, branch, turn, tick))
+                        self._node_val_cache._base_retrieve(
+                            (graph, node, stat, branch, turn, tick))
                 with locks:
-                    dests = self._edges_cache._get_destcache(graph, node, branch, turn, tick, forward=False)
+                    dests = self._edges_cache._get_destcache(graph,
+                                                             node,
+                                                             branch,
+                                                             turn,
+                                                             tick,
+                                                             forward=False)
                 for dest in dests:
                     with locks:
-                        self._edges_cache._base_retrieve((graph, node, dest, branch, turn, tick))
+                        self._edges_cache._base_retrieve(
+                            (graph, node, dest, branch, turn, tick))
                     with locks:
                         edge_stats = self._edge_val_cache._get_keycache(
-                            (graph, node, dest), branch, turn, tick, forward=False)
+                            (graph, node, dest),
+                            branch,
+                            turn,
+                            tick,
+                            forward=False)
                     for stat in edge_stats:
                         with locks:
                             self._edge_val_cache._base_retrieve(
-                                (graph, node, dest, stat, branch, turn, tick)
-                            )
+                                (graph, node, dest, stat, branch, turn, tick))
 
     def _arrange_cache_loop(self):
         q = self.cache_arrange_queue
@@ -491,15 +515,20 @@ class ORM(object):
                 q.task_done()
                 return
             if not isinstance(inst, tuple):
-                raise TypeError("cache_arrange_queue needs tuples of length 2 or 3")
+                raise TypeError(
+                    "cache_arrange_queue needs tuples of length 2 or 3")
             if len(inst) == 2:
                 branch, turn = inst
                 tick = self._turn_end_plan[branch, turn]
             elif len(inst) == 3:
                 branch, turn, tick = inst
             else:
-                raise ValueError("cache_arrange_queue tuples must be length 2 or 3")
-            self.arrange_cache_signal.send(self, branch=branch, turn=turn, tick=tick)
+                raise ValueError(
+                    "cache_arrange_queue tuples must be length 2 or 3")
+            self.arrange_cache_signal.send(self,
+                                           branch=branch,
+                                           turn=turn,
+                                           tick=tick)
             q.task_done()
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
@@ -635,14 +664,20 @@ class ORM(object):
                             and idx in delta[graph]['edges'][orig][dest]
                             and not delta[graph]['edges'][orig][dest][idx]):
                         continue
-                    delta.setdefault(graph, {}).setdefault('edges', {})[orig, dest] = bool(exists)
+                    delta.setdefault(graph,
+                                     {}).setdefault('edges',
+                                                    {})[orig,
+                                                        dest] = bool(exists)
                 else:
                     if (graph in delta and 'edges' in delta[graph]
                             and orig in delta[graph]['edges']
                             and dest in delta[graph]['edges'][orig]
                             and not delta[graph]['edges'][orig][dest]):
                         continue
-                    delta.setdefault(graph, {}).setdefault('edges', {})[orig, dest] = bool(exists)
+                    delta.setdefault(graph,
+                                     {}).setdefault('edges',
+                                                    {})[orig,
+                                                        dest] = bool(exists)
 
         if branch in evbranches and turn in evbranches[branch]:
             for graph, orig, dest, idx, key, value in evbranches[branch][turn][
@@ -706,7 +741,13 @@ class ORM(object):
                 raise NotImplementedError("Only DiGraph for now")
             self._graph_objs[graph] = DiGraph(self, graph)
 
-    def __init__(self, dbstring, sqlfilename=None, clear=False, alchemy=True, connect_args=None, cache_arranger=False):
+    def __init__(self,
+                 dbstring,
+                 sqlfilename=None,
+                 clear=False,
+                 alchemy=True,
+                 connect_args=None,
+                 cache_arranger=False):
         """Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
         either case, begin a transaction.
 
@@ -735,7 +776,8 @@ class ORM(object):
         if hasattr(self, '_post_init_cache_hook'):
             self._post_init_cache_hook()
         if not hasattr(self, 'query'):
-            self.query = self.query_engine_cls(dbstring, connect_args, alchemy, sqlfilename,
+            self.query = self.query_engine_cls(dbstring, connect_args, alchemy,
+                                               sqlfilename,
                                                getattr(self, 'pack', None),
                                                getattr(self, 'unpack', None))
         if clear:

@@ -42,6 +42,7 @@ class trigger(object):
     compatibility.
 
     """
+
     def __init__(self, func_or_timeout):
         if callable(func_or_timeout):
             self.func = func_or_timeout

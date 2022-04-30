@@ -114,12 +114,12 @@ class UserMapping(Mapping):
 
 
 class NodeContentValues(ValuesView):
+
     def __iter__(self):
         node = self._mapping.node
         nodem = node.character.node
         try:
-            conts = node.engine._node_contents(node.character.name,
-                                                   node.name)
+            conts = node.engine._node_contents(node.character.name, node.name)
         except KeyError:
             return
         for name in conts:
@@ -139,7 +139,7 @@ class NodeContent(Mapping):
 
     def __iter__(self):
         try:
-            it =  self.node.engine._node_contents_cache.retrieve(
+            it = self.node.engine._node_contents_cache.retrieve(
                 self.node.character.name, self.node.name,
                 *self.node.engine._btt())
         except KeyError:
@@ -171,6 +171,7 @@ class NodeContent(Mapping):
 
 
 class DestsValues(ValuesView):
+
     def __contains__(self, item):
         return item.origin == self._mapping.node
 
@@ -206,6 +207,7 @@ class Dests(Mapping):
 
 
 class OrigsValues(ValuesView):
+
     def __contains__(self, item):
         return item.destination == self._mapping.node
 

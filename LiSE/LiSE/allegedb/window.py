@@ -27,7 +27,6 @@ from itertools import chain
 from operator import itemgetter, lt, le
 from typing import Union
 
-
 get0 = itemgetter(0)
 get1 = itemgetter(1)
 
@@ -68,6 +67,7 @@ def update_backward_window(turn_from, tick_from, turn_to, tick_to, updfun,
 
 class HistoryError(KeyError):
     """You tried to access the past in a bad way."""
+
     def __init__(self, *args, deleted=False):
         super().__init__(*args)
         self.deleted = deleted
@@ -163,6 +163,7 @@ class WindowDictPastFutureItemsView(ABC, ItemsView):
 
 
 class WindowDictPastItemsView(WindowDictPastFutureItemsView):
+
     @staticmethod
     def _out_of_range(item: tuple, stack: list):
         return item[0] < stack[0][0] or item[0] > stack[-1][0]
@@ -170,6 +171,7 @@ class WindowDictPastItemsView(WindowDictPastFutureItemsView):
 
 class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
     """View on a WindowDict's future items relative to last lookup"""
+
     @staticmethod
     def _out_of_range(item: tuple, stack: list):
         return item[0] < stack[-1][0] or item[0] > stack[0][0]
@@ -234,6 +236,7 @@ class WindowDictPastFutureView(ABC, Mapping):
 
 class WindowDictPastView(WindowDictPastFutureView):
     """Read-only mapping of just the past of a WindowDict"""
+
     def __iter__(self):
         stack = self.stack
         if not stack:
@@ -261,6 +264,7 @@ class WindowDictPastView(WindowDictPastFutureView):
 
 class WindowDictFutureView(WindowDictPastFutureView):
     """Read-only mapping of just the future of a WindowDict"""
+
     def __iter__(self):
         stack = self.stack
         if not stack:
