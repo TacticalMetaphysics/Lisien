@@ -853,7 +853,6 @@ class PredecessorsProxy(MutableMapping):
             self._charname][self.name][k]
 
     def __setitem__(self, k, v):
-        self.engine._place_stat_cache[self._charname][k] = v
         self.engine._character_portals_cache.store(
             self._charname, self.name, k,
             PortalProxy(self.engine, self._charname, k, self.name))
@@ -1290,14 +1289,11 @@ class CharacterProxy(AbstractCharacter):
                 self.node.send(self.node, key=node, value=None)
         for (orig, dest), ex in delta.pop('edges', {}).items():
             if ex:
-                if orig not in self.portal or dest not in self.portal[orig]:
-                    self.portal._cache[orig][dest] = PortalProxy(
-                        self, orig, dest)
+                self.engine._character_portals_cache.store(
+                    self.name, orig, dest, PortalProxy(self, orig, dest))
             else:
-                if orig in self.portal and dest in self.portal[orig]:
-                    del self.portal._cache[orig][dest]
-                    if not self.portal._cache[orig]:
-                        del self.portal._cache[orig]
+                self.engine._character_portals_cache.delete(
+                    self.name, orig, dest)
         self.portal._apply_delta(delta.pop('edge_val', {}))
         nodemap = self.node
         name = self.name
