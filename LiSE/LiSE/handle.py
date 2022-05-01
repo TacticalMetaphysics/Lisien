@@ -82,32 +82,34 @@ def concat_d(r: Dict[bytes, bytes]) -> bytes:
     return resp
 
 
+SET_CODE = MSGPACK_SET.to_bytes(1, "big", signed=False)
+
+
 def concat_s(s: Set[bytes]) -> bytes:
     """Pack a set of msgpack-encoded values into a msgpack array with ext code"""
     resp = msgpack.Packer().pack_array_header(len(s))
     for v in s:
         resp += v
     data_len = len(resp)
-    set_code = MSGPACK_SET.to_bytes(1, "big", signed=False)
     if data_len == 1:
-        return b"\xd4" + set_code + resp
+        return b"\xd4" + SET_CODE + resp
     elif data_len == 2:
-        return b"\xd5" + set_code + resp
+        return b"\xd5" + SET_CODE + resp
     elif data_len == 4:
-        return b"\xd6" + set_code + resp
+        return b"\xd6" + SET_CODE + resp
     elif data_len == 8:
-        return b"\xd7" + set_code + resp
+        return b"\xd7" + SET_CODE + resp
     elif data_len == 16:
-        return b"\xd8" + set_code + resp
+        return b"\xd8" + SET_CODE + resp
     elif data_len < 2**8:
         return b"\xc7" + data_len.to_bytes(1, "big",
-                                           signed=False) + set_code + resp
+                                           signed=False) + SET_CODE + resp
     elif data_len < 2**16:
         return b"\xc8" + data_len.to_bytes(2, "big",
-                                           signed=False) + set_code + resp
+                                           signed=False) + SET_CODE + resp
     elif data_len < 2**32:
         return b"\xc9" + data_len.to_bytes(4, "big",
-                                           signed=False) + set_code + resp
+                                           signed=False) + SET_CODE + resp
     else:
         raise ValueError("Too long")
 
@@ -476,6 +478,51 @@ class EngineHandle(object):
             for charn, stuff in mostly_packed_delta.items()
         })
 
+    def _concat_delta(self, delta):
+        slightly_packed_delta = {}
+        mostly_packed_delta = {}
+        for char, chardelta in delta.items():
+            chard = slightly_packed_delta[char] = {}
+            packd = mostly_packed_delta[char] = {}
+            if NODES in chardelta:
+                chard[NODES] = chardelta[NODES]
+                packd[NODES] = concat_d(chardelta[NODES])
+            if NODE_VAL in chardelta:
+                slightnoded = chard[NODE_VAL] = {}
+                packnodevd = {}
+                for node, vals in chardelta[NODE_VAL].items():
+                    slightnoded[node] = vals
+                    packnodevd[node] = concat_d(vals)
+                packd[NODE_VAL] = concat_d(packnodevd)
+            if EDGES in chardelta:
+                chard[EDGES] = es = chardelta[EDGES]
+                packd[EDGES] = concat_d(es)
+            if EDGE_VAL in chardelta:
+                slightorigd = chard[EDGE_VAL] = {}
+                packorigd = {}
+                for orig, dests in chardelta[EDGE_VAL].items():
+                    slightdestd = slightorigd[orig] = {}
+                    packdestd = {}
+                    for dest, port in dests.items():
+                        slightdestd[dest] = port
+                        packdestd[dest] = concat_d(port)
+                    packorigd[orig] = concat_d(packdestd)
+                packd[EDGE_VAL] = concat_d(packorigd)
+            if UNITS in chardelta:
+                slightgraphd = chard[UNITS] = {}
+                packunitd = {}
+                for graph, unitss in chardelta[UNITS].items():
+                    slightgraphd[graph] = unitss
+                    packunitd[graph] = concat_d(unitss)
+                packd[UNITS] = concat_d(packunitd)
+            if RULEBOOKS in chardelta:
+                chard[RULEBOOKS] = slightrbd = chardelta[RULEBOOKS]
+                packd[RULEBOOKS] = concat_d(slightrbd)
+        return slightly_packed_delta, concat_d({
+            charn: concat_d(stuff)
+            for charn, stuff in mostly_packed_delta.items()
+        })
+
     @timely
     @prepacked
     def next_turn(self):
@@ -527,8 +574,11 @@ class EngineHandle(object):
         self.branch = branch
         self.turn = turn
         if slow_delta:
-            delta = self._get_slow_delta(chars)
-            slightly_packed_delta, packed_delta = self._pack_delta(delta)
+            delta = self._get_slow_delta(chars,
+                                         btt_from=(branch_from, turn_from,
+                                                   tick_from),
+                                         btt_to=(branch, turn, tick))
+            slightly_packed_delta, packed_delta = self._concat_delta(delta)
         else:
             delta = self._real.get_delta(branch, turn_from, tick_from, turn,
                                          tick)
