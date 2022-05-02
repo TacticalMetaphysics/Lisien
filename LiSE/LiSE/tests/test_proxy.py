@@ -90,7 +90,7 @@ def test_fast_delta(handle_initialized):
     tick = hand._real.tick
     ret, diff = hand.next_turn()
     slowd = hand.unpack_dict(hand._get_slow_delta())
-    assert diff == slowd, "Fast delta differs from slow delta"
+    assert hand.unpack(diff) == slowd, "Fast delta differs from slow delta"
     ret, diff2 = hand.time_travel('trunk', 0, tick)
     slowd2 = hand.unpack_dict(hand._get_slow_delta())
     assert hand.unpack(diff2) == slowd2, "Fast delta differs from slow delta"
