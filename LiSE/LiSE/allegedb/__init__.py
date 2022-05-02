@@ -84,7 +84,6 @@ class PlanningContext(ContextDecorator):
         orm = self.orm
         if orm._planning:
             raise ValueError("Already planning")
-        orm.plan_lock.acquire()
         orm._planning = True
         branch, turn, tick = orm._btt()
         self.id = myid = orm._last_plan = orm._last_plan + 1
@@ -100,7 +99,6 @@ class PlanningContext(ContextDecorator):
         self.orm._planning = False
         if self.forward:
             self.orm._forward = True
-        self.orm.plan_lock.release()
 
 
 class TimeSignal:
@@ -429,8 +427,7 @@ class ORM(object):
         if self._forward:
             raise ValueError("Already advancing")
         self._forward = True
-        with self.forward_lock:
-            yield
+        yield
         self._forward = False
 
     @contextmanager
@@ -448,43 +445,42 @@ class ORM(object):
         gc_was_active = gc.isenabled()
         if gc_was_active:
             gc.disable()
-        with self.kcless_lock:
-            yield
+        yield
         if gc_was_active:
             gc.enable()
             gc.collect()
         self._no_kc = False
 
     def _arrange_caches_at_time(self, sender, *, branch, turn, tick):
-        locks = self.locks
-        with locks:
+        lock = self.world_lock
+        with lock:
             graphs = list(self.graph)
         for graph in graphs:
-            with locks:
+            with lock:
                 graph_stats = self._graph_val_cache._get_keycache(
                     (graph, ), branch, turn, tick, forward=False)
             for stat in graph_stats:
-                with locks:
+                with lock:
                     self._graph_val_cache._base_retrieve(
                         (graph, stat, branch, turn, tick))
-            with locks:
+            with lock:
                 nodes = self._nodes_cache._get_keycache((graph, ),
                                                         branch,
                                                         turn,
                                                         tick,
                                                         forward=False)
             for node in nodes:
-                with locks:
+                with lock:
                     self._nodes_cache._base_retrieve(
                         (graph, node, branch, turn, tick))
-                with locks:
+                with lock:
                     node_stats = self._node_val_cache._get_keycache(
                         (graph, node), branch, turn, tick, forward=False)
                 for stat in node_stats:
-                    with locks:
+                    with lock:
                         self._node_val_cache._base_retrieve(
                             (graph, node, stat, branch, turn, tick))
-                with locks:
+                with lock:
                     dests = self._edges_cache._get_destcache(graph,
                                                              node,
                                                              branch,
@@ -492,10 +488,10 @@ class ORM(object):
                                                              tick,
                                                              forward=False)
                 for dest in dests:
-                    with locks:
+                    with lock:
                         self._edges_cache._base_retrieve(
                             (graph, node, dest, branch, turn, tick))
-                    with locks:
+                    with lock:
                         edge_stats = self._edge_val_cache._get_keycache(
                             (graph, node, dest),
                             branch,
@@ -503,7 +499,7 @@ class ORM(object):
                             tick,
                             forward=False)
                     for stat in edge_stats:
-                        with locks:
+                        with lock:
                             self._edge_val_cache._base_retrieve(
                                 (graph, node, dest, stat, branch, turn, tick))
 
@@ -760,11 +756,6 @@ class ORM(object):
 
         """
         self.world_lock = RLock()
-        self.plan_lock = Lock()
-        self.forward_lock = Lock()
-        self.kcless_lock = Lock()
-        self._locks = [self.world_lock, self.plan_lock, self.forward_lock]
-        self._releasing_locks = [self.kcless_lock]
         connect_args = connect_args or {}
         self._planning = False
         self._forward = False

@@ -394,60 +394,58 @@ class NextTurn(Signal):
     def __init__(self, engine: AbstractEngine):
         super().__init__()
         self.engine = engine
-        self.lock = Lock()
 
     def __call__(self):
-        with self.lock:
-            engine = self.engine
-            start_branch, start_turn, start_tick = engine._btt()
-            latest_turn = engine._turns_completed[start_branch]
-            if start_turn < latest_turn:
-                engine.turn += 1
-                self.send(engine,
-                          branch=engine.branch,
-                          turn=engine.turn,
-                          tick=engine.tick)
-                return [], engine.get_delta(branch=start_branch,
-                                            turn_from=start_turn,
-                                            turn_to=engine.turn,
-                                            tick_from=start_tick,
-                                            tick_to=engine.tick)
-            elif start_turn > latest_turn + 1:
-                raise exc.RulesEngineError(
-                    "Can't run the rules engine on any turn but the latest")
-            if start_turn == latest_turn:
-                # As a side effect, the following assignment sets the tick
-                # to the latest in the new turn, which will be 0 if that
-                # turn has not yet been simulated.
-                engine.turn += 1
-            with engine.advancing():
-                for res in iter(engine.advance, final_rule):
-                    if res:
-                        engine.universal['last_result'] = res
-                        engine.universal['last_result_idx'] = 0
-                        branch, turn, tick = engine._btt()
-                        self.send(engine, branch=branch, turn=turn, tick=tick)
-                        return res, engine.get_delta(branch=start_branch,
-                                                     turn_from=start_turn,
-                                                     turn_to=turn,
-                                                     tick_from=start_tick,
-                                                     tick_to=tick)
-            engine._turns_completed[start_branch] = engine.turn
-            if not self.engine.keep_rules_journal:
-                engine.query.complete_turn(start_branch, engine.turn)
-            if engine.flush_modulus and engine.turn % engine.flush_modulus == 0:
-                engine.query.flush()
-            if engine.commit_modulus and engine.turn % engine.commit_modulus == 0:
-                engine.query.commit()
-            self.send(self.engine,
+        engine = self.engine
+        start_branch, start_turn, start_tick = engine._btt()
+        latest_turn = engine._turns_completed[start_branch]
+        if start_turn < latest_turn:
+            engine.turn += 1
+            self.send(engine,
                       branch=engine.branch,
                       turn=engine.turn,
                       tick=engine.tick)
-            delta = engine.get_delta(branch=engine.branch,
-                                     turn_from=start_turn,
-                                     turn_to=engine.turn,
-                                     tick_from=start_tick,
-                                     tick_to=engine.tick)
+            return [], engine.get_delta(branch=start_branch,
+                                        turn_from=start_turn,
+                                        turn_to=engine.turn,
+                                        tick_from=start_tick,
+                                        tick_to=engine.tick)
+        elif start_turn > latest_turn + 1:
+            raise exc.RulesEngineError(
+                "Can't run the rules engine on any turn but the latest")
+        if start_turn == latest_turn:
+            # As a side effect, the following assignment sets the tick
+            # to the latest in the new turn, which will be 0 if that
+            # turn has not yet been simulated.
+            engine.turn += 1
+        with engine.advancing():
+            for res in iter(engine.advance, final_rule):
+                if res:
+                    engine.universal['last_result'] = res
+                    engine.universal['last_result_idx'] = 0
+                    branch, turn, tick = engine._btt()
+                    self.send(engine, branch=branch, turn=turn, tick=tick)
+                    return res, engine.get_delta(branch=start_branch,
+                                                 turn_from=start_turn,
+                                                 turn_to=turn,
+                                                 tick_from=start_tick,
+                                                 tick_to=tick)
+        engine._turns_completed[start_branch] = engine.turn
+        if not self.engine.keep_rules_journal:
+            engine.query.complete_turn(start_branch, engine.turn)
+        if engine.flush_modulus and engine.turn % engine.flush_modulus == 0:
+            engine.query.flush()
+        if engine.commit_modulus and engine.turn % engine.commit_modulus == 0:
+            engine.query.commit()
+        self.send(self.engine,
+                  branch=engine.branch,
+                  turn=engine.turn,
+                  tick=engine.tick)
+        delta = engine.get_delta(branch=engine.branch,
+                                 turn_from=start_turn,
+                                 turn_to=engine.turn,
+                                 tick_from=start_tick,
+                                 tick_to=engine.tick)
         return [], delta
 
 
@@ -674,7 +672,6 @@ class Engine(AbstractEngine, gORM):
                 self.query, self._string_file,
                 self.eternal.setdefault('language', 'eng'))
         self.next_turn = NextTurn(self)
-        self._locks.append(self.next_turn.lock)
         if logfun is None:
             from logging import getLogger
             logger = getLogger("Life Sim Engine")

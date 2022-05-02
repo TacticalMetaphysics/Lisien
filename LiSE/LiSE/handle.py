@@ -270,22 +270,22 @@ class EngineHandle(object):
         self._cache_arranger_started = False
 
     def _precopy_at_time(self, sender, *, branch, turn, tick):
-        locks = self._real.locks
+        lock = self._real.world_lock
         btt = (branch, turn, tick)
-        with locks:
+        with lock:
             chars = list(self._real.character)
         for char in chars:
-            with locks:
+            with lock:
                 self.character_stat_copy(char, btt=btt)
-            with locks:
+            with lock:
                 self.character_nodes(char, btt=btt)
-            with locks:
+            with lock:
                 self._character_nodes_stat_copy(char, btt=btt)
-            with locks:
+            with lock:
                 self.character_portals(char, btt=btt)
-            with locks:
+            with lock:
                 self._character_portals_stat_copy(char, btt=btt)
-            with locks:
+            with lock:
                 self._character_units_copy(char, btt=btt)
 
     def log(self, level, message):
