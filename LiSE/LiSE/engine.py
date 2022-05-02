@@ -1447,6 +1447,8 @@ class Engine(AbstractEngine, gORM):
                 return False
 
         def check_prereqs(rule, handled_fun, entity):
+            if not entity:
+                return False
             for prereq in rule.prereqs:
                 res = prereq(entity)
                 if not res:
