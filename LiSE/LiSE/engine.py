@@ -1615,9 +1615,10 @@ class Engine(AbstractEngine, gORM):
                         f"prereqs for rule {rule} on entity {entity} satisfied, will run actions"
                     )
                     try:
+                        s_ent = str(entity)
                         yield do_actions(rule, handled, entity)
                         self.debug(
-                            f"actions for rule {rule} on entity {entity} have run without incident"
+                            f"actions for rule {rule} on entity {s_ent} have run without incident"
                         )
                     except StopIteration:
                         raise InnerStopIteration
