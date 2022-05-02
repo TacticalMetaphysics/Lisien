@@ -21,7 +21,6 @@ from functools import partial
 from collections import defaultdict
 from collections.abc import Mapping
 from operator import attrgetter
-from threading import Lock
 from types import FunctionType, MethodType, ModuleType
 from typing import Type, Union, Tuple
 from os import PathLike
