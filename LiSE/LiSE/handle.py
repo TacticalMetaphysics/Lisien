@@ -265,6 +265,8 @@ class EngineHandle(object):
         self._stores_cache = defaultdict(BytesDict)
         self._character_delta_memo = defaultdict(
             lambda: defaultdict(lambda: defaultdict(BytesDict)))
+        self._real.arrange_cache_signal.disconnect(
+            self._real._arrange_caches_at_time)
         self._real.arrange_cache_signal.connect(self._precopy_at_time)
         self.threadpool = ThreadPoolExecutor(cpu_count())
         self._cache_arranger_started = False
