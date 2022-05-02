@@ -422,19 +422,20 @@ class EngineHandle(object):
         slightly_packed_delta = {}
         mostly_packed_delta = {}
         for char, chardelta in delta.items():
+            chardelta = chardelta.copy()
             pchar = pack(char)
             chard = slightly_packed_delta[pchar] = {}
             packd = mostly_packed_delta[pchar] = {}
             if 'nodes' in chardelta:
                 nd = chard[NODES] = {
                     pack(node): pack(ex)
-                    for node, ex in chardelta['nodes']
+                    for node, ex in chardelta.pop('nodes')
                 }
                 packd[NODES] = concat_d(nd)
             if 'node_val' in chardelta:
                 slightnoded = chard[NODE_VAL] = {}
                 packnodevd = {}
-                for node, vals in chardelta['node_val'].items():
+                for node, vals in chardelta.pop('node_val').items():
                     pnode = pack(node)
                     pvals = dict(map(self.pack_pair, vals.items()))
                     slightnoded[pnode] = pvals
@@ -443,13 +444,13 @@ class EngineHandle(object):
             if 'edges' in chardelta:
                 ed = chard[EDGES] = {
                     pack(origdest): pack(ex)
-                    for origdest, ex in chardelta['edges']
+                    for origdest, ex in chardelta.pop('edges')
                 }
                 packd[EDGES] = concat_d(ed)
             if 'edge_val' in chardelta:
                 slightorigd = chard[EDGE_VAL] = {}
                 packorigd = {}
-                for orig, dests in chardelta['edge_val'].items():
+                for orig, dests in chardelta.pop('edge_val').items():
                     porig = pack(orig)
                     slightdestd = slightorigd[porig] = {}
                     packdestd = {}
@@ -463,7 +464,7 @@ class EngineHandle(object):
             if 'units' in chardelta:
                 slightgraphd = chard[UNITS] = {}
                 packunitd = {}
-                for graph, unitss in chardelta['units'].items():
+                for graph, unitss in chardelta.pop('units').items():
                     pgraph = pack(graph)
                     slightunitd = slightgraphd[pgraph] = dict(
                         map(self.pack_pair, unitss.items()))
@@ -471,8 +472,12 @@ class EngineHandle(object):
                 packd[UNITS] = concat_d(packunitd)
             if 'rulebooks' in chardelta:
                 chard[RULEBOOKS] = slightrbd = dict(
-                    map(self.pack_pair, chardelta['rulebooks'].items()))
+                    map(self.pack_pair,
+                        chardelta.pop('rulebooks').items()))
                 packd[RULEBOOKS] = concat_d(slightrbd)
+            todo = dict(map(self.pack_pair, chardelta.items()))
+            chard.update(todo)
+            packd.update(todo)
         return slightly_packed_delta, concat_d({
             charn: concat_d(stuff)
             for charn, stuff in mostly_packed_delta.items()
@@ -482,25 +487,26 @@ class EngineHandle(object):
         slightly_packed_delta = {}
         mostly_packed_delta = {}
         for char, chardelta in delta.items():
+            chardelta = chardelta.copy()
             chard = slightly_packed_delta[char] = {}
             packd = mostly_packed_delta[char] = {}
             if NODES in chardelta:
-                chard[NODES] = chardelta[NODES]
-                packd[NODES] = concat_d(chardelta[NODES])
+                chard[NODES] = charnodes = chardelta.pop(NODES)
+                packd[NODES] = concat_d(charnodes)
             if NODE_VAL in chardelta:
                 slightnoded = chard[NODE_VAL] = {}
                 packnodevd = {}
-                for node, vals in chardelta[NODE_VAL].items():
+                for node, vals in chardelta.pop(NODE_VAL).items():
                     slightnoded[node] = vals
                     packnodevd[node] = concat_d(vals)
                 packd[NODE_VAL] = concat_d(packnodevd)
             if EDGES in chardelta:
-                chard[EDGES] = es = chardelta[EDGES]
+                chard[EDGES] = es = chardelta.pop(EDGES)
                 packd[EDGES] = concat_d(es)
             if EDGE_VAL in chardelta:
                 slightorigd = chard[EDGE_VAL] = {}
                 packorigd = {}
-                for orig, dests in chardelta[EDGE_VAL].items():
+                for orig, dests in chardelta.pop(EDGE_VAL).items():
                     slightdestd = slightorigd[orig] = {}
                     packdestd = {}
                     for dest, port in dests.items():
@@ -511,13 +517,15 @@ class EngineHandle(object):
             if UNITS in chardelta:
                 slightgraphd = chard[UNITS] = {}
                 packunitd = {}
-                for graph, unitss in chardelta[UNITS].items():
+                for graph, unitss in chardelta.pop(UNITS).items():
                     slightgraphd[graph] = unitss
                     packunitd[graph] = concat_d(unitss)
                 packd[UNITS] = concat_d(packunitd)
             if RULEBOOKS in chardelta:
-                chard[RULEBOOKS] = slightrbd = chardelta[RULEBOOKS]
+                chard[RULEBOOKS] = slightrbd = chardelta.pop(RULEBOOKS)
                 packd[RULEBOOKS] = concat_d(slightrbd)
+            chard.update(chardelta)
+            packd.update(chardelta)
         return slightly_packed_delta, concat_d({
             charn: concat_d(stuff)
             for charn, stuff in mostly_packed_delta.items()
