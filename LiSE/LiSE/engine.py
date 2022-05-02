@@ -1462,6 +1462,8 @@ class Engine(AbstractEngine, gORM):
                 res = action(entity)
                 if res:
                     actres.append(res)
+                if not entity:
+                    break
             handled_fun(self.tick)
             return actres
 
