@@ -613,6 +613,8 @@ class Engine(AbstractEngine, gORM):
         from .xcollections import StringStore
         if connect_args is None:
             connect_args = {}
+        if not os.path.exists(prefix):
+            os.mkdir(prefix)
         self.keep_rules_journal = keep_rules_journal
         self.exist_node_time = 0
         self.exist_edge_time = 0
