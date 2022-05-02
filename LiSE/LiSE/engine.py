@@ -1604,21 +1604,29 @@ class Engine(AbstractEngine, gORM):
                 todo[rulebook].append((rule, handled, entity))
 
         # TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
+        def fmtent(entity):
+            if isinstance(entity, self.char_cls):
+                return entity.name
+            elif hasattr(entity, 'name'):
+                return f"{entity.character.name}.node[{entity.name}]"
+            else:
+                return f"{entity.character.name}.portal[{entity.origin.name}][{entity.destination.name}]"
+
         for rulebook in sort_set(todo.keys()):
             for rule, handled, entity in todo[rulebook]:
                 if not entity:
                     continue
                 self.debug(
-                    f"checking prereqs for rule {rule} on entity {entity.name}"
+                    f"checking prereqs for rule {rule} on entity {fmtent(entity)}"
                 )
                 if check_prereqs(rule, handled, entity):
                     self.debug(
-                        f"prereqs for rule {rule} on entity {entity.name} satisfied, will run actions"
+                        f"prereqs for rule {rule} on entity {fmtent(entity)} satisfied, will run actions"
                     )
                     try:
                         yield do_actions(rule, handled, entity)
                         self.debug(
-                            f"actions for rule {rule} on entity {entity.name} have run without incident"
+                            f"actions for rule {rule} on entity {fmtent(entity)} have run without incident"
                         )
                     except StopIteration:
                         raise InnerStopIteration
