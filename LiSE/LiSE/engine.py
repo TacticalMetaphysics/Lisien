@@ -677,7 +677,7 @@ class Engine(AbstractEngine, gORM):
         self._locks.append(self.next_turn.lock)
         if logfun is None:
             from logging import getLogger
-            logger = getLogger(__name__)
+            logger = getLogger("Life Sim Engine")
 
             def logfun(level, msg):
                 getattr(logger, level)(msg)
@@ -1473,11 +1473,17 @@ class Engine(AbstractEngine, gORM):
                  branch, turn, tick):
             if charactername not in charmap:
                 continue
+            self.debug(
+                f"checking triggers for character rule: {charactername}, {rulebook}, {rulename}"
+            )
             rule = rulemap[rulename]
             handled = partial(self._handled_char, charactername, rulebook,
                               rulename, branch, turn)
             entity = charmap[charactername]
             if check_triggers(rule, handled, entity):
+                self.debug(
+                    f"character rule triggered: {charactername}, {rulebook}, {rulename}"
+                )
                 todo[rulebook].append((rule, handled, entity))
         avcache_retr = self._unitness_cache._base_retrieve
         node_exists = self._node_exists
@@ -1488,11 +1494,17 @@ class Engine(AbstractEngine, gORM):
             if not node_exists(graphn, avn) or avcache_retr(
                 (charn, graphn, avn, branch, turn, tick)) in (KeyError, None):
                 continue
+            self.debug(
+                f"checking triggers for unit rule: {charn, graphn, avn, rulebook, rulen}"
+            )
             rule = rulemap[rulen]
             handled = partial(self._handled_av, charn, graphn, avn, rulebook,
                               rulen, branch, turn)
             entity = get_node(graphn, avn)
             if check_triggers(rule, handled, entity):
+                self.debug(
+                    f"unit rule triggered: {charn, graphn, avn, rulebook, rulen}"
+                )
                 todo[rulebook].append((rule, handled, entity))
         is_thing = self._is_thing
         handled_char_thing = self._handled_char_thing
@@ -1502,11 +1514,17 @@ class Engine(AbstractEngine, gORM):
                 branch, turn, tick):
             if not node_exists(charn, thingn) or not is_thing(charn, thingn):
                 continue
+            self.debug(
+                f"checking triggers for character-thing rule: {charn, thingn, rulebook, rulen}"
+            )
             rule = rulemap[rulen]
             handled = partial(handled_char_thing, charn, thingn, rulebook,
                               rulen, branch, turn)
             entity = get_node(charn, thingn)
             if check_triggers(rule, handled, entity):
+                self.debug(
+                    f"character-thing rule triggered: {charn, thingn, rulebook, rulen}"
+                )
                 todo[rulebook].append((rule, handled, entity))
         handled_char_place = self._handled_char_place
         for (
@@ -1515,11 +1533,17 @@ class Engine(AbstractEngine, gORM):
                 branch, turn, tick):
             if not node_exists(charn, placen) or is_thing(charn, placen):
                 continue
+            self.debug(
+                f"checking triggers for character-place rule: {charn, placen, rulebook, rulen}"
+            )
             rule = rulemap[rulen]
             handled = partial(handled_char_place, charn, placen, rulebook,
                               rulen, branch, turn)
             entity = get_node(charn, placen)
             if check_triggers(rule, handled, entity):
+                self.debug(
+                    f"character-place rule triggered: {charn, placen, rulebook, rulen}"
+                )
                 todo[rulebook].append((rule, handled, entity))
         edge_exists = self._edge_exists
         get_edge = self._get_edge
@@ -1530,11 +1554,17 @@ class Engine(AbstractEngine, gORM):
                 branch, turn, tick):
             if not edge_exists(charn, orign, destn):
                 continue
+            self.debug(
+                f"checking triggers for character-portal rule: {charn, orign, destn, rulebook, rulen}"
+            )
             rule = rulemap[rulen]
             handled = partial(handled_char_port, charn, orign, destn, rulebook,
                               rulen, branch, turn)
             entity = get_edge(charn, orign, destn)
             if check_triggers(rule, handled, entity):
+                self.debug(
+                    f"character-portal rule triggered: {charn, orign, destn, rulebook, rulen}"
+                )
                 todo[rulebook].append((rule, handled, entity))
         handled_node = self._handled_node
         for (charn, noden, rulebook,
@@ -1542,11 +1572,16 @@ class Engine(AbstractEngine, gORM):
                  branch, turn, tick):
             if not node_exists(charn, noden):
                 continue
+            self.debug(
+                f"checking triggers for node rule: {charn, noden, rulebook, rulen}"
+            )
             rule = rulemap[rulen]
             handled = partial(handled_node, charn, noden, rulebook, rulen,
                               branch, turn)
             entity = get_node(charn, noden)
             if check_triggers(rule, handled, entity):
+                self.debug(
+                    f"node rule triggered: {charn, noden, rulebook, rulen}")
                 todo[rulebook].append((rule, handled, entity))
         handled_portal = self._handled_portal
         for (charn, orign, destn, rulebook,
@@ -1554,11 +1589,17 @@ class Engine(AbstractEngine, gORM):
                  branch, turn, tick):
             if not edge_exists(charn, orign, destn):
                 continue
+            self.debug(
+                f"checking triggers for portal rule: {charn, orign, destn, rulebook, rulen}"
+            )
             rule = rulemap[rulen]
             handled = partial(handled_portal, charn, orign, destn, rulebook,
                               rulen, branch, turn)
             entity = get_edge(charn, orign, destn)
             if check_triggers(rule, handled, entity):
+                self.debug(
+                    f"portal rule triggered: {charn, orign, destn, rulebook, rulen}"
+                )
                 todo[rulebook].append((rule, handled, entity))
 
         # TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
@@ -1566,9 +1607,17 @@ class Engine(AbstractEngine, gORM):
             for rule, handled, entity in todo[rulebook]:
                 if not entity:
                     continue
+                self.debug(
+                    f"checking prereqs for rule {rule} on entity {entity}")
                 if check_prereqs(rule, handled, entity):
+                    self.debug(
+                        f"prereqs for rule {rule} on entity {entity} satisfied, will run actions"
+                    )
                     try:
                         yield do_actions(rule, handled, entity)
+                        self.debug(
+                            f"actions for rule {rule} on entity {entity} have run without incident"
+                        )
                     except StopIteration:
                         raise InnerStopIteration
 
