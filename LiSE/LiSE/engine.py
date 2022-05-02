@@ -1609,16 +1609,16 @@ class Engine(AbstractEngine, gORM):
                 if not entity:
                     continue
                 self.debug(
-                    f"checking prereqs for rule {rule} on entity {entity}")
+                    f"checking prereqs for rule {rule} on entity {entity.name}"
+                )
                 if check_prereqs(rule, handled, entity):
                     self.debug(
-                        f"prereqs for rule {rule} on entity {entity} satisfied, will run actions"
+                        f"prereqs for rule {rule} on entity {entity.name} satisfied, will run actions"
                     )
                     try:
-                        s_ent = str(entity)
                         yield do_actions(rule, handled, entity)
                         self.debug(
-                            f"actions for rule {rule} on entity {s_ent} have run without incident"
+                            f"actions for rule {rule} on entity {entity.name} have run without incident"
                         )
                     except StopIteration:
                         raise InnerStopIteration
