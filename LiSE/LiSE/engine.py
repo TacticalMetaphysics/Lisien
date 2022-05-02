@@ -618,8 +618,6 @@ class Engine(AbstractEngine, gORM):
         if not os.path.isdir(prefix):
             raise FileExistsError("Need a directory")
         self.keep_rules_journal = keep_rules_journal
-        self.exist_node_time = 0
-        self.exist_edge_time = 0
         if string:
             self.string = string
         else:
