@@ -281,24 +281,6 @@ def setedgeval(delta, is_multigraph, graph, orig, dest, idx, key, value):
             .setdefault(orig, {}).setdefault(dest, {})[key] = value
 
 
-class MultiLock:
-
-    def __init__(self, *args, releasing: list = None):
-        self._locks = args
-        self._releasing = releasing or []
-
-    def __enter__(self):
-        for lock in self._locks:
-            lock.acquire()
-        for lock in self._releasing:
-            lock.acquire()
-            lock.release()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        for lock in self._locks:
-            lock.release()
-
-
 class ORM(object):
     """Instantiate this with the same string argument you'd use for a
     SQLAlchemy ``create_engine`` call. This will be your interface to
@@ -311,10 +293,6 @@ class ORM(object):
     illegal_graph_names = ['global']
     illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val']
     time = TimeSignalDescriptor()
-
-    @property
-    def locks(self):
-        return MultiLock(*self._locks, releasing=self._releasing_locks)
 
     def _graph_state_hash(self, nodes, edges, vals):
         from hashlib import blake2b
