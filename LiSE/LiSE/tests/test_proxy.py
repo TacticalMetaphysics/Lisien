@@ -82,23 +82,32 @@ def handle_initialized(request, handle):
 
 def test_fast_delta(handle_initialized):
     hand = handle_initialized
-    # just set a baseline for the diff
-    hand._get_slow_delta()
+
     # there's currently no way to do fast delta past the time when
     # a character was created, due to the way keyframes work...
     # so don't test that
-    tick = hand._real.tick
+    def unpack_delta(d):
+        catted = hand._concat_delta(d)[1]
+        assert isinstance(catted, bytes)
+        return hand.unpack(catted)
+
+    branch, turn, tick = hand._real._btt()
     ret, diff = hand.next_turn()
-    slowd = hand.unpack_dict(hand._get_slow_delta())
+    btt = hand._real._btt()
+    slowd = unpack_delta(
+        hand._get_slow_delta(btt_from=(branch, turn, tick), btt_to=btt))
     assert hand.unpack(diff) == slowd, "Fast delta differs from slow delta"
     ret, diff2 = hand.time_travel('trunk', 0, tick)
-    slowd2 = hand.unpack_dict(hand._get_slow_delta())
+    btt2 = hand._real._btt()
+    slowd2 = unpack_delta(hand._get_slow_delta(btt_from=btt, btt_to=btt2))
     assert hand.unpack(diff2) == slowd2, "Fast delta differs from slow delta"
     ret, diff3 = hand.time_travel('trunk', 3)
-    slowd3 = hand.unpack_dict(hand._get_slow_delta())
+    btt3 = hand._real._btt()
+    slowd3 = unpack_delta(hand._get_slow_delta(btt_from=btt2, btt_to=btt3))
     assert hand.unpack(diff3) == slowd3, "Fast delta differs from slow delta"
     ret, diff4 = hand.time_travel('trunk', 1)
-    slowd4 = hand.unpack_dict(hand._get_slow_delta())
+    btt4 = hand._real._btt()
+    slowd4 = unpack_delta(hand._get_slow_delta(btt_from=btt3, btt_to=btt4))
     assert hand.unpack(diff4) == slowd4, "Fast delta differs from slow delta"
 
 
