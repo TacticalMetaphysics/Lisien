@@ -2314,10 +2314,8 @@ class EngineProxy(AbstractEngine):
         self._rulebooks_cache.update(rulebookdeltas)
         for rulebook, delta in rulebookdeltas.items():
             if rulebook not in self._rulebook_obj_cache:
-                self._rulebook_obj_cache = RuleBookProxy({
-                    'engine': self,
-                    'name': rulebook
-                })
+                self._rulebook_obj_cache[rulebook] = RuleBookProxy(
+                    self, rulebook)
             rulebookproxy = self._rulebook_obj_cache[rulebook]
             # the "delta" is just the rules list, for now
             rulebookproxy.send(rulebookproxy, rules=delta)
