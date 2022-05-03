@@ -2109,9 +2109,9 @@ class EngineProxy(AbstractEngine):
         self._rules_cache = self.handle('all_rules_delta')
         for rule in self._rules_cache:
             self._rule_obj_cache[rule] = RuleProxy(self, rule)
-        self._rulebooks_cache = self.handle('all_rulebooks_delta')
+        self._rulebooks_cache = self.handle('all_rulebooks_copy')
         self._eternal_cache = self.handle('eternal_copy')
-        self._universal_cache = self.handle('universal_delta')
+        self._universal_cache = self.handle('universal_copy')
         deltas = self.handle('copy_chars', chars='all')
         for char, delta in deltas.items():
             if char not in self.character:

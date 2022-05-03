@@ -1561,6 +1561,17 @@ class EngineHandle(object):
                 ret[rulebook] = delta
         return ret
 
+    def all_rulebooks_copy(self, btt=None):
+        btt = self._get_btt(btt)
+        origtime = self._real._btt()
+        self._real._set_btt(*btt)
+        ret = {
+            rulebook: self.rulebook_copy(rulebook)
+            for rulebook in self._real.rulebook.keys()
+        }
+        self._real._set_btt(*origtime)
+        return ret
+
     @timely
     def set_rulebook_rule(self, rulebook, i, rule):
         self._real.rulebook[rulebook][i] = rule
