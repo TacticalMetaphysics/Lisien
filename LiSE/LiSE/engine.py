@@ -608,6 +608,11 @@ class Engine(AbstractEngine, gORM):
         :arg keep_rules_journal: Boolean; if true (default), keep
         information on the behavior of the rules engine in the database.
         Makes the database rather large, but useful for debugging.
+        :arg cache_arranger: If true (default), start a background
+        process that indexes the caches to make time travel faster
+        when it's to points we anticipate. If you use this, you can
+        specify some other point in time to index by putting the
+        `(branch, turn, tick)` in my `cache_arrange_queue`.
 
         """
         import os
