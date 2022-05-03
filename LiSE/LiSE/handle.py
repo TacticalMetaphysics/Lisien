@@ -1443,6 +1443,7 @@ class EngineHandle(object):
     ) -> Dict[bytes, Dict[bytes, Dict[bytes, bytes]]]:
         pack = self.pack
         r = {}
+        btt = self._get_btt(btt)
         chara = self._real.character[char]
         origtime = self._real._btt()
         self._real._set_btt(*btt)
