@@ -22,7 +22,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from operator import attrgetter
 from types import FunctionType, MethodType, ModuleType
-from typing import Type, Union, Tuple
+from typing import Type, Union, Tuple, Callable, Dict
 from os import PathLike
 from abc import ABC, abstractmethod
 
@@ -47,7 +47,7 @@ class getnoplan:
     def __init__(self, attr, *attrs):
         self._getter = attrgetter(attr, *attrs)
 
-    def __get__(self, instance, owner):
+    def __get__(self, instance, owner) -> Callable:
         if instance._planning:
             raise exc.PlanError("Don't use randomization in a plan")
         return self._getter(instance)
@@ -324,7 +324,11 @@ class AbstractEngine(ABC):
         for i in range(0, n):
             yield self.roll_die(d)
 
-    def dice_check(self, n, d, target, comparator='<='):
+    def dice_check(self,
+                   n: int,
+                   d: int,
+                   target: int,
+                   comparator: Union[str, Callable] = '<='):
         """Roll ``n`` dice with ``d`` sides, sum them, and compare
 
         If ``comparator`` is provided, use it instead of the default <=.
@@ -333,7 +337,7 @@ class AbstractEngine(ABC):
         """
         from operator import gt, lt, ge, le, eq, ne
 
-        comps = {
+        comps: Dict[str, Callable] = {
             '>': gt,
             '<': lt,
             '>=': ge,
