@@ -2106,7 +2106,7 @@ class EngineProxy(AbstractEngine):
         self.trigger.load()
         self.function.load()
         self.string.load()
-        self._rules_cache = self.handle('all_rules_delta')
+        self._rules_cache = self.handle('all_rules_copy')
         for rule in self._rules_cache:
             self._rule_obj_cache[rule] = RuleProxy(self, rule)
         self._rulebooks_cache = self.handle('all_rulebooks_copy')

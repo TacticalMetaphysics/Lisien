@@ -1695,6 +1695,19 @@ class EngineHandle(object):
                 ret[rule] = delta
         return ret
 
+    def all_rules_copy(self, *, btt: Tuple[str, int, int] = None):
+        btt = self._get_btt(btt)
+        origtime = self._real._btt()
+        if btt != origtime:
+            self._real._set_btt(*btt)
+        ret = {
+            rule: self.rule_copy(rule, btt)
+            for rule in self._real.rule.keys()
+        }
+        if btt != origtime:
+            self._real._set_btt(*origtime)
+        return ret
+
     @prepacked
     def source_copy(self, store):
         return dict(map(self.pack_pair,
