@@ -21,9 +21,12 @@ result you'll get a callable object that will return an iterator over
 turn numbers in which the comparison evaluated to ``True``.
 
 """
+from collections.abc import MutableMapping
 from operator import gt, lt, eq, ne, le, ge
 from functools import partialmethod
 from time import monotonic
+from queue import Queue
+from threading import Thread
 
 from .allegedb import query
 
@@ -38,6 +41,7 @@ def windows_union(windows):
     :rtype: list
 
     """
+
     def fix_overlap(left, right):
         if left == right:
             return [left]
@@ -88,6 +92,7 @@ def windows_intersection(windows):
 
     :rtype: list
     """
+
     def intersect2(left, right):
         if left == right:
             return left
@@ -155,6 +160,7 @@ def windows_intersection(windows):
 
 
 class Query(object):
+
     def __new__(cls, engine, leftside, rightside=None, **kwargs):
         if rightside is None:
             if not isinstance(leftside, cls):
@@ -289,6 +295,7 @@ comparisons = {
 
 
 class StatusAlias(EntityStatAccessor):
+
     def __eq__(self, other):
         return EqQuery(self.engine, self, other)
 
@@ -314,6 +321,7 @@ def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
     This is expensive. It evaluates the query for every turn in history.
 
     """
+
     def mungeside(side):
         if isinstance(side, Query):
             return side.iter_turns
@@ -341,11 +349,51 @@ def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
                 yield branch, turn
 
 
+class ConnectionHolder(query.ConnectionHolder):
+
+    def initdb(self):
+        """Set up the database schema, both for allegedb and the special
+        extensions for LiSE
+
+        """
+        super().initdb()
+        init_table = self.init_table
+        for table in ('universals', 'rules', 'rulebooks', 'things',
+                      'character_rulebook', 'unit_rulebook',
+                      'character_thing_rulebook', 'character_place_rulebook',
+                      'character_portal_rulebook', 'node_rulebook',
+                      'portal_rulebook', 'units', 'character_rules_handled',
+                      'unit_rules_handled', 'character_thing_rules_handled',
+                      'character_place_rules_handled',
+                      'character_portal_rules_handled', 'node_rules_handled',
+                      'portal_rules_handled', 'rule_triggers', 'rule_prereqs',
+                      'rule_actions', 'turns_completed'):
+            try:
+                init_table(table)
+            except OperationalError:
+                pass
+            except Exception as ex:
+                return ex
+
+
 class QueryEngine(query.QueryEngine):
     exist_edge_t = 0
     path = LiSE.__path__[0]
     IntegrityError = IntegrityError
     OperationalError = OperationalError
+    holder_cls = ConnectionHolder
+    tables = ('global', 'branches', 'turns', 'graphs', 'keyframes',
+              'graph_val', 'nodes', 'node_val', 'edges', 'edge_val', 'plans',
+              'plan_ticks', 'universals', 'rules', 'rulebooks',
+              'rule_triggers', 'rule_prereqs', 'rule_actions',
+              'character_rulebook', 'unit_rulebook',
+              'character_thing_rulebook', 'character_place_rulebook',
+              'character_portal_rulebook', 'node_rules_handled',
+              'portal_rules_handled', 'things', 'node_rulebook',
+              'portal_rulebook', 'units', 'character_rules_handled',
+              'unit_rules_handled', 'character_thing_rules_handled',
+              'character_place_rules_handled',
+              'character_portal_rules_handled', 'turns_completed')
 
     def universals_dump(self):
         unpack = self.unpack
@@ -427,8 +475,8 @@ class QueryEngine(query.QueryEngine):
         unpack = self.unpack
         for character, graph, unit, rulebook, rule, branch, turn, tick in self.sql(
                 'unit_rules_handled_dump'):
-            yield (unpack(character), unpack(graph), unpack(unit), unpack(rulebook), rule,
-                   branch, turn, tick)
+            yield (unpack(character), unpack(graph), unpack(unit),
+                   unpack(rulebook), rule, branch, turn, tick)
 
     def unit_rules_changes_dump(self):
         jl = self.unpack
@@ -447,7 +495,7 @@ class QueryEngine(query.QueryEngine):
 
     def character_thing_rules_changes_dump(self):
         jl = self.unpack
-        for (character,  thing, rulebook, rule, branch, turn, tick,
+        for (character, thing, rulebook, rule, branch, turn, tick,
              handled_branch,
              handled_turn) in self.sql('character_thing_rules_changes_dump'):
             yield (jl(character), jl(thing), jl(rulebook), rule, branch, turn,
@@ -472,8 +520,8 @@ class QueryEngine(query.QueryEngine):
         unpack = self.unpack
         for character, rulebook, rule, orig, dest, branch, turn, tick in self.sql(
                 'character_portal_rules_handled_dump'):
-            yield (unpack(character), unpack(rulebook), unpack(orig), unpack(
-                dest), rule, branch, turn, tick)
+            yield (unpack(character), unpack(rulebook), unpack(orig),
+                   unpack(dest), rule, branch, turn, tick)
 
     def character_portal_rules_changes_dump(self):
         jl = self.unpack
@@ -582,12 +630,6 @@ class QueryEngine(query.QueryEngine):
     def count_all_table(self, tbl):
         return self.sql('{}_count'.format(tbl)).fetchone()[0]
 
-    def init_table(self, tbl):
-        try:
-            return self.sql('create_{}'.format(tbl))
-        except OperationalError:
-            pass
-
     def rules_dump(self):
         for (name, ) in self.sql('rules_dump'):
             yield name
@@ -686,8 +728,8 @@ class QueryEngine(query.QueryEngine):
                           turn, tick):
         character, graph, av, rulebook = map(self.pack,
                                              (character, graph, av, rulebook))
-        return self.sql('unit_rules_handled_insert', character, graph, av, rulebook,
-                        rule, branch, turn, tick)
+        return self.sql('unit_rules_handled_insert', character, graph, av,
+                        rulebook, rule, branch, turn, tick)
 
     def handled_character_thing_rule(self, character, rulebook, rule, thing,
                                      branch, turn, tick):
@@ -739,8 +781,8 @@ class QueryEngine(query.QueryEngine):
 
     def unit_set(self, character, graph, node, branch, turn, tick, isav):
         (character, graph, node) = map(self.pack, (character, graph, node))
-        self.sql('del_units_after', character, graph, node, branch, turn,
-                 turn, tick)
+        self.sql('del_units_after', character, graph, node, branch, turn, turn,
+                 tick)
         self.sql('units_insert', character, graph, node, branch, turn, tick,
                  isav)
 
@@ -783,45 +825,108 @@ class QueryEngine(query.QueryEngine):
         self.sql('del_character_place_rules_handled_turn', branch, turn)
         self.sql('del_character_portal_rules_handled_turn', branch, turn)
 
-    def initdb(self):
-        """Set up the database schema, both for allegedb and the special
-        extensions for LiSE
 
-        """
-        super().initdb()
-        init_table = self.init_table
-        for table in ('universals', 'rules', 'rulebooks', 'things',
-                      'character_rulebook', 'unit_rulebook',
-                      'character_thing_rulebook', 'character_place_rulebook',
-                      'character_portal_rulebook', 'node_rulebook',
-                      'portal_rulebook', 'units', 'character_rules_handled',
-                      'unit_rules_handled', 'character_thing_rules_handled',
-                      'character_place_rules_handled',
-                      'character_portal_rules_handled', 'node_rules_handled',
-                      'portal_rules_handled', 'rule_triggers', 'rule_prereqs',
-                      'rule_actions', 'turns_completed'):
-            init_table(table)
+class QueryEngineProxy:
 
-    def truncate_all(self):
-        """Delete all data from every table"""
-        for table in (
-                'global', 'branches', 'turns', 'graphs', 'keyframes',
-                'graph_val',
-                'nodes', 'node_val', 'edges', 'edge_val', 'plans',
-                'plan_ticks',
-                'universals', 'rules', 'rulebooks', 'rule_triggers',
-                'rule_prereqs',
-                'rule_actions', 'character_rulebook', 'unit_rulebook',
-                'character_thing_rulebook', 'character_place_rulebook',
-                'character_portal_rulebook', 'node_rules_handled',
-                'portal_rules_handled', 'things', 'node_rulebook',
-                'portal_rulebook',
-                'units', 'character_rules_handled', 'unit_rules_handled',
-                'character_thing_rules_handled',
-                'character_place_rules_handled',
-                'character_portal_rules_handled', 'turns_completed'):
-            try:
-                self.sql('truncate_' + table)
-            except OperationalError:
-                pass  # table wasn't created yet
-        self.commit()
+    def __init__(self,
+                 dbstring,
+                 connect_args,
+                 alchemy,
+                 pack=None,
+                 unpack=None):
+        self._inq = Queue()
+        self._outq = Queue()
+        self._dbstring = dbstring
+        self._connect_args = connect_args
+        self._alchemy = alchemy
+        self._pack = pack
+        self._unpack = unpack
+        self.globl = self.GlobalsProxy(self._inq, self._outq)
+        self._thread = Thread(target=self._subthread, daemon=True)
+        self._thread.start()
+
+    def _subthread(self):
+        real = QueryEngine(self._dbstring,
+                           self._connect_args,
+                           self._alchemy,
+                           pack=self._pack,
+                           unpack=self._unpack)
+        while True:
+            func, args, kwargs = self._inq.get()
+            if func == 'get_global':
+                if args not in real.globl:
+                    output = KeyError()
+                else:
+                    output = real.globl[args]
+            elif func == 'set_global':
+                k, v = args
+                real.globl[k] = v
+                continue
+            elif func == 'list_globals':
+                output = list(real.globl)
+            elif func == 'len_globals':
+                output = len(real.globl)
+            elif func == 'del_global':
+                if args in real.globl:
+                    del real.globl[args]
+                    output = None
+                else:
+                    output = KeyError()
+            else:
+                try:
+                    output = getattr(real, func)(*args, **kwargs)
+                except Exception as ex:
+                    output = ex
+            if hasattr(output, '__next__'):
+                output = list(output)
+            self._outq.put(output)
+            if func == 'close':
+                return
+
+    class Caller:
+
+        def __init__(self, func, inq, outq):
+            self._func = func
+            self._inq = inq
+            self._outq = outq
+
+        def __call__(self, *args, **kwargs):
+            self._inq.put((self._func, args, kwargs))
+            ret = self._outq.get()
+            if isinstance(ret, Exception):
+                raise ret
+            return ret
+
+    class GlobalsProxy(MutableMapping):
+
+        def __init__(self, inq, outq):
+            self._inq = inq
+            self._outq = outq
+
+        def __iter__(self):
+            self._inq.put(('list_globals', None, None))
+            return iter(self._outq.get())
+
+        def __len__(self):
+            self._inq.put(('len_globals', None, None))
+            return self._outq.get()
+
+        def __getitem__(self, item):
+            self._inq.put(('get_global', item, None))
+            ret = self._outq.get()
+            if isinstance(ret, Exception):
+                raise ret
+            return ret
+
+        def __setitem__(self, key, value):
+            self._inq.put(('set_global', (key, value), None))
+
+        def __delitem__(self, key):
+            self._inq.put(('del_global', key, None))
+            ret = self._outq.get()
+            if isinstance(ret, Exception):
+                raise ret
+
+    def __getattr__(self, item):
+        if hasattr(QueryEngine, item) and callable(getattr(QueryEngine, item)):
+            return self.Caller(item, self._inq, self._outq)

@@ -13,8 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM, and some supporting functions and classes"""
+import os
 from contextlib import ContextDecorator, contextmanager
+from functools import wraps
 import gc
+from queue import Queue
+from threading import Lock, RLock, Thread
+from typing import Callable
 from weakref import WeakValueDictionary
 
 from blinker import Signal
@@ -33,6 +38,16 @@ def loaded_keep_test(test_turn, test_tick, past_turn, past_tick, future_turn,
             (past_turn == test_turn and past_tick <= test_tick)) and (
                 future_turn > test_turn or
                 (future_turn == test_turn and future_tick >= test_tick))
+
+
+def world_locked(fn: Callable) -> Callable:
+
+    @wraps(fn)
+    def lockedy(*args, **kwargs):
+        with args[0].world_lock:
+            return fn(*args, **kwargs)
+
+    return lockedy
 
 
 class GraphNameError(KeyError):
@@ -93,6 +108,7 @@ class TimeSignal:
     or turn changes, pass it to my ``connect`` method.
 
     """
+
     def __init__(self, engine, sig):
         self.engine = engine
         self.branch = self.engine.branch
@@ -236,11 +252,11 @@ def setnodeval(delta, graph, node, key, value):
 def setedge(delta, is_multigraph, graph, orig, dest, idx, exists):
     """Change a delta to say that an edge was created or deleted"""
     if is_multigraph(graph):
-        delta.setdefault(graph, {}).setdefault('edges', {})\
-            .setdefault(orig, {}).setdefault(dest, {})[idx] = bool(exists)
+        delta.setdefault(graph, {}).setdefault('edges', {})[orig, dest,
+                                                            idx] = bool(exists)
     else:
-        delta.setdefault(graph, {}).setdefault('edges', {})\
-            .setdefault(orig, {})[dest] = bool(exists)
+        delta.setdefault(graph, {}).setdefault('edges',
+                                               {})[orig, dest] = bool(exists)
 
 
 def setedgeval(delta, is_multigraph, graph, orig, dest, idx, key, value):
@@ -413,6 +429,82 @@ class ORM(object):
             gc.collect()
         self._no_kc = False
 
+    def _arrange_caches_at_time(self, sender, *, branch, turn, tick):
+        lock = self.world_lock
+        with lock:
+            graphs = list(self.graph)
+        for graph in graphs:
+            with lock:
+                graph_stats = self._graph_val_cache._get_keycache(
+                    (graph, ), branch, turn, tick, forward=False)
+            for stat in graph_stats:
+                with lock:
+                    self._graph_val_cache._base_retrieve(
+                        (graph, stat, branch, turn, tick))
+            with lock:
+                nodes = self._nodes_cache._get_keycache((graph, ),
+                                                        branch,
+                                                        turn,
+                                                        tick,
+                                                        forward=False)
+            for node in nodes:
+                with lock:
+                    self._nodes_cache._base_retrieve(
+                        (graph, node, branch, turn, tick))
+                with lock:
+                    node_stats = self._node_val_cache._get_keycache(
+                        (graph, node), branch, turn, tick, forward=False)
+                for stat in node_stats:
+                    with lock:
+                        self._node_val_cache._base_retrieve(
+                            (graph, node, stat, branch, turn, tick))
+                with lock:
+                    dests = self._edges_cache._get_destcache(graph,
+                                                             node,
+                                                             branch,
+                                                             turn,
+                                                             tick,
+                                                             forward=False)
+                for dest in dests:
+                    with lock:
+                        self._edges_cache._base_retrieve(
+                            (graph, node, dest, branch, turn, tick))
+                    with lock:
+                        edge_stats = self._edge_val_cache._get_keycache(
+                            (graph, node, dest),
+                            branch,
+                            turn,
+                            tick,
+                            forward=False)
+                    for stat in edge_stats:
+                        with lock:
+                            self._edge_val_cache._base_retrieve(
+                                (graph, node, dest, stat, branch, turn, tick))
+
+    def _arrange_cache_loop(self):
+        q = self.cache_arrange_queue
+        while True:
+            inst = q.get()
+            if inst == 'shutdown':
+                q.task_done()
+                return
+            if not isinstance(inst, tuple):
+                raise TypeError(
+                    "cache_arrange_queue needs tuples of length 2 or 3")
+            if len(inst) == 2:
+                branch, turn = inst
+                tick = self._turn_end_plan[branch, turn]
+            elif len(inst) == 3:
+                branch, turn, tick = inst
+            else:
+                raise ValueError(
+                    "cache_arrange_queue tuples must be length 2 or 3")
+            self.arrange_cache_signal.send(self,
+                                           branch=branch,
+                                           turn=turn,
+                                           tick=tick)
+            q.task_done()
+
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
         """Get a dictionary describing changes to all graphs.
 
@@ -546,16 +638,20 @@ class ORM(object):
                             and idx in delta[graph]['edges'][orig][dest]
                             and not delta[graph]['edges'][orig][dest][idx]):
                         continue
-                    delta.setdefault(graph, {}).setdefault('edges', {})\
-                        .setdefault(orig, {}).setdefault(dest, {})[idx] = bool(exists)
+                    delta.setdefault(graph,
+                                     {}).setdefault('edges',
+                                                    {})[orig,
+                                                        dest] = bool(exists)
                 else:
                     if (graph in delta and 'edges' in delta[graph]
                             and orig in delta[graph]['edges']
                             and dest in delta[graph]['edges'][orig]
                             and not delta[graph]['edges'][orig][dest]):
                         continue
-                    delta.setdefault(graph, {}).setdefault('edges', {})\
-                        .setdefault(orig, {})[dest] = bool(exists)
+                    delta.setdefault(graph,
+                                     {}).setdefault('edges',
+                                                    {})[orig,
+                                                        dest] = bool(exists)
 
         if branch in evbranches and turn in evbranches[branch]:
             for graph, orig, dest, idx, key, value in evbranches[branch][turn][
@@ -619,7 +715,13 @@ class ORM(object):
                 raise NotImplementedError("Only DiGraph for now")
             self._graph_objs[graph] = DiGraph(self, graph)
 
-    def __init__(self, dbstring, clear=False, alchemy=True, connect_args=None):
+    def __init__(self,
+                 dbstring,
+                 sqlfilename=None,
+                 clear=False,
+                 alchemy=True,
+                 connect_args=None,
+                 cache_arranger=False):
         """Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
         either case, begin a transaction.
 
@@ -631,6 +733,7 @@ class ORM(object):
         connection.
 
         """
+        self.world_lock = RLock()
         connect_args = connect_args or {}
         self._planning = False
         self._forward = False
@@ -643,6 +746,7 @@ class ORM(object):
             self._post_init_cache_hook()
         if not hasattr(self, 'query'):
             self.query = self.query_engine_cls(dbstring, connect_args, alchemy,
+                                               sqlfilename,
                                                getattr(self, 'pack', None),
                                                getattr(self, 'unpack', None))
         if clear:
@@ -688,6 +792,12 @@ class ORM(object):
         self._keyframes_times = set()
         self._loaded = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
         self._init_load()
+        self.cache_arrange_queue = Queue()
+        self._cache_arrange_thread = Thread(target=self._arrange_cache_loop)
+        self.arrange_cache_signal = Signal()
+        self.arrange_cache_signal.connect(self._arrange_caches_at_time)
+        if cache_arranger:
+            self._cache_arrange_thread.start()
 
     def _init_load(self):
         keyframes_list = self._keyframes_list
@@ -728,6 +838,7 @@ class ORM(object):
             parent, _, _, _, _ = self._branches[parent]
             self._branch_parents[child].add(parent)
 
+    @world_locked
     def _snap_keyframe(self, graph, branch, turn, tick, nodes, edges,
                        graph_val):
         nodes_keyframes_branch_d = self._nodes_cache.keyframe[graph, ][branch]
@@ -771,6 +882,7 @@ class ORM(object):
         else:
             gvkb[turn] = {tick: graph_val}
 
+    @world_locked
     def snap_keyframe(self):
         branch, turn, tick = self._btt()
         snapp = self._snap_keyframe
@@ -799,6 +911,7 @@ class ORM(object):
             else:
                 kfd[branch][turn].add(tick)
 
+    @world_locked
     def _load_at(self, branch, turn, tick):
         snap_keyframe = self._snap_keyframe
         latest_past_keyframe = None
@@ -1172,6 +1285,7 @@ class ORM(object):
                keyframed, noderows, edgerows, graphvalrows, \
                nodevalrows, edgevalrows
 
+    @world_locked
     def unload(self):
         """Remove everything from memory we can"""
         # find the slices of time that need to stay loaded
@@ -1292,6 +1406,7 @@ class ORM(object):
     def _get_branch(self):
         return self._obranch
 
+    @world_locked
     def _set_branch(self, v):
         if self._planning:
             raise ValueError("Don't change branches while planning")
@@ -1335,6 +1450,7 @@ class ORM(object):
                 (curturn == start_turn and tick < start_tick)):
             self._load_at(v, curturn, tick)
 
+    @world_locked
     def _copy_plans(self, branch_from, turn_from, tick_from):
         """Collect all plans that are active at the given time and copy them to the current branch"""
         plan_ticks = self._plan_ticks
@@ -1374,6 +1490,7 @@ class ORM(object):
                         time_plan[branch, turn, tick] = last_plan
                         turn_end_plan[branch, turn] = tick
 
+    @world_locked
     def delete_plan(self, plan):
         """Delete the portion of a plan that has yet to occur.
 
@@ -1417,6 +1534,7 @@ class ORM(object):
     def _get_turn(self):
         return self._oturn
 
+    @world_locked
     def _set_turn(self, v):
         branch = self.branch
         loaded = self._loaded
@@ -1480,6 +1598,7 @@ class ORM(object):
     def _get_tick(self):
         return self._otick
 
+    @world_locked
     def _set_tick(self, v):
         if not isinstance(v, int):
             raise TypeError("tick must be an integer")
@@ -1524,6 +1643,10 @@ class ORM(object):
         """Return the branch, turn, and tick."""
         return self._obranch, self._oturn, self._otick
 
+    def _set_btt(self, branch, turn, tick):
+        (self._obranch, self._oturn, self._otick) = (branch, turn, tick)
+
+    @world_locked
     def _nbtt(self):
         """Increment the tick and return branch, turn, tick
 
@@ -1577,6 +1700,7 @@ class ORM(object):
         self._otick = tick
         return branch, turn, tick
 
+    @world_locked
     def commit(self):
         """Write the state of all graphs to the database and commit the transaction.
 
@@ -1608,6 +1732,10 @@ class ORM(object):
 
     def close(self):
         """Write changes to database and close the connection"""
+        if hasattr(self, 'cache_arrange_queue'):
+            self.cache_arrange_queue.put('shutdown')
+        if self._cache_arrange_thread.is_alive():
+            self._cache_arrange_thread.join()
         self.commit()
         self.query.close()
 
@@ -1623,6 +1751,7 @@ class ORM(object):
         else:
             loaded[branch] = turn, tick, turn, tick
 
+    @world_locked
     def _init_graph(self, name, type_s='DiGraph', data=None):
         if self.query.have_graph(name):
             raise GraphNameError("Already have a graph by that name")
@@ -1752,6 +1881,7 @@ class ORM(object):
         """
         return self._graph_objs[name]
 
+    @world_locked
     def del_graph(self, name):
         """Remove all traces of a graph's existence from the database
 
@@ -1826,6 +1956,7 @@ class ORM(object):
         except KeyError:
             return False
 
+    @world_locked
     def _exist_node(self, character, node, exist=True):
         nbtt, exist_node, store = self._exist_node_stuff
         branch, turn, tick = nbtt()
@@ -1839,6 +1970,7 @@ class ORM(object):
         except KeyError:
             return False
 
+    @world_locked
     def _exist_edge(self, character, orig, dest, idx=0, exist=True):
         nbtt, exist_edge, store = self._exist_edge_stuff
         branch, turn, tick = nbtt()

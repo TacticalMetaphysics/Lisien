@@ -94,8 +94,8 @@ class InitializedEntitylessCache(EntitylessCache, InitializedCache):
 class UnitnessCache(Cache):
     """A cache for remembering when a node is a unit of a character."""
     __slots__ = ('user_order', 'user_shallow', 'graphs', 'graph_units',
-                 'char_units', 'solo_unit', 'unique_unit',
-                 'unique_graph', 'users')
+                 'char_units', 'solo_unit', 'unique_unit', 'unique_graph',
+                 'users')
 
     def __init__(self, engine):
         Cache.__init__(self, engine)
@@ -243,14 +243,16 @@ class UnitnessCache(Cache):
                                      turn, tick) or set()
 
     def get_char_graph_solo_av(self, char, graph, branch, turn, tick):
-        return self._valcache_lookup(self.solo_unit[(char, graph)], branch, turn,
-                                     tick)
+        return self._valcache_lookup(self.solo_unit[(char, graph)], branch,
+                                     turn, tick)
 
     def get_char_only_av(self, char, branch, turn, tick):
-        return self._valcache_lookup(self.unique_unit[char], branch, turn, tick)
+        return self._valcache_lookup(self.unique_unit[char], branch, turn,
+                                     tick)
 
     def get_char_only_graph(self, char, branch, turn, tick):
-        return self._valcache_lookup(self.unique_graph[char], branch, turn, tick)
+        return self._valcache_lookup(self.unique_graph[char], branch, turn,
+                                     tick)
 
     def get_char_graphs(self, char, branch, turn, tick):
         return self._valcache_lookup(self.graphs[char], branch, turn,
@@ -295,6 +297,7 @@ class UnitnessCache(Cache):
 
 
 class RulesHandledCache(object):
+
     def __init__(self, engine):
         self.engine = engine
         self.handled = {}
@@ -374,6 +377,7 @@ class RulesHandledCache(object):
 
 
 class CharacterRulesHandledCache(RulesHandledCache):
+
     def get_rulebook(self, character, branch, turn, tick):
         try:
             return self.engine._characters_rulebooks_cache.retrieve(
@@ -390,6 +394,7 @@ class CharacterRulesHandledCache(RulesHandledCache):
 
 
 class UnitRulesHandledCache(RulesHandledCache):
+
     def get_rulebook(self, character, branch, turn, tick):
         try:
             return self.engine._units_rulebooks_cache.retrieve(
@@ -415,6 +420,7 @@ class UnitRulesHandledCache(RulesHandledCache):
 
 
 class CharacterThingRulesHandledCache(RulesHandledCache):
+
     def get_rulebook(self, character, branch, turn, tick):
         try:
             return self.engine._characters_things_rulebooks_cache.retrieve(
@@ -439,6 +445,7 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
 
 
 class CharacterPlaceRulesHandledCache(RulesHandledCache):
+
     def get_rulebook(self, character, branch, turn, tick):
         try:
             return self.engine._characters_places_rulebooks_cache.retrieve(
@@ -461,6 +468,7 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
 
 
 class CharacterPortalRulesHandledCache(RulesHandledCache):
+
     def get_rulebook(self, character, branch, turn, tick):
         try:
             return self.engine._characters_portals_rulebooks_cache.retrieve(
@@ -495,6 +503,7 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 
 
 class NodeRulesHandledCache(RulesHandledCache):
+
     def get_rulebook(self, character, node, branch, turn, tick):
         try:
             return self.engine._nodes_rulebooks_cache.retrieve(
@@ -518,6 +527,7 @@ class NodeRulesHandledCache(RulesHandledCache):
 
 
 class PortalRulesHandledCache(RulesHandledCache):
+
     def get_rulebook(self, character, orig, dest, branch, turn, tick):
         try:
             return self.engine._portals_rulebooks_cache.retrieve(
@@ -551,6 +561,7 @@ class PortalRulesHandledCache(RulesHandledCache):
 
 
 class ThingsCache(Cache):
+
     def __init__(self, db):
         Cache.__init__(self, db)
         self._make_node = db.thing_cls
@@ -648,6 +659,7 @@ class ThingsCache(Cache):
 
 
 class NodeContentsCache(Cache):
+
     def _iter_future_contradictions(self, entity, key, turns, branch, turn,
                                     tick, value):
         return self.db._things_cache._iter_future_contradictions(

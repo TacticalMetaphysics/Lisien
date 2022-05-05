@@ -19,45 +19,104 @@ ordinary method calls.
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from re import match
 from collections import defaultdict
-from functools import partial
+from functools import partial, wraps
 from importlib import import_module
 from threading import Thread
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import cpu_count
-import hashlib
+from typing import Dict, Tuple, Set, KeysView, Callable, Union
 
 import numpy as np
 import msgpack
 
-from .engine import Engine
+from .engine import Engine, MSGPACK_SET
 
 
-def _dict_delta_added(oldkeys, new, newkeys, d):
-    for k in newkeys.difference(oldkeys):
+def _dict_delta_added(oldkeys: KeysView[bytes], new: Dict[bytes, bytes],
+                      d: Dict[bytes, bytes]):
+    for k in new.keys() - oldkeys:
         d[k] = new[k]
 
 
-def _dict_delta_removed(oldkeys, newkeys, d):
-    for k in oldkeys.difference(newkeys):
-        d[k] = None
+TRUE = msgpack.packb(True)
+FALSE = msgpack.packb(False)
+NONE = msgpack.packb(None)
+NODES = msgpack.packb('nodes')
+EDGES = msgpack.packb('edges')
+UNITS = msgpack.packb('units')
+RULEBOOK = msgpack.packb('rulebook')
+RULEBOOKS = msgpack.packb('rulebooks')
+NODE_VAL = msgpack.packb('node_val')
+EDGE_VAL = msgpack.packb('edge_val')
+ETERNAL = msgpack.packb('eternal')
+UNIVERSAL = msgpack.packb('universal')
+STRINGS = msgpack.packb('strings')
+RULES = msgpack.packb('rules')
+LOCATION = msgpack.packb('location')
 
 
-def _set_delta_added(old, new, d):
-    d.update((item, True) for item in new.difference(old))
+def _dict_delta_removed(oldkeys: KeysView[bytes], newkeys: KeysView[bytes],
+                        d: Dict[bytes, bytes]):
+    for k in oldkeys - newkeys:
+        d[k] = NONE
 
 
-def set_delta(old, new):
-    old = set(old)
-    new = set(new)
+def _set_delta_added(old: Set[bytes], new: Set[bytes], d: Dict[bytes, bytes]):
+    d.update((item, TRUE) for item in new.difference(old))
+
+
+def set_delta(old: Set[bytes], new: Set[bytes]):
     r = {}
     added_thread = Thread(target=_set_delta_added, args=(old, new, r))
     added_thread.start()
-    r.update((item, False) for item in old.difference(new))
+    r.update((item, FALSE) for item in old.difference(new))
     added_thread.join()
     return r
 
 
-def timely(fun):
+def concat_d(r: Dict[bytes, bytes]) -> bytes:
+    """Pack a dictionary of msgpack-encoded keys and values into msgpack bytes"""
+    resp = msgpack.Packer().pack_map_header(len(r))
+    for k, v in r.items():
+        resp += k + v
+    return resp
+
+
+SET_CODE = MSGPACK_SET.to_bytes(1, "big", signed=False)
+
+
+def concat_s(s: Set[bytes]) -> bytes:
+    """Pack a set of msgpack-encoded values into a msgpack array with ext code"""
+    resp = msgpack.Packer().pack_array_header(len(s))
+    for v in s:
+        resp += v
+    data_len = len(resp)
+    if data_len == 1:
+        return b"\xd4" + SET_CODE + resp
+    elif data_len == 2:
+        return b"\xd5" + SET_CODE + resp
+    elif data_len == 4:
+        return b"\xd6" + SET_CODE + resp
+    elif data_len == 8:
+        return b"\xd7" + SET_CODE + resp
+    elif data_len == 16:
+        return b"\xd8" + SET_CODE + resp
+    elif data_len < 2**8:
+        return b"\xc7" + data_len.to_bytes(1, "big",
+                                           signed=False) + SET_CODE + resp
+    elif data_len < 2**16:
+        return b"\xc8" + data_len.to_bytes(2, "big",
+                                           signed=False) + SET_CODE + resp
+    elif data_len < 2**32:
+        return b"\xc9" + data_len.to_bytes(4, "big",
+                                           signed=False) + SET_CODE + resp
+    else:
+        raise ValueError("Too long")
+
+
+def timely(fun: Callable) -> Callable:
+
+    @wraps(fun)
     def run_timely(self, *args, **kwargs):
         ret = fun(self, *args, **kwargs)
         self.branch, self.turn, self.tick = self._real._btt()
@@ -65,6 +124,65 @@ def timely(fun):
 
     run_timely.timely = True
     return run_timely
+
+
+def prepacked(fun: Callable) -> Callable:
+    fun.prepacked = True
+    return fun
+
+
+def _packed_dict_delta(old: Dict[bytes, bytes],
+                       new: Dict[bytes, bytes]) -> Dict[bytes, bytes]:
+    """Describe changes from one shallow dictionary of msgpack data to another
+
+    The returned dictionary indicates deleted keys with the value \xc0.
+    Added or changed keys have their actual value.
+
+    """
+
+    r = {}
+    added_thread = Thread(target=_dict_delta_added, args=(old.keys(), new, r))
+    removed_thread = Thread(target=_dict_delta_removed,
+                            args=(old.keys(), new.keys(), r))
+    added_thread.start()
+    removed_thread.start()
+    ks = old.keys() & new.keys()
+    oldv_l = []
+    newv_l = []
+    k_l = []
+    for k in ks:
+        # \xc1 is unused by msgpack.
+        # I append it here so that the last byte will never be \x00,
+        # which numpy uses as a terminator, but msgpack uses for
+        # the integer zero.
+        oldv_l.append(old[k] + b'\xc1')
+        newv_l.append(new[k] + b'\xc1')
+        k_l.append(k + b'\xc1')
+    oldvs = np.array(oldv_l)
+    newvs = np.array(newv_l)
+    ks = np.array(k_l)
+    changes = oldvs != newvs
+    added_thread.join()
+    removed_thread.join()
+    if not (changes.any() or r):
+        return {}
+    if changes.any():
+        changed_keys = ks[changes]
+        changed_values = newvs[changes]
+        for (k, v) in zip(changed_keys, changed_values):
+            r[k[:-1]] = v[:-1]
+    return r
+
+
+class BytesDict(dict):
+
+    def __getitem__(self, item: bytes) -> bytes:
+        return super().__getitem__(item)
+
+    def __setitem__(self, key: bytes, value: bytes):
+        assert isinstance(key, bytes)
+        assert isinstance(value, bytes)
+        super().__setitem__(key, value)
 
 
 class EngineHandle(object):
@@ -82,6 +200,7 @@ class EngineHandle(object):
     the :class:`LiSE.character.Character`.
 
     """
+
     def __init__(self, args=(), kwargs=None, logq=None, loglevel=None):
         """Instantiate an engine with the positional arguments ``args`` and
         the keyword arguments ``kwargs``.
@@ -96,108 +215,80 @@ class EngineHandle(object):
         if kwargs is None:
             kwargs = {}
         kwargs.setdefault('logfun', self.log)
-        self._real = Engine(*args, **kwargs)
-        self.pack = self._real.pack
-        self.unpack = self._real.unpack
+        self._real = Engine(*args, cache_arranger=False, **kwargs)
+        self.pack = pack = self._real.pack
+
+        def pack_pair(pair):
+            k, v = pair
+            return pack(k), pack(v)
+
+        self.pack_pair = pack_pair
+        self.unpack = unpack = self._real.unpack
+
+        def unpack_pair(pair):
+            k, v = pair
+            return unpack(k), unpack(v)
+
+        def unpack_dict(d: dict):
+            return dict(map(unpack_pair, d.items()))
+
+        self.unpack_dict = unpack_dict
         self._logq = logq
         self._loglevel = loglevel
         self._muted_chars = set()
         self.branch = self._real.branch
         self.turn = self._real.turn
         self.tick = self._real.tick
-        self._node_stat_cache = defaultdict(dict)
-        self._portal_stat_cache = defaultdict(lambda: defaultdict(dict))
-        self._char_stat_cache = {}
-        self._char_av_cache = defaultdict(lambda: defaultdict(set))
-        self._char_rulebooks_cache = {}
-        self._char_nodes_rulebooks_cache = defaultdict(dict)
-        self._char_portals_rulebooks_cache = defaultdict(
-            lambda: defaultdict(dict))
-        self._char_nodes_cache = {}
-        self._char_portals_cache = {}
-        self._node_successors_cache = defaultdict(dict)
+        # It's possible that the memoization I've done could break if this handle observes the world while it's in
+        # a planning context. This shouldn't happen, I think
+        self._node_stat_copy_memo: Dict[tuple, Dict[bytes, bytes]] = {}
+        self._portal_stat_copy_memo: Dict[tuple, Dict[bytes, bytes]] = {}
+        self._char_stat_copy_memo: Dict[tuple, Dict[bytes, bytes]] = {}
+        self._char_units_copy_memo: Dict[tuple, Dict[bytes, Set[bytes]]] = {}
+        self._char_rulebooks_copy_memo: Dict[tuple, Dict[bytes, bytes]] = {}
+        self._char_nodes_rulebooks_copy_memo: Dict[tuple, Dict[bytes,
+                                                               bytes]] = {}
+        self._char_portals_rulebooks_copy_memo: Dict[tuple, Dict[bytes,
+                                                                 bytes]] = {}
+        self._char_nodes_copy_memo: Dict[tuple, Set[bytes]] = {}
+        self._char_portals_copy_memo: Dict[tuple, Set[bytes]] = {}
+        self._node_successors_copy_memo: Dict[tuple, Set[bytes]] = {}
         self._strings_cache = {}
-        self._eternal_cache = {}
-        self._universal_cache = {}
-        self._rule_cache = {}
-        self._rulebook_cache = defaultdict(list)
-        self._stores_cache = defaultdict(dict)
+        self._strings_copy_memo = {}
+        self._eternal_cache = BytesDict()
+        self._eternal_copy_memo = {}
+        self._universal_cache = BytesDict()
+        self._universal_copy_memo = {}
+        self._rule_cache = defaultdict(dict)
+        self._rule_copy_memo = {}
+        self._rulebook_copy_memo = {}
+        self._stores_cache = defaultdict(BytesDict)
+        self._character_delta_memo = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(BytesDict)))
+        self._real.arrange_cache_signal.disconnect(
+            self._real._arrange_caches_at_time)
+        self._real.arrange_cache_signal.connect(self._precopy_at_time)
         self.threadpool = ThreadPoolExecutor(cpu_count())
+        self._cache_arranger_started = False
 
-    def _dict_delta(self, old, new):
-        """Return a dictionary containing the items of ``new`` that are either
-        absent from ``old`` or whose values are different; as well as the
-        value ``None`` for those keys that are present in ``old``, but
-        absent from ``new``.
-
-        Useful for describing changes between two versions of a dict.
-
-        """
-        pack = self._real.pack
-
-        def pack_pair(kv):
-            k, v = kv
-            return pack(k), pack(v)
-
-        old_bytes = dict(self.threadpool.map(pack_pair, old.items()))
-        new_bytes = dict(self.threadpool.map(pack_pair, new.items()))
-        packed = self._packed_dict_delta(old_bytes, new_bytes)
-        return self._real.unpack(packed)
-
-    def _packed_dict_delta(self, old, new):
-        """`_dict_delta` but the keys, values, and output are all bytes"""
-        big_hash_map = {None: b'\xc0'}
-
-        def hashed(b: bytes):
-            h = hashlib.new('blake2b')
-            h.update(b)
-            ret = h.digest()
-            big_hash_map[ret] = b
-            return ret
-
-        def _hashed_pair(kv):
-            k, v = kv
-            return hashed(k), hashed(v)
-
-        r = {}
-        hashed_old = dict(self.threadpool.map(_hashed_pair, old.items()))
-        hashed_new = dict(self.threadpool.map(_hashed_pair, new.items()))
-        oldkeys = set(hashed_old)
-        newkeys = set(hashed_new)
-        added_thread = Thread(target=_dict_delta_added,
-                              args=(oldkeys, hashed_new, newkeys, r))
-        removed_thread = Thread(target=_dict_delta_removed,
-                                args=(oldkeys, newkeys, r))
-        added_thread.start()
-        removed_thread.start()
-        ks = oldkeys.intersection(newkeys)
-        oldv_l = []
-        newv_l = []
-        k_l = []
-        for k in ks:
-            oldv_l.append(hashed_old[k])
-            newv_l.append(hashed_new[k])
-            k_l.append(k)
-        oldvs = np.array(oldv_l)
-        newvs = np.array(newv_l)
-        ks = np.array(k_l)
-        changes = oldvs != newvs
-        added_thread.join()
-        removed_thread.join()
-        if not (changes.any() or r):
-            return b'\x80'
-        changed_keys = ks[changes]
-        changed_values = newvs[changes]
-        packed = msgpack.Packer().pack_map_header(len(changed_keys) + len(r))
-        for (k, v) in r.items():
-            k = big_hash_map[k]
-            v = big_hash_map[v]
-            packed += k + v
-        for (k, v) in zip(changed_keys, changed_values):
-            k = big_hash_map[k]
-            v = big_hash_map[v]
-            packed += k + v
-        return packed
+    def _precopy_at_time(self, sender, *, branch, turn, tick):
+        lock = self._real.world_lock
+        btt = (branch, turn, tick)
+        with lock:
+            chars = list(self._real.character)
+        for char in chars:
+            with lock:
+                self.character_stat_copy(char, btt=btt)
+            with lock:
+                self.character_nodes(char, btt=btt)
+            with lock:
+                self._character_nodes_stat_copy(char, btt=btt)
+            with lock:
+                self.character_portals(char, btt=btt)
+            with lock:
+                self._character_portals_stat_copy(char, btt=btt)
+            with lock:
+                self._character_units_copy(char, btt=btt)
 
     def log(self, level, message):
         if isinstance(level, str):
@@ -207,7 +298,7 @@ class EngineHandle(object):
                 'warning': 30,
                 'error': 40,
                 'critical': 50
-            }[level]
+            }[level.lower()]
         if self._logq and level >= self._loglevel:
             self._logq.put((level, message))
 
@@ -235,117 +326,254 @@ class EngineHandle(object):
         """Run one rule"""
         self._real.advance()
 
-    def get_char_deltas(self, chars, *, store=True):
+    def _get_char_deltas(self,
+                         chars,
+                         *,
+                         btt_from: Tuple[str, int, int] = None,
+                         btt_to: Tuple[str, int, int] = None):
         """Return a dict describing changes to characters since last call"""
+        pack = self._real.pack
         ret = {}
         if chars == 'all':
             it = iter(self._real.character.keys())
         else:
             it = iter(chars)
         for char in it:
-            delt = self.character_delta(char, store=store)
+            delt = self._character_delta(char,
+                                         btt_from=btt_from,
+                                         btt_to=btt_to)
             if delt:
-                ret[char] = delt
+                ret[pack(char)] = delt
         return ret
 
-    def _upd_local_caches(self, delta=None):
-        if delta is None:
-            self._eternal_cache = dict(self._real.eternal)
-            self._universal_cache = dict(self._real.universal)
-            self._rulebook_cache = {
-                rb: self.rulebook_copy(rb)
-                for rb in self._real.rulebook
-            }
-            self._rule_cache = {r: self.rule_copy(r) for r in self._real.rule}
-            self._strings_cache = self.strings_copy()
-            # stores?
-            for charn, char in self._real.character.items():
-                self._char_stat_cache[charn] = self.character_stat_copy(charn)
-                self._node_stat_cache[charn] = {
-                    node: self.node_stat_copy(charn, node)
-                    for node in char.node
+    @prepacked
+    def copy_character(self, char, *, btt=None) -> Dict[bytes, bytes]:
+        units = self._character_units_copy(char, btt=btt)
+        ports = self._character_portals_stat_copy(char, btt=btt)
+        ported = {}
+        for orig, dests in ports.items():
+            dest_stats = {}
+            for dest, stats in dests.items():
+                dest_stats[dest] = concat_d(stats)
+            ported[orig] = concat_d(dest_stats)
+        return {
+            NODES:
+            concat_d(
+                {node: TRUE
+                 for node in self.character_nodes(char, btt=btt)}),
+            EDGES:
+            concat_d({
+                origdest: TRUE
+                for origdest in self.character_portals(char, btt=btt)
+            }),
+            UNITS:
+            concat_d({k: concat_s(v)
+                      for (k, v) in units.items()}),
+            RULEBOOKS:
+            concat_d(self.character_rulebooks_copy(char, btt=btt)),
+            NODE_VAL:
+            concat_d(self._character_nodes_stat_copy(char, btt=btt)),
+            EDGE_VAL:
+            concat_d(ported)
+        }
+
+    @prepacked
+    def copy_chars(self, chars: Union[str, list]):
+        if chars == 'all':
+            it = iter(self._real.character.keys())
+        else:
+            it = iter(chars)
+        return {
+            self.pack(char): concat_d(self.copy_character(char))
+            for char in it
+        }
+
+    @prepacked
+    def get_char_deltas(self,
+                        chars,
+                        *,
+                        btt_from: Tuple[str, int, int] = None,
+                        btt_to: Tuple[str, int, int] = None):
+        delt = self._get_char_deltas(chars, btt_from=btt_from, btt_to=btt_to)
+        ret = {}
+        for char, delta in delt.items():
+            charret = ret[char] = {}
+            if NODES in delta:
+                charret[NODES] = concat_d(delta[NODES])
+            if EDGES in delta:
+                charret[EDGES] = concat_d(delta[EDGES])
+            if UNITS in delta:
+                graph_units = {}
+                for graph, unitss in delta[UNITS].items():
+                    graph_units[graph] = concat_d(unitss)
+                charret[UNITS] = concat_d(graph_units)
+            if RULEBOOKS in delta:
+                charret[RULEBOOKS] = concat_d(delta[RULEBOOKS])
+            if NODE_VAL in delta:
+                charret[NODE_VAL] = concat_d({
+                    node: concat_d(vals)
+                    for node, vals in delta[NODE_VAL].items()
+                })
+        if not self._cache_arranger_started:
+            self._real._start_cache_arranger()
+            self._cache_arranger_started = True
+        return {char: concat_d(charret) for char, charret in ret.items()}
+
+    def _pack_delta(self, delta):
+        pack = self.pack
+        slightly_packed_delta = {}
+        mostly_packed_delta = {}
+        for char, chardelta in delta.items():
+            chardelta = chardelta.copy()
+            pchar = pack(char)
+            chard = slightly_packed_delta[pchar] = {}
+            packd = mostly_packed_delta[pchar] = {}
+            if 'nodes' in chardelta:
+                nd = chard[NODES] = {
+                    pack(node): pack(ex)
+                    for node, ex in chardelta.pop('nodes')
                 }
-                portst = self._portal_stat_cache[charn]
-                for port in char.portals():
-                    portst.setdefault(port.orig,
-                                      {})[port.dest] = self.portal_stat_copy(
-                                          charn, port.orig, port.dest)
-                self._char_nodes_cache[charn] = self.character_nodes(char)
-                self._char_portals_cache[charn] = self.character_portals(char)
-                self._char_rulebooks_cache[
-                    charn] = self.character_rulebooks_copy(char)
-            return
+                packd[NODES] = concat_d(nd)
+            if 'node_val' in chardelta:
+                slightnoded = chard[NODE_VAL] = {}
+                packnodevd = {}
+                for node, vals in chardelta.pop('node_val').items():
+                    pnode = pack(node)
+                    pvals = dict(map(self.pack_pair, vals.items()))
+                    slightnoded[pnode] = pvals
+                    packnodevd[pnode] = concat_d(pvals)
+                packd[NODE_VAL] = concat_d(packnodevd)
+            if 'edges' in chardelta:
+                ed = chard[EDGES] = {
+                    pack(origdest): pack(ex)
+                    for origdest, ex in chardelta.pop('edges')
+                }
+                packd[EDGES] = concat_d(ed)
+            if 'edge_val' in chardelta:
+                slightorigd = chard[EDGE_VAL] = {}
+                packorigd = {}
+                for orig, dests in chardelta.pop('edge_val').items():
+                    porig = pack(orig)
+                    slightdestd = slightorigd[porig] = {}
+                    packdestd = {}
+                    for dest, port in dests.items():
+                        pdest = pack(dest)
+                        slightportd = slightdestd[pdest] = dict(
+                            map(self.pack_pair, port.items()))
+                        packdestd[pdest] = concat_d(slightportd)
+                    packorigd[porig] = concat_d(packdestd)
+                packd[EDGE_VAL] = concat_d(packorigd)
+            if 'units' in chardelta:
+                slightgraphd = chard[UNITS] = {}
+                packunitd = {}
+                for graph, unitss in chardelta.pop('units').items():
+                    pgraph = pack(graph)
+                    slightunitd = slightgraphd[pgraph] = dict(
+                        map(self.pack_pair, unitss.items()))
+                    packunitd[pgraph] = concat_d(slightunitd)
+                packd[UNITS] = concat_d(packunitd)
+            if 'rulebooks' in chardelta:
+                chard[RULEBOOKS] = slightrbd = dict(
+                    map(self.pack_pair,
+                        chardelta.pop('rulebooks').items()))
+                packd[RULEBOOKS] = concat_d(slightrbd)
+            todo = dict(map(self.pack_pair, chardelta.items()))
+            chard.update(todo)
+            packd.update(todo)
+        return slightly_packed_delta, concat_d({
+            charn: concat_d(stuff)
+            for charn, stuff in mostly_packed_delta.items()
+        })
 
-        def updd(d0, d1):
-            for k, v in d1.items():
-                if v is None:
-                    if k in d0:
-                        del d0[k]
-                else:
-                    d0[k] = v
-
-        updd(self._eternal_cache, delta.pop('eternal', {}))
-        updd(self._universal_cache, delta.pop('universal', {}))
-        updd(self._rulebook_cache, delta.pop('rulebooks', {}))
-        updd(self._strings_cache, delta.pop('strings', {}))
-        for rule, d in delta.pop('rules', {}).items():
-            updd(self._rulebook_cache.setdefault(rule, {}), d)
-        for char, d in delta.items():
-            nodeset = set(self._char_nodes_cache.setdefault(char, ()))
-            for n, ex in d.pop('nodes', {}).items():
-                if ex:
-                    nodeset.add(n)
-                else:
-                    nodeset.remove(n)
-            nodevd = self._node_stat_cache.setdefault(char, {})
-            for node, val in d.pop('node_val', {}).items():
-                nodenvd = nodevd.setdefault(node, {})
-                for k, v in val.items():
-                    if k != 'location' and v is None:
-                        if k in nodenvd:
-                            del nodenvd[k]
-                    else:
-                        nodenvd[k] = v
-            edges = set(self._char_portals_cache.setdefault(char, ()))
-            for orig, dests in d.pop('edges', {}).items():
-                for dest, exists in dests.items():
-                    if exists:
-                        edges.add((orig, dest))
-                    else:
-                        edges.remove((orig, dest))
-            edgevd = self._portal_stat_cache.setdefault(char, {})
-            for orig, dests in d.pop('edge_val', {}).items():
-                for dest, val in dests.items():
-                    updd(edgevd.setdefault(orig, {}).setdefault(dest, {}), val)
+    def _concat_delta(self, delta):
+        slightly_packed_delta = {}
+        mostly_packed_delta = {}
+        for char, chardelta in delta.items():
+            chardelta = chardelta.copy()
+            chard = slightly_packed_delta[char] = {}
+            packd = mostly_packed_delta[char] = {}
+            if NODES in chardelta:
+                chard[NODES] = charnodes = chardelta.pop(NODES)
+                packd[NODES] = concat_d(charnodes)
+            if NODE_VAL in chardelta:
+                slightnoded = chard[NODE_VAL] = {}
+                packnodevd = {}
+                for node, vals in chardelta.pop(NODE_VAL).items():
+                    slightnoded[node] = vals
+                    packnodevd[node] = concat_d(vals)
+                packd[NODE_VAL] = concat_d(packnodevd)
+            if EDGES in chardelta:
+                chard[EDGES] = es = chardelta.pop(EDGES)
+                packd[EDGES] = concat_d(es)
+            if EDGE_VAL in chardelta:
+                slightorigd = chard[EDGE_VAL] = {}
+                packorigd = {}
+                for orig, dests in chardelta.pop(EDGE_VAL).items():
+                    slightdestd = slightorigd[orig] = {}
+                    packdestd = {}
+                    for dest, port in dests.items():
+                        slightdestd[dest] = port
+                        packdestd[dest] = concat_d(port)
+                    packorigd[orig] = concat_d(packdestd)
+                packd[EDGE_VAL] = concat_d(packorigd)
+            if UNITS in chardelta:
+                slightgraphd = chard[UNITS] = {}
+                packunitd = {}
+                for graph, unitss in chardelta.pop(UNITS).items():
+                    slightgraphd[graph] = unitss
+                    packunitd[graph] = concat_d(unitss)
+                packd[UNITS] = concat_d(packunitd)
+            if RULEBOOKS in chardelta:
+                chard[RULEBOOKS] = slightrbd = chardelta.pop(RULEBOOKS)
+                packd[RULEBOOKS] = concat_d(slightrbd)
+            chard.update(chardelta)
+            packd.update(chardelta)
+        return slightly_packed_delta, concat_d({
+            charn: concat_d(stuff)
+            for charn, stuff in mostly_packed_delta.items()
+        })
 
     @timely
+    @prepacked
     def next_turn(self):
+        pack = self.pack
         self.debug(
             'calling next_turn at {}, {}, {}'.format(*self._real._btt()))
         ret, delta = self._real.next_turn()
-        self._after_ret = partial(self._upd_local_caches, delta)
-        return ret, delta
+        slightly_packed_delta, packed_delta = self._pack_delta(delta)
+        self.debug(
+            'got results from next_turn at {}, {}, {}. Packing...'.format(
+                *self._real._btt()))
+        return pack(ret), packed_delta
 
-    def get_slow_delta(self, chars='all', store=True):
+    def _get_slow_delta(self,
+                        chars='all',
+                        btt_from: Tuple[str, int, int] = None,
+                        btt_to: Tuple[str, int, int] = None):
+        pack = self._real.pack
         delta = {}
         if chars:
-            delta = self.get_char_deltas(chars, store=store)
-        etd = self.eternal_delta(store=store)
-        if etd:
-            delta['eternal'] = etd
-        unid = self.universal_delta(store=store)
+            delta = self._get_char_deltas(chars,
+                                          btt_from=btt_from,
+                                          btt_to=btt_to)
+        unid = self.universal_delta(btt_from=btt_from, btt_to=btt_to)
         if unid:
-            delta['universal'] = unid
-        rud = self.all_rules_delta(store=store)
+            delta[UNIVERSAL] = concat_d(unid)
+        rud = self.all_rules_delta(btt_from=btt_from, btt_to=btt_to)
         if rud:
-            delta['rules'] = rud
-        rbd = self.all_rulebooks_delta(store=store)
+            delta[RULES] = pack(rud)
+        rbd = self.all_rulebooks_delta(btt_from=btt_from, btt_to=btt_to)
         if rbd:
-            delta['rulebooks'] = rbd
+            delta[RULEBOOKS] = pack(rbd)
         return delta
 
     @timely
+    @prepacked
     def time_travel(self, branch, turn, tick=None, chars='all'):
+        # TODO: detect if you're headed to sometime outside of the already simulated past, and respond appropriately
+        #       - refuse to time travel to a plan
+        #       - refuse to go too far outside the past (I think no more than one turn)
+        #       That last would also make a lot of sense as a restriction of the LiSE core...
         branch_from, turn_from, tick_from = self._real._btt()
         slow_delta = branch != branch_from
         self._real.time = (branch, turn)
@@ -356,22 +584,30 @@ class EngineHandle(object):
         self.branch = branch
         self.turn = turn
         if slow_delta:
-            delta = self.get_slow_delta(chars)
+            delta = self._get_slow_delta(chars,
+                                         btt_from=(branch_from, turn_from,
+                                                   tick_from),
+                                         btt_to=(branch, turn, tick))
+            slightly_packed_delta, packed_delta = self._concat_delta(delta)
         else:
             delta = self._real.get_delta(branch, turn_from, tick_from, turn,
                                          tick)
-            self._after_ret = partial(self._upd_local_caches, delta)
-        return None, delta
+            slightly_packed_delta, packed_delta = self._pack_delta(delta)
+        return NONE, packed_delta
 
     @timely
-    def increment_branch(self, chars=[]):
+    def increment_branch(self, chars: list = None):
+        if chars is None:
+            chars = []
         branch = self._real.branch
         m = match('(.*)([0-9]+)', branch)
         if m:
             stem, n = m.groups()
             branch = stem + str(int(n) + 1)
         else:
-            branch += '1'
+            stem = branch
+            n = 1
+            branch = stem + str(n)
         if branch in self._real._branches:
             if m:
                 n = int(n)
@@ -384,22 +620,37 @@ class EngineHandle(object):
         ret = {'branch': branch}
         self._real.branch = self.branch = branch
         if chars:
-            ret.update(self.get_char_deltas(chars))
+            ret.update(self._get_char_deltas(chars))
         return ret
 
     @timely
     def add_character(self, char, data, attr):
+        # Probably not great that I am unpacking and then repacking the stats
+        pack_pair = self.pack_pair
         character = self._real.new_character(char, **attr)
+        branch, turn, tick = self._get_btt()
+        self._char_stat_copy_memo[char, branch, turn, tick] = BytesDict(
+            map(pack_pair, attr.items()))
         placedata = data.get('place', data.get('node', {}))
+        node_stat_memo = self._node_stat_copy_memo
         for place, stats in placedata.items():
             character.add_place(place, **stats)
+            branch, turn, tick = self._get_btt()
+            node_stat_memo[place, branch, turn,
+                           tick] = dict(map(self.pack_pair, stats.items()))
         thingdata = data.get('thing', {})
         for thing, stats in thingdata.items():
             character.add_thing(thing, **stats)
+            node_stat_memo[thing, branch, turn,
+                           tick] = dict(map(self.pack_pair, stats.items()))
         portdata = data.get('edge', data.get('portal', data.get('adj', {})))
+        port_stat_memo = self._portal_stat_copy_memo
         for orig, dests in portdata.items():
             for dest, stats in dests.items():
                 character.add_portal(orig, dest, **stats)
+                branch, turn, tick = self._get_btt()
+                port_stat_memo[char, orig, dest, branch, turn,
+                               tick] = dict(map(self.pack_pair, stats.items()))
 
     def commit(self):
         self._real.commit()
@@ -432,35 +683,25 @@ class EngineHandle(object):
         return self._real.time
 
     def get_watched_btt(self):
-        return (self.branch, self.turn, self.tick)
+        return self.branch, self.turn, self.tick
 
     def get_language(self):
         return str(self._real.string.language)
 
     def set_language(self, lang):
         self._real.string.language = lang
-        return self.strings_delta()
+        return self.strings_copy(lang)
 
     def get_string_ids(self):
         return list(self._real.string)
 
     def get_string_lang_items(self, lang):
-        ret = list(self._real.string.lang_items(lang))
-        for lang, (k, v) in ret:
-            self._strings_cache[lang][k] = v
-        return ret
+        return list(self._real.string.lang_items(lang))
 
     def strings_copy(self, lang=None):
         if lang is None:
             lang = self._real.string.language
         return dict(self._real.string.lang_items(lang))
-
-    def strings_delta(self):
-        old = self._strings_cache
-        new = dict(self._real.string)
-        ret = self._dict_delta(old, new)
-        self._strings_cache = new
-        return ret
 
     def get_string(self, k):
         return self._real.string[k]
@@ -470,172 +711,219 @@ class EngineHandle(object):
 
     def set_string(self, k, v):
         self._real.string[k] = v
-        self._strings_cache[k] = v
 
     def del_string(self, k):
         del self._real.string[k]
-        del self._strings_cache[k]
 
+    @prepacked
     def get_eternal(self, k):
-        ret = self._eternal_cache[k] = self._real.eternal[k]
-        return ret
+        return self.pack(self._real.eternal[k])
 
     def set_eternal(self, k, v):
         self._real.eternal[k] = v
-        self._eternal_cache[k] = v
+        self._eternal_cache[self.pack(k)] = self.pack(v)
 
     def del_eternal(self, k):
         del self._real.eternal[k]
-        del self._eternal_cache[k]
 
     def have_eternal(self, k):
         return k in self._real.eternal
 
+    @prepacked
     def eternal_copy(self):
-        return dict(self._real.eternal)
-
-    def eternal_delta(self, *, store=True):
-        old = self._eternal_cache
-        new = self.eternal_copy()
-        if store:
-            self._eternal_cache = new
-        return self._dict_delta(old, new)
+        return dict(map(self.pack_pair, self._real.eternal.items()))
 
     def get_universal(self, k):
-        ret = self._universal_cache[k] = self._real.universal[k]
-        return ret
+        return self._real.universal[k]
 
     @timely
     def set_universal(self, k, v):
         self._real.universal[k] = v
-        self._universal_cache[k] = v
 
     @timely
     def del_universal(self, k):
         del self._real.universal[k]
-        del self._universal_cache[k]
 
-    def universal_copy(self):
-        return dict(self._real.universal)
+    @prepacked
+    def universal_copy(self, btt: Tuple[str, int, int] = None):
+        btt = self._get_btt(btt)
+        if btt in self._universal_copy_memo:
+            return self._universal_copy_memo[btt]
+        ret = self._universal_copy_memo[btt] = dict(
+            map(self.pack_pair, self._real.universal.items()))
+        return ret
 
-    def universal_delta(self, *, store=True):
-        old = self._universal_cache
-        new = self.universal_copy()
-        if store:
-            self._universal_cache = new
-        return self._dict_delta(old, new)
+    @prepacked
+    def universal_delta(self,
+                        *,
+                        btt_from: Tuple[str, int, int] = None,
+                        btt_to: Tuple[str, int, int] = None):
+        old = self.universal_copy(btt=self._get_watched_btt(btt_from))
+        btt_now = self._get_btt(btt_to)
+        new = self._universal_copy_memo[btt_now] = self.universal_copy(
+            btt=btt_now)
+        return _packed_dict_delta(old, new)
 
     @timely
-    def init_character(self, char, statdict={}):
+    def init_character(self, char, statdict: dict = None):
         if char in self._real.character:
             raise KeyError("Already have character {}".format(char))
+        if statdict is None:
+            statdict = {}
         self._real.character[char] = {}
         self._real.character[char].stat.update(statdict)
+        self.character_stat_copy(char)
 
     @timely
     def del_character(self, char):
         del self._real.character[char]
-        for cache in (self._char_stat_cache, self._node_stat_cache,
-                      self._portal_stat_cache, self._char_av_cache,
-                      self._char_rulebooks_cache,
-                      self._char_nodes_rulebooks_cache,
-                      self._char_portals_rulebooks_cache,
-                      self._char_nodes_cache, self._char_portals_cache):
-            if char in cache:
-                del cache[char]
 
-    def character_stat_copy(self, char):
-        return {
-            k: v.unwrap()
-            if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
+    @prepacked
+    def character_stat_copy(self, char, *, btt: Tuple[str, int, int] = None):
+        if char not in self._real.character:
+            raise KeyError("no such character")
+        pack = self.pack
+        key = self._get_btt(btt) + (char, )
+        if key in self._char_stat_copy_memo:
+            return self._char_stat_copy_memo[key]
+        ret = self._char_stat_copy_memo[key] = {
+            pack(k): pack(v.unwrap()) if hasattr(v, 'unwrap')
+            and not hasattr(v, 'no_unwrap') else pack(v)
             for (k, v) in self._real.character[char].stat.items()
         }
-
-    def _character_something_delta(self,
-                                   char,
-                                   cache,
-                                   copier,
-                                   *args,
-                                   store=True):
-        old = cache.get(char, {})
-        new = copier(char, *args)
-        if store:
-            cache[char] = new
-        return self._dict_delta(old, new)
-
-    def character_stat_delta(self, char, *, store=True):
-        return self._character_something_delta(char,
-                                               self._char_stat_cache,
-                                               self.character_stat_copy,
-                                               store=store)
-
-    def character_units_copy(self, char):
-        return {
-            graph: frozenset(nodes.keys())
-            for (graph, nodes) in self._real.character[char].unit.items()
-        }
-
-    def character_units_delta(self, char, *, store=True):
-        old = self._char_av_cache.get(char, {})
-        new = self.character_units_copy(char)
-        ret = {}
-        oldkeys = set(old.keys())
-        newkeys = set(new.keys())
-        for graph in oldkeys.difference(newkeys):
-            ret[graph] = {node: False for node in old[graph]}
-        for graph in newkeys.difference(oldkeys):
-            ret[graph] = {node: True for node in new[graph]}
-        for graph in oldkeys.intersection(newkeys):
-            graph_nodes = {}
-            for node in old[graph].difference(new[graph]):
-                graph_nodes[node] = False
-            for node in new[graph].difference(old[graph]):
-                graph_nodes[node] = True
-            if graph_nodes:
-                ret[graph] = graph_nodes
-        if store:
-            self._char_av_cache[char] = new
         return ret
 
-    def character_rulebooks_copy(self, char):
-        chara = self._real.character[char]
-        return {
-            'character': chara.rulebook.name,
-            'unit': chara.unit.rulebook.name,
-            'thing': chara.thing.rulebook.name,
-            'place': chara.place.rulebook.name,
-            'portal': chara.portal.rulebook.name
-        }
+    @prepacked
+    def _character_something_delta(self,
+                                   char,
+                                   copier,
+                                   *args,
+                                   btt_from: Tuple[str, int, int] = None,
+                                   btt_to: Tuple[str, int, int] = None):
+        old = copier(char, *args, btt=self._get_watched_btt(btt_from))
+        new = copier(char, *args, btt=btt_to)
+        return _packed_dict_delta(old, new)
 
-    def character_rulebooks_delta(self, char, *, store=True):
+    @prepacked
+    def character_stat_delta(self,
+                             char,
+                             *,
+                             btt_from: Tuple[str, int, int] = None,
+                             btt_to: Tuple[str, int, int] = None):
         return self._character_something_delta(char,
-                                               self._char_rulebooks_cache,
-                                               self.character_rulebooks_copy,
-                                               store=store)
+                                               self.character_stat_copy,
+                                               btt_from=btt_from,
+                                               btt_to=btt_to)
 
-    def character_nodes_rulebooks_copy(self, char, nodes='all'):
+    def _character_units_copy(
+            self,
+            char,
+            *,
+            btt: Tuple[str, int, int] = None) -> Dict[bytes, Set[bytes]]:
+        pack = self._real.pack
+        key = self._get_btt(btt) + (char, )
+        memo = self._char_units_copy_memo
+        if key in memo:
+            return memo[key]
+        ret = memo[key] = {
+            pack(graph): set(map(pack, nodes.keys()))
+            for (graph, nodes) in self._real.character[char].unit.items()
+        }
+        return ret
+
+    def _character_units_delta(self,
+                               char,
+                               *,
+                               btt_from: Tuple[str, int, int] = None,
+                               btt_to: Tuple[str, int, int] = None):
+        old = self._character_units_copy(char,
+                                         btt=self._get_watched_btt(btt_from))
+        new = defaultdict(set)
+        new.update(self._character_units_copy(char, btt=btt_to))
+        ret = {}
+        for graph in old.keys() - new.keys():
+            ret[graph] = {node: FALSE for node in old[graph]}
+        for graph in new.keys() - old.keys():
+            ret[graph] = {node: TRUE for node in new[graph]}
+        for graph in old.keys() & new.keys():
+            graph_nodes = {}
+            for node in old[graph].difference(new[graph]):
+                graph_nodes[node] = FALSE
+            for node in new[graph].difference(old[graph]):
+                graph_nodes[node] = TRUE
+            if graph_nodes:
+                ret[graph] = graph_nodes
+        return ret
+
+    @prepacked
+    def character_rulebooks_copy(self, char, btt: Tuple[str, int, int] = None):
+        chara = self._real.character[char]
+        key = self._get_btt(btt) + (char, )
+        if key in self._char_rulebooks_copy_memo:
+            return self._char_rulebooks_copy_memo[key]
+        ret = self._char_rulebooks_copy_memo[key] = dict(
+            map(self.pack_pair, [('character', chara.rulebook.name),
+                                 ('unit', chara.unit.rulebook.name),
+                                 ('thing', chara.thing.rulebook.name),
+                                 ('place', chara.place.rulebook.name),
+                                 ('portal', chara.portal.rulebook.name)]))
+        return ret
+
+    @prepacked
+    def character_rulebooks_delta(self,
+                                  char,
+                                  *,
+                                  btt_from: Tuple[str, int, int] = None,
+                                  btt_to: Tuple[str, int, int] = None):
+        return self._character_something_delta(char,
+                                               self.character_rulebooks_copy,
+                                               btt_from=btt_from,
+                                               btt_to=btt_to)
+
+    @prepacked
+    def character_nodes_rulebooks_copy(self,
+                                       char,
+                                       nodes='all',
+                                       btt: Tuple[str, int, int] = None):
+        key = self._get_btt(btt) + (char, nodes)
+        if key in self._char_nodes_rulebooks_copy_memo:
+            return self._char_nodes_rulebooks_copy_memo[key]
         chara = self._real.character[char]
         if nodes == 'all':
             nodeiter = iter(chara.node.values())
         else:
             nodeiter = (chara.node[k] for k in nodes)
-        return {node.name: node.rulebook.name for node in nodeiter}
+        pack = self.pack
+        ret = self._char_nodes_rulebooks_copy_memo[key] = {
+            pack(node.name): pack(node.rulebook.name)
+            for node in nodeiter
+        }
+        return ret
 
+    @prepacked
     def character_nodes_rulebooks_delta(self,
                                         char,
                                         nodes='all',
                                         *,
-                                        store=True):
+                                        btt_from: Tuple[str, int, int] = None,
+                                        btt_to: Tuple[str, int, int] = None):
         return self._character_something_delta(
             char,
-            self._char_nodes_rulebooks_cache,
             self.character_nodes_rulebooks_copy,
             nodes,
-            store=store)
+            btt_from=btt_from,
+            btt_to=btt_to)
 
-    def character_portals_rulebooks_copy(self, char, portals='all'):
+    def character_portals_rulebooks_copy(self,
+                                         char,
+                                         portals='all',
+                                         btt: Tuple[str, int, int] = None):
         chara = self._real.character[char]
         result = defaultdict(dict)
+        branch, turn, tick = self._get_btt(btt)
+        origtime = self._get_btt()
+        if (branch, turn, tick) != origtime:
+            self._real._set_btt(branch, turn, tick)
         if portals == 'all':
             portiter = chara.portals()
         else:
@@ -643,99 +931,109 @@ class EngineHandle(object):
         for portal in portiter:
             result[portal['origin']][portal['destination']] \
                 = portal.rulebook.name
+        if (branch, turn, tick) != origtime:
+            self._real._set_btt(*origtime)
         return result
 
-    def character_portals_rulebooks_delta(self,
+    def _character_portals_rulebooks_delta(self,
+                                           char,
+                                           portals='all',
+                                           *,
+                                           btt_from: Tuple[str, int,
+                                                           int] = None,
+                                           btt_to: Tuple[str, int,
+                                                         int] = None):
+        old = self.character_portals_rulebooks_copy(
+            char, portals, self._get_watched_btt(btt_from))
+        new = {}
+        for orig, dests in self.character_portals_rulebooks_copy(char,
+                                                                 portals,
+                                                                 btt=btt_to):
+            new[orig] = dict(map(self.pack_pair, dests.items()))
+        result = {}
+        for origin in old:
+            if origin in new:
+                result[origin] = _packed_dict_delta(old[origin], new[origin])
+            else:
+                result[origin] = None
+        for origin in new:
+            if origin not in result:
+                result[origin] = new[origin]
+        return result
+
+    def _character_delta(self,
+                         char,
+                         *,
+                         btt_from: Tuple[str, int, int] = None,
+                         btt_to: Tuple[str, int, int] = None) -> dict:
+        observed_btt = self._get_watched_btt(btt_from)
+        actual_btt = self._get_btt(btt_to)
+        memo = self._character_delta_memo[char]
+        if observed_btt in memo and actual_btt in memo[observed_btt]:
+            return self._character_delta_memo[observed_btt][actual_btt]
+        nodes_fut = self.threadpool.submit(self.character_nodes_delta,
+                                           char,
+                                           btt_from=observed_btt,
+                                           btt_to=actual_btt)
+        edges_fut = self.threadpool.submit(self.character_portals_delta,
+                                           char,
+                                           btt_from=observed_btt,
+                                           btt_to=actual_btt)
+        units_fut = self.threadpool.submit(self._character_units_delta,
+                                           char,
+                                           btt_from=observed_btt,
+                                           btt_to=actual_btt)
+        rbs_fut = self.threadpool.submit(self.character_rulebooks_delta,
+                                         char,
+                                         btt_from=observed_btt,
+                                         btt_to=actual_btt)
+        nrbs_fut = self.threadpool.submit(self.character_nodes_rulebooks_delta,
                                           char,
-                                          portals='all',
-                                          *,
-                                          store=True):
-        try:
-            old = self._char_portals_rulebooks_cache.get(
-                char, defaultdict(dict))
-            new = self.character_portals_rulebooks_copy(char, portals)
-            if store:
-                self._char_portals_rulebooks_cache[char] = new
-            result = {}
-            for origin in old:
-                if origin in new:
-                    result[origin] = self._dict_delta(old[origin], new[origin])
-                else:
-                    result[origin] = None
-            for origin in new:
-                if origin not in result:
-                    result[origin] = new[origin]
-            return result
-        except KeyError:
-            return None
-
-    def character_copy(self, char):
-        """Return a dictionary describing character ``char``."""
-        ret = self.character_stat_copy(char)
+                                          btt_from=observed_btt,
+                                          btt_to=actual_btt)
+        porbs_fut = self.threadpool.submit(
+            self._character_portals_rulebooks_delta,
+            char,
+            btt_from=observed_btt,
+            btt_to=actual_btt)
+        nv_fut = self.threadpool.submit(self._character_nodes_stat_delta,
+                                        char,
+                                        btt_from=observed_btt,
+                                        btt_to=actual_btt)
+        ev_fut = self.threadpool.submit(self._character_portals_stat_delta,
+                                        char,
+                                        btt_from=observed_btt,
+                                        btt_to=actual_btt)
         chara = self._real.character[char]
-        nv = self.character_nodes_stat_copy(char)
-        if nv:
-            ret['node_val'] = nv
-        ev = self.character_portals_stat_copy(char)
-        if ev:
-            ret['edge_val'] = ev
-        avs = self.character_units_copy(char)
-        if avs:
-            ret['units'] = avs
-        rbs = self.character_rulebooks_copy(char)
+        ret = self.character_stat_delta(char,
+                                        btt_from=observed_btt,
+                                        btt_to=actual_btt)
+        nodes_res = nodes_fut.result()
+        if nodes_res:
+            ret[NODES] = nodes_res
+        edges_res = edges_fut.result()
+        if edges_res:
+            ret[EDGES] = edges_res
+        units_res = units_fut.result()
+        if units_res:
+            ret[UNITS] = units_res
+        rbs = rbs_fut.result()
         if rbs:
-            ret['rulebooks'] = rbs
-        nrbs = self.character_nodes_rulebooks_copy(char)
-        if nrbs:
-            for node, rb in nrbs.items():
-                assert node in chara.node
-                if 'node_val' not in ret:
-                    ret['node_val'] = {}
-                nv = ret['node_val']
-                if node not in nv:
-                    nv[node] = {}
-                nv[node]['rulebook'] = rb
-        porbs = self.character_portals_rulebooks_copy(char)
-        if porbs:
-            for orig, dests in porbs.items():
-                ports = chara.portal[orig]
-                for dest, rb in dests.items():
-                    assert dest in ports
-                    if 'edge_val' not in ret:
-                        ret['edge_val'] = {}
-                    ev = ret['edge_val']
-                    if orig not in ev:
-                        ev[orig] = {}
-                    ov = ev[orig]
-                    if dest not in ov:
-                        ov[dest] = {}
-                    ov[dest]['rulebook'] = rb
-        return ret
-
-    def character_delta(self, char, *, store=True):
-        """Return a dictionary of changes to ``char`` since previous call."""
-        ret = self.character_stat_delta(char, store=store)
-        nodes = self.character_nodes_delta(char, store=store)
-        chara = self._real.character[char]
-        if nodes:
-            ret['nodes'] = nodes
-        edges = self.character_portals_delta(char, store=store)
-        if edges:
-            ret['edges'] = edges
-        avs = self.character_units_delta(char, store=store)
-        if avs:
-            ret['units'] = avs
-        rbs = self.character_rulebooks_delta(char, store=store)
-        if rbs:
-            ret['rulebooks'] = rbs
-        nrbs = self.character_nodes_rulebooks_delta(char, store=store)
+            ret[RULEBOOKS] = rbs
+        nv = nv_fut.result()
+        nrbs = nrbs_fut.result()
         if nrbs:
             for node, rb in nrbs.items():
                 if node not in chara.node:
                     continue
-                ret.setdefault('node_val', {}).setdefault(node,
-                                                          {})['rulebook'] = rb
-        porbs = self.character_portals_rulebooks_delta(char, store=store)
+                if node in nv:
+                    nv[node][RULEBOOK] = rb
+                else:
+                    nv[node] = {RULEBOOK: rb}
+        if nv:
+            ret[NODE_VAL] = nv
+        ev = ev_fut.result()
+        porbs = porbs_fut.result()
         if porbs:
             for orig, dests in porbs.items():
                 if orig not in chara.portal:
@@ -744,44 +1042,24 @@ class EngineHandle(object):
                 for dest, rb in dests.items():
                     if dest not in portals:
                         continue
-                    ret.setdefault('edge_val',
-                                   {}).setdefault(orig, {}).setdefault(
-                                       dest, {})['rulebook'] = rb
-        nv = self.character_nodes_stat_delta(char, store=store)
-        if nv:
-            ret['node_val'] = nv
-        ev = self.character_portals_stat_delta(char, store=store)
+                    ev.setdefault(orig, {}).setdefault(dest, {})[RULEBOOK] = rb
         if ev:
-            ret['edge_val'] = ev
+            ret[EDGE_VAL] = ev
+        self._character_delta_memo[char][observed_btt][
+            actual_btt] = ret  # canon
         return ret
-
-    @timely
-    def character_become(self, char, nodes, adj):
-        chara = self._real.character[char]
-        chara.clear()
-        chara.place.update(nodes)
-        chara.adj.update(adj)
-
-    @timely
-    def character_copy_from(self, char, nodes, adj):
-        chara = self._real.character[char]
-        chara.place.update(nodes)
-        chara.adj.update(adj)
 
     @timely
     def set_character_stat(self, char, k, v):
         self._real.character[char].stat[k] = v
-        self._char_stat_cache.setdefault(char, {})[k] = v
 
     @timely
     def del_character_stat(self, char, k):
         del self._real.character[char].stat[k]
-        del self._char_stat_cache[char][k]
 
     @timely
     def update_character_stats(self, char, patch):
         self._real.character[char].stat.update(patch)
-        self._char_stat_cache.setdefault(char, {}).update(patch)
 
     @timely
     def update_character(self, char, patch):
@@ -793,70 +1071,108 @@ class EngineHandle(object):
         return list(self._real.character.keys())
 
     @timely
-    def set_character(self, char, v):
-        self._real.character[char] = v
-
-    @timely
     def set_node_stat(self, char, node, k, v):
         self._real.character[char].node[node][k] = v
-        self._node_stat_cache.setdefault(char, {})[node][k] = v
 
     @timely
     def del_node_stat(self, char, node, k):
         del self._real.character[char].node[node][k]
-        del self._node_stat_cache[char][node][k]
 
-    def node_stat_copy(self, node_or_char, node=None):
-        """Return a node's stats, prepared for pickling, in a dictionary."""
-        if node is None:
-            node = node_or_char
-        else:
-            node = self._real.character[node_or_char].node[node]
-        return {
-            k: v.unwrap()
-            if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
+    def _get_btt(self,
+                 btt: Tuple[str, int, int] = None) -> Tuple[str, int, int]:
+        if btt is None:
+            return self._real._btt()
+        return btt
+
+    def _get_watched_btt(self,
+                         btt: Tuple[str, int,
+                                    int] = None) -> Tuple[str, int, int]:
+        if btt is None:
+            return self.branch, self.turn, self.tick
+        return btt
+
+    @prepacked
+    def node_stat_copy(self,
+                       char,
+                       node,
+                       btt: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
+        branch, turn, tick = self._get_btt(btt)
+        memo = self._node_stat_copy_memo
+        if (char, node, branch, turn, tick) in memo:
+            return memo[char, node, branch, turn, tick]
+        pack = self._real.pack
+        origtime = self._real._btt()
+        if (branch, turn, tick) != origtime:
+            self._real._set_btt(branch, turn, tick)
+        noden = node
+        node = self._real.character[char].node[noden]
+        ret = memo[char, noden, branch, turn, tick] = {
+            pack(k): pack(v.unwrap()) if hasattr(v, 'unwrap')
+            and not hasattr(v, 'no_unwrap') else pack(v)
             for (k, v) in node.items() if k not in
             {'character', 'name', 'arrival_time', 'next_arrival_time'}
         }
+        if (branch, turn, tick) != origtime:
+            self._real._set_btt(*origtime)
+        return ret
 
-    def node_stat_delta(self, char, node, *, store=True):
+    @prepacked
+    def node_stat_delta(self,
+                        char,
+                        node,
+                        *,
+                        btt_from: Tuple[str, int, int] = None,
+                        btt_to: Tuple[str, int, int] = None):
         """Return a dictionary describing changes to a node's stats since the
         last time you looked at it.
 
-        Deleted keys have the value ``None``. If the node's been deleted, this
-        returns ``None``.
-
         """
-        try:
-            old = self._node_stat_cache[char].get(node, {})
-            new = self.node_stat_copy(self._real.character[char].node[node])
-            if store:
-                self._node_stat_cache[char][node] = new
-            r = self._dict_delta(old, new)
-            return r
-        except KeyError:
-            return None
+        old = self.node_stat_copy(char,
+                                  node,
+                                  btt=self._get_watched_btt(btt_from))
+        new = self.node_stat_copy(char, node, btt=btt_to)
+        return _packed_dict_delta(old, new)
 
-    def character_nodes_stat_delta(self, char, *, store=True):
+    def _character_nodes_stat_delta(self,
+                                    char,
+                                    *,
+                                    btt_from: Tuple[str, int, int] = None,
+                                    btt_to: Tuple[str, int, int] = None):
         """Return a dictionary of ``node_stat_delta`` output for each node in a
         character.
 
         """
+        pack = self._real.pack
         r = {}
-        nodes = set(self._real.character[char].node.keys())
+        origtime = self._real._btt()
+        self._real._set_btt(*btt_from)
+        nodes_from = set(self._real.character[char].node.keys())
+        self._real._set_btt(*btt_to)
+        nodes_to = set(self._real.character[char].node.keys())
+        self._real._set_btt(*origtime)
+        nodes = nodes_from & nodes_to
+        futs = []
         for node in nodes:
-            delta = self.node_stat_delta(char, node, store=store)
+            fut = self.threadpool.submit(self.node_stat_delta,
+                                         char,
+                                         node,
+                                         btt_from=btt_from,
+                                         btt_to=btt_to)
+            fut.node = node
+            futs.append(fut)
+        for fut in as_completed(futs):
+            delta = fut.result()
             if delta:
-                r[node] = delta
-        nsc = self._node_stat_cache[char]
-        for node in list(nsc.keys()):
-            if node not in nodes:
-                del nsc[node]
+                r[pack(fut.node)] = delta
         return r
 
-    def character_nodes_stat_copy(self, char):
+    def _character_nodes_stat_copy(
+            self,
+            char,
+            btt: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
+        pack = self._real.pack
         return {
-            node: self.node_stat_copy(char, node)
+            pack(node): concat_d(self.node_stat_copy(char, node, btt=btt))
             for node in self._real.character[char].node
         }
 
@@ -884,6 +1200,7 @@ class EngineHandle(object):
         dictionary.
 
         """
+        # Performance could be improved by preserving the packed values
         if backdate:
             parbranch, parrev = self._real._parentbranch_rev.get(
                 self._real.branch, ('trunk', 0))
@@ -898,44 +1215,34 @@ class EngineHandle(object):
     def del_node(self, char, node):
         """Remove a node from a character."""
         del self._real.character[char].node[node]
-        for cache in (self._char_nodes_rulebooks_cache, self._node_stat_cache,
-                      self._node_successors_cache):
-            try:
-                del cache[char][node]
-            except KeyError:
-                pass
-        if char in self._char_nodes_cache and node in self._char_nodes_cache[
-                char]:
-            self._char_nodes_cache[
-                char] = self._char_nodes_cache[char] - frozenset([node])
-        if char in self._portal_stat_cache:
-            portal_stat_cache_char = self._portal_stat_cache[char]
-            if node in portal_stat_cache_char:
-                del portal_stat_cache_char[node]
-            for charo in portal_stat_cache_char.values():
-                if node in charo:
-                    del charo[node]
-        if char in self._char_portals_rulebooks_cache:
-            portal_rulebook_cache_char = self._char_portals_rulebooks_cache[
-                char]
-            if node in portal_rulebook_cache_char:
-                del portal_rulebook_cache_char[node]
-            for porto in portal_rulebook_cache_char.values():
-                if node in porto:
-                    del porto[node]
 
-    def character_nodes(self, char):
-        return frozenset(self._real.character[char].node)
+    @prepacked
+    def character_nodes(self, char, btt: Tuple[str, int, int] = None):
+        pack = self.pack
+        memo = self._char_nodes_copy_memo
+        branch, turn, tick = self._get_btt(btt)
+        if (char, branch, turn, tick) in memo:
+            return memo[char, branch, turn, tick]
+        origtime = self._real._btt()
+        if (branch, turn, tick) != origtime:
+            self._real.time = branch, turn
+            self._real.tick = tick
+        ret = memo[char, branch, turn,
+                   tick] = set(map(pack, self._real.character[char].node))
+        if (branch, turn, tick) != origtime:
+            self._real.time = origtime[:2]
+            self._real.tick = origtime[2]
+        return ret
 
-    def character_nodes_delta(self, char, *, store=True):
-        try:
-            old = self._char_nodes_cache.get(char, [])
-            new = self.character_nodes(char)
-            if store:
-                self._char_nodes_cache[char] = new
-            return set_delta(old, new)
-        except KeyError:
-            return None
+    @prepacked
+    def character_nodes_delta(self,
+                              char,
+                              *,
+                              btt_from: Tuple[str, int, int] = None,
+                              btt_to: Tuple[str, int, int] = None):
+        old = self.character_nodes(char, btt=self._get_watched_btt(btt_from))
+        new = self.character_nodes(char, btt=btt_to)
+        return set_delta(old, new)
 
     def node_predecessors(self, char, node):
         return list(self._real.character[char].pred[node].keys())
@@ -946,53 +1253,42 @@ class EngineHandle(object):
     def character_del_node_predecessors(self, char, node):
         del self._real.character[char].pred[node]
 
-    def node_successors(self, char, node):
-        return list(self._real.character[char].portal[node].keys())
-
-    def node_successors_delta(self, char, node):
-        try:
-            old = self._node_successors_cache[char].get(node, [])
-            new = self.node_successors(char, node)
-            self._node_successors_cache[char][node] = new
-            return set_delta(old, new)
-        except KeyError:
-            return None
-
-    def character_set_node_successors(self, char, node, val):
-        self._real.character[char].adj[node] = val
-
-    def character_del_node_successors(self, char, node):
-        del self._real.character[char].adj[node]
+    @prepacked
+    def node_successors(self, char, node, btt: Tuple[str, int, int] = None):
+        memo = self._node_successors_copy_memo
+        branch, turn, tick = self._get_btt(btt)
+        if (char, node, branch, turn, tick) in memo:
+            return memo[char, node, branch, turn, tick]
+        origtime = self._real._btt()
+        if (branch, turn, tick) != origtime:
+            self._real._set_btt(branch, turn, tick)
+        ret = memo[char, node, branch, turn, tick] = set(
+            map(self.pack, self._real.character[char].portal[node].keys()))
+        if (branch, turn, tick) != origtime:
+            self._real._set_btt(*origtime)
+        return ret
 
     def nodes_connected(self, char, orig, dest):
         return dest in self._real.character[char].portal[orig]
 
     @timely
-    def init_thing(self, char, thing, statdict={}):
+    def init_thing(self, char, thing, statdict: dict = None):
         if thing in self._real.character[char].thing:
             raise KeyError('Already have thing in character {}: {}'.format(
                 char, thing))
+        if statdict is None:
+            statdict = {}
         return self.set_thing(char, thing, statdict)
 
     @timely
     def set_thing(self, char, thing, statdict):
         self._real.character[char].thing[thing] = statdict
-        self._node_stat_cache.setdefault(char, {})[thing] = statdict
-        if char in self._char_nodes_cache:
-            cache = self._char_nodes_cache[char]
-        else:
-            cache = frozenset()
-        self._char_nodes_cache[char] = cache.union((thing, ))
+        statdict = dict(map(self.pack_pair, statdict.items()))
+        branch, turn, tick = self._get_btt()
 
     @timely
     def add_thing(self, char, thing, loc, statdict):
         self._real.character[char].add_thing(thing, loc, **statdict)
-        self._node_stat_cache.setdefault(char, {})[thing] = statdict
-        if char in self._char_nodes_cache:
-            cache = self._char_nodes_cache[char]
-        else:
-            cache = frozenset()
-        self._char_nodes_cache[char] = cache.union((thing, ))
 
     @timely
     def place2thing(self, char, node, loc):
@@ -1004,7 +1300,8 @@ class EngineHandle(object):
 
     @timely
     def add_things_from(self, char, seq):
-        self._real.character[char].add_things_from(seq)
+        for thing in seq:
+            self.add_thing(char, *thing)
 
     def get_thing_location(self, char, thing):
         try:
@@ -1015,9 +1312,6 @@ class EngineHandle(object):
     @timely
     def set_thing_location(self, char, thing, loc):
         self._real.character[char].thing[thing]['location'] = loc
-        self._node_stat_cache.setdefault(char,
-                                         {}).setdefault(thing,
-                                                        {})['location'] = loc
 
     @timely
     def thing_follow_path(self, char, thing, path, weight):
@@ -1043,61 +1337,48 @@ class EngineHandle(object):
             dest, weight, graph)
 
     @timely
-    def init_place(self, char, place, statdict={}):
+    def init_place(self, char, place, statdict=None):
         if place in self._real.character[char].place:
             raise KeyError('Already have place in character {}: {}'.format(
                 char, place))
+        if statdict is None:
+            statdict = {}
         return self.set_place(char, place, statdict)
 
     @timely
     def set_place(self, char, place, statdict):
         self._real.character[char].place[place] = statdict
-        self._node_stat_cache.setdefault(char, {})[place] = statdict
+        self._after_ret = partial(self.node_stat_copy, char, place)
 
     @timely
     def add_places_from(self, char, seq):
         self._real.character[char].add_places_from(seq)
 
-    @timely
-    def init_portal(self, char, orig, dest, statdict={}):
-        if (orig in self._real.character[char].portal
-                and dest in self._real.character[char].portal[orig]):
-            raise KeyError(
-                'Already have portal in character {}: {}->{}'.format(
-                    char, orig, dest))
-        return self.set_portal(char, orig, dest, statdict)
-
-    @timely
-    def set_portal(self, char, orig, dest, statdict):
-        self._real.character[char].portal[orig][dest] = statdict
-        self._portal_stat_cache.setdefault(char, {})[orig][dest] = statdict
-
-    def character_portals(self, char):
+    @prepacked
+    def character_portals(self, char, btt: Tuple[str, int, int] = None):
+        pack = self._real.pack
+        branch, turn, tick = self._get_btt(btt)
         r = set()
         portal = self._real.character[char].portal
+        origtime = self._real._btt()
+        if (branch, turn, tick) != origtime:
+            self._real._set_btt(branch, turn, tick)
         for o in portal:
             for d in portal[o]:
-                r.add((o, d))
+                r.add(pack((o, d)))
+        if (branch, turn, tick) != origtime:
+            self._real._set_btt(*origtime)
         return r
 
-    def character_portals_delta(self, char, *, store=True):
-        old = self._char_portals_cache.get(char, {})
-        new = self.character_portals(char)
-        if store:
-            self._char_portals_cache[char] = new
-        ret = {}
-        for orig, dest in old:
-            if (orig, dest) not in new:
-                ret.setdefault(orig, {})[dest] = False
-                if store:
-                    try:
-                        del self._portal_stat_cache[char][orig][dest]
-                    except KeyError:
-                        pass
-        for orig, dest in new:
-            if (orig, dest) not in old:
-                ret.setdefault(orig, {})[dest] = True
-        return ret
+    @prepacked
+    def character_portals_delta(self,
+                                char,
+                                *,
+                                btt_from: Tuple[str, int, int] = None,
+                                btt_to: Tuple[str, int, int] = None):
+        old = self.character_portals(char, btt=self._get_watched_btt(btt_from))
+        new = self.character_portals(char, btt=btt_to)
+        return set_delta(old, new)
 
     @timely
     def add_portal(self, char, orig, dest, symmetrical, statdict):
@@ -1110,58 +1391,105 @@ class EngineHandle(object):
 
     def del_portal(self, char, orig, dest):
         del self._real.character[char].portal[orig][dest]
-        try:
-            del self._portal_stat_cache[char][orig][dest]
-        except KeyError:
-            pass
 
     def set_portal_stat(self, char, orig, dest, k, v):
         self._real.character[char].portal[orig][dest][k] = v
-        self._portal_stat_cache.setdefault(char,
-                                           {}).setdefault(orig, {}).setdefault(
-                                               dest, {})[k] = v
 
     def del_portal_stat(self, char, orig, dest, k):
         del self._real.character[char][orig][dest][k]
-        del self._portal_stat_cache[char][orig][dest][k]
 
-    def portal_stat_copy(self, char, orig, dest):
-        return {
-            k: v.unwrap()
+    def portal_stat_copy(self,
+                         char,
+                         orig,
+                         dest,
+                         btt: Tuple[str, int, int] = None):
+        pack = self._real.pack
+        branch, turn, tick = self._get_btt(btt)
+        memo = self._portal_stat_copy_memo
+        if (char, orig, dest, branch, turn, tick) in memo:
+            return memo[char, orig, dest, branch, turn, tick]
+        origtime = self._real._btt()
+        if (branch, turn, tick) != origtime:
+            self._real._set_btt(branch, turn, tick)
+        ret = memo[char, orig, dest, branch, turn, tick] = {
+            pack(k): pack(v.unwrap())
             if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
             for (k,
                  v) in self._real.character[char].portal[orig][dest].items()
         }
+        if (branch, turn, tick) != origtime:
+            self._real._set_btt(*origtime)
+        return ret
 
-    def portal_stat_delta(self, char, orig, dest, *, store=True):
-        try:
-            old = self._portal_stat_cache[char][orig].get(dest, {})
-            new = self.portal_stat_copy(char, orig, dest)
-            if store:
-                self._portal_stat_cache[char][orig][dest] = new
-            return self._dict_delta(old, new)
-        except KeyError:
-            return None
+    @prepacked
+    def portal_stat_delta(self,
+                          char,
+                          orig,
+                          dest,
+                          *,
+                          btt_from: Tuple[str, int, int] = None,
+                          btt_to: Tuple[str, int, int] = None):
+        old = self.portal_stat_copy(char,
+                                    orig,
+                                    dest,
+                                    btt=self._get_watched_btt(btt_from))
+        new = self.portal_stat_copy(char, orig, dest, btt=btt_to)
+        return _packed_dict_delta(old, new)
 
-    def character_portals_stat_copy(self, char):
+    def _character_portals_stat_copy(
+        self,
+        char,
+        btt: Tuple[str, int, int] = None
+    ) -> Dict[bytes, Dict[bytes, Dict[bytes, bytes]]]:
+        pack = self.pack
         r = {}
+        btt = self._get_btt(btt)
         chara = self._real.character[char]
-        for orig, dests in chara.portal.items():
-            for dest in dests:
-                if orig not in r:
-                    r[orig] = {}
-                r[orig][dest] = self.portal_stat_copy(char, orig, dest)
+        origtime = self._real._btt()
+        self._real._set_btt(*btt)
+        portals = set(chara.portals())
+        self._real._set_btt(*origtime)
+        for orig, dest in portals:
+            porig = pack(orig)
+            pdest = pack(dest)
+            if porig not in r:
+                r[porig] = {}
+            r[porig][pdest] = self.portal_stat_copy(char, orig, dest, btt=btt)
         return r
 
-    def character_portals_stat_delta(self, char, *, store=True):
+    def _character_portals_stat_delta(self,
+                                      char,
+                                      *,
+                                      btt_from: Tuple[str, int, int] = None,
+                                      btt_to: Tuple[str, int, int] = None):
         r = {}
-        for orig in self._real.character[char].portal:
-            for dest in self._real.character[char].portal[orig]:
-                delta = self.portal_stat_delta(char, orig, dest, store=store)
-                if delta:
-                    if orig not in r:
-                        r[orig] = {}
-                    r[orig][dest] = delta
+        futs = []
+        btt_from = self._get_watched_btt(btt_from)
+        btt_to = self._get_btt(btt_to)
+        origtime = self._real._btt()
+        self._real._set_btt(*btt_from)
+        ports_from = set(self._real.character[char].portals())
+        self._real._set_btt(*btt_to)
+        ports_to = set(self._real.character[char].portals())
+        self._real._set_btt(*origtime)
+        for orig, dest in ports_from & ports_to:
+            fut = self.threadpool.submit(self.portal_stat_delta,
+                                         char,
+                                         orig,
+                                         dest,
+                                         btt_from=btt_from,
+                                         btt_to=btt_to)
+            fut.orig = orig
+            fut.dest = dest
+            futs.append(fut)
+        for fut in as_completed(futs):
+            delta = fut.result()
+            orig = fut.orig
+            dest = fut.dest
+            if delta:
+                if orig not in r:
+                    r[orig] = {}
+                r[orig][dest] = delta
         return r
 
     @timely
@@ -1170,81 +1498,127 @@ class EngineHandle(object):
         if patch is None:
             del character.portal[orig][dest]
         elif orig not in character.portal \
-             or dest not in character.portal[orig]:
+                or dest not in character.portal[orig]:
             character.portal[orig][dest] = patch
         else:
             character.portal[orig][dest].update(patch)
 
     @timely
     def update_portals(self, char, patch):
-        branch = self.branch
         for ((orig, dest), ppatch) in patch.items():
-            branch = self.update_portal(char, orig, dest, ppatch)
-        return branch
+            self.update_portal(char, orig, dest, ppatch)
 
     @timely
     def add_unit(self, char, graph, node):
         self._real.character[char].add_unit(graph, node)
-        self._char_av_cache.setdefault(char, {})[graph].add(node)
 
     @timely
     def remove_unit(self, char, graph, node):
         self._real.character[char].remove_unit(graph, node)
-        self._char_av_cache.setdefault(char, {})[graph].remove(node)
 
     @timely
     def new_empty_rule(self, rule):
         self._real.rule.new_empty(rule)
 
     @timely
-    def new_empty_rulebook(self, rulebook):
+    def new_empty_rulebook(self, rulebook, btt=None):
+        branch, turn, tick = self._get_btt(btt)
+        self._rulebook_copy_memo[rulebook, branch, turn, tick] = []
         self._real.rulebook[rulebook]
+        return []
 
-    def rulebook_copy(self, rulebook):
-        return list(
-            self._real.rulebook[rulebook]._get_cache(*self._real._btt()))
+    def rulebook_copy(self, rulebook, btt: Tuple[str, int, int] = None):
+        branch, turn, tick = self._get_btt(btt)
+        memo = self._rulebook_copy_memo
+        if (rulebook, branch, turn, tick) in memo:
+            return memo[rulebook, branch, turn, tick]
+        ret = memo[rulebook, branch, turn,
+                   tick] = list(self._real.rulebook[rulebook]._get_cache(
+                       branch, turn, tick))
+        return ret
 
-    def rulebook_delta(self, rulebook, *, store=True):
-        old = self._rulebook_cache[rulebook]
-        new = self.rulebook_copy(rulebook)
-        if store:
-            self._rulebook_cache[rulebook] = new
+    def rulebook_delta(self,
+                       rulebook,
+                       *,
+                       btt_from: Tuple[str, int, int] = None,
+                       btt_to: Tuple[str, int, int] = None):
+        old = self.rulebook_copy(rulebook, btt=self._get_watched_btt(btt_from))
+        new = self.rulebook_copy(rulebook, btt=btt_to)
         if old == new:
             return
         return new
 
-    def all_rulebooks_delta(self, *, store=True):
+    def all_rulebooks_delta(self,
+                            *,
+                            btt_from: Tuple[str, int, int] = None,
+                            btt_to: Tuple[str, int, int] = None):
         ret = {}
         for rulebook in self._real.rulebook.keys():
-            delta = self.rulebook_delta(rulebook, store=store)
+            delta = self.rulebook_delta(rulebook,
+                                        btt_from=btt_from,
+                                        btt_to=btt_to)
             if delta:
                 ret[rulebook] = delta
+        return ret
+
+    def all_rulebooks_copy(self, btt=None):
+        btt = self._get_btt(btt)
+        origtime = self._real._btt()
+        self._real._set_btt(*btt)
+        ret = {
+            rulebook: self.rulebook_copy(rulebook)
+            for rulebook in self._real.rulebook.keys()
+        }
+        self._real._set_btt(*origtime)
         return ret
 
     @timely
     def set_rulebook_rule(self, rulebook, i, rule):
         self._real.rulebook[rulebook][i] = rule
+        branch, turn, tick = self._real._btt()
+        memo = self._rulebook_copy_memo
+        if (rulebook, branch, turn, tick) in memo:
+            memo[rulebook, branch, turn, tick][i] = rule
 
     @timely
     def ins_rulebook_rule(self, rulebook, i, rule):
         self._real.rulebook[rulebook].insert(i, rule)
+        branch, turn, tick = self._real._btt()
+        memo = self._rulebook_copy_memo
+        if (rulebook, branch, turn, tick) in memo:
+            memo[rulebook, branch, turn, tick].insert(i, rule)
 
     @timely
     def del_rulebook_rule(self, rulebook, i):
         del self._real.rulebook[rulebook][i]
-        del self._rulebook_cache[rulebook][i]
+        branch, turn, tick = self._real._btt()
+        memo = self._rulebook_copy_memo
+        if (rulebook, branch, turn, tick) in memo:
+            del memo[rulebook, branch, turn, tick][i]
 
     @timely
     def set_rule_triggers(self, rule, triggers):
         self._real.rule[rule].triggers = triggers
+        branch, turn, tick = self._real._btt()
+        memo = self._rule_copy_memo
+        if (rule, branch, turn, tick) in memo:
+            memo[rule, branch, turn, tick]['triggers'] = triggers
 
     @timely
     def set_rule_prereqs(self, rule, prereqs):
         self._real.rule[rule].prereqs = prereqs
+        branch, turn, tick = self._real._btt()
+        memo = self._rule_copy_memo
+        if (rule, branch, turn, tick) in memo:
+            memo[rule, branch, turn, tick]['prereqs'] = prereqs
 
     @timely
     def set_rule_actions(self, rule, actions):
         self._real.rule[rule].actions = actions
+        branch, turn, tick = self._real._btt()
+        memo = self._rule_copy_memo
+        if (rule, branch, turn, tick) in memo:
+            memo[rule, branch, turn, tick]['actions'] = actions
 
     @timely
     def set_character_rulebook(self, char, rulebook):
@@ -1278,9 +1652,12 @@ class EngineHandle(object):
     def set_portal_rulebook(self, char, orig, dest, rulebook):
         self._real.character[char].portal[orig][dest].rulebook = rulebook
 
-    def rule_copy(self, rule):
-        branch, turn, tick = self.branch, self.turn, self.tick
-        return {
+    def rule_copy(self, rule, btt: Tuple[str, int, int] = None):
+        branch, turn, tick = self._get_btt(btt)
+        memo = self._rule_copy_memo
+        if (rule, branch, turn, tick) in memo:
+            return memo[rule, branch, turn, tick]
+        ret = memo[rule, branch, turn, tick] = {
             'triggers':
             list(self._real._triggers_cache.retrieve(rule, branch, turn,
                                                      tick)),
@@ -1289,16 +1666,15 @@ class EngineHandle(object):
             'actions':
             list(self._real._actions_cache.retrieve(rule, branch, turn, tick))
         }
+        return ret
 
-    def rule_delta(self, rule, *, store=True):
-        old = self._rule_cache.get(rule, {
-            'triggers': [],
-            'prereqs': [],
-            'actions': []
-        })
-        new = self.rule_copy(rule)
-        if store:
-            self._rule_cache[rule] = new
+    def rule_delta(self,
+                   rule,
+                   *,
+                   btt_from: Tuple[str, int, int] = None,
+                   btt_to: Tuple[str, int, int] = None):
+        old = self.rule_copy(rule, btt=self._get_watched_btt(btt_from))
+        new = self.rule_copy(rule, btt=btt_to)
         ret = {}
         if new['triggers'] != old['triggers']:
             ret['triggers'] = new['triggers']
@@ -1308,38 +1684,43 @@ class EngineHandle(object):
             ret['actions'] = new['actions']
         return ret
 
-    def all_rules_delta(self, *, store=True):
+    def all_rules_delta(self,
+                        *,
+                        btt_from: Tuple[str, int, int] = None,
+                        btt_to: Tuple[str, int, int] = None):
         ret = {}
         for rule in self._real.rule.keys():
-            try:
-                delta = self.rule_delta(rule, store=store)
-                if delta:
-                    ret[rule] = delta
-            except KeyError:
-                pass
+            delta = self.rule_delta(rule, btt_from=btt_from, btt_to=btt_to)
+            if delta:
+                ret[rule] = delta
         return ret
 
-    def source_copy(self, store):
-        return dict(getattr(self._real, store).iterplain())
+    def all_rules_copy(self, *, btt: Tuple[str, int, int] = None):
+        btt = self._get_btt(btt)
+        origtime = self._real._btt()
+        if btt != origtime:
+            self._real._set_btt(*btt)
+        ret = {
+            rule: self.rule_copy(rule, btt)
+            for rule in self._real.rule.keys()
+        }
+        if btt != origtime:
+            self._real._set_btt(*origtime)
+        return ret
 
-    def source_delta(self, store):
-        old = self._stores_cache.get(store, {})
-        new = self._stores_cache[store] = self.source_copy(store)
-        return self._dict_delta(old, new)
+    @prepacked
+    def source_copy(self, store):
+        return dict(map(self.pack_pair,
+                        getattr(self._real, store).iterplain()))
 
     def get_source(self, store, name):
         return getattr(self._real, store).get_source(name)
 
     def store_source(self, store, v, name=None):
         getattr(self._real, store).store_source(v, name)
-        self._stores_cache.setdefault(store, {})[name or v.__name__] = v
 
     def del_source(self, store, k):
         delattr(getattr(self._real, store), k)
-        try:
-            del self._stores_cache[store][k]
-        except KeyError:
-            pass
 
     @timely
     def call_stored_function(self, store, func, args, kwargs):
@@ -1383,12 +1764,12 @@ class EngineHandle(object):
     @timely
     def grid_2d_8graph(self, character, m, n):
         self._real.character[character].grid_2d_8graph(m, n)
-        return self.get_char_deltas([character])
+        return self._get_char_deltas([character])
 
     @timely
     def grid_2d_graph(self, character, m, n, periodic):
         self._real.character[character].grid_2d_graph(m, n, periodic)
-        return self.get_char_deltas([character])
+        return self._get_char_deltas([character])
 
     def rules_handled_turn(self, branch=None, turn=None):
         if branch is None:
@@ -1416,3 +1797,6 @@ class EngineHandle(object):
             'portal':
             eng._portal_rules_handled_cache.handled_deep[branch][turn]
         }
+
+    def branch_lineage(self):
+        return self._real._branches

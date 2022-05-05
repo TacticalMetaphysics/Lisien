@@ -204,7 +204,7 @@ Builder.load_string("""
     PawnConfigDialog:
         id: dialog
         toggle: root.toggle
-        default_imgpaths: ['atlas://base.atlas/unseen']
+        default_imgpaths: ['atlas://rltiles/base/unseen']
         data: root.data
 <SpotConfigScreen>:
     name: 'spotcfg'

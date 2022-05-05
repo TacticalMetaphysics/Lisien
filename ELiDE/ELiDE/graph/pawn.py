@@ -35,6 +35,7 @@ class Pawn(GraphPawnSpot, PawnBehavior):
     through.
 
     """
+
     def _get_location_wid(self):
         return self.board.spot[self.loc_name]
 

@@ -15,11 +15,13 @@ from .util import ELiDEAppTest, ListenableDict, MockEngine, idle_until, window_w
 
 
 class MockStore:
+
     def save(self, *args):
         pass
 
 
 class ScreenTest(ELiDEAppTest):
+
     def test_advance_time(self):
         app = self.app
         app.mainmenu = DirPicker()

@@ -125,9 +125,8 @@ class Thing(Node):
         super().__delitem__(key)
 
     def __repr__(self):
-        return "{}.character['{}'].thing['{}']".format(self.engine,
-                                                       self.character.name,
-                                                       self.name)
+        return "<{}.character['{}'].thing['{}']>".format(
+            self.engine, self.character.name, self.name)
 
     def delete(self):
         super().delete()

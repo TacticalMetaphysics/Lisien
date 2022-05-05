@@ -24,6 +24,7 @@ from . import data
 
 
 class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
+
     def setUp(self):
         self.manager = EngineProcessManager()
         self.tempdir = tempfile.mkdtemp(dir='.')
@@ -81,40 +82,33 @@ def handle_initialized(request, handle):
 
 def test_fast_delta(handle_initialized):
     hand = handle_initialized
-    # just set a baseline for the diff
-    hand.get_slow_delta()
+
     # there's currently no way to do fast delta past the time when
     # a character was created, due to the way keyframes work...
     # so don't test that
-    tick = hand._real.tick
+    def unpack_delta(d):
+        catted = hand._concat_delta(d)[1]
+        assert isinstance(catted, bytes)
+        return hand.unpack(catted)
+
+    branch, turn, tick = hand._real._btt()
     ret, diff = hand.next_turn()
-    slowd = hand.get_slow_delta()
-    assert diff == slowd, "Fast delta differs from slow delta"
+    btt = hand._real._btt()
+    slowd = unpack_delta(
+        hand._get_slow_delta(btt_from=(branch, turn, tick), btt_to=btt))
+    assert hand.unpack(diff) == slowd, "Fast delta differs from slow delta"
     ret, diff2 = hand.time_travel('trunk', 0, tick)
-    slowd2 = hand.get_slow_delta()
-    assert diff2 == slowd2, "Fast delta differs from slow delta"
+    btt2 = hand._real._btt()
+    slowd2 = unpack_delta(hand._get_slow_delta(btt_from=btt, btt_to=btt2))
+    assert hand.unpack(diff2) == slowd2, "Fast delta differs from slow delta"
     ret, diff3 = hand.time_travel('trunk', 3)
-    slowd3 = hand.get_slow_delta()
-    assert diff3 == slowd3, "Fast delta differs from slow delta"
+    btt3 = hand._real._btt()
+    slowd3 = unpack_delta(hand._get_slow_delta(btt_from=btt2, btt_to=btt3))
+    assert hand.unpack(diff3) == slowd3, "Fast delta differs from slow delta"
     ret, diff4 = hand.time_travel('trunk', 1)
-    slowd4 = hand.get_slow_delta()
-    assert diff4 == slowd4, "Fast delta differs from slow delta"
-
-
-def test_assignment(handle):
-    hand = handle
-    eng = hand._real
-    with eng.advancing():
-        college.install(eng)
-    physical_copy = hand.character_copy('physical')
-    assert physical_copy == data.PHYSICAL_INITIAL_COPY
-    dorm_copy = hand.character_copy('dorm0')
-    assert dorm_copy == data.DORM_INITIAL_COPY
-    student_initial_copy = data.STUDENT_INITIAL_COPY
-    student_initial_copy['roommate'] = eng.character['dorm0room0student1']
-    student_initial_copy['room'] = eng.character['physical'].place[
-        'dorm0room0']
-    assert hand.character_copy('dorm0room0student0') == student_initial_copy
+    btt4 = hand._real._btt()
+    slowd4 = unpack_delta(hand._get_slow_delta(btt_from=btt3, btt_to=btt4))
+    assert hand.unpack(diff4) == slowd4, "Fast delta differs from slow delta"
 
 
 def test_serialize_deleted(engy):

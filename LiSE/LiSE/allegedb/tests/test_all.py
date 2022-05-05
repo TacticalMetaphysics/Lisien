@@ -19,12 +19,14 @@ testdata.append(('lol', deepcopy(testdata)))
 
 
 class AllegedTest(unittest.TestCase):
+
     def setUp(self):
         self.engine = ORM('sqlite:///:memory:')
         self.graphmakers = (self.engine.new_digraph, )
 
 
 class AbstractGraphTest:
+
     def test_graph_objects_create_delete(self):
         for graphmaker in self.graphmakers:
             self.engine.time = graphmaker.__name__, 0
@@ -64,6 +66,7 @@ class AbstractGraphTest:
             self.assertIn(0, g)
             self.assertIn(1, g)
             self.engine.branch = graphmaker.__name__ + '_no_edge'
+            self.assertIn(3, g.node)
             self.assertIn(0, g)
             self.assertIn(1, g)
             self.assertIn(1, g.adj[0])
@@ -82,6 +85,7 @@ class AbstractGraphTest:
             self.assertNotIn(1, g.adj[0])
             self.assertNotIn(1, list(g.adj[0]))
             self.engine.branch = graphmaker.__name__ + '_triangle'
+            self.assertIn(3, g.node)
             self.assertIn(2, g)
             g.add_edge(0, 1)
             self.assertIn(1, g.adj[0])
@@ -97,6 +101,7 @@ class AbstractGraphTest:
             self.assertIn(2, g.adj[0])
             self.assertIn(2, list(g.adj[0]))
             self.engine.branch = graphmaker.__name__ + '_square'
+            self.assertIn(3, g.node)
             self.assertIn(2, list(g.adj[0]))
             self.engine.turn = 2
             self.assertIn(2, g)
@@ -113,6 +118,7 @@ class AbstractGraphTest:
                 self.assertIn(2, g.pred[3])
                 self.assertIn(3, g.pred[0])
             self.engine.branch = graphmaker.__name__ + '_de_edge'
+            self.assertIn(3, g.node)
             g.remove_node(3)
             self.assertNotIn(3, g.node)
             self.assertNotIn(3, g.adj)
@@ -121,7 +127,9 @@ class AbstractGraphTest:
                 self.assertNotIn(3, g.pred)
                 self.assertNotIn(3, g.pred[0])
             self.engine.branch = graphmaker.__name__ + '_square'
+            self.assertIn(3, g.node)
             self.engine.branch = graphmaker.__name__ + '_nothing'
+            self.assertIn(3, g.node)
             g.remove_nodes_from((0, 1, 2, 3))
             for n in (0, 1, 2, 3):
                 self.assertNotIn(n, g.node)
@@ -209,6 +217,7 @@ class BranchLineageTest(AbstractBranchLineageTest, AllegedTest):
 
 
 class StorageTest(AllegedTest):
+
     def runTest(self):
         """Test that all the graph types can store and retrieve key-value pairs
         for the graph as a whole, for nodes, and for edges.
@@ -242,6 +251,7 @@ class StorageTest(AllegedTest):
 
 class DictStorageTest(AllegedTest):
     """Make sure the dict wrapper works"""
+
     def runTest(self):
         for i, graphmaker in enumerate(self.graphmakers):
             self.engine.turn = i
@@ -324,6 +334,7 @@ class DictStorageTest(AllegedTest):
 
 class ListStorageTest(AllegedTest):
     """Make sure the list wrapper works"""
+
     def runTest(self):
         for i, graphmaker in enumerate(self.graphmakers):
             self.engine.turn = i
@@ -373,6 +384,7 @@ class ListStorageTest(AllegedTest):
 
 class SetStorageTest(AllegedTest):
     """Make sure the set wrapper works"""
+
     def runTest(self):
         for i, graphmaker in enumerate(self.graphmakers):
             self.engine.turn = i
@@ -398,6 +410,7 @@ class SetStorageTest(AllegedTest):
 
 @unittest.skip
 class CompiledQueriesTest(AllegedTest):
+
     def runTest(self):
         """Make sure that the queries generated in SQLAlchemy are the same as
         those precompiled into SQLite.

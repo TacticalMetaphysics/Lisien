@@ -68,6 +68,7 @@ class DialogMenu(Box):
     """
     options = ListProperty()
     """List of pairs of (button_text, callable)"""
+
     def _set_sv_size(self, *args):
         self._sv.width = self.width - self.padding[0] - self.padding[2]
         self._sv.height = self.height - self.padding[1] - self.padding[3]

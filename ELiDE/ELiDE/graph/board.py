@@ -85,6 +85,7 @@ class KvLayoutFront(FloatLayout):
 
 
 class FinalLayout(FloatLayout):
+
     def finalize_all(self, *args):
         for child in self.children:
             child.finalize()

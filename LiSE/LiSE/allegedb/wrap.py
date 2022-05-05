@@ -124,6 +124,7 @@ class MutableMappingUnwrapper(MutableMapping):
 
 
 class MutableMappingWrapper(MutableWrapperDictList, MutableMappingUnwrapper):
+
     def __eq__(self, other):
         return MutableMappingUnwrapper.__eq__(self, other)
 
@@ -148,6 +149,7 @@ class SubDictWrapper(MutableMappingWrapper, dict):
 
 
 class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence):
+
     def __eq__(self, other):
         if self is other:
             return True
@@ -338,6 +340,7 @@ class SetWrapper(MutableWrapperSet, set):
 
 class UnwrappingDict(dict):
     """Dict that stores the data from the wrapper classes but won't store those objects themselves."""
+
     def __setitem__(self, key, value):
         if isinstance(value, MutableWrapper):
             value = value.unwrap()

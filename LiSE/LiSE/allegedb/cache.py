@@ -1004,10 +1004,7 @@ class Cache:
         Otherwise check if the entity exists.
 
         """
-        try:
-            return self.retrieve(*args) is not None
-        except KeyError:
-            return False
+        return self._base_retrieve(args) not in (KeyError, None)
     contains_entity = contains_key = contains_entity_key \
                     = contains_entity_or_key
 
@@ -1073,6 +1070,7 @@ class EdgesCache(Cache):
         return self.parents
 
     def __init__(self, db):
+
         def gettest(k):
             assert len(k) == 3, "Bad key: " + repr(k)
 

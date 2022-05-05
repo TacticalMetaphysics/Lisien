@@ -14,16 +14,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from LiSE import Engine
 import pytest
-import os
-import shutil
 import tempfile
 
 
 @pytest.fixture(scope='function')
 def tempdir():
-    directory = tempfile.mkdtemp()
-    yield directory
-    shutil.rmtree(directory)
+    with tempfile.TemporaryDirectory() as d:
+        yield d
 
 
 @pytest.fixture(scope='function')

@@ -22,7 +22,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from operator import attrgetter
 from types import FunctionType, MethodType, ModuleType
-from typing import Type, Union, Tuple
+from typing import Type, Union, Tuple, Callable, Dict
 from os import PathLike
 from abc import ABC, abstractmethod
 
@@ -30,7 +30,7 @@ from networkx import Graph
 import msgpack
 from blinker import Signal
 from .allegedb import ORM as gORM
-from .allegedb import HistoryError
+from .allegedb import HistoryError, world_locked
 from .reify import reify
 from .util import sort_set
 from .xcollections import StringStore, FunctionStore, MethodStore
@@ -47,7 +47,7 @@ class getnoplan:
     def __init__(self, attr, *attrs):
         self._getter = attrgetter(attr, *attrs)
 
-    def __get__(self, instance, owner):
+    def __get__(self, instance, owner) -> Callable:
         if instance._planning:
             raise exc.PlanError("Don't use randomization in a plan")
         return self._getter(instance)
@@ -102,6 +102,7 @@ class AbstractEngine(ABC):
     block, in which deserialized entities will be created as needed.
 
     """
+
     def __getattr__(self, item):
         meth = super().__getattribute__('method').__getattr__(item)
         return MethodType(meth, self)
@@ -120,8 +121,10 @@ class AbstractEngine(ABC):
             self.portal_cls:
             lambda port: msgpack.ExtType(
                 MSGPACK_PORTAL,
-                packer([port.character.name, port.origin.name, port.destination
-                        .name])),
+                packer([
+                    port.character.name, port.origin.name, port.destination.
+                    name
+                ])),
             tuple:
             lambda tup: msgpack.ExtType(MSGPACK_TUPLE, packer(list(tup))),
             frozenset:
@@ -233,7 +236,7 @@ class AbstractEngine(ABC):
             try:
                 return charmap[charn]
             except KeyError:
-                return char_cls(self, charn)
+                return char_cls(self, charn, init_rulebooks=False)
 
         def unpack_place(ext):
             charn, placen = unpacker(ext)
@@ -291,11 +294,9 @@ class AbstractEngine(ABC):
             return msgpack.ExtType(code, data)
 
         def unpacker(b: bytes):
-            the_unpacker = msgpack.Unpacker(
-                ext_hook=unpack_handler,
-                raw=False,
-                strict_map_key=False
-            )
+            the_unpacker = msgpack.Unpacker(ext_hook=unpack_handler,
+                                            raw=False,
+                                            strict_map_key=False)
             the_unpacker.feed(b)
             # Deliberately only returning the initial item;
             # others are likely to be null bytes as a result of the
@@ -323,7 +324,11 @@ class AbstractEngine(ABC):
         for i in range(0, n):
             yield self.roll_die(d)
 
-    def dice_check(self, n, d, target, comparator='<='):
+    def dice_check(self,
+                   n: int,
+                   d: int,
+                   target: int,
+                   comparator: Union[str, Callable] = '<='):
         """Roll ``n`` dice with ``d`` sides, sum them, and compare
 
         If ``comparator`` is provided, use it instead of the default <=.
@@ -332,7 +337,7 @@ class AbstractEngine(ABC):
         """
         from operator import gt, lt, ge, le, eq, ne
 
-        comps = {
+        comps: Dict[str, Callable] = {
             '>': gt,
             '<': lt,
             '>=': ge,
@@ -388,6 +393,7 @@ class NextTurn(Signal):
     method.
 
     """
+
     def __init__(self, engine: AbstractEngine):
         super().__init__()
         self.engine = engine
@@ -438,14 +444,16 @@ class NextTurn(Signal):
                   branch=engine.branch,
                   turn=engine.turn,
                   tick=engine.tick)
-        return [], engine.get_delta(branch=engine.branch,
-                                    turn_from=start_turn,
-                                    turn_to=engine.turn,
-                                    tick_from=start_tick,
-                                    tick_to=engine.tick)
+        delta = engine.get_delta(branch=engine.branch,
+                                 turn_from=start_turn,
+                                 turn_to=engine.turn,
+                                 tick_from=start_tick,
+                                 tick_to=engine.tick)
+        return [], delta
 
 
 class AbstractSchema(ABC):
+
     def __init__(self, engine: AbstractEngine):
         self.engine = engine
 
@@ -459,6 +467,7 @@ class AbstractSchema(ABC):
 
 
 class NullSchema(AbstractSchema):
+
     def entity_permitted(self, entity):
         return True
 
@@ -538,7 +547,7 @@ class Engine(AbstractEngine, gORM):
     illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val', 'things']
 
     def __init__(self,
-                 prefix: PathLike = '.',
+                 prefix: Union[PathLike, str] = '.',
                  *,
                  string: Union[StringStore, dict] = None,
                  trigger: Union[FunctionStore, ModuleType] = None,
@@ -555,7 +564,8 @@ class Engine(AbstractEngine, gORM):
                  random_seed: int = None,
                  logfun: FunctionType = None,
                  clear=False,
-                 keep_rules_journal=True):
+                 keep_rules_journal=True,
+                 cache_arranger=True):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
 
@@ -598,15 +608,22 @@ class Engine(AbstractEngine, gORM):
         :arg keep_rules_journal: Boolean; if true (default), keep
         information on the behavior of the rules engine in the database.
         Makes the database rather large, but useful for debugging.
+        :arg cache_arranger: If true (default), start a background
+        process that indexes the caches to make time travel faster
+        when it's to points we anticipate. If you use this, you can
+        specify some other point in time to index by putting the
+        `(branch, turn, tick)` in my `cache_arrange_queue`.
 
         """
         import os
         from .xcollections import StringStore
         if connect_args is None:
             connect_args = {}
+        if not os.path.exists(prefix):
+            os.mkdir(prefix)
+        if not os.path.isdir(prefix):
+            raise FileExistsError("Need a directory")
         self.keep_rules_journal = keep_rules_journal
-        self.exist_node_time = 0
-        self.exist_edge_time = 0
         if string:
             self.string = string
         else:
@@ -647,9 +664,13 @@ class Engine(AbstractEngine, gORM):
         if connect_string and not alchemy:
             connect_string = connect_string.split('sqlite:///')[-1]
         super().__init__(connect_string or os.path.join(prefix, 'world.db'),
+                         sqlfilename=os.path.join(
+                             os.path.dirname(os.path.abspath(__file__)),
+                             'sqlite.json'),
                          clear=clear,
                          connect_args=connect_args,
-                         alchemy=alchemy)
+                         alchemy=alchemy,
+                         cache_arranger=cache_arranger)
         self._things_cache.setdb = self.query.set_thing_loc
         self._universal_cache.setdb = self.query.universal_set
         self._rulebooks_cache.setdb = self.query.rulebook_set
@@ -661,7 +682,7 @@ class Engine(AbstractEngine, gORM):
         self.next_turn = NextTurn(self)
         if logfun is None:
             from logging import getLogger
-            logger = getLogger(__name__)
+            logger = getLogger("Life Sim Engine")
 
             def logfun(level, msg):
                 getattr(logger, level)(msg)
@@ -681,6 +702,17 @@ class Engine(AbstractEngine, gORM):
             self.universal['rando_state'] = self._rando.getstate()
         if hasattr(self.method, 'init'):
             self.method.init(self)
+        if cache_arranger:
+            self._start_cache_arranger()
+
+    def _start_cache_arranger(self):
+        for branch, (parent, turn_start, tick_start, turn_end,
+                     tick_end) in self._branches.items():
+            self.cache_arrange_queue.put((branch, turn_start, tick_start))
+            if (turn_start, tick_start) != (turn_end, tick_end):
+                self.cache_arrange_queue.put((branch, turn_end, tick_end))
+        if not self._cache_arrange_thread.is_alive():
+            self._cache_arrange_thread.start()
 
     def _init_load(self):
         from .rule import Rule
@@ -752,14 +784,12 @@ class Engine(AbstractEngine, gORM):
     def _init_caches(self):
         from .xcollections import (FunctionStore, CharacterMapping,
                                    UniversalMapping)
-        from .cache import (NodeContentsCache, InitializedCache,
-                            EntitylessCache, InitializedEntitylessCache,
-                            UnitnessCache, UnitRulesHandledCache,
-                            CharacterThingRulesHandledCache,
-                            CharacterPlaceRulesHandledCache,
-                            CharacterPortalRulesHandledCache,
-                            NodeRulesHandledCache, PortalRulesHandledCache,
-                            CharacterRulesHandledCache, ThingsCache)
+        from .cache import (
+            NodeContentsCache, InitializedCache, EntitylessCache,
+            InitializedEntitylessCache, UnitnessCache, UnitRulesHandledCache,
+            CharacterThingRulesHandledCache, CharacterPlaceRulesHandledCache,
+            CharacterPortalRulesHandledCache, NodeRulesHandledCache,
+            PortalRulesHandledCache, CharacterRulesHandledCache, ThingsCache)
         from .rule import AllRuleBooks, AllRules
 
         super()._init_caches()
@@ -848,8 +878,11 @@ class Engine(AbstractEngine, gORM):
         else:
             return self.place_cls(graph, node)
 
-    def _make_edge(self, graph: Character, orig: Union[Thing, Place],
-                   dest: Union[Thing, Place], idx=0):
+    def _make_edge(self,
+                   graph: Character,
+                   orig: Union[Thing, Place],
+                   dest: Union[Thing, Place],
+                   idx=0):
         return self.portal_cls(graph, orig, dest)
 
     def get_delta(self, branch: str, turn_from: int, tick_from: int,
@@ -1092,9 +1125,8 @@ class Engine(AbstractEngine, gORM):
                 and turn in avatarness_settings[branch]:
             for chara, graph, node, is_av in avatarness_settings[branch][turn][
                     start_tick:tick]:
-                delta.setdefault(chara,
-                                 {}).setdefault('units', {}).setdefault(
-                                     graph, {})[node] = is_av
+                delta.setdefault(chara, {}).setdefault('units', {}).setdefault(
+                    graph, {})[node] = is_av
         if branch in things_settings \
                 and turn in things_settings[branch]:
             for chara, thing, location in things_settings[branch][turn][
@@ -1204,8 +1236,8 @@ class Engine(AbstractEngine, gORM):
         branch = branch or self.branch
         turn = turn or self.turn
         tick = tick or self.tick
-        self._unitness_cache.store(character, graph, node, branch, turn,
-                                   tick, is_unit)
+        self._unitness_cache.store(character, graph, node, branch, turn, tick,
+                                   is_unit)
         self.query.unit_set(character, graph, node, branch, turn, tick,
                             is_unit)
 
@@ -1314,27 +1346,26 @@ class Engine(AbstractEngine, gORM):
         self.query.handled_character_rule(charn, rulebook, rulen, branch, turn,
                                           tick)
 
-    def _handled_av(self, character: Keyable, graph: Keyable,
-                    avatar: Keyable, rulebook: Keyable,
-                    rule: Keyable, branch: str, turn: int, tick: int):
+    def _handled_av(self, character: Keyable, graph: Keyable, avatar: Keyable,
+                    rulebook: Keyable, rule: Keyable, branch: str, turn: int,
+                    tick: int):
         try:
             self._unit_rules_handled_cache.store(character, graph, avatar,
-                                                 rulebook, rule, branch,
-                                                 turn, tick)
+                                                 rulebook, rule, branch, turn,
+                                                 tick)
         except ValueError:
             assert rule in self._unit_rules_handled_cache.handled[character,
                                                                   graph,
                                                                   avatar,
                                                                   rulebook,
-                                                                  branch,
-                                                                  turn]
+                                                                  branch, turn]
             return
-        self.query.handled_unit_rule(character, rulebook, rule, graph,
-                                     avatar, branch, turn, tick)
+        self.query.handled_unit_rule(character, rulebook, rule, graph, avatar,
+                                     branch, turn, tick)
 
     def _handled_char_thing(self, character: Keyable, thing: Keyable,
-                            rulebook: Keyable, rule: Keyable,
-                            branch: str, turn: int, tick: int):
+                            rulebook: Keyable, rule: Keyable, branch: str,
+                            turn: int, tick: int):
         try:
             self._character_thing_rules_handled_cache.store(
                 character, thing, rulebook, rule, branch, turn, tick)
@@ -1346,8 +1377,8 @@ class Engine(AbstractEngine, gORM):
                                                 thing, branch, turn, tick)
 
     def _handled_char_place(self, character: Keyable, place: Keyable,
-                            rulebook: Keyable, rule: Keyable,
-                            branch: str, turn: int, tick: int):
+                            rulebook: Keyable, rule: Keyable, branch: str,
+                            turn: int, tick: int):
         try:
             self._character_place_rules_handled_cache.store(
                 character, place, rulebook, rule, branch, turn, tick)
@@ -1373,8 +1404,8 @@ class Engine(AbstractEngine, gORM):
                                                  tick)
 
     def _handled_node(self, character: Keyable, node: Keyable,
-                      rulebook: Keyable, rule: Keyable, branch: str,
-                      turn: int, tick: int):
+                      rulebook: Keyable, rule: Keyable, branch: str, turn: int,
+                      tick: int):
         try:
             self._node_rules_handled_cache.store(character, node, rulebook,
                                                  rule, branch, turn, tick)
@@ -1388,8 +1419,8 @@ class Engine(AbstractEngine, gORM):
                                      turn, tick)
 
     def _handled_portal(self, character: Keyable, orig: Keyable, dest: Keyable,
-                        rulebook: Keyable, rule: Keyable,
-                        branch: str, turn: int, tick: int):
+                        rulebook: Keyable, rule: Keyable, branch: str,
+                        turn: int, tick: int):
         try:
             self._portal_rules_handled_cache.store(character, orig, dest,
                                                    rulebook, rule, branch,
@@ -1424,6 +1455,8 @@ class Engine(AbstractEngine, gORM):
                 return False
 
         def check_prereqs(rule, handled_fun, entity):
+            if not entity:
+                return False
             for prereq in rule.prereqs:
                 res = prereq(entity)
                 if not res:
@@ -1437,6 +1470,8 @@ class Engine(AbstractEngine, gORM):
                 res = action(entity)
                 if res:
                     actres.append(res)
+                if not entity:
+                    break
             handled_fun(self.tick)
             return actres
 
@@ -1447,11 +1482,17 @@ class Engine(AbstractEngine, gORM):
                  branch, turn, tick):
             if charactername not in charmap:
                 continue
+            self.debug(
+                f"checking triggers for character rule: {charactername}, {rulebook}, {rulename}"
+            )
             rule = rulemap[rulename]
             handled = partial(self._handled_char, charactername, rulebook,
                               rulename, branch, turn)
             entity = charmap[charactername]
             if check_triggers(rule, handled, entity):
+                self.debug(
+                    f"character rule triggered: {charactername}, {rulebook}, {rulename}"
+                )
                 todo[rulebook].append((rule, handled, entity))
         avcache_retr = self._unitness_cache._base_retrieve
         node_exists = self._node_exists
@@ -1462,11 +1503,17 @@ class Engine(AbstractEngine, gORM):
             if not node_exists(graphn, avn) or avcache_retr(
                 (charn, graphn, avn, branch, turn, tick)) in (KeyError, None):
                 continue
+            self.debug(
+                f"checking triggers for unit rule: {charn, graphn, avn, rulebook, rulen}"
+            )
             rule = rulemap[rulen]
             handled = partial(self._handled_av, charn, graphn, avn, rulebook,
                               rulen, branch, turn)
             entity = get_node(graphn, avn)
             if check_triggers(rule, handled, entity):
+                self.debug(
+                    f"unit rule triggered: {charn, graphn, avn, rulebook, rulen}"
+                )
                 todo[rulebook].append((rule, handled, entity))
         is_thing = self._is_thing
         handled_char_thing = self._handled_char_thing
@@ -1476,11 +1523,17 @@ class Engine(AbstractEngine, gORM):
                 branch, turn, tick):
             if not node_exists(charn, thingn) or not is_thing(charn, thingn):
                 continue
+            self.debug(
+                f"checking triggers for character-thing rule: {charn, thingn, rulebook, rulen}"
+            )
             rule = rulemap[rulen]
             handled = partial(handled_char_thing, charn, thingn, rulebook,
                               rulen, branch, turn)
             entity = get_node(charn, thingn)
             if check_triggers(rule, handled, entity):
+                self.debug(
+                    f"character-thing rule triggered: {charn, thingn, rulebook, rulen}"
+                )
                 todo[rulebook].append((rule, handled, entity))
         handled_char_place = self._handled_char_place
         for (
@@ -1489,11 +1542,17 @@ class Engine(AbstractEngine, gORM):
                 branch, turn, tick):
             if not node_exists(charn, placen) or is_thing(charn, placen):
                 continue
+            self.debug(
+                f"checking triggers for character-place rule: {charn, placen, rulebook, rulen}"
+            )
             rule = rulemap[rulen]
             handled = partial(handled_char_place, charn, placen, rulebook,
                               rulen, branch, turn)
             entity = get_node(charn, placen)
             if check_triggers(rule, handled, entity):
+                self.debug(
+                    f"character-place rule triggered: {charn, placen, rulebook, rulen}"
+                )
                 todo[rulebook].append((rule, handled, entity))
         edge_exists = self._edge_exists
         get_edge = self._get_edge
@@ -1504,11 +1563,17 @@ class Engine(AbstractEngine, gORM):
                 branch, turn, tick):
             if not edge_exists(charn, orign, destn):
                 continue
+            self.debug(
+                f"checking triggers for character-portal rule: {charn, orign, destn, rulebook, rulen}"
+            )
             rule = rulemap[rulen]
             handled = partial(handled_char_port, charn, orign, destn, rulebook,
                               rulen, branch, turn)
             entity = get_edge(charn, orign, destn)
             if check_triggers(rule, handled, entity):
+                self.debug(
+                    f"character-portal rule triggered: {charn, orign, destn, rulebook, rulen}"
+                )
                 todo[rulebook].append((rule, handled, entity))
         handled_node = self._handled_node
         for (charn, noden, rulebook,
@@ -1516,11 +1581,16 @@ class Engine(AbstractEngine, gORM):
                  branch, turn, tick):
             if not node_exists(charn, noden):
                 continue
+            self.debug(
+                f"checking triggers for node rule: {charn, noden, rulebook, rulen}"
+            )
             rule = rulemap[rulen]
             handled = partial(handled_node, charn, noden, rulebook, rulen,
                               branch, turn)
             entity = get_node(charn, noden)
             if check_triggers(rule, handled, entity):
+                self.debug(
+                    f"node rule triggered: {charn, noden, rulebook, rulen}")
                 todo[rulebook].append((rule, handled, entity))
         handled_portal = self._handled_portal
         for (charn, orign, destn, rulebook,
@@ -1528,21 +1598,44 @@ class Engine(AbstractEngine, gORM):
                  branch, turn, tick):
             if not edge_exists(charn, orign, destn):
                 continue
+            self.debug(
+                f"checking triggers for portal rule: {charn, orign, destn, rulebook, rulen}"
+            )
             rule = rulemap[rulen]
             handled = partial(handled_portal, charn, orign, destn, rulebook,
                               rulen, branch, turn)
             entity = get_edge(charn, orign, destn)
             if check_triggers(rule, handled, entity):
+                self.debug(
+                    f"portal rule triggered: {charn, orign, destn, rulebook, rulen}"
+                )
                 todo[rulebook].append((rule, handled, entity))
 
         # TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
+        def fmtent(entity):
+            if isinstance(entity, self.char_cls):
+                return entity.name
+            elif hasattr(entity, 'name'):
+                return f"{entity.character.name}.node[{entity.name}]"
+            else:
+                return f"{entity.character.name}.portal[{entity.origin.name}][{entity.destination.name}]"
+
         for rulebook in sort_set(todo.keys()):
             for rule, handled, entity in todo[rulebook]:
                 if not entity:
                     continue
+                self.debug(
+                    f"checking prereqs for rule {rule} on entity {fmtent(entity)}"
+                )
                 if check_prereqs(rule, handled, entity):
+                    self.debug(
+                        f"prereqs for rule {rule} on entity {fmtent(entity)} satisfied, will run actions"
+                    )
                     try:
                         yield do_actions(rule, handled, entity)
+                        self.debug(
+                            f"actions for rule {rule} on entity {fmtent(entity)} have run without incident"
+                        )
                     except StopIteration:
                         raise InnerStopIteration
 

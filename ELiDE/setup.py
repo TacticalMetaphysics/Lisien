@@ -26,13 +26,15 @@ with open(
 
 shortdesc = "Extensible Life Simulator Engine Development Environment"
 
-readmepath = os.path.join(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')), 'README.md')
+readmepath = os.path.join(
+    os.path.abspath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')),
+    'README.md')
 
 if os.path.exists(readmepath):
     with open(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                     'ELiDE', 'README.md'), 'rt'
-    ) as inf:
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ELiDE',
+                         'README.md'), 'rt') as inf:
         longdesc = inf.read()
 else:
     longdesc = shortdesc
@@ -54,7 +56,9 @@ setup(name="ELiDE",
           ]
       },
       url="https://github.com/Tactical-Metaphysics/LiSE",
-      project_urls={"Documentation": "https://tactical-metaphysics.github.io/LiSE/"},
+      project_urls={
+          "Documentation": "https://tactical-metaphysics.github.io/LiSE/"
+      },
       long_description=longdesc,
       long_description_content_type='text/markdown',
       zip_safe=False)

@@ -96,6 +96,7 @@ class StatRowLabel(StatRowListItem, Label):
 
 class StatRowTextInput(StatRowListItem, TextInput):
     """Display the current value of a stat and accept text input to change it."""
+
     def __init__(self, **kwargs):
         kwargs['multiline'] = False
         super().__init__(**kwargs)
@@ -121,6 +122,7 @@ class StatRowToggleButton(StatRowListItem, ToggleButton):
     """String to display when the stat is true."""
     false_text = StringProperty('0')
     """String to display when the stat is false."""
+
     def on_touch_up(self, *args):
         if self.parent is None:
             return
@@ -134,6 +136,7 @@ class StatRowSlider(StatRowListItem, Slider):
     """Display the current value of a numeric stat and let the user slide it."""
     need_set = BooleanProperty(False)
     """Internal. Usually False, becomes True briefly when the value has changed."""
+
     def __init__(self, **kwargs):
         self.value = kwargs['value']
         self.min = kwargs['min']
@@ -203,6 +206,7 @@ class StatRowListItemContainer(BoxLayout):
     Other keys are specific to one widget type or another.
     
     """
+
     def set_value(self, *args):
         """Use my ``sett`` function to set my stat (``key``) to my new ``value``.
 

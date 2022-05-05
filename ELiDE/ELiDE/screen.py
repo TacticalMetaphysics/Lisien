@@ -70,6 +70,7 @@ class StatListPanel(BoxLayout):
     toggle_stat_cfg = ObjectProperty()
     toggle_gridview = ObjectProperty()
     toggle_calendar = ObjectProperty()
+    toggle_timestream = ObjectProperty()
 
     def on_proxy(self, *args):
         if hasattr(self.proxy, 'name'):
@@ -466,6 +467,13 @@ class MainScreen(Screen):
         else:
             self.switch_to_boardview()
 
+    @trigger
+    def toggle_timestream(self, *args):
+        if self.manager.current != 'timestream':
+            self.manager.current = 'timestream'
+        else:
+            self.manager.current = 'main'
+
 
 class CharMenuContainer(BoxLayout):
     screen = ObjectProperty()
@@ -541,13 +549,18 @@ Builder.load_string("""
     Button:
         id: gridviewbut
         size_hint_y: 0.05
-        text: 'toggle grid'
+        text: 'Toggle grid'
         on_release: root.toggle_gridview()
     Button:
         id: cfgstatbut
         size_hint_y: 0.05
         text: root.button_text
         on_release: root.toggle_stat_cfg()
+    Button:
+        id: timestreambut
+        size_hint_y: 0.05
+        text: 'Timestream'
+        on_release: root.toggle_timestream()
 <SimulateButton>:
     graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
     graphics_bot: self.y + self.font_size + 3
@@ -662,6 +675,7 @@ Builder.load_string("""
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.25, 0.8)
         selection_name: app.selected_proxy_name
+        toggle_timestream: root.toggle_timestream
     TimePanel:
         id: timepanel
         screen: root

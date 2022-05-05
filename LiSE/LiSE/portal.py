@@ -25,6 +25,7 @@ from .rule import RuleMapping as BaseRuleMapping
 
 class RuleMapping(BaseRuleMapping):
     """Mapping to get rules followed by a portal."""
+
     def __init__(self, portal):
         """Store portal, engine, and rulebook."""
         super().__init__(portal.engine, portal.rulebook)
@@ -161,7 +162,7 @@ class Portal(Edge, RuleFollower):
 
     def __repr__(self):
         """Describe character, origin, and destination"""
-        return "{}.character[{}].portal[{}][{}]".format(
+        return "<{}.character[{}].portal[{}][{}]>".format(
             repr(self.engine), repr(self['character']), repr(self['origin']),
             repr(self['destination']))
 

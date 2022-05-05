@@ -62,6 +62,7 @@ from .query import StatusAlias
 
 
 class SpecialMappingDescriptor:
+
     def __init__(self, mapclsname):
         self.insts = WeakValueDictionary()
         self.mapps = {}
@@ -511,6 +512,7 @@ class CharRuleMapping(RuleMapping):
     the rulebook, but won't be followed.
 
     """
+
     def __init__(self, character, rulebook, booktyp):
         """Initialize as usual for the ``rulebook``, mostly.
 
@@ -525,6 +527,7 @@ class CharRuleMapping(RuleMapping):
 
 class RuleFollower(BaseRuleFollower):
     """Mixin class. Has a rulebook, which you can get a RuleMapping into."""
+
     def _get_rule_mapping(self):
         return CharRuleMapping(self.character, self.rulebook, self._book)
 
@@ -612,6 +615,7 @@ class FacadeEntity(MutableMapping, Signal):
 
 
 class FacadeNode(FacadeEntity):
+
     @property
     def name(self):
         return self['name']
@@ -629,6 +633,7 @@ class FacadeNode(FacadeEntity):
 
 class FacadePlace(FacadeNode):
     """Lightweight analogue of Place for Facade use."""
+
     def __init__(self, mapping, real_or_name, **kwargs):
         super().__init__(mapping, **kwargs)
         if isinstance(real_or_name, Place) or \
@@ -645,6 +650,7 @@ class FacadePlace(FacadeNode):
 
 
 class FacadeThing(FacadeNode):
+
     def __init__(self, mapping, real_or_name, **kwargs):
         location = kwargs.pop('location', None)
         super().__init__(mapping, **kwargs)
@@ -674,6 +680,7 @@ class FacadeThing(FacadeNode):
 
 class FacadePortal(FacadeEntity):
     """Lightweight analogue of Portal for Facade use."""
+
     def __init__(self, mapping, other, **kwargs):
         super().__init__(mapping, **kwargs)
         if hasattr(mapping, 'orig'):
@@ -715,6 +722,7 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal):
     being distorted views of entities of the type ``innercls``.
 
     """
+
     def _make(self, k, v):
         kwargs = dict(v)
         for badkey in ('character', 'engine', 'name'):
@@ -813,6 +821,7 @@ class FacadePortalPredecessors(FacadeEntityMapping):
 
 
 class FacadePortalMapping(FacadeEntityMapping):
+
     def __getitem__(self, node):
         if node not in self:
             raise KeyError("No such node: {}".format(node))
@@ -970,6 +979,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
                 return {}
 
     class StatMapping(MutableMappingUnwrapper, Signal):
+
         def __init__(self, facade):
             super().__init__()
             self.facade = facade
@@ -1615,6 +1625,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         class Predecessors(DiGraphPredecessorsMapping.Predecessors):
             """Mapping of possible origins from some destination."""
+
             def __init__(self, container, dest):
                 super().__init__(container, dest)
                 graph = self.graph
@@ -1727,11 +1738,11 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 charn, noden = get_char_only_av(charn, *btt())
                 return get_node(charmap[charn], noden)
             except KeyError:
-                raise AttributeError(
-                    "I have no unit, or more than one unit")
+                raise AttributeError("I have no unit, or more than one unit")
 
         class CharacterUnitMapping(Mapping):
             """Mapping of units of one Character in another Character."""
+
             def __init__(self, outer, graphn):
                 """Store this character and the name of the other one"""
                 self.character = character = outer.character
@@ -1778,8 +1789,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 return get_node(charmap[graphn], mykey)
 
             def __repr__(self):
-                return "{}.character[{}].unit".format(
-                    repr(self.engine), repr(self.name))
+                return "{}.character[{}].unit".format(repr(self.engine),
+                                                      repr(self.name))
 
     def facade(self):
         return Facade(self)

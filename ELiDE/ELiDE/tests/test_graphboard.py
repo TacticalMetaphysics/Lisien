@@ -9,6 +9,7 @@ from .util import idle_until, window_with_widget, ELiDEAppTest
 
 
 class GraphBoardTest(GraphicUnitTest):
+
     @staticmethod
     def test_layout_grid():
         spots_wide = 3
@@ -133,6 +134,7 @@ class GraphBoardTest(GraphicUnitTest):
 
 
 class SwitchGraphTest(ELiDEAppTest):
+
     def test_character_switch_graph(self):
         with Engine(self.prefix) as eng:
             eng.add_character('physical', nx.grid_2d_graph(10, 1))

@@ -9,6 +9,7 @@ from ..card import Card
 
 
 class RuleBuilderTest(ELiDEAppTest):
+
     @abstractmethod
     def install(self, engine: Engine):
         raise NotImplementedError()
@@ -42,6 +43,7 @@ class RuleBuilderTest(ELiDEAppTest):
 
 
 class TestRuleBuilderKobold(RuleBuilderTest):
+
     def install(self, engine: Engine):
         kobold.inittest(engine)
 
@@ -181,15 +183,16 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 
 
 class TestCharRuleBuilder(ELiDEAppTest):
+
     def setUp(self):
         super(TestCharRuleBuilder, self).setUp()
         with Engine(self.prefix) as eng:
             polygons.install(eng)
-            assert list(eng.character['triangle'].unit.rule['relocate'].
-                        triggers) == [
-                            eng.trigger.similar_neighbors,
-                            eng.trigger.dissimilar_neighbors
-                        ]
+            assert list(
+                eng.character['triangle'].unit.rule['relocate'].triggers) == [
+                    eng.trigger.similar_neighbors,
+                    eng.trigger.dissimilar_neighbors
+                ]
         app = self.app
         mgr = app.build()
         self.win = window_with_widget(mgr)
@@ -205,16 +208,14 @@ class TestCharRuleBuilder(ELiDEAppTest):
         idle_until(lambda: getattr(app.charrules, '_finalized', False), 100,
                    "Never finalized charrules")
         tabitem = app.charrules._unit_tab
-        idle_until(lambda: tabitem.content, 100,
-                   'unit tab never got content')
+        idle_until(lambda: tabitem.content, 100, 'unit tab never got content')
         tabitem.on_press()
         self.advance_frames(1)
         tabitem.on_release()
         idle_until(lambda: app.charrules._tabs.current_tab == tabitem, 100,
                    'Never switched tab')
         rules_box = app.charrules._unit_box
-        idle_until(lambda: rules_box.parent, 100,
-                   'unit box never got parent')
+        idle_until(lambda: rules_box.parent, 100, 'unit box never got parent')
         idle_until(lambda: getattr(rules_box.rulesview, '_finalized', False),
                    100, "Never finalized unit rules view")
         idle_until(lambda: rules_box.children, 100,
@@ -291,5 +292,7 @@ class TestCharRuleBuilder(ELiDEAppTest):
         self.advance_frames(5)
         app.stop()
         with Engine(self.prefix) as eng:
-            assert list(eng.character['triangle'].unit.rule['relocate'].
-                        triggers) == [eng.trigger.dissimilar_neighbors]
+            assert list(
+                eng.character['triangle'].unit.rule['relocate'].triggers) == [
+                    eng.trigger.dissimilar_neighbors
+                ]

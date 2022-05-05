@@ -6,6 +6,7 @@ from .util import idle_until, window_with_widget, ELiDEAppTest
 
 
 class CharacterSwitcherTest(ELiDEAppTest):
+
     def setUp(self):
         super(CharacterSwitcherTest, self).setUp()
         with Engine(self.prefix) as eng:

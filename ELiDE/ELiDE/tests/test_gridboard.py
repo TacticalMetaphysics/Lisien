@@ -16,6 +16,7 @@ from .util import all_spots_placed, all_pawns_placed, idle_until, window_with_wi
 
 
 class GridBoardTest(GraphicUnitTest):
+
     @staticmethod
     def test_layout_grid():
         spots_wide = 3
@@ -50,6 +51,7 @@ class GridBoardTest(GraphicUnitTest):
 
 
 class SwitchGridTest(ELiDEAppTest):
+
     def test_character_switch_grid(self):
         with Engine(self.prefix) as eng:
             eng.add_character('physical', nx.grid_2d_graph(10, 1))

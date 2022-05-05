@@ -33,10 +33,6 @@ from kivy.uix.screenmanager import Screen
 from .card import Card, DeckBuilderView, DeckBuilderScrollBar
 from .util import trigger
 
-# TODO:
-# 1. Make it more obvious whose rules you are editing
-# 2. Allow re-ordering of the rules
-
 dbg = Logger.debug
 
 

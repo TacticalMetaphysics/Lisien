@@ -58,6 +58,8 @@ def idle_until(condition=None, timeout=None, message="Timed out"):
     raising ``TimeoutError``. You can customize its ``message``.
 
     """
+    if not (timeout or condition):
+        raise ValueError("Need timeout or condition")
     if condition is None:
         return partial(idle_until, timeout=timeout, message=message)
     if timeout is None:
@@ -79,6 +81,7 @@ def window_with_widget(wid):
 
 
 class MockTouch(MotionEvent):
+
     def depack(self, args):
         self.is_touch = True
         self.sx = args['sx']
@@ -87,6 +90,7 @@ class MockTouch(MotionEvent):
 
 
 class ListenableDict(dict, Signal):
+
     def __init__(self):
         Signal.__init__(self)
 
@@ -126,6 +130,7 @@ class MockEngine(Signal):
 
 
 class ELiDEAppTest(GraphicUnitTest):
+
     def setUp(self):
         super(ELiDEAppTest, self).setUp()
         self.prefix = mkdtemp()
