@@ -22,37 +22,44 @@ from collections import defaultdict
 from functools import partial, wraps
 from importlib import import_module
 from threading import Thread
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, Future
 from multiprocessing import cpu_count
-from typing import Dict, Tuple, Set, KeysView, Callable, Union
+from typing import Dict, Tuple, Set, KeysView, Callable, Union, Any
 
 import numpy as np
 import msgpack
 
 from .engine import Engine, MSGPACK_SET
 
+SLIGHTLY_PACKED_DELTA_TYPE = Dict[bytes, Dict[bytes,
+                                              Union[bytes,
+                                                    Dict[bytes,
+                                                         Union[bytes,
+                                                               Dict[bytes,
+                                                                    bytes]]]]]]
+
+TRUE: bytes = msgpack.packb(True)
+FALSE: bytes = msgpack.packb(False)
+NONE: bytes = msgpack.packb(None)
+NODES: bytes = msgpack.packb('nodes')
+EDGES: bytes = msgpack.packb('edges')
+UNITS: bytes = msgpack.packb('units')
+RULEBOOK: bytes = msgpack.packb('rulebook')
+RULEBOOKS: bytes = msgpack.packb('rulebooks')
+NODE_VAL: bytes = msgpack.packb('node_val')
+EDGE_VAL: bytes = msgpack.packb('edge_val')
+ETERNAL: bytes = msgpack.packb('eternal')
+UNIVERSAL: bytes = msgpack.packb('universal')
+STRINGS: bytes = msgpack.packb('strings')
+RULES: bytes = msgpack.packb('rules')
+LOCATION: bytes = msgpack.packb('location')
+BRANCH: bytes = msgpack.packb('branch')
+
 
 def _dict_delta_added(oldkeys: KeysView[bytes], new: Dict[bytes, bytes],
                       d: Dict[bytes, bytes]):
     for k in new.keys() - oldkeys:
         d[k] = new[k]
-
-
-TRUE = msgpack.packb(True)
-FALSE = msgpack.packb(False)
-NONE = msgpack.packb(None)
-NODES = msgpack.packb('nodes')
-EDGES = msgpack.packb('edges')
-UNITS = msgpack.packb('units')
-RULEBOOK = msgpack.packb('rulebook')
-RULEBOOKS = msgpack.packb('rulebooks')
-NODE_VAL = msgpack.packb('node_val')
-EDGE_VAL = msgpack.packb('edge_val')
-ETERNAL = msgpack.packb('eternal')
-UNIVERSAL = msgpack.packb('universal')
-STRINGS = msgpack.packb('strings')
-RULES = msgpack.packb('rules')
-LOCATION = msgpack.packb('location')
 
 
 def _dict_delta_removed(oldkeys: KeysView[bytes], newkeys: KeysView[bytes],
@@ -200,6 +207,7 @@ class EngineHandle(object):
     the :class:`LiSE.character.Character`.
 
     """
+    _after_ret: Callable
 
     def __init__(self, args=(), kwargs=None, logq=None, loglevel=None):
         """Instantiate an engine with the positional arguments ``args`` and
@@ -271,7 +279,7 @@ class EngineHandle(object):
         self.threadpool = ThreadPoolExecutor(cpu_count())
         self._cache_arranger_started = False
 
-    def _precopy_at_time(self, sender, *, branch, turn, tick):
+    def _precopy_at_time(self, _, *, branch, turn, tick):
         lock = self._real.world_lock
         btt = (branch, turn, tick)
         with lock:
@@ -326,14 +334,15 @@ class EngineHandle(object):
         """Run one rule"""
         self._real.advance()
 
-    def _get_char_deltas(self,
-                         chars,
-                         *,
-                         btt_from: Tuple[str, int, int] = None,
-                         btt_to: Tuple[str, int, int] = None):
+    def _get_char_deltas(
+            self,
+            chars,
+            *,
+            btt_from: Tuple[str, int, int] = None,
+            btt_to: Tuple[str, int, int] = None) -> SLIGHTLY_PACKED_DELTA_TYPE:
         """Return a dict describing changes to characters since last call"""
         pack = self._real.pack
-        ret = {}
+        ret: Dict[bytes, Dict[bytes, bytes]] = {}
         if chars == 'all':
             it = iter(self._real.character.keys())
         else:
@@ -389,11 +398,12 @@ class EngineHandle(object):
         }
 
     @prepacked
-    def get_char_deltas(self,
-                        chars,
-                        *,
-                        btt_from: Tuple[str, int, int] = None,
-                        btt_to: Tuple[str, int, int] = None):
+    def get_char_deltas(
+            self,
+            chars,
+            *,
+            btt_from: Tuple[str, int, int] = None,
+            btt_to: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
         delt = self._get_char_deltas(chars, btt_from=btt_from, btt_to=btt_to)
         ret = {}
         for char, delta in delt.items():
@@ -485,7 +495,8 @@ class EngineHandle(object):
             for charn, stuff in mostly_packed_delta.items()
         })
 
-    def _concat_delta(self, delta):
+    @staticmethod
+    def _concat_delta(delta) -> Tuple[SLIGHTLY_PACKED_DELTA_TYPE, bytes]:
         slightly_packed_delta = {}
         mostly_packed_delta = {}
         for char, chardelta in delta.items():
@@ -546,12 +557,13 @@ class EngineHandle(object):
                 *self._real._btt()))
         return pack(ret), packed_delta
 
-    def _get_slow_delta(self,
-                        chars='all',
-                        btt_from: Tuple[str, int, int] = None,
-                        btt_to: Tuple[str, int, int] = None):
+    def _get_slow_delta(
+            self,
+            chars='all',
+            btt_from: Tuple[str, int, int] = None,
+            btt_to: Tuple[str, int, int] = None) -> SLIGHTLY_PACKED_DELTA_TYPE:
         pack = self._real.pack
-        delta = {}
+        delta: Dict[bytes, Any] = {}
         if chars:
             delta = self._get_char_deltas(chars,
                                           btt_from=btt_from,
@@ -569,7 +581,11 @@ class EngineHandle(object):
 
     @timely
     @prepacked
-    def time_travel(self, branch, turn, tick=None, chars='all'):
+    def time_travel(self,
+                    branch,
+                    turn,
+                    tick=None,
+                    chars='all') -> Tuple[bytes, bytes]:
         # TODO: detect if you're headed to sometime outside of the already simulated past, and respond appropriately
         #       - refuse to time travel to a plan
         #       - refuse to go too far outside the past (I think no more than one turn)
@@ -596,11 +612,12 @@ class EngineHandle(object):
         return NONE, packed_delta
 
     @timely
-    def increment_branch(self, chars: list = None):
+    @prepacked
+    def increment_branch(self, chars: list = None) -> bytes:
         if chars is None:
             chars = []
         branch = self._real.branch
-        m = match('(.*)([0-9]+)', branch)
+        m = match(r'(.*)(\d+)', branch)
         if m:
             stem, n = m.groups()
             branch = stem + str(int(n) + 1)
@@ -617,11 +634,11 @@ class EngineHandle(object):
             while stem + str(n) in self._real._branches:
                 n += 1
             branch = stem + str(n)
-        ret = {'branch': branch}
+        ret = {BRANCH: branch}
         self._real.branch = self.branch = branch
         if chars:
             ret.update(self._get_char_deltas(chars))
-        return ret
+        return self._concat_delta(ret)[1]
 
     @timely
     def add_character(self, char, data, attr):
@@ -754,10 +771,11 @@ class EngineHandle(object):
         return ret
 
     @prepacked
-    def universal_delta(self,
-                        *,
-                        btt_from: Tuple[str, int, int] = None,
-                        btt_to: Tuple[str, int, int] = None):
+    def universal_delta(
+            self,
+            *,
+            btt_from: Tuple[str, int, int] = None,
+            btt_to: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
         old = self.universal_copy(btt=self._get_watched_btt(btt_from))
         btt_now = self._get_btt(btt_to)
         new = self._universal_copy_memo[btt_now] = self.universal_copy(
@@ -961,20 +979,23 @@ class EngineHandle(object):
                 result[origin] = new[origin]
         return result
 
-    def _character_delta(self,
-                         char,
-                         *,
-                         btt_from: Tuple[str, int, int] = None,
-                         btt_to: Tuple[str, int, int] = None) -> dict:
+    def _character_delta(
+        self,
+        char,
+        *,
+        btt_from: Tuple[str, int, int] = None,
+        btt_to: Tuple[str, int, int] = None
+    ) -> Dict[bytes, Union[bytes, Dict[bytes, bytes]]]:
         observed_btt = self._get_watched_btt(btt_from)
         actual_btt = self._get_btt(btt_to)
         memo = self._character_delta_memo[char]
         if observed_btt in memo and actual_btt in memo[observed_btt]:
             return self._character_delta_memo[observed_btt][actual_btt]
-        nodes_fut = self.threadpool.submit(self.character_nodes_delta,
-                                           char,
-                                           btt_from=observed_btt,
-                                           btt_to=actual_btt)
+        nodes_fut: Future[Any] = self.threadpool.submit(
+            self.character_nodes_delta,
+            char,
+            btt_from=observed_btt,
+            btt_to=actual_btt)
         edges_fut = self.threadpool.submit(self.character_portals_delta,
                                            char,
                                            btt_from=observed_btt,
@@ -1201,10 +1222,10 @@ class EngineHandle(object):
 
         """
         # Performance could be improved by preserving the packed values
+        tick_now = self._real.tick
         if backdate:
             parbranch, parrev = self._real._parentbranch_rev.get(
                 self._real.branch, ('trunk', 0))
-            tick_now = self._real.tick
             self._real.tick = parrev
         for i, (n, npatch) in enumerate(patch.items(), 1):
             self.update_node(char, n, npatch)
@@ -1283,8 +1304,6 @@ class EngineHandle(object):
     @timely
     def set_thing(self, char, thing, statdict):
         self._real.character[char].thing[thing] = statdict
-        statdict = dict(map(self.pack_pair, statdict.items()))
-        branch, turn, tick = self._get_btt()
 
     @timely
     def add_thing(self, char, thing, loc, statdict):
@@ -1524,7 +1543,7 @@ class EngineHandle(object):
     def new_empty_rulebook(self, rulebook, btt=None):
         branch, turn, tick = self._get_btt(btt)
         self._rulebook_copy_memo[rulebook, branch, turn, tick] = []
-        self._real.rulebook[rulebook]
+        self._real.rulebook.__getitem__(rulebook)
         return []
 
     def rulebook_copy(self, rulebook, btt: Tuple[str, int, int] = None):
@@ -1730,10 +1749,7 @@ class EngineHandle(object):
         if store not in self._real.stores:
             raise ValueError("{} is not a function store".format(store))
         callme = getattr(store, func)
-        try:
-            return callme(*args, **kwargs)
-        except Exception as ex:
-            raise
+        return callme(*args, **kwargs)
 
     @timely
     def call_randomizer(self, method, *args, **kwargs):
