@@ -26,13 +26,13 @@ from collections.abc import Mapping, MutableMapping, KeysView, ItemsView, Values
 from itertools import chain
 from operator import itemgetter, lt, le
 from typing import Union, Callable, Dict, List, Tuple, Any, Iterable, Set, Optional
-from enum import StrEnum
+from enum import Enum
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)
 
 
-class Direction(StrEnum):
+class Direction(Enum):
     FORWARD = 'forward'
     BACKWARD = 'backward'
 
@@ -585,7 +585,7 @@ class WindowDict(MutableMapping):
             data: Union[List[Tuple[int, Any]], Dict[int, Any]] = None) -> None:
         if not data:
             self._past = []
-        elif isinstance(data, dict):
+        elif isinstance(data, Mapping):
             self._past = list(data.items())
         else:
             # assume it's an orderable sequence of pairs
