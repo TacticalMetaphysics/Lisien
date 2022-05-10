@@ -13,13 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM, and some supporting functions and classes"""
-import os
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
 import gc
 from queue import Queue
-from threading import Lock, RLock, Thread
-from typing import Callable
+from threading import RLock, Thread
+from typing import Callable, Dict, Any, Union, Tuple, Optional, List, Hashable
 from weakref import WeakValueDictionary
 
 from blinker import Signal
@@ -28,7 +27,7 @@ import networkx as nx
 from .window import update_window, update_backward_window
 from .cache import HistoryError
 from .graph import (DiGraph, Node, Edge, GraphsMapping)
-from .query import QueryEngine, TimeError
+from .query import QueryEngine, TimeError, NodeRowType, EdgeRowType, GraphValRowType, NodeValRowType, EdgeValRowType
 from .window import HistoryError
 
 Graph = DiGraph  # until I implement other graph types...
