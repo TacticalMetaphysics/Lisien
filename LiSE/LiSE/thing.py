@@ -23,7 +23,7 @@ only in one of the Portal's endpoints. Things are both located in and
 contained by Places, or possibly other Things.
 
 """
-from typing import Hashable, Union
+from typing import Hashable, Union, Optional
 
 import networkx as nx
 from .node import Node
@@ -82,7 +82,7 @@ class Thing(Node):
         else:
             raise ValueError("Couldn't find arrival time")
 
-    def _set_loc(self, loc: Hashable):
+    def _set_loc(self, loc: Optional[Hashable]):
         self.engine._set_thing_loc(self.character.name, self.name, loc)
         self.send(self, key='location', val=loc)
 
