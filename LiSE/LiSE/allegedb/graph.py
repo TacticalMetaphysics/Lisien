@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """allegedb's special implementations of the NetworkX graph objects"""
+from abc import ABC
+
 import networkx
 from networkx.exception import NetworkXError
 from collections import defaultdict
@@ -49,7 +51,7 @@ def convert_to_networkx_graph(data, create_using=None, multigraph_input=False):
 _alleged_receivers = defaultdict(list)
 
 
-class AllegedMapping(MutableMappingUnwrapper):
+class AllegedMapping(MutableMappingUnwrapper, ABC):
     """Common amenities for mappings"""
     __slots__ = ()
 
@@ -88,8 +90,9 @@ class AllegedMapping(MutableMappingUnwrapper):
             del self[k]
 
 
-class AbstractEntityMapping(AllegedMapping):
+class AbstractEntityMapping(AllegedMapping, ABC):
     __slots__ = ()
+    db: 'ORM'
 
     def _get_cache(self, key, branch, turn, tick):
         raise NotImplementedError
@@ -826,6 +829,10 @@ class DiGraph(networkx.DiGraph):
     pred_cls = DiGraphPredecessorsMapping
     graph_map_cls = GraphMapping
     node_map_cls = GraphNodeMapping
+    _statmap: graph_map_cls
+    _nodemap: node_map_cls
+    _adjmap: adj_cls
+    _predmap: pred_cls
 
     def __repr__(self):
         return "<{} object named {} containing {} nodes, {} edges>".format(
@@ -932,7 +939,7 @@ class DiGraph(networkx.DiGraph):
         rev = self.db.rev
         (parent, parent_rev) = self.db.sql('parparrev', branch).fetchone()
         before_branch = parent if parent_rev == rev else branch
-        return (before_branch, rev - 1, branch, rev)
+        return before_branch, rev - 1, branch, rev
 
     def remove_node(self, n):
         __doc__ = networkx.DiGraph.remove_node.__doc__

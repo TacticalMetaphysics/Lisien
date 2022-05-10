@@ -18,11 +18,12 @@ doesn't pollute the other files so much.
 
 """
 from threading import Thread, Lock
+from time import monotonic
+from typing import Tuple, Any, Iterator, Hashable
 from queue import Queue
 import os
 from collections.abc import MutableMapping
-from sqlite3 import IntegrityError as sqliteIntegError
-from sqlite3 import OperationalError as sqliteOperationalError
+import sqlite3
 
 from . import wrap
 
@@ -30,18 +31,20 @@ wrappath = os.path.dirname(wrap.__file__)
 alchemyIntegError = None
 alchemyOperationalError = None
 try:
-    from sqlalchemy.exc import IntegrityError as alchemyIntegError
-    from sqlalchemy.exc import OperationalError as alchemyOperationalError
-except ImportError:
-    pass
-from time import monotonic
+    import sqlalchemy.exc
 
-IntegrityError = (
-    alchemyIntegError,
-    sqliteIntegError) if alchemyIntegError is not None else sqliteIntegError
-OperationalError = (
-    alchemyOperationalError, sqliteOperationalError
-) if alchemyOperationalError is not None else sqliteOperationalError
+    IntegrityError = (sqlalchemy.exc.IntegrityError, sqlite3.IntegrityError)
+    OperationalError = (sqlalchemy.exc.OperationalError,
+                        sqlite3.IntegrityError)
+except ImportError:
+    IntegrityError = sqlite3.IntegrityError
+    OperationalError = sqlite3.IntegrityError
+
+NodeRowType = Tuple[Hashable, Hashable, str, int, int, bool]
+EdgeRowType = Tuple[Hashable, Hashable, Hashable, int, str, int, int, bool]
+GraphValRowType = Tuple[Hashable, Hashable, str, int, int, Any]
+NodeValRowType = Tuple[Hashable, Hashable, Hashable, str, int, int, Any]
+EdgeValRowType = Tuple[Hashable, Hashable, Hashable, int, str, int, int, Any]
 
 
 class TimeError(ValueError):
@@ -154,14 +157,13 @@ class ConnectionHolder:
             self.alchemist = Alchemist(self.engine)
             self.transaction = self.alchemist.conn.begin()
         else:
-            from sqlite3 import connect, Connection
             from json import load
             with open(self._fn) as strf:
                 self.strings = load(strf)
-            assert not isinstance(dbstring, Connection)
+            assert not isinstance(dbstring, sqlite3.Connection)
             if dbstring.startswith('sqlite:///'):
                 dbstring = dbstring[10:]
-            self.connection = connect(dbstring)
+            self.connection = sqlite3.connect(dbstring)
         while True:
             inst = self.inq.get()
             if inst == 'shutdown':
@@ -246,7 +248,7 @@ class QueryEngine(object):
                  dbstring,
                  connect_args,
                  alchemy,
-                 strings_filename,
+                 strings_filename: str = None,
                  pack=None,
                  unpack=None):
         """If ``alchemy`` is True and ``dbstring`` is a legit database URI,
@@ -261,6 +263,13 @@ class QueryEngine(object):
         dbstring = dbstring or 'sqlite:///:memory:'
         self._inq = Queue()
         self._outq = Queue()
+        if strings_filename is None:
+            strings_filename = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "sqlite.json")
+        if not os.path.exists(strings_filename) or os.path.isdir(
+                strings_filename):
+            raise FileNotFoundError("No SQL in JSON found at " +
+                                    strings_filename)
         self._holder = self.holder_cls(dbstring, connect_args, alchemy,
                                        self._inq, self._outq, strings_filename,
                                        self.tables)
@@ -281,13 +290,9 @@ class QueryEngine(object):
 
     def sql(self, string, *args, **kwargs):
         __doc__ = ConnectionHolder.sql.__doc__
-        with open("locklog.txt", "a") as outf:
-            outf.write("About to acquire SQL lock for " + string + "\n")
         with self._holder.lock:
             self._inq.put(('one', string, args, kwargs))
             ret = self._outq.get()
-        with open("locklog.txt", "a") as outf:
-            outf.write("Released SQL lock for " + string + "\n")
         if isinstance(ret, Exception):
             raise ret
         return ret
@@ -466,7 +471,7 @@ class QueryEngine(object):
     def turns_dump(self):
         return self.sql('turns_dump')
 
-    def graph_val_dump(self):
+    def graph_val_dump(self) -> Iterator[GraphValRowType]:
         """Yield the entire contents of the graph_val table."""
         self._flush_graph_val()
         unpack = self.unpack
@@ -481,7 +486,7 @@ class QueryEngine(object):
                        turn_from,
                        tick_from,
                        turn_to=None,
-                       tick_to=None):
+                       tick_to=None) -> Iterator[GraphValRowType]:
         if (turn_to is None) ^ (tick_to is None):
             raise TypeError("I need both or neither of turn_to and tick_to")
         self._flush_graph_val()
@@ -551,7 +556,7 @@ class QueryEngine(object):
         self.sql('nodes_del_time', branch, turn, tick)
         self._btts.discard((branch, turn, tick))
 
-    def nodes_dump(self):
+    def nodes_dump(self) -> Iterator[NodeRowType]:
         """Dump the entire contents of the nodes table."""
         self._flush_nodes()
         unpack = self.unpack
@@ -566,7 +571,7 @@ class QueryEngine(object):
                    turn_from,
                    tick_from,
                    turn_to=None,
-                   tick_to=None):
+                   tick_to=None) -> Iterator[NodeRowType]:
         if (turn_to is None) ^ (tick_to is None):
             raise TypeError("I need both or neither of turn_to and tick_to")
         self._flush_nodes()
@@ -582,7 +587,7 @@ class QueryEngine(object):
         for (node, turn, tick, extant) in it:
             yield graph, unpack(node), branch, turn, tick, extant
 
-    def node_val_dump(self):
+    def node_val_dump(self) -> Iterator[NodeValRowType]:
         """Yield the entire contents of the node_val table."""
         self._flush_node_val()
         unpack = self.unpack
@@ -597,7 +602,7 @@ class QueryEngine(object):
                       turn_from,
                       tick_from,
                       turn_to=None,
-                      tick_to=None):
+                      tick_to=None) -> Iterator[NodeValRowType]:
         if (turn_to is None) ^ (tick_to is None):
             raise TypeError("I need both or neither of turn_to and tick_to")
         self._flush_node_val()
@@ -638,7 +643,7 @@ class QueryEngine(object):
         self.sql('node_val_del_time', branch, turn, tick)
         self._btts.discard((branch, turn, tick))
 
-    def edges_dump(self):
+    def edges_dump(self) -> Iterator[EdgeRowType]:
         """Dump the entire contents of the edges table."""
         self._flush_edges()
         unpack = self.unpack
@@ -653,7 +658,7 @@ class QueryEngine(object):
                    turn_from,
                    tick_from,
                    turn_to=None,
-                   tick_to=None):
+                   tick_to=None) -> Iterator[EdgeRowType]:
         if (turn_to is None) ^ (tick_to is None):
             raise TypeError("I need both or neither of turn_to and tick_to")
         self._flush_edge_val()
@@ -698,7 +703,7 @@ class QueryEngine(object):
         self.sql('edges_del_time', branch, turn, tick)
         self._btts.discard((branch, turn, tick))
 
-    def edge_val_dump(self):
+    def edge_val_dump(self) -> Iterator[EdgeValRowType]:
         """Yield the entire contents of the edge_val table."""
         self._flush_edge_val()
         unpack = self.unpack
@@ -713,7 +718,7 @@ class QueryEngine(object):
                       turn_from,
                       tick_from,
                       turn_to=None,
-                      tick_to=None):
+                      tick_to=None) -> Iterator[EdgeValRowType]:
         if (turn_to is None) ^ (tick_to is None):
             raise TypeError("I need both or neither of turn_to and tick_to")
         self._flush_edge_val()

@@ -29,7 +29,8 @@ from typing import Dict, Tuple, Set, KeysView, Callable, Union, Any
 import numpy as np
 import msgpack
 
-from .engine import Engine, MSGPACK_SET
+from .engine import Engine
+from .util import MSGPACK_SET
 
 SLIGHTLY_PACKED_DELTA_TYPE = Dict[bytes, Dict[bytes,
                                               Union[bytes,

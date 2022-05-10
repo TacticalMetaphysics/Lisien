@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Common classes for collections in LiSE, of which most can be bound to."""
+import ast
 from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from types import MethodType

@@ -23,10 +23,13 @@ only in one of the Portal's endpoints. Things are both located in and
 contained by Places, or possibly other Things.
 
 """
+from typing import Hashable, Union
+
 import networkx as nx
 from .node import Node
 from .exc import TravelException
 from .allegedb import HistoryError
+from .util import AbstractCharacter
 
 
 def roerror(*args, **kwargs):
@@ -49,7 +52,7 @@ class Thing(Node):
     __slots__ = ('graph', 'db', 'node', '_rulebook', '_rulebooks',
                  '_real_rule_mapping')
 
-    extrakeys = {'name', 'location'}
+    _extra_keys = {'name', 'location'}
 
     def _getname(self):
         return self.name
@@ -63,11 +66,7 @@ class Thing(Node):
             return None
 
     def _validate_node_type(self):
-        try:
-            self._getloc()
-            return True
-        except:
-            return False
+        return self._getloc() is not None
 
     def _get_arrival_time(self):
         charn = self.character.name
@@ -83,7 +82,7 @@ class Thing(Node):
         else:
             raise ValueError("Couldn't find arrival time")
 
-    def _set_loc(self, loc):
+    def _set_loc(self, loc: Hashable):
         self.engine._set_thing_loc(self.character.name, self.name, loc)
         self.send(self, key='location', val=loc)
 
@@ -91,7 +90,7 @@ class Thing(Node):
 
     _setitem_dispatch = {'name': roerror, 'location': _set_loc}
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Hashable):
         """Return one of my stats stored in the database, or a few
         special cases:
 
@@ -120,7 +119,7 @@ class Thing(Node):
 
     def __delitem__(self, key):
         """As of now, this key isn't mine."""
-        if key in self.extrakeys:
+        if key in self._extra_keys:
             raise ValueError("Can't delete {}".format(key))
         super().__delitem__(key)
 
@@ -138,7 +137,7 @@ class Thing(Node):
     def clear(self):
         """Unset everything."""
         for k in list(self.keys()):
-            if k not in self.extrakeys:
+            if k not in self._extra_keys:
                 del self[k]
 
     @property
@@ -150,7 +149,7 @@ class Thing(Node):
         return self.engine._get_node(self.character, locn)
 
     @location.setter
-    def location(self, v):
+    def location(self, v: Union[Node, Hashable]):
         if hasattr(v, 'name'):
             v = v.name
         self['location'] = v
@@ -169,7 +168,9 @@ class Thing(Node):
                 self.character.name, self.name, branch, turn,
                 self.engine._turn_end_plan[branch, turn]))
 
-    def go_to_place(self, place, weight=None):
+    def go_to_place(self,
+                    place: Union[Node, Hashable],
+                    weight: Hashable = None) -> int:
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
         to the given :class:`Place`, schedule myself to travel to the
         given :class:`Place`, taking an amount of time indicated by
@@ -192,7 +193,7 @@ class Thing(Node):
             self['location'] = placen
         return turns
 
-    def follow_path(self, path, weight=None):
+    def follow_path(self, path: list, weight: Hashable = None) -> int:
         """Go to several :class:`Place`s in succession, deciding how long to
         spend in each by consulting the ``weight`` stat of the
         :class:`Portal` connecting the one :class:`Place` to the next,
@@ -238,7 +239,10 @@ class Thing(Node):
             eng.time = turn_now, tick_now
         return turns_total
 
-    def travel_to(self, dest, weight=None, graph=None):
+    def travel_to(self,
+                  dest: Union[Node, Hashable],
+                  weight: Hashable = None,
+                  graph: AbstractCharacter = None) -> int:
         """Find the shortest path to the given :class:`Place` from where I am
         now, and follow it.
 

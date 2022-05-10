@@ -114,6 +114,7 @@ class UserMapping(Mapping):
 
 
 class NodeContentValues(ValuesView):
+    _mapping: 'NodeContent'
 
     def __iter__(self):
         node = self._mapping.node
@@ -171,9 +172,11 @@ class NodeContent(Mapping):
 
 
 class DestsValues(ValuesView):
+    _mapping: 'Dests'
 
     def __contains__(self, item):
-        return item.origin == self._mapping.node
+        _, name = self._mapping._pn
+        return item.origin.name == name
 
 
 class Dests(Mapping):
@@ -207,9 +210,11 @@ class Dests(Mapping):
 
 
 class OrigsValues(ValuesView):
+    _mapping: 'Origs'
 
     def __contains__(self, item):
-        return item.destination == self._mapping.node
+        _, name = self._mapping._pn
+        return item.destination.name == name
 
 
 class Origs(Mapping):
@@ -288,6 +293,9 @@ class Node(graph.Node, rule.RuleFollower):
     character = getatt('graph')
     name = getatt('node')
     no_unwrap = True
+    _extra_keys = {
+        'name',
+    }
 
     def _get_rule_mapping(self):
         return rule.RuleMapping(self.db, self.rulebook)
@@ -342,7 +350,7 @@ class Node(graph.Node, rule.RuleFollower):
 
     def __iter__(self):
         yield from super().__iter__()
-        yield from self.extrakeys
+        yield from self._extra_keys
         return
 
     def clear(self):
@@ -351,7 +359,7 @@ class Node(graph.Node, rule.RuleFollower):
 
     def __contains__(self, k):
         """Handle extra keys, then delegate."""
-        return k in self.extrakeys or super().__contains__(k)
+        return k in self._extra_keys or super().__contains__(k)
 
     def __setitem__(self, k, v):
         super().__setitem__(k, v)

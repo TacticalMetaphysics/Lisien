@@ -34,11 +34,11 @@ and their node in the physical world is an avatar of it.
 
 """
 
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from collections.abc import (Mapping, MutableMapping)
 from itertools import chain
-from time import monotonic
-from operator import ge, gt, le, lt, eq
+from types import MethodType
+from typing import Type
 from weakref import WeakValueDictionary
 from blinker import Signal
 
@@ -56,7 +56,7 @@ from .node import Node
 from .thing import Thing
 from .place import Place
 from .portal import Portal
-from .util import getatt, singleton_get, timer
+from .util import getatt, singleton_get, timer, AbstractEngine, AbstractCharacter
 from .exc import WorldIntegrityError
 from .query import StatusAlias
 
@@ -109,386 +109,6 @@ def grid_2d_8graph(m, n):
     return me
 
 
-class AbstractCharacter(Mapping):
-    """The Character API, with all requisite mappings and graph generators.
-
-    Mappings resemble those of a NetworkX digraph:
-
-    * ``thing`` and ``place`` are subsets of ``node``
-    * ``edge``, ``adj``, and ``succ`` are aliases of ``portal``
-    * ``pred`` is an alias to ``preportal``
-    * ``stat`` is a dict-like mapping of data that changes over game-time,
-    to be used in place of graph attributes
-
-    """
-    engine = getatt('db')
-    no_unwrap = True
-
-    @staticmethod
-    def is_directed():
-        return True
-
-    @abstractmethod
-    def add_place(self, name, **kwargs):
-        pass
-
-    def add_node(self, name, **kwargs):
-        self.add_place(name, **kwargs)
-
-    @abstractmethod
-    def add_places_from(self, seq, **attrs):
-        pass
-
-    def add_nodes_from(self, seq, **attrs):
-        self.add_places_from(seq, **attrs)
-
-    def new_place(self, name, **kwargs):
-        if name not in self.node:
-            self.add_place(name, **kwargs)
-            return self.place[name]
-        if isinstance(name, str):
-            n = 0
-            while name + str(n) in self.node:
-                n += 1
-            self.add_place(name + str(n), **kwargs)
-            return self.place[name]
-        raise KeyError("Already have a node named {}".format(name))
-
-    def new_node(self, name, **kwargs):
-        return self.new_place(name, **kwargs)
-
-    @abstractmethod
-    def add_thing(self, name, location, **kwargs):
-        pass
-
-    @abstractmethod
-    def add_things_from(self, seq, **attrs):
-        pass
-
-    def new_thing(self, name, location, **kwargs):
-        if name not in self.node:
-            self.add_thing(name, location, **kwargs)
-            return self.thing[name]
-        if isinstance(name, str):
-            n = 0
-            while name + str(n) in self.node:
-                n += 1
-            self.add_thing(name + str(n), location, **kwargs)
-            return self.thing[name]
-        raise KeyError("Already have a thing named {}".format(name))
-
-    @abstractmethod
-    def thing2place(self, name):
-        pass
-
-    @abstractmethod
-    def place2thing(self, name, location):
-        pass
-
-    @abstractmethod
-    def add_portal(self, orig, dest, symmetrical=False, **kwargs):
-        pass
-
-    def add_edge(self, orig, dest, **kwargs):
-        self.add_portal(orig, dest, **kwargs)
-
-    def new_portal(self, orig, dest, symmetrical=False, **kwargs):
-        self.add_portal(orig, dest, symmetrical, **kwargs)
-        return self.portal[orig][dest]
-
-    @abstractmethod
-    def add_portals_from(self, seq, **attrs):
-        pass
-
-    def add_edges_from(self, seq, **attrs):
-        self.add_portals_from(seq, **attrs)
-
-    @abstractmethod
-    def remove_portal(self, origin, destination):
-        pass
-
-    def remove_portals_from(self, seq):
-        for orig, dest in seq:
-            del self.portal[orig][dest]
-
-    def remove_edges_from(self, seq):
-        self.remove_portals_from(seq)
-
-    @abstractmethod
-    def remove_place(self, place):
-        pass
-
-    def remove_places_from(self, seq):
-        for place in seq:
-            self.remove_place(place)
-
-    @abstractmethod
-    def remove_thing(self, thing):
-        pass
-
-    def remove_things_from(self, seq):
-        for thing in seq:
-            self.remove_thing(thing)
-
-    @abstractmethod
-    def remove_node(self, node):
-        pass
-
-    def remove_nodes_from(self, seq):
-        for node in seq:
-            self.remove_node(node)
-
-    @abstractmethod
-    def add_unit(self, a, b=None):
-        pass
-
-    @abstractmethod
-    def remove_unit(self, a, b=None):
-        pass
-
-    def __eq__(self, other):
-        return isinstance(other, AbstractCharacter) \
-               and self.name == other.name
-
-    def __iter__(self):
-        return iter(self.node)
-
-    def __len__(self):
-        return len(self.node)
-
-    def __bool__(self):
-        return self.name in self.db.character
-
-    def __contains__(self, k):
-        return k in self.node
-
-    def __getitem__(self, k):
-        return self.adj[k]
-
-    thing = SpecialMappingDescriptor('ThingMapping')
-    place = SpecialMappingDescriptor('PlaceMapping')
-    node = nodes = _node = SpecialMappingDescriptor('ThingPlaceMapping')
-    portal = adj = succ = edge = _adj = _succ = SpecialMappingDescriptor(
-        'PortalSuccessorsMapping')
-    preportal = pred = _pred = SpecialMappingDescriptor(
-        'PortalPredecessorsMapping')
-    unit = SpecialMappingDescriptor('UnitGraphMapping')
-    stat = getatt('graph')
-
-    def historical(self, stat):
-        from .query import StatusAlias
-        return StatusAlias(entity=self.stat, stat=stat)
-
-    def do(self, func, *args, **kwargs):
-        """Apply the function to myself, and return myself.
-
-        Look up the function in the database if needed. Pass it any
-        arguments given, keyword or positional.
-
-        Useful chiefly when chaining.
-
-        """
-        if not callable(func):
-            func = getattr(self.engine.function, func)
-        func(self, *args, **kwargs)
-        return self
-
-    def perlin(self, stat='perlin'):
-        """Apply Perlin noise to my nodes, and return myself.
-
-        I'll try to use the name of the node as its spatial position
-        for this purpose, or use its stats 'x', 'y', and 'z', or skip
-        the node if neither are available. z is assumed 0 if not
-        provided for a node.
-
-        Result will be stored in a node stat named 'perlin' by default.
-        Supply the name of another stat to use it instead.
-
-        """
-        from math import floor
-        p = self.engine.shuffle([
-            151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7,
-            225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6,
-            148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35,
-            11, 32, 57, 177, 33, 88, 237, 149, 56, 87, 174, 20, 125, 136, 171,
-            168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166, 77, 146, 158,
-            231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55,
-            46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80, 73,
-            209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188,
-            159, 86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226, 250,
-            124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206,
-            59, 227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213, 119,
-            248, 152, 2, 44, 154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9,
-            129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232, 178, 185,
-            112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12,
-            191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192,
-            214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45,
-            127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243,
-            141, 128, 195, 78, 66, 215, 61, 156, 180
-        ]) * 2
-
-        def fade(t):
-            return t * t * t * (t * (t * 6 - 15) + 10)
-
-        def lerp(t, a, b):
-            return a + t * (b - a)
-
-        def grad(hsh, x, y, z):
-            """CONVERT LO 4 BITS OF HASH CODE INTO 12 GRADIENT DIRECTIONS."""
-            h = hsh & 15
-            u = x if h < 8 else y
-            v = y if h < 4 else x if h == 12 or h == 14 else z
-            return (u if h & 1 == 0 else -u) + (v if h & 2 == 0 else -v)
-
-        def noise(x, y, z):
-            # FIND UNIT CUBE THAT CONTAINS POINT.
-            X = int(x) & 255
-            Y = int(y) & 255
-            Z = int(z) & 255
-            # FIND RELATIVE X, Y, Z OF POINT IN CUBE.
-            x -= floor(x)
-            y -= floor(y)
-            z -= floor(z)
-            # COMPUTE FADE CURVES FOR EACH OF X, Y, Z.
-            u = fade(x)
-            v = fade(y)
-            w = fade(z)
-            # HASH COORDINATES OF THE 8 CUBE CORNERS,
-            A = p[X] + Y
-            AA = p[A] + Z
-            AB = p[A + 1] + Z
-            B = p[X + 1] + y
-            BA = p[B] + Z
-            BB = p[B + 1] + Z
-            # AND ADD BLENDED RESULTS FROM 8 CORNERS OF CUBE
-            return lerp(
-                w,
-                lerp(
-                    v, lerp(u, grad(p[AA], x, y, z), grad(p[BA], x - 1, y, z)),
-                    lerp(u, grad(p[AB], x, y - 1, z),
-                         grad(p[BB], x - 1, y - 1, z))),
-                lerp(
-                    v,
-                    lerp(u, grad(p[AA + 1], x, y, z - 1),
-                         grad(p[BA + 1], x - 1, y, z - 1)),
-                    lerp(u, grad(p[AB + 1], x, y - 1, z - 1),
-                         grad(p[BB + 1], x - 1, y - 1, z - 1))))
-
-        for node in self.node.values():
-            try:
-                (x, y, z) = node.name
-            except ValueError:
-                try:
-                    (x, y) = node.name
-                    z = 0.0
-                except ValueError:
-                    try:
-                        x = node['x']
-                        y = node['y']
-                        z = node.get('z', 0.0)
-                    except KeyError:
-                        continue
-            x, y, z = map(float, (x, y, z))
-            node[stat] = noise(x, y, z)
-
-        return self
-
-    def copy_from(self, g):
-        """Copy all nodes and edges from the given graph into this.
-
-        Return myself.
-
-        """
-        renamed = {}
-        for k in g.nodes:
-            ok = k
-            if k in self.place:
-                n = 0
-                while k in self.place:
-                    k = ok + (n, ) if isinstance(ok, tuple) else (ok, n)
-                    n += 1
-            renamed[ok] = k
-            self.place[k] = g.nodes[k]
-        if type(g) is nx.MultiDiGraph:
-            g = nx.DiGraph(g)
-        elif type(g) is nx.MultiGraph:
-            g = nx.Graph(g)
-        if type(g) is nx.DiGraph:
-            for u, v in g.edges:
-                self.edge[renamed[u]][renamed[v]] = g.adj[u][v]
-        else:
-            assert type(g) is nx.Graph
-            for u, v, d in g.edges.data():
-                self.add_portal(renamed[u], renamed[v], symmetrical=True, **d)
-        return self
-
-    def become(self, g):
-        """Erase all my nodes and edges. Replace them with a copy of the graph
-        provided.
-
-        Return myself.
-
-        """
-        self.clear()
-        self.place.update(g.nodes)
-        self.adj.update(g.adj)
-        return self
-
-    def clear(self):
-        self.node.clear()
-        self.portal.clear()
-        self.stat.clear()
-
-    def _lookup_comparator(self, comparator):
-        if callable(comparator):
-            return comparator
-        ops = {'ge': ge, 'gt': gt, 'le': le, 'lt': lt, 'eq': eq}
-        if comparator in ops:
-            return ops[comparator]
-        return getattr(self.engine.function, comparator)
-
-    def cull_nodes(self, stat, threshold=0.5, comparator=ge):
-        """Delete nodes whose stat >= ``threshold`` (default 0.5).
-
-        Optional argument ``comparator`` will replace >= as the test
-        for whether to cull. You can use the name of a stored function.
-
-        """
-        comparator = self._lookup_comparator(comparator)
-        dead = [
-            name for name, node in self.node.items()
-            if stat in node and comparator(node[stat], threshold)
-        ]
-        self.remove_nodes_from(dead)
-        return self
-
-    def cull_portals(self, stat, threshold=0.5, comparator=ge):
-        """Delete portals whose stat >= ``threshold`` (default 0.5).
-
-        Optional argument ``comparator`` will replace >= as the test
-        for whether to cull. You can use the name of a stored function.
-
-        """
-        comparator = self._lookup_comparator(comparator)
-        dead = []
-        for u in self.portal:
-            for v in self.portal[u]:
-                if stat in self.portal[u][v] and comparator(
-                        self.portal[u][v][stat], threshold):
-                    dead.append((u, v))
-        self.remove_edges_from(dead)
-        return self
-
-    def cull_edges(self, stat, threshold=0.5, comparator=ge):
-        """Delete edges whose stat >= ``threshold`` (default 0.5).
-
-        Optional argument ``comparator`` will replace >= as the test
-        for whether to cull. You can use the name of a stored function.
-
-        """
-        return self.cull_portals(stat, threshold, comparator)
-
-
 class CharRuleMapping(RuleMapping):
     """Get rules by name, or make new ones by decorator
 
@@ -527,6 +147,9 @@ class CharRuleMapping(RuleMapping):
 
 class RuleFollower(BaseRuleFollower):
     """Mixin class. Has a rulebook, which you can get a RuleMapping into."""
+    character: AbstractCharacter
+    engine: AbstractEngine
+    _book: str
 
     def _get_rule_mapping(self):
         return CharRuleMapping(self.character, self.rulebook, self._book)
@@ -555,10 +178,10 @@ class RuleFollower(BaseRuleFollower):
             self._get_rulebook_name(), *self.engine._btt())
 
 
-class FacadeEntity(MutableMapping, Signal):
+class FacadeEntity(MutableMapping, Signal, ABC):
     exists = True
 
-    def __init__(self, mapping, **kwargs):
+    def __init__(self, mapping, _=None, **kwargs):
         super().__init__()
         self.facade = self.character = mapping.facade
         self._real = mapping
@@ -614,7 +237,7 @@ class FacadeEntity(MutableMapping, Signal):
         self.send(self, key=k, val=None)
 
 
-class FacadeNode(FacadeEntity):
+class FacadeNode(FacadeEntity, ABC):
 
     @property
     def name(self):
@@ -635,7 +258,7 @@ class FacadePlace(FacadeNode):
     """Lightweight analogue of Place for Facade use."""
 
     def __init__(self, mapping, real_or_name, **kwargs):
-        super().__init__(mapping, **kwargs)
+        super().__init__(mapping, real_or_name, **kwargs)
         if isinstance(real_or_name, Place) or \
            isinstance(real_or_name, FacadePlace):
             self._real = real_or_name
@@ -653,7 +276,7 @@ class FacadeThing(FacadeNode):
 
     def __init__(self, mapping, real_or_name, **kwargs):
         location = kwargs.pop('location', None)
-        super().__init__(mapping, **kwargs)
+        super().__init__(mapping, real_or_name, **kwargs)
         if location is None and not (isinstance(real_or_name, Thing)
                                      or isinstance(real_or_name, FacadeThing)):
             raise TypeError(
@@ -682,7 +305,7 @@ class FacadePortal(FacadeEntity):
     """Lightweight analogue of Portal for Facade use."""
 
     def __init__(self, mapping, other, **kwargs):
-        super().__init__(mapping, **kwargs)
+        super().__init__(mapping, other, **kwargs)
         if hasattr(mapping, 'orig'):
             self.orig = mapping.orig
             self.dest = other
@@ -715,13 +338,18 @@ class FacadePortal(FacadeEntity):
         return self.facade.node[self.dest]
 
 
-class FacadeEntityMapping(MutableMappingUnwrapper, Signal):
+class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
     """Mapping that contains entities in a Facade.
 
     All the entities are of the same type, ``facadecls``, possibly
     being distorted views of entities of the type ``innercls``.
 
     """
+    facadecls: Type[FacadeEntity]
+
+    @abstractmethod
+    def _get_inner_map(self):
+        raise NotImplementedError("Missing _get_inner_map")
 
     def _make(self, k, v):
         kwargs = dict(v)
@@ -732,7 +360,7 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal):
 
     engine = getatt('facade.engine')
 
-    def __init__(self, facade):
+    def __init__(self, facade, _=None):
         """Store the facade."""
         super().__init__()
         self.facade = facade
@@ -789,7 +417,7 @@ class FacadePortalSuccessors(FacadeEntityMapping):
     innercls = Portal
 
     def __init__(self, facade, origname):
-        super().__init__(facade)
+        super().__init__(facade, origname)
         self.orig = origname
 
     def _make(self, k, v):
@@ -807,20 +435,21 @@ class FacadePortalPredecessors(FacadeEntityMapping):
     innercls = Portal
 
     def __init__(self, facade, destname):
-        super().__init__(facade)
+        super().__init__(facade, destname)
         self.dest = destname
 
     def _make(self, k, v):
-        return self.facadecls(self.facade.portal[k], self.dest, v)
+        return self.facadecls(self.facade.portal[k], v)
 
     def _get_inner_map(self):
         try:
-            return self.facade.character.preportal[self._destname]
+            return self.facade.character.preportal[self.dest]
         except AttributeError:
             return {}
 
 
-class FacadePortalMapping(FacadeEntityMapping):
+class FacadePortalMapping(FacadeEntityMapping, ABC):
+    cls: Type[FacadeEntityMapping]
 
     def __getitem__(self, node):
         if node not in self:
@@ -928,6 +557,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
 
     def __init__(self, character=None):
         """Store the character."""
+        super().__init__()
         self.character = character
         self.graph = self.StatMapping(self)
 
@@ -1718,6 +1348,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             Otherwise, raise AttributeError.
 
             """
+            get_char_av_cache: MethodType
             get_char_av_cache, get_char_only_graph, charn, btt \
                 = self._node_stuff
             try:

@@ -17,6 +17,7 @@ from functools import partial
 from itertools import zip_longest
 from abc import ABC, abstractmethod
 from collections.abc import MutableSet, MutableMapping, MutableSequence, Mapping, Sequence, Iterable, Sized, Container
+from typing import Callable
 
 
 class MutableWrapper(ABC):
@@ -47,7 +48,7 @@ class MutableWrapper(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _set(self):
+    def _set(self, v):
         raise NotImplementedError
 
     @abstractmethod
@@ -60,7 +61,7 @@ Sized.register(MutableWrapper)
 Container.register(MutableWrapper)
 
 
-class MutableWrapperDictList(MutableWrapper):
+class MutableWrapperDictList(MutableWrapper, ABC):
     __slots__ = ()
 
     def _subset(self, k, v):
@@ -92,7 +93,7 @@ class MutableWrapperDictList(MutableWrapper):
         self._set(me)
 
 
-class MutableMappingUnwrapper(MutableMapping):
+class MutableMappingUnwrapper(MutableMapping, ABC):
     __slots__ = ()
 
     def __eq__(self, other):
@@ -123,7 +124,8 @@ class MutableMappingUnwrapper(MutableMapping):
         }
 
 
-class MutableMappingWrapper(MutableWrapperDictList, MutableMappingUnwrapper):
+class MutableMappingWrapper(MutableWrapperDictList, MutableMappingUnwrapper,
+                            ABC):
 
     def __eq__(self, other):
         return MutableMappingUnwrapper.__eq__(self, other)
@@ -134,8 +136,11 @@ class MutableMappingWrapper(MutableWrapperDictList, MutableMappingUnwrapper):
 
 class SubDictWrapper(MutableMappingWrapper, dict):
     __slots__ = ('_getter', '_set')
+    _getter: Callable
+    _set: Callable
 
     def __init__(self, getter, setter):
+        super().__init__()
         self._getter = getter
         self._set = setter
 
@@ -148,7 +153,7 @@ class SubDictWrapper(MutableMappingWrapper, dict):
         self._set(new)
 
 
-class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence):
+class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence, ABC):
 
     def __eq__(self, other):
         if self is other:
@@ -172,8 +177,11 @@ class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence):
 
 class SubListWrapper(MutableSequenceWrapper, list):
     __slots__ = ('_getter', '_set')
+    _getter: Callable
+    _set: Callable
 
     def __init__(self, getter, setter):
+        super().__init__()
         self._getter = getter
         self._set = setter
 
@@ -193,6 +201,8 @@ class SubListWrapper(MutableSequenceWrapper, list):
 
 class MutableWrapperSet(MutableWrapper, MutableSet):
     __slots__ = ()
+    _getter: Callable
+    _set: Callable
 
     def _copy(self):
         return set(self._getter())
@@ -229,8 +239,11 @@ class MutableWrapperSet(MutableWrapper, MutableSet):
 
 class SubSetWrapper(MutableWrapperSet, set):
     __slots__ = ('_getter', '_set')
+    _getter: Callable
+    _set: Callable
 
     def __init__(self, getter, setter):
+        super().__init__()
         self._getter = getter
         self._set = setter
 
@@ -246,8 +259,10 @@ class DictWrapper(MutableMappingWrapper, dict):
 
     """
     __slots__ = ('_getter', '_setter', '_outer', '_key')
+    _getter: Callable
 
     def __init__(self, getter, setter, outer, key):
+        super().__init__()
         self._getter = getter
         self._setter = setter
         self._outer = outer
@@ -326,8 +341,10 @@ class SetWrapper(MutableWrapperSet, set):
 
     """
     __slots__ = ('_getter', '_setter', '_outer', '_key')
+    _getter: Callable
 
     def __init__(self, getter, setter, outer, key):
+        super().__init__()
         self._getter = getter
         self._setter = setter
         self._outer = outer

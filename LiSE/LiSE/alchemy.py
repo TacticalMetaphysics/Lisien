@@ -77,7 +77,7 @@ def tables_for_meta(meta):
           Column('turn', INT, primary_key=True, default=0),
           Column('tick', INT, primary_key=True, default=0),
           Column('triggers', TEXT, default='[]'),
-          ForeignKeyConstraint(['rule'], ['rules.rule']),
+          ForeignKeyConstraint(('rule', ), ['rules.rule']),
           sqlite_with_rowid=False)
 
     # Table for rules' prereqs, functions with veto power over a rule
@@ -89,7 +89,7 @@ def tables_for_meta(meta):
           Column('turn', INT, primary_key=True, default=0),
           Column('tick', INT, primary_key=True, default=0),
           Column('prereqs', TEXT, default='[]'),
-          ForeignKeyConstraint(['rule'], ['rules.rule']),
+          ForeignKeyConstraint(('rule', ), ['rules.rule']),
           sqlite_with_rowid=False)
 
     # Table for rules' actions, the functions that do what the rule
@@ -101,7 +101,7 @@ def tables_for_meta(meta):
           Column('turn', INT, primary_key=True, default=0),
           Column('tick', INT, primary_key=True, default=0),
           Column('actions', TEXT, default='[]'),
-          ForeignKeyConstraint(['rule'], ['rules.rule']),
+          ForeignKeyConstraint(('rule', ), ['rules.rule']),
           sqlite_with_rowid=False)
 
     # The top level of the LiSE world model, the character. Includes
@@ -119,8 +119,8 @@ def tables_for_meta(meta):
               Column('turn', INT, primary_key=True, default=0),
               Column('tick', INT, primary_key=True, default=0),
               Column('rulebook', TEXT),
-              ForeignKeyConstraint(['character'], ['graphs.graph']),
-              ForeignKeyConstraint(['rulebook'], ['rulebooks.rulebook']),
+              ForeignKeyConstraint(('character', ), ['graphs.graph']),
+              ForeignKeyConstraint(('rulebook', ), ['rulebooks.rulebook']),
               sqlite_with_rowid=False)
 
     # Rules handled within the rulebook associated with one node in
@@ -134,26 +134,26 @@ def tables_for_meta(meta):
                 Column('branch', TEXT, primary_key=True, default='trunk'),
                 Column('turn', INT, primary_key=True, default=0),
                 Column('tick', INT),
-                ForeignKeyConstraint(['character', 'node'],
+                ForeignKeyConstraint(('character', 'node'),
                                      ['nodes.graph', 'nodes.node']),
                 sqlite_with_rowid=False)
 
     # Rules handled within the rulebook associated with one portal in
     # particular.
-    porh = Table(
-        'portal_rules_handled',
-        meta,
-        Column('character', TEXT, primary_key=True),
-        Column('orig', TEXT, primary_key=True),
-        Column('dest', TEXT, primary_key=True),
-        Column('rulebook', TEXT, primary_key=True),
-        Column('rule', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True, default='trunk'),
-        Column('turn', INT, primary_key=True, default=0),
-        Column('tick', INT),
-        ForeignKeyConstraint(['character', 'orig', 'dest'],
-                             ['edges.graph', 'edges.orig', 'edges.dest']),
-        sqlite_with_rowid=False)
+    porh = Table('portal_rules_handled',
+                 meta,
+                 Column('character', TEXT, primary_key=True),
+                 Column('orig', TEXT, primary_key=True),
+                 Column('dest', TEXT, primary_key=True),
+                 Column('rulebook', TEXT, primary_key=True),
+                 Column('rule', TEXT, primary_key=True),
+                 Column('branch', TEXT, primary_key=True, default='trunk'),
+                 Column('turn', INT, primary_key=True, default=0),
+                 Column('tick', INT),
+                 ForeignKeyConstraint(
+                     ('character', 'orig', 'dest'),
+                     ['edges.graph', 'edges.orig', 'edges.dest']),
+                 sqlite_with_rowid=False)
 
     # Table for Things, being those nodes in a Character graph that have
     # locations.
@@ -170,9 +170,9 @@ def tables_for_meta(meta):
         Column('tick', INT, primary_key=True, default=0),
         # when location is null, this node is not a thing, but a place
         Column('location', TEXT),
-        ForeignKeyConstraint(['character', 'thing'],
+        ForeignKeyConstraint(('character', 'thing'),
                              ['nodes.graph', 'nodes.node']),
-        ForeignKeyConstraint(['character', 'location'],
+        ForeignKeyConstraint(('character', 'location'),
                              ['nodes.graph', 'nodes.node']),
         sqlite_with_rowid=False)
 
@@ -185,7 +185,7 @@ def tables_for_meta(meta):
           Column('turn', INT, primary_key=True, default=0),
           Column('tick', INT, primary_key=True, default=0),
           Column('rulebook', TEXT),
-          ForeignKeyConstraint(['character', 'node'],
+          ForeignKeyConstraint(('character', 'node'),
                                ['nodes.graph', 'nodes.node']),
           sqlite_with_rowid=False)
 
@@ -204,7 +204,7 @@ def tables_for_meta(meta):
           Column('turn', INT, primary_key=True, default=0),
           Column('tick', INT, primary_key=True, default=0),
           Column('rulebook', TEXT),
-          ForeignKeyConstraint(['character', 'orig', 'dest'],
+          ForeignKeyConstraint(('character', 'orig', 'dest'),
                                ['edges.graph', 'edges.orig', 'edges.dest']),
           sqlite_with_rowid=False)
 
@@ -228,8 +228,8 @@ def tables_for_meta(meta):
           Column('turn', INT, primary_key=True, default=0),
           Column('tick', INT, primary_key=True, default=0),
           Column('is_unit', BOOLEAN),
-          ForeignKeyConstraint(['character_graph'], ['graphs.graph']),
-          ForeignKeyConstraint(['unit_graph', 'unit_node'],
+          ForeignKeyConstraint(('character_graph', ), ['graphs.graph']),
+          ForeignKeyConstraint(('unit_graph', 'unit_node'),
                                ['nodes.graph', 'nodes.node']),
           sqlite_with_rowid=False)
 
@@ -243,7 +243,7 @@ def tables_for_meta(meta):
         Column('turn', INT, primary_key=True),
         Column('tick', INT),
         ForeignKeyConstraint(
-            ['character', 'rulebook'],
+            ('character', 'rulebook'),
             ['character_rulebook.character', 'character_rulebook.rulebook']),
         sqlite_with_rowid=False)
 
@@ -258,7 +258,7 @@ def tables_for_meta(meta):
                 Column('turn', INT, primary_key=True),
                 Column('tick', INT),
                 ForeignKeyConstraint(
-                    ['character', 'rulebook'],
+                    ('character', 'rulebook'),
                     ['unit_rulebook.character', 'unit_rulebook.rulebook']),
                 sqlite_with_rowid=False)
 
@@ -271,11 +271,11 @@ def tables_for_meta(meta):
                  Column('branch', TEXT, primary_key=True, default='trunk'),
                  Column('turn', INT, primary_key=True),
                  Column('tick', INT),
-                 ForeignKeyConstraint(['character', 'rulebook'], [
+                 ForeignKeyConstraint(('character', 'rulebook'), [
                      'character_thing_rulebook.character',
                      'character_thing_rulebook.rulebook'
                  ]),
-                 ForeignKeyConstraint(['character', 'thing'],
+                 ForeignKeyConstraint(('character', 'thing'),
                                       ['things.character', 'things.thing']),
                  sqlite_with_rowid=False)
 
@@ -288,32 +288,32 @@ def tables_for_meta(meta):
                  Column('branch', TEXT, primary_key=True, default='trunk'),
                  Column('turn', INT, primary_key=True),
                  Column('tick', INT),
-                 ForeignKeyConstraint(['character', 'rulebook'], [
+                 ForeignKeyConstraint(('character', 'rulebook'), [
                      'character_place_rulebook.character',
                      'character_place_rulebook.rulebook'
                  ]),
-                 ForeignKeyConstraint(['character', 'place'],
+                 ForeignKeyConstraint(('character', 'place'),
                                       ['nodes.graph', 'nodes.node']),
                  sqlite_with_rowid=False)
 
-    cporh = Table(
-        'character_portal_rules_handled',
-        meta,
-        Column('character', TEXT, primary_key=True),
-        Column('orig', TEXT, primary_key=True),
-        Column('dest', TEXT, primary_key=True),
-        Column('rulebook', TEXT, primary_key=True),
-        Column('rule', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True, default='trunk'),
-        Column('turn', INT, primary_key=True),
-        Column('tick', INT),
-        ForeignKeyConstraint(['character', 'rulebook'], [
-            'character_portal_rulebook.character',
-            'character_portal_rulebook.rulebook'
-        ]),
-        ForeignKeyConstraint(['character', 'orig', 'dest'],
-                             ['edges.graph', 'edges.orig', 'edges.dest']),
-        sqlite_with_rowid=False)
+    cporh = Table('character_portal_rules_handled',
+                  meta,
+                  Column('character', TEXT, primary_key=True),
+                  Column('orig', TEXT, primary_key=True),
+                  Column('dest', TEXT, primary_key=True),
+                  Column('rulebook', TEXT, primary_key=True),
+                  Column('rule', TEXT, primary_key=True),
+                  Column('branch', TEXT, primary_key=True, default='trunk'),
+                  Column('turn', INT, primary_key=True),
+                  Column('tick', INT),
+                  ForeignKeyConstraint(('character', 'rulebook'), [
+                      'character_portal_rulebook.character',
+                      'character_portal_rulebook.rulebook'
+                  ]),
+                  ForeignKeyConstraint(
+                      ('character', 'orig', 'dest'),
+                      ['edges.graph', 'edges.orig', 'edges.dest']),
+                  sqlite_with_rowid=False)
 
     Table('turns_completed',
           meta,

@@ -621,7 +621,9 @@ class QueryEngine(query.QueryEngine):
                    entity1,
                    stat1=None,
                    oper='eq',
-                   windows=[]):
+                   windows: list = None):
+        if windows is None:
+            windows = []
         stat1 = stat1 or stat0
         return comparisons[oper](leftside=entity0.status(stat0),
                                  rightside=entity1.status(stat1),

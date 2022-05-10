@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Directed edges, as used by LiSE."""
+from collections import Mapping
+from typing import Union, List, Tuple, Any
 
 from .allegedb.graph import Edge
 from .allegedb import HistoryError
@@ -193,15 +195,26 @@ class Portal(Edge, RuleFollower):
         """
         return StatusAlias(entity=self, stat=stat)
 
-    def update(self, d):
+    def update(self, e: Union[Mapping, List[Tuple[Any, Any]]] = None, **f):
         """Works like regular update, but only actually updates when the new
         value and the old value differ. This is necessary to prevent
         certain infinite loops.
 
-        :arg d: a dictionary
-
         """
-        for (k, v) in d.items():
+        if e is not None:
+            if hasattr(e, 'keys') and callable(e.keys):
+                for k in e.keys():
+                    if k not in self:
+                        self[k] = e[k]
+                    else:
+                        v = e[k]
+                        if self[k] != v:
+                            self[k] = v
+            else:
+                for k, v in e:
+                    if k not in self or self[k] != v:
+                        self[k] = v
+        for k, v in f.items():
             if k not in self or self[k] != v:
                 self[k] = v
 

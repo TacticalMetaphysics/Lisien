@@ -301,22 +301,22 @@ class WindowDictFutureView(WindowDictPastFutureView):
 
 class WindowDictSlice:
     """A slice of history in which the start is earlier than the stop"""
-    __slots__ = ['dict', 'slice']
-    dict: 'WindowDict'
-    slice: slice
+    __slots__ = ['dic', 'slic']
+    dic: 'WindowDict'
+    slic: slice
 
-    def __init__(self, dict: 'WindowDict', slic: slice):
-        self.dict = dict
-        self.slice = slic
+    def __init__(self, dic: 'WindowDict', slic: slice):
+        self.dic = dic
+        self.slic = slic
 
     def __reversed__(self) -> Iterable[Any]:
-        return iter(WindowDictReverseSlice(self.dict, self.slice))
+        return iter(WindowDictReverseSlice(self.dic, self.slic))
 
     def __iter__(self):
-        dic = self.dict
+        dic = self.dic
         if not dic:
             return
-        slic = self.slice
+        slic = self.slic
         if slic.step is not None:
             for i in range(slic.start or dic.beginning, slic.stop
                            or dic.end + 1, slic.step):

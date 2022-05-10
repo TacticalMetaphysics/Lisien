@@ -75,12 +75,15 @@ from abc import ABC, abstractmethod
 from functools import partial
 from inspect import getsource
 from ast import parse
+from typing import Callable
 
 from astunparse import unparse
 from blinker import Signal
 
 from .reify import reify
-from .util import dedent_source
+from .util import dedent_source, AbstractEngine
+from .xcollections import FunctionStore
+from .cache import Cache
 
 
 def roundtrip_dedent(source):
@@ -88,9 +91,12 @@ def roundtrip_dedent(source):
     return unparse(parse(dedent_source(source)))
 
 
-class RuleFuncList(MutableSequence, Signal):
+class RuleFuncList(MutableSequence, Signal, ABC):
     """Abstract class for lists of functions like trigger, prereq, action"""
     __slots__ = ['rule']
+    _funcstore: FunctionStore
+    _cache: Cache
+    _setter: Callable
 
     def __init__(self, rule):
         super().__init__()
@@ -550,6 +556,7 @@ class RuleFollower(ABC):
 
     """
     __slots__ = ()
+    engine: AbstractEngine
 
     @property
     def _rule_mapping(self):
@@ -594,12 +601,12 @@ class RuleFollower(ABC):
     @abstractmethod
     def _get_rule_mapping(self):
         """Get the :class:`RuleMapping` for my rulebook."""
-        raise NotImplementedError
+        raise NotImplementedError("_get_rule_mapping")
 
     @abstractmethod
     def _get_rulebook_name(self):
         """Get the name of my rulebook."""
-        raise NotImplementedError
+        raise NotImplementedError("_get_rulebook_name")
 
     @abstractmethod
     def _set_rulebook_name(self, n):
@@ -607,7 +614,7 @@ class RuleFollower(ABC):
         me.
 
         """
-        raise NotImplementedError
+        raise NotImplementedError("_set_rulebook_name")
 
 
 class AllRuleBooks(MutableMapping, Signal):

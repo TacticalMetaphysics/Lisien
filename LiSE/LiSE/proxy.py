@@ -29,6 +29,7 @@ from threading import Thread, Lock
 from multiprocessing import Process, Pipe, Queue, ProcessError
 from concurrent.futures import ThreadPoolExecutor
 from queue import Empty
+from typing import Hashable
 
 from blinker import Signal
 import lz4.frame
@@ -37,10 +38,9 @@ import msgpack
 from .allegedb import HistoryError
 from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
-from .engine import AbstractEngine, MSGPACK_TUPLE
-from .character import Facade, AbstractCharacter
+from .character import Facade
 from .reify import reify
-from .util import getatt
+from .util import getatt, AbstractEngine, MSGPACK_TUPLE, AbstractCharacter
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
 from .node import NodeContent, UserMapping, UserDescriptor
@@ -51,6 +51,8 @@ from .portal import Portal
 
 class CachingProxy(MutableMapping, Signal):
     """Abstract class for proxies to LiSE entities or mappings thereof"""
+    _cache: dict
+    rulebook: 'RuleBookProxy'
 
     def __init__(self):
         super().__init__()
@@ -106,6 +108,10 @@ class CachingProxy(MutableMapping, Signal):
         return v
 
     @abstractmethod
+    def _set_rulebook_proxy(self, k):
+        raise NotImplementedError("_set_rulebook_proxy")
+
+    @abstractmethod
     def _set_item(self, k, v):
         raise NotImplementedError("Abstract method")
 
@@ -116,6 +122,7 @@ class CachingProxy(MutableMapping, Signal):
 
 class CachingEntityProxy(CachingProxy):
     """Abstract class for proxy objects representing LiSE entities"""
+    name: Hashable
 
     def _cache_get_munge(self, k, v):
         if isinstance(v, dict):
@@ -718,6 +725,10 @@ class SuccessorsProxy(CachingProxy):
         return self.engine._character_portals_cache.successors[self._charname][
             self._orig]
 
+    def _set_rulebook_proxy(self, k):
+        raise NotImplementedError(
+            "Set the rulebook on the .portal attribute, not this")
+
     def __init__(self, engine_proxy, charname, origname):
         self.engine = engine_proxy
         self._charname = charname
@@ -926,6 +937,10 @@ class CharStatProxy(CachingEntityProxy):
     def __eq__(self, other):
         return (isinstance(other, CharStatProxy)
                 and self.engine is other.engine and self.name == other.name)
+
+    def _set_rulebook_proxy(self, k):
+        raise NotImplementedError(
+            "Set rulebooks on the Character proxy, not this")
 
     def _get(self, k=None):
         if k is None:
@@ -1255,11 +1270,10 @@ class CharacterProxy(AbstractCharacter):
 
     def __eq__(self, other):
         if hasattr(other, 'engine'):
-            oe = other.engine
+            return (self.engine is other.engine and hasattr(other, 'name')
+                    and self.name == other.name)
         else:
             return False
-        return (self.engine is oe and hasattr(other, 'name')
-                and self.name == other.name)
 
     def _apply_delta(self, delta):
         delta = delta.copy()
@@ -1369,7 +1383,7 @@ class CharacterProxy(AbstractCharacter):
             else:
                 placecache[pln] = PlaceProxy(self, pln)
 
-    def add_nodes_from(self, seq):
+    def add_nodes_from(self, seq, **attrs):
         self.add_places_from(seq)
 
     def add_thing(self, name, location, **kwargs):
@@ -1382,7 +1396,7 @@ class CharacterProxy(AbstractCharacter):
                            branching=True)
         self.thing._cache[name] = ThingProxy(self, name, location, **kwargs)
 
-    def add_things_from(self, seq):
+    def add_things_from(self, seq, **attrs):
         self.engine.handle(command='add_things_from',
                            char=self.name,
                            seq=list(seq),
@@ -1519,7 +1533,7 @@ class CharacterProxy(AbstractCharacter):
                 self.portal._cache[origin] = SuccessorsProxy(
                     self.engine, self.name, origin)
             self.portal[origin]._cache[destination] = PortalProxy(
-                self.engine, self.name, origin, destination)
+                self, origin, destination)
 
     def new_portal(self, origin, destination, symmetrical=False, **kwargs):
         self.add_portal(origin, destination, symmetrical, **kwargs)
@@ -1529,8 +1543,11 @@ class CharacterProxy(AbstractCharacter):
         yield from self.engine.handle(command='character_portals',
                                       char=self.name)
 
-    def add_unit(self, graph, node):
+    def add_unit(self, graph, node=None):
         # TODO: cache
+        if node is None:
+            node = graph.name
+            graph = graph.character.name
         self.engine.handle(command='add_unit',
                            char=self.name,
                            graph=graph,
@@ -1538,8 +1555,11 @@ class CharacterProxy(AbstractCharacter):
                            block=False,
                            branching=True)
 
-    def remove_unit(self, graph, node):
+    def remove_unit(self, graph, node=None):
         # TODO: cache
+        if node is None:
+            node = graph.name
+            graph = graph.character.name
         self.engine.handle(command='remove_unit',
                            char=self.name,
                            graph=graph,
@@ -1632,6 +1652,7 @@ class ProxyLanguageDescriptor(AbstractLanguageDescriptor):
 
 class StringStoreProxy(Signal):
     language = ProxyLanguageDescriptor()
+    _cache: dict
 
     def __init__(self, engine_proxy):
         super().__init__()
@@ -1832,6 +1853,7 @@ class FuncProxy(object):
 
 
 class FuncStoreProxy(Signal):
+    _cache: dict
 
     def __init__(self, engine_proxy, store):
         super().__init__()
@@ -1887,30 +1909,19 @@ class PortalObjCache(object):
         self.predecessors[char][v][u] = obj
 
     def delete(self, char, u, v):
-        succs = self.successors
-        if char not in succs:
-            raise KeyError(char)
-        succmap = succs[char]
-        if u not in succmap:
-            raise KeyError((char, u))
-        succu = succmap[u]
-        if v not in succu:
-            raise KeyError((char, u, v))
-        del succu[v]
-        if not succu:
-            del succmap[u]
-        preds = self.predecessors
-        if char not in preds:
-            raise KeyError(char)
-        predmap = preds[char]
-        if v not in predmap:
-            raise KeyError((char, v))
-        predv = predmap[v]
-        if u not in predv:
-            raise KeyError((char, v, u))
-        del predv[u]
-        if not predv:
-            del predmap[v]
+        for (mapp, a, b) in [(self.successors, u, v),
+                             (self.predecessors, v, u)]:
+            if char not in mapp:
+                raise KeyError(char)
+            submap = mapp[char]
+            if a not in submap:
+                raise KeyError((char, a))
+            submap_a = submap[a]
+            if b not in submap_a:
+                raise KeyError((char, a, b))
+            del submap_a[b]
+            if not submap_a:
+                del submap[a]
 
     def delete_char(self, char):
         del self.successors[char]
