@@ -25,13 +25,12 @@ from textwrap import dedent
 from time import monotonic
 from types import MethodType, FunctionType
 from typing import Mapping, Iterable, Union, Callable, Dict, Hashable
+from weakref import WeakValueDictionary
 
 import msgpack
 import networkx as nx
 
 from LiSE import exc
-from LiSE.character import SpecialMappingDescriptor
-from LiSE.reify import reify
 
 
 class FinalRule:
@@ -578,6 +577,34 @@ class AbstractEngine(ABC):
     uniform = getnoplan('_rando.uniform')
     vonmisesvariate = getnoplan('_rando.vonmisesvariate')
     weibullvariate = getnoplan('_rando.weibullvariate')
+
+
+class SpecialMappingDescriptor:
+
+    def __init__(self, mapclsname):
+        self.insts = WeakValueDictionary()
+        self.mapps = {}
+        self.mapclsname = mapclsname
+
+    def __get__(self, instance, owner):
+        if id(instance) in self.mapps:
+            if id(instance) not in self.insts:
+                del self.mapps[id(instance)]
+            else:
+                return self.mapps[id(instance)]
+        self.insts[id(instance)] = instance
+        mappcls = getattr(instance, self.mapclsname)
+        ret = self.mapps[id(instance)] = mappcls(instance)
+        return ret
+
+    def __set__(self, instance, value):
+        if id(instance) not in self.mapps:
+            self.insts[id(instance)] = instance
+            self.mapps[id(instance)] = getattr(instance,
+                                               self.mapclsname)(instance)
+        it = self.mapps[id(instance)]
+        it.clear()
+        it.update(value)
 
 
 class AbstractCharacter(Mapping):
