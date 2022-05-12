@@ -176,8 +176,8 @@ class EntityStatAccessor(object):
 
     def munge(self, munger):
         return EntityStatAccessor(self.entity, self.stat, self.engine,
-                                  self.branch, self.tick, self.current,
-                                  self.mungers + [munger])
+                                  self.branch, self.turn, self.tick,
+                                  self.current, self.mungers + [munger])
 
     def __add__(self, other):
         return self.munge(partial(add, other))
