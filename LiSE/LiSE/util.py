@@ -111,7 +111,7 @@ class EntityStatAccessor(object):
                  turn=None,
                  tick=None,
                  current=False,
-                 mungers=[]):
+                 mungers: list = None):
         if engine is None:
             engine = entity.engine
         if branch is None:
@@ -120,6 +120,8 @@ class EntityStatAccessor(object):
             turn = engine.turn
         if tick is None:
             tick = engine.tick
+        if mungers is None:
+            mungers = []
         self.current = current
         self.engine = engine
         self.entity = entity
