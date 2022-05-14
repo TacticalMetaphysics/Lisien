@@ -39,11 +39,8 @@ def roerror(*args, **kwargs):
 class Thing(Node):
     """The sort of item that has a particular location at any given time.
 
-    If a Thing is in a Place, it is standing still. If it is in a
-    Portal, it is moving through that Portal however fast it must in
-    order to arrive at the other end when it is scheduled to. If it is
-    in another Thing, then it is wherever that is, and moving the
-    same.
+    Things are always in Places or other Things, and may additionally be
+    travelling through a Portal.
 
     LiSE entities are truthy so long as they exist, falsy if they've
     been deleted.
@@ -91,13 +88,10 @@ class Thing(Node):
     _setitem_dispatch = {'name': roerror, 'location': _set_loc}
 
     def __getitem__(self, key: Hashable):
-        """Return one of my stats stored in the database, or a few
-        special cases:
+        """Return one of my stats stored in the database, or special cases:
 
         ``name``: return the name that uniquely identifies me within
         my Character
-
-        ``character``: return the name of my character
 
         ``location``: return the name of my location
 
@@ -171,8 +165,8 @@ class Thing(Node):
     def go_to_place(self,
                     place: Union[Node, Hashable],
                     weight: Hashable = None) -> int:
-        """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
-        to the given :class:`Place`, schedule myself to travel to the
+        """Assuming I'm in a node that has a :class:`Portal` direct
+        to the given node, schedule myself to travel to the
         given :class:`Place`, taking an amount of time indicated by
         the ``weight`` stat on the :class:`Portal`, if given; else 1
         turn.
@@ -194,9 +188,9 @@ class Thing(Node):
         return turns
 
     def follow_path(self, path: list, weight: Hashable = None) -> int:
-        """Go to several :class:`Place`s in succession, deciding how long to
+        """Go to several nodes in succession, deciding how long to
         spend in each by consulting the ``weight`` stat of the
-        :class:`Portal` connecting the one :class:`Place` to the next,
+        :class:`Portal` connecting the one node to the next,
         default 1 turn.
 
         Return the total number of turns the travel will take. Raise
@@ -243,7 +237,7 @@ class Thing(Node):
                   dest: Union[Node, Hashable],
                   weight: Hashable = None,
                   graph: AbstractCharacter = None) -> int:
-        """Find the shortest path to the given :class:`Place` from where I am
+        """Find the shortest path to the given node from where I am
         now, and follow it.
 
         If supplied, the ``weight`` stat of the :class:`Portal`s along
