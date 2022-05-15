@@ -32,12 +32,15 @@ import msgpack
 from .engine import Engine
 from .util import MSGPACK_SET
 
+EMPTY_DELTA = ({}, {})
+
 SLIGHTLY_PACKED_DELTA_TYPE = Dict[bytes, Dict[bytes,
                                               Union[bytes,
                                                     Dict[bytes,
                                                          Union[bytes,
                                                                Dict[bytes,
                                                                     bytes]]]]]]
+FormerAndCurrentType = Tuple[Dict[bytes, bytes], Dict[bytes, bytes]]
 
 TRUE: bytes = msgpack.packb(True)
 FALSE: bytes = msgpack.packb(False)
@@ -57,29 +60,85 @@ LOCATION: bytes = msgpack.packb('location')
 BRANCH: bytes = msgpack.packb('branch')
 
 
-def _dict_delta_added(oldkeys: KeysView[bytes], new: Dict[bytes, bytes],
-                      d: Dict[bytes, bytes]):
-    for k in new.keys() - oldkeys:
-        d[k] = new[k]
+def _dict_delta_added(old: Dict[bytes, bytes], new: Dict[bytes, bytes],
+                      former: Dict[bytes, bytes], current: Dict[bytes, bytes]):
+    for k in new.keys() - old.keys():
+        former[k] = NONE
+        current[k] = new[k]
 
 
-def _dict_delta_removed(oldkeys: KeysView[bytes], newkeys: KeysView[bytes],
-                        d: Dict[bytes, bytes]):
-    for k in oldkeys - newkeys:
-        d[k] = NONE
+def _dict_delta_removed(old: Dict[bytes, bytes], new: Dict[bytes, bytes],
+                        former: Dict[bytes, bytes], current: Dict[bytes,
+                                                                  bytes]):
+    for k in old.keys() - new.keys():
+        former[k] = old[k]
+        current[k] = NONE
 
 
-def _set_delta_added(old: Set[bytes], new: Set[bytes], d: Dict[bytes, bytes]):
-    d.update((item, TRUE) for item in new.difference(old))
+def packed_dict_delta(old: Dict[bytes, bytes],
+                      new: Dict[bytes, bytes]) -> FormerAndCurrentType:
+    """Describe changes from one shallow dictionary of msgpack data to another
 
+    """
 
-def set_delta(old: Set[bytes], new: Set[bytes]):
-    r = {}
-    added_thread = Thread(target=_set_delta_added, args=(old, new, r))
+    post = {}
+    pre = {}
+    added_thread = Thread(target=_dict_delta_added, args=(old, new, pre, post))
+    removed_thread = Thread(target=_dict_delta_removed,
+                            args=(old, new, pre, post))
     added_thread.start()
-    r.update((item, FALSE) for item in old.difference(new))
+    removed_thread.start()
+    ks = old.keys() & new.keys()
+    oldv_l = []
+    newv_l = []
+    k_l = []
+    for k in ks:
+        # \xc1 is unused by msgpack.
+        # I append it here so that the last byte will never be \x00,
+        # which numpy uses as a terminator, but msgpack uses for
+        # the integer zero.
+        oldv_l.append(old[k] + b'\xc1')
+        newv_l.append(new[k] + b'\xc1')
+        k_l.append(k + b'\xc1')
+    oldvs = np.array(oldv_l)
+    newvs = np.array(newv_l)
+    ks = np.array(k_l)
+    changes = oldvs != newvs
     added_thread.join()
-    return r
+    removed_thread.join()
+    if not (changes.any() or post):
+        return {}, {}
+    if changes.any():
+        changed_keys = ks[changes]
+        changed_values = newvs[changes]
+        former_values = oldvs[changes]
+        for k, former, current in zip(changed_keys, former_values,
+                                      changed_values):
+            k = k[:-1]
+            pre[k] = former[:-1]
+            post[k] = current[:-1]
+    return pre, post
+
+
+def _set_delta_added(old: Set[bytes], new: Set[bytes],
+                     former: Dict[bytes, bytes], current: Dict[bytes, bytes]):
+    for item in new - old:
+        former[item] = FALSE
+        current[item] = TRUE
+
+
+def set_delta(old: Set[bytes], new: Set[bytes]) -> FormerAndCurrentType:
+    """Describes changes from one set of msgpack-packed values to another"""
+    former = {}
+    current = {}
+    added_thread = Thread(target=_set_delta_added,
+                          args=(old, new, former, current))
+    added_thread.start()
+    for item in old - new:
+        former[item] = TRUE
+        current[item] = FALSE
+    added_thread.join()
+    return former, current
 
 
 def concat_d(r: Dict[bytes, bytes]) -> bytes:
@@ -137,49 +196,6 @@ def timely(fun: Callable) -> Callable:
 def prepacked(fun: Callable) -> Callable:
     fun.prepacked = True
     return fun
-
-
-def _packed_dict_delta(old: Dict[bytes, bytes],
-                       new: Dict[bytes, bytes]) -> Dict[bytes, bytes]:
-    """Describe changes from one shallow dictionary of msgpack data to another
-
-    The returned dictionary indicates deleted keys with the value \xc0.
-    Added or changed keys have their actual value.
-
-    """
-
-    r = {}
-    added_thread = Thread(target=_dict_delta_added, args=(old.keys(), new, r))
-    removed_thread = Thread(target=_dict_delta_removed,
-                            args=(old.keys(), new.keys(), r))
-    added_thread.start()
-    removed_thread.start()
-    ks = old.keys() & new.keys()
-    oldv_l = []
-    newv_l = []
-    k_l = []
-    for k in ks:
-        # \xc1 is unused by msgpack.
-        # I append it here so that the last byte will never be \x00,
-        # which numpy uses as a terminator, but msgpack uses for
-        # the integer zero.
-        oldv_l.append(old[k] + b'\xc1')
-        newv_l.append(new[k] + b'\xc1')
-        k_l.append(k + b'\xc1')
-    oldvs = np.array(oldv_l)
-    newvs = np.array(newv_l)
-    ks = np.array(k_l)
-    changes = oldvs != newvs
-    added_thread.join()
-    removed_thread.join()
-    if not (changes.any() or r):
-        return {}
-    if changes.any():
-        changed_keys = ks[changes]
-        changed_values = newvs[changes]
-        for (k, v) in zip(changed_keys, changed_values):
-            r[k[:-1]] = v[:-1]
-    return r
 
 
 class BytesDict(dict):
@@ -266,8 +282,9 @@ class EngineHandle(object):
         self._strings_copy_memo = {}
         self._eternal_cache = BytesDict()
         self._eternal_copy_memo = {}
-        self._universal_cache = BytesDict()
         self._universal_copy_memo = {}
+        self._universal_delta_memo: Dict[bytes, Dict[bytes, Dict[
+            bytes, bytes]]] = defaultdict(lambda: defaultdict(dict))
         self._rule_cache = defaultdict(dict)
         self._rule_copy_memo = {}
         self._rulebook_copy_memo = {}
@@ -497,7 +514,7 @@ class EngineHandle(object):
         })
 
     @staticmethod
-    def _concat_delta(delta) -> Tuple[SLIGHTLY_PACKED_DELTA_TYPE, bytes]:
+    def _concat_char_delta(delta) -> Tuple[SLIGHTLY_PACKED_DELTA_TYPE, bytes]:
         slightly_packed_delta = {}
         mostly_packed_delta = {}
         for char, chardelta in delta.items():
@@ -605,7 +622,8 @@ class EngineHandle(object):
                                          btt_from=(branch_from, turn_from,
                                                    tick_from),
                                          btt_to=(branch, turn, tick))
-            slightly_packed_delta, packed_delta = self._concat_delta(delta)
+            slightly_packed_delta, packed_delta = self._concat_char_delta(
+                delta)
         else:
             delta = self._real.get_delta(branch, turn_from, tick_from, turn,
                                          tick)
@@ -614,9 +632,7 @@ class EngineHandle(object):
 
     @timely
     @prepacked
-    def increment_branch(self, chars: list = None) -> bytes:
-        if chars is None:
-            chars = []
+    def increment_branch(self) -> bytes:
         branch = self._real.branch
         m = match(r'(.*)(\d+)', branch)
         if m:
@@ -635,11 +651,8 @@ class EngineHandle(object):
             while stem + str(n) in self._real._branches:
                 n += 1
             branch = stem + str(n)
-        ret = {BRANCH: branch}
         self._real.branch = self.branch = branch
-        if chars:
-            ret.update(self._get_char_deltas(chars))
-        return self._concat_delta(ret)[1]
+        return self.pack(branch)
 
     @timely
     def add_character(self, char, data, attr):
@@ -777,11 +790,17 @@ class EngineHandle(object):
             *,
             btt_from: Tuple[str, int, int] = None,
             btt_to: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
+        memo = self._universal_delta_memo
+        if btt_from in memo and btt_to in memo[btt_from]:
+            return memo[btt_from][btt_to]
         old = self.universal_copy(btt=self._get_watched_btt(btt_from))
         btt_now = self._get_btt(btt_to)
         new = self._universal_copy_memo[btt_now] = self.universal_copy(
             btt=btt_now)
-        return _packed_dict_delta(old, new)
+        former, current = packed_dict_delta(old, new)
+        memo[btt_from][btt_to] = current
+        memo[btt_to][btt_from] = former
+        return current
 
     @timely
     def init_character(self, char, statdict: dict = None):
@@ -821,7 +840,7 @@ class EngineHandle(object):
                                    btt_to: Tuple[str, int, int] = None):
         old = copier(char, *args, btt=self._get_watched_btt(btt_from))
         new = copier(char, *args, btt=btt_to)
-        return _packed_dict_delta(old, new)
+        return packed_dict_delta(old, new)
 
     @prepacked
     def character_stat_delta(self,
@@ -859,20 +878,28 @@ class EngineHandle(object):
                                          btt=self._get_watched_btt(btt_from))
         new = defaultdict(set)
         new.update(self._character_units_copy(char, btt=btt_to))
-        ret = {}
+        former = {}
+        current = {}
         for graph in old.keys() - new.keys():
-            ret[graph] = {node: FALSE for node in old[graph]}
+            current[graph] = {node: FALSE for node in old[graph]}
+            former[graph] = {node: TRUE for node in old[graph]}
         for graph in new.keys() - old.keys():
-            ret[graph] = {node: TRUE for node in new[graph]}
+            current[graph] = {node: TRUE for node in new[graph]}
+            former[graph] = {node: FALSE for node in new[graph]}
         for graph in old.keys() & new.keys():
-            graph_nodes = {}
+            graph_nodes_former = {}
+            graph_nodes_current = {}
             for node in old[graph].difference(new[graph]):
-                graph_nodes[node] = FALSE
+                graph_nodes_former[node] = TRUE
+                graph_nodes_current[node] = FALSE
             for node in new[graph].difference(old[graph]):
-                graph_nodes[node] = TRUE
-            if graph_nodes:
-                ret[graph] = graph_nodes
-        return ret
+                graph_nodes_former[node] = FALSE
+                graph_nodes_current[node] = TRUE
+            if graph_nodes_current:
+                current[graph] = graph_nodes_current
+            if graph_nodes_former:
+                former[graph] = graph_nodes_former
+        return former, current
 
     @prepacked
     def character_rulebooks_copy(self, char, btt: Tuple[str, int, int] = None):
@@ -969,16 +996,20 @@ class EngineHandle(object):
                                                                  portals,
                                                                  btt=btt_to):
             new[orig] = dict(map(self.pack_pair, dests.items()))
-        result = {}
+        former = {}
+        current = {}
+        futs = []
         for origin in old:
             if origin in new:
-                result[origin] = _packed_dict_delta(old[origin], new[origin])
+                fut = self.threadpool.submit(packed_dict_delta, old[origin],
+                                             new[origin])
+                fut.origin = origin
+                futs.append(fut)
             else:
-                result[origin] = None
-        for origin in new:
-            if origin not in result:
-                result[origin] = new[origin]
-        return result
+                former[origin] = current[origin] = None
+        for fut in as_completed(futs):
+            former[fut.origin], current[fut.origin] = fut.result()
+        return former, current
 
     def _character_delta(
         self,
@@ -1027,49 +1058,54 @@ class EngineHandle(object):
                                         btt_from=observed_btt,
                                         btt_to=actual_btt)
         chara = self._real.character[char]
-        ret = self.character_stat_delta(char,
-                                        btt_from=observed_btt,
-                                        btt_to=actual_btt)
+        former, current = self.character_stat_delta(char,
+                                                    btt_from=observed_btt,
+                                                    btt_to=actual_btt)
         nodes_res = nodes_fut.result()
-        if nodes_res:
-            ret[NODES] = nodes_res
+        if nodes_res != EMPTY_DELTA:
+            former[NODES], current[NODES] = nodes_res
         edges_res = edges_fut.result()
-        if edges_res:
-            ret[EDGES] = edges_res
+        if edges_res != EMPTY_DELTA:
+            former[EDGES], current[EDGES] = edges_res
         units_res = units_fut.result()
-        if units_res:
-            ret[UNITS] = units_res
+        if units_res != EMPTY_DELTA:
+            former[UNITS], current[UNITS] = units_res
         rbs = rbs_fut.result()
-        if rbs:
-            ret[RULEBOOKS] = rbs
+        if rbs != EMPTY_DELTA:
+            former[RULEBOOKS], current[RULEBOOKS] = rbs
         nv = nv_fut.result()
         nrbs = nrbs_fut.result()
-        if nrbs:
-            for node, rb in nrbs.items():
+        for (nw, nrbt) in zip(nv, nrbs):
+            if not nrbt:
+                continue
+            for node, rb in nrbt.items():
                 if node not in chara.node:
                     continue
-                if node in nv:
-                    nv[node][RULEBOOK] = rb
+                if node in nw:
+                    nw[node][RULEBOOK] = rb
                 else:
-                    nv[node] = {RULEBOOK: rb}
-        if nv:
-            ret[NODE_VAL] = nv
+                    nw[node] = {RULEBOOK: rb}
+        if nv != EMPTY_DELTA:
+            former[NODE_VAL], current[NODE_VAL] = nv
         ev = ev_fut.result()
         porbs = porbs_fut.result()
-        if porbs:
-            for orig, dests in porbs.items():
+        for (ew, porbt) in zip(ev, porbs):
+            if not porbt:
+                continue
+            for orig, dests in porbt.items():
                 if orig not in chara.portal:
                     continue
                 portals = chara.portal[orig]
                 for dest, rb in dests.items():
                     if dest not in portals:
                         continue
-                    ev.setdefault(orig, {}).setdefault(dest, {})[RULEBOOK] = rb
-        if ev:
-            ret[EDGE_VAL] = ev
+                    ew.setdefault(orig, {}).setdefault(dest, {})[RULEBOOK] = rb
+        if ev != EMPTY_DELTA:
+            former[EDGE_VAL], current[EDGE_VAL] = ev
         self._character_delta_memo[char][observed_btt][
-            actual_btt] = ret  # canon
-        return ret
+            actual_btt] = current  # canon
+        self._character_delta_memo[char][actual_btt][observed_btt] = former
+        return current
 
     @timely
     def set_character_stat(self, char, k, v):
@@ -1153,19 +1189,23 @@ class EngineHandle(object):
                                   node,
                                   btt=self._get_watched_btt(btt_from))
         new = self.node_stat_copy(char, node, btt=btt_to)
-        return _packed_dict_delta(old, new)
+        return packed_dict_delta(old, new)
 
-    def _character_nodes_stat_delta(self,
-                                    char,
-                                    *,
-                                    btt_from: Tuple[str, int, int] = None,
-                                    btt_to: Tuple[str, int, int] = None):
+    def _character_nodes_stat_delta(
+        self,
+        char,
+        *,
+        btt_from: Tuple[str, int, int] = None,
+        btt_to: Tuple[str, int, int] = None
+    ) -> Tuple[Dict[bytes, Dict[bytes, bytes]], Dict[bytes, Dict[bytes,
+                                                                 bytes]]]:
         """Return a dictionary of ``node_stat_delta`` output for each node in a
         character.
 
         """
         pack = self._real.pack
-        r = {}
+        former = {}
+        current = {}
         origtime = self._real._btt()
         self._real._set_btt(*btt_from)
         nodes_from = set(self._real.character[char].node.keys())
@@ -1180,13 +1220,15 @@ class EngineHandle(object):
                                          node,
                                          btt_from=btt_from,
                                          btt_to=btt_to)
-            fut.node = node
+            fut.node = pack(node)
             futs.append(fut)
         for fut in as_completed(futs):
-            delta = fut.result()
-            if delta:
-                r[pack(fut.node)] = delta
-        return r
+            d_former, d_current = fut.result()
+            if d_current:
+                assert d_former
+                current[fut.node] = d_current
+                former[fut.node] = d_former
+        return former, current
 
     def _character_nodes_stat_copy(
             self,
@@ -1454,7 +1496,7 @@ class EngineHandle(object):
                                     dest,
                                     btt=self._get_watched_btt(btt_from))
         new = self.portal_stat_copy(char, orig, dest, btt=btt_to)
-        return _packed_dict_delta(old, new)
+        return packed_dict_delta(old, new)
 
     def _character_portals_stat_copy(
         self,
@@ -1482,7 +1524,8 @@ class EngineHandle(object):
                                       *,
                                       btt_from: Tuple[str, int, int] = None,
                                       btt_to: Tuple[str, int, int] = None):
-        r = {}
+        former = {}
+        current = {}
         futs = []
         btt_from = self._get_watched_btt(btt_from)
         btt_to = self._get_btt(btt_to)
@@ -1503,14 +1546,18 @@ class EngineHandle(object):
             fut.dest = dest
             futs.append(fut)
         for fut in as_completed(futs):
-            delta = fut.result()
+            fmr, cur = fut.result()
             orig = fut.orig
             dest = fut.dest
-            if delta:
-                if orig not in r:
-                    r[orig] = {}
-                r[orig][dest] = delta
-        return r
+            if cur:
+                assert fmr
+                if orig not in current:
+                    assert orig not in former
+                    current[orig] = {}
+                    former[orig] = {}
+                current[orig][dest] = cur
+                former[orig][dest] = fmr
+        return former, current
 
     @timely
     def update_portal(self, char, orig, dest, patch):
