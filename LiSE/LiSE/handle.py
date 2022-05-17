@@ -401,7 +401,8 @@ class EngineHandle(object):
             NODE_VAL:
             concat_d(self._character_nodes_stat_copy(char, btt=btt)),
             EDGE_VAL:
-            concat_d(ported)
+            concat_d(ported),
+            **self.character_stat_copy(char)
         }
 
     @prepacked
