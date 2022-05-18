@@ -293,7 +293,7 @@ class EngineHandle(object):
         self.threadpool = ThreadPoolExecutor(cpu_count())
         self._cache_arranger_started = False
 
-    def _precopy_at_time(self, _, *, branch, turn, tick):
+    def _precopy_at_time(self, _, *, branch: str, turn: int, tick: int) -> None:
         lock = self._real.world_lock
         btt = (branch, turn, tick)
         with lock:
@@ -312,7 +312,7 @@ class EngineHandle(object):
             with lock:
                 self._character_units_copy(char, btt=btt)
 
-    def log(self, level, message):
+    def log(self, level: Union[str, int], message: str) -> None:
         if isinstance(level, str):
             level = {
                 'debug': 10,
@@ -324,33 +324,33 @@ class EngineHandle(object):
         if self._logq and level >= self._loglevel:
             self._logq.put((level, message))
 
-    def debug(self, message):
+    def debug(self, message: str) -> None:
         self.log(DEBUG, message)
 
-    def info(self, message):
+    def info(self, message: str) -> None:
         self.log(INFO, message)
 
-    def warning(self, message):
+    def warning(self, message: str) -> None:
         self.log(WARNING, message)
 
-    def error(self, message):
+    def error(self, message: str) -> None:
         self.log(ERROR, message)
 
-    def critical(self, message):
+    def critical(self, message: str) -> None:
         self.log(CRITICAL, message)
 
-    def time_locked(self):
+    def time_locked(self) -> bool:
         """Return whether the sim-time has been prevented from advancing"""
         return hasattr(self._real, 'locktime')
 
     @timely
-    def advance(self):
+    def advance(self) -> None:
         """Run one rule"""
         self._real.advance()
 
     def _get_char_deltas(
             self,
-            chars,
+            chars: Union[str, Iterable[Hashable]],
             *,
             btt_from: Tuple[str, int, int] = None,
             btt_to: Tuple[str, int, int] = None) -> SlightlyPackedDeltaType:
@@ -415,7 +415,7 @@ class EngineHandle(object):
     @prepacked
     def get_char_deltas(
             self,
-            chars,
+            chars: Union[str, Iterable[Hashable]],
             *,
             btt_from: Tuple[str, int, int] = None,
             btt_to: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
