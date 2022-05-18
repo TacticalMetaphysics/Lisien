@@ -1468,6 +1468,7 @@ class EngineHandle(object):
     def del_portal_stat(self, char, orig, dest, k):
         del self._real.character[char][orig][dest][k]
 
+    @prepacked
     def portal_stat_copy(self,
                          char,
                          orig,
