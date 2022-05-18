@@ -547,8 +547,8 @@ class Engine(AbstractEngine, gORM):
 
     def _make_edge(self,
                    graph: Character,
-                   orig: Union[Thing, Place],
-                   dest: Union[Thing, Place],
+                   orig: Union[thing_cls, place_cls],
+                   dest: Union[thing_cls, place_cls],
                    idx=0) -> portal_cls:
         return self.portal_cls(graph, orig, dest)
 
@@ -867,7 +867,7 @@ class Engine(AbstractEngine, gORM):
     def _remember_unitness(self,
                            character: Character,
                            graph: Character,
-                           node: Union[Thing, Place],
+                           node: Union[thing_cls, place_cls],
                            is_unit=True,
                            branch: str = None,
                            turn: int = None,
