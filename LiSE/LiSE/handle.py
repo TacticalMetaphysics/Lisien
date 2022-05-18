@@ -1909,7 +1909,9 @@ class EngineHandle(object):
         return self._real.apply_choices(choices, dry_run, perfectionist)
 
     @staticmethod
-    def get_schedule(entity, stats, beginning, end):
+    def get_schedule(entity: Union[AbstractCharacter, Node,
+                                   Portal], stats: Iterable[Hashable],
+                     beginning: int, end: int) -> Dict[Hashable, List]:
         ret = {}
         for stat in stats:
             ret[stat] = list(
@@ -1917,14 +1919,19 @@ class EngineHandle(object):
         return ret
 
     @timely
-    def grid_2d_8graph(self, character, m, n):
+    @prepacked
+    def grid_2d_8graph(self, character: Hashable, m: int, n: int) -> bytes:
         self._real.character[character].grid_2d_8graph(m, n)
-        return self._get_char_deltas([character])
+        return self._concat_char_delta(
+            self._get_char_deltas([character])[self.pack(character)])[1]
 
     @timely
-    def grid_2d_graph(self, character, m, n, periodic):
+    @prepacked
+    def grid_2d_graph(self, character: Hashable, m: int, n: int,
+                      periodic: bool) -> bytes:
         self._real.character[character].grid_2d_graph(m, n, periodic)
-        return self._get_char_deltas([character])
+        return self._concat_char_delta(
+            self._get_char_deltas([character])[self.pack(character)])[1]
 
     def rules_handled_turn(self,
                            branch: str = None,
