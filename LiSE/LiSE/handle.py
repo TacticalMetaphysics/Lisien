@@ -1027,7 +1027,7 @@ class EngineHandle(object):
         actual_btt = self._get_btt(btt_to)
         memo = self._character_delta_memo[char]
         if observed_btt in memo and actual_btt in memo[observed_btt]:
-            return self._character_delta_memo[observed_btt][actual_btt]
+            return memo[observed_btt][actual_btt]
         nodes_fut: Future[Any] = self.threadpool.submit(
             self.character_nodes_delta,
             char,
