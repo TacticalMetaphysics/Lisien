@@ -273,8 +273,8 @@ class EngineHandle(object):
         self._char_rulebooks_copy_memo: Dict[tuple, Dict[bytes, bytes]] = {}
         self._char_nodes_rulebooks_copy_memo: Dict[tuple, Dict[bytes,
                                                                bytes]] = {}
-        self._char_portals_rulebooks_copy_memo: Dict[tuple, Dict[bytes,
-                                                                 bytes]] = {}
+        self._char_portals_rulebooks_copy_memo: Dict[Hashable, Dict[Tuple[
+            str, int, int], Dict[bytes, Dict[bytes, bytes]]]] = {}
         self._char_nodes_copy_memo: Dict[tuple, Set[bytes]] = {}
         self._char_portals_copy_memo: Dict[tuple, Set[bytes]] = {}
         self._node_successors_copy_memo: Dict[tuple, Set[bytes]] = {}
@@ -964,9 +964,14 @@ class EngineHandle(object):
     def character_portals_rulebooks_copy(self,
                                          char,
                                          portals='all',
-                                         btt: Tuple[str, int, int] = None):
+                                         btt: Tuple[str, int, int] = None
+                                         ) -> Dict[bytes, Dict[bytes, bytes]]:
+        memo = self._char_portals_rulebooks_copy_memo
+        if portals == 'all' and char in memo and btt in memo[char]:
+            return memo[char][btt]
+        pack = self.pack
         chara = self._real.character[char]
-        result = defaultdict(dict)
+        result: Dict[bytes, Dict[bytes, bytes]] = defaultdict(dict)
         branch, turn, tick = self._get_btt(btt)
         origtime = self._get_btt()
         if (branch, turn, tick) != origtime:
@@ -976,29 +981,33 @@ class EngineHandle(object):
         else:
             portiter = (chara.portal[orig][dest] for (orig, dest) in portals)
         for portal in portiter:
-            result[portal['origin']][portal['destination']] \
-                = portal.rulebook.name
+            result[pack(portal['origin'])][pack(portal['destination'])] \
+                = pack(portal.rulebook.name)
         if (branch, turn, tick) != origtime:
             self._real._set_btt(*origtime)
+        if portals == 'all':
+            if char in memo:
+                memo[char][btt] = result
+            else:
+                memo[char] = {btt: result}
         return result
 
-    def _character_portals_rulebooks_delta(self,
-                                           char,
-                                           portals='all',
-                                           *,
-                                           btt_from: Tuple[str, int,
-                                                           int] = None,
-                                           btt_to: Tuple[str, int,
-                                                         int] = None):
+    def _character_portals_rulebooks_delta(
+        self,
+        char,
+        portals='all',
+        *,
+        btt_from: Tuple[str, int, int] = None,
+        btt_to: Tuple[str, int, int] = None
+    ) -> Tuple[Dict[bytes, Dict[bytes, bytes]], Dict[bytes, Dict[bytes,
+                                                                 bytes]]]:
         old = self.character_portals_rulebooks_copy(
             char, portals, self._get_watched_btt(btt_from))
-        new = {}
-        for orig, dests in self.character_portals_rulebooks_copy(char,
-                                                                 portals,
-                                                                 btt=btt_to):
-            new[orig] = dict(map(self.pack_pair, dests.items()))
-        former = {}
-        current = {}
+        new: Dict[bytes, Dict[bytes,
+                              bytes]] = self.character_portals_rulebooks_copy(
+                                  char, portals, btt=btt_to)
+        former: Dict[bytes, Dict[bytes, bytes]] = {}
+        current: Dict[bytes, Dict[bytes, bytes]] = {}
         futs = []
         for origin in old:
             if origin in new:
@@ -1006,8 +1015,6 @@ class EngineHandle(object):
                                              new[origin])
                 fut.origin = origin
                 futs.append(fut)
-            else:
-                former[origin] = current[origin] = None
         for fut in as_completed(futs):
             former[fut.origin], current[fut.origin] = fut.result()
         return former, current
