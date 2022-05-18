@@ -219,12 +219,6 @@ class EngineHandle(object):
     It's probably a bad idea to use this class unless you're
     developing your own API.
 
-    This holds a cache of the last observed state of each
-    :class:`LiSE.character.Character`. When updating the view on the
-    simulation from your API, use the method `character_delta`
-    to get a dictionary describing the changes since last you observed
-    the :class:`LiSE.character.Character`.
-
     """
     _after_ret: Callable
 
