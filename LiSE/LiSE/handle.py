@@ -200,17 +200,6 @@ def prepacked(fun: Callable) -> Callable:
     return fun
 
 
-class BytesDict(dict):
-
-    def __getitem__(self, item: bytes) -> bytes:
-        return super().__getitem__(item)
-
-    def __setitem__(self, key: bytes, value: bytes):
-        assert isinstance(key, bytes)
-        assert isinstance(value, bytes)
-        super().__setitem__(key, value)
-
-
 class EngineHandle(object):
     """A wrapper for a :class:`LiSE.Engine` object that runs in the same
     process, but with an API built to be used in a command-processing
@@ -276,7 +265,7 @@ class EngineHandle(object):
         self._node_successors_copy_memo: Dict[tuple, Set[bytes]] = {}
         self._strings_cache = {}
         self._strings_copy_memo = {}
-        self._eternal_cache = BytesDict()
+        self._eternal_cache: Dict[bytes, bytes] = {}
         self._eternal_copy_memo = {}
         self._universal_copy_memo = {}
         self._universal_delta_memo: Dict[bytes, Dict[bytes, Dict[
@@ -284,16 +273,19 @@ class EngineHandle(object):
         self._rule_cache = defaultdict(dict)
         self._rule_copy_memo = {}
         self._rulebook_copy_memo = {}
-        self._stores_cache = defaultdict(BytesDict)
-        self._character_delta_memo = defaultdict(
-            lambda: defaultdict(lambda: defaultdict(BytesDict)))
+        self._character_delta_memo: Dict[Hashable, Dict[
+            Tuple[str, int, int],
+            Dict[Tuple[str, int, int],
+                 SlightlyPackedDeltaType]]] = defaultdict(
+                     lambda: defaultdict(lambda: defaultdict(dict)))
         self._real.arrange_cache_signal.disconnect(
             self._real._arrange_caches_at_time)
         self._real.arrange_cache_signal.connect(self._precopy_at_time)
         self.threadpool = ThreadPoolExecutor(cpu_count())
         self._cache_arranger_started = False
 
-    def _precopy_at_time(self, _, *, branch: str, turn: int, tick: int) -> None:
+    def _precopy_at_time(self, _, *, branch: str, turn: int,
+                         tick: int) -> None:
         lock = self._real.world_lock
         btt = (branch, turn, tick)
         with lock:
@@ -657,8 +649,8 @@ class EngineHandle(object):
         pack_pair = self.pack_pair
         character = self._real.new_character(char, **attr)
         branch, turn, tick = self._get_btt()
-        self._char_stat_copy_memo[char, branch, turn, tick] = BytesDict(
-            map(pack_pair, attr.items()))
+        self._char_stat_copy_memo[char, branch, turn, tick] = dict(
+            map(self.pack_pair, attr.items()))
         placedata = data.get('place', data.get('node', {}))
         node_stat_memo = self._node_stat_copy_memo
         for place, stats in placedata.items():
