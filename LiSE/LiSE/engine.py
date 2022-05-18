@@ -20,7 +20,7 @@ flow of time.
 from functools import partial
 from collections import defaultdict
 from types import FunctionType, ModuleType
-from typing import Union, Tuple, Callable, Any, Set, List, Type, Hashable
+from typing import Union, Tuple, Any, Set, List, Type, Hashable
 from os import PathLike
 from abc import ABC, abstractmethod
 
