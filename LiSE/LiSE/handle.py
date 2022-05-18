@@ -34,12 +34,12 @@ from .util import MSGPACK_SET
 
 EMPTY_DELTA = ({}, {})
 
-SLIGHTLY_PACKED_DELTA_TYPE = Dict[bytes, Dict[bytes,
-                                              Union[bytes,
-                                                    Dict[bytes,
-                                                         Union[bytes,
-                                                               Dict[bytes,
-                                                                    bytes]]]]]]
+SlightlyPackedDeltaType = Dict[bytes, Dict[bytes,
+                                           Union[bytes,
+                                                 Dict[bytes,
+                                                      Union[bytes,
+                                                            Dict[bytes,
+                                                                 bytes]]]]]]
 FormerAndCurrentType = Tuple[Dict[bytes, bytes], Dict[bytes, bytes]]
 
 TRUE: bytes = msgpack.packb(True)
@@ -357,7 +357,7 @@ class EngineHandle(object):
             chars,
             *,
             btt_from: Tuple[str, int, int] = None,
-            btt_to: Tuple[str, int, int] = None) -> SLIGHTLY_PACKED_DELTA_TYPE:
+            btt_to: Tuple[str, int, int] = None) -> SlightlyPackedDeltaType:
         """Return a dict describing changes to characters since last call"""
         pack = self._real.pack
         ret: Dict[bytes, Dict[bytes, bytes]] = {}
@@ -515,7 +515,7 @@ class EngineHandle(object):
         })
 
     @staticmethod
-    def _concat_char_delta(delta) -> Tuple[SLIGHTLY_PACKED_DELTA_TYPE, bytes]:
+    def _concat_char_delta(delta) -> Tuple[SlightlyPackedDeltaType, bytes]:
         slightly_packed_delta = {}
         mostly_packed_delta = {}
         for char, chardelta in delta.items():
@@ -580,7 +580,7 @@ class EngineHandle(object):
             self,
             chars='all',
             btt_from: Tuple[str, int, int] = None,
-            btt_to: Tuple[str, int, int] = None) -> SLIGHTLY_PACKED_DELTA_TYPE:
+            btt_to: Tuple[str, int, int] = None) -> SlightlyPackedDeltaType:
         pack = self._real.pack
         delta: Dict[bytes, Any] = {}
         if chars:
