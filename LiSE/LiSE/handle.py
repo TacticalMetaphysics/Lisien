@@ -268,8 +268,9 @@ class EngineHandle(object):
         self._eternal_cache: Dict[bytes, bytes] = {}
         self._eternal_copy_memo = {}
         self._universal_copy_memo = {}
-        self._universal_delta_memo: Dict[bytes, Dict[bytes, Dict[
-            bytes, bytes]]] = defaultdict(lambda: defaultdict(dict))
+        self._universal_delta_memo: Dict[Tuple[str, int, int], Dict[
+            Tuple[str, int, int],
+            Dict[bytes, bytes]]] = defaultdict(lambda: defaultdict(dict))
         self._rule_cache = defaultdict(dict)
         self._rule_copy_memo = {}
         self._rulebook_copy_memo = {}
@@ -506,6 +507,14 @@ class EngineHandle(object):
     def _concat_char_delta(delta) -> Tuple[SlightlyPackedDeltaType, bytes]:
         slightly_packed_delta = {}
         mostly_packed_delta = {}
+        eternal = delta.pop(ETERNAL, None)
+        if eternal:
+            slightly_packed_delta[ETERNAL] = mostly_packed_delta[
+                ETERNAL] = eternal
+        universal = delta.pop(UNIVERSAL, None)
+        if universal:
+            slightly_packed_delta[UNIVERSAL] = mostly_packed_delta[
+                UNIVERSAL] = universal
         for char, chardelta in delta.items():
             chardelta = chardelta.copy()
             chard = slightly_packed_delta[char] = {}
@@ -546,10 +555,19 @@ class EngineHandle(object):
                 packd[RULEBOOKS] = concat_d(slightrbd)
             chard.update(chardelta)
             packd.update(chardelta)
-        return slightly_packed_delta, concat_d({
+        almost_entirely_packed_delta = {
             charn: concat_d(stuff)
             for charn, stuff in mostly_packed_delta.items()
-        })
+        }
+        rulebooks = delta.pop(RULEBOOKS, None)
+        if rulebooks:
+            slightly_packed_delta[RULEBOOKS] = almost_entirely_packed_delta[
+                RULEBOOKS] = rulebooks
+        rules = delta.pop(RULES, None)
+        if rules:
+            slightly_packed_delta[RULES] = almost_entirely_packed_delta[
+                RULEBOOKS] = rules
+        return slightly_packed_delta, concat_d(almost_entirely_packed_delta)
 
     @timely
     @prepacked
@@ -577,13 +595,13 @@ class EngineHandle(object):
                                           btt_to=btt_to)
         unid = self.universal_delta(btt_from=btt_from, btt_to=btt_to)
         if unid:
-            delta[UNIVERSAL] = concat_d(unid)
+            delta[UNIVERSAL] = unid
         rud = self.all_rules_delta(btt_from=btt_from, btt_to=btt_to)
         if rud:
-            delta[RULES] = pack(rud)
+            delta[RULES] = {rule: pack(stuff) for rule, stuff in rud.items()}
         rbd = self.all_rulebooks_delta(btt_from=btt_from, btt_to=btt_to)
         if rbd:
-            delta[RULEBOOKS] = pack(rbd)
+            delta[RULEBOOKS] = dict(map(self.pack_pair, rbd.items()))
         return delta
 
     @timely
@@ -780,12 +798,13 @@ class EngineHandle(object):
             btt_from: Tuple[str, int, int] = None,
             btt_to: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
         memo = self._universal_delta_memo
+        btt_from = self._get_watched_btt(btt_from)
+        btt_to = self._get_btt(btt_to)
         if btt_from in memo and btt_to in memo[btt_from]:
             return memo[btt_from][btt_to]
         old = self.universal_copy(btt=self._get_watched_btt(btt_from))
-        btt_now = self._get_btt(btt_to)
-        new = self._universal_copy_memo[btt_now] = self.universal_copy(
-            btt=btt_now)
+        new = self._universal_copy_memo[btt_to] = self.universal_copy(
+            btt=btt_to)
         former, current = packed_dict_delta(old, new)
         memo[btt_from][btt_to] = current
         memo[btt_to][btt_from] = former
