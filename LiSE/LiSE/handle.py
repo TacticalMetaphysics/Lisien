@@ -503,41 +503,35 @@ class EngineHandle(object):
         })
 
     @staticmethod
-    def _concat_char_delta(
-        delta: SlightlyPackedDeltaType
-    ) -> Tuple[SlightlyPackedDeltaType, bytes]:
-        slightly_packed_delta = {}
+    def _concat_char_delta(delta: SlightlyPackedDeltaType) -> bytes:
+        delta = delta.copy()
         mostly_packed_delta = {}
         eternal = delta.pop(ETERNAL, None)
         if eternal:
-            slightly_packed_delta[ETERNAL] = mostly_packed_delta[
-                ETERNAL] = eternal
+            mostly_packed_delta[ETERNAL] = eternal
         universal = delta.pop(UNIVERSAL, None)
         if universal:
-            slightly_packed_delta[UNIVERSAL] = mostly_packed_delta[
-                UNIVERSAL] = universal
+            mostly_packed_delta[UNIVERSAL] = universal
         for char, chardelta in delta.items():
             chardelta = chardelta.copy()
-            chard = slightly_packed_delta[char] = {}
             packd = mostly_packed_delta[char] = {}
             if NODES in chardelta:
-                chard[NODES] = charnodes = chardelta.pop(NODES)
+                charnodes = chardelta.pop(NODES)
                 packd[NODES] = concat_d(charnodes)
             if NODE_VAL in chardelta:
-                slightnoded = chard[NODE_VAL] = {}
+                slightnoded = {}
                 packnodevd = {}
                 for node, vals in chardelta.pop(NODE_VAL).items():
                     slightnoded[node] = vals
                     packnodevd[node] = concat_d(vals)
                 packd[NODE_VAL] = concat_d(packnodevd)
             if EDGES in chardelta:
-                chard[EDGES] = es = chardelta.pop(EDGES)
+                es = chardelta.pop(EDGES)
                 packd[EDGES] = concat_d(es)
             if EDGE_VAL in chardelta:
-                slightorigd = chard[EDGE_VAL] = {}
                 packorigd = {}
                 for orig, dests in chardelta.pop(EDGE_VAL).items():
-                    slightdestd = slightorigd[orig] = {}
+                    slightdestd = {}
                     packdestd = {}
                     for dest, port in dests.items():
                         slightdestd[dest] = port
@@ -545,16 +539,12 @@ class EngineHandle(object):
                     packorigd[orig] = concat_d(packdestd)
                 packd[EDGE_VAL] = concat_d(packorigd)
             if UNITS in chardelta:
-                slightgraphd = chard[UNITS] = {}
                 packunitd = {}
-                for graph, unitss in chardelta.pop(UNITS).items():
-                    slightgraphd[graph] = unitss
+                for graph, unitss in chardelta[UNITS].items():
                     packunitd[graph] = concat_d(unitss)
                 packd[UNITS] = concat_d(packunitd)
             if RULEBOOKS in chardelta:
-                chard[RULEBOOKS] = slightrbd = chardelta.pop(RULEBOOKS)
-                packd[RULEBOOKS] = concat_d(slightrbd)
-            chard.update(chardelta)
+                packd[RULEBOOKS] = concat_d(chardelta[RULEBOOKS])
             packd.update(chardelta)
         almost_entirely_packed_delta = {
             charn: concat_d(stuff)
@@ -562,13 +552,11 @@ class EngineHandle(object):
         }
         rulebooks = delta.pop(RULEBOOKS, None)
         if rulebooks:
-            slightly_packed_delta[RULEBOOKS] = almost_entirely_packed_delta[
-                RULEBOOKS] = rulebooks
+            almost_entirely_packed_delta[RULEBOOKS] = rulebooks
         rules = delta.pop(RULES, None)
         if rules:
-            slightly_packed_delta[RULES] = almost_entirely_packed_delta[
-                RULEBOOKS] = rules
-        return slightly_packed_delta, concat_d(almost_entirely_packed_delta)
+            almost_entirely_packed_delta[RULEBOOKS] = rules
+        return concat_d(almost_entirely_packed_delta)
 
     @timely
     @prepacked
@@ -630,8 +618,7 @@ class EngineHandle(object):
                                          btt_from=(branch_from, turn_from,
                                                    tick_from),
                                          btt_to=(branch, turn, tick))
-            slightly_packed_delta, packed_delta = self._concat_char_delta(
-                delta)
+            packed_delta = self._concat_char_delta(delta)
         else:
             delta = self._real.get_delta(branch, turn_from, tick_from, turn,
                                          tick)
@@ -1934,7 +1921,7 @@ class EngineHandle(object):
     def grid_2d_8graph(self, character: Hashable, m: int, n: int) -> bytes:
         self._real.character[character].grid_2d_8graph(m, n)
         return self._concat_char_delta(
-            self._get_char_deltas([character])[self.pack(character)])[1]
+            self._get_char_deltas([character])[self.pack(character)])
 
     @timely
     @prepacked
@@ -1942,7 +1929,7 @@ class EngineHandle(object):
                       periodic: bool) -> bytes:
         self._real.character[character].grid_2d_graph(m, n, periodic)
         return self._concat_char_delta(
-            self._get_char_deltas([character])[self.pack(character)])[1]
+            self._get_char_deltas([character])[self.pack(character)])
 
     def rules_handled_turn(self,
                            branch: str = None,

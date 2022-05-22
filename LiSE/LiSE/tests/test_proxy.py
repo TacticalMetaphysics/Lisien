@@ -87,7 +87,7 @@ def test_fast_delta(handle_initialized):
     # a character was created, due to the way keyframes work...
     # so don't test that
     def unpack_delta(d):
-        catted = hand._concat_char_delta(d)[1]
+        catted = hand._concat_char_delta(d)
         assert isinstance(catted, bytes)
         return hand.unpack(catted)
 
