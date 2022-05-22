@@ -36,12 +36,8 @@ from .util import MSGPACK_SET, AbstractCharacter
 
 EMPTY_DELTA = ({}, {})
 
-SlightlyPackedDeltaType = Dict[bytes, Dict[bytes,
-                                           Union[bytes,
-                                                 Dict[bytes,
-                                                      Union[bytes,
-                                                            Dict[bytes,
-                                                                 bytes]]]]]]
+SlightlyPackedDeltaType = Dict[bytes, Dict[bytes, Union[bytes, Dict[
+    bytes, Union[bytes, Dict[bytes, Union[bytes, Dict[bytes, bytes]]]]]]]]
 FormerAndCurrentType = Tuple[Dict[bytes, bytes], Dict[bytes, bytes]]
 
 TRUE: bytes = msgpack.packb(True)
@@ -363,7 +359,10 @@ class EngineHandle(object):
         return ret
 
     @prepacked
-    def copy_character(self, char, *, btt=None) -> Dict[bytes, bytes]:
+    def copy_character(self,
+                       char: Hashable,
+                       *,
+                       btt: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
         units = self._character_units_copy(char, btt=btt)
         ports = self._character_portals_stat_copy(char, btt=btt)
         ported = {}
@@ -395,7 +394,7 @@ class EngineHandle(object):
         }
 
     @prepacked
-    def copy_chars(self, chars: Union[str, list]):
+    def copy_chars(self, chars: Union[str, Iterable[Hashable]]):
         if chars == 'all':
             it = iter(self._real.character.keys())
         else:
@@ -504,7 +503,9 @@ class EngineHandle(object):
         })
 
     @staticmethod
-    def _concat_char_delta(delta) -> Tuple[SlightlyPackedDeltaType, bytes]:
+    def _concat_char_delta(
+        delta: SlightlyPackedDeltaType
+    ) -> Tuple[SlightlyPackedDeltaType, bytes]:
         slightly_packed_delta = {}
         mostly_packed_delta = {}
         eternal = delta.pop(ETERNAL, None)
@@ -571,7 +572,7 @@ class EngineHandle(object):
 
     @timely
     @prepacked
-    def next_turn(self):
+    def next_turn(self) -> Tuple[bytes, bytes]:
         pack = self.pack
         self.debug(
             'calling next_turn at {}, {}, {}'.format(*self._real._btt()))
@@ -662,9 +663,8 @@ class EngineHandle(object):
         return self.pack(branch)
 
     @timely
-    def add_character(self, char, data, attr):
+    def add_character(self, char: Hashable, data: dict, attr: dict):
         # Probably not great that I am unpacking and then repacking the stats
-        pack_pair = self.pack_pair
         character = self._real.new_character(char, **attr)
         branch, turn, tick = self._get_btt()
         self._char_stat_copy_memo[char, branch, turn, tick] = dict(
