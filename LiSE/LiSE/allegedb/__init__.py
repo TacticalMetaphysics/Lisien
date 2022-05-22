@@ -692,11 +692,22 @@ class ORM(object):
     def _init_caches(self):
         from collections import defaultdict
         from .cache import Cache, NodesCache, EdgesCache
+        node_cls = self.node_cls
+        edge_cls = self.edge_cls
         self._where_cached = defaultdict(list)
         self._node_objs = node_objs = WeakValueDictionary()
-        self._get_node_stuff = (node_objs, self._node_exists, self._make_node)
+        self._get_node_stuff: Tuple[WeakValueDictionary,
+                                    Callable[[Hashable, Hashable], bool],
+                                    Callable[[Hashable, Hashable],
+                                             node_cls]] = (node_objs,
+                                                           self._node_exists,
+                                                           self._make_node)
         self._edge_objs = edge_objs = WeakValueDictionary()
-        self._get_edge_stuff = (edge_objs, self._edge_exists, self._make_edge)
+        self._get_edge_stuff: Tuple[WeakValueDictionary, Callable[
+            [Hashable, Hashable, Hashable, int],
+            bool], Callable[[Hashable, Hashable, Hashable, int],
+                            edge_cls]] = (edge_objs, self._edge_exists,
+                                          self._make_edge)
         self._childbranch = defaultdict(set)
         """Immediate children of a branch"""
         self._branches = {}
@@ -800,18 +811,34 @@ class ORM(object):
         self._nbtt_stuff = (self._btt, self._turn_end_plan, self._turn_end,
                             self._plan_ticks, self._plan_ticks_uncommitted,
                             self._time_plan, self._branches)
-        self._node_exists_stuff = (self._nodes_cache.retrieve, self._btt)
-        self._exist_node_stuff = (self._nbtt, self.query.exist_node,
-                                  self._nodes_cache.store)
-        self._edge_exists_stuff = (self._edges_cache.retrieve, self._btt)
-        self._exist_edge_stuff = (self._nbtt, self.query.exist_edge,
-                                  self._edges_cache.store)
+        self._node_exists_stuff: Tuple[
+            Callable[[Hashable, Hashable, str, int, int], Any],
+            Callable[[], Tuple[str, int,
+                               int]]] = (self._nodes_cache.retrieve, self._btt)
+        self._exist_node_stuff: Tuple[
+            Callable[[], Tuple[str, int, int]],
+            Callable[[Hashable, Hashable, str, int, int, bool], None],
+            Callable[[Hashable, Hashable, str, int, int, Any],
+                     None]] = (self._nbtt, self.query.exist_node,
+                               self._nodes_cache.store)
+        self._edge_exists_stuff: Tuple[
+            Callable[[Hashable, Hashable, Hashable, int, str, int, int], bool],
+            Callable[[], Tuple[str, int,
+                               int]]] = (self._edges_cache.retrieve, self._btt)
+        self._exist_edge_stuff: Tuple[
+            Callable[[], Tuple[str, int, int]],
+            Callable[[Hashable, Hashable, Hashable, int, str, int, int, bool],
+                     None],
+            Callable[[Hashable, Hashable, Hashable, int, str, int, int, Any],
+                     None]] = (self._nbtt, self.query.exist_edge,
+                               self._edges_cache.store)
         self._load_graphs()
         assert hasattr(self, 'graph')
         self._keyframes_list = []
         self._keyframes_dict = {}
         self._keyframes_times = set()
-        self._loaded = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
+        self._loaded: Dict[str, Tuple[int, int, int, int]] = {
+        }  # branch: (turn_from, tick_from, turn_to, tick_to)
         self._init_load()
         self.cache_arrange_queue = Queue()
         self._cache_arrange_thread = Thread(target=self._arrange_cache_loop)
@@ -1670,7 +1697,7 @@ class ORM(object):
     def tick(self, v):
         self._set_tick(v)
 
-    def _btt(self):
+    def _btt(self) -> Tuple[str, int, int]:
         """Return the branch, turn, and tick."""
         return self._obranch, self._oturn, self._otick
 
@@ -2001,7 +2028,7 @@ class ORM(object):
                      character: Hashable,
                      orig: Hashable,
                      dest: Hashable,
-                     idx=0):
+                     idx=0) -> bool:
         retrieve, btt = self._edge_exists_stuff
         try:
             return retrieve(character, orig, dest, idx, *btt()) is not None
