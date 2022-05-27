@@ -4,8 +4,9 @@ import networkx as nx
 from LiSE import Engine
 from LiSE.character import Facade
 from ELiDE.app import ELiDEApp
-from ELiDE.graph.board import GraphBoard, GraphBoardView, FinalLayout
+from ELiDE.graph.board import GraphBoard, GraphBoardView, FinalLayout, BoardScatterPlane
 from .util import idle_until, window_with_widget, ELiDEAppTest
+from ..dummy import Dummy
 
 
 class GraphBoardTest(GraphicUnitTest):
@@ -131,6 +132,26 @@ class GraphBoardTest(GraphicUnitTest):
         char.thing['that']['location'] = that.loc_name = 1
         idle_until(lambda: that in one.children, 1000,
                    "pawn did not relocate within 1000 ticks")
+
+    @staticmethod
+    def test_spot_from_dummy():
+        char = Facade()
+        app = ELiDEApp()
+        board = GraphBoard(app=app, character=char)
+        view = GraphBoardView(board=board)
+        idle_until(lambda: view.plane is not None, 100,
+                   "Never made BoardScatterPlane")
+        idle_until(lambda: board.spotlayout is not None, 100,
+                   "Never made SpotLayout")
+        win = window_with_widget(view)
+        dummy = Dummy(name='hello',
+                      paths=['atlas://rltiles/base/unseen'],
+                      pos=(100, 100))
+        board.add_widget(dummy)
+        idle_until(lambda: dummy in board.children, 100,
+                   "Dummy didn't get to board")
+        view.spot_from_dummy(dummy)
+        idle_until(lambda: 'hello' in char.node, 100, "Dummy didn't add spot")
 
 
 class SwitchGraphTest(ELiDEAppTest):
