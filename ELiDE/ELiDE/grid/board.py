@@ -43,7 +43,7 @@ class GridBoard(RelativeLayout):
         if placen not in self.character.place:
             raise ValueError(f"No such place for spot: {placen}")
         if placen in self.spot:
-            raise ValueError(f"Already have a spot for place: {placen}")
+            raise KeyError(f"Already have a spot for place: {placen}")
         self.add_widget(self.make_spot(self.character.place[placen]))
 
     def make_spot(self, place):
