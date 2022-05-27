@@ -40,8 +40,11 @@ class GridBoard(RelativeLayout):
             tile.pos = gx * colw, gy * rowh
 
     def add_spot(self, placen, *args):
-        if (placen in self.character.place and placen not in self.spot):
-            self.add_widget(self.make_spot(self.character.place[placen]))
+        if placen not in self.character.place:
+            raise ValueError(f"No such place for spot: {placen}")
+        if placen in self.spot:
+            raise ValueError(f"Already have a spot for place: {placen}")
+        self.add_widget(self.make_spot(self.character.place[placen]))
 
     def make_spot(self, place):
         if place["name"] in self.spot:
