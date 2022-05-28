@@ -134,7 +134,7 @@ class GraphBoardTest(GraphicUnitTest):
                    "pawn did not relocate within 1000 ticks")
 
     @staticmethod
-    def test_spot_from_dummy():
+    def test_spot_and_pawn_from_dummy():
         char = Facade()
         app = ELiDEApp()
         board = GraphBoard(app=app, character=char)
@@ -144,16 +144,29 @@ class GraphBoardTest(GraphicUnitTest):
         idle_until(lambda: board.spotlayout is not None, 100,
                    "Never made SpotLayout")
         win = window_with_widget(view)
-        dummy = Dummy(name='hello',
-                      paths=['atlas://rltiles/base/unseen'],
-                      pos=(100, 100))
+        dummy = Dummy(
+            name='hello',
+            paths=['atlas://rltiles/base/unseen'],
+        )
         board.add_widget(dummy)
         idle_until(lambda: dummy in board.children, 100,
                    "Dummy didn't get to board")
         dummy_name = dummy.name
         view.spot_from_dummy(dummy)
         idle_until(lambda: dummy_name in char.node, 100,
-                   "Dummy didn't add spot")
+                   "Dummy didn't add place")
+        dummy2 = Dummy(name='goodbye',
+                       paths=['atlas://rltiles/base/unseen'],
+                       pos=dummy.center)
+        dummy2_name = dummy2.name
+        board.add_widget(dummy2)
+        idle_until(lambda: dummy2 in board.children, 100,
+                   "Dummy 2 didn't get to board")
+        view.pawn_from_dummy(dummy2)
+        idle_until(lambda: dummy2_name in char.thing, 100,
+                   "Dummy 2 didn't add thing")
+        idle_until(lambda: dummy2 in dummy.children, 100,
+                   "Dummy 2 didn't get to dummy 1")
 
 
 class SwitchGraphTest(ELiDEAppTest):
