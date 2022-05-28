@@ -1405,14 +1405,6 @@ class CharacterProxy(AbstractCharacter):
         for name, location in seq:
             self.thing._cache[name] = ThingProxy(self, name, location)
 
-    def new_place(self, name, **kwargs):
-        self.add_place(name, **kwargs)
-        return self.place[name]
-
-    def new_thing(self, name, location, **kwargs):
-        self.add_thing(name, location, **kwargs)
-        return self.thing[name]
-
     def remove_node(self, node):
         if node not in self.node:
             raise KeyError("No such node: {}".format(node))
