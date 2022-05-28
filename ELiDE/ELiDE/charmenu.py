@@ -60,7 +60,15 @@ class CharMenu(BoxLayout):
     def spot_from_dummy(self, dummy):
         if self.screen.boardview.parent != self.screen.mainview:
             return
+        name = dummy.name
         self.screen.boardview.spot_from_dummy(dummy)
+        graphboard = self.screen.graphboards[self.app.character_name]
+        if name not in graphboard.spot:
+            graphboard.add_spot(name)
+        gridboard = self.screen.gridboards[self.app.character_name]
+        if name not in gridboard.spot and isinstance(name,
+                                                     tuple) and len(name) == 2:
+            gridboard.add_spot(name)
 
     def pawn_from_dummy(self, dummy):
         name = dummy.name
@@ -69,7 +77,8 @@ class CharMenu(BoxLayout):
         if name not in graphboard.pawn:
             graphboard.add_pawn(name)
         gridboard = self.screen.gridboards[self.app.character_name]
-        if name not in gridboard.pawn:
+        if name not in gridboard.pawn and self.app.character.thing[name][
+                "location"] in gridboard.spot:
             gridboard.add_pawn(name)
 
     def toggle_chars_screen(self, *args):

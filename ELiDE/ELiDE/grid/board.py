@@ -51,6 +51,7 @@ class GridBoard(RelativeLayout):
             raise KeyError("Already have a Spot for this Place")
         r = self.spot_cls(board=self, proxy=place)
         self.spot[place["name"]] = r
+        print("make_spot", self.spot)
         return r
 
     def make_pawn(self, thing):
