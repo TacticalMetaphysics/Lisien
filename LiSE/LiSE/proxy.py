@@ -1527,10 +1527,6 @@ class CharacterProxy(AbstractCharacter):
             self.portal[origin]._cache[destination] = PortalProxy(
                 self, origin, destination)
 
-    def new_portal(self, origin, destination, symmetrical=False, **kwargs):
-        self.add_portal(origin, destination, symmetrical, **kwargs)
-        return self.portal[origin][destination]
-
     def portals(self):
         yield from self.engine.handle(command='character_portals',
                                       char=self.name)
