@@ -165,8 +165,9 @@ class GraphBoardTest(GraphicUnitTest):
         view.pawn_from_dummy(dummy2)
         idle_until(lambda: dummy2_name in char.thing, 100,
                    "Dummy 2 didn't add thing")
-        idle_until(lambda: dummy2 in dummy.children, 100,
-                   "Dummy 2 didn't get to dummy 1")
+        idle_until(
+            lambda: board.pawn[dummy2_name] in board.spot[dummy_name].children,
+            100, "Dummy 2 didn't get to dummy 1")
 
 
 class SwitchGraphTest(ELiDEAppTest):
