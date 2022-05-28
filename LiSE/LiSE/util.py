@@ -671,10 +671,12 @@ class AbstractCharacter(Mapping):
             self.add_thing(name, location, **kwargs)
             return self.thing[name]
         if isinstance(name, str):
-            n = 0
-            while name + str(n) in self.node:
-                n += 1
-            self.add_thing(name + str(n), location, **kwargs)
+            if name in self.node:
+                n = 0
+                while name + str(n) in self.node:
+                    n += 1
+                name = name + str(n)
+            self.add_thing(name, location, **kwargs)
             return self.thing[name]
         raise KeyError("Already have a thing named {}".format(name))
 
