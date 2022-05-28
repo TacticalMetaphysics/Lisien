@@ -150,8 +150,10 @@ class GraphBoardTest(GraphicUnitTest):
         board.add_widget(dummy)
         idle_until(lambda: dummy in board.children, 100,
                    "Dummy didn't get to board")
+        dummy_name = dummy.name
         view.spot_from_dummy(dummy)
-        idle_until(lambda: 'hello' in char.node, 100, "Dummy didn't add spot")
+        idle_until(lambda: dummy_name in char.node, 100,
+                   "Dummy didn't add spot")
 
 
 class SwitchGraphTest(ELiDEAppTest):
