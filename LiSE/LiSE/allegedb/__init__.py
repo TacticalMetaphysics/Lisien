@@ -1099,20 +1099,19 @@ class ORM(object):
         load_node_val = self.query.load_node_val
         load_edge_val = self.query.load_edge_val
         get_keyframe = self.query.get_keyframe
-        if latest_past_keyframe is None:  # happens in very short games
 
-            def updload(branch, turn, tick):
-                if branch not in loaded:
-                    loaded[branch] = (turn, tick, turn, tick)
-                    return
-                (early_turn, early_tick, late_turn, late_tick) = loaded[branch]
-                if turn < early_turn or (turn == early_turn
-                                         and tick < early_tick):
-                    (early_turn, early_tick) = (turn, tick)
-                if turn > late_turn or (turn == late_turn
-                                        and tick > late_tick):
-                    (late_turn, late_tick) = (turn, tick)
-                loaded[branch] = (early_turn, early_tick, late_turn, late_tick)
+        def updload(branch, turn, tick):
+            if branch not in loaded:
+                loaded[branch] = (turn, tick, turn, tick)
+                return
+            (early_turn, early_tick, late_turn, late_tick) = loaded[branch]
+            if turn < early_turn or (turn == early_turn and tick < early_tick):
+                (early_turn, early_tick) = (turn, tick)
+            if turn > late_turn or (turn == late_turn and tick > late_tick):
+                (late_turn, late_tick) = (turn, tick)
+            loaded[branch] = (early_turn, early_tick, late_turn, late_tick)
+
+        if latest_past_keyframe is None:  # happens in very short games
 
             for (graph, node, branch, turn, tick,
                  ex) in self.query.nodes_dump():
@@ -1144,55 +1143,42 @@ class ORM(object):
         past_branch, past_turn, past_tick = latest_past_keyframe
         keyframed = {}
 
-        def bump(branc, trn, tck):
-            start_turn, start_tick, end_turn, end_tick = loaded.get(
-                branc, (turn_now, tick_now, turn_now, tick_now))
-            if trn > end_turn:
-                (end_turn, end_tick) = (trn, tck)
-            elif trn == end_turn and tck > end_tick:
-                end_tick = tck
-            if trn < start_turn:
-                (start_turn, start_tick) = (trn, tck)
-            elif trn == start_turn and tck < start_tick:
-                start_tick = tck
-            loaded[branc] = (start_turn, start_tick, end_turn, end_tick)
-
         def load_windows(graph, windows):
             for window in reversed(windows):
                 for (_, node, branch, turn, tick,
                      ex) in load_nodes(graph, *window):
                     noderows.append((graph, node, branch, turn, tick, ex
                                      or None))
-                    bump(branch, turn, tick)
+                    updload(branch, turn, tick)
                 for (_, orig, dest, idx, branch, turn, tick,
                      ex) in load_edges(graph, *window):
                     edgerows.append(
                         (graph, orig, dest, idx, branch, turn, tick, ex
                          or None))
-                    bump(branch, turn, tick)
+                    updload(branch, turn, tick)
                 for row in load_graph_val(graph, *window):
                     graphvalrows.append(row)
                     branch = row[2]
                     turn = row[3]
                     tick = row[4]
-                    bump(branch, turn, tick)
+                    updload(branch, turn, tick)
                 for row in load_node_val(graph, *window):
                     nodevalrows.append(row)
                     branch = row[3]
                     turn = row[4]
                     tick = row[5]
-                    bump(branch, turn, tick)
+                    updload(branch, turn, tick)
                 for row in load_edge_val(graph, *window):
                     edgevalrows.append(row)
                     branch = row[5]
                     turn = row[6]
                     tick = row[7]
-                    bump(branch, turn, tick)
+                    updload(branch, turn, tick)
 
         for graph in self.graph:
             stuff = keyframed[graph] = get_keyframe(graph, past_branch,
                                                     past_turn, past_tick)
-            bump(past_branch, past_turn, past_tick)
+            updload(past_branch, past_turn, past_tick)
             if stuff is not None:
                 nodes, edges, graph_val = stuff
                 snap_keyframe(graph, past_branch, past_turn, past_tick, nodes,
