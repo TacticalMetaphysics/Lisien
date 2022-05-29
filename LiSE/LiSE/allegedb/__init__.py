@@ -980,7 +980,9 @@ class ORM(object):
                 break
         else:
             assert not windows
-            assert branch1 == 'trunk'
+            assert locals().get(
+                'branch0',
+                'trunk') == 'trunk', "Never got to trunk, only %s" % branch1
             return [('trunk', 0, 0, turn1, tick1)]
         return windows
 
