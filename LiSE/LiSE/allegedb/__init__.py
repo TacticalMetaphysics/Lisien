@@ -1143,9 +1143,24 @@ class ORM(object):
                     nodevalrows, edgevalrows
         past_branch, past_turn, past_tick = latest_past_keyframe
         keyframed = {}
+
+        def bump(branc, trn, tck):
+            start_turn, start_tick, end_turn, end_tick = loaded.get(
+                branc, (turn_now, tick_now, turn_now, tick_now))
+            if trn > end_turn:
+                (end_turn, end_tick) = (trn, tck)
+            elif trn == end_turn and tck > end_tick:
+                end_tick = tck
+            if trn < start_turn:
+                (start_turn, start_tick) = (trn, tck)
+            elif trn == start_turn and tck < start_tick:
+                start_tick = tck
+            loaded[branc] = (start_turn, start_tick, end_turn, end_tick)
+
         for graph in self.graph:
             stuff = keyframed[graph] = get_keyframe(graph, past_branch,
                                                     past_turn, past_tick)
+            bump(past_branch, past_turn, past_tick)
             if stuff is not None:
                 nodes, edges, graph_val = stuff
                 snap_keyframe(graph, past_branch, past_turn, past_tick, nodes,
@@ -1154,87 +1169,33 @@ class ORM(object):
                 windows = self._build_loading_windows(*latest_past_keyframe,
                                                       branch_now, turn_now,
                                                       tick_now)
-                start_turn, start_tick, end_turn, end_tick = loaded.get(
-                    branch, (turn_now, tick_now, turn_now, tick_now))
-                if past_turn < start_turn or (past_turn == start_turn
-                                              and past_tick < start_tick):
-                    (start_turn, start_tick) = (past_turn, past_tick)
                 for window in reversed(windows):
                     for (graph, node, branch, turn, tick,
                          ex) in load_nodes(graph, *window):
                         noderows.append((graph, node, branch, turn, tick, ex
                                          or None))
-                        if turn > end_turn:
-                            (end_turn, end_tick) = (turn, tick)
-                        elif turn == end_turn and tick > end_tick:
-                            end_tick = tick
-                        if turn < start_turn:
-                            (start_turn, start_tick) = (turn, tick)
-                        elif turn == start_turn and tick < start_tick:
-                            start_tick = tick
+                        bump(branch, turn, tick)
                     for (graph, orig, dest, idx, branch, turn, tick,
                          ex) in load_edges(graph, *window):
                         edgerows.append(
                             (graph, orig, dest, idx, branch, turn, tick, ex
                              or None))
-                        if turn > end_turn:
-                            (end_turn, end_tick) = (turn, tick)
-                        elif turn == end_turn and tick > end_tick:
-                            end_tick = tick
-                        if turn < start_turn:
-                            (start_turn, start_tick) = (turn, tick)
-                        elif turn == start_turn and tick < start_tick:
-                            start_tick = tick
+                        bump(branch, turn, tick)
                     for row in load_graph_val(graph, *window):
                         graphvalrows.append(row)
                         turn = row[3]
                         tick = row[4]
-                        if turn > end_turn:
-                            (end_turn, end_tick) = (turn, tick)
-                        elif turn == end_turn and tick > end_tick:
-                            end_tick = tick
-                        if turn < start_turn:
-                            (start_turn, start_tick) = (turn, tick)
-                        elif turn == start_turn and tick < start_tick:
-                            start_tick = tick
+                        bump(branch, turn, tick)
                     for row in load_node_val(graph, *window):
                         nodevalrows.append(row)
                         turn = row[4]
                         tick = row[5]
-                        if turn > end_turn:
-                            (end_turn, end_tick) = (turn, tick)
-                        elif turn == end_turn and tick > end_tick:
-                            end_tick = tick
-                        if turn < start_turn:
-                            (start_turn, start_tick) = (turn, tick)
-                        elif turn == start_turn and tick < start_tick:
-                            start_tick = tick
+                        bump(branch, turn, tick)
                     for row in load_edge_val(graph, *window):
                         edgevalrows.append(row)
                         turn = row[6]
                         tick = row[7]
-                        if turn > end_turn:
-                            (end_turn, end_tick) = (turn, tick)
-                        elif turn == end_turn and tick > end_tick:
-                            end_tick = tick
-                        if turn < start_turn:
-                            (start_turn, start_tick) = (turn, tick)
-                        elif turn == start_turn and tick < start_tick:
-                            start_tick = tick
-                (start_turn0, start_tick0, end_turn0, end_tick0) = loaded.get(
-                    branch, (turn_now, tick_now, turn_now, tick_now))
-                if start_turn < start_turn0 or (start_turn == start_turn0
-                                                and start_tick < start_tick0):
-                    (start_turn1, start_tick1) = (start_turn, start_tick)
-                else:
-                    (start_turn1, start_tick1) = (start_turn0, start_tick0)
-                if end_turn > end_turn0 or (end_turn == end_turn0
-                                            and end_tick > end_tick0):
-                    (end_turn1, end_tick1) = (end_turn, end_tick)
-                else:
-                    (end_turn1, end_tick1) = (end_turn0, end_tick0)
-                loaded[branch] = (start_turn1, start_tick1, end_turn1,
-                                  end_tick1)
+                        bump(branch, turn, tick)
                 continue
             future_branch, future_turn, future_tick = earliest_future_keyframe
             if past_branch == future_branch:
@@ -1276,78 +1237,40 @@ class ORM(object):
             windows = self._build_loading_windows(past_branch, past_turn,
                                                   past_tick, future_branch,
                                                   future_turn, future_tick)
-            if not windows:
-                continue  # I think this would happen when we are only loading an initial state
-            for window in reversed(windows):  # chronological ordering
-                start_turn, start_tick, end_turn, end_tick = loaded[branch]
+            for window in reversed(windows):
                 for (graph, node, branch, turn, tick,
                      ex) in load_nodes(graph, *window):
                     noderows.append((graph, node, branch, turn, tick, ex
                                      or None))
-                    if turn > end_turn:
-                        (end_turn, end_tick) = (turn, tick)
-                    elif turn == end_turn and tick > end_tick:
-                        end_tick = tick
-                    if turn < start_turn:
-                        (start_turn, start_tick) = (turn, tick)
-                    elif turn == start_turn and tick < start_tick:
-                        start_tick = tick
+                    bump(branch, turn, tick)
                 for (graph, orig, dest, idx, branch, turn, tick,
                      ex) in load_edges(graph, *window):
                     edgerows.append(
                         (graph, orig, dest, idx, branch, turn, tick, ex
                          or None))
-                    if turn > end_turn:
-                        (end_turn, end_tick) = (turn, tick)
-                    elif turn == end_turn and tick > end_tick:
-                        end_tick = tick
-                    if turn < start_turn:
-                        (start_turn, start_tick) = (turn, tick)
-                    elif turn == start_turn and tick < start_tick:
-                        start_tick = tick
+                    bump(branch, turn, tick)
                 for row in load_graph_val(graph, *window):
                     graphvalrows.append(row)
                     turn = row[3]
                     tick = row[4]
-                    if turn > end_turn:
-                        (end_turn, end_tick) = (turn, tick)
-                    elif turn == end_turn and tick > end_tick:
-                        end_tick = tick
-                    if turn < start_turn:
-                        (start_turn, start_tick) = (turn, tick)
-                    elif turn == start_turn and tick < start_tick:
-                        start_tick = tick
+                    bump(branch, turn, tick)
                 for row in load_node_val(graph, *window):
                     nodevalrows.append(row)
                     turn = row[4]
                     tick = row[5]
-                    if turn > end_turn:
-                        (end_turn, end_tick) = (turn, tick)
-                    elif turn == end_turn and tick > end_tick:
-                        end_tick = tick
-                    if turn < start_turn:
-                        (start_turn, start_tick) = (turn, tick)
-                    elif turn == start_turn and tick < start_tick:
-                        start_tick = tick
+                    bump(branch, turn, tick)
                 for row in load_edge_val(graph, *window):
                     edgevalrows.append(row)
                     turn = row[6]
                     tick = row[7]
-                    if turn > end_turn:
-                        (end_turn, end_tick) = (turn, tick)
-                    elif turn == end_turn and tick > end_tick:
-                        end_tick = tick
-                    if turn < start_turn:
-                        (start_turn, start_tick) = (turn, tick)
-                    elif turn == start_turn and tick < start_tick:
-                        start_tick = tick
-                loaded[branch] = (start_turn, start_tick, end_turn, end_tick)
+                    bump(branch, turn, tick)
         with self.batch():
             self._nodes_cache.load(noderows)
             self._edges_cache.load(edgerows)
             self._graph_val_cache.load(graphvalrows)
             self._node_val_cache.load(nodevalrows)
             self._edge_val_cache.load(edgevalrows)
+
         return latest_past_keyframe, earliest_future_keyframe, \
                keyframed, noderows, edgerows, graphvalrows, \
                nodevalrows, edgevalrows
