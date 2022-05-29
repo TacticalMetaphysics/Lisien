@@ -136,7 +136,7 @@ class Portal(Edge, RuleFollower):
     def __setitem__(self, key, value):
         """Set ``key``=``value`` at the present game-time.
 
-        If I am a mirror of another Portal, set ``key``==``value`` on
+        If I am a mirror of another Portal, set ``key``=``value`` on
         that Portal instead.
 
         """
@@ -221,7 +221,7 @@ class Portal(Edge, RuleFollower):
     def delete(self):
         """Remove myself from my :class:`Character`.
 
-        For symmetry with :class:`Thing` and :class`Place`.
+        For symmetry with :class:`Thing` and :class:`Place`.
 
         """
         self.clear()
