@@ -51,7 +51,7 @@ def board_is_arranged(board, char=None):
         board, char) and all_arrows_placed(board, char)
 
 
-def idle_until(condition=None, timeout=None, message="Timed out"):
+def idle_until(condition=None, timeout=100, message="Timed out"):
     """Advance frames until ``condition()`` is true
 
     With integer ``timeout``, give up after that many frames,
