@@ -432,20 +432,50 @@ class Engine(AbstractEngine, gORM):
         noderows, edgerows, graphvalrows, nodevalrows, edgevalrows \
             = super()._load_at(branch, turn, tick)
         thingrows = []
+
+        def build_thingrows(graf, windows):
+            if not windows:
+                return
+            if len(windows) == 1:
+                btt = windows[0]
+                thingrows.extend(load_things(graf, *btt))
+                return
+            for window in reversed(windows):
+                thingrows.extend(load_things(graf, *window))
+
         load_things = self.query.load_things
-        if latest_past_keyframe is not None:
-            past_branch, past_turn, past_tick = latest_past_keyframe
+        if latest_past_keyframe is None:
+            # Load thing data from the beginning of time to now
             for graph in self.graph:
-                if earliest_future_keyframe is None:
-                    thingrows.extend(
-                        load_things(graph, past_branch, past_turn, past_tick))
-                else:
-                    future_branch, future_turn, future_tick = earliest_future_keyframe
-                    thingrows.extend(
-                        load_things(graph, past_branch, past_turn, past_tick,
-                                    future_turn, future_tick))
-        with self.batch():
-            self._things_cache.load(thingrows)
+                build_thingrows(
+                    graph,
+                    self._build_loading_windows('trunk', 0, 0, branch, turn,
+                                                tick))
+        else:
+            past_branch, past_turn, past_tick = latest_past_keyframe
+            if earliest_future_keyframe is None:
+                # Load thing data from the keyframe to now
+                for graph in self.graph:
+                    build_thingrows(
+                        graph,
+                        self._build_loading_windows(past_branch, past_turn,
+                                                    past_tick, branch, turn,
+                                                    tick))
+            else:
+                # Load thing data between the two keyframes
+                future_branch, future_turn, future_tick = earliest_future_keyframe
+
+                for graph in self.graph:
+                    build_thingrows(
+                        graph,
+                        self._build_loading_windows(past_branch, past_turn,
+                                                    past_tick, future_branch,
+                                                    future_turn, future_tick))
+        if thingrows:
+            with self.batch():
+                self._things_cache.load(thingrows)
+        else:
+            self.warning(f"No thing data at {branch, turn, tick}")
 
     def _init_caches(self) -> None:
         from .xcollections import (FunctionStore, CharacterMapping,
