@@ -1158,22 +1158,13 @@ class ORM(object):
                     updload(branch, turn, tick)
                 for row in load_graph_val(graph, *window):
                     graphvalrows.append(row)
-                    branch = row[2]
-                    turn = row[3]
-                    tick = row[4]
-                    updload(branch, turn, tick)
+                    updload(*row[2:5])
                 for row in load_node_val(graph, *window):
                     nodevalrows.append(row)
-                    branch = row[3]
-                    turn = row[4]
-                    tick = row[5]
-                    updload(branch, turn, tick)
+                    updload(*row[3:6])
                 for row in load_edge_val(graph, *window):
                     edgevalrows.append(row)
-                    branch = row[5]
-                    turn = row[6]
-                    tick = row[7]
-                    updload(branch, turn, tick)
+                    updload(*row[4:8])
 
         for graph in self.graph:
             stuff = keyframed[graph] = get_keyframe(graph, past_branch,
