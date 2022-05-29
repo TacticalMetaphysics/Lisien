@@ -281,6 +281,14 @@ class Engine(AbstractEngine, gORM):
         `(branch, turn, tick)` in my `cache_arrange_queue`.
 
         """
+        if logfun is None:
+            from logging import getLogger
+            logger = getLogger("Life Sim Engine")
+
+            def logfun(level, msg):
+                getattr(logger, level)(msg)
+
+        self.log = logfun
         import os
         from .xcollections import StringStore
         if connect_args is None:
@@ -346,14 +354,6 @@ class Engine(AbstractEngine, gORM):
                 self.query, self._string_file,
                 self.eternal.setdefault('language', 'eng'))
         self.next_turn = NextTurn(self)
-        if logfun is None:
-            from logging import getLogger
-            logger = getLogger("Life Sim Engine")
-
-            def logfun(level, msg):
-                getattr(logger, level)(msg)
-
-        self.log = logfun
         self.commit_modulus = commit_modulus
         self.flush_modulus = flush_modulus
         self.random_seed = random_seed

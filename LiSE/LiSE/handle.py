@@ -221,6 +221,8 @@ class EngineHandle(object):
         if kwargs is None:
             kwargs = {}
         kwargs.setdefault('logfun', self.log)
+        self._logq = logq
+        self._loglevel = loglevel
         self._real = Engine(*args, cache_arranger=False, **kwargs)
         self.pack = pack = self._real.pack
 
@@ -239,8 +241,6 @@ class EngineHandle(object):
             return dict(map(unpack_pair, d.items()))
 
         self.unpack_dict = unpack_dict
-        self._logq = logq
-        self._loglevel = loglevel
         self._muted_chars = set()
         self.branch = self._real.branch
         self.turn = self._real.turn
