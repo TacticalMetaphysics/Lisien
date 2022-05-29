@@ -169,6 +169,24 @@ class GraphBoardTest(GraphicUnitTest):
             lambda: board.pawn[dummy2_name] in board.spot[dummy_name].children,
             100, "Dummy 2 didn't get to dummy 1")
 
+    @staticmethod
+    def test_pawn_add_new_place():
+        char = Facade()
+        app = ELiDEApp()
+        board = GraphBoard(app=app, character=char)
+        boardview = GraphBoardView(board=board)
+        win = window_with_widget(boardview)
+        idle_until(lambda: board.spotlayout)
+        char.add_place(1, _x=0.2, _y=0.2)
+        board.add_spot(1)
+        idle_until(lambda: 1 in board.spot, 100, "Didn't make spot")
+        char.add_thing('that', location=1)
+        idle_until(lambda: 'that' in board.pawn, 100, "Didn't make pawn")
+        that = board.pawn['that']
+        one = board.spot[1]
+        idle_until(lambda: that in one.children, 100,
+                   "pawn did not locate within 100 ticks")
+
 
 class SwitchGraphTest(ELiDEAppTest):
 
