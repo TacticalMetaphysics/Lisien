@@ -960,8 +960,10 @@ class ORM(object):
             else:
                 kfd[branch][turn].add(tick)
 
-    def _build_loading_windows(self, branch_from, turn_from, tick_from,
-                               branch_to, turn_to, tick_to):
+    def _build_loading_windows(
+            self, branch_from: str, turn_from: int, tick_from: int,
+            branch_to: str, turn_to: int,
+            tick_to: int) -> List[Tuple[str, int, int, int, int]]:
         """Return windows of time I've got to load in order to have a complete timeline between these points
 
         Returned windows are in reverse chronological order.
