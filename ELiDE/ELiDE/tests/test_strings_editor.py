@@ -14,7 +14,7 @@ class StringsEditorTest(ELiDEAppTest):
         win = window_with_widget(app.build())
         idle_until(lambda: hasattr(app, 'mainscreen'), 100,
                    "app never got mainscreen")
-        idle_until(lambda: app.timestream in app.manager.children, 100,
+        idle_until(lambda: app.manager.has_screen('timestream'), 100,
                    "timestream never added to manager")
         app.mainmenu.configurator.start()  # start with blank world
         idle_until(lambda: app.engine, 100, "app never got engine")
