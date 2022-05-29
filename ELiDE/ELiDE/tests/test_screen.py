@@ -44,9 +44,10 @@ class ScreenTest(ELiDEAppTest):
             graphboards={'physical': GraphBoard(character=char)},
             gridboards={'physical': GridBoard(character=char)})
         win = window_with_widget(screen)
-        idle_until(lambda: 'timepanel' in screen.ids)
+        idle_until(lambda: 'timepanel' in screen.ids, "timepanel never got id")
         timepanel = screen.ids['timepanel']
-        idle_until(lambda: timepanel.size != [100, 100])
+        idle_until(lambda: timepanel.size != [100, 100], 100,
+                   "timepanel never resized")
         turnfield = timepanel.ids['turnfield']
         turn_before = int(turnfield.hint_text)
         stepbut = timepanel.ids['stepbut']
@@ -78,9 +79,11 @@ class ScreenTest(ELiDEAppTest):
                             gridboards={'foo': GridBoard(character=char)},
                             play_speed=1.0)
         win = window_with_widget(screen)
-        idle_until(lambda: 'timepanel' in screen.ids)
+        idle_until(lambda: 'timepanel' in screen.ids, 100,
+                   "timepanel never got id")
         timepanel = screen.ids['timepanel']
-        idle_until(lambda: timepanel.size != [100, 100])
+        idle_until(lambda: timepanel.size != [100, 100], 100,
+                   "timepanel never resized")
         turnfield = timepanel.ids['turnfield']
         turn_before = int(turnfield.hint_text)
         playbut = timepanel.ids['playbut']
