@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Directed edges, as used by LiSE."""
-from collections import Mapping
+from collections.abc import Mapping
 from typing import Union, List, Tuple, Any
 
 from .allegedb.graph import Edge
