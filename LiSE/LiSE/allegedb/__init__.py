@@ -1157,6 +1157,38 @@ class ORM(object):
                 start_tick = tck
             loaded[branc] = (start_turn, start_tick, end_turn, end_tick)
 
+        def load_windows(graph, windows):
+            for window in reversed(windows):
+                for (_, node, branch, turn, tick,
+                     ex) in load_nodes(graph, *window):
+                    noderows.append((graph, node, branch, turn, tick, ex
+                                     or None))
+                    bump(branch, turn, tick)
+                for (_, orig, dest, idx, branch, turn, tick,
+                     ex) in load_edges(graph, *window):
+                    edgerows.append(
+                        (graph, orig, dest, idx, branch, turn, tick, ex
+                         or None))
+                    bump(branch, turn, tick)
+                for row in load_graph_val(graph, *window):
+                    graphvalrows.append(row)
+                    branch = row[2]
+                    turn = row[3]
+                    tick = row[4]
+                    bump(branch, turn, tick)
+                for row in load_node_val(graph, *window):
+                    nodevalrows.append(row)
+                    branch = row[3]
+                    turn = row[4]
+                    tick = row[5]
+                    bump(branch, turn, tick)
+                for row in load_edge_val(graph, *window):
+                    edgevalrows.append(row)
+                    branch = row[5]
+                    turn = row[6]
+                    tick = row[7]
+                    bump(branch, turn, tick)
+
         for graph in self.graph:
             stuff = keyframed[graph] = get_keyframe(graph, past_branch,
                                                     past_turn, past_tick)
@@ -1166,36 +1198,11 @@ class ORM(object):
                 snap_keyframe(graph, past_branch, past_turn, past_tick, nodes,
                               edges, graph_val)
             if earliest_future_keyframe is None:
-                windows = self._build_loading_windows(*latest_past_keyframe,
-                                                      branch_now, turn_now,
-                                                      tick_now)
-                for window in reversed(windows):
-                    for (graph, node, branch, turn, tick,
-                         ex) in load_nodes(graph, *window):
-                        noderows.append((graph, node, branch, turn, tick, ex
-                                         or None))
-                        bump(branch, turn, tick)
-                    for (graph, orig, dest, idx, branch, turn, tick,
-                         ex) in load_edges(graph, *window):
-                        edgerows.append(
-                            (graph, orig, dest, idx, branch, turn, tick, ex
-                             or None))
-                        bump(branch, turn, tick)
-                    for row in load_graph_val(graph, *window):
-                        graphvalrows.append(row)
-                        turn = row[3]
-                        tick = row[4]
-                        bump(branch, turn, tick)
-                    for row in load_node_val(graph, *window):
-                        nodevalrows.append(row)
-                        turn = row[4]
-                        tick = row[5]
-                        bump(branch, turn, tick)
-                    for row in load_edge_val(graph, *window):
-                        edgevalrows.append(row)
-                        turn = row[6]
-                        tick = row[7]
-                        bump(branch, turn, tick)
+                load_windows(
+                    graph,
+                    self._build_loading_windows(*latest_past_keyframe,
+                                                branch_now, turn_now,
+                                                tick_now))
                 continue
             future_branch, future_turn, future_tick = earliest_future_keyframe
             if past_branch == future_branch:
@@ -1234,36 +1241,11 @@ class ORM(object):
                     loaded[branch] = (past_turn, past_tick, future_turn,
                                       future_tick)
                 continue
-            windows = self._build_loading_windows(past_branch, past_turn,
-                                                  past_tick, future_branch,
-                                                  future_turn, future_tick)
-            for window in reversed(windows):
-                for (graph, node, branch, turn, tick,
-                     ex) in load_nodes(graph, *window):
-                    noderows.append((graph, node, branch, turn, tick, ex
-                                     or None))
-                    bump(branch, turn, tick)
-                for (graph, orig, dest, idx, branch, turn, tick,
-                     ex) in load_edges(graph, *window):
-                    edgerows.append(
-                        (graph, orig, dest, idx, branch, turn, tick, ex
-                         or None))
-                    bump(branch, turn, tick)
-                for row in load_graph_val(graph, *window):
-                    graphvalrows.append(row)
-                    turn = row[3]
-                    tick = row[4]
-                    bump(branch, turn, tick)
-                for row in load_node_val(graph, *window):
-                    nodevalrows.append(row)
-                    turn = row[4]
-                    tick = row[5]
-                    bump(branch, turn, tick)
-                for row in load_edge_val(graph, *window):
-                    edgevalrows.append(row)
-                    turn = row[6]
-                    tick = row[7]
-                    bump(branch, turn, tick)
+            load_windows(
+                graph,
+                self._build_loading_windows(past_branch, past_turn, past_tick,
+                                            future_branch, future_turn,
+                                            future_tick))
         with self.batch():
             self._nodes_cache.load(noderows)
             self._edges_cache.load(edgerows)
