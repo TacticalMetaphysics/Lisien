@@ -137,26 +137,8 @@ class ConnectionHolder:
         alchemy = self._alchemy
         dbstring = self._dbstring
         connect_args = self._connect_args
-        if alchemy:
-            from sqlalchemy import create_engine
-            from sqlalchemy.engine.base import Engine
-            from sqlalchemy.exc import ArgumentError
-            from sqlalchemy.pool import NullPool
-            from .alchemy import Alchemist
-            if isinstance(dbstring, Engine):
-                self.engine = dbstring
-            else:
-                try:
-                    self.engine = create_engine(dbstring,
-                                                connect_args=connect_args,
-                                                poolclass=NullPool)
-                except ArgumentError:
-                    self.engine = create_engine('sqlite:///' + dbstring,
-                                                connect_args=connect_args,
-                                                poolclass=NullPool)
-            self.alchemist = Alchemist(self.engine)
-            self.transaction = self.alchemist.conn.begin()
-        else:
+
+        def lite_init(dbstring):
             from json import load
             with open(self._fn) as strf:
                 self.strings = load(strf)
@@ -164,6 +146,32 @@ class ConnectionHolder:
             if dbstring.startswith('sqlite:///'):
                 dbstring = dbstring[10:]
             self.connection = sqlite3.connect(dbstring)
+
+        if alchemy:
+            try:
+                from sqlalchemy import create_engine
+                from sqlalchemy.engine.base import Engine
+                from sqlalchemy.exc import ArgumentError
+                from sqlalchemy.pool import NullPool
+                from .alchemy import Alchemist
+                if isinstance(dbstring, Engine):
+                    self.engine = dbstring
+                else:
+                    try:
+                        self.engine = create_engine(dbstring,
+                                                    connect_args=connect_args,
+                                                    poolclass=NullPool)
+                    except ArgumentError:
+                        self.engine = create_engine('sqlite:///' + dbstring,
+                                                    connect_args=connect_args,
+                                                    poolclass=NullPool)
+                self.alchemist = Alchemist(self.engine)
+                self.transaction = self.alchemist.conn.begin()
+            except ImportError:
+                self._alchemy = False
+                lite_init(dbstring)
+        else:
+            lite_init(dbstring)
         while True:
             inst = self.inq.get()
             if inst == 'shutdown':
