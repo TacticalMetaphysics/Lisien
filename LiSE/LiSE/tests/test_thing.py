@@ -27,7 +27,7 @@ def test_contents(something):
     pl2 = something.character.new_place('somewhere2')
     assert something.location == something.character.node['somewhere']
     assert something.name in pl1.content
-    assert not something.name in pl2.content
+    assert something.name not in pl2.content
     assert [something] == list(pl1.contents())
     assert [] == list(pl2.contents())
 
