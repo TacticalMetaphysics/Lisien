@@ -140,7 +140,7 @@ class ConnectionHolder:
 
         def lite_init(dbstring):
             from json import load
-            with open(self._fn) as strf:
+            with open(self._fn, "rb") as strf:
                 self.strings = load(strf)
             assert not isinstance(dbstring, sqlite3.Connection)
             if dbstring.startswith('sqlite:///'):
