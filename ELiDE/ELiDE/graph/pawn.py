@@ -19,7 +19,7 @@ from .pawnspot import GraphPawnSpot
 from ..pawn import PawnBehavior
 
 
-class Pawn(GraphPawnSpot, PawnBehavior):
+class Pawn(PawnBehavior, GraphPawnSpot):
     """A token to represent a :class:`Thing`.
 
     :class:`Thing` is the LiSE class to represent items that are
