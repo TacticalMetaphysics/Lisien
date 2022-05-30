@@ -141,7 +141,7 @@ def test_keyframe_unload(tmpdbfile):
         ) in orm._nodes_cache.keyframe and 'trunk' in orm._nodes_cache.keyframe[
             'g', ] and 0 in orm._nodes_cache.keyframe['g', ]['trunk']
         orm.unload()
-        assert not orm._time_is_loaded('g', 'trunk', 1)
+        assert not orm._time_is_loaded('trunk', 1)
         if 'trunk' in orm._nodes_cache.keyframe['g', ]:
             assert 0 not in orm._nodes_cache.keyframe['g', ]['trunk']
         assert ('g', (0, 0), (0, 1)) in orm._edges_cache.keyframe
