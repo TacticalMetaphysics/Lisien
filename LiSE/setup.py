@@ -14,8 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import sys
 if sys.version_info[0] < 3 or (sys.version_info[0] == 3
-                               and sys.version_info[1] < 6):
-    raise RuntimeError("LiSE requires Python 3.6 or later")
+                               and sys.version_info[1] < 7):
+    raise RuntimeError("LiSE requires Python 3.7 or later")
 import os
 from setuptools import setup
 
