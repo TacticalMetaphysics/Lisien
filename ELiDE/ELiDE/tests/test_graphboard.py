@@ -1,3 +1,4 @@
+from kivy.tests.common import UnitTestTouch
 from kivy.tests.common import GraphicUnitTest, UnitTestTouch
 import networkx as nx
 
@@ -132,6 +133,36 @@ class GraphBoardTest(GraphicUnitTest):
         char.thing['that']['location'] = that.loc_name = 1
         idle_until(lambda: that in one.children, 1000,
                    "pawn did not relocate within 1000 ticks")
+
+    def test_pawn_drag(self):
+        char = Facade()
+        char.add_place(0, _x=0.1, _y=0.1)
+        char.add_place(1, _x=0.2, _y=0.1)
+        char.add_thing('that', location=0)
+        app = ELiDEApp()
+        board = GraphBoard(app=app, character=char)
+        boardview = GraphBoardView(board=board)
+        win = window_with_widget(boardview)
+        idle_until(lambda: 0 in board.spot and board.spot[
+            0] in board.spotlayout.children and 1 in board.spot and board.spot[
+                1] in board.spotlayout.children and 'that' in board.pawn and
+                   board.pawn['that'] in board.spot[0].children)
+        that = board.pawn['that']
+        one = board.spot[1]
+        touch = UnitTestTouch(*that.center)
+        touch.touch_down()
+        dist_x = one.center_x - that.center_x
+        dist_y = one.center_y - that.center_y
+        for i in range(1, 11):
+            coef = 1 / i
+            x = one.center_x - coef * dist_x
+            y = one.center_y - coef * dist_y
+            touch.touch_move(x, y)
+            self.advance_frames(1)
+        touch.touch_up(*one.center)
+        idle_until(lambda: that.x != one.center_x and that.y != one.center_y,
+                   100)
+        idle_until(lambda: char.thing["that"]["location"] == 1, 100)
 
     @staticmethod
     def test_spot_and_pawn_from_dummy():
