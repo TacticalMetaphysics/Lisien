@@ -968,24 +968,19 @@ class ORM(object):
 
         Returned windows are in reverse chronological order.
         """
-        parentage_iter = self._iter_parent_btt(branch_to,
-                                               turn_to,
-                                               tick_to,
-                                               stoptime=(branch_from,
-                                                         turn_from, tick_from))
+        parentage_iter = self._iter_parent_btt(branch_to, turn_to, tick_to)
         branch1, turn1, tick1 = next(parentage_iter)
         windows = []
         for branch0, turn0, tick0 in parentage_iter:
             windows.append((branch1, turn0, tick0, turn1, tick1))
+            (branch1, turn1, tick1) = (branch0, turn0, tick0)
             if branch0 == branch_from:
                 windows.append((branch0, turn_from, tick_from, turn0, tick0))
                 break
         else:
             assert not windows
-            assert locals().get(
-                'branch0',
-                'trunk') == 'trunk', "Never got to trunk, only %s" % branch1
-            return [('trunk', 0, 0, turn1, tick1)]
+            assert branch_from == branch_to
+            return [(branch_from, turn_from, tick_from, turn_to, tick_to)]
         return windows
 
     @world_locked
@@ -1179,6 +1174,8 @@ class ORM(object):
                 snap_keyframe(graph, past_branch, past_turn, past_tick, nodes,
                               edges, graph_val)
             if earliest_future_keyframe is None:
+                if latest_past_keyframe == (branch_now, turn_now, tick_now):
+                    continue
                 load_windows(
                     graph,
                     self._build_loading_windows(*latest_past_keyframe,
