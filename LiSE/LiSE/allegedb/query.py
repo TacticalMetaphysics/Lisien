@@ -35,10 +35,10 @@ try:
 
     IntegrityError = (sqlalchemy.exc.IntegrityError, sqlite3.IntegrityError)
     OperationalError = (sqlalchemy.exc.OperationalError,
-                        sqlite3.IntegrityError)
+                        sqlite3.OperationalError)
 except ImportError:
     IntegrityError = sqlite3.IntegrityError
-    OperationalError = sqlite3.IntegrityError
+    OperationalError = sqlite3.OperationalError
 
 NodeRowType = Tuple[Hashable, Hashable, str, int, int, bool]
 EdgeRowType = Tuple[Hashable, Hashable, Hashable, int, str, int, int, bool]
