@@ -159,9 +159,10 @@ class GraphBoardTest(GraphicUnitTest):
             y = one.center_y - coef * dist_y
             touch.touch_move(x, y)
             self.advance_frames(1)
+        that.pos = one.center
+        self.advance_frames(1)
         touch.touch_up(*one.center)
-        idle_until(lambda: that.x != one.center_x and that.y != one.center_y,
-                   100)
+        idle_until(lambda: that.pos != one.center, 100)
         idle_until(lambda: char.thing["that"]["location"] == 1, 100)
 
     @staticmethod
