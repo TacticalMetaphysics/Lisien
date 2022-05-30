@@ -968,6 +968,8 @@ class ORM(object):
 
         Returned windows are in reverse chronological order.
         """
+        if branch_from == branch_to:
+            return [(branch_from, turn_from, tick_from, turn_to, tick_to)]
         parentage_iter = self._iter_parent_btt(branch_to, turn_to, tick_to)
         branch1, turn1, tick1 = next(parentage_iter)
         windows = []
