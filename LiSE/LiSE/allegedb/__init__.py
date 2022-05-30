@@ -980,9 +980,7 @@ class ORM(object):
                 windows.append((branch0, turn_from, tick_from, turn0, tick0))
                 break
         else:
-            assert not windows
-            assert branch_from == branch_to
-            return [(branch_from, turn_from, tick_from, turn_to, tick_to)]
+            raise HistoryError("Couldn't build sensible loading windows")
         return windows
 
     @world_locked
