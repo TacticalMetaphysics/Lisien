@@ -22,6 +22,7 @@ class GridBoard(RelativeLayout):
     spot = DictProperty({})
     spot_cls = ObjectProperty(GridSpot)
     pawn_cls = ObjectProperty(GridPawn)
+    _parented: bool
 
     def do_layout(self, *args):
         Logger.debug("GridBoard laying out at size {}".format(self.size))
@@ -42,13 +43,17 @@ class GridBoard(RelativeLayout):
     def add_spot(self, placen, *args):
         if placen not in self.character.place:
             raise KeyError(f"No such place for spot: {placen}")
-        if placen in self.spot:
-            raise KeyError(f"Already have a spot for place: {placen}")
         self.add_widget(self.make_spot(self.character.place[placen]))
 
     def make_spot(self, place):
-        if place["name"] in self.spot:
+        placen = place["name"]
+        if placen in self.spot:
             raise KeyError("Already have a Spot for this Place")
+        if not isinstance(placen, tuple) or len(placen) != 2 or not isinstance(
+                placen[0], int) or not isinstance(placen[1], int):
+            raise TypeError(
+                "GridBoard can only display places named with pairs of ints")
+
         r = self.spot_cls(board=self, proxy=place)
         self.spot[place["name"]] = r
         return r
@@ -66,85 +71,65 @@ class GridBoard(RelativeLayout):
         Clock.schedule_once(part, 0)
 
     def add_new_spots(self, *args):
-        placemap = self.character.place
-        tilemap = self.spot
-        default_image_paths = self.spot_cls.default_image_paths
-        default_zeroes = [0] * len(default_image_paths)
-        places2add = []
-        nodes_patch = {}
-        for place_name, place in placemap.items():
-            if not isinstance(place_name, tuple) or len(place_name) != 2:
-                continue
-            if place_name not in tilemap:
-                places2add.append(place)
-                patch = {}
-                if '_image_paths' in place:
-                    zeroes = [0] * len(place['_image_paths'])
-                else:
-                    patch['_image_paths'] = default_image_paths
-                    zeroes = default_zeroes
-                if '_offxs' not in place:
-                    patch['_offxs'] = zeroes
-                if '_offys' not in place:
-                    patch['_offys'] = zeroes
-                if patch:
-                    nodes_patch[place_name] = patch
-        if nodes_patch:
-            try:
-                self.character.node.patch(nodes_patch)
-            except:
-                pass
-        make_tile = self.make_spot
-        add_widget = self.add_widget
-        for place in places2add:
-            add_widget(make_tile(place))
+        return self._maybe_add_nodes(GridSpot.default_image_paths,
+                                     self.character.place, self.spot,
+                                     self.make_spot, self.add_widget)
 
     def add_pawn(self, thingn, *args):
-        if (thingn in self.character.thing and thingn not in self.pawn):
-            pwn = self.make_pawn(self.character.thing[thingn])
-            whereat = self.spot[pwn.proxy['location']]
-            whereat.add_widget(pwn)
-            self.pawn[thingn] = pwn
+        if thingn not in self.character.thing:
+            raise KeyError(f"No such thing: {thingn}")
+        if thingn in self.pawn:
+            raise KeyError(f"Already have a pawn for {thingn}")
+        pwn = self.make_pawn(self.character.thing[thingn])
+        whereat = self.spot[pwn.proxy['location']]
+        whereat.add_widget(pwn)
+        self.pawn[thingn] = pwn
 
     def _trigger_add_pawn(self, thingn):
         part = partial(self.add_pawn, thingn)
         Clock.unschedule(part)
         Clock.schedule_once(part, 0)
 
-    def add_new_pawns(self, *args):
-        nodes_patch = {}
-        things2add = []
-        pawns_added = []
-        pawnmap = self.pawn
-        default_image_paths = GridPawn.default_image_paths
+    @staticmethod
+    def _maybe_add_nodes(default_image_paths, nodemap, mymap, maker, adder):
         default_zeroes = [0] * len(default_image_paths)
-        for thingn, thing in self.character.thing.items():
-            if thingn not in pawnmap:
-                things2add.append(thing)
+        to_add = []
+        patchmap = {}
+        for noden, node in nodemap.items():
+            if noden not in mymap:
+                to_add.append(node)
                 patch = {}
-                if '_image_paths' in thing:
-                    zeroes = [0] * len(thing['_image_paths'])
+                if '_image_paths' in node:
+                    zeroes = [0] * len(node['_image_paths'])
                 else:
                     patch['_image_paths'] = default_image_paths
                     zeroes = default_zeroes
-                if '_offxs' not in thing:
+                if '_offxs' not in node:
                     patch['_offxs'] = zeroes
-                if '_offys' not in thing:
+                if '_offys' not in node:
                     patch['_offys'] = zeroes
                 if patch:
-                    nodes_patch[thingn] = patch
-        if nodes_patch:
+                    patchmap[noden] = patch
+        if patchmap:
+            nodemap.patch(patchmap)
+        added = []
+        for node in to_add:
             try:
-                self.character.node.patch(nodes_patch)
-            except:
-                pass
-        make_pawn = self.make_pawn
-        tilemap = self.spot
-        for thing in things2add:
-            pwn = make_pawn(thing)
-            pawns_added.append(pwn)
-            whereat = tilemap[thing['location']]
-            whereat.add_widget(pwn)
+                mine = maker(node)
+            except TypeError:
+                continue
+            added.append(mine)
+            adder(mine)
+        return added
+
+    def add_new_pawns(self, *args):
+
+        def adder(pwn):
+            self.spot[pwn.proxy['location']].add_widget(pwn)
+
+        return self._maybe_add_nodes(GridPawn.default_image_paths,
+                                     self.character.thing, self.pawn,
+                                     self.make_pawn, adder)
 
     def on_parent(self, *args):
         if not self.parent or hasattr(self, '_parented'):
