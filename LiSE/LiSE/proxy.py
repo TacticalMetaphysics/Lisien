@@ -660,6 +660,12 @@ class ThingMapProxy(CachingProxy):
         del self._cache[k]
         del self.engine._node_stat_cache[self.name][k]
 
+    def patch(self, d: dict):
+        places = d.keys() & self.character.place.keys()
+        if places:
+            raise KeyError(f"Tried to patch places on thing mapping: {places}")
+        self.character.node.patch(d)
+
 
 class PlaceMapProxy(CachingProxy):
     rulebook = RulebookProxyDescriptor()
@@ -716,6 +722,12 @@ class PlaceMapProxy(CachingProxy):
                            block=False,
                            branching=True)
         del self.engine._node_stat_cache[self.name][k]
+
+    def patch(self, d: dict):
+        things = d.keys() & self.character.thing.keys()
+        if things:
+            raise KeyError(f"Tried to patch things on place mapping: {things}")
+        self.character.node.patch(d)
 
 
 class SuccessorsProxy(CachingProxy):
