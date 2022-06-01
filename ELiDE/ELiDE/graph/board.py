@@ -643,7 +643,6 @@ class GraphBoard(RelativeLayout):
         self.pawn[thingn] = pwn
         if thingn in self._scheduled_add_pawn:
             del self._scheduled_add_pawn[thingn]
-        self.trigger_update()
 
     def _trigger_add_pawn(self, thingn):
         part = partial(self.add_pawn, thingn)
