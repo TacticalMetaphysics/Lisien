@@ -633,14 +633,17 @@ class GraphBoard(RelativeLayout):
                                 points[origspot, destspot]))
 
     def add_pawn(self, thingn, *args):
-        if (thingn in self.character.thing and thingn not in self.pawn):
-            pwn = self.make_pawn(self.character.thing[thingn])
-            whereat = self.spot[pwn.loc_name]
-            whereat.add_widget(pwn)
-            self.pawn[thingn] = pwn
-            self.trigger_update()
+        if thingn not in self.character.thing:
+            raise KeyError(f"No Thing for pawn: {thingn}")
+        if thingn in self.pawn:
+            raise KeyError(f"Already have pawn for Thing: {thingn}")
+        pwn = self.make_pawn(self.character.thing[thingn])
+        whereat = self.spot[pwn.loc_name]
+        whereat.add_widget(pwn)
+        self.pawn[thingn] = pwn
         if thingn in self._scheduled_add_pawn:
             del self._scheduled_add_pawn[thingn]
+        self.trigger_update()
 
     def _trigger_add_pawn(self, thingn):
         part = partial(self.add_pawn, thingn)
