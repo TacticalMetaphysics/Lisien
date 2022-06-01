@@ -638,6 +638,7 @@ class GraphBoard(RelativeLayout):
             whereat = self.spot[pwn.loc_name]
             whereat.add_widget(pwn)
             self.pawn[thingn] = pwn
+            self.trigger_update()
         if thingn in self._scheduled_add_pawn:
             del self._scheduled_add_pawn[thingn]
 
