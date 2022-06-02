@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Code that draws the box around a Pawn or Spot when it's selected"""
 from collections import defaultdict
+from functools import partial
 
 from kivy.properties import (ObjectProperty, BooleanProperty, ListProperty,
                              DictProperty)
@@ -56,7 +57,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
         if getattr(self, '_finalized', False):
             return
         if (self.proxy is None or not hasattr(self.proxy, 'name')):
-            Clock.schedule_once(self.finalize, 0)
+            Clock.schedule_once(partial(self.finalize, initial=initial), 0)
             return
         if initial:
             self.name = self.proxy.name
