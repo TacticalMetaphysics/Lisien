@@ -16,8 +16,7 @@
 from collections import defaultdict
 from functools import partial
 
-from kivy.properties import (ObjectProperty, BooleanProperty, ListProperty,
-                             DictProperty)
+from kivy.properties import ObjectProperty, BooleanProperty, ListProperty
 from kivy.graphics import (InstructionGroup, Translate, PopMatrix, PushMatrix,
                            Color, Line)
 from kivy.uix.layout import Layout
