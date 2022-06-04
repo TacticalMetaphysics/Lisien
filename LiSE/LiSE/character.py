@@ -542,6 +542,13 @@ class Facade(AbstractCharacter, nx.DiGraph):
             except AttributeError:
                 return {}
 
+        def patch(self, d: dict):
+            places = d.keys() & self.facade.place.keys()
+            if places:
+                raise KeyError(
+                    f"Tried to patch places on thing mapping: {places}")
+            self.facade.node.patch(d)
+
     class PlaceMapping(FacadeEntityMapping):
         facadecls = FacadePlace
         innercls = Place
@@ -551,6 +558,13 @@ class Facade(AbstractCharacter, nx.DiGraph):
                 return self.facade.character._node
             except AttributeError:
                 return {}
+
+        def patch(self, d: dict):
+            things = d.keys() & self.facade.thing.keys()
+            if things:
+                raise KeyError(
+                    f"Tried to patch things on place mapping: {things}")
+            self.facade.node.patch(d)
 
     def ThingPlaceMapping(self, *args):
         return CompositeDict(self.thing, self.place)

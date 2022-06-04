@@ -667,13 +667,13 @@ class AbstractCharacter(Mapping):
         pass
 
     def new_thing(self, name, location, **kwargs):
-        if name not in self.thing:
+        if name not in self.node:
             self.add_thing(name, location, **kwargs)
             return self.thing[name]
         if isinstance(name, str):
-            if name in self.thing:
+            if name in self.node:
                 n = 0
-                while name + str(n) in self.thing:
+                while name + str(n) in self.node:
                     n += 1
                 name = name + str(n)
             self.add_thing(name, location, **kwargs)
