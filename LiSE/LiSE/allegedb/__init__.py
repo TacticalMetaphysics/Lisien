@@ -1861,10 +1861,9 @@ class ORM(object):
         presently active and ending at 'trunk'), and the turn is the
         latest revision in the branch that matters.
 
-        :arg stoptime: This may be a branch, in which case iteration will stop
-        instead of proceeding into that branch's parent; or it may be a triple,
-        ``(branch, turn, tick)``, in which case iteration will stop instead of
-        yielding any time before that. The tick may be ``None``, in which case
+        :arg stoptime: a triple,
+        ``(branch, turn, tick)``. Iteration will stop instead of
+        yielding that time or any before it. The tick may be ``None``, in which case
         iteration will stop instead of yielding the turn.
 
         """
@@ -1872,15 +1871,11 @@ class ORM(object):
         trn = self.turn if turn is None else turn
         tck = self.tick if tick is None else tick
         yield branch, trn, tck
+        stopbranch = None
         stopbranches = set()
         if stoptime:
-            if type(stoptime) is tuple:
-                stopbranch = stoptime[0]
-                stopbranches.add(stopbranch)
-                stopbranches.update(self._branch_parents[stopbranch])
-            else:
-                stopbranch = stoptime
-                stopbranches = self._branch_parents[stopbranch]
+            stopbranch = stoptime[0]
+            stopbranches.update(self._branch_parents[stopbranch])
         _branches = self._branches
         while branch in _branches:
             # ``par`` is the parent branch;
@@ -1888,10 +1883,10 @@ class ORM(object):
             (branch, trn, tck, _, _) = _branches[branch]
             if branch is None:
                 return
-            if branch in stopbranches and (
+            if branch == stopbranch and (
                     trn < stoptime[1] or
-                (trn == stoptime[1] and
-                 (stoptime[2] is None or tck <= stoptime[2]))):
+                    (trn == stoptime[1] and
+                     (stoptime[2] is None or tck <= stoptime[2]))):
                 return
             yield branch, trn, tck
 
