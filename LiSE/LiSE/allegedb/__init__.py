@@ -1885,8 +1885,8 @@ class ORM(object):
                 return
             if branch == stopbranch and (
                     trn < stoptime[1] or
-                    (trn == stoptime[1] and
-                     (stoptime[2] is None or tck <= stoptime[2]))):
+                (trn == stoptime[1] and
+                 (stoptime[2] is None or tck <= stoptime[2]))):
                 return
             yield branch, trn, tck
 
