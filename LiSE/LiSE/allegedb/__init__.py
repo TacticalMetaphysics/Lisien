@@ -1872,14 +1872,10 @@ class ORM(object):
         tck = self.tick if tick is None else tick
         yield branch, trn, tck
         stopbranch = None
-        stopbranches = set()
         if stoptime:
             stopbranch = stoptime[0]
-            stopbranches.update(self._branch_parents[stopbranch])
         _branches = self._branches
         while branch in _branches:
-            # ``par`` is the parent branch;
-            # ``(trn, tck)`` is when ``branch`` forked off from ``par``
             (branch, trn, tck, _, _) = _branches[branch]
             if branch is None:
                 return
