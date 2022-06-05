@@ -74,7 +74,7 @@ def update_backward_window(turn_from: int, tick_from: int, turn_to: int,
 
 
 class HistoryError(KeyError):
-    """You tried to access the past in a bad way."""
+    """KeyError subclass that distinguishes deleted keys from those that were never set"""
 
     def __init__(self, *args, deleted=False):
         super().__init__(*args)
