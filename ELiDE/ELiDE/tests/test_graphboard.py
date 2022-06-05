@@ -190,7 +190,7 @@ class GraphBoardTest(GraphicUnitTest):
         dummy2 = Dummy(name='goodbye',
                        paths=['atlas://rltiles/base/unseen'],
                        pos=dummy.center)
-        dummy2_name = dummy2.name
+        dummy2_name = dummy2.name = 'dummy2'
         board.add_widget(dummy2)
         idle_until(lambda: dummy2 in board.children, 100,
                    "Dummy 2 didn't get to board")
