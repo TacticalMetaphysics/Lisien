@@ -118,8 +118,6 @@ class EntityStatAccessor(object):
             branch = engine.branch
         if turn is None:
             turn = engine.turn
-        if tick is None:
-            tick = engine.tick
         if mungers is None:
             mungers = []
         self.current = current
@@ -138,7 +136,10 @@ class EntityStatAccessor(object):
             branc, trn, tck = self.engine._btt()
             self.engine.branch = branch or self.branch
             self.engine.turn = turn if turn is not None else self.turn
-            self.engine.tick = tick if tick is not None else self.tick
+            if tick is not None:
+                self.engine.tick = tick
+            elif self.tick is not None:
+                self.engine.tick = self.tick
             res = self.entity[self.stat]
             self.engine.branch = branc
             self.engine.turn = trn

@@ -27,7 +27,7 @@ from abc import ABC, abstractmethod
 from networkx import Graph
 from blinker import Signal
 from .allegedb import ORM as gORM
-from .allegedb import HistoricKeyError, StatDictType, NodeValDictType, EdgeValDictType, DeltaType
+from .allegedb import StatDictType, NodeValDictType, EdgeValDictType, DeltaType
 from .util import sort_set, EntityStatAccessor, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
 
@@ -951,7 +951,7 @@ class Engine(AbstractEngine, gORM):
     def commit(self) -> None:
         try:
             self.universal['rando_state'] = self._rando.getstate()
-        except HistoricKeyError:
+        except exc.OutOfTimelineError:
             branch, turn, tick = self.branch, self.turn, self.tick
             self.turn = self._branches[branch][3]
             self.universal['rando_state'] = self._rando.getstate()
@@ -998,6 +998,12 @@ class Engine(AbstractEngine, gORM):
         self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
     def _set_turn(self, v: int) -> None:
+        turn_end = self._branch_end_plan[self.branch]
+        if v > turn_end + 1:
+            raise exc.OutOfTimelineError(
+                f"The turn {v} is after the end of the branch {self.branch}. "
+                f"Go to turn {turn_end + 1} and simulate with `next_turn`.",
+                self.branch, self.turn, self.tick, self.branch, v, self.tick)
         oldrando = self.universal.get('rando_state')
         oldturn = self._oturn
         super()._set_turn(v)
@@ -1007,6 +1013,12 @@ class Engine(AbstractEngine, gORM):
         self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
     def _set_tick(self, v: int) -> None:
+        tick_end = self._turn_end_plan[self.branch, self.turn]
+        if v > tick_end + 1:
+            raise exc.OutOfTimelineError(
+                f"The tick {v} is after the end of the turn {self.turn}. "
+                f"Go to tick {tick_end + 1} and simulate with `next_turn`.",
+                self.branch, self.turn, self.tick, self.branch, self.turn, v)
         oldrando = self.universal.get('rando_state')
         oldtick = self._otick
         super()._set_tick(v)

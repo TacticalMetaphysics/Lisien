@@ -87,6 +87,7 @@ def test_deletion_after_keyframe(engy):
     del phys.place[5, 5]
     assert (5, 5) not in phys.place
     assert (5, 5) not in list(phys.place)
-    engy.turn = 20
+    while engy.turn < 20:
+        engy.next_turn()
     assert (5, 5) not in phys.place
     assert (5, 5) not in list(phys.place)
