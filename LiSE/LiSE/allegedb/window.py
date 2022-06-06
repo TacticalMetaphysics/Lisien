@@ -73,7 +73,7 @@ def update_backward_window(turn_from: int, tick_from: int, turn_to: int,
             updfun(*future_state)
 
 
-class HistoryError(KeyError):
+class HistoricKeyError(KeyError):
     """KeyError subclass that distinguishes deleted keys from those that were never set"""
 
     def __init__(self, *args, deleted=False):
@@ -619,7 +619,7 @@ class WindowDict(MutableMapping):
         self.seek(rev)
         past = self._past
         if not past:
-            raise HistoryError(
+            raise HistoricKeyError(
                 "Revision {} is before the start of history".format(rev))
         return past[-1][1]
 
@@ -649,20 +649,22 @@ class WindowDict(MutableMapping):
         # which I have to do anyway in deleting.
         # But handle degenerate case.
         if not self:
-            raise HistoryError("Tried to delete from an empty WindowDict")
+            raise HistoricKeyError("Tried to delete from an empty WindowDict")
         if self.beginning is None:
             if self.end is not None and rev > self.end:
-                raise HistoryError("Rev outside of history: {}".format(rev))
+                raise HistoricKeyError(
+                    "Rev outside of history: {}".format(rev))
         elif self.end is None:
             if self.beginning is not None and rev < self.beginning:
-                raise HistoryError("Rev outside of history: {}".format(rev))
+                raise HistoricKeyError(
+                    "Rev outside of history: {}".format(rev))
         elif not self.beginning <= rev <= self.end:
-            raise HistoryError("Rev outside of history: {}".format(rev))
+            raise HistoricKeyError("Rev outside of history: {}".format(rev))
         self.seek(rev)
         past = self._past
         future = self._future
         if not past or past[-1][0] != rev:
-            raise HistoryError("Rev not present: {}".format(rev))
+            raise HistoricKeyError("Rev not present: {}".format(rev))
         del past[-1]
         if not past:
             if future:
@@ -693,7 +695,7 @@ class FuturistWindowDict(WindowDict):
         past = self._past
         future = self._future
         if future:
-            raise HistoryError(
+            raise HistoricKeyError(
                 "Already have some history after {}".format(rev))
         if not past:
             self.beginning = rev
@@ -703,8 +705,9 @@ class FuturistWindowDict(WindowDict):
         elif rev == past[-1][0]:
             past[-1] = (rev, v)
         else:
-            raise HistoryError("Already have some history after {} "
-                               "(and my seek function is broken?)".format(rev))
+            raise HistoricKeyError(
+                "Already have some history after {} "
+                "(and my seek function is broken?)".format(rev))
         if self.end is None or rev > self.end:
             self.end = rev
         self._keys.add(rev)

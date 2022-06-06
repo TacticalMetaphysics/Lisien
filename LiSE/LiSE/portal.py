@@ -17,7 +17,7 @@ from collections.abc import Mapping
 from typing import Union, List, Tuple, Any
 
 from .allegedb.graph import Edge
-from .allegedb import HistoryError
+from .allegedb import HistoricKeyError
 
 from .util import getatt
 from .query import StatusAlias
@@ -79,7 +79,7 @@ class Portal(Edge, RuleFollower):
                     break
                 except ValueError:
                     continue
-                except HistoryError as ex:
+                except HistoricKeyError as ex:
                     if ex.deleted:
                         break
         raise KeyError("{}->{} has no rulebook?".format(self.orig, self.dest))

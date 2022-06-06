@@ -22,7 +22,7 @@ from collections.abc import Mapping, ValuesView
 
 from networkx import shortest_path, shortest_path_length
 
-from .allegedb import graph, HistoryError
+from .allegedb import graph, HistoricKeyError
 
 from .util import getatt
 from .query import StatusAlias
@@ -75,7 +75,7 @@ class UserMapping(Mapping):
                                 yield user
                         seen.add(user)
                         break
-                    except HistoryError as ex:
+                    except HistoricKeyError as ex:
                         if ex.deleted:
                             break
 

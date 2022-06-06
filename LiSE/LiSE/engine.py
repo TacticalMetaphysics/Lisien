@@ -27,7 +27,7 @@ from abc import ABC, abstractmethod
 from networkx import Graph
 from blinker import Signal
 from .allegedb import ORM as gORM
-from .allegedb import HistoryError, StatDictType, NodeValDictType, EdgeValDictType, DeltaType
+from .allegedb import HistoricKeyError, StatDictType, NodeValDictType, EdgeValDictType, DeltaType
 from .util import sort_set, EntityStatAccessor, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
 
@@ -951,7 +951,7 @@ class Engine(AbstractEngine, gORM):
     def commit(self) -> None:
         try:
             self.universal['rando_state'] = self._rando.getstate()
-        except HistoryError:
+        except HistoricKeyError:
             branch, turn, tick = self.branch, self.turn, self.tick
             self.turn = self._branches[branch][3]
             self.universal['rando_state'] = self._rando.getstate()

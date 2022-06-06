@@ -1,5 +1,5 @@
 from ..window import WindowDict
-from .. import HistoryError, ORM
+from .. import HistoricKeyError, ORM
 from itertools import cycle
 import pytest
 
@@ -131,7 +131,7 @@ def test_del(windd):
         assert k not in windd
         with pytest.raises(KeyError):
             windd[k]
-    with pytest.raises(HistoryError):
+    with pytest.raises(HistoricKeyError):
         windd[1]
 
 

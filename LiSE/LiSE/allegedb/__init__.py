@@ -25,10 +25,10 @@ from blinker import Signal
 import networkx as nx
 
 from .window import update_window, update_backward_window
-from .cache import HistoryError
+from .cache import HistoricKeyError
 from .graph import (DiGraph, Node, Edge, GraphsMapping)
 from .query import QueryEngine, TimeError, NodeRowType, EdgeRowType, GraphValRowType, NodeValRowType, EdgeValRowType
-from .window import HistoryError
+from .window import HistoricKeyError
 
 Graph = DiGraph  # until I implement other graph types...
 
@@ -980,7 +980,7 @@ class ORM(object):
                 windows.append((branch0, turn_from, tick_from, turn0, tick0))
                 break
         else:
-            raise HistoryError("Couldn't build sensible loading windows")
+            raise HistoricKeyError("Couldn't build sensible loading windows")
         return windows
 
     @world_locked
@@ -1300,14 +1300,14 @@ class ORM(object):
                     turns.truncate(late_turn, 'forward')
                     try:
                         late = turns[late_turn]
-                    except HistoryError:
+                    except HistoricKeyError:
                         pass
                     else:
                         late.truncate(late_tick, 'forward')
                     turns.truncate(early_turn, 'backward')
                     try:
                         early = turns[early_turn]
-                    except HistoryError:
+                    except HistoricKeyError:
                         pass
                     else:
                         early.truncate(early_tick, 'backward')
@@ -1618,7 +1618,7 @@ class ORM(object):
                 tick <= turn_end_plan[branch_turn]:
             tick = turn_end_plan[branch_turn] + 1
         if turn_end[branch_turn] > tick:
-            raise HistoryError(
+            raise HistoricKeyError(
                 "You're not at the end of turn {}. Go to tick {} to change things"
                 .format(turn, turn_end[branch_turn]))
         parent, turn_start, tick_start, turn_end, tick_end = branches[branch]
@@ -1626,13 +1626,13 @@ class ORM(object):
             # There used to be a check for turn == turn_end and tick < tick_end
             # but I couldn't come up with a situation where that would actually
             # happen
-            raise HistoryError(
+            raise HistoricKeyError(
                 "You're in the past. Go to turn {}, tick {} to change things".
                 format(turn_end, tick_end))
         if self._planning:
             last_plan = self._last_plan
             if (turn, tick) in plan_ticks[last_plan]:
-                raise HistoryError(
+                raise HistoricKeyError(
                     "Trying to make a plan at {}, but that time already happened"
                     .format((branch, turn, tick)))
             plan_ticks[last_plan][turn].append(tick)
