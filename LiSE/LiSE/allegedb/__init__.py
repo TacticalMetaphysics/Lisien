@@ -232,16 +232,19 @@ class TimeSignalDescriptor:
             parent, turn_start, tick_start, turn_end, tick_end = branches[
                 branch_now]
             if turn_now < turn_start:
-                raise OutOfTimelineError("The turn number {} "
-                                         "occurs before the start of "
-                                         "the branch {}".format(
-                                             turn_now, branch_now))
+                raise OutOfTimelineError(
+                    "The turn number {} "
+                    "occurs before the start of "
+                    "the branch {}".format(turn_now, branch_now), branch_then,
+                    turn_then, tick_then, branch_now, turn_now, tick_now)
             if turn_now == turn_start and tick_now < tick_start:
-                raise OutOfTimelineError("The tick number {}"
-                                         "on turn {} "
-                                         "occurs before the start of "
-                                         "the branch {}".format(
-                                             tick_now, turn_now, branch_now))
+                raise OutOfTimelineError(
+                    "The tick number {}"
+                    "on turn {} "
+                    "occurs before the start of "
+                    "the branch {}".format(tick_now, turn_now,
+                                           branch_now), branch_then, turn_then,
+                    tick_then, branch_now, turn_now, tick_now)
             if not e._planning and (turn_now > turn_end or
                                     (turn_now == turn_end
                                      and tick_now > tick_end)):

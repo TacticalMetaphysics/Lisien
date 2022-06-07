@@ -420,7 +420,9 @@ class AbstractEngine(ABC):
             'UserFunctionError': exc.UserFunctionError,
             'WorldIntegrityError': exc.WorldIntegrityError,
             'CacheError': exc.CacheError,
-            'TravelException': exc.TravelException
+            'TravelException': exc.TravelException,
+            'OutOfTimelineError': exc.OutOfTimelineError,
+            'HistoricKeyError': exc.HistoricKeyError
         }
 
         def unpack_exception(ext):
