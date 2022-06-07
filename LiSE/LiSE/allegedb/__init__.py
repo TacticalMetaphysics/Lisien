@@ -25,10 +25,10 @@ from blinker import Signal
 import networkx as nx
 
 from .window import update_window, update_backward_window
-from .cache import HistoryError
+from .cache import HistoricKeyError
 from .graph import (DiGraph, Node, Edge, GraphsMapping)
 from .query import QueryEngine, TimeError, NodeRowType, EdgeRowType, GraphValRowType, NodeValRowType, EdgeValRowType
-from .window import HistoryError
+from .window import HistoricKeyError
 
 Graph = DiGraph  # until I implement other graph types...
 
@@ -62,6 +62,34 @@ def world_locked(fn: Callable) -> Callable:
 
 class GraphNameError(KeyError):
     """For errors involving graphs' names"""
+
+
+class OutOfTimelineError(ValueError):
+    """You tried to access a point in time that didn't happen"""
+
+    @property
+    def branch_from(self):
+        return self.args[1]
+
+    @property
+    def turn_from(self):
+        return self.args[2]
+
+    @property
+    def tick_from(self):
+        return self.args[3]
+
+    @property
+    def branch_to(self):
+        return self.args[4]
+
+    @property
+    def turn_to(self):
+        return self.args[5]
+
+    @property
+    def tick_to(self):
+        return self.args[6]
 
 
 class PlanningContext(ContextDecorator):
@@ -204,15 +232,19 @@ class TimeSignalDescriptor:
             parent, turn_start, tick_start, turn_end, tick_end = branches[
                 branch_now]
             if turn_now < turn_start:
-                raise ValueError("The turn number {} "
-                                 "occurs before the start of "
-                                 "the branch {}".format(turn_now, branch_now))
+                raise OutOfTimelineError(
+                    "The turn number {} "
+                    "occurs before the start of "
+                    "the branch {}".format(turn_now, branch_now), branch_then,
+                    turn_then, tick_then, branch_now, turn_now, tick_now)
             if turn_now == turn_start and tick_now < tick_start:
-                raise ValueError("The tick number {}"
-                                 "on turn {} "
-                                 "occurs before the start of "
-                                 "the branch {}".format(
-                                     tick_now, turn_now, branch_now))
+                raise OutOfTimelineError(
+                    "The tick number {}"
+                    "on turn {} "
+                    "occurs before the start of "
+                    "the branch {}".format(tick_now, turn_now,
+                                           branch_now), branch_then, turn_then,
+                    tick_then, branch_now, turn_now, tick_now)
             if not e._planning and (turn_now > turn_end or
                                     (turn_now == turn_end
                                      and tick_now > tick_end)):
@@ -222,6 +254,10 @@ class TimeSignalDescriptor:
             tick_now = tick_then
             branches[branch_now] = (branch_then, turn_now, tick_now, turn_now,
                                     tick_now)
+            inst._branch_end_plan[branch_now] = max(
+                (inst._branch_end_plan[branch_now], turn_now))
+            inst._turn_end_plan[branch_now, turn_now] = max(
+                (inst._turn_end_plan[branch_now, turn_now], tick_now))
             e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
         e._obranch, e._oturn = val
 
@@ -718,6 +754,8 @@ class ORM(object):
         """Tick on which a (branch, turn) ends"""
         self._turn_end_plan = defaultdict(lambda: 0)
         """Tick on which a (branch, turn) ends, even if it hasn't been simulated"""
+        self._branch_end_plan = defaultdict(lambda: 0)
+        """Turn on which a branch ends, even if it hasn't been simulated"""
         self._graph_objs = {}
         self._plans = {}
         self._branches_plans = defaultdict(set)
@@ -805,10 +843,13 @@ class ORM(object):
         for (branch, turn, end_tick, plan_end_tick) in self.query.turns_dump():
             self._turn_end[branch, turn] = end_tick
             self._turn_end_plan[branch, turn] = plan_end_tick
+            self._branch_end_plan[branch] = max(
+                (self._branch_end_plan[branch], turn))
         if 'trunk' not in self._branches:
             self._branches['trunk'] = None, 0, 0, 0, 0
         self._new_keyframes = []
-        self._nbtt_stuff = (self._btt, self._turn_end_plan, self._turn_end,
+        self._nbtt_stuff = (self._btt, self._branch_end_plan,
+                            self._turn_end_plan, self._turn_end,
                             self._plan_ticks, self._plan_ticks_uncommitted,
                             self._time_plan, self._branches)
         self._node_exists_stuff: Tuple[
@@ -980,7 +1021,7 @@ class ORM(object):
                 windows.append((branch0, turn_from, tick_from, turn0, tick0))
                 break
         else:
-            raise HistoryError("Couldn't build sensible loading windows")
+            raise HistoricKeyError("Couldn't build sensible loading windows")
         return windows
 
     @world_locked
@@ -1300,14 +1341,14 @@ class ORM(object):
                     turns.truncate(late_turn, 'forward')
                     try:
                         late = turns[late_turn]
-                    except HistoryError:
+                    except HistoricKeyError:
                         pass
                     else:
                         late.truncate(late_tick, 'forward')
                     turns.truncate(early_turn, 'backward')
                     try:
                         early = turns[early_turn]
-                    except HistoryError:
+                    except HistoricKeyError:
                         pass
                     else:
                         early.truncate(early_tick, 'backward')
@@ -1372,11 +1413,12 @@ class ORM(object):
         if v != 'trunk' and v in self._branches:
             parturn = self._branches[v][1]
             if curturn < parturn:
-                raise ValueError(
+                raise OutOfTimelineError(
                     "Tried to jump to branch {br}, "
                     "which starts at turn {rv}. "
                     "Go to turn {rv} or later to use this branch.".format(
-                        br=v, rv=parturn))
+                        br=v, rv=parturn), self.branch, self.turn, self.tick,
+                    v, self.turn, self.tick)
         branch_is_new = v not in self._branches
         if branch_is_new:
             # assumes the present turn in the parent branch has
@@ -1384,6 +1426,7 @@ class ORM(object):
             self.query.new_branch(v, curbranch, curturn, curtick)
             self._branches[v] = curbranch, curturn, curtick, curturn, curtick
             self._upd_branch_parentage(v, curbranch)
+            self._branch_end_plan[v] = curturn
             self._turn_end_plan[v, curturn] = self._turn_end[v,
                                                              curturn] = curtick
         self._obranch = v
@@ -1414,6 +1457,7 @@ class ORM(object):
         where_cached = self._where_cached
         last_plan = self._last_plan
         turn_end_plan = self._turn_end_plan
+        branch_end_plan = self._branch_end_plan
         for plan_id in self._branches_plans[branch_from]:
             _, start_turn, start_tick = plans[plan_id]
             if start_turn > turn_from or (start_turn == turn_from
@@ -1442,6 +1486,8 @@ class ORM(object):
                         plan_ticks_uncommitted.append((last_plan, turn, tick))
                         time_plan[branch, turn, tick] = last_plan
                         turn_end_plan[branch, turn] = tick
+                        branch_end_plan[branch] = max(
+                            (branch_end_plan[branch], turn))
 
     @world_locked
     def delete_plan(self, plan: int):
@@ -1514,9 +1560,11 @@ class ORM(object):
             parent, turn_start, tick_start, turn_end, tick_end = self._branches[
                 branch]
             if v < turn_start:
-                raise ValueError("The turn number {} "
-                                 "occurs before the start of "
-                                 "the branch {}".format(v, branch))
+                raise OutOfTimelineError(
+                    "The turn number {} "
+                    "occurs before the start of "
+                    "the branch {}".format(v, branch), self.branch, self.turn,
+                    self.tick, self.branch, v, self.tick)
         if branch not in loaded:
             if (branch, v) in self._turn_end_plan:
                 tick = self._turn_end_plan[branch, v]
@@ -1536,6 +1584,8 @@ class ORM(object):
                     loaded[branch] = (start_turn, start_tick, v, tick)
             elif v < start_turn or (v == start_turn and tick < start_tick):
                 self._load_at(branch, v, tick)
+        self._branch_end_plan[self.branch] = max(
+            (self._branch_end_plan[self.branch], v))
         self._otick = tick
         self._oturn = v
 
@@ -1609,8 +1659,8 @@ class ORM(object):
         can only do once per branch, turn, tick.
 
         """
-        (btt, turn_end_plan, turn_end, plan_ticks, plan_ticks_uncommitted,
-         time_plan, branches) = self._nbtt_stuff
+        (btt, branch_end_plan, turn_end_plan, turn_end, plan_ticks,
+         plan_ticks_uncommitted, time_plan, branches) = self._nbtt_stuff
         branch, turn, tick = btt()
         branch_turn = (branch, turn)
         tick += 1
@@ -1618,7 +1668,7 @@ class ORM(object):
                 tick <= turn_end_plan[branch_turn]:
             tick = turn_end_plan[branch_turn] + 1
         if turn_end[branch_turn] > tick:
-            raise HistoryError(
+            raise HistoricKeyError(
                 "You're not at the end of turn {}. Go to tick {} to change things"
                 .format(turn, turn_end[branch_turn]))
         parent, turn_start, tick_start, turn_end, tick_end = branches[branch]
@@ -1626,15 +1676,16 @@ class ORM(object):
             # There used to be a check for turn == turn_end and tick < tick_end
             # but I couldn't come up with a situation where that would actually
             # happen
-            raise HistoryError(
+            raise OutOfTimelineError(
                 "You're in the past. Go to turn {}, tick {} to change things".
-                format(turn_end, tick_end))
+                format(turn_end, tick_end), *btt(), branch, turn, tick)
         if self._planning:
             last_plan = self._last_plan
             if (turn, tick) in plan_ticks[last_plan]:
-                raise HistoryError(
+                raise OutOfTimelineError(
                     "Trying to make a plan at {}, but that time already happened"
-                    .format((branch, turn, tick)))
+                    .format((branch, turn, tick)), self.branch, self.turn,
+                    self.tick, self.branch, self.turn, tick)
             plan_ticks[last_plan][turn].append(tick)
             plan_ticks_uncommitted.append((last_plan, turn, tick))
             time_plan[branch, turn, tick] = last_plan

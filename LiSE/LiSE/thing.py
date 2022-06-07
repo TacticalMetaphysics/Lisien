@@ -28,7 +28,7 @@ from typing import Hashable, Union, Optional
 import networkx as nx
 from .node import Node
 from .exc import TravelException
-from .allegedb import HistoryError
+from .allegedb import HistoricKeyError
 from .util import AbstractCharacter
 
 
@@ -106,7 +106,7 @@ class Thing(Node):
         """Set ``key``=``value`` for the present game-time."""
         try:
             self._setitem_dispatch[key](self, value)
-        except HistoryError as ex:
+        except HistoricKeyError as ex:
             raise ex
         except KeyError:
             super().__setitem__(key, value)

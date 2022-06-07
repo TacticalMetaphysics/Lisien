@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from .allegedb.cache import (Cache, PickyDefaultDict, StructuredDefaultDict,
-                             TurnDict, WindowDict, HistoryError)
+                             TurnDict, WindowDict, HistoricKeyError)
 from .util import singleton_get, sort_set
 from collections import OrderedDict
 
@@ -292,7 +292,7 @@ class UnitnessCache(Cache):
                 if self.user_shallow[(graph, node, character,
                                       branch)][turn][tick]:
                     yield character
-            except HistoryError:
+            except HistoricKeyError:
                 continue
 
 
@@ -339,7 +339,7 @@ class RulesHandledCache(object):
         for entity in unhandl:
             rulebook = getrb(*entity + (branch, turn, tick))
             if entity + (rulebook, branch, turn) in handl:
-                raise HistoryError(
+                raise HistoricKeyError(
                     "Tried to fork history in a RulesHandledCache, "
                     "but it seems like rules have already been run where we're "
                     "forking to")

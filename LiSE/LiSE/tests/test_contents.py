@@ -13,7 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import pytest
-from LiSE.allegedb.window import HistoryError
+
+from LiSE.allegedb import OutOfTimelineError
+from LiSE.allegedb.window import HistoricKeyError
 
 
 @pytest.fixture(scope='function')
@@ -52,7 +54,7 @@ def test_contents_over_time(chara):
     correct_contents.remove(8)
     assert set(place.content.keys()) == correct_contents
     chara.engine.turn = 5
-    with pytest.raises(HistoryError):
+    with pytest.raises(OutOfTimelineError):
         del chara.thing[5]
     chara.engine.branch = 'b'
     del chara.thing[5]

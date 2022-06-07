@@ -17,6 +17,8 @@ import sys
 import os
 import json
 
+from LiSE.allegedb import OutOfTimelineError
+
 if 'KIVY_NO_ARGS' not in os.environ:
     os.environ['KIVY_NO_ARGS'] = '1'
 
@@ -117,25 +119,16 @@ class ELiDEApp(App):
 
     pull_time = trigger(_pull_time)
 
-    @trigger
-    def _push_time(self, *args):
-        if not self.engine:
-            return
-        branch, turn, tick = self.engine._btt()
-        if (self.branch, self.turn, self.tick) != (branch, turn, tick):
-            self.engine.time_travel(
-                self.branch,
-                self.turn,
-                self.tick if self.tick != tick else None,
-                chars='all',
-                cb=self.mainscreen._update_from_time_travel)
-
     def time_travel(self, branch, turn, tick=None):
-        self.engine.time_travel(branch,
-                                turn,
-                                tick,
-                                chars='all',
-                                cb=self._update_from_time_travel)
+        try:
+            self.engine.time_travel(branch,
+                                    turn,
+                                    tick,
+                                    chars='all',
+                                    cb=self._update_from_time_travel)
+        except OutOfTimelineError as ex:
+            (self.branch, self.turn, self.tick) = (ex.branch_from,
+                                                   ex.turn_from, ex.tick_from)
 
     def _update_from_time_travel(self, command, branch, turn, tick, result,
                                  **kwargs):
@@ -247,10 +240,6 @@ class ELiDEApp(App):
         self.engine.time.connect(self._pull_time_from_signal, weak=False)
         self.engine.string.language.connect(self._pull_lang, weak=False)
         self.engine.character.connect(self._pull_chars, weak=False)
-
-        self.bind(branch=self._push_time,
-                  turn=self._push_time,
-                  tick=self._push_time)
 
         self.strings.store = self.engine.string
         self._started = True

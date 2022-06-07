@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Classes for in-memory storage and retrieval of historical graph data.
 """
-from .window import WindowDict, HistoryError, FuturistWindowDict, TurnDict, SettingsTurnDict
+from .window import WindowDict, HistoricKeyError, FuturistWindowDict, TurnDict, SettingsTurnDict
 from collections import OrderedDict, defaultdict, deque
 from time import monotonic
 
@@ -268,7 +268,7 @@ class Cache:
                 elif branc.rev_gettable(turn - 1):
                     turnd = branc[turn - 1]
                     return turnd.final()
-            except HistoryError as ex:
+            except HistoricKeyError as ex:
                 # probably shouldn't ever happen, empty branches shouldn't be kept in the cache at all...
                 # but it's easy to handle
                 if ex.deleted:
@@ -278,14 +278,14 @@ class Cache:
                 if r in cache[b] and cache[b][r].rev_gettable(t):
                     try:
                         return cache[b][r][t]
-                    except HistoryError as ex:
+                    except HistoricKeyError as ex:
                         if ex.deleted:
                             raise
                 elif cache[b].rev_gettable(r - 1):
                     cbr = cache[b][r - 1]
                     try:
                         return cbr.final()
-                    except HistoryError as ex:
+                    except HistoricKeyError as ex:
                         if ex.deleted:
                             raise
 
@@ -534,7 +534,7 @@ class Cache:
                 turns = branches[branch]
         if planning:
             if turn in turns and tick < turns[turn].end:
-                raise HistoryError(
+                raise HistoricKeyError(
                     "Already have some ticks after {} in turn {} of branch {}".
                     format(tick, turn, branch))
         if contra:
@@ -954,7 +954,7 @@ class Cache:
         """
         ret = self._base_retrieve(args)
         if ret is None:
-            raise HistoryError("Set, then deleted", deleted=True)
+            raise HistoricKeyError("Set, then deleted", deleted=True)
         elif ret is KeyError:
             raise ret
         return ret

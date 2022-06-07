@@ -141,19 +141,20 @@ class TimePanel(BoxLayout):
     def set_branch(self, *args):
         branch = self.ids.branchfield.text
         self.ids.branchfield.text = ''
-        self.screen.app.branch = branch
+        self.screen.app.time_travel(branch, self.screen.app.turn)
         self.screen.charmenu._switch_to_menu()
 
     def set_turn(self, *args):
         turn = int(self.ids.turnfield.text)
         self.ids.turnfield.text = ''
-        self.screen.app.turn = turn
+        self.screen.app.time_travel(self.screen.app.branch, turn)
         self.screen.charmenu._switch_to_menu()
 
     def set_tick(self, *args):
         tick = int(self.ids.tickfield.text)
         self.ids.tickfield.text = ''
-        self.screen.app.tick = tick
+        self.screen.app.time_travel(self.screen.app.branch,
+                                    self.screen.app.turn, tick)
         self.screen.charmenu._switch_to_menu()
 
     @mainthread
@@ -410,9 +411,6 @@ class MainScreen(Screen):
             self.dialoglayout.idx = 0
         self._update_from_delta(command, branch, turn, tick, deltas)
         self.dialoglayout.advance_dialog()
-        self.app.bind(branch=self.app._push_time,
-                      turn=self.app._push_time,
-                      tick=self.app._push_time)
         self.tmp_block = False
         if cb is not None:
             cb(command, branch, turn, tick, result)
@@ -435,9 +433,6 @@ class MainScreen(Screen):
                 "MainScreen: not advancing time while there's a dialog")
             return
         self.tmp_block = True
-        self.app.unbind(branch=self.app._push_time,
-                        turn=self.app._push_time,
-                        tick=self.app._push_time)
         eng.next_turn(cb=partial(self._update_from_next_turn, cb=cb))
         self.ids.charmenu._switch_to_menu()
 

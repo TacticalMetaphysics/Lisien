@@ -6,8 +6,8 @@ from LiSE.examples import college, kobold, polygons, sickle
 
 def test_college(engy):
     college.install(engy)
-    engy.turn = 10  # wake up the students
-    engy.next_turn()
+    for i in range(10):
+        engy.next_turn()
 
 
 def test_kobold(engy):
