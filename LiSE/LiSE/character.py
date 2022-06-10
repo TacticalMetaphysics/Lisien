@@ -567,7 +567,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
             self.facade.node.patch(d)
 
     def ThingPlaceMapping(self, *args):
-        return CompositeDict(self.thing, self.place)
+        return CompositeDict(self.place, self.thing)
 
     class PortalSuccessorsMapping(FacadePortalMapping):
         cls = FacadePortalSuccessors
