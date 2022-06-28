@@ -940,7 +940,7 @@ class Cache:
                             ret = kf[key]
                             shallowest[args] = ret
                             return ret
-        return KeyError
+        return KeyError(f"No value for {entity} at {branch, turn, tick}")
 
     def retrieve(self, *args):
         """Get a value previously .store(...)'d.
@@ -955,7 +955,7 @@ class Cache:
         ret = self._base_retrieve(args)
         if ret is None:
             raise HistoricKeyError("Set, then deleted", deleted=True)
-        elif ret is KeyError:
+        elif isinstance(ret, KeyError):
             raise ret
         return ret
 
