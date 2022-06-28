@@ -108,11 +108,10 @@ def install(eng):
 
 
 if __name__ == '__main__':
-    import os
-    from LiSE import Engine
-    with Engine(clear=True) as eng, eng.batch():
-        install(eng)
     import sys
+    from LiSE import Engine
+    with Engine(sys.argv[-1], clear=True) as eng, eng.batch():
+        install(eng)
     if '--profile' in sys.argv:
         import cProfile
 
