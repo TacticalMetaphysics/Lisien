@@ -124,7 +124,7 @@ class WorldStartConfigurator(BoxLayout):
 class DirPicker(Screen):
     toggle = ObjectProperty()
 
-    def open(self, path):
+    def open(self, path, *args):
         App.get_running_app().starting_dir = os.path.abspath('.')
         os.chdir(path)
         if 'world.db' not in os.listdir(path):
