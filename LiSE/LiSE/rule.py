@@ -167,7 +167,11 @@ class RuleFuncList(MutableSequence, Signal, ABC):
         self.send(self)
 
     def append(self, v):
-        self._set(self._get() + (self._nominate(v), ))
+        try:
+            old = self._get()
+        except KeyError:
+            old = tuple()
+        self._set(old + (self._nominate(v), ))
         self.send(self)
 
     def index(self, x, start=0, end=None):

@@ -933,7 +933,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             exist_node(charn, place, True)
             pl = get_node(character, place)
             if not isinstance(pl, Place):
-                raise KeyError("{} is not a place".format(place))
+                raise KeyError("{} is a {}, not a place".format(place, type(pl).__name__))
             pl.update(v)
             self.send(self, key=place, val=v)
 
@@ -1457,7 +1457,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         self.engine._set_thing_loc(self.name, name, location)
         if (self.name, name) in self.engine._node_objs:
             obj = self.engine._node_objs[self.name, name]
-            thing = Thing(self, name)
+            thing = Thing(self, name, clobber=True)
             for port in obj.portals():
                 port.origin = thing
             for port in obj.preportals():

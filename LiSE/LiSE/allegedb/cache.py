@@ -955,7 +955,7 @@ class Cache:
         ret = self._base_retrieve(args)
         if ret is None:
             raise HistoricKeyError("Set, then deleted", deleted=True)
-        elif isinstance(ret, KeyError):
+        elif isinstance(ret, Exception):
             raise ret
         return ret
 
@@ -1004,7 +1004,8 @@ class Cache:
         Otherwise check if the entity exists.
 
         """
-        return self._base_retrieve(args) not in (KeyError, None)
+        retr = self._base_retrieve(args)
+        return retr is not None and not isinstance(retr, Exception)
     contains_entity = contains_key = contains_entity_key \
                     = contains_entity_or_key
 
