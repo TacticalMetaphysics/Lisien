@@ -27,7 +27,8 @@ class RuleBuilderTest(ELiDEAppTest):
         self.win = window_with_widget(mgr)
         screen = app.mainscreen
         idle_until(lambda: app.rules.rulesview, 100, 'Never made rules view')
-        idle_until(lambda: 'physical' in screen.graphboards, 100, 'Never made physical board')
+        idle_until(lambda: 'physical' in screen.graphboards, 100,
+                   'Never made physical board')
         self.board = screen.graphboards['physical']
         idle_until(lambda: 'kobold' in self.board.pawn, 100,
                    'never got the pawn for the kobold')
@@ -197,8 +198,10 @@ class TestCharRuleBuilder(ELiDEAppTest):
         app = self.app
         mgr = app.build()
         self.win = window_with_widget(mgr)
-        idle_until(lambda: getattr(app, 'engine'), 100, 'App never made engine')
-        idle_until(lambda: 'triangle' in app.engine.character, 100, 'Engine proxy never made triangle character proxy')
+        idle_until(lambda: getattr(app, 'engine'), 100,
+                   'App never made engine')
+        idle_until(lambda: 'triangle' in app.engine.character, 100,
+                   'Engine proxy never made triangle character proxy')
         app.select_character(app.engine.character['triangle'])
         idle_until(lambda: app.character_name == 'triangle', 100,
                    'Never changed character')

@@ -278,7 +278,8 @@ class Node(AbstractEntityMapping):
             if not isinstance(ret, cls):
                 raise EntityCollisionError(
                     "Already have node {} in graph {}, but it's of class {}".
-                    format(node, graph.name, type(ret).__name__))
+                    format(node, graph.name,
+                           type(ret).__name__))
             return ret
         return super(Node, cls).__new__(cls)
 

@@ -16,7 +16,8 @@ class StringsEditorTest(ELiDEAppTest):
                    "app never got mainscreen")
         idle_until(lambda: app.manager.has_screen('timestream'), 100,
                    "timestream never added to manager")
-        idle_until(lambda: hasattr(app.mainmenu, 'configurator'), 100, 'DirPicker never got configurator')
+        idle_until(lambda: hasattr(app.mainmenu, 'configurator'), 100,
+                   'DirPicker never got configurator')
         app.mainmenu.configurator.start()  # start with blank world
         idle_until(lambda: app.engine, 100, "app never got engine")
         idle_until(lambda: app.strings.children, 100,

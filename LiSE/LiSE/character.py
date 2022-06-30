@@ -933,7 +933,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             exist_node(charn, place, True)
             pl = get_node(character, place)
             if not isinstance(pl, Place):
-                raise KeyError("{} is a {}, not a place".format(place, type(pl).__name__))
+                raise KeyError("{} is a {}, not a place".format(
+                    place,
+                    type(pl).__name__))
             pl.update(v)
             self.send(self, key=place, val=v)
 
