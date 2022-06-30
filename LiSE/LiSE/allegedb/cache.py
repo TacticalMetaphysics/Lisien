@@ -14,18 +14,20 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Classes for in-memory storage and retrieval of historical graph data.
 """
-from .window import WindowDict, HistoricKeyError, FuturistWindowDict, TurnDict, SettingsTurnDict
+from .window import WindowDict, HistoricKeyError, FuturistWindowDict,\
+    TurnDict, SettingsTurnDict
 from collections import OrderedDict, defaultdict, deque
-from time import monotonic
 
 
 def _default_args_munger(self, k):
-    """By default, :class:`PickyDefaultDict`'s ``type`` is instantiated with no positional arguments."""
+    """By default, `PickyDefaultDict`'s ``type`` takes no positional arguments.
+
+    """
     return tuple()
 
 
 def _default_kwargs_munger(self, k):
-    """By default, :class:`PickyDefaultDict`'s ``type`` is instantiated with no keyword arguments."""
+    """By default, `PickyDefaultDict`'s ``type`` takes no keyword arguments."""
     return {}
 
 
@@ -71,7 +73,7 @@ class PickyDefaultDict(dict):
 
 
 class StructuredDefaultDict(dict):
-    """A ``defaultdict``-like class that expects values stored at a specific depth.
+    """A `defaultdict`-like class with values stored at a specific depth.
 
     Requires an integer to tell it how many layers deep to go.
     The innermost layer will be ``PickyDefaultDict``, which will take the
@@ -146,8 +148,10 @@ def lru_append(kc, lru, kckey, maxsize):
     """Delete old data from ``kc``, then add new ``kckey`` to ``lru``
 
     :param kc: a three-layer keycache
-    :param lru: an :class:`OrderedDict` with a key for each triple that should fill out ``kc``'s three layers
-    :param kckey: a triple that indexes into ``kc``, which will be added to ``lru`` if needed
+    :param lru: an :class:`OrderedDict` with a key for each triple that should
+                fill out ``kc``'s three layers
+    :param kckey: a triple that indexes into ``kc``, which will be added to
+                  ``lru`` if needed
     :param maxsize: maximum number of entries in ``lru`` and, therefore, ``kc``
 
     """
@@ -217,9 +221,9 @@ class Cache:
         self.shallowest = OrderedDict()
         """A dictionary for plain, unstructured hinting."""
         self.settings = PickyDefaultDict(SettingsTurnDict)
-        """All the ``entity[key] = value`` operations that were performed on some turn"""
+        """All the ``entity[key] = value`` settings on some turn"""
         self.presettings = PickyDefaultDict(SettingsTurnDict)
-        """The values prior to ``entity[key] = value`` operations performed on some turn"""
+        """The values prior to ``entity[key] = value`` settings on some turn"""
         self.time_entity = {}
         self._kc_lru = OrderedDict()
         self._store_stuff = (self.parents, self.branches, self.keys,
@@ -269,7 +273,8 @@ class Cache:
                     turnd = branc[turn - 1]
                     return turnd.final()
             except HistoricKeyError as ex:
-                # probably shouldn't ever happen, empty branches shouldn't be kept in the cache at all...
+                # probably shouldn't ever happen, empty branches
+                # shouldn't be kept in the cache at all...
                 # but it's easy to handle
                 if ex.deleted:
                     raise
@@ -305,15 +310,17 @@ class Cache:
                 if tick in keycache3:
                     return keycache3[tick]
         if forward:
-            # Take valid values from the past of a keycache and copy them forward, into the present.
-            # Assumes that time is only moving forward, never backward, never skipping any turns or ticks,
-            # and any changes to the world state are happening through allegedb proper, meaning they'll all get cached.
-            # In LiSE this means every change to the world state should happen inside of a call to
-            # ``Engine.next_turn`` in a rule.
+            # Take valid values from the past of a keycache and copy them
+            # forward, into the present. Assumes that time is only moving
+            # forward, never backward, never skipping any turns or ticks,
+            # and any changes to the world state are happening through
+            # allegedb proper, meaning they'll all get cached. In LiSE this
+            # means every change to the world state should happen inside of
+            # a call to ``Engine.next_turn`` in a rule.
             if keycache2 and keycache2.rev_gettable(turn):
                 # there's a keycache from a prior turn in this branch. Get it
                 if turn not in keycache2:
-                    # since it's not this *exact* turn there might be changes...
+                    # since it's not this *exact* turn, there might be changes
                     old_turn = keycache2.rev_before(turn)
                     old_turn_kc = keycache2[turn]
                     added, deleted = get_adds_dels(parentity,
@@ -324,7 +331,8 @@ class Cache:
                                                              old_turn_kc.end),
                                                    cache=keys)
                     ret = old_turn_kc.final().union(added).difference(deleted)
-                    # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
+                    # assert ret == get_adds_dels(
+                    # keys[parentity], branch, turn, tick)[0]  # slow
                     new_turn_kc = WindowDict()
                     new_turn_kc[tick] = ret
                     keycache2[turn] = new_turn_kc
@@ -342,7 +350,8 @@ class Cache:
                                       keycache3.rev_before(tick)),
                             cache=keys)
                         ret = keycache3[tick].union(added).difference(deleted)
-                        # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
+                        # assert ret == get_adds_dels(
+                        # keys[parentity], branch, turn, tick)[0]  # slow
                         keycache3[tick] = ret
                         return ret
                     else:
@@ -359,9 +368,11 @@ class Cache:
                                                        cache=keys)
                         ret = keycache3[tick] = keys_before.union(
                             added).difference(deleted)
-                        # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
+                        # assert ret == get_adds_dels(
+                        # keys[parentity], branch, turn, tick)[0]  # slow
                         return ret
-                # assert kcturn[tick] == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
+                # assert kcturn[tick] == get_adds_dels(
+                # keys[parentity], branch, turn, tick)[0]  # slow
                 return keycache3[tick]
         ret = frozenset(get_adds_dels(parentity, branch, turn, tick)[0])
         if keycache2:
@@ -724,7 +735,8 @@ class Cache:
     def truncate(self, branch, turn, tick, direction='forward'):
         if direction not in {'forward', 'backward'}:
             raise ValueError("Illegal direction")
-        parents, branches, keys, settings, presettings, keycache = self._truncate_stuff
+        parents, branches, keys, settings, presettings, keycache \
+            = self._truncate_stuff
 
         def truncate_branhc(branhc):
             if turn in branhc:
@@ -761,7 +773,7 @@ class Cache:
     @staticmethod
     def _iter_future_contradictions(entity, key, turns, branch, turn, tick,
                                     value):
-        """If setting ``key=value`` would result in a contradiction, iterate over contradicted ``(turn, tick)``s."""
+        """Iterate over contradicted ``(turn, tick)`` if applicable"""
         # assumes that all future entries are in the plan
         if not turns:
             return
@@ -795,7 +807,8 @@ class Cache:
         if turn in settings_turns or turn in settings_turns.future():
             # These assertions hold for most caches but not for the contents
             # caches, and are therefore commented out.
-            # assert turn in presettings_turns or turn in presettings_turns.future()
+            # assert turn in presettings_turns \
+            # or turn in presettings_turns.future()
             setticks = settings_turns[turn]
             # assert tick not in setticks
             presetticks = presettings_turns[turn]
@@ -1243,7 +1256,8 @@ class EdgesCache(Cache):
 
     def _get_destcache(self, graph, orig, branch, turn, tick, *, forward):
         """Return a set of destination nodes succeeding ``orig``"""
-        destcache, destcache_lru, get_keycachelike, successors, adds_dels_sucpred = self._get_destcache_stuff
+        (destcache, destcache_lru, get_keycachelike, successors,
+         adds_dels_sucpred) = self._get_destcache_stuff
         lru_append(destcache, destcache_lru,
                    ((graph, orig, branch), turn, tick), KEYCACHE_MAXSIZE)
         return get_keycachelike(destcache,
@@ -1256,7 +1270,8 @@ class EdgesCache(Cache):
 
     def _get_origcache(self, graph, dest, branch, turn, tick, *, forward):
         """Return a set of origin nodes leading to ``dest``"""
-        origcache, origcache_lru, get_keycachelike, predecessors, adds_dels_sucpred = self._get_origcache_stuff
+        (origcache, origcache_lru, get_keycachelike, predecessors,
+         adds_dels_sucpred) = self._get_origcache_stuff
         lru_append(origcache, origcache_lru,
                    ((graph, dest, branch), turn, tick), KEYCACHE_MAXSIZE)
         return get_keycachelike(origcache,
@@ -1297,7 +1312,7 @@ class EdgesCache(Cache):
                           tick,
                           *,
                           forward=None):
-        """Iterate over predecessors to a given destination node at a given time."""
+        """Iterate over predecessors to a destination node at a given time."""
         if self.db._no_kc:
             yield from self._adds_dels_predecessors((graph, dest), branch,
                                                     turn, tick)[0]
@@ -1319,7 +1334,9 @@ class EdgesCache(Cache):
                          tick,
                          *,
                          forward=None):
-        """Return the number of successors to a given origin node at a given time."""
+        """Return the number of successors to an origin node at a given time.
+
+        """
         if self.db._no_kc:
             return len(
                 self._adds_dels_successors((graph, orig), branch, turn,
@@ -1342,7 +1359,9 @@ class EdgesCache(Cache):
                            tick,
                            *,
                            forward=None):
-        """Return the number of predecessors from a given destination node at a given time."""
+        """Return the number of predecessors from a destination node at a time.
+
+        """
         if self.db._no_kc:
             return len(
                 self._adds_dels_predecessors(graph, dest, branch, turn,
@@ -1366,10 +1385,10 @@ class EdgesCache(Cache):
                       tick,
                       *,
                       forward=None):
-        """Return whether an edge connects the origin to the destination at the given time.
+        """Return whether an edge connects the origin to the destination now
 
-        Doesn't require the edge's index, which makes it slower than retrieving a
-        particular edge.
+        Doesn't require the edge's index, which makes it slower than retrieving
+        a particular edge.
 
         """
         if forward is None:
@@ -1390,10 +1409,10 @@ class EdgesCache(Cache):
                         tick,
                         *,
                         forward=None):
-        """Return whether an edge connects the destination to the origin at the given time.
+        """Return whether an edge connects the destination to the origin now
 
-        Doesn't require the edge's index, which makes it slower than retrieving a
-        particular edge.
+        Doesn't require the edge's index, which makes it slower than retrieving
+        a particular edge.
 
         """
         if forward is None:
@@ -1442,8 +1461,12 @@ class EdgesCache(Cache):
         # if ex:
         #     assert self.retrieve(graph, orig, dest, idx, branch, turn, tick)
         #     assert self.has_successor(graph, orig, dest, branch, turn, tick)
-        #     assert self.has_predecessor(graph, dest, orig, branch, turn, tick)
+        #     assert self.has_predecessor(g
+        #     raph, dest, orig, branch, turn, tick)
         # else:
-        #     assert self._base_retrieve((graph, orig, dest, idx, branch, turn, tick)) in (None, KeyError)
-        #     assert not self.has_successor(graph, orig, dest, branch, turn, tick)
-        #     assert not self.has_predecessor(graph, dest, orig, branch, turn, tick)
+        #     assert self._base_retrieve(
+        #     (graph, orig, dest, idx, branch, turn, tick)) in (None, KeyError)
+        #     assert not self.has_successor(
+        #     graph, orig, dest, branch, turn, tick)
+        #     assert not self.has_predecessor(
+        #     graph, dest, orig, branch, turn, tick)
