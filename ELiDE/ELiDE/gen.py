@@ -21,27 +21,27 @@ from networkx import grid_2d_graph
 
 
 class GridGeneratorDialog(BoxLayout):
-    xval = NumericProperty()
-    yval = NumericProperty()
-    directions = OptionProperty(None, options=[None, 4, 8])
+	xval = NumericProperty()
+	yval = NumericProperty()
+	directions = OptionProperty(None, options=[None, 4, 8])
 
-    def generate(self, engine):
-        x = int(self.xval)
-        y = int(self.yval)
-        if x < 1 or y < 1:
-            return False
-        elif self.directions == 4:
-            # instead, we're running just after game init, before the view is open on it, and we'll make a character ourselves
-            engine.add_character('physical', grid_2d_graph(x, y))
-            return True
-        elif self.directions == 8:
-            engine.add_character('physical', grid_2d_8graph(x, y))
-            return True
-        else:
-            return False
+	def generate(self, engine):
+		x = int(self.xval)
+		y = int(self.yval)
+		if x < 1 or y < 1:
+			return False
+		elif self.directions == 4:
+			# instead, we're running just after game init, before the view is open on it, and we'll make a character ourselves
+			engine.add_character('physical', grid_2d_graph(x, y))
+			return True
+		elif self.directions == 8:
+			engine.add_character('physical', grid_2d_8graph(x, y))
+			return True
+		else:
+			return False
 
-    def validate(self):
-        return self.directions and int(self.xval) and int(self.yval)
+	def validate(self):
+		return self.directions and int(self.xval) and int(self.yval)
 
 
 Builder.load_string("""

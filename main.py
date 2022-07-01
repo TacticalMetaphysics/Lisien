@@ -7,13 +7,14 @@ sys.path.extend([wd + '/LiSE', wd + '/ELiDE'])
 
 
 def get_application_config(*args):
-    return wd + '/ELiDE.ini'
+	return wd + '/ELiDE.ini'
 
 
 if __name__ == '__main__':
-    freeze_support()
+	freeze_support()
 
-    from ELiDE.app import ELiDEApp
-    app = ELiDEApp()
-    app.get_application_config = get_application_config
-    app.run()
+	from ELiDE.app import ELiDEApp
+
+	app = ELiDEApp()
+	app.get_application_config = get_application_config
+	app.run()

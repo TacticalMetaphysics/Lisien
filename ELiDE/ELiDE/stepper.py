@@ -21,98 +21,98 @@ from kivy.graphics import Color, Line
 
 
 class RuleStepper(RecycleView):
-    name = StringProperty()
+	name = StringProperty()
 
-    def from_rules_handled_turn(self, rules_handled_turn):
-        data = [{
-            'widget': 'RuleStepperRuleButton',
-            'name': 'start',
-            'end_tick': 0,
-            'height': 40
-        }]
-        prev_tick = 0
-        for rbtyp, rules in sorted(rules_handled_turn.items(),
-                                   key=lambda kv: min(kv[1].keys() or [-1])):
-            if not rules:
-                continue
-            last_entity = None
-            last_rulebook = None
-            typed = False
-            for tick, (entity, rulebook, rule) in sorted(rules.items()):
-                if tick == prev_tick:
-                    continue
-                if not typed:
-                    data.append({'widget': 'RulebookTypeLabel', 'name': rbtyp})
-                    typed = True
-                rulebook_per_entity = rbtyp in {'thing', 'place', 'portal'}
-                if not rulebook_per_entity:
-                    if rulebook != last_rulebook:
-                        last_rulebook = rulebook
-                        data.append({
-                            'widget': 'RulebookLabel',
-                            'name': rulebook
-                        })
-                if entity != last_entity:
-                    last_entity = entity
-                    data.append({'widget': 'EntityLabel', 'name': entity})
-                if rulebook_per_entity:
-                    if rulebook != last_rulebook:
-                        rulebook = last_rulebook
-                        data.append({
-                            'widget': 'RulebookLabel',
-                            'name': rulebook
-                        })
-                data.append({
-                    'widget': 'RuleStepperRuleButton',
-                    'name': rule,
-                    'start_tick': prev_tick,
-                    'end_tick': tick,
-                    'height': 40
-                })
-                prev_tick = tick
-        self.data = data
+	def from_rules_handled_turn(self, rules_handled_turn):
+		data = [{
+			'widget': 'RuleStepperRuleButton',
+			'name': 'start',
+			'end_tick': 0,
+			'height': 40
+		}]
+		prev_tick = 0
+		for rbtyp, rules in sorted(rules_handled_turn.items(),
+									key=lambda kv: min(kv[1].keys() or [-1])):
+			if not rules:
+				continue
+			last_entity = None
+			last_rulebook = None
+			typed = False
+			for tick, (entity, rulebook, rule) in sorted(rules.items()):
+				if tick == prev_tick:
+					continue
+				if not typed:
+					data.append({'widget': 'RulebookTypeLabel', 'name': rbtyp})
+					typed = True
+				rulebook_per_entity = rbtyp in {'thing', 'place', 'portal'}
+				if not rulebook_per_entity:
+					if rulebook != last_rulebook:
+						last_rulebook = rulebook
+						data.append({
+							'widget': 'RulebookLabel',
+							'name': rulebook
+						})
+				if entity != last_entity:
+					last_entity = entity
+					data.append({'widget': 'EntityLabel', 'name': entity})
+				if rulebook_per_entity:
+					if rulebook != last_rulebook:
+						rulebook = last_rulebook
+						data.append({
+							'widget': 'RulebookLabel',
+							'name': rulebook
+						})
+				data.append({
+					'widget': 'RuleStepperRuleButton',
+					'name': rule,
+					'start_tick': prev_tick,
+					'end_tick': tick,
+					'height': 40
+				})
+				prev_tick = tick
+		self.data = data
 
 
 class RuleStepperRuleButton(Button):
-    name = StringProperty()
-    start_tick = NumericProperty()
-    end_tick = NumericProperty()
-    tick = NumericProperty()
-    set_tick = ObjectProperty()
+	name = StringProperty()
+	start_tick = NumericProperty()
+	end_tick = NumericProperty()
+	tick = NumericProperty()
+	set_tick = ObjectProperty()
 
-    def __init__(self, **kwargs):
-        super(RuleStepperRuleButton, self).__init__(**kwargs)
-        self.bind(pos=self.upd_line, size=self.upd_line, tick=self.upd_line)
+	def __init__(self, **kwargs):
+		super(RuleStepperRuleButton, self).__init__(**kwargs)
+		self.bind(pos=self.upd_line, size=self.upd_line, tick=self.upd_line)
 
-    def on_release(self, *args):
-        self.set_tick(self.end_tick)
-        self.tick = self.end_tick
+	def on_release(self, *args):
+		self.set_tick(self.end_tick)
+		self.tick = self.end_tick
 
-    def upd_line(self, *args):
-        if hasattr(self, 'color_inst'):
-            if self.tick == self.end_tick:
-                self.color_inst.rgba = [1, 0, 0, 1]
-                self.line.points = [self.x, self.y, self.right, self.y]
-            else:
-                self.color_inst.rgba = [0, 0, 0, 0]
-        else:
-            with self.canvas:
-                self.color_inst = Color(rgba=([1, 0, 0, 1] if self.tick in (
-                    self.start_tick, self.end_tick) else [0, 0, 0, 0]))
-                self.line = Line(
-                    points=[self.x, self.top, self.right, self.top])
+	def upd_line(self, *args):
+		if hasattr(self, 'color_inst'):
+			if self.tick == self.end_tick:
+				self.color_inst.rgba = [1, 0, 0, 1]
+				self.line.points = [self.x, self.y, self.right, self.y]
+			else:
+				self.color_inst.rgba = [0, 0, 0, 0]
+		else:
+			with self.canvas:
+				self.color_inst = Color(rgba=([1, 0, 0, 1] if self.tick in (
+					self.start_tick, self.end_tick) else [0, 0, 0, 0]))
+				self.line = Line(
+					points=[self.x, self.top, self.right, self.top])
 
 
 class EntityLabel(Label):
-    name = ObjectProperty()
+	name = ObjectProperty()
 
 
 class RulebookLabel(Label):
-    name = ObjectProperty()  # rulebooks may have tuples for names
+	name = ObjectProperty()  # rulebooks may have tuples for names
 
 
 class RulebookTypeLabel(Label):
-    name = StringProperty()
+	name = StringProperty()
 
 
 Builder.load_string("""

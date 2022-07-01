@@ -18,5 +18,5 @@ from . import calendar
 resource_add_path(__path__[0] + '/assets')
 
 __all__ = [
-    'graph', 'app', 'card', 'dialog', 'game', 'spritebuilder', 'calendar'
+	'graph', 'app', 'card', 'dialog', 'game', 'spritebuilder', 'calendar'
 ]

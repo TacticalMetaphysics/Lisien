@@ -17,7 +17,7 @@
 
 
 class reify(object):
-    '''
+	'''
     Put the result of a method which uses this (non-data) descriptor decorator
     in the instance dict after the first call, effectively replacing the
     decorator with an instance variable.
@@ -38,13 +38,13 @@ class reify(object):
          second_time = self.lazy  # lazy is hard_to_compute_int
     '''
 
-    def __init__(self, func):
-        self.func = func
-        self.__doc__ = func.__doc__
+	def __init__(self, func):
+		self.func = func
+		self.__doc__ = func.__doc__
 
-    def __get__(self, inst, cls):
-        if inst is None:
-            return self
-        retval = self.func(inst)
-        setattr(inst, self.func.__name__, retval)
-        return retval
+	def __get__(self, inst, cls):
+		if inst is None:
+			return self
+		retval = self.func(inst)
+		setattr(inst, self.func.__name__, retval)
+		return retval

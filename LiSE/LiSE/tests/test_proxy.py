@@ -25,126 +25,126 @@ from . import data
 
 class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
 
-    def setUp(self):
-        self.manager = EngineProcessManager()
-        self.tempdir = tempfile.mkdtemp(dir='.')
-        self.engine = self.manager.start(self.tempdir,
-                                         connect_string='sqlite:///:memory:')
-        self.graphmakers = (self.engine.new_character, )
-        self.addCleanup(self._do_cleanup)
+	def setUp(self):
+		self.manager = EngineProcessManager()
+		self.tempdir = tempfile.mkdtemp(dir='.')
+		self.engine = self.manager.start(
+			self.tempdir, connect_string='sqlite:///:memory:')
+		self.graphmakers = (self.engine.new_character, )
+		self.addCleanup(self._do_cleanup)
 
-    def _do_cleanup(self):
-        self.manager.shutdown()
-        shutil.rmtree(self.tempdir)
+	def _do_cleanup(self):
+		self.manager.shutdown()
+		shutil.rmtree(self.tempdir)
 
 
 class ProxyGraphTest(LiSE.allegedb.tests.test_all.AbstractGraphTest,
-                     ProxyTest):
-    pass
+						ProxyTest):
+	pass
 
 
 class DictStorageTest(ProxyTest, LiSE.allegedb.tests.test_all.DictStorageTest):
-    pass
+	pass
 
 
 class ListStorageTest(ProxyTest, LiSE.allegedb.tests.test_all.ListStorageTest):
-    pass
+	pass
 
 
 class SetStorageTest(ProxyTest, LiSE.allegedb.tests.test_all.SetStorageTest):
-    pass
+	pass
 
 
 @pytest.fixture(scope='function')
 def handle(tempdir):
-    from LiSE.handle import EngineHandle
-    hand = EngineHandle((tempdir, ), {
-        'connect_string': 'sqlite:///:memory:',
-        'random_seed': 69105
-    })
-    yield hand
-    hand.close()
+	from LiSE.handle import EngineHandle
+	hand = EngineHandle((tempdir, ), {
+		'connect_string': 'sqlite:///:memory:',
+		'random_seed': 69105
+	})
+	yield hand
+	hand.close()
 
 
 @pytest.fixture(
-    scope='function',
-    params=[
-        lambda eng: kobold.inittest(
-            eng, shrubberies=20, kobold_sprint_chance=.9),
-        # college.install,
-        # sickle.install
-    ])
+	scope='function',
+	params=[
+		lambda eng: kobold.inittest(
+			eng, shrubberies=20, kobold_sprint_chance=.9),
+		# college.install,
+		# sickle.install
+	])
 def handle_initialized(request, handle):
-    with handle._real.advancing():
-        request.param(handle._real)
-    yield handle
+	with handle._real.advancing():
+		request.param(handle._real)
+	yield handle
 
 
 def test_fast_delta(handle_initialized):
-    hand = handle_initialized
+	hand = handle_initialized
 
-    # there's currently no way to do fast delta past the time when
-    # a character was created, due to the way keyframes work...
-    # so don't test that
-    def unpack_delta(d):
-        catted = hand._concat_char_delta(d)
-        assert isinstance(catted, bytes)
-        return hand.unpack(catted)
+	# there's currently no way to do fast delta past the time when
+	# a character was created, due to the way keyframes work...
+	# so don't test that
+	def unpack_delta(d):
+		catted = hand._concat_char_delta(d)
+		assert isinstance(catted, bytes)
+		return hand.unpack(catted)
 
-    branch, turn, tick = hand._real._btt()
-    ret, diff = hand.next_turn()
-    btt = hand._real._btt()
-    slowd = unpack_delta(
-        hand._get_slow_delta(btt_from=(branch, turn, tick), btt_to=btt))
-    assert hand.unpack(diff) == slowd, "Fast delta differs from slow delta"
-    ret, diff2 = hand.time_travel('trunk', 0, tick)
-    btt2 = hand._real._btt()
-    slowd2 = unpack_delta(hand._get_slow_delta(btt_from=btt, btt_to=btt2))
-    assert hand.unpack(diff2) == slowd2, "Fast delta differs from slow delta"
-    ret, diff3 = hand.time_travel('trunk', 3)
-    btt3 = hand._real._btt()
-    slowd3 = unpack_delta(hand._get_slow_delta(btt_from=btt2, btt_to=btt3))
-    assert hand.unpack(diff3) == slowd3, "Fast delta differs from slow delta"
-    ret, diff4 = hand.time_travel('trunk', 1)
-    btt4 = hand._real._btt()
-    slowd4 = unpack_delta(hand._get_slow_delta(btt_from=btt3, btt_to=btt4))
-    assert hand.unpack(diff4) == slowd4, "Fast delta differs from slow delta"
+	branch, turn, tick = hand._real._btt()
+	ret, diff = hand.next_turn()
+	btt = hand._real._btt()
+	slowd = unpack_delta(
+		hand._get_slow_delta(btt_from=(branch, turn, tick), btt_to=btt))
+	assert hand.unpack(diff) == slowd, "Fast delta differs from slow delta"
+	ret, diff2 = hand.time_travel('trunk', 0, tick)
+	btt2 = hand._real._btt()
+	slowd2 = unpack_delta(hand._get_slow_delta(btt_from=btt, btt_to=btt2))
+	assert hand.unpack(diff2) == slowd2, "Fast delta differs from slow delta"
+	ret, diff3 = hand.time_travel('trunk', 3)
+	btt3 = hand._real._btt()
+	slowd3 = unpack_delta(hand._get_slow_delta(btt_from=btt2, btt_to=btt3))
+	assert hand.unpack(diff3) == slowd3, "Fast delta differs from slow delta"
+	ret, diff4 = hand.time_travel('trunk', 1)
+	btt4 = hand._real._btt()
+	slowd4 = unpack_delta(hand._get_slow_delta(btt_from=btt3, btt_to=btt4))
+	assert hand.unpack(diff4) == slowd4, "Fast delta differs from slow delta"
 
 
 def test_serialize_deleted(engy):
-    eng = engy
-    with eng.advancing():
-        college.install(eng)
-    d0r0s0 = eng.character['dorm0room0student0']
-    roommate = d0r0s0.stat['roommate']
-    del eng.character[roommate.name]
-    assert not roommate
-    with pytest.raises(KeyError):
-        eng.character[roommate.name]
-    assert d0r0s0.stat['roommate'] == roommate
-    assert eng.unpack(eng.pack(d0r0s0.stat['roommate'])) == roommate
+	eng = engy
+	with eng.advancing():
+		college.install(eng)
+	d0r0s0 = eng.character['dorm0room0student0']
+	roommate = d0r0s0.stat['roommate']
+	del eng.character[roommate.name]
+	assert not roommate
+	with pytest.raises(KeyError):
+		eng.character[roommate.name]
+	assert d0r0s0.stat['roommate'] == roommate
+	assert eng.unpack(eng.pack(d0r0s0.stat['roommate'])) == roommate
 
 
 def test_manip_deleted(engy):
-    eng = engy
-    phys = eng.new_character('physical')
-    phys.stat['aoeu'] = True
-    phys.add_node(0)
-    phys.add_node(1)
-    phys.node[1]['aoeu'] = True
-    del phys.node[1]
-    phys.add_node(1)
-    assert 'aoeu' not in phys.node[1]
-    phys.add_edge(0, 1)
-    phys.adj[0][1]['aoeu'] = True
-    del phys.adj[0][1]
-    phys.add_edge(0, 1)
-    assert 'aoeu' not in phys.adj[0][1]
-    del eng.character['physical']
-    assert not phys
-    phys = eng.new_character('physical')
-    assert 'aoeu' not in phys.stat
-    assert 0 not in phys
-    assert 1 not in phys
-    assert 0 not in phys.adj
-    assert 1 not in phys.adj
+	eng = engy
+	phys = eng.new_character('physical')
+	phys.stat['aoeu'] = True
+	phys.add_node(0)
+	phys.add_node(1)
+	phys.node[1]['aoeu'] = True
+	del phys.node[1]
+	phys.add_node(1)
+	assert 'aoeu' not in phys.node[1]
+	phys.add_edge(0, 1)
+	phys.adj[0][1]['aoeu'] = True
+	del phys.adj[0][1]
+	phys.add_edge(0, 1)
+	assert 'aoeu' not in phys.adj[0][1]
+	del eng.character['physical']
+	assert not phys
+	phys = eng.new_character('physical')
+	assert 'aoeu' not in phys.stat
+	assert 0 not in phys
+	assert 1 not in phys
+	assert 0 not in phys.adj
+	assert 1 not in phys.adj

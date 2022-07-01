@@ -13,40 +13,41 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import sys
+
 if sys.version_info[0] < 3 or (sys.version_info[0] == 3
-                               and sys.version_info[1] < 7):
-    raise RuntimeError("LiSE requires Python 3.7 or later")
+								and sys.version_info[1] < 7):
+	raise RuntimeError("LiSE requires Python 3.7 or later")
 import os
 from setuptools import setup
 
 with open(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                     'requirements.txt'), 'rt') as inf:
-    reqs = inf.readlines()
+		os.path.join(os.path.dirname(os.path.abspath(__file__)),
+						'requirements.txt'), 'rt') as inf:
+	reqs = inf.readlines()
 
 shortdesc = "Rules engine for life simulation games"
 
 readmepath = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                          'README.md')
+							'README.md')
 if os.path.exists(readmepath):
-    with open(readmepath, 'rt') as inf:
-        longdesc = inf.read()
+	with open(readmepath, 'rt') as inf:
+		longdesc = inf.read()
 else:
-    longdesc = shortdesc
+	longdesc = shortdesc
 
 setup(name="LiSE",
-      version="0.12.1",
-      description=shortdesc,
-      author="Zachary Spector",
-      author_email="public@zacharyspector.com",
-      license="AGPL3",
-      keywords="game simulation",
-      url="https://github.com/Tactical-Metaphysics/LiSE",
-      packages=["LiSE", "LiSE.server", "LiSE.examples", "LiSE.allegedb"],
-      package_data={'LiSE': ['sqlite.json']},
-      install_requires=reqs,
-      project_urls={
-          "Documentation": "https://tactical-metaphysics.github.io/LiSE/"
-      },
-      long_description=longdesc,
-      long_description_content_type='text/markdown')
+		version="0.12.1",
+		description=shortdesc,
+		author="Zachary Spector",
+		author_email="public@zacharyspector.com",
+		license="AGPL3",
+		keywords="game simulation",
+		url="https://github.com/Tactical-Metaphysics/LiSE",
+		packages=["LiSE", "LiSE.server", "LiSE.examples", "LiSE.allegedb"],
+		package_data={'LiSE': ['sqlite.json']},
+		install_requires=reqs,
+		project_urls={
+			"Documentation": "https://tactical-metaphysics.github.io/LiSE/"
+		},
+		long_description=longdesc,
+		long_description_content_type='text/markdown')

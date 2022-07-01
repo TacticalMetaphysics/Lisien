@@ -36,899 +36,901 @@ import LiSE
 
 
 def windows_union(windows):
-    """Given a list of (beginning, ending), return a minimal version that contains the same ranges.
+	"""Given a list of (beginning, ending), return a minimal version that contains the same ranges.
 
     :rtype: list
 
     """
 
-    def fix_overlap(left, right):
-        if left == right:
-            return [left]
-        assert left[0] < right[0]
-        if left[1] >= right[0]:
-            if right[1] > left[1]:
-                return [(left[0], right[1])]
-            else:
-                return [left]
-        return [left, right]
+	def fix_overlap(left, right):
+		if left == right:
+			return [left]
+		assert left[0] < right[0]
+		if left[1] >= right[0]:
+			if right[1] > left[1]:
+				return [(left[0], right[1])]
+			else:
+				return [left]
+		return [left, right]
 
-    if len(windows) == 1:
-        return windows
-    none_left = []
-    none_right = []
-    otherwise = []
-    for window in windows:
-        if window[0] is None:
-            none_left.append(window)
-        elif window[1] is None:
-            none_right.append(window)
-        else:
-            otherwise.append(window)
+	if len(windows) == 1:
+		return windows
+	none_left = []
+	none_right = []
+	otherwise = []
+	for window in windows:
+		if window[0] is None:
+			none_left.append(window)
+		elif window[1] is None:
+			none_right.append(window)
+		else:
+			otherwise.append(window)
 
-    res = []
-    otherwise.sort()
-    for window in none_left:
-        if not res:
-            res.append(window)
-            continue
-        res.extend(fix_overlap(res.pop(), window))
-    while otherwise:
-        window = otherwise.pop(0)
-        if not res:
-            res.append(window)
-            continue
-        res.extend(fix_overlap(res.pop(), window))
-    for window in none_right:
-        if not res:
-            res.append(window)
-            continue
-        res.extend(fix_overlap(res.pop(), window))
-    return res
+	res = []
+	otherwise.sort()
+	for window in none_left:
+		if not res:
+			res.append(window)
+			continue
+		res.extend(fix_overlap(res.pop(), window))
+	while otherwise:
+		window = otherwise.pop(0)
+		if not res:
+			res.append(window)
+			continue
+		res.extend(fix_overlap(res.pop(), window))
+	for window in none_right:
+		if not res:
+			res.append(window)
+			continue
+		res.extend(fix_overlap(res.pop(), window))
+	return res
 
 
 def windows_intersection(windows):
-    """Given a list of (beginning, ending), return another describing where they overlap.
+	"""Given a list of (beginning, ending), return another describing where they overlap.
 
     :rtype: list
     """
 
-    def intersect2(left, right):
-        if left == right:
-            return left
-        elif left == (None, None):
-            return right
-        elif right == (None, None):
-            return left
-        elif left[0] is None:
-            if right[0] is None:
-                return None, min((left[1], right[1]))
-            elif right[1] is None:
-                if left[1] <= right[0]:
-                    return left[1], right[0]
-                else:
-                    return None
-            elif right[0] <= left[1]:
-                return right[0], left[1]
-            else:
-                return None
-        elif left[1] is None:
-            if right[0] is None:
-                return left[0], right[1]
-            else:
-                return right  # assumes left[0] <= right[0]
-        # None not in left
-        elif right[0] is None:
-            return left[0], min((left[1], right[1]))
-        elif right[1] is None:
-            if left[1] >= right[0]:
-                return right[0], left[1]
-            else:
-                return None
-        assert None not in left and None not in right and left[0] < right[1]
-        if left[1] >= right[0]:
-            if right[1] > left[1]:
-                return right[0], left[1]
-            else:
-                return right
-        return None
+	def intersect2(left, right):
+		if left == right:
+			return left
+		elif left == (None, None):
+			return right
+		elif right == (None, None):
+			return left
+		elif left[0] is None:
+			if right[0] is None:
+				return None, min((left[1], right[1]))
+			elif right[1] is None:
+				if left[1] <= right[0]:
+					return left[1], right[0]
+				else:
+					return None
+			elif right[0] <= left[1]:
+				return right[0], left[1]
+			else:
+				return None
+		elif left[1] is None:
+			if right[0] is None:
+				return left[0], right[1]
+			else:
+				return right  # assumes left[0] <= right[0]
+		# None not in left
+		elif right[0] is None:
+			return left[0], min((left[1], right[1]))
+		elif right[1] is None:
+			if left[1] >= right[0]:
+				return right[0], left[1]
+			else:
+				return None
+		assert None not in left and None not in right and left[0] < right[1]
+		if left[1] >= right[0]:
+			if right[1] > left[1]:
+				return right[0], left[1]
+			else:
+				return right
+		return None
 
-    if len(windows) == 1:
-        return windows
-    left_none = []
-    right_none = []
-    otherwise = []
-    for window in windows:
-        assert window is not None, None
-        if window[0] is None:
-            left_none.append(window)
-        elif window[1] is None:
-            right_none.append(window)
-        else:
-            otherwise.append(window)
+	if len(windows) == 1:
+		return windows
+	left_none = []
+	right_none = []
+	otherwise = []
+	for window in windows:
+		assert window is not None, None
+		if window[0] is None:
+			left_none.append(window)
+		elif window[1] is None:
+			right_none.append(window)
+		else:
+			otherwise.append(window)
 
-    done = []
-    todo = left_none + sorted(otherwise)
-    for window in todo:
-        if not done:
-            done.append(window)
-            continue
-        res = intersect2(done.pop(), window)
-        if res:
-            done.append(res)
-    return done
+	done = []
+	todo = left_none + sorted(otherwise)
+	for window in todo:
+		if not done:
+			done.append(window)
+			continue
+		res = intersect2(done.pop(), window)
+		if res:
+			done.append(res)
+	return done
 
 
 class Query(object):
 
-    def __new__(cls, engine, leftside, rightside=None, **kwargs):
-        if rightside is None:
-            if not isinstance(leftside, cls):
-                raise TypeError("You can't make a query with only one side")
-            me = leftside
-        else:
-            me = super().__new__(cls)
-            me.leftside = leftside
-            me.rightside = rightside
-        me.engine = engine
-        me.windows = kwargs.get('windows', [])
-        return me
+	def __new__(cls, engine, leftside, rightside=None, **kwargs):
+		if rightside is None:
+			if not isinstance(leftside, cls):
+				raise TypeError("You can't make a query with only one side")
+			me = leftside
+		else:
+			me = super().__new__(cls)
+			me.leftside = leftside
+			me.rightside = rightside
+		me.engine = engine
+		me.windows = kwargs.get('windows', [])
+		return me
 
-    def iter_turns(self):
-        raise NotImplementedError
+	def iter_turns(self):
+		raise NotImplementedError
 
-    def iter_ticks(self, turn):
-        raise NotImplementedError
+	def iter_ticks(self, turn):
+		raise NotImplementedError
 
-    def __eq__(self, other):
-        return EqQuery(self.engine, self, self.engine._entityfy(other))
+	def __eq__(self, other):
+		return EqQuery(self.engine, self, self.engine._entityfy(other))
 
-    def __gt__(self, other):
-        return GtQuery(self.engine, self, self.engine._entityfy(other))
+	def __gt__(self, other):
+		return GtQuery(self.engine, self, self.engine._entityfy(other))
 
-    def __ge__(self, other):
-        return GeQuery(self.engine, self, self.engine._entityfy(other))
+	def __ge__(self, other):
+		return GeQuery(self.engine, self, self.engine._entityfy(other))
 
-    def __lt__(self, other):
-        return LtQuery(self.engine, self, self.engine._entityfy(other))
+	def __lt__(self, other):
+		return LtQuery(self.engine, self, self.engine._entityfy(other))
 
-    def __le__(self, other):
-        return LeQuery(self.engine, self, self.engine._entityfy(other))
+	def __le__(self, other):
+		return LeQuery(self.engine, self, self.engine._entityfy(other))
 
-    def __ne__(self, other):
-        return NeQuery(self.engine, self, self.engine._entityfy(other))
+	def __ne__(self, other):
+		return NeQuery(self.engine, self, self.engine._entityfy(other))
 
-    def and_before(self, end):
-        if self.windows:
-            new_windows = windows_intersection(
-                sorted(self.windows + [(None, end)]))
-        else:
-            new_windows = [(0, end)]
-        return type(self)(self.leftside, self.rightside, windows=new_windows)
+	def and_before(self, end):
+		if self.windows:
+			new_windows = windows_intersection(
+				sorted(self.windows + [(None, end)]))
+		else:
+			new_windows = [(0, end)]
+		return type(self)(self.leftside, self.rightside, windows=new_windows)
 
-    before = and_before
+	before = and_before
 
-    def or_before(self, end):
-        if self.windows:
-            new_windows = windows_union(self.windows + [(None, end)])
-        else:
-            new_windows = [(None, end)]
-        return type(self)(self.leftside, self.rightside, windows=new_windows)
+	def or_before(self, end):
+		if self.windows:
+			new_windows = windows_union(self.windows + [(None, end)])
+		else:
+			new_windows = [(None, end)]
+		return type(self)(self.leftside, self.rightside, windows=new_windows)
 
-    def and_after(self, start):
-        if self.windows:
-            new_windows = windows_intersection(self.windows + [(start, None)])
-        else:
-            new_windows = [(start, None)]
-        return type(self)(self.leftside, self.rightside, windows=new_windows)
+	def and_after(self, start):
+		if self.windows:
+			new_windows = windows_intersection(self.windows + [(start, None)])
+		else:
+			new_windows = [(start, None)]
+		return type(self)(self.leftside, self.rightside, windows=new_windows)
 
-    after = and_after
+	after = and_after
 
-    def or_between(self, start, end):
-        if self.windows:
-            new_windows = windows_union(self.windows + [(start, end)])
-        else:
-            new_windows = [(start, end)]
-        return type(self)(self.leftside, self.rightside, windows=new_windows)
+	def or_between(self, start, end):
+		if self.windows:
+			new_windows = windows_union(self.windows + [(start, end)])
+		else:
+			new_windows = [(start, end)]
+		return type(self)(self.leftside, self.rightside, windows=new_windows)
 
-    def and_between(self, start, end):
-        if self.windows:
-            new_windows = windows_intersection(self.windows + [(start, end)])
-        else:
-            new_windows = [(start, end)]
-        return type(self)(self.leftside, self.rightside, windows=new_windows)
+	def and_between(self, start, end):
+		if self.windows:
+			new_windows = windows_intersection(self.windows + [(start, end)])
+		else:
+			new_windows = [(start, end)]
+		return type(self)(self.leftside, self.rightside, windows=new_windows)
 
-    between = and_between
+	between = and_between
 
-    def or_during(self, tick):
-        return self.or_between(tick, tick)
+	def or_during(self, tick):
+		return self.or_between(tick, tick)
 
-    def and_during(self, tick):
-        return self.and_between(tick, tick)
+	def and_during(self, tick):
+		return self.and_between(tick, tick)
 
-    during = and_during
+	during = and_during
 
 
 class Union(Query):
-    pass
+	pass
 
 
 class ComparisonQuery(Query):
-    oper = lambda x, y: NotImplemented
+	oper = lambda x, y: NotImplemented
 
-    def iter_turns(self):
-        return slow_iter_turns_eval_cmp(self, self.oper, engine=self.engine)
+	def iter_turns(self):
+		return slow_iter_turns_eval_cmp(self, self.oper, engine=self.engine)
 
 
 class EqQuery(ComparisonQuery):
-    oper = eq
+	oper = eq
 
 
 class NeQuery(ComparisonQuery):
-    oper = ne
+	oper = ne
 
 
 class GtQuery(ComparisonQuery):
-    oper = gt
+	oper = gt
 
 
 class LtQuery(ComparisonQuery):
-    oper = lt
+	oper = lt
 
 
 class GeQuery(ComparisonQuery):
-    oper = ge
+	oper = ge
 
 
 class LeQuery(ComparisonQuery):
-    oper = le
+	oper = le
 
 
 comparisons = {
-    'eq': EqQuery,
-    'ne': NeQuery,
-    'gt': GtQuery,
-    'lt': LtQuery,
-    'ge': GeQuery,
-    'le': LeQuery
+	'eq': EqQuery,
+	'ne': NeQuery,
+	'gt': GtQuery,
+	'lt': LtQuery,
+	'ge': GeQuery,
+	'le': LeQuery
 }
 
 
 class StatusAlias(EntityStatAccessor):
 
-    def __eq__(self, other):
-        return EqQuery(self.engine, self, other)
+	def __eq__(self, other):
+		return EqQuery(self.engine, self, other)
 
-    def __ne__(self, other):
-        return NeQuery(self.engine, self, other)
+	def __ne__(self, other):
+		return NeQuery(self.engine, self, other)
 
-    def __gt__(self, other):
-        return GtQuery(self.engine, self, other)
+	def __gt__(self, other):
+		return GtQuery(self.engine, self, other)
 
-    def __lt__(self, other):
-        return LtQuery(self.engine, self, other)
+	def __lt__(self, other):
+		return LtQuery(self.engine, self, other)
 
-    def __ge__(self, other):
-        return GeQuery(self.engine, self, other)
+	def __ge__(self, other):
+		return GeQuery(self.engine, self, other)
 
-    def __le__(self, other):
-        return LeQuery(self.engine, self, other)
+	def __le__(self, other):
+		return LeQuery(self.engine, self, other)
 
 
 def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
-    """Iterate over all turns on which a comparison holds.
+	"""Iterate over all turns on which a comparison holds.
 
     This is expensive. It evaluates the query for every turn in history.
 
     """
 
-    def mungeside(side):
-        if isinstance(side, Query):
-            return side.iter_turns
-        elif isinstance(side, StatusAlias):
-            return EntityStatAccessor(side.entity, side.stat, side.engine,
-                                      side.branch, side.turn, side.tick,
-                                      side.current, side.mungers)
-        elif isinstance(side, EntityStatAccessor):
-            return side
-        else:
-            return lambda: side
+	def mungeside(side):
+		if isinstance(side, Query):
+			return side.iter_turns
+		elif isinstance(side, StatusAlias):
+			return EntityStatAccessor(side.entity, side.stat, side.engine,
+										side.branch, side.turn, side.tick,
+										side.current, side.mungers)
+		elif isinstance(side, EntityStatAccessor):
+			return side
+		else:
+			return lambda: side
 
-    leftside = mungeside(qry.leftside)
-    rightside = mungeside(qry.rightside)
-    engine = engine or leftside.engine or rightside.engine
+	leftside = mungeside(qry.leftside)
+	rightside = mungeside(qry.rightside)
+	engine = engine or leftside.engine or rightside.engine
 
-    for (branch, _, _) in engine._iter_parent_btt(start_branch
-                                                  or engine.branch):
-        if branch is None:
-            return
-        parent, turn_start, tick_start, turn_end, tick_end = engine._branches[
-            branch]
-        for turn in range(turn_start, engine.turn + 1):
-            if oper(leftside(branch, turn), rightside(branch, turn)):
-                yield branch, turn
+	for (branch, _, _) in engine._iter_parent_btt(start_branch
+													or engine.branch):
+		if branch is None:
+			return
+		parent, turn_start, tick_start, turn_end, tick_end = engine._branches[
+			branch]
+		for turn in range(turn_start, engine.turn + 1):
+			if oper(leftside(branch, turn), rightside(branch, turn)):
+				yield branch, turn
 
 
 class ConnectionHolder(query.ConnectionHolder):
 
-    def initdb(self):
-        """Set up the database schema, both for allegedb and the special
+	def initdb(self):
+		"""Set up the database schema, both for allegedb and the special
         extensions for LiSE
 
         """
-        super().initdb()
-        init_table = self.init_table
-        for table in ('universals', 'rules', 'rulebooks', 'things',
-                      'character_rulebook', 'unit_rulebook',
-                      'character_thing_rulebook', 'character_place_rulebook',
-                      'character_portal_rulebook', 'node_rulebook',
-                      'portal_rulebook', 'units', 'character_rules_handled',
-                      'unit_rules_handled', 'character_thing_rules_handled',
-                      'character_place_rules_handled',
-                      'character_portal_rules_handled', 'node_rules_handled',
-                      'portal_rules_handled', 'rule_triggers', 'rule_prereqs',
-                      'rule_actions', 'turns_completed'):
-            try:
-                init_table(table)
-            except OperationalError:
-                pass
-            except Exception as ex:
-                return ex
+		super().initdb()
+		init_table = self.init_table
+		for table in ('universals', 'rules', 'rulebooks', 'things',
+						'character_rulebook', 'unit_rulebook',
+						'character_thing_rulebook', 'character_place_rulebook',
+						'character_portal_rulebook', 'node_rulebook',
+						'portal_rulebook', 'units', 'character_rules_handled',
+						'unit_rules_handled', 'character_thing_rules_handled',
+						'character_place_rules_handled',
+						'character_portal_rules_handled', 'node_rules_handled',
+						'portal_rules_handled', 'rule_triggers',
+						'rule_prereqs', 'rule_actions', 'turns_completed'):
+			try:
+				init_table(table)
+			except OperationalError:
+				pass
+			except Exception as ex:
+				return ex
 
 
 class QueryEngine(query.QueryEngine):
-    exist_edge_t = 0
-    path = LiSE.__path__[0]
-    IntegrityError = IntegrityError
-    OperationalError = OperationalError
-    holder_cls = ConnectionHolder
-    tables = ('global', 'branches', 'turns', 'graphs', 'keyframes',
-              'graph_val', 'nodes', 'node_val', 'edges', 'edge_val', 'plans',
-              'plan_ticks', 'universals', 'rules', 'rulebooks',
-              'rule_triggers', 'rule_prereqs', 'rule_actions',
-              'character_rulebook', 'unit_rulebook',
-              'character_thing_rulebook', 'character_place_rulebook',
-              'character_portal_rulebook', 'node_rules_handled',
-              'portal_rules_handled', 'things', 'node_rulebook',
-              'portal_rulebook', 'units', 'character_rules_handled',
-              'unit_rules_handled', 'character_thing_rules_handled',
-              'character_place_rules_handled',
-              'character_portal_rules_handled', 'turns_completed')
+	exist_edge_t = 0
+	path = LiSE.__path__[0]
+	IntegrityError = IntegrityError
+	OperationalError = OperationalError
+	holder_cls = ConnectionHolder
+	tables = ('global', 'branches', 'turns', 'graphs', 'keyframes',
+				'graph_val', 'nodes', 'node_val', 'edges', 'edge_val', 'plans',
+				'plan_ticks', 'universals', 'rules', 'rulebooks',
+				'rule_triggers', 'rule_prereqs', 'rule_actions',
+				'character_rulebook', 'unit_rulebook',
+				'character_thing_rulebook', 'character_place_rulebook',
+				'character_portal_rulebook', 'node_rules_handled',
+				'portal_rules_handled', 'things', 'node_rulebook',
+				'portal_rulebook', 'units', 'character_rules_handled',
+				'unit_rules_handled', 'character_thing_rules_handled',
+				'character_place_rules_handled',
+				'character_portal_rules_handled', 'turns_completed')
 
-    def universals_dump(self):
-        unpack = self.unpack
-        for key, branch, turn, tick, value in self.sql('universals_dump'):
-            yield unpack(key), branch, turn, tick, unpack(value)
+	def universals_dump(self):
+		unpack = self.unpack
+		for key, branch, turn, tick, value in self.sql('universals_dump'):
+			yield unpack(key), branch, turn, tick, unpack(value)
 
-    def rulebooks_dump(self):
-        unpack = self.unpack
-        for rulebook, branch, turn, tick, rules in self.sql('rulebooks_dump'):
-            yield unpack(rulebook), branch, turn, tick, unpack(rules)
+	def rulebooks_dump(self):
+		unpack = self.unpack
+		for rulebook, branch, turn, tick, rules in self.sql('rulebooks_dump'):
+			yield unpack(rulebook), branch, turn, tick, unpack(rules)
 
-    def _rule_dump(self, typ):
-        unpack = self.unpack
-        for rule, branch, turn, tick, lst in self.sql(
-                'rule_{}_dump'.format(typ)):
-            yield rule, branch, turn, tick, unpack(lst)
+	def _rule_dump(self, typ):
+		unpack = self.unpack
+		for rule, branch, turn, tick, lst in self.sql(
+			'rule_{}_dump'.format(typ)):
+			yield rule, branch, turn, tick, unpack(lst)
 
-    def rule_triggers_dump(self):
-        return self._rule_dump('triggers')
+	def rule_triggers_dump(self):
+		return self._rule_dump('triggers')
 
-    def rule_prereqs_dump(self):
-        return self._rule_dump('prereqs')
+	def rule_prereqs_dump(self):
+		return self._rule_dump('prereqs')
 
-    def rule_actions_dump(self):
-        return self._rule_dump('actions')
+	def rule_actions_dump(self):
+		return self._rule_dump('actions')
 
-    def characters_dump(self):
-        unpack = self.unpack
-        for graph, typ in self.sql('graphs_dump'):
-            if typ == 'DiGraph':
-                yield unpack(graph)
+	def characters_dump(self):
+		unpack = self.unpack
+		for graph, typ in self.sql('graphs_dump'):
+			if typ == 'DiGraph':
+				yield unpack(graph)
 
-    characters = characters_dump
+	characters = characters_dump
 
-    def node_rulebook_dump(self):
-        unpack = self.unpack
-        for character, node, branch, turn, tick, rulebook in self.sql(
-                'node_rulebook_dump'):
-            yield unpack(character), unpack(node), branch, turn, tick, unpack(
-                rulebook)
+	def node_rulebook_dump(self):
+		unpack = self.unpack
+		for character, node, branch, turn, tick, rulebook in self.sql(
+			'node_rulebook_dump'):
+			yield unpack(character), unpack(node), branch, turn, tick, unpack(
+				rulebook)
 
-    def portal_rulebook_dump(self):
-        unpack = self.unpack
-        for character, orig, dest, branch, turn, tick, rulebook in self.sql(
-                'portal_rulebook_dump'):
-            yield (unpack(character), unpack(orig), unpack(dest), branch, turn,
-                   tick, unpack(rulebook))
+	def portal_rulebook_dump(self):
+		unpack = self.unpack
+		for character, orig, dest, branch, turn, tick, rulebook in self.sql(
+			'portal_rulebook_dump'):
+			yield (unpack(character), unpack(orig), unpack(dest), branch, turn,
+					tick, unpack(rulebook))
 
-    def _charactery_rulebook_dump(self, qry):
-        unpack = self.unpack
-        for character, branch, turn, tick, rulebook in self.sql(
-                qry + '_rulebook_dump'):
-            yield unpack(character), branch, turn, tick, unpack(rulebook)
+	def _charactery_rulebook_dump(self, qry):
+		unpack = self.unpack
+		for character, branch, turn, tick, rulebook in self.sql(
+			qry + '_rulebook_dump'):
+			yield unpack(character), branch, turn, tick, unpack(rulebook)
 
-    character_rulebook_dump = partialmethod(_charactery_rulebook_dump,
-                                            'character')
-    unit_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'unit')
-    character_thing_rulebook_dump = partialmethod(_charactery_rulebook_dump,
-                                                  'character_thing')
-    character_place_rulebook_dump = partialmethod(_charactery_rulebook_dump,
-                                                  'character_place')
-    character_portal_rulebook_dump = partialmethod(_charactery_rulebook_dump,
-                                                   'character_portal')
+	character_rulebook_dump = partialmethod(_charactery_rulebook_dump,
+											'character')
+	unit_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'unit')
+	character_thing_rulebook_dump = partialmethod(_charactery_rulebook_dump,
+													'character_thing')
+	character_place_rulebook_dump = partialmethod(_charactery_rulebook_dump,
+													'character_place')
+	character_portal_rulebook_dump = partialmethod(_charactery_rulebook_dump,
+													'character_portal')
 
-    def character_rules_handled_dump(self):
-        unpack = self.unpack
-        for character, rulebook, rule, branch, turn, tick in self.sql(
-                'character_rules_handled_dump'):
-            yield unpack(character), unpack(rulebook), rule, branch, turn, tick
+	def character_rules_handled_dump(self):
+		unpack = self.unpack
+		for character, rulebook, rule, branch, turn, tick in self.sql(
+			'character_rules_handled_dump'):
+			yield unpack(character), unpack(rulebook), rule, branch, turn, tick
 
-    def character_rules_changes_dump(self):
-        unpack = self.unpack
-        for (character, rulebook, rule, branch, turn, tick, handled_branch,
-             handled_turn) in self.sql('character_rules_changes_dump'):
-            yield (unpack(character), unpack(rulebook), rule, branch, turn,
-                   tick, handled_branch, handled_turn)
+	def character_rules_changes_dump(self):
+		unpack = self.unpack
+		for (character, rulebook, rule, branch, turn, tick, handled_branch,
+				handled_turn) in self.sql('character_rules_changes_dump'):
+			yield (unpack(character), unpack(rulebook), rule, branch, turn,
+					tick, handled_branch, handled_turn)
 
-    def unit_rules_handled_dump(self):
-        unpack = self.unpack
-        for character, graph, unit, rulebook, rule, branch, turn, tick in self.sql(
-                'unit_rules_handled_dump'):
-            yield (unpack(character), unpack(graph), unpack(unit),
-                   unpack(rulebook), rule, branch, turn, tick)
+	def unit_rules_handled_dump(self):
+		unpack = self.unpack
+		for character, graph, unit, rulebook, rule, branch, turn, tick in self.sql(
+			'unit_rules_handled_dump'):
+			yield (unpack(character), unpack(graph), unpack(unit),
+					unpack(rulebook), rule, branch, turn, tick)
 
-    def unit_rules_changes_dump(self):
-        jl = self.unpack
-        for (character, rulebook, rule, graph, unit, branch, turn, tick,
-             handled_branch,
-             handled_turn) in self.sql('unit_rules_changes_dump'):
-            yield (jl(character), jl(rulebook), rule, jl(graph), jl(unit),
-                   branch, turn, tick, handled_branch, handled_turn)
+	def unit_rules_changes_dump(self):
+		jl = self.unpack
+		for (character, rulebook, rule, graph, unit, branch, turn, tick,
+				handled_branch,
+				handled_turn) in self.sql('unit_rules_changes_dump'):
+			yield (jl(character), jl(rulebook), rule, jl(graph), jl(unit),
+					branch, turn, tick, handled_branch, handled_turn)
 
-    def character_thing_rules_handled_dump(self):
-        unpack = self.unpack
-        for character, thing, rulebook, rule, branch, turn, tick in self.sql(
-                'character_thing_rules_handled_dump'):
-            yield unpack(character), unpack(thing), unpack(rulebook), rule, \
-                  branch, turn, tick
+	def character_thing_rules_handled_dump(self):
+		unpack = self.unpack
+		for character, thing, rulebook, rule, branch, turn, tick in self.sql(
+			'character_thing_rules_handled_dump'):
+			yield unpack(character), unpack(thing), unpack(rulebook), rule, \
+                           branch, turn, tick
 
-    def character_thing_rules_changes_dump(self):
-        jl = self.unpack
-        for (character, thing, rulebook, rule, branch, turn, tick,
-             handled_branch,
-             handled_turn) in self.sql('character_thing_rules_changes_dump'):
-            yield (jl(character), jl(thing), jl(rulebook), rule, branch, turn,
-                   tick, handled_branch, handled_turn)
+	def character_thing_rules_changes_dump(self):
+		jl = self.unpack
+		for (
+			character, thing, rulebook, rule, branch, turn, tick,
+			handled_branch,
+			handled_turn) in self.sql('character_thing_rules_changes_dump'):
+			yield (jl(character), jl(thing), jl(rulebook), rule, branch, turn,
+					tick, handled_branch, handled_turn)
 
-    def character_place_rules_handled_dump(self):
-        unpack = self.unpack
-        for character, place, rulebook, rule, branch, turn, tick in self.sql(
-                'character_place_rules_handled_dump'):
-            yield unpack(character), unpack(place), unpack(rulebook), rule, \
-                  branch, turn, tick
+	def character_place_rules_handled_dump(self):
+		unpack = self.unpack
+		for character, place, rulebook, rule, branch, turn, tick in self.sql(
+			'character_place_rules_handled_dump'):
+			yield unpack(character), unpack(place), unpack(rulebook), rule, \
+                           branch, turn, tick
 
-    def character_place_rules_changes_dump(self):
-        jl = self.unpack
-        for (character, rulebook, rule, place, branch, turn, tick,
-             handled_branch,
-             handled_turn) in self.sql('character_place_rules_changes_dump'):
-            yield (jl(character), jl(rulebook), rule, jl(place), branch, turn,
-                   tick, handled_branch, handled_turn)
+	def character_place_rules_changes_dump(self):
+		jl = self.unpack
+		for (
+			character, rulebook, rule, place, branch, turn, tick,
+			handled_branch,
+			handled_turn) in self.sql('character_place_rules_changes_dump'):
+			yield (jl(character), jl(rulebook), rule, jl(place), branch, turn,
+					tick, handled_branch, handled_turn)
 
-    def character_portal_rules_handled_dump(self):
-        unpack = self.unpack
-        for character, rulebook, rule, orig, dest, branch, turn, tick in self.sql(
-                'character_portal_rules_handled_dump'):
-            yield (unpack(character), unpack(rulebook), unpack(orig),
-                   unpack(dest), rule, branch, turn, tick)
+	def character_portal_rules_handled_dump(self):
+		unpack = self.unpack
+		for character, rulebook, rule, orig, dest, branch, turn, tick in self.sql(
+			'character_portal_rules_handled_dump'):
+			yield (unpack(character), unpack(rulebook), unpack(orig),
+					unpack(dest), rule, branch, turn, tick)
 
-    def character_portal_rules_changes_dump(self):
-        jl = self.unpack
-        for (character, rulebook, rule, orig, dest, branch, turn, tick,
-             handled_branch,
-             handled_turn) in self.sql('character_portal_rules_changes_dump'):
-            yield (jl(character), jl(rulebook), rule, jl(orig), jl(dest),
-                   branch, turn, tick, handled_branch, handled_turn)
+	def character_portal_rules_changes_dump(self):
+		jl = self.unpack
+		for (
+			character, rulebook, rule, orig, dest, branch, turn, tick,
+			handled_branch,
+			handled_turn) in self.sql('character_portal_rules_changes_dump'):
+			yield (jl(character), jl(rulebook), rule, jl(orig), jl(dest),
+					branch, turn, tick, handled_branch, handled_turn)
 
-    def node_rules_handled_dump(self):
-        for character, node, rulebook, rule, branch, turn, tick in self.sql(
-                'node_rules_handled_dump'):
-            yield self.unpack(character), self.unpack(node), self.unpack(
-                rulebook), rule, branch, turn, tick
+	def node_rules_handled_dump(self):
+		for character, node, rulebook, rule, branch, turn, tick in self.sql(
+			'node_rules_handled_dump'):
+			yield self.unpack(character), self.unpack(node), self.unpack(
+				rulebook), rule, branch, turn, tick
 
-    def node_rules_changes_dump(self):
-        jl = self.unpack
-        for (character, node, rulebook, rule, branch, turn, tick,
-             handled_branch,
-             handled_turn) in self.sql('node_rules_changes_dump'):
-            yield (jl(character), jl(node), jl(rulebook), rule, branch, turn,
-                   tick, handled_branch, handled_turn)
+	def node_rules_changes_dump(self):
+		jl = self.unpack
+		for (character, node, rulebook, rule, branch, turn, tick,
+				handled_branch,
+				handled_turn) in self.sql('node_rules_changes_dump'):
+			yield (jl(character), jl(node), jl(rulebook), rule, branch, turn,
+					tick, handled_branch, handled_turn)
 
-    def portal_rules_handled_dump(self):
-        unpack = self.unpack
-        for character, orig, dest, rulebook, rule, branch, turn, tick in self.sql(
-                'portal_rules_handled_dump'):
-            yield (unpack(character), unpack(orig), unpack(dest),
-                   unpack(rulebook), rule, branch, turn, tick)
+	def portal_rules_handled_dump(self):
+		unpack = self.unpack
+		for character, orig, dest, rulebook, rule, branch, turn, tick in self.sql(
+			'portal_rules_handled_dump'):
+			yield (unpack(character), unpack(orig), unpack(dest),
+					unpack(rulebook), rule, branch, turn, tick)
 
-    def portal_rules_changes_dump(self):
-        jl = self.unpack
-        for (character, orig, dest, rulebook, rule, branch, turn, tick,
-             handled_branch,
-             handled_turn) in self.sql('portal_rules_changes_dump'):
-            yield (jl(character), jl(orig), jl(dest), jl(rulebook), rule,
-                   branch, turn, tick, handled_branch, handled_turn)
+	def portal_rules_changes_dump(self):
+		jl = self.unpack
+		for (character, orig, dest, rulebook, rule, branch, turn, tick,
+				handled_branch,
+				handled_turn) in self.sql('portal_rules_changes_dump'):
+			yield (jl(character), jl(orig), jl(dest), jl(rulebook), rule,
+					branch, turn, tick, handled_branch, handled_turn)
 
-    def senses_dump(self):
-        unpack = self.unpack
-        for character, sense, branch, turn, tick, function in self.sql(
-                'senses_dump'):
-            yield unpack(character), sense, branch, turn, tick, function
+	def senses_dump(self):
+		unpack = self.unpack
+		for character, sense, branch, turn, tick, function in self.sql(
+			'senses_dump'):
+			yield unpack(character), sense, branch, turn, tick, function
 
-    def things_dump(self):
-        unpack = self.unpack
-        for character, thing, branch, turn, tick, location in self.sql(
-                'things_dump'):
-            yield (unpack(character), unpack(thing), branch, turn, tick,
-                   unpack(location))
+	def things_dump(self):
+		unpack = self.unpack
+		for character, thing, branch, turn, tick, location in self.sql(
+			'things_dump'):
+			yield (unpack(character), unpack(thing), branch, turn, tick,
+					unpack(location))
 
-    def load_things(self,
-                    character,
-                    branch,
-                    turn_from,
-                    tick_from,
-                    turn_to=None,
-                    tick_to=None):
-        pack = self.pack
-        unpack = self.unpack
-        if turn_to is None:
-            if tick_to is not None:
-                raise ValueError("Need both or neither of turn_to, tick_to")
-            for thing, turn, tick, location in self.sql(
-                    'load_things_tick_to_end', pack(character), branch,
-                    turn_from, turn_from, tick_from):
-                yield character, unpack(thing), branch, turn, tick, unpack(
-                    location)
-        else:
-            if tick_to is None:
-                raise ValueError("Need both or neither of turn_to, tick_to")
-            for thing, turn, tick, location in self.sql(
-                    'load_things_tick_to_tick', pack(character), branch,
-                    turn_from, turn_from, tick_from, turn_to, turn_to,
-                    tick_to):
-                yield character, unpack(thing), branch, turn, tick, unpack(
-                    location)
+	def load_things(self,
+					character,
+					branch,
+					turn_from,
+					tick_from,
+					turn_to=None,
+					tick_to=None):
+		pack = self.pack
+		unpack = self.unpack
+		if turn_to is None:
+			if tick_to is not None:
+				raise ValueError("Need both or neither of turn_to, tick_to")
+			for thing, turn, tick, location in self.sql(
+				'load_things_tick_to_end', pack(character), branch, turn_from,
+				turn_from, tick_from):
+				yield character, unpack(thing), branch, turn, tick, unpack(
+					location)
+		else:
+			if tick_to is None:
+				raise ValueError("Need both or neither of turn_to, tick_to")
+			for thing, turn, tick, location in self.sql(
+				'load_things_tick_to_tick', pack(character), branch, turn_from,
+				turn_from, tick_from, turn_to, turn_to, tick_to):
+				yield character, unpack(thing), branch, turn, tick, unpack(
+					location)
 
-    def units_dump(self):
-        unpack = self.unpack
-        for character_graph, unit_graph, unit_node, branch, turn, tick, is_av in self.sql(
-                'units_dump'):
-            yield (unpack(character_graph), unpack(unit_graph),
-                   unpack(unit_node), branch, turn, tick, is_av)
+	def units_dump(self):
+		unpack = self.unpack
+		for character_graph, unit_graph, unit_node, branch, turn, tick, is_av in self.sql(
+			'units_dump'):
+			yield (unpack(character_graph), unpack(unit_graph),
+					unpack(unit_node), branch, turn, tick, is_av)
 
-    def universal_set(self, key, branch, turn, tick, val):
-        key, val = map(self.pack, (key, val))
-        self.sql('universals_insert', key, branch, turn, tick, val)
+	def universal_set(self, key, branch, turn, tick, val):
+		key, val = map(self.pack, (key, val))
+		self.sql('universals_insert', key, branch, turn, tick, val)
 
-    def universal_del(self, key, branch, turn, tick):
-        key = self.pack(key)
-        self.sql('universals_insert', key, branch, turn, tick, None)
+	def universal_del(self, key, branch, turn, tick):
+		key = self.pack(key)
+		self.sql('universals_insert', key, branch, turn, tick, None)
 
-    def comparison(self,
-                   entity0,
-                   stat0,
-                   entity1,
-                   stat1=None,
-                   oper='eq',
-                   windows: list = None):
-        if windows is None:
-            windows = []
-        stat1 = stat1 or stat0
-        return comparisons[oper](leftside=entity0.status(stat0),
-                                 rightside=entity1.status(stat1),
-                                 windows=windows)
+	def comparison(self,
+					entity0,
+					stat0,
+					entity1,
+					stat1=None,
+					oper='eq',
+					windows: list = None):
+		if windows is None:
+			windows = []
+		stat1 = stat1 or stat0
+		return comparisons[oper](leftside=entity0.status(stat0),
+									rightside=entity1.status(stat1),
+									windows=windows)
 
-    def count_all_table(self, tbl):
-        return self.sql('{}_count'.format(tbl)).fetchone()[0]
+	def count_all_table(self, tbl):
+		return self.sql('{}_count'.format(tbl)).fetchone()[0]
 
-    def rules_dump(self):
-        for (name, ) in self.sql('rules_dump'):
-            yield name
+	def rules_dump(self):
+		for (name, ) in self.sql('rules_dump'):
+			yield name
 
-    def _set_rule_something(self, what, rule, branch, turn, tick, flist):
-        flist = self.pack(flist)
-        return self.sql('rule_{}_insert'.format(what), rule, branch, turn,
-                        tick, flist)
+	def _set_rule_something(self, what, rule, branch, turn, tick, flist):
+		flist = self.pack(flist)
+		return self.sql('rule_{}_insert'.format(what), rule, branch, turn,
+						tick, flist)
 
-    set_rule_triggers = partialmethod(_set_rule_something, 'triggers')
-    set_rule_prereqs = partialmethod(_set_rule_something, 'prereqs')
-    set_rule_actions = partialmethod(_set_rule_something, 'actions')
+	set_rule_triggers = partialmethod(_set_rule_something, 'triggers')
+	set_rule_prereqs = partialmethod(_set_rule_something, 'prereqs')
+	set_rule_actions = partialmethod(_set_rule_something, 'actions')
 
-    def set_rule(self,
-                 rule,
-                 branch,
-                 turn,
-                 tick,
-                 triggers=None,
-                 prereqs=None,
-                 actions=None):
-        self.sql('rules_insert', rule)
-        self.set_rule_triggers(rule, branch, turn, tick, triggers or [])
-        self.set_rule_prereqs(rule, branch, turn, tick, prereqs or [])
-        self.set_rule_actions(rule, branch, turn, tick, actions or [])
+	def set_rule(self,
+					rule,
+					branch,
+					turn,
+					tick,
+					triggers=None,
+					prereqs=None,
+					actions=None):
+		self.sql('rules_insert', rule)
+		self.set_rule_triggers(rule, branch, turn, tick, triggers or [])
+		self.set_rule_prereqs(rule, branch, turn, tick, prereqs or [])
+		self.set_rule_actions(rule, branch, turn, tick, actions or [])
 
-    def set_rulebook(self, name, branch, turn, tick, rules=None):
-        name, rules = map(self.pack, (name, rules or []))
-        self.sql('rulebooks_insert', name, branch, turn, tick, rules)
+	def set_rulebook(self, name, branch, turn, tick, rules=None):
+		name, rules = map(self.pack, (name, rules or []))
+		self.sql('rulebooks_insert', name, branch, turn, tick, rules)
 
-    def _set_rulebook_on_character(self, rbtyp, char, branch, turn, tick, rb):
-        char, rb = map(self.pack, (char, rb))
-        self.sql(rbtyp + '_rulebook_insert', char, branch, turn, tick, rb)
+	def _set_rulebook_on_character(self, rbtyp, char, branch, turn, tick, rb):
+		char, rb = map(self.pack, (char, rb))
+		self.sql(rbtyp + '_rulebook_insert', char, branch, turn, tick, rb)
 
-    set_character_rulebook = partialmethod(_set_rulebook_on_character,
-                                           'character')
-    set_unit_rulebook = partialmethod(_set_rulebook_on_character, 'unit')
-    set_character_thing_rulebook = partialmethod(_set_rulebook_on_character,
-                                                 'character_thing')
-    set_character_place_rulebook = partialmethod(_set_rulebook_on_character,
-                                                 'character_place')
-    set_character_portal_rulebook = partialmethod(_set_rulebook_on_character,
-                                                  'character_portal')
+	set_character_rulebook = partialmethod(_set_rulebook_on_character,
+											'character')
+	set_unit_rulebook = partialmethod(_set_rulebook_on_character, 'unit')
+	set_character_thing_rulebook = partialmethod(_set_rulebook_on_character,
+													'character_thing')
+	set_character_place_rulebook = partialmethod(_set_rulebook_on_character,
+													'character_place')
+	set_character_portal_rulebook = partialmethod(_set_rulebook_on_character,
+													'character_portal')
 
-    def rulebooks(self):
-        for book in self.sql('rulebooks'):
-            yield self.unpack(book)
+	def rulebooks(self):
+		for book in self.sql('rulebooks'):
+			yield self.unpack(book)
 
-    def exist_node(self, character, node, branch, turn, tick, extant):
-        super().exist_node(character, node, branch, turn, tick, extant)
+	def exist_node(self, character, node, branch, turn, tick, extant):
+		super().exist_node(character, node, branch, turn, tick, extant)
 
-    def exist_edge(self,
-                   character,
-                   orig,
-                   dest,
-                   idx,
-                   branch,
-                   turn,
-                   tick,
-                   extant=None):
-        start = monotonic()
-        if extant is None:
-            branch, turn, tick, extant = idx, branch, turn, tick
-            idx = 0
-        super().exist_edge(character, orig, dest, idx, branch, turn, tick,
-                           extant)
-        QueryEngine.exist_edge_t += monotonic() - start
+	def exist_edge(self,
+					character,
+					orig,
+					dest,
+					idx,
+					branch,
+					turn,
+					tick,
+					extant=None):
+		start = monotonic()
+		if extant is None:
+			branch, turn, tick, extant = idx, branch, turn, tick
+			idx = 0
+		super().exist_edge(character, orig, dest, idx, branch, turn, tick,
+							extant)
+		QueryEngine.exist_edge_t += monotonic() - start
 
-    def set_node_rulebook(self, character, node, branch, turn, tick, rulebook):
-        (character, node, rulebook) = map(self.pack,
-                                          (character, node, rulebook))
-        return self.sql('node_rulebook_insert', character, node, branch, turn,
-                        tick, rulebook)
+	def set_node_rulebook(self, character, node, branch, turn, tick, rulebook):
+		(character, node, rulebook) = map(self.pack,
+											(character, node, rulebook))
+		return self.sql('node_rulebook_insert', character, node, branch, turn,
+						tick, rulebook)
 
-    def set_portal_rulebook(self, character, orig, dest, branch, turn, tick,
-                            rulebook):
-        (character, orig, dest,
-         rulebook) = map(self.pack, (character, orig, dest, rulebook))
-        return self.sql('portal_rulebook_insert', character, orig, dest,
-                        branch, turn, tick, rulebook)
+	def set_portal_rulebook(self, character, orig, dest, branch, turn, tick,
+							rulebook):
+		(character, orig, dest,
+			rulebook) = map(self.pack, (character, orig, dest, rulebook))
+		return self.sql('portal_rulebook_insert', character, orig, dest,
+						branch, turn, tick, rulebook)
 
-    def handled_character_rule(self, character, rulebook, rule, branch, turn,
-                               tick):
-        (character, rulebook) = map(self.pack, (character, rulebook))
-        return self.sql(
-            'character_rules_handled_insert',
-            character,
-            rulebook,
-            rule,
-            branch,
-            turn,
-            tick,
-        )
+	def handled_character_rule(self, character, rulebook, rule, branch, turn,
+								tick):
+		(character, rulebook) = map(self.pack, (character, rulebook))
+		return self.sql(
+			'character_rules_handled_insert',
+			character,
+			rulebook,
+			rule,
+			branch,
+			turn,
+			tick,
+		)
 
-    def handled_unit_rule(self, character, rulebook, rule, graph, av, branch,
-                          turn, tick):
-        character, graph, av, rulebook = map(self.pack,
-                                             (character, graph, av, rulebook))
-        return self.sql('unit_rules_handled_insert', character, graph, av,
-                        rulebook, rule, branch, turn, tick)
+	def handled_unit_rule(self, character, rulebook, rule, graph, av, branch,
+							turn, tick):
+		character, graph, av, rulebook = map(
+			self.pack, (character, graph, av, rulebook))
+		return self.sql('unit_rules_handled_insert', character, graph, av,
+						rulebook, rule, branch, turn, tick)
 
-    def handled_character_thing_rule(self, character, rulebook, rule, thing,
-                                     branch, turn, tick):
-        character, thing, rulebook = map(self.pack,
-                                         (character, thing, rulebook))
-        return self.sql('character_thing_rules_handled_insert', character,
-                        thing, rulebook, rule, branch, turn, tick)
+	def handled_character_thing_rule(self, character, rulebook, rule, thing,
+										branch, turn, tick):
+		character, thing, rulebook = map(self.pack,
+											(character, thing, rulebook))
+		return self.sql('character_thing_rules_handled_insert', character,
+						thing, rulebook, rule, branch, turn, tick)
 
-    def handled_character_place_rule(self, character, rulebook, rule, place,
-                                     branch, turn, tick):
-        character, rulebook, place = map(self.pack,
-                                         (character, rulebook, place))
-        return self.sql('character_place_rules_handled_insert', character,
-                        place, rulebook, rule, branch, turn, tick)
+	def handled_character_place_rule(self, character, rulebook, rule, place,
+										branch, turn, tick):
+		character, rulebook, place = map(self.pack,
+											(character, rulebook, place))
+		return self.sql('character_place_rules_handled_insert', character,
+						place, rulebook, rule, branch, turn, tick)
 
-    def handled_character_portal_rule(self, character, rulebook, rule, orig,
-                                      dest, branch, turn, tick):
-        character, rulebook, orig, dest = map(
-            self.pack, (character, rulebook, orig, dest))
-        return self.sql('character_portal_rules_handled_insert', character,
-                        orig, dest, rulebook, rule, branch, turn, tick)
+	def handled_character_portal_rule(self, character, rulebook, rule, orig,
+										dest, branch, turn, tick):
+		character, rulebook, orig, dest = map(
+			self.pack, (character, rulebook, orig, dest))
+		return self.sql('character_portal_rules_handled_insert', character,
+						orig, dest, rulebook, rule, branch, turn, tick)
 
-    def handled_node_rule(self, character, node, rulebook, rule, branch, turn,
-                          tick):
-        (character, node, rulebook) = map(self.pack,
-                                          (character, node, rulebook))
-        return self.sql('node_rules_handled_insert', character, node, rulebook,
-                        rule, branch, turn, tick)
+	def handled_node_rule(self, character, node, rulebook, rule, branch, turn,
+							tick):
+		(character, node, rulebook) = map(self.pack,
+											(character, node, rulebook))
+		return self.sql('node_rules_handled_insert', character, node, rulebook,
+						rule, branch, turn, tick)
 
-    def handled_portal_rule(self, character, orig, dest, rulebook, rule,
-                            branch, turn, tick):
-        (character, orig, dest,
-         rulebook) = map(self.pack, (character, orig, dest, rulebook))
-        return self.sql('portal_rules_handled_insert', character, orig, dest,
-                        rulebook, rule, branch, turn, tick)
+	def handled_portal_rule(self, character, orig, dest, rulebook, rule,
+							branch, turn, tick):
+		(character, orig, dest,
+			rulebook) = map(self.pack, (character, orig, dest, rulebook))
+		return self.sql('portal_rules_handled_insert', character, orig, dest,
+						rulebook, rule, branch, turn, tick)
 
-    def get_rulebook_char(self, rulemap, character):
-        character = self.pack(character)
-        for (book, ) in self.sql('rulebook_get_{}'.format(rulemap), character):
-            return self.unpack(book)
-        raise KeyError("No rulebook")
+	def get_rulebook_char(self, rulemap, character):
+		character = self.pack(character)
+		for (book, ) in self.sql('rulebook_get_{}'.format(rulemap), character):
+			return self.unpack(book)
+		raise KeyError("No rulebook")
 
-    def set_thing_loc(self, character, thing, branch, turn, tick, loc):
-        (character, thing) = map(self.pack, (character, thing))
-        loc = self.pack(loc)
-        self.sql('del_things_after', character, thing, branch, turn, turn,
-                 tick)
-        self.sql('things_insert', character, thing, branch, turn, tick, loc)
+	def set_thing_loc(self, character, thing, branch, turn, tick, loc):
+		(character, thing) = map(self.pack, (character, thing))
+		loc = self.pack(loc)
+		self.sql('del_things_after', character, thing, branch, turn, turn,
+					tick)
+		self.sql('things_insert', character, thing, branch, turn, tick, loc)
 
-    def unit_set(self, character, graph, node, branch, turn, tick, isav):
-        (character, graph, node) = map(self.pack, (character, graph, node))
-        self.sql('del_units_after', character, graph, node, branch, turn, turn,
-                 tick)
-        self.sql('units_insert', character, graph, node, branch, turn, tick,
-                 isav)
+	def unit_set(self, character, graph, node, branch, turn, tick, isav):
+		(character, graph, node) = map(self.pack, (character, graph, node))
+		self.sql('del_units_after', character, graph, node, branch, turn, turn,
+					tick)
+		self.sql('units_insert', character, graph, node, branch, turn, tick,
+					isav)
 
-    def rulebooks_rules(self):
-        for (rulebook, rule) in self.sql('rulebooks_rules'):
-            yield map(self.unpack, (rulebook, rule))
+	def rulebooks_rules(self):
+		for (rulebook, rule) in self.sql('rulebooks_rules'):
+			yield map(self.unpack, (rulebook, rule))
 
-    def rulebook_get(self, rulebook, idx):
-        return self.unpack(
-            self.sql('rulebook_get', self.pack(rulebook), idx).fetchone()[0])
+	def rulebook_get(self, rulebook, idx):
+		return self.unpack(
+			self.sql('rulebook_get', self.pack(rulebook), idx).fetchone()[0])
 
-    def rulebook_set(self, rulebook, branch, turn, tick, rules):
-        # what if the rulebook has other values set afterward? wipe them out, right?
-        # should that happen in the query engine or elsewhere?
-        rulebook, rules = map(self.pack, (rulebook, rules))
-        try:
-            self.sql('rulebooks_insert', rulebook, branch, turn, tick, rules)
-        except IntegrityError:
-            self.sql('rulebooks_update', rules, rulebook, branch, turn, tick)
+	def rulebook_set(self, rulebook, branch, turn, tick, rules):
+		# what if the rulebook has other values set afterward? wipe them out, right?
+		# should that happen in the query engine or elsewhere?
+		rulebook, rules = map(self.pack, (rulebook, rules))
+		try:
+			self.sql('rulebooks_insert', rulebook, branch, turn, tick, rules)
+		except IntegrityError:
+			self.sql('rulebooks_update', rules, rulebook, branch, turn, tick)
 
-    def rulebook_del_time(self, branch, turn, tick):
-        self.sql('rulebooks_del_time', branch, turn, tick)
+	def rulebook_del_time(self, branch, turn, tick):
+		self.sql('rulebooks_del_time', branch, turn, tick)
 
-    def branch_descendants(self, branch):
-        for child in self.sql('branch_children', branch):
-            yield child
-            yield from self.branch_descendants(child)
+	def branch_descendants(self, branch):
+		for child in self.sql('branch_children', branch):
+			yield child
+			yield from self.branch_descendants(child)
 
-    def turns_completed_dump(self):
-        return self.sql('turns_completed_dump')
+	def turns_completed_dump(self):
+		return self.sql('turns_completed_dump')
 
-    def complete_turn(self, branch, turn):
-        try:
-            self.sql('turns_completed_insert', branch, turn)
-        except IntegrityError:
-            self.sql('turns_completed_update', turn, branch)
-        self.sql('del_character_rules_handled_turn', branch, turn)
-        self.sql('del_unit_rules_handled_turn', branch, turn)
-        self.sql('del_character_thing_rules_handled_turn', branch, turn)
-        self.sql('del_character_place_rules_handled_turn', branch, turn)
-        self.sql('del_character_portal_rules_handled_turn', branch, turn)
+	def complete_turn(self, branch, turn):
+		try:
+			self.sql('turns_completed_insert', branch, turn)
+		except IntegrityError:
+			self.sql('turns_completed_update', turn, branch)
+		self.sql('del_character_rules_handled_turn', branch, turn)
+		self.sql('del_unit_rules_handled_turn', branch, turn)
+		self.sql('del_character_thing_rules_handled_turn', branch, turn)
+		self.sql('del_character_place_rules_handled_turn', branch, turn)
+		self.sql('del_character_portal_rules_handled_turn', branch, turn)
 
 
 class QueryEngineProxy:
 
-    def __init__(self,
-                 dbstring,
-                 connect_args,
-                 alchemy,
-                 pack=None,
-                 unpack=None):
-        self._inq = Queue()
-        self._outq = Queue()
-        self._dbstring = dbstring
-        self._connect_args = connect_args
-        self._alchemy = alchemy
-        self._pack = pack
-        self._unpack = unpack
-        self.globl = self.GlobalsProxy(self._inq, self._outq)
-        self._thread = Thread(target=self._subthread, daemon=True)
-        self._thread.start()
+	def __init__(self,
+					dbstring,
+					connect_args,
+					alchemy,
+					pack=None,
+					unpack=None):
+		self._inq = Queue()
+		self._outq = Queue()
+		self._dbstring = dbstring
+		self._connect_args = connect_args
+		self._alchemy = alchemy
+		self._pack = pack
+		self._unpack = unpack
+		self.globl = self.GlobalsProxy(self._inq, self._outq)
+		self._thread = Thread(target=self._subthread, daemon=True)
+		self._thread.start()
 
-    def _subthread(self):
-        real = QueryEngine(self._dbstring,
-                           self._connect_args,
-                           self._alchemy,
-                           pack=self._pack,
-                           unpack=self._unpack)
-        while True:
-            func, args, kwargs = self._inq.get()
-            if func == 'get_global':
-                if args not in real.globl:
-                    output = KeyError()
-                else:
-                    output = real.globl[args]
-            elif func == 'set_global':
-                k, v = args
-                real.globl[k] = v
-                continue
-            elif func == 'list_globals':
-                output = list(real.globl)
-            elif func == 'len_globals':
-                output = len(real.globl)
-            elif func == 'del_global':
-                if args in real.globl:
-                    del real.globl[args]
-                    output = None
-                else:
-                    output = KeyError()
-            else:
-                try:
-                    output = getattr(real, func)(*args, **kwargs)
-                except Exception as ex:
-                    output = ex
-            if hasattr(output, '__next__'):
-                output = list(output)
-            self._outq.put(output)
-            if func == 'close':
-                return
+	def _subthread(self):
+		real = QueryEngine(self._dbstring,
+							self._connect_args,
+							self._alchemy,
+							pack=self._pack,
+							unpack=self._unpack)
+		while True:
+			func, args, kwargs = self._inq.get()
+			if func == 'get_global':
+				if args not in real.globl:
+					output = KeyError()
+				else:
+					output = real.globl[args]
+			elif func == 'set_global':
+				k, v = args
+				real.globl[k] = v
+				continue
+			elif func == 'list_globals':
+				output = list(real.globl)
+			elif func == 'len_globals':
+				output = len(real.globl)
+			elif func == 'del_global':
+				if args in real.globl:
+					del real.globl[args]
+					output = None
+				else:
+					output = KeyError()
+			else:
+				try:
+					output = getattr(real, func)(*args, **kwargs)
+				except Exception as ex:
+					output = ex
+			if hasattr(output, '__next__'):
+				output = list(output)
+			self._outq.put(output)
+			if func == 'close':
+				return
 
-    class Caller:
+	class Caller:
 
-        def __init__(self, func, inq, outq):
-            self._func = func
-            self._inq = inq
-            self._outq = outq
+		def __init__(self, func, inq, outq):
+			self._func = func
+			self._inq = inq
+			self._outq = outq
 
-        def __call__(self, *args, **kwargs):
-            self._inq.put((self._func, args, kwargs))
-            ret = self._outq.get()
-            if isinstance(ret, Exception):
-                raise ret
-            return ret
+		def __call__(self, *args, **kwargs):
+			self._inq.put((self._func, args, kwargs))
+			ret = self._outq.get()
+			if isinstance(ret, Exception):
+				raise ret
+			return ret
 
-    class GlobalsProxy(MutableMapping):
+	class GlobalsProxy(MutableMapping):
 
-        def __init__(self, inq, outq):
-            self._inq = inq
-            self._outq = outq
+		def __init__(self, inq, outq):
+			self._inq = inq
+			self._outq = outq
 
-        def __iter__(self):
-            self._inq.put(('list_globals', None, None))
-            return iter(self._outq.get())
+		def __iter__(self):
+			self._inq.put(('list_globals', None, None))
+			return iter(self._outq.get())
 
-        def __len__(self):
-            self._inq.put(('len_globals', None, None))
-            return self._outq.get()
+		def __len__(self):
+			self._inq.put(('len_globals', None, None))
+			return self._outq.get()
 
-        def __getitem__(self, item):
-            self._inq.put(('get_global', item, None))
-            ret = self._outq.get()
-            if isinstance(ret, Exception):
-                raise ret
-            return ret
+		def __getitem__(self, item):
+			self._inq.put(('get_global', item, None))
+			ret = self._outq.get()
+			if isinstance(ret, Exception):
+				raise ret
+			return ret
 
-        def __setitem__(self, key, value):
-            self._inq.put(('set_global', (key, value), None))
+		def __setitem__(self, key, value):
+			self._inq.put(('set_global', (key, value), None))
 
-        def __delitem__(self, key):
-            self._inq.put(('del_global', key, None))
-            ret = self._outq.get()
-            if isinstance(ret, Exception):
-                raise ret
+		def __delitem__(self, key):
+			self._inq.put(('del_global', key, None))
+			ret = self._outq.get()
+			if isinstance(ret, Exception):
+				raise ret
 
-    def __getattr__(self, item):
-        if hasattr(QueryEngine, item) and callable(getattr(QueryEngine, item)):
-            return self.Caller(item, self._inq, self._outq)
+	def __getattr__(self, item):
+		if hasattr(QueryEngine, item) and callable(getattr(QueryEngine, item)):
+			return self.Caller(item, self._inq, self._outq)

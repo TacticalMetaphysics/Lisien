@@ -18,7 +18,7 @@ from kivy.properties import ListProperty
 
 
 class KeywordListModal(ModalView):
-    data = ListProperty([])
+	data = ListProperty([])
 
 
 Builder.load_string("""

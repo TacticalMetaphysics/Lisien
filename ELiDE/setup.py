@@ -13,52 +13,54 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import sys
+
 if sys.version_info[0] < 3 or (sys.version_info[0] == 3
-                               and sys.version_info[1] < 7):
-    raise RuntimeError("ELiDE requires Python 3.7 or later")
+								and sys.version_info[1] < 7):
+	raise RuntimeError("ELiDE requires Python 3.7 or later")
 import os
 from setuptools import setup
 
 with open(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                     'requirements.txt'), 'rt') as inf:
-    reqs = list(inf.readlines())
+		os.path.join(os.path.dirname(os.path.abspath(__file__)),
+						'requirements.txt'), 'rt') as inf:
+	reqs = list(inf.readlines())
 
 shortdesc = "Extensible Life Simulator Engine Development Environment"
 
 readmepath = os.path.join(
-    os.path.abspath(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')),
-    'README.md')
+	os.path.abspath(
+		os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')),
+	'README.md')
 
 if os.path.exists(readmepath):
-    with open(
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ELiDE',
-                         'README.md'), 'rt') as inf:
-        longdesc = inf.read()
+	with open(
+		os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ELiDE',
+						'README.md'), 'rt') as inf:
+		longdesc = inf.read()
 else:
-    longdesc = shortdesc
+	longdesc = shortdesc
 
 setup(name="ELiDE",
-      version="0.12.1",
-      license="AGPL3",
-      packages=[
-          "ELiDE", "ELiDE.graph", "ELiDE.grid", "ELiDE.kivygarden.texturestack"
-      ],
-      package_dir={
-          'ELiDE.kivygarden.texturestack': 'ELiDE/kivygarden/texturestack'
-      },
-      install_requires=reqs,
-      package_data={
-          "ELiDE": [
-              "assets/*.png", "assets/*.jpg", "assets/*.ttf", "assets/*.atlas",
-              "assets/rltiles/*"
-          ]
-      },
-      url="https://github.com/Tactical-Metaphysics/LiSE",
-      project_urls={
-          "Documentation": "https://tactical-metaphysics.github.io/LiSE/"
-      },
-      long_description=longdesc,
-      long_description_content_type='text/markdown',
-      zip_safe=False)
+		version="0.12.1",
+		license="AGPL3",
+		packages=[
+			"ELiDE", "ELiDE.graph", "ELiDE.grid",
+			"ELiDE.kivygarden.texturestack"
+		],
+		package_dir={
+			'ELiDE.kivygarden.texturestack': 'ELiDE/kivygarden/texturestack'
+		},
+		install_requires=reqs,
+		package_data={
+			"ELiDE": [
+				"assets/*.png", "assets/*.jpg", "assets/*.ttf",
+				"assets/*.atlas", "assets/rltiles/*"
+			]
+		},
+		url="https://github.com/Tactical-Metaphysics/LiSE",
+		project_urls={
+			"Documentation": "https://tactical-metaphysics.github.io/LiSE/"
+		},
+		long_description=longdesc,
+		long_description_content_type='text/markdown',
+		zip_safe=False)
