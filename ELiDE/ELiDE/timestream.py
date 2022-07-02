@@ -188,6 +188,7 @@ class Timestream(RecycleView):
 class TimestreamScreen(Screen):
 	toggle = ObjectProperty()
 	timestream = ObjectProperty()
+	_thread: Thread
 
 	def on_pre_enter(self, *args):
 		self.timestream.disabled = True
