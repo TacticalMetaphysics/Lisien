@@ -208,8 +208,8 @@ class TimestreamScreen(Screen):
 			end_turn_branches[end_turn].add(branch)
 			branch_split_turns_todo[parent].add(parent_turn)
 		branch_split_turns_todo['trunk'].add(0)
-		col2turn = list(
-			sorted(start_turn_branches.keys() | end_turn_branches.keys()))
+		col2turn = sorted(start_turn_branches.keys()
+							| end_turn_branches.keys())
 		data = []
 		if not col2turn:
 			self.timestream.cols = 1
