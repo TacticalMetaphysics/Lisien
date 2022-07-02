@@ -185,6 +185,114 @@ class Timestream(RecycleView):
 	)  # should be equal to the number of turns on which branches were created + 1
 
 
+def _data_and_cols_from_branches(branches):
+	start_turn_branches = defaultdict(set)
+	end_turn_branches = defaultdict(set)
+	branch_split_turns_todo = defaultdict(set)
+	branch_split_turns_done = defaultdict(set)
+	for branch, (parent, parent_turn, parent_tick, end_turn,
+					end_tick) in branches.items():
+		start_turn_branches[parent_turn].add(branch)
+		end_turn_branches[end_turn].add(branch)
+		branch_split_turns_todo[parent].add(parent_turn)
+	branch_split_turns_todo['trunk'].add(0)
+	col2turn = sorted(start_turn_branches.keys() | end_turn_branches.keys())
+	if not col2turn:
+		return [], 1
+	Logger.debug("Timestream: read branch lineage, processing...")
+	data = []
+	trunk_lineage = branches.pop('trunk')
+	sorted_branches = [('trunk', (None, 0, 0, 0, 0))] + sorted(
+		branches.items(), key=lambda x: x[1][1])
+	branches['trunk'] = trunk_lineage
+	for row, (branch, _) in enumerate(sorted_branches):
+		for turn in col2turn:
+			if branch == 'trunk' and turn == 0:
+				data.append({
+					'widget': 'ThornyRectangle',
+					'branch': 'trunk',
+					'turn': 0,
+					'draw_left': False,
+					'draw_up': False,
+					'draw_down': len(start_turn_branches[turn]) > 1,
+					'draw_right': bool(branch_split_turns_todo[branch])
+				})
+			elif branch in start_turn_branches[turn]:
+				here_branches = [(branches[b][1], b)
+									for b in start_turn_branches[turn]]
+				if branch == min(here_branches)[1]:
+					data.append({
+						'widget': 'ThornyRectangle',
+						'branch': branch,
+						'turn': turn,
+						'draw_left': False,
+						'draw_up': turn == branches[branch][1],
+						'draw_down': len(start_turn_branches[turn]) > 1,
+						'draw_right': branches[branch][3] > turn
+					})
+				elif branch == max(here_branches)[1]:
+					data.append({
+						'widget': 'ThornyRectangle',
+						'branch': branch,
+						'turn': turn,
+						'draw_left': branches[branch][1] > turn,
+						'draw_up': False,
+						'draw_down': len(start_turn_branches[turn]) > 1,
+						'draw_right': False
+					})
+				else:
+					data.append({
+						'widget': 'Cross',
+						'draw_left': False,
+						'draw_up': True,
+						'draw_down': len(start_turn_branches[turn]) > 1,
+						'draw_right': branches[branch][3] > turn
+					})
+			elif branch in end_turn_branches[turn]:
+				data.append({
+					'widget':
+					'ThornyRectangle',
+					'branch':
+					branch,
+					'turn':
+					turn,
+					'draw_left':
+					True,
+					'draw_up':
+					row > 0 and branches[branches[branch][0]][3] == turn,
+					'draw_down':
+					bool(start_turn_branches[turn]),
+					'draw_right':
+					False
+				})
+			elif branches[branch][1] <= turn < branches[branch][3]:
+				here_branches = [(branches[b][1], b)
+									for b in start_turn_branches[turn]
+									if b != branch]
+				data.append({
+					'widget':
+					'Cross',
+					'draw_left':
+					True,
+					'draw_right':
+					True,
+					'draw_up':
+					branch in branches and branches[branch][0] in branches
+					and branches[branches[branch][0]][3] >= turn,
+					'draw_down':
+					bool(here_branches)
+				})
+			else:
+				data.append({'widget': 'Widget'})
+			branch_split_turns_todo[branch].discard(turn)
+			start_turn_branches[turn].discard(branch)
+			if turn in end_turn_branches:
+				end_turn_branches[turn].discard(branch)
+			branch_split_turns_done[branch].add(turn)
+		Logger.debug(f"Timestream: processed branch {branch}")
+	return data, len(col2turn)
+
+
 class TimestreamScreen(Screen):
 	toggle = ObjectProperty()
 	timestream = ObjectProperty()
@@ -198,145 +306,9 @@ class TimestreamScreen(Screen):
 	def _get_branch_lineage(self, *args):
 		Logger.debug("Timestream: getting branch lineage")
 		engine = App.get_running_app().engine
-		branch_lineage = engine.handle('branch_lineage')
-		start_turn_branches = defaultdict(set)
-		end_turn_branches = defaultdict(set)
-		branch_split_turns_todo = defaultdict(set)
-		branch_split_turns_done = defaultdict(set)
-		for branch, (parent, parent_turn, parent_tick, end_turn,
-						end_tick) in branch_lineage.items():
-			start_turn_branches[parent_turn].add(branch)
-			end_turn_branches[end_turn].add(branch)
-			branch_split_turns_todo[parent].add(parent_turn)
-		branch_split_turns_todo['trunk'].add(0)
-		col2turn = sorted(start_turn_branches.keys()
-							| end_turn_branches.keys())
-		if not col2turn:
-			self.timestream.cols = 1
-			self.timestream.data = []
-			self.timestream.disabled = False
-			return
-		Logger.debug("Timestream: read branch lineage, processing...")
-		data = []
-		trunk_lineage = branch_lineage.pop('trunk')
-		sorted_branches = [('trunk', (None, 0, 0, 0, 0))] + sorted(
-			branch_lineage.items(), key=lambda x: x[1][1])
-		branch_lineage['trunk'] = trunk_lineage
-		for row, (branch, _) in enumerate(sorted_branches):
-			for turn in col2turn:
-				if branch == 'trunk' and turn == 0:
-					data.append({
-						'widget':
-						'ThornyRectangle',
-						'branch':
-						'trunk',
-						'turn':
-						0,
-						'draw_left':
-						False,
-						'draw_up':
-						False,
-						'draw_down':
-						len(start_turn_branches[turn]) > 1,
-						'draw_right':
-						bool(branch_split_turns_todo[branch])
-					})
-				elif branch in start_turn_branches[turn]:
-					here_branches = [(branch_lineage[b][1], b)
-										for b in start_turn_branches[turn]]
-					if branch == min(here_branches)[1]:
-						data.append({
-							'widget':
-							'ThornyRectangle',
-							'branch':
-							branch,
-							'turn':
-							turn,
-							'draw_left':
-							False,
-							'draw_up':
-							turn == branch_lineage[branch][1],
-							'draw_down':
-							len(start_turn_branches[turn]) > 1,
-							'draw_right':
-							branch_lineage[branch][3] > turn
-						})
-					elif branch == max(here_branches)[1]:
-						data.append({
-							'widget':
-							'ThornyRectangle',
-							'branch':
-							branch,
-							'turn':
-							turn,
-							'draw_left':
-							branch_lineage[branch][1] > turn,
-							'draw_up':
-							False,
-							'draw_down':
-							len(start_turn_branches[turn]) > 1,
-							'draw_right':
-							False
-						})
-					else:
-						data.append({
-							'widget':
-							'Cross',
-							'draw_left':
-							False,
-							'draw_up':
-							True,
-							'draw_down':
-							len(start_turn_branches[turn]) > 1,
-							'draw_right':
-							branch_lineage[branch][3] > turn
-						})
-				elif branch in end_turn_branches[turn]:
-					data.append({
-						'widget':
-						'ThornyRectangle',
-						'branch':
-						branch,
-						'turn':
-						turn,
-						'draw_left':
-						True,
-						'draw_up':
-						row > 0 and
-						branch_lineage[branch_lineage[branch][0]][3] == turn,
-						'draw_down':
-						bool(start_turn_branches[turn]),
-						'draw_right':
-						False
-					})
-				elif branch_lineage[branch][1] <= turn < branch_lineage[
-					branch][3]:
-					here_branches = [(branch_lineage[b][1], b)
-										for b in start_turn_branches[turn]
-										if b != branch]
-					data.append({
-						'widget':
-						'Cross',
-						'draw_left':
-						True,
-						'draw_right':
-						True,
-						'draw_up':
-						branch in branch_lineage
-						and branch_lineage[branch][0] in branch_lineage and
-						branch_lineage[branch_lineage[branch][0]][3] >= turn,
-						'draw_down':
-						bool(here_branches)
-					})
-				else:
-					data.append({'widget': 'Widget'})
-				branch_split_turns_todo[branch].discard(turn)
-				start_turn_branches[turn].discard(branch)
-				if turn in end_turn_branches:
-					end_turn_branches[turn].discard(branch)
-				branch_split_turns_done[branch].add(turn)
-			Logger.debug(f"Timestream: processed branch {branch}")
-		self.timestream.cols = len(col2turn)
+		data, cols = _data_and_cols_from_branches(
+			engine.handle('branch_lineage'))
+		self.timestream.cols = cols
 		self.timestream.data = data
 		Logger.debug("Timestream: loaded!")
 		self.timestream.disabled = False
