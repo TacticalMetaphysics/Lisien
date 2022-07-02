@@ -341,3 +341,16 @@ Builder.load_string(r"""
                 text: 'Cancel'
                 on_press: root.toggle()
 """)
+
+if __name__ == "__main__":
+	from kivy.base import runTouchApp
+	branches = {
+		'trunk': (None, 0, 0, 1, 27),
+		'trunk1': ('trunk', 0, 2494, 0, 2494),
+		'trunk2': ('trunk1', 0, 2494, 1, 27),
+		'trunk3': ('trunk', 1, 27, 1, 31)
+	}
+	data, cols = _data_and_cols_from_branches(branches)
+	timestream = Timestream(cols=cols)
+	timestream.data = data
+	runTouchApp(timestream)
