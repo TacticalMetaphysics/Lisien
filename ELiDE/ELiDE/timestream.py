@@ -300,14 +300,13 @@ class TimestreamScreen(Screen):
 
 	def on_pre_enter(self, *args):
 		self.timestream.disabled = True
-		self._thread = Thread(target=self._get_branch_lineage)
+		self._thread = Thread(target=self._get_data)
 		self._thread.start()
 
-	def _get_branch_lineage(self, *args):
-		Logger.debug("Timestream: getting branch lineage")
+	def _get_data(self, *args):
+		Logger.debug("Timestream: getting branches")
 		engine = App.get_running_app().engine
-		data, cols = _data_and_cols_from_branches(
-			engine.handle('branch_lineage'))
+		data, cols = _data_and_cols_from_branches(engine.handle('branches'))
 		self.timestream.cols = cols
 		self.timestream.data = data
 		Logger.debug("Timestream: loaded!")

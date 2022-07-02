@@ -990,7 +990,7 @@ class EngineHandle(object):
 			portiter = (chara.portal[orig][dest] for (orig, dest) in portals)
 		for portal in portiter:
 			result[pack(portal['origin'])][pack(portal['destination'])] \
-                      = pack(portal.rulebook.name)
+                               = pack(portal.rulebook.name)
 		if (branch, turn, tick) != origtime:
 			self._real._set_btt(*origtime)
 		if portals == 'all':
@@ -1630,7 +1630,7 @@ class EngineHandle(object):
 		if patch is None:
 			del character.portal[orig][dest]
 		elif orig not in character.portal \
-                or dest not in character.portal[orig]:
+                      or dest not in character.portal[orig]:
 			character.portal[orig][dest] = patch
 		else:
 			character.portal[orig][dest].update(patch)
@@ -1967,5 +1967,5 @@ class EngineHandle(object):
 			eng._portal_rules_handled_cache.handled_deep[branch][turn]
 		}
 
-	def branch_lineage(self) -> Dict[str, Tuple[str, int, int, int, int]]:
+	def branches(self) -> Dict[str, Tuple[str, int, int, int, int]]:
 		return self._real._branches
