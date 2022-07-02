@@ -210,13 +210,13 @@ class TimestreamScreen(Screen):
 		branch_split_turns_todo['trunk'].add(0)
 		col2turn = sorted(start_turn_branches.keys()
 							| end_turn_branches.keys())
-		data = []
 		if not col2turn:
 			self.timestream.cols = 1
 			self.timestream.data = []
 			self.timestream.disabled = False
 			return
 		Logger.debug("Timestream: read branch lineage, processing...")
+		data = []
 		trunk_lineage = branch_lineage.pop('trunk')
 		sorted_branches = [('trunk', (None, 0, 0, 0, 0))] + sorted(
 			branch_lineage.items(), key=lambda x: x[1][1])
