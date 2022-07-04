@@ -259,13 +259,13 @@ def _data_and_cols_from_branches(branches):
 					'draw_left':
 					True,
 					'draw_up':
-					row > 0 and branches[branches[branch][0]][3] == turn,
+					row > 0 and bool(start_turn_branches[turn]),
 					'draw_down':
 					bool(start_turn_branches[turn]),
 					'draw_right':
 					False
 				})
-			elif branches[branch][1] <= turn < branches[branch][3]:
+			elif branches[branch][1] <= turn:
 				here_branches = [(branches[b][1], b)
 									for b in start_turn_branches[turn]
 									if b != branch]
@@ -273,9 +273,9 @@ def _data_and_cols_from_branches(branches):
 					'widget':
 					'Cross',
 					'draw_left':
-					True,
+					turn < branches[branch][3],
 					'draw_right':
-					True,
+					turn < branches[branch][3],
 					'draw_up':
 					branch in branches and branches[branch][0] in branches
 					and branches[branches[branch][0]][3] >= turn,
