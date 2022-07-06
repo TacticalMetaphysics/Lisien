@@ -147,17 +147,17 @@ just for keeping track of things in ``physical``. Add the following
 inside the `with` block of `polygons.py`:
 
 ```python
-empty = list(phys.place.values())
-eng.shuffle(empty)
-# distribute 30 of each shape randomly among the empty places
-for i in range(1, 31):
-	place = empty.pop()
-	square = place.new_thing('square%i' % i, _image_paths=['atlas://polygons/meh_square'])
-	sq.add_unit(square)
-for i in range(1, 31):
-	place = empty.pop()
-	triangle = place.new_thing('triangle%i' % i, _image_paths=['atlas://polygons/meh_triangle'])
-	tri.add_unit(triangle)
+	empty = list(phys.place.values())
+	eng.shuffle(empty)
+	# distribute 30 of each shape randomly among the empty places
+	for i in range(1, 31):
+		place = empty.pop()
+		square = place.new_thing('square%i' % i, _image_paths=['atlas://polygons/meh_square'])
+		sq.add_unit(square)
+	for i in range(1, 31):
+		place = empty.pop()
+		triangle = place.new_thing('triangle%i' % i, _image_paths=['atlas://polygons/meh_triangle'])
+		tri.add_unit(triangle)
 ```
 
 Now there are thirty each of squares and triangles in the world. They
@@ -287,34 +287,34 @@ What next? If you wanted, you could set rules to be followed by only
 some of the shapes, like so:
 
 ```python
-# this needs to replace any existing rule code you've written,
-# it won't work so well together with eg. @phys.thing.rule
-@tri.unit.rule
-def tri_relocate(poly):
-	"""Move to a random unoccupied place"""
-	unoccupied = [place for place in poly.character.place.values() if not place.content]
-	poly.location = poly.engine.choice(unoccupied)
-
-
-@tri_relocate.trigger
-def similar_neighbors(poly):
-	"""Trigger when my neighborhood fails to be enough like me"""
-	from operator import ge
-	return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
-
-
-@sq.unit.rule
-def sq_relocate(poly):
-	"""Move to a random unoccupied place"""
-	unoccupied = [place for place in poly.character.place.values() if not place.content]
-	poly.location = poly.engine.choice(unoccupied)
-
-
-@sq_relocate.trigger
-def dissimilar_neighbors(poly):
-	"""Trigger when my neighborhood gets too much like me"""
-	from operator import lt
-	return poly.engine.function.cmp_neighbor_shapes(poly, lt, 'max_sameness')
+	# this needs to replace any existing rule code you've written,
+	# it won't work so well together with eg. @phys.thing.rule
+	@tri.unit.rule
+	def tri_relocate(poly):
+		"""Move to a random unoccupied place"""
+		unoccupied = [place for place in poly.character.place.values() if not place.content]
+		poly.location = poly.engine.choice(unoccupied)
+	
+	
+	@tri_relocate.trigger
+	def similar_neighbors(poly):
+		"""Trigger when my neighborhood fails to be enough like me"""
+		from operator import ge
+		return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
+	
+	
+	@sq.unit.rule
+	def sq_relocate(poly):
+		"""Move to a random unoccupied place"""
+		unoccupied = [place for place in poly.character.place.values() if not place.content]
+		poly.location = poly.engine.choice(unoccupied)
+	
+	
+	@sq_relocate.trigger
+	def dissimilar_neighbors(poly):
+		"""Trigger when my neighborhood gets too much like me"""
+		from operator import lt
+		return poly.engine.function.cmp_neighbor_shapes(poly, lt, 'max_sameness')
 ```
 
 Now the triangles only relocate whenever their neighborhood looks too
