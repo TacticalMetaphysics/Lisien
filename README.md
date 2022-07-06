@@ -132,9 +132,9 @@ from LiSE import Engine
 import networkx as nx
 
 with Engine(clear=True) as eng:
-    phys = eng.new_character('physical', nx.grid_2d_graph(20, 20))
-    tri = eng.new_character('triangle')
-    sq = eng.new_character('square')
+	phys = eng.new_character('physical', nx.grid_2d_graph(20, 20))
+	tri = eng.new_character('triangle')
+	sq = eng.new_character('square')
 ```
 
 This starts a new game with its world state stored in the file
@@ -151,13 +151,13 @@ empty = list(phys.place.values())
 eng.shuffle(empty)
 # distribute 30 of each shape randomly among the empty places
 for i in range(1, 31):
-    place = empty.pop()
-    square = place.new_thing('square%i' % i, _image_paths=['atlas://polygons/meh_square'])
-    sq.add_unit(square)
+	place = empty.pop()
+	square = place.new_thing('square%i' % i, _image_paths=['atlas://polygons/meh_square'])
+	sq.add_unit(square)
 for i in range(1, 31):
-    place = empty.pop()
-    triangle = place.new_thing('triangle%i' % i, _image_paths=['atlas://polygons/meh_triangle'])
-    tri.add_unit(triangle)
+	place = empty.pop()
+	triangle = place.new_thing('triangle%i' % i, _image_paths=['atlas://polygons/meh_triangle'])
+	tri.add_unit(triangle)
 ```
 
 Now there are thirty each of squares and triangles in the world. They
@@ -185,43 +185,46 @@ rules of the simulation:
 
 ```python
     @eng.function
-    def cmp_neighbor_shapes(poly, cmp, stat):
-        """Compare the proportion of neighboring polys with the same shape as this one
+def cmp_neighbor_shapes(poly, cmp, stat):
+	"""Compare the proportion of neighboring polys with the same shape as this one
 
-        Count the neighboring polys that are the same shape as this one, and return how that compares with
-        some stat on the poly's user.
+	Count the neighboring polys that are the same shape as this one, and return how that compares with
+	some stat on the poly's user.
 
-        """
-        home = poly.location
-        similar = 0
-        n = 0
-        # iterate over portals leading outward from home
-        for neighbor_portal in home.portal.values():
-            n += 1
-            neighbor_home = neighbor_portal.destination
-            # there's really only 1 polygon per home right now, but this will still work if there are more
-            for neighbor in neighbor_home.contents():
-                if neighbor.user is poly.user:
-                    similar += 1
-        return cmp(poly.user.stat[stat], similar / n)
+	"""
+	home = poly.location
+	similar = 0
+	n = 0
+	# iterate over portals leading outward from home
+	for neighbor_portal in home.portal.values():
+		n += 1
+		neighbor_home = neighbor_portal.destination
+		# there's really only 1 polygon per home right now, but this will still work if there are more
+		for neighbor in neighbor_home.contents():
+			if neighbor.user is poly.user:
+				similar += 1
+	return cmp(poly.user.stat[stat], similar / n)
 
-    @phys.thing.rule
-    def relocate(poly):
-        """Move to a random unoccupied place"""
-        unoccupied = [place for place in poly.character.place.values() if not place.content]
-        poly.location = poly.engine.choice(unoccupied)
 
-    @relocate.trigger
-    def similar_neighbors(poly):
-        """Trigger when my neighborhood fails to be enough like me"""
-        from operator import ge
-        return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
+@phys.thing.rule
+def relocate(poly):
+	"""Move to a random unoccupied place"""
+	unoccupied = [place for place in poly.character.place.values() if not place.content]
+	poly.location = poly.engine.choice(unoccupied)
 
-    @relocate.trigger
-    def dissimilar_neighbors(poly):
-        """Trigger when my neighborhood gets too much like me"""
-        from operator import lt
-        return poly.engine.function.cmp_neighbor_shapes(poly, lt, 'max_sameness')
+
+@relocate.trigger
+def similar_neighbors(poly):
+	"""Trigger when my neighborhood fails to be enough like me"""
+	from operator import ge
+	return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
+
+
+@relocate.trigger
+def dissimilar_neighbors(poly):
+	"""Trigger when my neighborhood gets too much like me"""
+	from operator import lt
+	return poly.engine.function.cmp_neighbor_shapes(poly, lt, 'max_sameness')
 ```
 
 The core of this ruleset is the ``cmp_neighbor_shapes`` function,
@@ -245,10 +248,10 @@ question are 'min_sameness' and 'max_sameness' respectively, so let's
 set those:
 
 ```python
-    sq.stat['min_sameness'] = 0.1
-    sq.stat['max_sameness'] = 0.9
-    tri.stat['min_sameness'] = 0.2
-    tri.stat['max_sameness'] = 0.8
+	sq.stat['min_sameness'] = 0.1
+	sq.stat['max_sameness'] = 0.9
+	tri.stat['min_sameness'] = 0.2
+	tri.stat['max_sameness'] = 0.8
 ```
 
 Here we diverge from the original simulation a bit by setting these
@@ -265,8 +268,8 @@ arbitrarily changing in the middle of a run.
 
 If you'd prefer to run the simulation without ELiDE, though, you can add this to your script:
 ```python
-    for i in range(10):
-        eng.next_turn()
+	for i in range(10):
+		eng.next_turn()
 ```
 
 Every change to the world will be saved in the database so that you
@@ -288,30 +291,30 @@ some of the shapes, like so:
 # it won't work so well together with eg. @phys.thing.rule
 @tri.unit.rule
 def tri_relocate(poly):
-    """Move to a random unoccupied place"""
-    unoccupied = [place for place in poly.character.place.values() if not place.content]
-    poly.location = poly.engine.choice(unoccupied)
+	"""Move to a random unoccupied place"""
+	unoccupied = [place for place in poly.character.place.values() if not place.content]
+	poly.location = poly.engine.choice(unoccupied)
 
 
 @tri_relocate.trigger
 def similar_neighbors(poly):
-    """Trigger when my neighborhood fails to be enough like me"""
-    from operator import ge
-    return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
+	"""Trigger when my neighborhood fails to be enough like me"""
+	from operator import ge
+	return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
 
 
 @sq.unit.rule
 def sq_relocate(poly):
-    """Move to a random unoccupied place"""
-    unoccupied = [place for place in poly.character.place.values() if not place.content]
-    poly.location = poly.engine.choice(unoccupied)
+	"""Move to a random unoccupied place"""
+	unoccupied = [place for place in poly.character.place.values() if not place.content]
+	poly.location = poly.engine.choice(unoccupied)
 
 
 @sq_relocate.trigger
 def dissimilar_neighbors(poly):
-    """Trigger when my neighborhood gets too much like me"""
-    from operator import lt
-    return poly.engine.function.cmp_neighbor_shapes(poly, lt, 'max_sameness')
+	"""Trigger when my neighborhood gets too much like me"""
+	from operator import lt
+	return poly.engine.function.cmp_neighbor_shapes(poly, lt, 'max_sameness')
 ```
 
 Now the triangles only relocate whenever their neighborhood looks too
@@ -323,7 +326,7 @@ necessary for assigning rules by name rather than decorator; you could
 make triangles move in response to dissimilar neighbors like so:
 
 ```python
-    tri.unit.rulebook.append('sq_relocate')
+	tri.unit.rulebook.append('sq_relocate')
 ```
 
 In this case you didn't really *have* to use the name of the rule,
@@ -337,7 +340,7 @@ entities, and you can't just make them all units, you can have the
 entities share a rulebook. This works:
 
 ```python
-    sq.unit.rulebook = tri.unit.rulebook
+	sq.unit.rulebook = tri.unit.rulebook
 ```
 
 And would result in pretty much the same simulation as in the first
@@ -349,29 +352,32 @@ Or you could build a rulebook ahead-of-time and assign it to many
 entities:
 
 ```python
-    # this needs to replace any existing rule code you've written,
-    # it won't work so well together with eg. @phys.thing.rule
-    @eng.rule
-    def relocate(poly):
-        """Move to a random unoccupied place"""
-        unoccupied = [place for place in poly.character.place.values() if not place.content]
-        poly.location = poly.engine.choice(unoccupied)
-
-    @relocate.trigger
-    def similar_neighbors(poly):
-        """Trigger when my neighborhood fails to be enough like me"""
-        from operator import ge
-        return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
-
-    @relocate.trigger
-    def dissimilar_neighbors(poly):
-        """Trigger when my neighborhood gets too much like me"""
-        from operator import lt
-        return poly.engine.function.cmp_neighbor_shapes(poly, lt, 'max_sameness')
-
-    # rulebooks need names too, so you have to make it like this
-    eng.rulebook['parable'] = [relocate]
-    sq.rulebook = tri.rulebook = 'parable'
+	# this needs to replace any existing rule code you've written,
+	# it won't work so well together with eg. @phys.thing.rule
+	@eng.rule
+	def relocate(poly):
+		"""Move to a random unoccupied place"""
+		unoccupied = [place for place in poly.character.place.values() if not place.content]
+		poly.location = poly.engine.choice(unoccupied)
+	
+	
+	@relocate.trigger
+	def similar_neighbors(poly):
+		"""Trigger when my neighborhood fails to be enough like me"""
+		from operator import ge
+		return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
+	
+	
+	@relocate.trigger
+	def dissimilar_neighbors(poly):
+		"""Trigger when my neighborhood gets too much like me"""
+		from operator import lt
+		return poly.engine.function.cmp_neighbor_shapes(poly, lt, 'max_sameness')
+	
+	
+	# rulebooks need names too, so you have to make it like this
+	eng.rulebook['parable'] = [relocate]
+	sq.rulebook = tri.rulebook = 'parable'
 ```
 
 There are a variety of graph generators accessible on character
