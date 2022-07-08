@@ -329,8 +329,7 @@ class RulesHandledCache(object):
 				raise
 
 	def fork(self, branch, turn, tick):
-		parent_branch, parent_turn, parent_tick, end_turn, end_tick = \
-                    self.engine._branches[
+		parent_branch, parent_turn, parent_tick, end_turn, end_tick = self.engine._branches[
 			branch]
 		unhandl = self.unhandled
 		handl = self.handled

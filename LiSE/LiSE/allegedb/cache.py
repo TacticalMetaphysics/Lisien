@@ -449,8 +449,8 @@ class Cache:
 														turn,
 														tick,
 														stoptime=stoptime):
-				if branc not in branches \
-                              or not branches[branc].rev_gettable(trn):
+				if branc not in branches or not branches[branc].rev_gettable(
+					trn):
 					continue
 				turnd = branches[branc]
 				if trn in turnd:
@@ -530,9 +530,8 @@ class Cache:
 				branches = parentity[key]
 				turns = branches[branch]
 			else:
-				branches = self_branches[parentikey] \
-                             = self_keys[parent + (entity,)][key] \
-                             = parentity[key]
+				branches = self_branches[parentikey] = self_keys[
+					parent + (entity, )][key] = parentity[key]
 				turns = branches[branch]
 		else:
 			if entikey in self_branches:
@@ -562,8 +561,8 @@ class Cache:
 			if parentikey not in self_branches:
 				self_branches[parentikey] = branches
 		if not loading and not planning:
-			parbranch, turn_start, tick_start, turn_end, tick_end = \
-                      db_branches[branch]
+			parbranch, turn_start, tick_start, turn_end, tick_end = db_branches[
+				branch]
 			db_branches[branch] = parbranch, turn_start, tick_start, turn, tick
 			db_turn_end[branch, turn] = tick
 		self_store_journal(*args)
@@ -593,8 +592,7 @@ class Cache:
 			update_keycache(*args, forward=forward)
 
 	def remove_branch(self, branch):
-		time_entity, parents, branches, keys, settings, \
-              presettings, remove_keycache, keycache = self._remove_stuff
+		time_entity, parents, branches, keys, settings, presettings, remove_keycache, keycache = self._remove_stuff
 		parentikeys = set()
 		for (branc, turn, tick), parentikey in list(time_entity.items()):
 			if branc != branch:
@@ -640,8 +638,7 @@ class Cache:
 
 	def remove(self, branch, turn, tick):
 		"""Delete all data from a specific tick"""
-		time_entity, parents, branches, keys, settings, \
-              presettings, remove_keycache, keycache = self._remove_stuff
+		time_entity, parents, branches, keys, settings, presettings, remove_keycache, keycache = self._remove_stuff
 		parent, entity, key = time_entity[branch, turn, tick]
 		branchkey = parent + (entity, key)
 		keykey = parent + (entity, )
@@ -734,8 +731,7 @@ class Cache:
 	def truncate(self, branch, turn, tick, direction='forward'):
 		if direction not in {'forward', 'backward'}:
 			raise ValueError("Illegal direction")
-		parents, branches, keys, settings, presettings, keycache \
-               = self._truncate_stuff
+		parents, branches, keys, settings, presettings, keycache = self._truncate_stuff
 
 		def truncate_branhc(branhc):
 			if turn in branhc:
@@ -888,14 +884,13 @@ class Cache:
 						ret = brancs[r - 1].final()
 						shallowest[args] = ret
 						return ret
-					elif b in keyframes and r in keyframes[b] \
-                                     and keyframes[b][r].rev_gettable(t) \
-                                     and key in keyframes[b][r][t]:
+					elif b in keyframes and r in keyframes[b] and keyframes[b][
+						r].rev_gettable(t) and key in keyframes[b][r][t]:
 						ret = keyframes[b][r][t][key]
 						shallowest[args] = ret
 						return ret
-					elif b in keyframes and keyframes[b].rev_gettable(r - 1) \
-                                     and key in keyframes[b][r - 1].final():
+					elif b in keyframes and keyframes[b].rev_gettable(
+						r - 1) and key in keyframes[b][r - 1].final():
 						ret = keyframes[b][r - 1].final()[key]
 						shallowest[args] = ret
 						return ret
@@ -1019,8 +1014,7 @@ class Cache:
 		retr = self._base_retrieve(args)
 		return retr is not None and not isinstance(retr, Exception)
 
-	contains_entity = contains_key = contains_entity_key \
-        = contains_entity_or_key
+	contains_entity = contains_key = contains_entity_key = contains_entity_or_key
 
 
 class NodesCache(Cache):
@@ -1458,8 +1452,8 @@ class EdgesCache(Cache):
 					forward=forward,
 					loading=loading,
 					contra=contra)
-		predecessors[graph, dest][orig][idx][branch][turn] \
-               = successors[graph, orig][dest][idx][branch][turn]
+		predecessors[graph, dest][orig][idx][branch][turn] = successors[
+			graph, orig][dest][idx][branch][turn]
 
 	# if ex:
 	#     assert self.retrieve(graph, orig, dest, idx, branch, turn, tick)

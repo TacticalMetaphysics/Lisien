@@ -27,8 +27,8 @@ import networkx as nx
 from .window import update_window, update_backward_window
 from .cache import HistoricKeyError
 from .graph import (DiGraph, Node, Edge, GraphsMapping)
-from .query import QueryEngine, TimeError, NodeRowType, EdgeRowType, \
- GraphValRowType, NodeValRowType, EdgeValRowType
+from .query import (QueryEngine, TimeError, NodeRowType, EdgeRowType,
+					GraphValRowType, NodeValRowType, EdgeValRowType)
 from .window import HistoricKeyError
 
 Graph = DiGraph  # until I implement other graph types...
@@ -321,17 +321,16 @@ def setedgeval(delta: DeltaType, is_multigraph: Callable, graph: Hashable,
 			and idx in delta[graph]['edges'][orig][dest]
 			and not delta[graph]['edges'][orig][dest][idx]):
 			return
-		delta.setdefault(graph, {}).setdefault('edge_val', {}) \
-               .setdefault(orig, {}).setdefault(dest, {}) \
-               .setdefault(idx, {})[key] = value
+		delta.setdefault(graph, {}).setdefault('edge_val', {}).setdefault(
+			orig, {}).setdefault(dest, {}).setdefault(idx, {})[key] = value
 	else:
 		if (graph in delta and 'edges' in delta[graph]
 			and orig in delta[graph]['edges']
 			and dest in delta[graph]['edges'][orig]
 			and not delta[graph]['edges'][orig][dest]):
 			return
-		delta.setdefault(graph, {}).setdefault('edge_val', {}) \
-               .setdefault(orig, {}).setdefault(dest, {})[key] = value
+		delta.setdefault(graph, {}).setdefault('edge_val', {}).setdefault(
+			orig, {}).setdefault(dest, {})[key] = value
 
 
 class ORM(object):
@@ -710,8 +709,8 @@ class ORM(object):
 		if branch in evbranches and turn in evbranches[branch]:
 			for graph, orig, dest, idx, key, value in evbranches[branch][turn][
 				tick_from:tick_to]:
-				edgevd = delta.setdefault(graph, {}).setdefault('edge_val', {}) \
-                             .setdefault(orig, {}).setdefault(dest, {})
+				edgevd = delta.setdefault(graph, {}).setdefault(
+					'edge_val', {}).setdefault(orig, {}).setdefault(dest, {})
 				if graph_objs[graph].is_multigraph():
 					if idx in edgevd:
 						edgevd[idx][key] = value
@@ -1034,8 +1033,7 @@ class ORM(object):
 		earliest_future_keyframe: Optional[Tuple[str, int, int]] = None
 		branch_now, turn_now, tick_now = branch, turn, tick
 		branch_parents = self._branch_parents
-		for (branch, turn, tick) in \
-                self._keyframes_times:
+		for (branch, turn, tick) in self._keyframes_times:
 			# Figure out the latest keyframe that is earlier than the present moment,
 			# and the earliest keyframe that is later than the present moment,
 			# for each graph.
@@ -1175,9 +1173,7 @@ class ORM(object):
 				self._graph_val_cache.load(graphvalrows)
 				self._node_val_cache.load(nodevalrows)
 				self._edge_val_cache.load(edgevalrows)
-			return None, None, \
-                            {}, noderows, edgerows, graphvalrows, \
-                            nodevalrows, edgevalrows
+			return None, None, {}, noderows, edgerows, graphvalrows, nodevalrows, edgevalrows
 		past_branch, past_turn, past_tick = latest_past_keyframe
 		keyframed = {}
 
@@ -1272,9 +1268,7 @@ class ORM(object):
 			self._node_val_cache.load(nodevalrows)
 			self._edge_val_cache.load(edgevalrows)
 
-		return latest_past_keyframe, earliest_future_keyframe, \
-                     keyframed, noderows, edgerows, graphvalrows, \
-                     nodevalrows, edgevalrows
+		return latest_past_keyframe, earliest_future_keyframe, keyframed, noderows, edgerows, graphvalrows, nodevalrows, edgevalrows
 
 	@world_locked
 	def unload(self):
@@ -1557,8 +1551,7 @@ class ORM(object):
 
 		# first make sure the cursor is not before the start of this branch
 		if branch != 'trunk':
-			parent, turn_start, tick_start, turn_end, tick_end = \
-                     self._branches[
+			parent, turn_start, tick_start, turn_end, tick_end = self._branches[
 				branch]
 			if v < turn_start:
 				raise OutOfTimelineError(
@@ -1615,8 +1608,7 @@ class ORM(object):
 		if not self._planning:
 			if v > self._turn_end[time]:
 				self._turn_end[time] = v
-			parent, turn_start, tick_start, turn_end, tick_end = \
-                     self._branches[
+			parent, turn_start, tick_start, turn_end, tick_end = self._branches[
 				branch]
 			if turn == turn_end and v > tick_end:
 				self._branches[
@@ -1666,8 +1658,7 @@ class ORM(object):
 		branch, turn, tick = btt()
 		branch_turn = (branch, turn)
 		tick += 1
-		if branch_turn in turn_end_plan and \
-                tick <= turn_end_plan[branch_turn]:
+		if branch_turn in turn_end_plan and tick <= turn_end_plan[branch_turn]:
 			tick = turn_end_plan[branch_turn] + 1
 		if turn_end[branch_turn] > tick:
 			raise HistoricKeyError(

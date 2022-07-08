@@ -207,8 +207,8 @@ class NodeProxy(CachingEntityProxy):
 			self.name]
 
 	def _set_rulebook_proxy(self, rb):
-		self.engine._char_node_rulebooks_cache[self._charname][self.name] \
-               = RuleBookProxy(self.engine, rb)
+		self.engine._char_node_rulebooks_cache[self._charname][
+			self.name] = RuleBookProxy(self.engine, rb)
 
 	def _set_rulebook(self, rb):
 		self.engine.handle('set_node_rulebook',
@@ -461,8 +461,7 @@ class PortalProxy(CachingEntityProxy):
 
 	@property
 	def reciprocal(self):
-		if self._origin not in self.character.pred or self._destination not in \
-                self.character.pred[
+		if self._origin not in self.character.pred or self._destination not in self.character.pred[
 			self._origin]:
 			return None
 		return self.character.pred[self._origin][self._destination]
@@ -531,8 +530,8 @@ class NodeMapProxy(MutableMapping, Signal):
 		return self.engine._character_rulebooks_cache[self._charname]['node']
 
 	def _set_rulebook_proxy(self, rb):
-		self.engine._character_rulebooks_cache[self._charname]['node'] \
-               = RuleBookProxy(self.engine, rb)
+		self.engine._character_rulebooks_cache[
+			self._charname]['node'] = RuleBookProxy(self.engine, rb)
 
 	def _set_rulebook(self, rb):
 		self.engine.handle('set_character_node_rulebook',
@@ -609,8 +608,8 @@ class ThingMapProxy(CachingProxy):
 		return self.engine._character_rulebooks_cache[self.name]['thing']
 
 	def _set_rulebook_proxy(self, rb):
-		self.engine._character_rulebooks_cache[self.name]['thing'] \
-               = RuleBookProxy(self.engine, rb)
+		self.engine._character_rulebooks_cache[
+			self.name]['thing'] = RuleBookProxy(self.engine, rb)
 
 	def _set_rulebook(self, rb):
 		self.engine.handle('set_character_thing_rulebook',
@@ -678,8 +677,8 @@ class PlaceMapProxy(CachingProxy):
 		return self.engine._character_rulebooks_cache[self.name]['place']
 
 	def _set_rulebook_proxy(self, rb):
-		self.engine._character_rulebooks_cache[self.name]['place'] \
-               = RuleBookProxy(self.engine, rb)
+		self.engine._character_rulebooks_cache[
+			self.name]['place'] = RuleBookProxy(self.engine, rb)
 
 	def _set_rulebook(self, rb):
 		self.engine.handle('set_character_place_rulebook',
@@ -797,8 +796,8 @@ class CharSuccessorsMappingProxy(CachingProxy):
 		return self.engine._character_rulebooks_cache[self.name]['portal']
 
 	def _set_rulebook_proxy(self, rb):
-		self.engine._character_rulebooks_cache[self.name]['portal'] \
-               = RuleBookProxy(self.engine, rb)
+		self.engine._character_rulebooks_cache[
+			self.name]['portal'] = RuleBookProxy(self.engine, rb)
 
 	def _set_rulebook(self, rb):
 		self.engine.handle('set_character_portal_rulebook',
@@ -1238,8 +1237,8 @@ class CharacterProxy(AbstractCharacter):
 		return self.engine._character_rulebooks_cache[self.name]['character']
 
 	def _set_rulebook_proxy(self, rb):
-		self.engine._character_rulebooks_cache[self.name]['character'] \
-               = RuleBookProxy(self.engine, rb)
+		self.engine._character_rulebooks_cache[
+			self.name]['character'] = RuleBookProxy(self.engine, rb)
 
 	def _set_rulebook(self, rb):
 		self.engine.handle('set_character_rulebook',
@@ -1327,8 +1326,7 @@ class CharacterProxy(AbstractCharacter):
 		engine = self.engine
 		node_stat_cache = engine._node_stat_cache
 		for (node, nodedelta) in delta.pop('node_val', {}).items():
-			if node not in nodemap or node not in \
-                       node_stat_cache[name]:
+			if node not in nodemap or node not in node_stat_cache[name]:
 				rulebook = nodedelta.pop('rulebook', None)
 				node_stat_cache[name][node] = nodedelta
 				if rulebook:
@@ -2206,10 +2204,8 @@ class EngineProxy(AbstractEngine):
 			self.send_bytes(self.pack(kwargs))
 			received = self.recv_bytes()
 			command, branch, turn, tick, r = self.unpack(received)
-			assert cmd == command, \
-                      "Sent command {} but received results for {}".format(
-				cmd, command
-				)
+			assert cmd == command, "Sent command {} but received results for {}".format(
+				cmd, command)
 			self.debug('EngineProxy: received {}'.format(
 				(command, branch, turn, tick, r)))
 			if (branch, turn, tick) != self._btt():
@@ -2450,8 +2446,8 @@ class EngineProxy(AbstractEngine):
 		for place, stats in placedata.items():
 			assert place not in self._character_places_cache[char]
 			assert place not in self._node_stat_cache[char]
-			self._character_places_cache[char][place] \
-                      = PlaceProxy(character, place)
+			self._character_places_cache[char][place] = PlaceProxy(
+				character, place)
 			self._node_stat_cache[char][place] = stats
 		thingdata = data.get('thing', {})
 		for thing, stats in thingdata.items():
@@ -2462,8 +2458,7 @@ class EngineProxy(AbstractEngine):
 			if 'arrival_time' in stats or 'next_arrival_time' in stats:
 				raise ValueError('The arrival_time stats are read-only')
 			loc = stats.pop('location')
-			self._things_cache[char][thing] \
-                      = ThingProxy(char, thing, loc)
+			self._things_cache[char][thing] = ThingProxy(char, thing, loc)
 			self._node_stat_cache[char][thing] = stats
 		portdata = data.get('edge', data.get('portal', data.get('adj', {})))
 		for orig, dests in portdata.items():
@@ -2508,8 +2503,8 @@ class EngineProxy(AbstractEngine):
 	def del_node(self, char, node):
 		if char not in self._char_cache:
 			raise KeyError("No such character")
-		if node not in self._character_places_cache[char] and \
-                node not in self._things_cache[char]:
+		if node not in self._character_places_cache[
+			char] and node not in self._things_cache[char]:
 			raise KeyError("No such node")
 		if node in self._things_cache[char]:
 			del self._things_cache[char][node]
@@ -2592,8 +2587,8 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 		if silent:
 			continue
 		resp = msgpack.Packer().pack_array_header(5)
-		resp += pack(cmd) + pack(engine_handle.branch) \
-                      + pack(engine_handle.turn) + pack(engine_handle.tick)
+		resp += pack(cmd) + pack(engine_handle.branch) + pack(
+			engine_handle.turn) + pack(engine_handle.tick)
 		if hasattr(getattr(engine_handle, cmd), 'prepacked'):
 			if isinstance(r, dict):
 				resp += msgpack.Packer().pack_map_header(len(r))
@@ -2662,12 +2657,12 @@ class EngineProcessManager(object):
 			except OSError:
 				pass
 			del kwargs['logfile']
-		do_game_start = kwargs.pop('do_game_start') \
-               if 'do_game_start' in kwargs else False
-		install_modules = kwargs.pop('install_modules') \
-               if 'install_modules' in kwargs else []
+		do_game_start = kwargs.pop(
+			'do_game_start') if 'do_game_start' in kwargs else False
+		install_modules = kwargs.pop(
+			'install_modules') if 'install_modules' in kwargs else []
 		formatter = logging.Formatter(
-			fmt='[{levelname}] LiSE.proxy({process})\t{message}', style='{')
+			fmt='[{levelname}] LiSE.proxy({process}) t{message}', style='{')
 		for handler in handlers:
 			handler.setFormatter(formatter)
 			self.logger.addHandler(handler)

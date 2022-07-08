@@ -54,8 +54,7 @@ class UserMapping(Mapping):
 		charn = node.character.name
 		nn = node.name
 		cache = engine._unitness_cache.user_order
-		if charn not in cache or \
-                nn not in cache[charn]:
+		if charn not in cache or nn not in cache[charn]:
 			return
 		cache = cache[charn][nn]
 		seen = set()

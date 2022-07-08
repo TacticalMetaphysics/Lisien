@@ -24,8 +24,7 @@ from importlib import import_module
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor, as_completed, Future
 from multiprocessing import cpu_count
-from typing import Dict, Tuple, Set, Callable, Union, Any, Hashable, List, \
- Iterable, Optional
+from typing import Dict, Tuple, Set, Callable, Union, Any, Hashable, List, Iterable, Optional
 
 import numpy as np
 import msgpack
@@ -989,8 +988,8 @@ class EngineHandle(object):
 		else:
 			portiter = (chara.portal[orig][dest] for (orig, dest) in portals)
 		for portal in portiter:
-			result[pack(portal['origin'])][pack(portal['destination'])] \
-                               = pack(portal.rulebook.name)
+			result[pack(portal['origin'])][pack(portal['destination'])] = pack(
+				portal.rulebook.name)
 		if (branch, turn, tick) != origtime:
 			self._real._set_btt(*origtime)
 		if portals == 'all':
@@ -1629,8 +1628,7 @@ class EngineHandle(object):
 		character = self._real.character[char]
 		if patch is None:
 			del character.portal[orig][dest]
-		elif orig not in character.portal \
-                      or dest not in character.portal[orig]:
+		elif orig not in character.portal or dest not in character.portal[orig]:
 			character.portal[orig][dest] = patch
 		else:
 			character.portal[orig][dest].update(patch)
