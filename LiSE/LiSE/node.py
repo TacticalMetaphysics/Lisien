@@ -55,7 +55,7 @@ class UserMapping(Mapping):
 		nn = node.name
 		cache = engine._unitness_cache.user_order
 		if charn not in cache or \
-                nn not in cache[charn]:
+                      nn not in cache[charn]:
 			return
 		cache = cache[charn][nn]
 		seen = set()
@@ -114,7 +114,6 @@ class UserMapping(Mapping):
 
 
 class NodeContentValues(ValuesView):
-	_mapping: 'NodeContent'
 
 	def __iter__(self):
 		node = self._mapping.node
@@ -172,7 +171,6 @@ class NodeContent(Mapping):
 
 
 class DestsValues(ValuesView):
-	_mapping: 'Dests'
 
 	def __contains__(self, item):
 		_, name = self._mapping._pn
@@ -210,7 +208,6 @@ class Dests(Mapping):
 
 
 class OrigsValues(ValuesView):
-	_mapping: 'Origs'
 
 	def __contains__(self, item):
 		_, name = self._mapping._pn

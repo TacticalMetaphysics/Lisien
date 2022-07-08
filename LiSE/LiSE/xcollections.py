@@ -173,7 +173,7 @@ class FunctionStore(Signal):
 			self._ast_idx = {}
 			for i, node in enumerate(self._ast.body):
 				self._ast_idx[node.name] = i
-		except (FileNotFoundError, ModuleNotFoundError):
+		except (FileNotFoundError, ImportError):
 			self._module = None
 			self._ast = Module(body=[])
 			self._ast_idx = {}

@@ -24,10 +24,13 @@ from contextlib import contextmanager
 from textwrap import dedent
 from time import monotonic
 from types import MethodType, FunctionType
-from typing import Mapping, Iterable, Union, Callable, Dict, Hashable
+from typing import Mapping, Iterable, Union, Callable
 from weakref import WeakValueDictionary
 
-import msgpack
+try:
+	import msgpack
+except ImportError:
+	from . import msgpack
 import networkx as nx
 from .reify import reify
 
@@ -64,7 +67,6 @@ MSGPACK_ACTION = 0x76
 class getnoplan:
 	"""Attribute getter that raises an exception if in planning mode"""
 	__slots__ = ('_getter', )
-	_getter: Callable
 
 	def __init__(self, attr, *attrs):
 		self._getter = attrgetter(attr, *attrs)
@@ -537,7 +539,7 @@ class AbstractEngine(ABC):
         """
 		from operator import gt, lt, ge, le, eq, ne
 
-		comps: Dict[str, Callable] = {
+		comps = {
 			'>': gt,
 			'<': lt,
 			'>=': ge,
@@ -625,8 +627,6 @@ class AbstractCharacter(Mapping):
     """
 	engine = getatt('db')
 	no_unwrap = True
-	name: Hashable
-	db: AbstractEngine
 
 	@staticmethod
 	def is_directed():
@@ -754,7 +754,7 @@ class AbstractCharacter(Mapping):
 
 	def __eq__(self, other):
 		return isinstance(other, AbstractCharacter) \
-                     and self.name == other.name
+                                                               and self.name == other.name
 
 	def __iter__(self):
 		return iter(self.node)

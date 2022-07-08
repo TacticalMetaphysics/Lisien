@@ -20,9 +20,22 @@ flow of time.
 from functools import partial
 from collections import defaultdict
 from types import FunctionType, ModuleType
-from typing import Union, Tuple, Any, Set, List, Type, Hashable
-from os import PathLike
+try:
+	from typing import Union, Tuple, Any, Set, List, Type, Hashable
+except ImportError:
+	from unittest.mock import MagicMock
+	Union = MagicMock()
+	Tuple = MagicMock()
+	Any = MagicMock()
+	Set = MagicMock()
+	List = MagicMock()
+	Type = MagicMock()
+	Hashable = MagicMock()
 from abc import ABC, abstractmethod
+try:
+	from os import PathLike
+except ImportError:
+	PathLike = None
 
 from networkx import Graph
 from blinker import Signal
@@ -429,8 +442,8 @@ class Engine(AbstractEngine, gORM):
 
 	def _load_at(self, branch: str, turn: int, tick: int) -> None:
 		latest_past_keyframe, earliest_future_keyframe, keyframed, \
-              noderows, edgerows, graphvalrows, nodevalrows, edgevalrows \
-               = super()._load_at(branch, turn, tick)
+                                                  noderows, edgerows, graphvalrows, nodevalrows, edgevalrows \
+                                                   = super()._load_at(branch, turn, tick)
 		thingrows = []
 
 		def build_thingrows(graf, windows):
@@ -501,17 +514,17 @@ class Engine(AbstractEngine, gORM):
 		self._units_rulebooks_cache = InitializedEntitylessCache(self)
 		self._units_rulebooks_cache.name = 'units_rulebooks_cache'
 		self._characters_things_rulebooks_cache = \
-               InitializedEntitylessCache(self)
+                                                   InitializedEntitylessCache(self)
 		self._characters_things_rulebooks_cache.name = \
-               'characters_things_rulebooks_cache'
+                                                   'characters_things_rulebooks_cache'
 		self._characters_places_rulebooks_cache = \
-               InitializedEntitylessCache(self)
+                                                   InitializedEntitylessCache(self)
 		self._characters_places_rulebooks_cache.name = \
-               'characters_places_rulebooks_cache'
+                                                   'characters_places_rulebooks_cache'
 		self._characters_portals_rulebooks_cache = \
-               InitializedEntitylessCache(self)
+                                                   InitializedEntitylessCache(self)
 		self._characters_portals_rulebooks_cache.name = \
-               'characters_portals_rulebooks_cache'
+                                                   'characters_portals_rulebooks_cache'
 		self._nodes_rulebooks_cache = InitializedCache(self)
 		self._nodes_rulebooks_cache.name = 'nodes_rulebooks_cache'
 		self._portals_rulebooks_cache = InitializedCache(self)
@@ -528,21 +541,21 @@ class Engine(AbstractEngine, gORM):
 		self._portal_rules_handled_cache.name = 'portal_rules_handled_cache'
 		self._character_rules_handled_cache = CharacterRulesHandledCache(self)
 		self._character_rules_handled_cache.name = \
-               'character_rules_handled_cache'
+                                                   'character_rules_handled_cache'
 		self._unit_rules_handled_cache = UnitRulesHandledCache(self)
 		self._unit_rules_handled_cache.name = 'unit_rules_handled_cache'
 		self._character_thing_rules_handled_cache \
-               = CharacterThingRulesHandledCache(self)
+                                                   = CharacterThingRulesHandledCache(self)
 		self._character_thing_rules_handled_cache.name = \
-               'character_thing_rules_handled_cache'
+                                                   'character_thing_rules_handled_cache'
 		self._character_place_rules_handled_cache \
-               = CharacterPlaceRulesHandledCache(self)
+                                                   = CharacterPlaceRulesHandledCache(self)
 		self._character_place_rules_handled_cache.name = \
-               'character_place_rules_handled_cache'
+                                                   'character_place_rules_handled_cache'
 		self._character_portal_rules_handled_cache \
-               = CharacterPortalRulesHandledCache(self)
+                                                   = CharacterPortalRulesHandledCache(self)
 		self._character_portal_rules_handled_cache.name = \
-               'character_portal_rules_handled_cache'
+                                                   'character_portal_rules_handled_cache'
 		self._unitness_cache = UnitnessCache(self)
 		self._unitness_cache.name = 'unitness_cache'
 		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
@@ -799,13 +812,13 @@ class Engine(AbstractEngine, gORM):
 		portal_rulebooks_settings = getattr(self._portals_rulebooks_cache,
 											attribute)
 		if branch in avatarness_settings \
-                and turn in avatarness_settings[branch]:
+                                                    and turn in avatarness_settings[branch]:
 			for chara, graph, node, is_av in avatarness_settings[branch][turn][
 				start_tick:tick]:
 				delta.setdefault(chara, {}).setdefault('units', {}).setdefault(
 					graph, {})[node] = is_av
 		if branch in things_settings \
-                and turn in things_settings[branch]:
+                                                    and turn in things_settings[branch]:
 			for chara, thing, location in things_settings[branch][turn][
 				start_tick:tick]:
 				thingd = delta.setdefault(chara, {}).setdefault(
@@ -813,79 +826,79 @@ class Engine(AbstractEngine, gORM):
 				thingd['location'] = location
 		delta['rulebooks'] = rbdif = {}
 		if branch in rulebooks_settings \
-                and turn in rulebooks_settings[branch]:
+                                                    and turn in rulebooks_settings[branch]:
 			for _, rulebook, rules in rulebooks_settings[branch][turn][
 				start_tick:tick]:
 				rbdif[rulebook] = rules
 		delta['rules'] = rdif = {}
 		if branch in triggers_settings \
-                and turn in triggers_settings[branch]:
+                                                    and turn in triggers_settings[branch]:
 			for _, rule, funs in triggers_settings[branch][turn][
 				start_tick:tick]:
 				rdif.setdefault(rule, {})['triggers'] = funs
 		if branch in prereqs_settings \
-                and turn in prereqs_settings[branch]:
+                                                    and turn in prereqs_settings[branch]:
 			for _, rule, funs in prereqs_settings[branch][turn][
 				start_tick:tick]:
 				rdif.setdefault(rule, {})['prereqs'] = funs
 		if branch in actions_settings \
-                and turn in actions_settings[branch]:
+                                                    and turn in actions_settings[branch]:
 			for _, rule, funs in actions_settings[branch][turn][
 				start_tick:tick]:
 				rdif.setdefault(rule, {})['actions'] = funs
 
 		if branch in character_rulebooks_settings \
-                and turn in character_rulebooks_settings[branch]:
+                                                    and turn in character_rulebooks_settings[branch]:
 			for _, character, rulebook in \
-                       character_rulebooks_settings[
+                                                                             character_rulebooks_settings[
 				branch][turn][start_tick:tick]:
 				delta.setdefault(character,
 									{})['character_rulebook'] = rulebook
 		if branch in avatar_rulebooks_settings \
-                and turn in avatar_rulebooks_settings[branch]:
+                                                    and turn in avatar_rulebooks_settings[branch]:
 			for _, character, rulebook in \
-                       avatar_rulebooks_settings[
+                                                                             avatar_rulebooks_settings[
 				branch][turn][start_tick:tick]:
 				delta.setdefault(character, {})['unit_rulebook'] = rulebook
 		if branch in character_thing_rulebooks_settings \
-                and turn in character_thing_rulebooks_settings[
+                                                    and turn in character_thing_rulebooks_settings[
 			branch]:
 			for _, character, rulebook in \
-                       character_thing_rulebooks_settings[
+                                                                             character_thing_rulebooks_settings[
 				branch][turn][start_tick:tick]:
 				delta.setdefault(character,
 									{})['character_thing_rulebook'] = rulebook
 		if branch in character_place_rulebooks_settings \
-                and turn in character_place_rulebooks_settings[branch]:
+                                                    and turn in character_place_rulebooks_settings[branch]:
 			for _, character, rulebook in \
-                       character_place_rulebooks_settings[
+                                                                             character_place_rulebooks_settings[
 				branch][turn][start_tick:tick]:
 				delta.setdefault(character,
 									{})['character_place_rulebook'] = rulebook
 		if branch in character_portal_rulebooks_settings \
-                and turn in character_portal_rulebooks_settings[
+                                                    and turn in character_portal_rulebooks_settings[
 			branch]:
 			for _, character, rulebook in \
-                       character_portal_rulebooks_settings[
+                                                                             character_portal_rulebooks_settings[
 				branch][turn][start_tick:tick]:
 				delta.setdefault(character,
 									{})['character_portal_rulebook'] = rulebook
 
 		if branch in node_rulebooks_settings \
-                and turn in node_rulebooks_settings[branch]:
+                                                    and turn in node_rulebooks_settings[branch]:
 			for character, node, rulebook in \
-                       node_rulebooks_settings[
+                                                                             node_rulebooks_settings[
 				branch][turn][start_tick:tick]:
 				delta.setdefault(character,
 									{}).setdefault('node_val', {}).setdefault(
 										node, {})['rulebook'] = rulebook
 		if branch in portal_rulebooks_settings \
-                and turn in portal_rulebooks_settings[branch]:
+                                                    and turn in portal_rulebooks_settings[branch]:
 			for character, orig, dest, rulebook in \
-                       portal_rulebooks_settings[
+                                                                             portal_rulebooks_settings[
 				branch][turn][start_tick:tick]:
 				delta.setdefault(character, {}).setdefault('edge_val', {}) \
-                             .setdefault(orig, {}).setdefault(dest, {})[
+                                                                                                     .setdefault(orig, {}).setdefault(dest, {})[
 					'rulebook'] = rulebook
 		return delta
 

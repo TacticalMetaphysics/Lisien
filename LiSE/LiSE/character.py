@@ -37,8 +37,6 @@ and their node in the physical world is an avatar of it.
 from abc import abstractmethod, ABC
 from collections.abc import (Mapping, MutableMapping)
 from itertools import chain
-from types import MethodType
-from typing import Type
 from blinker import Signal
 
 import networkx as nx
@@ -119,9 +117,6 @@ class CharRuleMapping(RuleMapping):
 
 class RuleFollower(BaseRuleFollower):
 	"""Mixin class. Has a rulebook, which you can get a RuleMapping into."""
-	character: AbstractCharacter
-	engine: AbstractEngine
-	_book: str
 
 	def _get_rule_mapping(self):
 		return CharRuleMapping(self.character, self.rulebook, self._book)
@@ -232,7 +227,7 @@ class FacadePlace(FacadeNode):
 	def __init__(self, mapping, real_or_name, **kwargs):
 		super().__init__(mapping, real_or_name, **kwargs)
 		if isinstance(real_or_name, Place) or \
-                isinstance(real_or_name, FacadePlace):
+                                  isinstance(real_or_name, FacadePlace):
 			self._real = real_or_name
 		else:
 			self._real = {'name': real_or_name}
@@ -317,7 +312,6 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
     being distorted views of entities of the type ``innercls``.
 
     """
-	facadecls: Type[FacadeEntity]
 
 	@abstractmethod
 	def _get_inner_map(self):
@@ -421,7 +415,6 @@ class FacadePortalPredecessors(FacadeEntityMapping):
 
 
 class FacadePortalMapping(FacadeEntityMapping, ABC):
-	cls: Type[FacadeEntityMapping]
 
 	def __getitem__(self, node):
 		if node not in self:
@@ -620,7 +613,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
 
 		def __contains__(self, k):
 			if hasattr(self.facade.character, 'graph') \
-                       and k in self.facade.character.graph:
+                                                  and k in self.facade.character.graph:
 				return True
 			return k in self._patch and self._patch[k] is not None
 
@@ -916,7 +909,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 		def __getitem__(self, place):
 			nodes_contains, things_contains, charn, btt, cache, character \
-                      = self._get_stuff
+                                                 = self._get_stuff
 			branch, turn, tick = btt()
 			if not nodes_contains(charn, place, branch, turn,
 									tick) or things_contains(
@@ -930,7 +923,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 		def __setitem__(self, place, v):
 			node_exists, exist_node, get_node, charn, character \
-                      = self._set_stuff
+                                                 = self._set_stuff
 			exist_node(charn, place, True)
 			pl = get_node(character, place)
 			if not isinstance(pl, Place):
@@ -1336,9 +1329,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             Otherwise, raise AttributeError.
 
             """
-			get_char_av_cache: MethodType
 			get_char_av_cache, get_char_only_graph, charn, btt \
-                      = self._node_stuff
+                                                 = self._node_stuff
 			try:
 				return get_char_av_cache(get_char_only_graph(charn, *btt()))
 			except KeyError:

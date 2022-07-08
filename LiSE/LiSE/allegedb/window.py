@@ -88,15 +88,14 @@ def within_history(rev: int, windowdict: 'WindowDict'):
 	if not windowdict:
 		return False
 	begin = windowdict._past[0][0] if windowdict._past else \
-        windowdict._future[-1][0]
+                       windowdict._future[-1][0]
 	end = windowdict._future[0][0] if windowdict._future else \
-        windowdict._past[-1][0]
+                       windowdict._past[-1][0]
 	return begin <= rev <= end
 
 
 class WindowDictKeysView(ABC, KeysView):
 	"""Look through all the keys a WindowDict contains."""
-	_mapping: 'WindowDict'
 
 	def __contains__(self, rev: int):
 		return rev in self._mapping._keys
@@ -112,7 +111,6 @@ class WindowDictKeysView(ABC, KeysView):
 
 class WindowDictItemsView(ABC, ItemsView):
 	"""Look through everything a WindowDict contains."""
-	_mapping: 'WindowDict'
 
 	def __contains__(self, item: Tuple[int, Any]):
 		(rev, v) = item
@@ -138,7 +136,6 @@ class WindowDictItemsView(ABC, ItemsView):
 
 class WindowDictPastFutureKeysView(ABC, KeysView):
 	"""View on a WindowDict's keys relative to last lookup"""
-	_mapping: Union['WindowDictPastView', 'WindowDictFutureView']
 
 	def __iter__(self):
 		if not self._mapping.stack:
@@ -150,7 +147,6 @@ class WindowDictPastFutureKeysView(ABC, KeysView):
 
 
 class WindowDictPastFutureItemsView(ABC, ItemsView):
-	_mapping: Union['WindowDictPastView', 'WindowDictFutureView']
 
 	@staticmethod
 	@abstractmethod
@@ -189,7 +185,6 @@ class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
 
 class WindowDictPastFutureValuesView(ABC, ValuesView):
 	"""Abstract class for views on the past or future values of a WindowDict"""
-	_mapping: Union['WindowDictPastView', 'WindowDictFutureView']
 
 	def __iter__(self):
 		stack = self._mapping.stack
@@ -206,7 +201,6 @@ class WindowDictPastFutureValuesView(ABC, ValuesView):
 
 class WindowDictValuesView(ABC, ValuesView):
 	"""Look through all the values that a WindowDict contains."""
-	_mapping: 'WindowDict'
 
 	def __contains__(self, value: Any):
 		past = self._mapping._past
@@ -233,7 +227,6 @@ class WindowDictValuesView(ABC, ValuesView):
 class WindowDictPastFutureView(ABC, Mapping):
 	"""Abstract class for historical views on WindowDict"""
 	__slots__ = ('stack', )
-	stack: List[Tuple[int, Any]]
 
 	def __init__(self, stack: List[Tuple[int, Any]]) -> None:
 		self.stack = stack
@@ -304,8 +297,6 @@ class WindowDictFutureView(WindowDictPastFutureView):
 class WindowDictSlice:
 	"""A slice of history in which the start is earlier than the stop"""
 	__slots__ = ['dic', 'slic']
-	dic: 'WindowDict'
-	slic: slice
 
 	def __init__(self, dic: 'WindowDict', slic: slice):
 		self.dic = dic
@@ -455,13 +446,6 @@ class WindowDict(MutableMapping):
 
     """
 	__slots__ = ('_future', '_past', '_keys', 'beginning', 'end', '_last')
-
-	_past: List[Tuple[int, Any]]
-	_future: List[Tuple[int, Any]]
-	_keys: Set[int]
-	_last: Optional[int]
-	beginning: Optional[int]
-	end: Optional[int]
 
 	def future(self, rev: int = None) -> WindowDictFutureView:
 		"""Return a Mapping of items after the given revision.
@@ -686,9 +670,6 @@ class WindowDict(MutableMapping):
 class FuturistWindowDict(WindowDict):
 	"""A WindowDict that does not let you rewrite the past."""
 	__slots__ = ('_future', '_past', 'beginning')
-	_future: List[Tuple[int, Any]]
-	_past: List[Tuple[int, Any]]
-	beginning: Optional[int]
 
 	def __setitem__(self, rev: int, v: Any) -> None:
 		if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
@@ -717,9 +698,6 @@ class FuturistWindowDict(WindowDict):
 
 class TurnDict(FuturistWindowDict):
 	__slots__ = ('_future', '_past')
-	_future: List[Tuple[int, Any]]
-	_past: List[Tuple[int, Any]]
-	cls = FuturistWindowDict
 
 	def __setitem__(self, turn: int, value: Any) -> None:
 		if type(value) is not FuturistWindowDict:
@@ -729,9 +707,6 @@ class TurnDict(FuturistWindowDict):
 
 class SettingsTurnDict(WindowDict):
 	__slots__ = ('_future', '_past')
-	_future: List[Tuple[int, Any]]
-	_past: List[Tuple[int, Any]]
-	cls = WindowDict
 
 	def __setitem__(self, turn: int, value: Any) -> None:
 		if type(value) is not WindowDict:

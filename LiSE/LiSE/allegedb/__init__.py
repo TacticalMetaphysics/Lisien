@@ -18,8 +18,22 @@ from functools import wraps
 import gc
 from queue import Queue
 from threading import RLock, Thread
-from typing import Callable, Dict, Any, Union, Tuple, Optional, List, Hashable
 from weakref import WeakValueDictionary
+try:
+	from typing import (Callable, Dict, Any, Union, Tuple, Optional, List,
+						Hashable)
+except ImportError:
+	from unittest.mock import MagicMock
+	Callable = MagicMock()
+	Dict = MagicMock()
+	Optional = MagicMock()
+	Union = MagicMock()
+	Tuple = MagicMock()
+	Any = MagicMock()
+	Set = MagicMock()
+	List = MagicMock()
+	Type = MagicMock()
+	Hashable = MagicMock()
 
 from blinker import Signal
 import networkx as nx
@@ -322,16 +336,16 @@ def setedgeval(delta: DeltaType, is_multigraph: Callable, graph: Hashable,
 			and not delta[graph]['edges'][orig][dest][idx]):
 			return
 		delta.setdefault(graph, {}).setdefault('edge_val', {}) \
-               .setdefault(orig, {}).setdefault(dest, {}) \
-               .setdefault(idx, {})[key] = value
+                                                                     .setdefault(orig, {}).setdefault(dest, {}) \
+                                                                     .setdefault(idx, {})[key] = value
 	else:
 		if (graph in delta and 'edges' in delta[graph]
 			and orig in delta[graph]['edges']
 			and dest in delta[graph]['edges'][orig]
 			and not delta[graph]['edges'][orig][dest]):
 			return
-		delta.setdefault(graph, {}).setdefault('edge_val', {}) \
-               .setdefault(orig, {}).setdefault(dest, {})[key] = value
+		delta.setdefault(graph, {}).setdefault('edge_val', {}).setdefault(
+			orig, {}).setdefault(dest, {})[key] = value
 
 
 class ORM(object):
@@ -711,7 +725,7 @@ class ORM(object):
 			for graph, orig, dest, idx, key, value in evbranches[branch][turn][
 				tick_from:tick_to]:
 				edgevd = delta.setdefault(graph, {}).setdefault('edge_val', {}) \
-                             .setdefault(orig, {}).setdefault(dest, {})
+                                                                                                                                         .setdefault(orig, {}).setdefault(dest, {})
 				if graph_objs[graph].is_multigraph():
 					if idx in edgevd:
 						edgevd[idx][key] = value
@@ -729,19 +743,9 @@ class ORM(object):
 		edge_cls = self.edge_cls
 		self._where_cached = defaultdict(list)
 		self._node_objs = node_objs = WeakValueDictionary()
-		self._get_node_stuff: Tuple[WeakValueDictionary,
-									Callable[[Hashable, Hashable], bool],
-									Callable[[Hashable, Hashable],
-												node_cls]] = (
-													node_objs,
-													self._node_exists,
-													self._make_node)
+		self._get_node_stuff = (node_objs, self._node_exists, self._make_node)
 		self._edge_objs = edge_objs = WeakValueDictionary()
-		self._get_edge_stuff: Tuple[WeakValueDictionary, Callable[
-			[Hashable, Hashable, Hashable, int],
-			bool], Callable[[Hashable, Hashable, Hashable, int],
-							edge_cls]] = (edge_objs, self._edge_exists,
-											self._make_edge)
+		self._get_edge_stuff = (edge_objs, self._edge_exists, self._make_edge)
 		self._childbranch = defaultdict(set)
 		"""Immediate children of a branch"""
 		self._branches = {}
@@ -850,34 +854,18 @@ class ORM(object):
 							self._turn_end_plan, self._turn_end,
 							self._plan_ticks, self._plan_ticks_uncommitted,
 							self._time_plan, self._branches)
-		self._node_exists_stuff: Tuple[
-			Callable[[Hashable, Hashable, str, int, int], Any],
-			Callable[[], Tuple[str, int, int]]] = (self._nodes_cache.retrieve,
-													self._btt)
-		self._exist_node_stuff: Tuple[
-			Callable[[], Tuple[str, int, int]],
-			Callable[[Hashable, Hashable, str, int, int, bool], None],
-			Callable[[Hashable, Hashable, str, int, int, Any],
-						None]] = (self._nbtt, self.query.exist_node,
+		self._node_exists_stuff = (self._nodes_cache.retrieve, self._btt)
+		self._exist_node_stuff = (self._nbtt, self.query.exist_node,
 									self._nodes_cache.store)
-		self._edge_exists_stuff: Tuple[
-			Callable[[Hashable, Hashable, Hashable, int, str, int, int], bool],
-			Callable[[], Tuple[str, int, int]]] = (self._edges_cache.retrieve,
-													self._btt)
-		self._exist_edge_stuff: Tuple[
-			Callable[[], Tuple[str, int, int]],
-			Callable[[Hashable, Hashable, Hashable, int, str, int, int, bool],
-						None],
-			Callable[[Hashable, Hashable, Hashable, int, str, int, int, Any],
-						None]] = (self._nbtt, self.query.exist_edge,
+		self._edge_exists_stuff = (self._edges_cache.retrieve, self._btt)
+		self._exist_edge_stuff = (self._nbtt, self.query.exist_edge,
 									self._edges_cache.store)
 		self._load_graphs()
 		assert hasattr(self, 'graph')
 		self._keyframes_list = []
 		self._keyframes_dict = {}
 		self._keyframes_times = set()
-		self._loaded: Dict[str, Tuple[int, int, int, int]] = {
-		}  # branch: (turn_from, tick_from, turn_to, tick_to)
+		self._loaded = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
 		self._init_load()
 		self.cache_arrange_queue = Queue()
 		self._cache_arrange_thread = Thread(target=self._arrange_cache_loop)
@@ -1030,12 +1018,12 @@ class ORM(object):
 				List[GraphValRowType], List[NodeValRowType],
 				List[EdgeValRowType]]:
 		snap_keyframe = self._snap_keyframe
-		latest_past_keyframe: Optional[Tuple[str, int, int]] = None
-		earliest_future_keyframe: Optional[Tuple[str, int, int]] = None
+		latest_past_keyframe = None
+		earliest_future_keyframe = None
 		branch_now, turn_now, tick_now = branch, turn, tick
 		branch_parents = self._branch_parents
 		for (branch, turn, tick) in \
-                self._keyframes_times:
+                                                                      self._keyframes_times:
 			# Figure out the latest keyframe that is earlier than the present moment,
 			# and the earliest keyframe that is later than the present moment,
 			# for each graph.
@@ -1176,8 +1164,8 @@ class ORM(object):
 				self._node_val_cache.load(nodevalrows)
 				self._edge_val_cache.load(edgevalrows)
 			return None, None, \
-                            {}, noderows, edgerows, graphvalrows, \
-                            nodevalrows, edgevalrows
+                                                                                                             {}, noderows, edgerows, graphvalrows, \
+                                                                                                             nodevalrows, edgevalrows
 		past_branch, past_turn, past_tick = latest_past_keyframe
 		keyframed = {}
 
@@ -1273,8 +1261,8 @@ class ORM(object):
 			self._edge_val_cache.load(edgevalrows)
 
 		return latest_past_keyframe, earliest_future_keyframe, \
-                     keyframed, noderows, edgerows, graphvalrows, \
-                     nodevalrows, edgevalrows
+                                                                           keyframed, noderows, edgerows, graphvalrows, \
+                                                                           nodevalrows, edgevalrows
 
 	@world_locked
 	def unload(self):
@@ -1558,7 +1546,7 @@ class ORM(object):
 		# first make sure the cursor is not before the start of this branch
 		if branch != 'trunk':
 			parent, turn_start, tick_start, turn_end, tick_end = \
-                     self._branches[
+                                                                                                      self._branches[
 				branch]
 			if v < turn_start:
 				raise OutOfTimelineError(
@@ -1616,7 +1604,7 @@ class ORM(object):
 			if v > self._turn_end[time]:
 				self._turn_end[time] = v
 			parent, turn_start, tick_start, turn_end, tick_end = \
-                     self._branches[
+                                                                                                      self._branches[
 				branch]
 			if turn == turn_end and v > tick_end:
 				self._branches[
@@ -1667,7 +1655,7 @@ class ORM(object):
 		branch_turn = (branch, turn)
 		tick += 1
 		if branch_turn in turn_end_plan and \
-                tick <= turn_end_plan[branch_turn]:
+                                                                      tick <= turn_end_plan[branch_turn]:
 			tick = turn_end_plan[branch_turn] + 1
 		if turn_end[branch_turn] > tick:
 			raise HistoricKeyError(

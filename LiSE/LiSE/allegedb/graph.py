@@ -92,7 +92,6 @@ class AllegedMapping(MutableMappingUnwrapper, ABC):
 
 class AbstractEntityMapping(AllegedMapping, ABC):
 	__slots__ = ()
-	db: 'ORM'
 
 	def _get_cache(self, key, branch, turn, tick):
 		raise NotImplementedError
@@ -262,9 +261,9 @@ class GraphMapping(AbstractEntityMapping):
 
 class Node(AbstractEntityMapping):
 	"""Mapping for node attributes"""
-	__slots__ = ('graph', 'node', 'db', '__weakref__', '_iter_stuff',
-					'_cache_contains_stuff', '_len_stuff', '_get_cache_stuff',
-					'_set_db_stuff', '_set_cache_stuff')
+	__slots__ = ('graph', 'node', 'db', '_iter_stuff', '_cache_contains_stuff',
+					'_len_stuff', '_get_cache_stuff', '_set_db_stuff',
+					'_set_cache_stuff')
 
 	def _validate_node_type(self):
 		return True
@@ -342,9 +341,9 @@ class Node(AbstractEntityMapping):
 
 class Edge(AbstractEntityMapping):
 	"""Mapping for edge attributes"""
-	__slots__ = ('graph', 'orig', 'dest', 'idx', 'db', '__weakref__',
-					'_iter_stuff', '_cache_contains_stuff', '_len_stuff',
-					'_get_cache_stuff', '_set_db_stuff', '_set_cache_stuff')
+	__slots__ = ('graph', 'orig', 'dest', 'idx', 'db', '_iter_stuff',
+					'_cache_contains_stuff', '_len_stuff', '_get_cache_stuff',
+					'_set_db_stuff', '_set_cache_stuff')
 
 	set_db_time = set_cache_time = 0
 
@@ -834,10 +833,6 @@ class DiGraph(networkx.DiGraph):
 	pred_cls = DiGraphPredecessorsMapping
 	graph_map_cls = GraphMapping
 	node_map_cls = GraphNodeMapping
-	_statmap: graph_map_cls
-	_nodemap: node_map_cls
-	_adjmap: adj_cls
-	_predmap: pred_cls
 
 	def __repr__(self):
 		return "<{} object named {} containing {} nodes, {} edges>".format(
