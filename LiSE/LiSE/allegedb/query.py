@@ -17,6 +17,7 @@ code that's more to do with the queries than with the data per se
 doesn't pollute the other files so much.
 
 """
+from base64 import b64encode
 from threading import Thread, Lock
 from time import monotonic
 from typing import Tuple, Any, Iterator, Hashable
@@ -112,12 +113,19 @@ class ConnectionHolder:
         parameters to the query.
 
         """
+
+		def bytes2b64(x):
+			if isinstance(x, bytes):
+				return b64encode(x).decode()
+			return x
+
 		if hasattr(self, 'alchemist'):
 			return getattr(self.alchemist, stringname)(*args, **kwargs)
 		else:
 			s = self.strings[stringname]
 			return self.connection.cursor().execute(
-				s.format(**kwargs) if kwargs else s, args)
+				s.format(**kwargs) if kwargs else s, list(map(bytes2b64,
+																args)))
 
 	def sqlmany(self, stringname, *args):
 		"""Wrapper for executing many SQL calls on my connection.
@@ -811,7 +819,7 @@ class QueryEngine(object):
 	def initdb(self):
 		with self._holder.lock:
 			self._inq.put('initdb')
-			ret = self._outq.get()
+			ret = self._outq.get(block=True)
 			if isinstance(ret, Exception):
 				raise ret
 		self.globl = GlobalKeyValueStore(self)

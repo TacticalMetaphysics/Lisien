@@ -94,7 +94,6 @@ class MutableWrapperDictList(MutableWrapper, ABC):
 
 
 class MutableMappingUnwrapper(MutableMapping, ABC):
-	__slots__ = ()
 
 	def __eq__(self, other):
 		if self is other:

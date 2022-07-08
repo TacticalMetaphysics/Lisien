@@ -53,7 +53,6 @@ _alleged_receivers = defaultdict(list)
 
 class AllegedMapping(MutableMappingUnwrapper, ABC):
 	"""Common amenities for mappings"""
-	__slots__ = ()
 
 	def connect(self, func):
 		"""Arrange to call this function whenever something changes here.
@@ -91,7 +90,6 @@ class AllegedMapping(MutableMappingUnwrapper, ABC):
 
 
 class AbstractEntityMapping(AllegedMapping, ABC):
-	__slots__ = ()
 
 	def _get_cache(self, key, branch, turn, tick):
 		raise NotImplementedError
@@ -261,9 +259,6 @@ class GraphMapping(AbstractEntityMapping):
 
 class Node(AbstractEntityMapping):
 	"""Mapping for node attributes"""
-	__slots__ = ('graph', 'node', 'db', '_iter_stuff', '_cache_contains_stuff',
-					'_len_stuff', '_get_cache_stuff', '_set_db_stuff',
-					'_set_cache_stuff')
 
 	def _validate_node_type(self):
 		return True

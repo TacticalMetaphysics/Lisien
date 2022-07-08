@@ -55,7 +55,7 @@ class UserMapping(Mapping):
 		nn = node.name
 		cache = engine._unitness_cache.user_order
 		if charn not in cache or \
-                      nn not in cache[charn]:
+                            nn not in cache[charn]:
 			return
 		cache = cache[charn][nn]
 		seen = set()
@@ -286,7 +286,6 @@ class Node(graph.Node, rule.RuleFollower):
     This is truthy if it exists, falsy if it's been deleted.
 
     """
-	__slots__ = ('_real_rule_mapping', )
 	character = getatt('graph')
 	name = getatt('node')
 	no_unwrap = True

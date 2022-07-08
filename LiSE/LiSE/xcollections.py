@@ -223,7 +223,11 @@ class FunctionStore(Signal):
 
 	def save(self, reimport=True):
 		with open(self._filename, 'w') as outf:
-			Unparser(self._ast, outf)
+			try:
+				Unparser(self._ast, outf)
+			except AttributeError:
+				print("Couldn't save source: " + self._filename)
+				self._need_save = False
 		if reimport:
 			importlib.invalidate_caches()
 			path, filename = os.path.split(self._filename)

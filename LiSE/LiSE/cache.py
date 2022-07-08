@@ -211,32 +211,29 @@ class UnitnessCache(Cache):
 			if turn in soloav:
 				soloav[turn][tick] = None
 			else:
-				soloav[turn] = soloav.cls({tick: None})
+				soloav[turn] = {tick: None}
 		else:
 			if turn in soloav:
 				soloav[turn][tick] = node
 			else:
-				soloav[turn] = soloav.cls({tick: None})
+				soloav[turn] = {tick: None}
 		if turn in charavs and charavs[turn].rev_gettable(tick) and len(
 			charavs[turn][tick]) != 1:
-			if turn in uniqav:
-				uniqav[turn][tick] = None
-			else:
-				uniqav[turn] = uniqav.cls({tick: None})
+			uniqav[turn][tick] = None
 		elif turn in uniqav:
 			uniqav[turn][tick] = (graph, node)
 		else:
-			uniqav[turn] = uniqav.cls({tick: (graph, node)})
+			uniqav[turn] = {tick: (graph, node)}
 		if turn in graphs and graphs[turn].rev_gettable(tick) and len(
 			graphs[turn][tick]) != 1:
 			if turn in uniqgraph:
 				uniqgraph[turn][tick] = None
 			else:
-				uniqgraph[turn] = uniqgraph.cls({tick: None})
+				uniqgraph[turn] = {tick: None}
 		elif turn in uniqgraph:
 			uniqgraph[turn][tick] = graph
 		else:
-			uniqgraph[turn] = uniqgraph.cls({tick: graph})
+			uniqgraph[turn] = {tick: graph}
 
 	def get_char_graph_avs(self, char, graph, branch, turn, tick):
 		return self._valcache_lookup(self.graph_units[(char, graph)], branch,
@@ -330,7 +327,7 @@ class RulesHandledCache(object):
 
 	def fork(self, branch, turn, tick):
 		parent_branch, parent_turn, parent_tick, end_turn, end_tick = \
-              self.engine._branches[
+                                                  self.engine._branches[
 			branch]
 		unhandl = self.unhandled
 		handl = self.handled

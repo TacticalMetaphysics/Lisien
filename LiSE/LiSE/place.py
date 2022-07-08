@@ -29,8 +29,6 @@ class Place(Node):
     been deleted.
 
     """
-	__slots__ = ('graph', 'db', 'node', '_rulebook', '_rulebooks',
-					'_real_rule_mapping')
 
 	extrakeys = {
 		'name',

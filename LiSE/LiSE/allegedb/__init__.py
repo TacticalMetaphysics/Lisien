@@ -13,27 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM, and some supporting functions and classes"""
-from contextlib import ContextDecorator, contextmanager
+from contextlib import ContextDecorator
 from functools import wraps
-import gc
 from queue import Queue
 from threading import RLock, Thread
 from weakref import WeakValueDictionary
-try:
-	from typing import (Callable, Dict, Any, Union, Tuple, Optional, List,
-						Hashable)
-except ImportError:
-	from unittest.mock import MagicMock
-	Callable = MagicMock()
-	Dict = MagicMock()
-	Optional = MagicMock()
-	Union = MagicMock()
-	Tuple = MagicMock()
-	Any = MagicMock()
-	Set = MagicMock()
-	List = MagicMock()
-	Type = MagicMock()
-	Hashable = MagicMock()
+from typing import (Callable, Dict, Any, Union, Tuple, Optional, List,
+					Hashable)
 
 from blinker import Signal
 import networkx as nx
@@ -105,6 +91,36 @@ class OutOfTimelineError(ValueError):
 	@property
 	def tick_to(self):
 		return self.args[6]
+
+
+class AdvancingContext(ContextDecorator):
+
+	def __init__(self, orm: 'ORM'):
+		self.orm = orm
+
+	def __enter__(self):
+		if self.orm._forward:
+			raise ValueError("Already advancing")
+		self.orm._forward = True
+		return self
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		self.orm._forward = False
+
+
+class BatchContext(ContextDecorator):
+
+	def __init__(self, orm: 'ORM'):
+		self.orm = orm
+
+	def __enter__(self):
+		if self.orm._no_kc:
+			raise ValueError("Already in a batch")
+		self.orm._no_kc = True
+		return self
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		self.orm._no_kc = False
 
 
 class PlanningContext(ContextDecorator):
@@ -336,8 +352,8 @@ def setedgeval(delta: DeltaType, is_multigraph: Callable, graph: Hashable,
 			and not delta[graph]['edges'][orig][dest][idx]):
 			return
 		delta.setdefault(graph, {}).setdefault('edge_val', {}) \
-                                                                     .setdefault(orig, {}).setdefault(dest, {}) \
-                                                                     .setdefault(idx, {})[key] = value
+                                                                                                                           .setdefault(orig, {}).setdefault(dest, {}) \
+                                                                                                                           .setdefault(idx, {})[key] = value
 	else:
 		if (graph in delta and 'edges' in delta[graph]
 			and orig in delta[graph]['edges']
@@ -464,7 +480,6 @@ class ORM(object):
 
 	plan.__doc__ = PlanningContext.__doc__
 
-	@contextmanager
 	def advancing(self):
 		"""A context manager for when time is moving forward one turn at a time.
 
@@ -472,13 +487,8 @@ class ORM(object):
         It changes how the caching works, making it more efficient.
 
         """
-		if self._forward:
-			raise ValueError("Already advancing")
-		self._forward = True
-		yield
-		self._forward = False
+		return AdvancingContext(self)
 
-	@contextmanager
 	def batch(self):
 		"""A context manager for when you're creating lots of state.
 
@@ -487,17 +497,7 @@ class ORM(object):
         You *can* combine this with ``advancing`` but it isn't any faster.
 
         """
-		if self._no_kc:
-			raise ValueError("Already in a batch")
-		self._no_kc = True
-		gc_was_active = gc.isenabled()
-		if gc_was_active:
-			gc.disable()
-		yield
-		if gc_was_active:
-			gc.enable()
-			gc.collect()
-		self._no_kc = False
+		return BatchContext(self)
 
 	def _arrange_caches_at_time(self, _, *, branch, turn, tick):
 		lock = self.world_lock
@@ -725,7 +725,7 @@ class ORM(object):
 			for graph, orig, dest, idx, key, value in evbranches[branch][turn][
 				tick_from:tick_to]:
 				edgevd = delta.setdefault(graph, {}).setdefault('edge_val', {}) \
-                                                                                                                                         .setdefault(orig, {}).setdefault(dest, {})
+                                                                                                                                                                                                                                                     .setdefault(orig, {}).setdefault(dest, {})
 				if graph_objs[graph].is_multigraph():
 					if idx in edgevd:
 						edgevd[idx][key] = value
@@ -1023,7 +1023,7 @@ class ORM(object):
 		branch_now, turn_now, tick_now = branch, turn, tick
 		branch_parents = self._branch_parents
 		for (branch, turn, tick) in \
-                                                                      self._keyframes_times:
+                                                                                                                            self._keyframes_times:
 			# Figure out the latest keyframe that is earlier than the present moment,
 			# and the earliest keyframe that is later than the present moment,
 			# for each graph.
@@ -1164,8 +1164,8 @@ class ORM(object):
 				self._node_val_cache.load(nodevalrows)
 				self._edge_val_cache.load(edgevalrows)
 			return None, None, \
-                                                                                                             {}, noderows, edgerows, graphvalrows, \
-                                                                                                             nodevalrows, edgevalrows
+                                                                                                                                                                                              {}, noderows, edgerows, graphvalrows, \
+                                                                                                                                                                                              nodevalrows, edgevalrows
 		past_branch, past_turn, past_tick = latest_past_keyframe
 		keyframed = {}
 
@@ -1261,8 +1261,8 @@ class ORM(object):
 			self._edge_val_cache.load(edgevalrows)
 
 		return latest_past_keyframe, earliest_future_keyframe, \
-                                                                           keyframed, noderows, edgerows, graphvalrows, \
-                                                                           nodevalrows, edgevalrows
+                                                                                                                                 keyframed, noderows, edgerows, graphvalrows, \
+                                                                                                                                 nodevalrows, edgevalrows
 
 	@world_locked
 	def unload(self):
@@ -1546,7 +1546,7 @@ class ORM(object):
 		# first make sure the cursor is not before the start of this branch
 		if branch != 'trunk':
 			parent, turn_start, tick_start, turn_end, tick_end = \
-                                                                                                      self._branches[
+                                                                                                                                                                                       self._branches[
 				branch]
 			if v < turn_start:
 				raise OutOfTimelineError(
@@ -1604,7 +1604,7 @@ class ORM(object):
 			if v > self._turn_end[time]:
 				self._turn_end[time] = v
 			parent, turn_start, tick_start, turn_end, tick_end = \
-                                                                                                      self._branches[
+                                                                                                                                                                                       self._branches[
 				branch]
 			if turn == turn_end and v > tick_end:
 				self._branches[
@@ -1636,6 +1636,15 @@ class ORM(object):
 		"""Return the branch, turn, and tick."""
 		return self._obranch, self._oturn, self._otick
 
+	@property
+	def _obranch(self):
+		return self.__obranch
+
+	@_obranch.setter
+	def _obranch(self, v):
+		assert isinstance(v, str)
+		self.__obranch = v
+
 	def _set_btt(self, branch: str, turn: int, tick: int):
 		(self._obranch, self._oturn, self._otick) = (branch, turn, tick)
 
@@ -1654,8 +1663,7 @@ class ORM(object):
 		branch, turn, tick = btt()
 		branch_turn = (branch, turn)
 		tick += 1
-		if branch_turn in turn_end_plan and \
-                                                                      tick <= turn_end_plan[branch_turn]:
+		if branch_turn in turn_end_plan and tick <= turn_end_plan[branch_turn]:
 			tick = turn_end_plan[branch_turn] + 1
 		if turn_end[branch_turn] > tick:
 			raise HistoricKeyError(

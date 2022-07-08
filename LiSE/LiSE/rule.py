@@ -553,7 +553,6 @@ class RuleFollower:
     get a :class:`RuleMapping` into
 
     """
-	__slots__ = ()
 
 	@property
 	def _rule_mapping(self):

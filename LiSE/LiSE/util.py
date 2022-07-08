@@ -15,6 +15,8 @@
 """Common utility functions and data structures.
 
 """
+import io
+from base64 import b64decode
 from _operator import ge, gt, le, lt, eq
 from abc import ABC, abstractmethod
 from collections.abc import Set
@@ -495,7 +497,9 @@ class AbstractEngine(ABC):
 				return handlers[code](data)
 			return msgpack.ExtType(code, data)
 
-		def unpacker(b: bytes):
+		def unpacker(b):
+			if isinstance(b, str):
+				b = b64decode(b)
 			the_unpacker = msgpack.Unpacker(ext_hook=unpack_handler,
 											raw=False,
 											strict_map_key=False)
@@ -754,7 +758,7 @@ class AbstractCharacter(Mapping):
 
 	def __eq__(self, other):
 		return isinstance(other, AbstractCharacter) \
-                                                               and self.name == other.name
+                                                                                                                                                         and self.name == other.name
 
 	def __iter__(self):
 		return iter(self.node)
