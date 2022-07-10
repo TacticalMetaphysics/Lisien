@@ -54,7 +54,7 @@ def install(engine,
 						location=startpos,
 						sickle_a=(n < n_sickles),
 						sickle_b=False,
-						male=engine.coinflip(),
+						male=engine.coin_flip(),
 						last_mate_turn=-1)
 		assert name in phys.thing
 		assert name not in phys.place
@@ -93,7 +93,7 @@ def install(engine,
 												critter["location"],
 												sickle_a=sickles.pop(),
 												sickle_b=sickles.pop(),
-												male=engine.coinflip(),
+												male=engine.coin_flip(),
 												last_mate_turn=engine.turn)
 		species.add_unit("physical", name)
 		critter['last_mate_turn'] = other_critter[

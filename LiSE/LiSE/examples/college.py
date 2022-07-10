@@ -70,7 +70,7 @@ def install(eng):
 		# or assigned this rule to the student directly.
 		for user in node.users.values():
 			if user.name not in ('physical', 'student_body'):
-				return not user.stat['lazy'] or node.engine.coinflip()
+				return not user.stat['lazy'] or node.engine.coin_flip()
 
 	@student_body.unit.rule
 	def leave_class(node):
@@ -203,8 +203,8 @@ def install(eng):
 					#  perhaps more logical when the places don't really
 					#  represent potential locations
 					student.stat['xp'] = 0
-					student.stat['drunkard'] = eng.coinflip()
-					student.stat['lazy'] = eng.coinflip()
+					student.stat['drunkard'] = eng.coin_flip()
+					student.stat['lazy'] = eng.coin_flip()
 				# Apply these previously written rules to each student
 				for rule in (drink, sloth):
 					student.rule(rule)

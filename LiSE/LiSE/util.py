@@ -506,11 +506,11 @@ class AbstractEngine(ABC):
 
 		return unpacker
 
-	def coinflip(self) -> bool:
+	def coin_flip(self) -> bool:
 		"""Return True or False with equal probability."""
 		return self.choice((True, False))
 
-	def dieroll(self, d) -> int:
+	def die_roll(self, d) -> int:
 		"""Roll a die with ``d`` faces. Return the result."""
 		return self.randint(1, d)
 
@@ -522,7 +522,7 @@ class AbstractEngine(ABC):
 
         """
 		for i in range(0, n):
-			yield self.dieroll(d)
+			yield self.die_roll(d)
 
 	def dice_check(self,
 					n: int,
@@ -754,7 +754,7 @@ class AbstractCharacter(Mapping):
 
 	def __eq__(self, other):
 		return isinstance(other, AbstractCharacter) \
-                           and self.name == other.name
+                                 and self.name == other.name
 
 	def __iter__(self):
 		return iter(self.node)
