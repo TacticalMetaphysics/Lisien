@@ -753,8 +753,7 @@ class AbstractCharacter(Mapping):
 		pass
 
 	def __eq__(self, other):
-		return isinstance(other, AbstractCharacter) \
-                                 and self.name == other.name
+		return isinstance(other, AbstractCharacter) and self.name == other.name
 
 	def __iter__(self):
 		return iter(self.node)
