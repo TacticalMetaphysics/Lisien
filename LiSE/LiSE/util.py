@@ -510,7 +510,7 @@ class AbstractEngine(ABC):
 		"""Return True or False with equal probability."""
 		return self.choice((True, False))
 
-	def roll_die(self, d) -> int:
+	def dieroll(self, d) -> int:
 		"""Roll a die with ``d`` faces. Return the result."""
 		return self.randint(1, d)
 
@@ -522,7 +522,7 @@ class AbstractEngine(ABC):
 
         """
 		for i in range(0, n):
-			yield self.roll_die(d)
+			yield self.dieroll(d)
 
 	def dice_check(self,
 					n: int,
