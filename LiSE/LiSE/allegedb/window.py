@@ -22,12 +22,10 @@ of the same key and neighboring ones repeatedly and in sequence.
 """
 from abc import abstractmethod, ABC
 from collections import deque
-from collections.abc import Mapping, MutableMapping, KeysView, ItemsView, \
- ValuesView
+from collections.abc import Mapping, MutableMapping, KeysView, ItemsView, ValuesView
 from itertools import chain
 from operator import itemgetter, lt, le
-from typing import Union, Callable, Dict, List, Tuple, Any, Iterable, Set, \
- Optional
+from typing import Union, Callable, Dict, List, Tuple, Any, Iterable, Set, Optional
 from enum import Enum
 
 get0 = itemgetter(0)
@@ -87,10 +85,10 @@ def within_history(rev: int, windowdict: 'WindowDict'):
 	"""Return whether the windowdict has history at the revision."""
 	if not windowdict:
 		return False
-	begin = windowdict._past[0][0] if windowdict._past else \
-        windowdict._future[-1][0]
-	end = windowdict._future[0][0] if windowdict._future else \
-        windowdict._past[-1][0]
+	begin = windowdict._past[0][0] if windowdict._past else windowdict._future[
+		-1][0]
+	end = windowdict._future[0][0] if windowdict._future else windowdict._past[
+		-1][0]
 	return begin <= rev <= end
 
 

@@ -170,8 +170,8 @@ class Portal(Edge, RuleFollower):
 
 	def __bool__(self):
 		"""It means something that I exist, even if I have no data."""
-		return self.orig in self.character.portal and \
-                     self.dest in self.character.portal[self.orig]
+		return self.orig in self.character.portal and self.dest in self.character.portal[
+			self.orig]
 
 	@property
 	def reciprocal(self):

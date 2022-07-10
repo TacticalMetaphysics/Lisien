@@ -55,8 +55,7 @@ from .node import Node
 from .thing import Thing
 from .place import Place
 from .portal import Portal
-from .util import getatt, singleton_get, timer, AbstractEngine, \
- AbstractCharacter
+from .util import getatt, singleton_get, timer, AbstractEngine, AbstractCharacter
 from .exc import WorldIntegrityError
 from .query import StatusAlias
 
@@ -231,8 +230,8 @@ class FacadePlace(FacadeNode):
 
 	def __init__(self, mapping, real_or_name, **kwargs):
 		super().__init__(mapping, real_or_name, **kwargs)
-		if isinstance(real_or_name, Place) or \
-                isinstance(real_or_name, FacadePlace):
+		if isinstance(real_or_name, Place) or isinstance(
+			real_or_name, FacadePlace):
 			self._real = real_or_name
 		else:
 			self._real = {'name': real_or_name}
@@ -619,8 +618,8 @@ class Facade(AbstractCharacter, nx.DiGraph):
 			return n
 
 		def __contains__(self, k):
-			if hasattr(self.facade.character, 'graph') \
-                       and k in self.facade.character.graph:
+			if hasattr(self.facade.character,
+						'graph') and k in self.facade.character.graph:
 				return True
 			return k in self._patch and self._patch[k] is not None
 
@@ -915,8 +914,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 					and not things_contains(charn, place, branch, turn, tick))
 
 		def __getitem__(self, place):
-			nodes_contains, things_contains, charn, btt, cache, character \
-                      = self._get_stuff
+			nodes_contains, things_contains, charn, btt, cache, character = self._get_stuff
 			branch, turn, tick = btt()
 			if not nodes_contains(charn, place, branch, turn,
 									tick) or things_contains(
@@ -929,8 +927,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			return cache[(charn, place)]
 
 		def __setitem__(self, place, v):
-			node_exists, exist_node, get_node, charn, character \
-                      = self._set_stuff
+			node_exists, exist_node, get_node, charn, character = self._set_stuff
 			exist_node(charn, place, True)
 			pl = get_node(character, place)
 			if not isinstance(pl, Place):
@@ -1337,8 +1334,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
             """
 			get_char_av_cache: MethodType
-			get_char_av_cache, get_char_only_graph, charn, btt \
-                      = self._node_stuff
+			get_char_av_cache, get_char_only_graph, charn, btt = self._node_stuff
 			try:
 				return get_char_av_cache(get_char_only_graph(charn, *btt()))
 			except KeyError:

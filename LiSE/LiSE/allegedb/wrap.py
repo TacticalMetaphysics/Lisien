@@ -16,8 +16,7 @@
 from functools import partial
 from itertools import zip_longest
 from abc import ABC, abstractmethod
-from collections.abc import MutableSet, MutableMapping, MutableSequence, \
- Mapping, Sequence, Iterable, Sized, Container
+from collections.abc import MutableSet, MutableMapping, MutableSequence, Mapping, Sequence, Iterable, Sized, Container
 from typing import Callable
 
 
