@@ -27,7 +27,6 @@ from multiprocessing import cpu_count
 from typing import Dict, Tuple, Set, Callable, Union, Any, Hashable, List, \
  Iterable, Optional
 
-import numpy as np
 import msgpack
 
 from .engine import Engine
@@ -75,12 +74,38 @@ def _dict_delta_removed(old: Dict[bytes, bytes], new: Dict[bytes, bytes],
 		current[k] = NONE
 
 
-def packed_dict_delta(old: Dict[bytes, bytes],
+def _packed_dict_delta_fallback(
+		old: Dict[bytes, bytes], new: Dict[bytes,
+											bytes]) -> FormerAndCurrentType:
+	pre = {}
+	post = {}
+	added_thread = Thread(target=_dict_delta_added, args=(old, new, pre, post))
+	removed_thread = Thread(target=_dict_delta_removed,
+							args=(old, new, pre, post))
+	added_thread.start()
+	removed_thread.start()
+	ks = old.keys() & new.keys()
+	oldv_l = []
+	newv_l = []
+	k_l = []
+	for k in ks:
+		oldv_l.append(old[k])
+		newv_l.append(new[k])
+		k_l.append(k)
+	for k, oldv, newv in zip(k_l, oldv_l, newv_l):
+		if oldv != newv:
+			pre[k] = oldv
+			post[k] = newv
+	added_thread.join()
+	removed_thread.join()
+	return pre, post
+
+
+def _packed_dict_delta(old: Dict[bytes, bytes],
 						new: Dict[bytes, bytes]) -> FormerAndCurrentType:
 	"""Describe changes from one shallow dictionary of msgpack data to another
 
     """
-
 	post = {}
 	pre = {}
 	added_thread = Thread(target=_dict_delta_added, args=(old, new, pre, post))
@@ -118,6 +143,13 @@ def packed_dict_delta(old: Dict[bytes, bytes],
 			pre[k] = former[:-1]
 			post[k] = current[:-1]
 	return pre, post
+
+
+try:
+	import numpy as np
+	packed_dict_delta = _packed_dict_delta
+except ImportError:
+	packed_dict_delta = _packed_dict_delta_fallback
 
 
 def _set_delta_added(old: Set[bytes], new: Set[bytes],
@@ -990,7 +1022,7 @@ class EngineHandle(object):
 			portiter = (chara.portal[orig][dest] for (orig, dest) in portals)
 		for portal in portiter:
 			result[pack(portal['origin'])][pack(portal['destination'])] \
-                               = pack(portal.rulebook.name)
+                                        = pack(portal.rulebook.name)
 		if (branch, turn, tick) != origtime:
 			self._real._set_btt(*origtime)
 		if portals == 'all':
@@ -1630,7 +1662,7 @@ class EngineHandle(object):
 		if patch is None:
 			del character.portal[orig][dest]
 		elif orig not in character.portal \
-                      or dest not in character.portal[orig]:
+                            or dest not in character.portal[orig]:
 			character.portal[orig][dest] = patch
 		else:
 			character.portal[orig][dest].update(patch)
