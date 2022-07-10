@@ -518,7 +518,7 @@ class AbstractEngine(ABC):
 		"""Roll ``n`` dice with ``d`` faces, and yield the results.
 
         This is an iterator. You'll get the result of each die in
-        successon.
+        succession.
 
         """
 		for i in range(0, n):
@@ -754,7 +754,7 @@ class AbstractCharacter(Mapping):
 
 	def __eq__(self, other):
 		return isinstance(other, AbstractCharacter) \
-                     and self.name == other.name
+                           and self.name == other.name
 
 	def __iter__(self):
 		return iter(self.node)
