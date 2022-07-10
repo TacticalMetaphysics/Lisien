@@ -64,8 +64,8 @@ def test_multi_keyframe(tempdir):
 	assert tick0 in eng._nodes_cache.keyframe['physical', ]['trunk'][0]
 	assert 1 in eng._nodes_cache.keyframe['physical', ]['trunk']
 	assert tick1 in eng._nodes_cache.keyframe['physical', ]['trunk'][1]
-	assert eng._nodes_cache.keyframe['physical',]['trunk'][0][tick0] \
-              != eng._nodes_cache.keyframe['physical',]['trunk'][1][tick1]
+	assert eng._nodes_cache.keyframe['physical', ]['trunk'][0][
+		tick0] != eng._nodes_cache.keyframe['physical', ]['trunk'][1][tick1]
 	eng.close()
 
 

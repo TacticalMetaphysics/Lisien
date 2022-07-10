@@ -506,8 +506,8 @@ class QueryEngine(query.QueryEngine):
 		unpack = self.unpack
 		for character, place, rulebook, rule, branch, turn, tick in self.sql(
 			'character_place_rules_handled_dump'):
-			yield unpack(character), unpack(place), unpack(rulebook), rule, \
-                                    branch, turn, tick
+			yield unpack(character), unpack(place), unpack(
+				rulebook), rule, branch, turn, tick
 
 	def character_place_rules_changes_dump(self):
 		jl = self.unpack
