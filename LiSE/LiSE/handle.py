@@ -149,6 +149,7 @@ try:
 	packed_dict_delta = _packed_dict_delta
 except ImportError:
 	packed_dict_delta = _packed_dict_delta_fallback
+	packed_dict_delta.__doc__ = _packed_dict_delta.__doc__
 
 
 def _set_delta_added(old: Set[bytes], new: Set[bytes],
@@ -398,6 +399,12 @@ class EngineHandle(object):
 						*,
 						btt: Tuple[str, int,
 									int] = None) -> Dict[bytes, bytes]:
+		"""Return a mapping describing a character
+
+		It has the keys 'nodes', 'edges', 'units', 'rulebooks', 'node_val', 'edge_val',
+		and whatever stats the character has.
+
+		"""
 		units = self._character_units_copy(char, btt=btt)
 		ports = self._character_portals_stat_copy(char, btt=btt)
 		ported = {}
@@ -430,6 +437,13 @@ class EngineHandle(object):
 
 	@prepacked
 	def copy_chars(self, chars: Union[str, Iterable[Hashable]]):
+		"""Return a mapping describing several characters
+
+		See the `copy_character` method for details on the format of submappings.
+
+		Special value 'all' gets mappings for every character that exists.
+
+		"""
 		if chars == 'all':
 			it = iter(self._real.character.keys())
 		else:
@@ -446,6 +460,12 @@ class EngineHandle(object):
 			*,
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
+		"""Return mappings describing changes to characters
+
+		By default, this will get the difference between the state previously
+		time travelled to with the `time_travel` method and that at the current
+		moment. Supply `btt_from` and `btt_to` to specify other times, in the
+		format `(branch, turn, tick)`."""
 		delt = self._get_char_deltas(chars, btt_from=btt_from, btt_to=btt_to)
 		ret = {}
 		for char, delta in delt.items():
@@ -596,6 +616,7 @@ class EngineHandle(object):
 	@timely
 	@prepacked
 	def next_turn(self) -> Tuple[bytes, bytes]:
+		"""Simulate a turn. Return whatever result, as well as a delta"""
 		pack = self.pack
 		self.debug(
 			'calling next_turn at {}, {}, {}'.format(*self._real._btt()))
@@ -635,10 +656,19 @@ class EngineHandle(object):
 					turn,
 					tick=None,
 					chars='all') -> Tuple[bytes, bytes]:
-		# TODO: detect if you're headed to sometime outside of the already simulated past, and respond appropriately
+		"""Go to a different `(branch, turn, tick)` and return a delta
+
+		For compatibility with `next_turn` this actually returns a tuple,
+		the 0th item of which is `None`.
+
+		"""
+		# TODO: detect if you're headed to sometime outside of the already
+		#       simulated past, and respond appropriately
 		#       - refuse to time travel to a plan
-		#       - refuse to go too far outside the past (I think no more than one turn)
-		#       That last would also make a lot of sense as a restriction of the LiSE core...
+		#       - refuse to go too far outside the past (I think no more than
+		#       one turn)
+		#       That last would also make a lot of sense as a restriction of
+		#       the LiSE core...
 		branch_from, turn_from, tick_from = self._real._btt()
 		slow_delta = branch != branch_from
 		self._real.time = (branch, turn)
@@ -663,6 +693,11 @@ class EngineHandle(object):
 	@timely
 	@prepacked
 	def increment_branch(self) -> bytes:
+		"""Generate a new branch name and switch to it
+
+		Returns the name of the new branch.
+
+		"""
 		branch = self._real.branch
 		m = match(r'(.*)(\d+)', branch)
 		if m:
@@ -686,6 +721,7 @@ class EngineHandle(object):
 
 	@timely
 	def add_character(self, char: Hashable, data: dict, attr: dict):
+		"""Make a new character, initialized with whatever data"""
 		# Probably not great that I am unpacking and then repacking the stats
 		character = self._real.new_character(char, **attr)
 		branch, turn, tick = self._get_btt()

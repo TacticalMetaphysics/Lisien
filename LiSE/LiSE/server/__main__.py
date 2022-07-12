@@ -12,6 +12,21 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""A simple local server providing access to a LiSE core
+
+Run this as:
+
+	python3 -m LiSE.server
+
+and it will start an HTTP server at localhost:8080. Send msgpack mappings
+to it, with the key 'command' set to the name of one of the methods in
+:class:`LiSE.handle.EngineHandle` and remaining keys set to arguments
+accepted by that method.
+
+Refer to :class:`LiSE.handle.EngineHandle` for documentation on those
+methods.
+
+"""
 import cherrypy
 from argparse import ArgumentParser
 from . import LiSEHandleWebService
