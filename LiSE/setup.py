@@ -12,18 +12,8 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import sys
-
-if sys.version_info[0] < 3 or (sys.version_info[0] == 3
-								and sys.version_info[1] < 7):
-	raise RuntimeError("LiSE requires Python 3.7 or later")
 import os
 from setuptools import setup
-
-with open(
-		os.path.join(os.path.dirname(os.path.abspath(__file__)),
-						'requirements.txt'), 'rt') as inf:
-	reqs = inf.readlines()
 
 shortdesc = "Rules engine for life simulation games"
 
@@ -36,16 +26,16 @@ else:
 	longdesc = shortdesc
 
 setup(name="LiSE",
-		version="0.12.1",
+		version="0.13.0",
 		description=shortdesc,
 		author="Zachary Spector",
 		author_email="public@zacharyspector.com",
+		python_requires=">=3.7",
 		license="AGPL3",
 		keywords="game simulation",
 		url="https://github.com/Tactical-Metaphysics/LiSE",
 		packages=["LiSE", "LiSE.server", "LiSE.examples", "LiSE.allegedb"],
 		package_data={'LiSE': ['sqlite.json']},
-		install_requires=reqs,
 		project_urls={
 			"Documentation": "https://tactical-metaphysics.github.io/LiSE/"
 		},

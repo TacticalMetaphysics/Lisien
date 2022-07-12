@@ -12,11 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import sys
-
-if sys.version_info[0] < 3 or (sys.version_info[0] == 3
-								and sys.version_info[1] < 7):
-	raise RuntimeError("ELiDE requires Python 3.7 or later")
 import os
 from setuptools import setup
 
@@ -41,7 +36,7 @@ else:
 	longdesc = shortdesc
 
 setup(name="ELiDE",
-		version="0.12.1",
+		version="0.13.0",
 		license="AGPL3",
 		packages=[
 			"ELiDE", "ELiDE.graph", "ELiDE.grid",
@@ -51,6 +46,7 @@ setup(name="ELiDE",
 			'ELiDE.kivygarden.texturestack': 'ELiDE/kivygarden/texturestack'
 		},
 		install_requires=reqs,
+		python_requires=">=3.7",
 		package_data={
 			"ELiDE": [
 				"assets/*.png", "assets/*.jpg", "assets/*.ttf",
