@@ -40,7 +40,7 @@ from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
 from .character import Facade
 from .reify import reify
-from .util import getatt, AbstractEngine, MSGPACK_TUPLE, AbstractCharacter
+from .util import getatt, AbstractEngine, MsgpackExtensionType, AbstractCharacter
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
 from .node import NodeContent, UserMapping, UserDescriptor
@@ -2597,7 +2597,7 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 			elif isinstance(r, tuple):
 				pacr = msgpack.Packer()
 				pacr.pack_ext_type(
-					MSGPACK_TUPLE,
+					MsgpackExtensionType.tuple,
 					msgpack.Packer().pack_array_header(len(r)) + b''.join(r))
 				resp += pacr.bytes()
 			elif isinstance(r, list):

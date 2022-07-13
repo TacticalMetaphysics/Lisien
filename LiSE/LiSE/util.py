@@ -18,6 +18,7 @@
 from _operator import ge, gt, le, lt, eq
 from abc import ABC, abstractmethod
 from collections.abc import Set
+from enum import Enum
 from operator import attrgetter, add, sub, mul, pow, truediv, floordiv, mod
 from functools import partial
 from contextlib import contextmanager
@@ -45,20 +46,23 @@ class FinalRule:
 
 final_rule = FinalRule()
 
-MSGPACK_TUPLE = 0x00
-MSGPACK_FROZENSET = 0x01
-MSGPACK_SET = 0x02
-MSGPACK_EXCEPTION = 0x03
-MSGPACK_CHARACTER = 0x7f
-MSGPACK_PLACE = 0x7e
-MSGPACK_THING = 0x7d
-MSGPACK_PORTAL = 0x7c
-MSGPACK_FINAL_RULE = 0x7b
-MSGPACK_FUNCTION = 0x7a
-MSGPACK_METHOD = 0x79
-MSGPACK_TRIGGER = 0x78
-MSGPACK_PREREQ = 0x77
-MSGPACK_ACTION = 0x76
+
+class MsgpackExtensionType(Enum):
+	"""Type codes for packing special LiSE types into msgpack"""
+	tuple = 0x00
+	frozenset = 0x01
+	set = 0x02
+	exception = 0x03
+	character = 0x7f
+	place = 0x7e
+	thing = 0x7d
+	portal = 0x7c
+	final_rule = 0x7b
+	function = 0x7a
+	method = 0x79
+	trigger = 0x78
+	prereq = 0x77
+	action = 0x76
 
 
 class getnoplan:
@@ -309,43 +313,45 @@ class AbstractEngine(ABC):
 	def pack(self):
 		handlers = {
 			self.char_cls:
-			lambda char: msgpack.ExtType(MSGPACK_CHARACTER, packer(char.name)),
+			lambda char: msgpack.ExtType(MsgpackExtensionType.character.value,
+											packer(char.name)),
 			self.place_cls:
 			lambda place: msgpack.ExtType(
-				MSGPACK_PLACE, packer([place.character.name, place.name])),
+				MsgpackExtensionType.place.value,
+				packer([place.character.name, place.name])),
 			self.thing_cls:
 			lambda thing: msgpack.ExtType(
-				MSGPACK_THING, packer([thing.character.name, thing.name])),
+				MsgpackExtensionType.thing.value,
+				packer([thing.character.name, thing.name])),
 			self.portal_cls:
 			lambda port: msgpack.ExtType(
-				MSGPACK_PORTAL,
+				MsgpackExtensionType.portal.value,
 				packer([
 					port.character.name, port.origin.name, port.destination.
 					name
 				])),
 			tuple:
-			lambda tup: msgpack.ExtType(MSGPACK_TUPLE, packer(list(tup))),
+			lambda tup: msgpack.ExtType(MsgpackExtensionType.tuple.value,
+										packer(list(tup))),
 			frozenset:
-			lambda frozs: msgpack.ExtType(MSGPACK_FROZENSET, packer(list(frozs)
-																	)),
+			lambda frozs: msgpack.ExtType(MsgpackExtensionType.frozenset.value,
+											packer(list(frozs))),
 			set:
-			lambda s: msgpack.ExtType(MSGPACK_SET, packer(list(s))),
+			lambda s: msgpack.ExtType(MsgpackExtensionType.set.value,
+										packer(list(s))),
 			FinalRule:
-			lambda obj: msgpack.ExtType(MSGPACK_FINAL_RULE, b""),
+			lambda obj: msgpack.ExtType(MsgpackExtensionType.final_rule.value,
+										b""),
 			FunctionType:
-			lambda func: msgpack.ExtType({
-				'method': MSGPACK_METHOD,
-				'function': MSGPACK_FUNCTION,
-				'trigger': MSGPACK_TRIGGER,
-				'prereq': MSGPACK_PREREQ,
-				'action': MSGPACK_ACTION
-			}[func.__module__], packer(func.__name__)),
+			lambda func: msgpack.ExtType(
+				getattr(MsgpackExtensionType, func.__module__).value,
+				packer(func.__name__)),
 			MethodType:
-			lambda meth: msgpack.ExtType(MSGPACK_METHOD, packer(meth.__name__)
-											),
+			lambda meth: msgpack.ExtType(MsgpackExtensionType.method.value,
+											packer(meth.__name__)),
 			Exception:
 			lambda exc: msgpack.ExtType(
-				MSGPACK_EXCEPTION,
+				MsgpackExtensionType.exception.value,
 				packer([exc.__class__.__name__] + list(exc.args)))
 		}
 
@@ -472,20 +478,34 @@ class AbstractEngine(ABC):
 				return portal_cls(char, orign, destn)
 
 		handlers = {
-			MSGPACK_CHARACTER: unpack_char,
-			MSGPACK_PLACE: unpack_place,
-			MSGPACK_THING: unpack_thing,
-			MSGPACK_PORTAL: unpack_portal,
-			MSGPACK_FINAL_RULE: lambda obj: final_rule,
-			MSGPACK_TUPLE: lambda ext: tuple(unpacker(ext)),
-			MSGPACK_FROZENSET: lambda ext: frozenset(unpacker(ext)),
-			MSGPACK_SET: lambda ext: set(unpacker(ext)),
-			MSGPACK_TRIGGER: lambda ext: getattr(trigger, unpacker(ext)),
-			MSGPACK_PREREQ: lambda ext: getattr(prereq, unpacker(ext)),
-			MSGPACK_ACTION: lambda ext: getattr(action, unpacker(ext)),
-			MSGPACK_FUNCTION: lambda ext: getattr(function, unpacker(ext)),
-			MSGPACK_METHOD: lambda ext: getattr(method, unpacker(ext)),
-			MSGPACK_EXCEPTION: unpack_exception
+			MsgpackExtensionType.character.value:
+			unpack_char,
+			MsgpackExtensionType.place.value:
+			unpack_place,
+			MsgpackExtensionType.thing.value:
+			unpack_thing,
+			MsgpackExtensionType.portal.value:
+			unpack_portal,
+			MsgpackExtensionType.final_rule.value:
+			lambda obj: final_rule,
+			MsgpackExtensionType.tuple.value:
+			lambda ext: tuple(unpacker(ext)),
+			MsgpackExtensionType.frozenset.value:
+			lambda ext: frozenset(unpacker(ext)),
+			MsgpackExtensionType.set.value:
+			lambda ext: set(unpacker(ext)),
+			MsgpackExtensionType.trigger.value:
+			lambda ext: getattr(trigger, unpacker(ext)),
+			MsgpackExtensionType.prereq.value:
+			lambda ext: getattr(prereq, unpacker(ext)),
+			MsgpackExtensionType.action.value:
+			lambda ext: getattr(action, unpacker(ext)),
+			MsgpackExtensionType.function.value:
+			lambda ext: getattr(function, unpacker(ext)),
+			MsgpackExtensionType.method.value:
+			lambda ext: getattr(method, unpacker(ext)),
+			MsgpackExtensionType.exception.value:
+			unpack_exception
 		}
 
 		def unpack_handler(code, data):

@@ -31,7 +31,7 @@ import msgpack
 from .engine import Engine
 from .node import Node
 from .portal import Portal
-from .util import MSGPACK_SET, AbstractCharacter
+from .util import MsgpackExtensionType, AbstractCharacter
 
 EMPTY_DELTA = ({}, {})
 
@@ -182,7 +182,7 @@ def concat_d(r: Dict[bytes, bytes]) -> bytes:
 	return resp
 
 
-SET_CODE = MSGPACK_SET.to_bytes(1, "big", signed=False)
+SET_CODE = MsgpackExtensionType.set.value.to_bytes(1, "big", signed=False)
 
 
 def concat_s(s: Set[bytes]) -> bytes:
