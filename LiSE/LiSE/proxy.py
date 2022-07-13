@@ -43,7 +43,7 @@ from .reify import reify
 from .util import getatt, AbstractEngine, MsgpackExtensionType, AbstractCharacter
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
-from .node import NodeContent, UserMapping, UserDescriptor
+from .node import NodeContent, UserMapping
 from .place import Place
 from .thing import Thing
 from .portal import Portal
@@ -180,15 +180,11 @@ class ProxyUserMapping(UserMapping):
 				yield user
 
 
-class ProxyUserDescriptor(UserDescriptor):
-	usermapping = ProxyUserMapping
-
-
 class NodeProxy(CachingEntityProxy):
 	rulebook = RulebookProxyDescriptor()
 
 	@property
-	def users(self):
+	def user(self):
 		return ProxyUserMapping(self)
 
 	@property
@@ -217,8 +213,6 @@ class NodeProxy(CachingEntityProxy):
 							rulebook=rb,
 							block=False,
 							branching=True)
-
-	user = ProxyUserDescriptor()
 
 	def __init__(self, character, nodename):
 		self.engine = character.engine
