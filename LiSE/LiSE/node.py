@@ -78,6 +78,12 @@ class UserMapping(Mapping):
 						if ex.deleted:
 							break
 
+	@property
+	def only(self):
+		if len(self) != 1:
+			raise AmbiguousUserError("No users, or more than one")
+		return next(iter(self.values()))
+
 	def __iter__(self):
 		yield from self._user_names()
 
@@ -248,35 +254,6 @@ class Origs(Mapping):
 		return OrigsValues(self)
 
 
-class UserDescriptor:
-	"""Give a node's user if there's only one
-
-    If there are many users, but one of them has the same name as this node, give that one.
-
-    Otherwise, raise AmbiguousUserError.
-
-    """
-	usermapping = UserMapping
-
-	def __get__(self, instance, owner):
-		mapping = self.usermapping(instance)
-		it = iter(mapping)
-		try:
-			k = next(it)
-		except StopIteration:
-			raise AmbiguousUserError("No users")
-		try:
-			next(it)
-			raise AmbiguousUserError(
-				"{} users. Use the ``users`` property".format(len(mapping)))
-		except StopIteration:
-			return mapping[k]
-		except AmbiguousUserError:
-			if instance.name in mapping:
-				return mapping[instance.name]
-			raise
-
-
 class Node(graph.Node, rule.RuleFollower):
 	"""The fundamental graph component, which edges (in LiSE, "portals")
     go between.
@@ -328,10 +305,8 @@ class Node(graph.Node, rule.RuleFollower):
 	predecessor = pred = getatt('preportal')
 	engine = getatt('db')
 
-	user = UserDescriptor()
-
 	@property
-	def users(self):
+	def user(self):
 		return UserMapping(self)
 
 	def __init__(self, character, name, clobber=False):
