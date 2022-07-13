@@ -430,7 +430,7 @@ class Node(graph.Node, rule.RuleFollower):
 			del self.character.portal[self.name]
 		if self.name in self.character.preportal:
 			del self.character.preportal[self.name]
-		for user in list(self.users.values()):
+		for user in list(self.user.values()):
 			user.remove_unit(self.character.name, self.name)
 		branch, turn, tick = self.engine._nbtt()
 		self.engine._nodes_cache.store(self.character.name, self.name, branch,
