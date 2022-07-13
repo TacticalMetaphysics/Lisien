@@ -77,7 +77,7 @@ def install(engine,
 	def mate(critter):
 		"""If I share my location with another critter, attempt to mate"""
 		engine = critter.engine
-		species = critter.user
+		species = critter.user.only
 		suitors = list(oc for oc in critter.location.contents()
 						if oc['male'] != critter['male'])
 		assert (len(suitors) > 0)
@@ -113,7 +113,7 @@ def install(engine,
 
 	@mate.trigger
 	def in_the_mood(critter):
-		return critter.engine.random() < critter.user.stat['mate_chance']
+		return critter.engine.random() < critter.user.only.stat['mate_chance']
 
 	@dieoff.trigger
 	def sickle2(critter):
@@ -124,7 +124,7 @@ def install(engine,
 
 	@dieoff.trigger
 	def malaria(critter):
-		r = (critter.engine.random() < critter.user.stat['malaria_chance']
+		r = (critter.engine.random() < critter.user.only.stat['malaria_chance']
 				and not (critter['sickle_a'] or critter['sickle_b']))
 		if r:
 			critter['from_malaria'] = True
