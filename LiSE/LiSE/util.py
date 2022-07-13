@@ -256,8 +256,7 @@ _sort_set_memo = {}
 def sort_set(s):
 	"""Return a sorted list of the contents of a set
 
-    This is intended to be used to iterate over world state, where you just need keys
-    to be in some deterministic order, but the sort order should be obvious from the key.
+    This is intended to be used to iterate over world state.
 
     Non-strings come before strings and then tuples. Tuples compare element-wise as normal.
     But ultimately all comparisons are between values' ``repr``.
