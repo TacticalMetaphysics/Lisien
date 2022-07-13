@@ -246,7 +246,7 @@ def _sort_set_key(v):
 	if isinstance(v, tuple):
 		return (2, ) + tuple(map(repr, v))
 	if isinstance(v, str):
-		return 1, repr(v)
+		return 1, v
 	return 0, repr(v)
 
 
