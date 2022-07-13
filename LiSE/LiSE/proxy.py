@@ -2597,7 +2597,7 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 			elif isinstance(r, tuple):
 				pacr = msgpack.Packer()
 				pacr.pack_ext_type(
-					MsgpackExtensionType.tuple,
+					MsgpackExtensionType.tuple.value,
 					msgpack.Packer().pack_array_header(len(r)) + b''.join(r))
 				resp += pacr.bytes()
 			elif isinstance(r, list):
