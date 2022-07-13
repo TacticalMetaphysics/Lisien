@@ -12,7 +12,15 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Common classes for collections in LiSE, of which most can be bound to."""
+"""Common classes for collections in LiSE
+
+Notably includes wrappers for mutable objects, allowing them to be stored in
+the database. These simply store the new value.
+
+Most of these are subclasses of ``blinker.Signal``, so you can listen
+for changes using the ``connect(..)`` method.
+
+"""
 from io import StringIO
 from collections.abc import MutableMapping
 from copy import deepcopy
@@ -154,7 +162,7 @@ class FunctionStore(Signal):
 	def __init__(self, filename):
 		if not filename.endswith(".py"):
 			raise ValueError(
-				"FunctionStore can only work with pure Python source code with .py extension"
+				"FunctionStore can only work with pure Python source code"
 			)
 		super().__init__()
 		self._filename = fullname = os.path.abspath(os.path.realpath(filename))
@@ -403,6 +411,7 @@ class CharacterMapping(MutableMapping, Signal):
 
 
 class CompositeDict(MutableMapping):
+	"""Combine two dictionaries into one"""
 	__slots__ = ['d1', 'd2']
 
 	def __init__(self, d1, d2):
@@ -443,6 +452,7 @@ class CompositeDict(MutableMapping):
 			raise KeyError("{} is in neither of my wrapped dicts".format(key))
 
 	def patch(self, d):
+		"""Recursive update"""
 		for k, v in d.items():
 			if k in self:
 				self[k].update(v)
