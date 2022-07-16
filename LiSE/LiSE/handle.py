@@ -130,8 +130,6 @@ def _packed_dict_delta(old: Dict[bytes, bytes],
 	changes = oldvs != newvs
 	added_thread.join()
 	removed_thread.join()
-	if not (changes.any() or post):
-		return {}, {}
 	if changes.any():
 		changed_keys = ks[changes]
 		changed_values = newvs[changes]
