@@ -879,7 +879,8 @@ class ORM(object):
 		}  # branch: (turn_from, tick_from, turn_to, tick_to)
 		self._init_load()
 		self.cache_arrange_queue = Queue()
-		self._cache_arrange_thread = Thread(target=self._arrange_cache_loop)
+		self._cache_arrange_thread = Thread(target=self._arrange_cache_loop,
+											daemon=True)
 		self.arrange_cache_signal = Signal()
 		self.arrange_cache_signal.connect(self._arrange_caches_at_time)
 		if cache_arranger:

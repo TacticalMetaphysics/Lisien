@@ -293,7 +293,7 @@ class QueryEngine(object):
 		self._nodes2set = []
 		self._edges2set = []
 		self._btts = set()
-		self._t = Thread(target=self._holder.run)
+		self._t = Thread(target=self._holder.run, daemon=True)
 		self._t.start()
 
 	def sql(self, string, *args, **kwargs):
