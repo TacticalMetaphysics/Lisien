@@ -17,10 +17,8 @@ import LiSE.allegedb.tests.test_all
 import pytest
 import LiSE.examples.kobold as kobold
 import LiSE.examples.college as college
-import os
 import shutil
 import tempfile
-from . import data
 
 
 class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
