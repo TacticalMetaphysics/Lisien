@@ -15,7 +15,6 @@
 import pytest
 
 from LiSE.allegedb import OutOfTimelineError
-from LiSE.allegedb.window import HistoricKeyError
 
 
 @pytest.fixture(scope='function')
