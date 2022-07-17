@@ -21,6 +21,8 @@ import os
 import shutil
 import tempfile
 
+pytestmark = [pytest.mark.slow]
+
 
 @pytest.fixture(scope='module')
 def college24_premade():

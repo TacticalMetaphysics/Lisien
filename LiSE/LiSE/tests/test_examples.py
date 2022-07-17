@@ -1,9 +1,11 @@
 import networkx as nx
+import pytest
 
 from LiSE import Engine
 from LiSE.examples import college, kobold, polygons, sickle
 
 
+@pytest.mark.slow
 def test_college(engy):
 	college.install(engy)
 	for i in range(10):

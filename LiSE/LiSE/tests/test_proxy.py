@@ -109,6 +109,7 @@ def test_fast_delta(handle_initialized):
 	assert hand.unpack(diff4) == slowd4, "Fast delta differs from slow delta"
 
 
+@pytest.mark.slow
 def test_serialize_deleted(engy):
 	eng = engy
 	with eng.advancing():
