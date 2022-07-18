@@ -2101,7 +2101,7 @@ class EngineProxy(AbstractEngine):
 		self.function = FuncStoreProxy(self, 'function')
 		self.string = StringStoreProxy(self)
 		self.rando = RandoProxy(self)
-		self.send_bytes(self.pack({'command': 'get_watched_btt'}))
+		self.send_bytes(self.pack({'command': 'get_btt'}))
 		received = self.unpack(self.recv_bytes())
 		self._branch, self._turn, self._tick = received[-1]
 		self.method.load()

@@ -609,6 +609,11 @@ class Engine(AbstractEngine, gORM):
 
         """
 		from .allegedb.window import update_window, update_backward_window
+		if not isinstance(branch, str):
+			raise TypeError("branch must be str")
+		for arg in (turn_from, tick_from, turn_to, tick_to):
+			if not isinstance(arg, int):
+				raise TypeError("turn and tick must be int")
 		if turn_from == turn_to:
 			return self.get_turn_delta(branch,
 										turn_to,

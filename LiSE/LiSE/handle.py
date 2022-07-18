@@ -212,18 +212,6 @@ def concat_s(s: Set[bytes]) -> bytes:
 		raise ValueError("Too long")
 
 
-def timely(fun: Callable) -> Callable:
-
-	@wraps(fun)
-	def run_timely(self, *args, **kwargs):
-		ret = fun(self, *args, **kwargs)
-		self.branch, self.turn, self.tick = self._real._btt()
-		return ret
-
-	run_timely.timely = True
-	return run_timely
-
-
 def prepacked(fun: Callable) -> Callable:
 	fun.prepacked = True
 	return fun
@@ -275,9 +263,6 @@ class EngineHandle(object):
 
 		self.unpack_dict = unpack_dict
 		self._muted_chars = set()
-		self.branch = self._real.branch
-		self.turn = self._real.turn
-		self.tick = self._real.tick
 		# It's possible that the memoization I've done could break if this handle observes the world while it's in
 		# a planning context. This shouldn't happen, I think
 		self._node_stat_copy_memo: Dict[tuple, Dict[bytes, bytes]] = {}
@@ -313,6 +298,18 @@ class EngineHandle(object):
 		self._real.arrange_cache_signal.connect(self._precopy_at_time)
 		self.threadpool = ThreadPoolExecutor(cpu_count())
 		self._cache_arranger_started = False
+
+	@property
+	def branch(self):
+		return self._real.branch
+
+	@property
+	def turn(self):
+		return self._real.turn
+
+	@property
+	def tick(self):
+		return self._real.tick
 
 	def _precopy_at_time(self, _, *, branch: str, turn: int,
 							tick: int) -> None:
@@ -365,7 +362,6 @@ class EngineHandle(object):
 		"""Return whether the sim-time has been prevented from advancing"""
 		return hasattr(self._real, 'locktime')
 
-	@timely
 	def advance(self) -> None:
 		"""Run one rule"""
 		self._real.advance()
@@ -611,7 +607,6 @@ class EngineHandle(object):
 			almost_entirely_packed_delta[RULEBOOKS] = rules
 		return concat_d(almost_entirely_packed_delta)
 
-	@timely
 	@prepacked
 	def next_turn(self) -> Tuple[bytes, bytes]:
 		"""Simulate a turn. Return whatever result, as well as a delta"""
@@ -632,6 +627,10 @@ class EngineHandle(object):
 			btt_to: Tuple[str, int, int] = None) -> SlightlyPackedDeltaType:
 		pack = self._real.pack
 		delta: Dict[bytes, Any] = {}
+		btt_from = self._get_btt(btt_from)
+		btt_to = self._get_btt(btt_to)
+		if btt_from == btt_to:
+			return delta
 		if chars:
 			delta = self._get_char_deltas(chars,
 											btt_from=btt_from,
@@ -647,7 +646,6 @@ class EngineHandle(object):
 			delta[RULEBOOKS] = dict(map(self.pack_pair, rbd.items()))
 		return delta
 
-	@timely
 	@prepacked
 	def time_travel(self,
 					branch,
@@ -671,11 +669,9 @@ class EngineHandle(object):
 		slow_delta = branch != branch_from
 		self._real.time = (branch, turn)
 		if tick is None:
-			self.tick = tick = self._real.tick
+			tick = self._real.tick
 		else:
 			self._real.tick = tick
-		self.branch = branch
-		self.turn = turn
 		if slow_delta:
 			delta = self._get_slow_delta(chars,
 											btt_from=(branch_from, turn_from,
@@ -688,7 +684,6 @@ class EngineHandle(object):
 			slightly_packed_delta, packed_delta = self._pack_delta(delta)
 		return NONE, packed_delta
 
-	@timely
 	@prepacked
 	def increment_branch(self) -> bytes:
 		"""Generate a new branch name and switch to it
@@ -714,10 +709,9 @@ class EngineHandle(object):
 			while stem + str(n) in self._real._branches:
 				n += 1
 			branch = stem + str(n)
-		self._real.branch = self.branch = branch
+		self._real.branch = branch
 		return self.pack(branch)
 
-	@timely
 	def add_character(self, char: Hashable, data: dict, attr: dict):
 		"""Make a new character, initialized with whatever data"""
 		# Probably not great that I am unpacking and then repacking the stats
@@ -754,31 +748,11 @@ class EngineHandle(object):
 		self._real.close()
 		self.threadpool.shutdown()
 
-	def get_branch(self):
-		return self._real.branch
-
-	def get_watched_branch(self):
-		return self.branch
-
-	def set_branch(self, branch):
-		self._real.branch = branch
-		self.branch = branch
-
-	def get_tick(self):
-		return self._real.tick
-
-	def get_watched_tick(self):
-		return self.tick
-
-	def set_tick(self, tick):
-		self._real.tick = tick
-		self.tick = tick
-
 	def get_time(self):
 		return self._real.time
 
-	def get_watched_btt(self):
-		return self.branch, self.turn, self.tick
+	def get_btt(self):
+		return self._real._btt()
 
 	def get_language(self):
 		return str(self._real.string.language)
@@ -831,11 +805,9 @@ class EngineHandle(object):
 	def get_universal(self, k):
 		return self._real.universal[k]
 
-	@timely
 	def set_universal(self, k, v):
 		self._real.universal[k] = v
 
-	@timely
 	def del_universal(self, k):
 		del self._real.universal[k]
 
@@ -855,11 +827,12 @@ class EngineHandle(object):
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
 		memo = self._universal_delta_memo
-		btt_from = self._get_watched_btt(btt_from)
+		if btt_from is None:
+			btt_from = self.get_btt()
 		btt_to = self._get_btt(btt_to)
 		if btt_from in memo and btt_to in memo[btt_from]:
 			return memo[btt_from][btt_to]
-		old = self.universal_copy(btt=self._get_watched_btt(btt_from))
+		old = self.universal_copy(btt=btt_from)
 		new = self._universal_copy_memo[btt_to] = self.universal_copy(
 			btt=btt_to)
 		former, current = packed_dict_delta(old, new)
@@ -867,7 +840,6 @@ class EngineHandle(object):
 		memo[btt_to][btt_from] = former
 		return current
 
-	@timely
 	def init_character(self, char, statdict: dict = None):
 		if char in self._real.character:
 			raise KeyError("Already have character {}".format(char))
@@ -877,7 +849,6 @@ class EngineHandle(object):
 		self._real.character[char].stat.update(statdict)
 		self.character_stat_copy(char)
 
-	@timely
 	def del_character(self, char):
 		del self._real.character[char]
 
@@ -903,7 +874,11 @@ class EngineHandle(object):
 									*args,
 									btt_from: Tuple[str, int, int] = None,
 									btt_to: Tuple[str, int, int] = None):
-		old = copier(char, *args, btt=self._get_watched_btt(btt_from))
+		btt_from = self._get_btt(btt_from)
+		btt_to = self._get_btt(btt_to)
+		if btt_from == btt_to:
+			return {}, {}
+		old = copier(char, *args, btt=btt_from)
 		new = copier(char, *args, btt=btt_to)
 		return packed_dict_delta(old, new)
 
@@ -942,8 +917,11 @@ class EngineHandle(object):
 		btt_to: Tuple[str, int, int] = None
 	) -> Tuple[Dict[bytes, Dict[bytes, bytes]], Dict[bytes, Dict[bytes,
 																	bytes]]]:
-		old = self._character_units_copy(
-			char, btt=self._get_watched_btt(btt_from))
+		btt_from = self._get_btt(btt_from)
+		btt_to = self._get_btt(btt_to)
+		if btt_from == btt_to:
+			return {}, {}
+		old = self._character_units_copy(char, btt=btt_from)
 		new = defaultdict(set)
 		new.update(self._character_units_copy(char, btt=btt_to))
 		former: Dict[bytes, Dict[bytes, bytes]] = {}
@@ -1074,8 +1052,11 @@ class EngineHandle(object):
 		btt_to: Tuple[str, int, int] = None
 	) -> Tuple[Dict[bytes, Dict[bytes, bytes]], Dict[bytes, Dict[bytes,
 																	bytes]]]:
-		old = self.character_portals_rulebooks_copy(
-			char, portals, self._get_watched_btt(btt_from))
+		btt_from = self._get_btt(btt_from)
+		btt_to = self._get_btt(btt_to)
+		if btt_from == btt_to:
+			return {}, {}
+		old = self.character_portals_rulebooks_copy(char, portals, btt_from)
 		new: Dict[bytes,
 					Dict[bytes,
 							bytes]] = self.character_portals_rulebooks_copy(
@@ -1100,8 +1081,10 @@ class EngineHandle(object):
 		btt_from: Tuple[str, int, int] = None,
 		btt_to: Tuple[str, int, int] = None
 	) -> Dict[bytes, Union[bytes, Dict[bytes, bytes]]]:
-		observed_btt = self._get_watched_btt(btt_from)
+		observed_btt = self._get_btt(btt_from)
 		actual_btt = self._get_btt(btt_to)
+		if observed_btt == actual_btt:
+			return {}
 		memo = self._character_delta_memo[char]
 		if observed_btt in memo and actual_btt in memo[observed_btt]:
 			return memo[observed_btt][actual_btt]
@@ -1189,19 +1172,15 @@ class EngineHandle(object):
 		self._character_delta_memo[char][actual_btt][observed_btt] = former
 		return current
 
-	@timely
 	def set_character_stat(self, char: Hashable, k: Hashable, v) -> None:
 		self._real.character[char].stat[k] = v
 
-	@timely
 	def del_character_stat(self, char: Hashable, k: Hashable) -> None:
 		del self._real.character[char].stat[k]
 
-	@timely
 	def update_character_stats(self, char: Hashable, patch: Dict) -> None:
 		self._real.character[char].stat.update(patch)
 
-	@timely
 	def update_character(self, char: Hashable, patch: Dict):
 		self.update_character_stats(char, patch['character'])
 		self.update_nodes(char, patch['node'])
@@ -1210,12 +1189,10 @@ class EngineHandle(object):
 	def characters(self) -> List[Hashable]:
 		return list(self._real.character.keys())
 
-	@timely
 	def set_node_stat(self, char: Hashable, node: Hashable, k: Hashable,
 						v) -> None:
 		self._real.character[char].node[node][k] = v
 
-	@timely
 	def del_node_stat(self, char: Hashable, node: Hashable,
 						k: Hashable) -> None:
 		del self._real.character[char].node[node][k]
@@ -1224,13 +1201,6 @@ class EngineHandle(object):
 					btt: Tuple[str, int, int] = None) -> Tuple[str, int, int]:
 		if btt is None:
 			return self._real._btt()
-		return btt
-
-	def _get_watched_btt(self,
-							btt: Tuple[str, int,
-										int] = None) -> Tuple[str, int, int]:
-		if btt is None:
-			return self.branch, self.turn, self.tick
 		return btt
 
 	@prepacked
@@ -1271,9 +1241,7 @@ class EngineHandle(object):
         last time you looked at it.
 
         """
-		old = self.node_stat_copy(char,
-									node,
-									btt=self._get_watched_btt(btt_from))
+		old = self.node_stat_copy(char, node, btt=btt_from)
 		new = self.node_stat_copy(char, node, btt=btt_to)
 		return packed_dict_delta(old, new)
 
@@ -1326,7 +1294,6 @@ class EngineHandle(object):
 			for node in self._real.character[char].node
 		}
 
-	@timely
 	def update_node(self, char: Hashable, node: Hashable, patch: Dict) -> None:
 		"""Change a node's stats according to a dictionary.
 
@@ -1344,7 +1311,6 @@ class EngineHandle(object):
 		else:
 			character.node[node].update(patch)
 
-	@timely
 	def update_nodes(self, char: Hashable, patch: Dict, backdate=False):
 		"""Change the stats of nodes in a character according to a
         dictionary.
@@ -1361,7 +1327,6 @@ class EngineHandle(object):
 		if backdate:
 			self._real.tick = tick_now
 
-	@timely
 	def del_node(self, char, node):
 		"""Remove a node from a character."""
 		del self._real.character[char].node[node]
@@ -1393,7 +1358,7 @@ class EngineHandle(object):
 			*,
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> FormerAndCurrentType:
-		old = self.character_nodes(char, btt=self._get_watched_btt(btt_from))
+		old = self.character_nodes(char, btt=btt_from)
 		new = self.character_nodes(char, btt=btt_to)
 		return set_delta(old, new)
 
@@ -1431,7 +1396,6 @@ class EngineHandle(object):
 						dest: Hashable) -> bool:
 		return dest in self._real.character[char].portal[orig]
 
-	@timely
 	def init_thing(self,
 					char: Hashable,
 					thing: Hashable,
@@ -1443,26 +1407,21 @@ class EngineHandle(object):
 			statdict = {}
 		return self.set_thing(char, thing, statdict)
 
-	@timely
 	def set_thing(self, char: Hashable, thing: Hashable,
 					statdict: Dict) -> None:
 		self._real.character[char].thing[thing] = statdict
 
-	@timely
 	def add_thing(self, char: Hashable, thing: Hashable, loc: Hashable,
 					statdict: Dict) -> None:
 		self._real.character[char].add_thing(thing, loc, **statdict)
 
-	@timely
 	def place2thing(self, char: Hashable, node: Hashable,
 					loc: Hashable) -> None:
 		self._real.character[char].place2thing(node, loc)
 
-	@timely
 	def thing2place(self, char: Hashable, node: Hashable) -> None:
 		self._real.character[char].thing2place(node)
 
-	@timely
 	def add_things_from(self, char: Hashable, seq: Iterable) -> None:
 		for thing in seq:
 			self.add_thing(char, *thing)
@@ -1474,24 +1433,20 @@ class EngineHandle(object):
 		except KeyError:
 			return None
 
-	@timely
 	def set_thing_location(self, char: Hashable, thing: Hashable,
 							loc: Hashable) -> None:
 		self._real.character[char].thing[thing]['location'] = loc
 
-	@timely
 	def thing_follow_path(self, char: Hashable, thing: Hashable,
 							path: List[Hashable], weight: Hashable) -> int:
 		return self._real.character[char].thing[thing].follow_path(
 			path, weight)
 
-	@timely
 	def thing_go_to_place(self, char: Hashable, thing: Hashable,
 							place: Hashable, weight: Hashable) -> int:
 		return self._real.character[char].thing[thing].go_to_place(
 			place, weight)
 
-	@timely
 	def thing_travel_to(self,
 						char: Hashable,
 						thing: Hashable,
@@ -1509,7 +1464,6 @@ class EngineHandle(object):
 		return self._real.character[char].thing[thing].travel_to(
 			dest, weight, graph)
 
-	@timely
 	def init_place(self,
 					char: Hashable,
 					place: Hashable,
@@ -1521,13 +1475,11 @@ class EngineHandle(object):
 			statdict = {}
 		return self.set_place(char, place, statdict)
 
-	@timely
 	def set_place(self, char: Hashable, place: Hashable,
 					statdict: Dict) -> None:
 		self._real.character[char].place[place] = statdict
 		self._after_ret = partial(self.node_stat_copy, char, place)
 
-	@timely
 	def add_places_from(self, char: Hashable, seq: Iterable) -> None:
 		self._real.character[char].add_places_from(seq)
 
@@ -1556,17 +1508,17 @@ class EngineHandle(object):
 			*,
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> FormerAndCurrentType:
-		old = self.character_portals(char, btt=self._get_watched_btt(btt_from))
+		if btt_from == btt_to:
+			return {}, {}
+		old = self.character_portals(char, btt=btt_from)
 		new = self.character_portals(char, btt=btt_to)
 		return set_delta(old, new)
 
-	@timely
 	def add_portal(self, char: Hashable, orig: Hashable, dest: Hashable,
 					symmetrical: bool, statdict: Dict) -> None:
 		self._real.character[char].add_portal(orig, dest, symmetrical,
 												**statdict)
 
-	@timely
 	def add_portals_from(self, char: Hashable, seq: Iterable,
 							symmetrical: bool) -> None:
 		self._real.character[char].add_portals_from(seq, symmetrical)
@@ -1617,10 +1569,11 @@ class EngineHandle(object):
 			*,
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> FormerAndCurrentType:
-		old = self.portal_stat_copy(char,
-									orig,
-									dest,
-									btt=self._get_watched_btt(btt_from))
+		btt_from = self._get_btt(btt_from)
+		btt_to = self._get_btt(btt_to)
+		if btt_from == btt_to:
+			return {}, {}
+		old = self.portal_stat_copy(char, orig, dest, btt=btt_from)
 		new = self.portal_stat_copy(char, orig, dest, btt=btt_to)
 		return packed_dict_delta(old, new)
 
@@ -1653,11 +1606,13 @@ class EngineHandle(object):
 		btt_to: Tuple[str, int, int] = None
 	) -> Tuple[Dict[bytes, Dict[bytes, bytes]], Dict[bytes, Dict[bytes,
 																	bytes]]]:
+		btt_from = self._get_btt(btt_from)
+		btt_to = self._get_btt(btt_to)
+		if btt_from == btt_to:
+			return {}, {}
 		former = {}
 		current = {}
 		futs = []
-		btt_from = self._get_watched_btt(btt_from)
-		btt_to = self._get_btt(btt_to)
 		origtime = self._real._btt()
 		self._real._set_btt(*btt_from)
 		ports_from = set(self._real.character[char].portals())
@@ -1688,7 +1643,6 @@ class EngineHandle(object):
 				former[orig][dest] = fmr
 		return former, current
 
-	@timely
 	def update_portal(self, char: Hashable, orig: Hashable, dest: Hashable,
 						patch: Dict) -> None:
 		character = self._real.character[char]
@@ -1699,27 +1653,22 @@ class EngineHandle(object):
 		else:
 			character.portal[orig][dest].update(patch)
 
-	@timely
 	def update_portals(self, char: Hashable,
 						patch: Dict[Tuple[Hashable, Hashable], Dict]) -> None:
 		for ((orig, dest), ppatch) in patch.items():
 			self.update_portal(char, orig, dest, ppatch)
 
-	@timely
 	def add_unit(self, char: Hashable, graph: Hashable,
 					node: Hashable) -> None:
 		self._real.character[char].add_unit(graph, node)
 
-	@timely
 	def remove_unit(self, char: Hashable, graph: Hashable,
 					node: Hashable) -> None:
 		self._real.character[char].remove_unit(graph, node)
 
-	@timely
 	def new_empty_rule(self, rule: str) -> None:
 		self._real.rule.new_empty(rule)
 
-	@timely
 	def new_empty_rulebook(self, rulebook: Hashable, btt=None) -> list:
 		branch, turn, tick = self._get_btt(btt)
 		self._rulebook_copy_memo[rulebook, branch, turn, tick] = []
@@ -1744,7 +1693,7 @@ class EngineHandle(object):
 			*,
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> Optional[List[str]]:
-		old = self.rulebook_copy(rulebook, btt=self._get_watched_btt(btt_from))
+		old = self.rulebook_copy(rulebook, btt=btt_from)
 		new = self.rulebook_copy(rulebook, btt=btt_to)
 		if old == new:
 			return
@@ -1755,6 +1704,10 @@ class EngineHandle(object):
 			*,
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> Dict[Hashable, List[str]]:
+		btt_from = self._get_btt(btt_from)
+		btt_to = self._get_btt(btt_to)
+		if btt_from == btt_to:
+			return {}
 		ret = {}
 		for rulebook in self._real.rulebook.keys():
 			delta = self.rulebook_delta(rulebook,
@@ -1777,7 +1730,6 @@ class EngineHandle(object):
 		self._real._set_btt(*origtime)
 		return ret
 
-	@timely
 	def set_rulebook_rule(self, rulebook: Hashable, i: int, rule: str) -> None:
 		self._real.rulebook[rulebook][i] = rule
 		branch, turn, tick = self._real._btt()
@@ -1785,7 +1737,6 @@ class EngineHandle(object):
 		if (rulebook, branch, turn, tick) in memo:
 			memo[rulebook, branch, turn, tick][i] = rule
 
-	@timely
 	def ins_rulebook_rule(self, rulebook: Hashable, i: int, rule: str) -> None:
 		self._real.rulebook[rulebook].insert(i, rule)
 		branch, turn, tick = self._real._btt()
@@ -1793,7 +1744,6 @@ class EngineHandle(object):
 		if (rulebook, branch, turn, tick) in memo:
 			memo[rulebook, branch, turn, tick].insert(i, rule)
 
-	@timely
 	def del_rulebook_rule(self, rulebook: Hashable, i: int) -> None:
 		del self._real.rulebook[rulebook][i]
 		branch, turn, tick = self._real._btt()
@@ -1801,7 +1751,6 @@ class EngineHandle(object):
 		if (rulebook, branch, turn, tick) in memo:
 			del memo[rulebook, branch, turn, tick][i]
 
-	@timely
 	def set_rule_triggers(self, rule: str, triggers: List[str]) -> None:
 		self._real.rule[rule].triggers = triggers
 		branch, turn, tick = self._real._btt()
@@ -1809,7 +1758,6 @@ class EngineHandle(object):
 		if (rule, branch, turn, tick) in memo:
 			memo[rule, branch, turn, tick]['triggers'] = triggers
 
-	@timely
 	def set_rule_prereqs(self, rule: str, prereqs: List[str]) -> None:
 		self._real.rule[rule].prereqs = prereqs
 		branch, turn, tick = self._real._btt()
@@ -1817,7 +1765,6 @@ class EngineHandle(object):
 		if (rule, branch, turn, tick) in memo:
 			memo[rule, branch, turn, tick]['prereqs'] = prereqs
 
-	@timely
 	def set_rule_actions(self, rule: str, actions: List[str]) -> None:
 		self._real.rule[rule].actions = actions
 		branch, turn, tick = self._real._btt()
@@ -1825,41 +1772,33 @@ class EngineHandle(object):
 		if (rule, branch, turn, tick) in memo:
 			memo[rule, branch, turn, tick]['actions'] = actions
 
-	@timely
 	def set_character_rulebook(self, char: Hashable,
 								rulebook: Hashable) -> None:
 		self._real.character[char].rulebook = rulebook
 
-	@timely
 	def set_unit_rulebook(self, char: Hashable, rulebook: Hashable) -> None:
 		self._real.character[char].unit.rulebook = rulebook
 
-	@timely
 	def set_character_thing_rulebook(self, char: Hashable,
 										rulebook: Hashable) -> None:
 		self._real.character[char].thing.rulebook = rulebook
 
-	@timely
 	def set_character_place_rulebook(self, char: Hashable,
 										rulebook: Hashable) -> None:
 		self._real.character[char].place.rulebook = rulebook
 
-	@timely
 	def set_character_node_rulebook(self, char: Hashable,
 									rulebook: Hashable) -> None:
 		self._real.character[char].node.rulebook = rulebook
 
-	@timely
 	def set_character_portal_rulebook(self, char: Hashable,
 										rulebook: Hashable) -> None:
 		self._real.character[char].portal.rulebook = rulebook
 
-	@timely
 	def set_node_rulebook(self, char: Hashable, node: Hashable,
 							rulebook: Hashable) -> None:
 		self._real.character[char].node[node].rulebook = rulebook
 
-	@timely
 	def set_portal_rulebook(self, char: Hashable, orig: Hashable,
 							dest: Hashable, rulebook: Hashable) -> None:
 		self._real.character[char].portal[orig][dest].rulebook = rulebook
@@ -1888,7 +1827,11 @@ class EngineHandle(object):
 			*,
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> Dict[str, List[str]]:
-		old = self.rule_copy(rule, btt=self._get_watched_btt(btt_from))
+		btt_from = self._get_btt(btt_from)
+		btt_to = self._get_btt(btt_to)
+		if btt_from == btt_to:
+			return {}
+		old = self.rule_copy(rule, btt=btt_from)
 		new = self.rule_copy(rule, btt=btt_to)
 		ret = {}
 		if new['triggers'] != old['triggers']:
@@ -1906,6 +1849,10 @@ class EngineHandle(object):
 		btt_to: Tuple[str, int,
 						int] = None) -> Dict[str, Dict[str, List[str]]]:
 		ret = {}
+		btt_from = self._get_btt(btt_from)
+		btt_to = self._get_btt(btt_to)
+		if btt_from == btt_to:
+			return ret
 		for rule in self._real.rule.keys():
 			delta = self.rule_delta(rule, btt_from=btt_from, btt_to=btt_to)
 			if delta:
@@ -1943,7 +1890,6 @@ class EngineHandle(object):
 	def del_source(self, store: str, k: str) -> None:
 		delattr(getattr(self._real, store), k)
 
-	@timely
 	def call_stored_function(self, store: str, func: str, args: Tuple,
 								kwargs: Dict) -> Any:
 		if store == 'method':
@@ -1954,15 +1900,12 @@ class EngineHandle(object):
 		callme = getattr(store, func)
 		return callme(*args, **kwargs)
 
-	@timely
 	def call_randomizer(self, method: str, *args, **kwargs) -> Any:
 		return getattr(self._real._rando, method)(*args, **kwargs)
 
-	@timely
 	def install_module(self, module: str) -> None:
 		import_module(module).install(self._real)
 
-	@timely
 	def do_game_start(self) -> None:
 		self._real.game_start()
 
@@ -1987,14 +1930,12 @@ class EngineHandle(object):
 				entity.historical(stat).iter_history(beginning, end))
 		return ret
 
-	@timely
 	@prepacked
 	def grid_2d_8graph(self, character: Hashable, m: int, n: int) -> bytes:
 		self._real.character[character].grid_2d_8graph(m, n)
 		return self._concat_char_delta(
 			self._get_char_deltas([character])[self.pack(character)])
 
-	@timely
 	@prepacked
 	def grid_2d_graph(self, character: Hashable, m: int, n: int,
 						periodic: bool) -> bytes:
