@@ -1,0 +1,31 @@
+[project]
+name = "ELiDE"
+version = "0.13.0"
+authors = [
+	{ name="Zachary Spector", email="public@zacharyspector.com" },
+]
+description = "Extensible Life Simulator Engine Development Environment"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.7"
+classifiers = [
+	"Programming Language :: Python :: 3",
+	"License :: OSI Approved :: AGPL License",
+	"Operating System :: OS Independent",
+	"Development Status :: 3 - Alpha"
+]
+dependencies = [
+	"LiSE>=0.13,<0.14",
+	"kivy>=2.0.0,<3",
+	"pygments>=2.7.4",
+	"numpy>=1.19.5,<2"
+]
+
+[project.urls]
+"Homepage" = "https://tactical-metaphysics.github.io/LiSE/"
+"Bug Tracker" = "https://github.com/Tactical-Metaphysics/LiSE/issues"
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
