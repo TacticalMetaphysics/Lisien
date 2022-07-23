@@ -2,6 +2,8 @@ LiSE is an application for developing life simulation games.
 
 [Documentation](https://tactical-metaphysics.github.io/LiSE/manual.html)
 
+[Follow on Mastodon](https://gamemaking.social/@clayote)
+
 # What is a life simulation game?
 
 Life simulation games simulate the world in relatively high detail,
