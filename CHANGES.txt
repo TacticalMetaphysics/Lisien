@@ -1,3 +1,15 @@
+== 0.13.0 | 2022-07-23 ==
+* ELiDE now has the Timestream view, easing time travel when history gets complicated
+* Rename "avatar" to "unit"
+* Nodes now support the `.user.only` property, just like characters' `.unit.only`
+* Improve interprocess communication some more, particularly when time travelling between branches
+* Tab indentation, with yapf formatting
+* Rename some Engine methods to use snake_case
+* numpy is no longer required for the LiSE core (will speed up IPC, though)
+* Fix a loading error with changes in branches other than trunk
+* Crash fixes
+* Drop support for Python 3.6
+
 == 0.12.1 | 2021-07-04 ==
 * Optimize interprocess synchronization
 * Fix some inconsistencies in the rulebook sync
