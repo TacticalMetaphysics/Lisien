@@ -13,7 +13,7 @@ classifiers = [
 	"License :: OSI Approved :: AGPL License",
 	"Operating System :: OS Independent",
 	"Topic :: Software Development :: Libraries",
-	"Development Status :: 3 - Alpha"
+	"Development Status :: 2 - Pre-Alpha"
 ]
 dependencies = [
 	"astunparse>=1.6.3,<2",
