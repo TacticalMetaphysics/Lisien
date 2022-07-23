@@ -4,6 +4,8 @@ LiSE is an application for developing life simulation games.
 
 [Follow on Mastodon](https://gamemaking.social/@clayote)
 
+[Forum](https://www.gamemaking.tools/forum/categories/lise)
+
 # What is a life simulation game?
 
 Life simulation games simulate the world in relatively high detail,
