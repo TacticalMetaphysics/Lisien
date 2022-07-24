@@ -336,7 +336,7 @@ matrix can be found in the <code class="xref py py-attr docutils literal notrans
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><cite>trans</cite>: <code class="xref py py-class docutils literal notranslate"><span class="pre">Matrix</span></code>.</dt><dd><p>Transformation matix to be applied to the scatter widget.</p>
+<dt><cite>trans</cite>: <code class="xref py py-class docutils literal notranslate"><span class="pre">Matrix</span></code>.</dt><dd><p>Transformation matrix to be applied to the scatter widget.</p>
 </dd>
 <dt><cite>anchor</cite>: tuple, defaults to (0, 0).</dt><dd><p>The point to use as the origin of the transformation
 (uses local widget space).</p>
@@ -381,7 +381,7 @@ of the widget tree.</p>
 <dt class="sig sig-object py" id="ELiDE.graph.board.BoardScatterPlane.on_transform_with_touch">
 <span class="sig-name descname"><span class="pre">on_transform_with_touch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#BoardScatterPlane.on_transform_with_touch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.BoardScatterPlane.on_transform_with_touch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Called when a touch event has transformed the scatter widget.
-By default this does nothing, but can be overriden by derived
+By default this does nothing, but can be overridden by derived
 classes that need to react to transformations caused by user
 input.</p>
 <dl class="field-list simple">
@@ -2066,26 +2066,26 @@ entity.</p>
 <h2>statlist<a class="headerlink" href="#statlist" title="Permalink to this heading">¶</a></h2>
 <p>A two-column table of an entity’s stats and their values.</p>
 <p>By default, stats’ values are displayed as read-only text, but an entity
-with a dictionary stat named <cite>“_config”</cite> may display them other ways by
+with a dictionary stat named <code class="docutils literal notranslate"><span class="pre">&quot;_config&quot;</span></code> may display them other ways by
 setting a key with the same name as the stat to a dictionary value,
-with its key <cite>“control”</cite> set to one of:</p>
+with its key <code class="docutils literal notranslate"><span class="pre">&quot;control&quot;</span></code> set to one of:</p>
 <ul class="simple">
-<li><p><cite>“readout”</cite> for the default read-only text display.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;readout&quot;</span></code> for the default read-only text display.</p></li>
 <li><dl class="simple">
-<dt><cite>“textinput”</cite> for editable text, to be parsed as a Python dictionary,</dt><dd><p>list, tuple, or string. If the content cannot be parsed, it will be
+<dt><code class="docutils literal notranslate"><span class="pre">&quot;textinput&quot;</span></code> for editable text, to be parsed as a Python dictionary,</dt><dd><p>list, tuple, or string. If the content cannot be parsed, it will be
 treated as a string. Surround the content with quotation marks if you
 want to be sure it is a string.</p>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt><cite>“slider”</cite> for picking a number within a range. Set the keys <cite>“min”</cite></dt><dd><p>and <cite>“max”</cite> to specify the range.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">&quot;slider&quot;</span></code> for picking a number within a range. Set the keys <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code></dt><dd><p>and <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> to specify the range.</p>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt><cite>“togglebutton”</cite> for switching between <cite>True</cite> and <cite>False</cite>. To display</dt><dd><p>a different string for each, set the keys <cite>“true_text”</cite> and
-<cite>“false_text”</cite>.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">&quot;togglebutton&quot;</span></code> for switching between <code class="docutils literal notranslate"><span class="pre">True</span></code> and <code class="docutils literal notranslate"><span class="pre">False</span></code>. To display</dt><dd><p>a different string for each, set the keys <code class="docutils literal notranslate"><span class="pre">&quot;true_text&quot;</span></code> and
+<code class="docutils literal notranslate"><span class="pre">&quot;false_text&quot;</span></code>.</p>
 </dd>
 </dl>
 </li>
@@ -2912,7 +2912,7 @@ set the title in the class as previously stated in the documentation.</p>
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

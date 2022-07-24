@@ -39,11 +39,11 @@
 <div class="toctree-wrapper compound">
 </div>
 <p>The only LiSE class that you should ever instantiate yourself is
-<cite>Engine</cite>. All the other simulation objects should be
+<code class="docutils literal notranslate"><span class="pre">Engine</span></code>. All the other simulation objects should be
 created and accessed through it. By default, it keeps the simulation
 code and world state in the working directory, but you can pass in another
 directory if you prefer. Either use it with a context manager
-(<cite>with Engine():</cite>) or call its <cite>.close()</cite> method when you’re done
+(<code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">Engine():</span></code>) or call its <code class="docutils literal notranslate"><span class="pre">.close()</span></code> method when you’re done
 changing things.</p>
 <section id="world-modelling">
 <h2>World Modelling<a class="headerlink" href="#world-modelling" title="Permalink to this heading">¶</a></h2>
@@ -693,7 +693,17 @@ certain infinite loops.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="LiSE.engine.Engine.QueryEngine">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">QueryEngine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dbstring</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connect_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alchemy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strings_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.10)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pack</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unpack</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.engine.Engine.QueryEngine" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py method">
+<dd><dl class="py exception">
+<dt class="sig sig-object py" id="LiSE.engine.Engine.QueryEngine.IntegrityError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">IntegrityError</span></span><a class="headerlink" href="#LiSE.engine.Engine.QueryEngine.IntegrityError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="LiSE.engine.Engine.QueryEngine.OperationalError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">OperationalError</span></span><a class="headerlink" href="#LiSE.engine.Engine.QueryEngine.OperationalError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="LiSE.engine.Engine.QueryEngine.exist_edge">
 <span class="sig-name descname"><span class="pre">exist_edge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">character</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">branch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">turn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tick</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.engine.Engine.QueryEngine.exist_edge" title="Permalink to this definition">¶</a></dt>
 <dd><p>Declare whether or not this edge exists.</p>
@@ -2308,7 +2318,17 @@ turn numbers in which the comparison evaluated to <code class="docutils literal 
 <dl class="py class">
 <dt class="sig sig-object py" id="LiSE.query.QueryEngine">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.query.</span></span><span class="sig-name descname"><span class="pre">QueryEngine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dbstring</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connect_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alchemy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strings_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.10)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pack</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unpack</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#QueryEngine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.query.QueryEngine" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py method">
+<dd><dl class="py exception">
+<dt class="sig sig-object py" id="LiSE.query.QueryEngine.IntegrityError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">IntegrityError</span></span><a class="headerlink" href="#LiSE.query.QueryEngine.IntegrityError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="LiSE.query.QueryEngine.OperationalError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">OperationalError</span></span><a class="headerlink" href="#LiSE.query.QueryEngine.OperationalError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="LiSE.query.QueryEngine.exist_edge">
 <span class="sig-name descname"><span class="pre">exist_edge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">character</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">branch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">turn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tick</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#QueryEngine.exist_edge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.query.QueryEngine.exist_edge" title="Permalink to this definition">¶</a></dt>
 <dd><p>Declare whether or not this edge exists.</p>
@@ -3767,7 +3787,7 @@ edge), for when the user stores a set in them.</p>
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
