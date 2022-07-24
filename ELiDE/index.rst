@@ -17,22 +17,22 @@ game
 
 board
 -----
-.. automodule:: ELiDE.board.board
+.. automodule:: ELiDE.graph.board
     :members:
 
 pawn
 ````
-.. automodule:: ELiDE.board.pawn
+.. automodule:: ELiDE.graph.pawn
     :members:
 
 spot
 ````
-.. automodule:: ELiDE.board.spot
+.. automodule:: ELiDE.graph.spot
     :members:
 
 arrow
 `````
-.. automodule:: ELiDE.board.arrow
+.. automodule:: ELiDE.graph.arrow
     :members:
 
 screen
