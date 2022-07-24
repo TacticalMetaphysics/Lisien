@@ -51,10 +51,10 @@
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">BooleanProperty</span><span class="p">,</span>
-    <span class="n">DictProperty</span><span class="p">,</span>
-    <span class="n">ObjectProperty</span><span class="p">,</span>
-    <span class="n">StringProperty</span><span class="p">,</span>
+	<span class="n">BooleanProperty</span><span class="p">,</span>
+	<span class="n">DictProperty</span><span class="p">,</span>
+	<span class="n">ObjectProperty</span><span class="p">,</span>
+	<span class="n">StringProperty</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="kn">import</span> <span class="n">Logger</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span>
@@ -70,138 +70,141 @@
 
 
 <div class="viewcode-block" id="StatRowListItem"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowListItem">[docs]</a><span class="k">class</span> <span class="nc">StatRowListItem</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Mixin class for widgets that show a stat&#39;s current value.</span>
+	<span class="sd">&quot;&quot;&quot;Mixin class for widgets that show a stat&#39;s current value.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">key</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="s2">&quot;The stat I am about. Same as in the LiSE entity.&quot;</span>
-    <span class="n">value</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="s2">&quot;The present value of the stat.&quot;</span>
-    <span class="n">gett</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="s2">&quot;Getter function: takes stat, returns its present value.&quot;</span>
-    <span class="n">sett</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="s2">&quot;Setter function: takes stat and value, sets stat=value.&quot;</span>
-    <span class="n">listen</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="s2">&quot;Function that takes a function and calls it when the stat changes.&quot;</span>
-    <span class="n">unlisten</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="s2">&quot;Function that takes a ``listen``ed function and stops it listening.&quot;</span>
-    <span class="n">config</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
-    <span class="s2">&quot;Dictionary of some parameters for how to present myself.&quot;</span>
+	<span class="n">key</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="s2">&quot;The stat I am about. Same as in the LiSE entity.&quot;</span>
+	<span class="n">value</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+	<span class="s2">&quot;The present value of the stat.&quot;</span>
+	<span class="n">gett</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="s2">&quot;Getter function: takes stat, returns its present value.&quot;</span>
+	<span class="n">sett</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="s2">&quot;Setter function: takes stat and value, sets stat=value.&quot;</span>
+	<span class="n">listen</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="s2">&quot;Function that takes a function and calls it when the stat changes.&quot;</span>
+	<span class="n">unlisten</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="s2">&quot;Function that takes a ``listen``ed function and stops it listening.&quot;</span>
+	<span class="n">config</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+	<span class="s2">&quot;Dictionary of some parameters for how to present myself.&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_bind_value</span><span class="p">)</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_bind_value</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_bind_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_bind_value</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">_bind_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_bind_value</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">on_listen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_pull</span><span class="p">()</span>
+	<span class="k">def</span> <span class="nf">on_listen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_pull</span><span class="p">()</span>
 
-    <span class="nd">@trigger</span>
-    <span class="k">def</span> <span class="nf">_push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">sett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_really_pull</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="n">Logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;StatRowListItem: </span><span class="si">{}</span><span class="s1"> deleted&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">))</span>
-        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
-            <span class="n">Logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="s2">&quot;StatRowListItem: couldn&#39;t set value </span><span class="si">{}</span><span class="s2"> because it is type </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span>
-                <span class="nb">format</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">_really_pull</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">)</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
+		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+			<span class="n">Logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;StatRowListItem: </span><span class="si">{}</span><span class="s1"> deleted&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">))</span>
+		<span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+			<span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
+			<span class="n">Logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+				<span class="s2">&quot;StatRowListItem: couldn&#39;t set value </span><span class="si">{}</span><span class="s2"> because it is type </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span>
+				<span class="nb">format</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_pull</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scheduled_pull&#39;</span><span class="p">):</span>
-            <span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_pull</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_pull</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_really_pull</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+	<span class="k">def</span> <span class="nf">_pull</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scheduled_pull&#39;</span><span class="p">):</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_pull</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_pull</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_really_pull</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="StatRowLabel"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowLabel">[docs]</a><span class="k">class</span> <span class="nc">StatRowLabel</span><span class="p">(</span><span class="n">StatRowListItem</span><span class="p">,</span> <span class="n">Label</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Display the current value of a stat as text.&quot;&quot;&quot;</span></div>
+	<span class="sd">&quot;&quot;&quot;Display the current value of a stat as text.&quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="StatRowTextInput"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowTextInput">[docs]</a><span class="k">class</span> <span class="nc">StatRowTextInput</span><span class="p">(</span><span class="n">StatRowListItem</span><span class="p">,</span> <span class="n">TextInput</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Display the current value of a stat and accept text input to change it.&quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;multiline&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+	<span class="sd">&quot;&quot;&quot;Display the current value of a stat and accept text input to change it.&quot;&quot;&quot;</span>
 
-        <span class="k">def</span> <span class="nf">lost_focus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">focus</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">upd_value</span><span class="p">()</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;multiline&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">on_enter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">upd_value</span><span class="p">,</span>
-                  <span class="n">on_text_validate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">upd_value</span><span class="p">,</span>
-                  <span class="n">on_focus</span><span class="o">=</span><span class="n">lost_focus</span><span class="p">)</span>
+		<span class="k">def</span> <span class="nf">lost_focus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+			<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">focus</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">upd_value</span><span class="p">()</span>
 
-    <span class="nd">@trigger</span>
-    <span class="k">def</span> <span class="nf">upd_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">on_enter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">upd_value</span><span class="p">,</span>
+					<span class="n">on_text_validate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">upd_value</span><span class="p">,</span>
+					<span class="n">on_focus</span><span class="o">=</span><span class="n">lost_focus</span><span class="p">)</span>
+
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">upd_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">):</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span></div>
 
 
 <div class="viewcode-block" id="StatRowToggleButton"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowToggleButton">[docs]</a><span class="k">class</span> <span class="nc">StatRowToggleButton</span><span class="p">(</span><span class="n">StatRowListItem</span><span class="p">,</span> <span class="n">ToggleButton</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Display the current value of a stat, 0 or 1, and let the user press a button to flip it.&quot;&quot;&quot;</span>
-    <span class="n">true_text</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">)</span>
-    <span class="sd">&quot;&quot;&quot;String to display when the stat is true.&quot;&quot;&quot;</span>
-    <span class="n">false_text</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;0&#39;</span><span class="p">)</span>
-    <span class="sd">&quot;&quot;&quot;String to display when the stat is false.&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="StatRowToggleButton.on_touch_up"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowToggleButton.on_touch_up">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;down&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">1</span></div></div>
+	<span class="sd">&quot;&quot;&quot;Display the current value of a stat, 0 or 1, and let the user press a button to flip it.&quot;&quot;&quot;</span>
+	<span class="n">true_text</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">)</span>
+	<span class="sd">&quot;&quot;&quot;String to display when the stat is true.&quot;&quot;&quot;</span>
+	<span class="n">false_text</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;0&#39;</span><span class="p">)</span>
+	<span class="sd">&quot;&quot;&quot;String to display when the stat is false.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="StatRowToggleButton.on_touch_up"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowToggleButton.on_touch_up">[docs]</a>	<span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="k">return</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">0</span>
+		<span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;down&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">1</span></div></div>
 
 
 <div class="viewcode-block" id="StatRowSlider"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowSlider">[docs]</a><span class="k">class</span> <span class="nc">StatRowSlider</span><span class="p">(</span><span class="n">StatRowListItem</span><span class="p">,</span> <span class="n">Slider</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Display the current value of a numeric stat and let the user slide it.&quot;&quot;&quot;</span>
-    <span class="n">need_set</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-    <span class="sd">&quot;&quot;&quot;Internal. Usually False, becomes True briefly when the value has changed.&quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;min&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">]</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+	<span class="sd">&quot;&quot;&quot;Display the current value of a numeric stat and let the user slide it.&quot;&quot;&quot;</span>
+	<span class="n">need_set</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+	<span class="sd">&quot;&quot;&quot;Internal. Usually False, becomes True briefly when the value has changed.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">_bind_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="k">pass</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;min&#39;</span><span class="p">]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">]</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_really_pull</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="n">Logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;StatRowListItem: </span><span class="si">{}</span><span class="s1"> deleted&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">))</span>
-        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
-            <span class="n">Logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="s2">&quot;StatRowListItem: couldn&#39;t set value </span><span class="si">{}</span><span class="s2"> because it is type </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span>
-                <span class="nb">format</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)))</span>
+	<span class="k">def</span> <span class="nf">_bind_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">pass</span>
 
-    <span class="k">def</span> <span class="nf">on_listen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_pull</span><span class="p">()</span>
+	<span class="k">def</span> <span class="nf">_really_pull</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
+		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+			<span class="n">Logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;StatRowListItem: </span><span class="si">{}</span><span class="s1"> deleted&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">))</span>
+		<span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+			<span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
+			<span class="n">Logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+				<span class="s2">&quot;StatRowListItem: couldn&#39;t set value </span><span class="si">{}</span><span class="s2"> because it is type </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span>
+				<span class="nb">format</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)))</span>
 
-    <span class="k">def</span> <span class="nf">on_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">need_set</span> <span class="o">=</span> <span class="kc">True</span>
+	<span class="k">def</span> <span class="nf">on_listen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_pull</span><span class="p">()</span>
 
-<div class="viewcode-block" id="StatRowSlider.on_touch_up"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowSlider.on_touch_up">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">need_set</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">need_set</span> <span class="o">=</span> <span class="kc">False</span></div></div>
+	<span class="k">def</span> <span class="nf">on_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">need_set</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="StatRowSlider.on_touch_up"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowSlider.on_touch_up">[docs]</a>	<span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">need_set</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_push</span><span class="p">()</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">need_set</span> <span class="o">=</span> <span class="kc">False</span></div></div>
 
 
 <div class="viewcode-block" id="StatRowListItemContainer"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowListItemContainer">[docs]</a><span class="k">class</span> <span class="nc">StatRowListItemContainer</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;The name of a stat followed by a widget representing its value.</span>
+	<span class="sd">&quot;&quot;&quot;The name of a stat followed by a widget representing its value.</span>
 
 <span class="sd">    The widget can be</span>
 
@@ -211,20 +214,20 @@
 <span class="sd">    * :class:`StatRowSlider`</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">key</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;The name of the stat&quot;&quot;&quot;</span>
-    <span class="n">reg</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="n">unreg</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="n">gett</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;Function to get the current value of stats, taking the stat name as its argument&quot;&quot;&quot;</span>
-    <span class="n">sett</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;Function to set the current value of stats, taking args (key, value)&quot;&quot;&quot;</span>
-    <span class="n">listen</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;Function to register a listener to a LiSE entity&quot;&quot;&quot;</span>
-    <span class="n">unlisten</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;Function to unregister a listener from a LiSE entity&quot;&quot;&quot;</span>
-    <span class="n">config</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;Dictionary describing the configuration of this stat&#39;s widget.</span>
+	<span class="n">key</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="sd">&quot;&quot;&quot;The name of the stat&quot;&quot;&quot;</span>
+	<span class="n">reg</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="n">unreg</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="n">gett</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="sd">&quot;&quot;&quot;Function to get the current value of stats, taking the stat name as its argument&quot;&quot;&quot;</span>
+	<span class="n">sett</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="sd">&quot;&quot;&quot;Function to set the current value of stats, taking args (key, value)&quot;&quot;&quot;</span>
+	<span class="n">listen</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="sd">&quot;&quot;&quot;Function to register a listener to a LiSE entity&quot;&quot;&quot;</span>
+	<span class="n">unlisten</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="sd">&quot;&quot;&quot;Function to unregister a listener from a LiSE entity&quot;&quot;&quot;</span>
+	<span class="n">config</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+	<span class="sd">&quot;&quot;&quot;Dictionary describing the configuration of this stat&#39;s widget.</span>
 <span class="sd">    </span>
 <span class="sd">    The key &#39;control&#39; has the widget type as its value, which may be</span>
 <span class="sd">    </span>
@@ -236,246 +239,247 @@
 <span class="sd">    Other keys are specific to one widget type or another.</span>
 <span class="sd">    </span>
 <span class="sd">    &quot;&quot;&quot;</span>
-<div class="viewcode-block" id="StatRowListItemContainer.set_value"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowListItemContainer.set_value">[docs]</a>    <span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Use my ``sett`` function to set my stat (``key``) to my new ``value``.</span>
+
+<div class="viewcode-block" id="StatRowListItemContainer.set_value"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowListItemContainer.set_value">[docs]</a>	<span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Use my ``sett`` function to set my stat (``key``) to my new ``value``.</span>
 
 <span class="sd">        This doesn&#39;t need arguments, but accepts any positional arguments provided,</span>
 <span class="sd">        so that you can use this in kvlang</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">sett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;orientation&#39;</span><span class="p">,</span> <span class="s1">&#39;vertical&#39;</span><span class="p">)</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">remake</span><span class="p">()</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;orientation&#39;</span><span class="p">,</span> <span class="s1">&#39;vertical&#39;</span><span class="p">)</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">remake</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">on_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">remake</span><span class="p">()</span>
+	<span class="k">def</span> <span class="nf">on_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">remake</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">on_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">remake</span><span class="p">()</span>
+	<span class="k">def</span> <span class="nf">on_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">remake</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">remake</span><span class="p">()</span>
+	<span class="k">def</span> <span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">remake</span><span class="p">()</span>
 
-<div class="viewcode-block" id="StatRowListItemContainer.remake"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowListItemContainer.remake">[docs]</a>    <span class="k">def</span> <span class="nf">remake</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Replace any existing child widget with the one described by my ``config``.</span>
+<div class="viewcode-block" id="StatRowListItemContainer.remake"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowListItemContainer.remake">[docs]</a>	<span class="k">def</span> <span class="nf">remake</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Replace any existing child widget with the one described by my ``config``.</span>
 
 <span class="sd">        This doesn&#39;t need arguments, but accepts any positional arguments provided,</span>
 <span class="sd">        so that you can use this in kvlang</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">:</span>
-            <span class="k">return</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
-            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gett</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sett</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">listen</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unlisten</span><span class="p">)):</span>
-            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">remake</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">))</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">:</span>
+			<span class="k">return</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
+			<span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gett</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sett</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">listen</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unlisten</span><span class="p">)):</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">remake</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">):</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">))</span>
 
-            <span class="k">def</span> <span class="nf">updlabel</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
+			<span class="k">def</span> <span class="nf">updlabel</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">updlabel</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;wid&#39;</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="p">)</span>
-            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">wid</span>
-        <span class="n">control</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;control&#39;</span><span class="p">]</span>
-        <span class="n">widkwargs</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span>
-            <span class="s1">&#39;gett&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">gett</span><span class="p">,</span>
-            <span class="s1">&#39;sett&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">sett</span><span class="p">,</span>
-            <span class="s1">&#39;listen&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">listen</span><span class="p">,</span>
-            <span class="s1">&#39;unlisten&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">unlisten</span>
-        <span class="p">}</span>
-        <span class="k">if</span> <span class="n">control</span> <span class="o">==</span> <span class="s1">&#39;slider&#39;</span><span class="p">:</span>
-            <span class="bp">cls</span> <span class="o">=</span> <span class="n">StatRowSlider</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">widkwargs</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">))</span>
-                <span class="n">widkwargs</span><span class="p">[</span><span class="s1">&#39;min&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;min&#39;</span><span class="p">])</span>
-                <span class="n">widkwargs</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">])</span>
-            <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
-                <span class="k">return</span>
-        <span class="k">elif</span> <span class="n">control</span> <span class="o">==</span> <span class="s1">&#39;togglebutton&#39;</span><span class="p">:</span>
-            <span class="bp">cls</span> <span class="o">=</span> <span class="n">StatRowToggleButton</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">widkwargs</span><span class="p">[</span><span class="s1">&#39;true_text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;true_text&#39;</span><span class="p">]</span>
-                <span class="n">widkwargs</span><span class="p">[</span><span class="s1">&#39;false_text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;false_text&#39;</span><span class="p">]</span>
-            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                <span class="k">return</span>
-        <span class="k">elif</span> <span class="n">control</span> <span class="o">==</span> <span class="s1">&#39;textinput&#39;</span><span class="p">:</span>
-            <span class="bp">cls</span> <span class="o">=</span> <span class="n">StatRowTextInput</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">cls</span> <span class="o">=</span> <span class="n">StatRowLabel</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">wid</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">widkwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">),</span>
-                  <span class="n">gett</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;gett&#39;</span><span class="p">),</span>
-                  <span class="n">sett</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;sett&#39;</span><span class="p">),</span>
-                  <span class="n">listen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;listen&#39;</span><span class="p">),</span>
-                  <span class="n">unlisten</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;unlisten&#39;</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">control</span> <span class="o">==</span> <span class="s1">&#39;slider&#39;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_toggle_update_config</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_slider_update_config</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">control</span> <span class="o">==</span> <span class="s1">&#39;togglebutton&#39;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_slider_update_config</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_toggle_update_config</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_slider_update_config</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_toggle_update_config</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="p">)</span></div>
+			<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">updlabel</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;wid&#39;</span><span class="p">):</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="p">)</span>
+			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">wid</span>
+		<span class="n">control</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;control&#39;</span><span class="p">]</span>
+		<span class="n">widkwargs</span> <span class="o">=</span> <span class="p">{</span>
+			<span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span>
+			<span class="s1">&#39;gett&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">gett</span><span class="p">,</span>
+			<span class="s1">&#39;sett&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">sett</span><span class="p">,</span>
+			<span class="s1">&#39;listen&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">listen</span><span class="p">,</span>
+			<span class="s1">&#39;unlisten&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">unlisten</span>
+		<span class="p">}</span>
+		<span class="k">if</span> <span class="n">control</span> <span class="o">==</span> <span class="s1">&#39;slider&#39;</span><span class="p">:</span>
+			<span class="bp">cls</span> <span class="o">=</span> <span class="n">StatRowSlider</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">widkwargs</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">))</span>
+				<span class="n">widkwargs</span><span class="p">[</span><span class="s1">&#39;min&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;min&#39;</span><span class="p">])</span>
+				<span class="n">widkwargs</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">])</span>
+			<span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+				<span class="k">return</span>
+		<span class="k">elif</span> <span class="n">control</span> <span class="o">==</span> <span class="s1">&#39;togglebutton&#39;</span><span class="p">:</span>
+			<span class="bp">cls</span> <span class="o">=</span> <span class="n">StatRowToggleButton</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">widkwargs</span><span class="p">[</span><span class="s1">&#39;true_text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;true_text&#39;</span><span class="p">]</span>
+				<span class="n">widkwargs</span><span class="p">[</span><span class="s1">&#39;false_text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;false_text&#39;</span><span class="p">]</span>
+			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+				<span class="k">return</span>
+		<span class="k">elif</span> <span class="n">control</span> <span class="o">==</span> <span class="s1">&#39;textinput&#39;</span><span class="p">:</span>
+			<span class="bp">cls</span> <span class="o">=</span> <span class="n">StatRowTextInput</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="bp">cls</span> <span class="o">=</span> <span class="n">StatRowLabel</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">wid</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">widkwargs</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">),</span>
+					<span class="n">gett</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;gett&#39;</span><span class="p">),</span>
+					<span class="n">sett</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;sett&#39;</span><span class="p">),</span>
+					<span class="n">listen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;listen&#39;</span><span class="p">),</span>
+					<span class="n">unlisten</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;unlisten&#39;</span><span class="p">))</span>
+		<span class="k">if</span> <span class="n">control</span> <span class="o">==</span> <span class="s1">&#39;slider&#39;</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_toggle_update_config</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_slider_update_config</span><span class="p">)</span>
+		<span class="k">elif</span> <span class="n">control</span> <span class="o">==</span> <span class="s1">&#39;togglebutton&#39;</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_slider_update_config</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_toggle_update_config</span><span class="p">)</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_slider_update_config</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_toggle_update_config</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="p">)</span></div>
 
-    <span class="nd">@trigger</span>
-    <span class="k">def</span> <span class="nf">_slider_update_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;min&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">]</span>
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_slider_update_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;min&#39;</span><span class="p">]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">]</span>
 
-    <span class="nd">@trigger</span>
-    <span class="k">def</span> <span class="nf">_toggle_update_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">true_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;true_text&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">false_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;false_text&#39;</span><span class="p">]</span></div>
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_toggle_update_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">true_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;true_text&#39;</span><span class="p">]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">wid</span><span class="o">.</span><span class="n">false_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;false_text&#39;</span><span class="p">]</span></div>
 
 
 <span class="n">default_cfg</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;control&#39;</span><span class="p">:</span> <span class="s1">&#39;readout&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;true_text&#39;</span><span class="p">:</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;false_text&#39;</span><span class="p">:</span> <span class="s1">&#39;0&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;min&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-    <span class="s1">&#39;max&#39;</span><span class="p">:</span> <span class="mf">1.0</span>
+	<span class="s1">&#39;control&#39;</span><span class="p">:</span> <span class="s1">&#39;readout&#39;</span><span class="p">,</span>
+	<span class="s1">&#39;true_text&#39;</span><span class="p">:</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span>
+	<span class="s1">&#39;false_text&#39;</span><span class="p">:</span> <span class="s1">&#39;0&#39;</span><span class="p">,</span>
+	<span class="s1">&#39;min&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+	<span class="s1">&#39;max&#39;</span><span class="p">:</span> <span class="mf">1.0</span>
 <span class="p">}</span>
 
 
 <div class="viewcode-block" id="BaseStatListView"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView">[docs]</a><span class="k">class</span> <span class="nc">BaseStatListView</span><span class="p">(</span><span class="n">RecycleView</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Base class for widgets showing lists of stats and their values&quot;&quot;&quot;</span>
-    <span class="n">proxy</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;A proxy object representing a LiSE entity&quot;&quot;&quot;</span>
-    <span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;A :class:`LiSE.proxy.EngineProxy` object&quot;&quot;&quot;</span>
-    <span class="n">app</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;The Kivy app object&quot;&quot;&quot;</span>
-    <span class="n">_scheduled_set_value</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+	<span class="sd">&quot;&quot;&quot;Base class for widgets showing lists of stats and their values&quot;&quot;&quot;</span>
+	<span class="n">proxy</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="sd">&quot;&quot;&quot;A proxy object representing a LiSE entity&quot;&quot;&quot;</span>
+	<span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="sd">&quot;&quot;&quot;A :class:`LiSE.proxy.EngineProxy` object&quot;&quot;&quot;</span>
+	<span class="n">app</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="sd">&quot;&quot;&quot;The Kivy app object&quot;&quot;&quot;</span>
+	<span class="n">_scheduled_set_value</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_listeners</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_listeners</span> <span class="o">=</span> <span class="p">{}</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">on_proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_upd_data</span><span class="p">,</span> <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_upd_data</span><span class="p">()</span>
+	<span class="k">def</span> <span class="nf">on_proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_upd_data</span><span class="p">,</span> <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_upd_data</span><span class="p">()</span>
 
-<div class="viewcode-block" id="BaseStatListView.del_key"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.del_key">[docs]</a>    <span class="k">def</span> <span class="nf">del_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Delete the key and any configuration for it&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">KeyError</span>
-        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-        <span class="k">if</span> <span class="s1">&#39;_config&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">]:</span>
-            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span></div>
+<div class="viewcode-block" id="BaseStatListView.del_key"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.del_key">[docs]</a>	<span class="k">def</span> <span class="nf">del_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Delete the key and any configuration for it&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">KeyError</span>
+		<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+		<span class="k">if</span> <span class="s1">&#39;_config&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">]:</span>
+			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="BaseStatListView.set_value"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.set_value">[docs]</a>    <span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Set a value on the proxy, parsing it to a useful datatype if possible&quot;&quot;&quot;</span>
-        <span class="kn">from</span> <span class="nn">ast</span> <span class="kn">import</span> <span class="n">literal_eval</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_set_value</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">vv</span> <span class="o">=</span> <span class="n">literal_eval</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-            <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
-                <span class="n">vv</span> <span class="o">=</span> <span class="n">v</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">vv</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_set_value</span><span class="p">:</span>
-            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_set_value</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span></div>
+<div class="viewcode-block" id="BaseStatListView.set_value"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.set_value">[docs]</a>	<span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Set a value on the proxy, parsing it to a useful datatype if possible&quot;&quot;&quot;</span>
+		<span class="kn">from</span> <span class="nn">ast</span> <span class="kn">import</span> <span class="n">literal_eval</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_set_value</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">vv</span> <span class="o">=</span> <span class="n">literal_eval</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+			<span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+				<span class="n">vv</span> <span class="o">=</span> <span class="n">v</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">vv</span>
+		<span class="k">if</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_set_value</span><span class="p">:</span>
+			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_set_value</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span></div>
 
-    <span class="k">def</span> <span class="nf">_trigger_set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="n">todo</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_value</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_set_value</span><span class="p">:</span>
-            <span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_set_value</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_set_value</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">todo</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">_trigger_set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="n">todo</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_value</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+		<span class="k">if</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_set_value</span><span class="p">:</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_set_value</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">])</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_set_value</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">todo</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
-<div class="viewcode-block" id="BaseStatListView.init_config"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.init_config">[docs]</a>    <span class="k">def</span> <span class="nf">init_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Set the configuration for the key to something that will always work&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default_cfg</span><span class="p">)</span></div>
+<div class="viewcode-block" id="BaseStatListView.init_config"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.init_config">[docs]</a>	<span class="k">def</span> <span class="nf">init_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Set the configuration for the key to something that will always work&quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default_cfg</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseStatListView.set_config"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.set_config">[docs]</a>    <span class="k">def</span> <span class="nf">set_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Set a configuration option for a key&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="s1">&#39;_config&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">:</span>
-            <span class="n">newopt</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">default_cfg</span><span class="p">)</span>
-            <span class="n">newopt</span><span class="p">[</span><span class="n">option</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">newopt</span><span class="p">}</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">]:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">][</span><span class="n">option</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">newopt</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">default_cfg</span><span class="p">)</span>
-                <span class="n">newopt</span><span class="p">[</span><span class="n">option</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">newopt</span></div>
+<div class="viewcode-block" id="BaseStatListView.set_config"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.set_config">[docs]</a>	<span class="k">def</span> <span class="nf">set_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Set a configuration option for a key&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="s1">&#39;_config&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">:</span>
+			<span class="n">newopt</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">default_cfg</span><span class="p">)</span>
+			<span class="n">newopt</span><span class="p">[</span><span class="n">option</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">newopt</span><span class="p">}</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">]:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">][</span><span class="n">option</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">newopt</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">default_cfg</span><span class="p">)</span>
+				<span class="n">newopt</span><span class="p">[</span><span class="n">option</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">newopt</span></div>
 
-<div class="viewcode-block" id="BaseStatListView.set_configs"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.set_configs">[docs]</a>    <span class="k">def</span> <span class="nf">set_configs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Set the whole configuration for a key&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="s1">&#39;_config&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">d</span><span class="p">}</span></div>
+<div class="viewcode-block" id="BaseStatListView.set_configs"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.set_configs">[docs]</a>	<span class="k">def</span> <span class="nf">set_configs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Set the whole configuration for a key&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="s1">&#39;_config&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">d</span><span class="p">}</span></div>
 
-<div class="viewcode-block" id="BaseStatListView.iter_data"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.iter_data">[docs]</a>    <span class="k">def</span> <span class="nf">iter_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Iterate over key-value pairs that are really meant to be displayed&quot;&quot;&quot;</span>
-        <span class="n">invalid</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;character&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;location&#39;</span><span class="p">,</span> <span class="s1">&#39;rulebooks&#39;</span><span class="p">}</span>
-        <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">invalid</span><span class="p">):</span>
-                <span class="k">yield</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span></div>
+<div class="viewcode-block" id="BaseStatListView.iter_data"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.iter_data">[docs]</a>	<span class="k">def</span> <span class="nf">iter_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Iterate over key-value pairs that are really meant to be displayed&quot;&quot;&quot;</span>
+		<span class="n">invalid</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;character&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;location&#39;</span><span class="p">,</span> <span class="s1">&#39;rulebooks&#39;</span><span class="p">}</span>
+		<span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+			<span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">invalid</span><span class="p">):</span>
+				<span class="k">yield</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span></div>
 
-<div class="viewcode-block" id="BaseStatListView.munge"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.munge">[docs]</a>    <span class="k">def</span> <span class="nf">munge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Turn a key and value into a dictionary describing a widget to show&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="s1">&#39;_config&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">]:</span>
-            <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">unwrap</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">config</span> <span class="o">=</span> <span class="n">default_cfg</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span>
-            <span class="s1">&#39;reg&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reg_widget</span><span class="p">,</span>
-            <span class="s1">&#39;unreg&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unreg_widget</span><span class="p">,</span>
-            <span class="s1">&#39;gett&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">,</span>
-            <span class="s1">&#39;sett&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_value</span><span class="p">,</span>
-            <span class="s1">&#39;listen&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">connect</span><span class="p">,</span>
-            <span class="s1">&#39;unlisten&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">disconnect</span><span class="p">,</span>
-            <span class="s1">&#39;config&#39;</span><span class="p">:</span> <span class="n">config</span>
-        <span class="p">}</span></div>
+<div class="viewcode-block" id="BaseStatListView.munge"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.munge">[docs]</a>	<span class="k">def</span> <span class="nf">munge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Turn a key and value into a dictionary describing a widget to show&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="s1">&#39;_config&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">]:</span>
+			<span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_config&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">unwrap</span><span class="p">()</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">config</span> <span class="o">=</span> <span class="n">default_cfg</span>
+		<span class="k">return</span> <span class="p">{</span>
+			<span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span>
+			<span class="s1">&#39;reg&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reg_widget</span><span class="p">,</span>
+			<span class="s1">&#39;unreg&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unreg_widget</span><span class="p">,</span>
+			<span class="s1">&#39;gett&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">,</span>
+			<span class="s1">&#39;sett&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_value</span><span class="p">,</span>
+			<span class="s1">&#39;listen&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">connect</span><span class="p">,</span>
+			<span class="s1">&#39;unlisten&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">disconnect</span><span class="p">,</span>
+			<span class="s1">&#39;config&#39;</span><span class="p">:</span> <span class="n">config</span>
+		<span class="p">}</span></div>
 
-<div class="viewcode-block" id="BaseStatListView.upd_data"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.upd_data">[docs]</a>    <span class="k">def</span> <span class="nf">upd_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Update to match new entity data&quot;&quot;&quot;</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">munge</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_data</span><span class="p">()]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">])</span></div>
+<div class="viewcode-block" id="BaseStatListView.upd_data"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.BaseStatListView.upd_data">[docs]</a>	<span class="k">def</span> <span class="nf">upd_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Update to match new entity data&quot;&quot;&quot;</span>
+		<span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">munge</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_data</span><span class="p">()]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">])</span></div>
 
-    <span class="k">def</span> <span class="nf">_trigger_upd_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scheduled_upd_data&#39;</span><span class="p">):</span>
-            <span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_upd_data</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_upd_data</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">upd_data</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">_trigger_upd_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scheduled_upd_data&#39;</span><span class="p">):</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_upd_data</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_upd_data</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">upd_data</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_reg_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">:</span>
-            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reg_widget</span><span class="p">,</span> <span class="n">w</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
-            <span class="k">return</span>
+	<span class="k">def</span> <span class="nf">_reg_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">:</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reg_widget</span><span class="p">,</span> <span class="n">w</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
 
-        <span class="k">def</span> <span class="nf">listen</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">w</span><span class="o">.</span><span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">:</span>
-                <span class="k">return</span>
-            <span class="k">if</span> <span class="n">w</span><span class="o">.</span><span class="n">value</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">key</span><span class="p">]:</span>
-                <span class="n">w</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">key</span><span class="p">]</span>
+		<span class="k">def</span> <span class="nf">listen</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+			<span class="k">if</span> <span class="n">w</span><span class="o">.</span><span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">:</span>
+				<span class="k">return</span>
+			<span class="k">if</span> <span class="n">w</span><span class="o">.</span><span class="n">value</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">key</span><span class="p">]:</span>
+				<span class="n">w</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">key</span><span class="p">]</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_listeners</span><span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">listen</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">listen</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_listeners</span><span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">listen</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">listen</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_unreg_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">w</span><span class="o">.</span><span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_listeners</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_listeners</span><span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">key</span><span class="p">])</span></div>
+	<span class="k">def</span> <span class="nf">_unreg_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">w</span><span class="o">.</span><span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_listeners</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_listeners</span><span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">key</span><span class="p">])</span></div>
 
 
 <div class="viewcode-block" id="StatListView"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatListView">[docs]</a><span class="k">class</span> <span class="nc">StatListView</span><span class="p">(</span><span class="n">BaseStatListView</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;The type of StatListView that shows only stats and their values&quot;&quot;&quot;</span></div>
+	<span class="sd">&quot;&quot;&quot;The type of StatListView that shows only stats and their values&quot;&quot;&quot;</span></div>
 
 
 <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>

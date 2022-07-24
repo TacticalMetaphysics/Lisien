@@ -52,8 +52,8 @@
 <span class="sd">``selection`` list to show what the user selected.&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span>
 <span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span><span class="n">DictProperty</span><span class="p">,</span> <span class="n">NumericProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span><span class="p">,</span>
-                             <span class="n">OptionProperty</span><span class="p">,</span> <span class="n">ListProperty</span><span class="p">,</span>
-                             <span class="n">ReferenceListProperty</span><span class="p">,</span> <span class="n">StringProperty</span><span class="p">)</span>
+								<span class="n">OptionProperty</span><span class="p">,</span> <span class="n">ListProperty</span><span class="p">,</span>
+								<span class="n">ReferenceListProperty</span><span class="p">,</span> <span class="n">StringProperty</span><span class="p">)</span>
 <span class="kn">from</span> <span class="nn">kivy.resources</span> <span class="kn">import</span> <span class="n">resource_find</span>
 <span class="kn">from</span> <span class="nn">kivy.atlas</span> <span class="kn">import</span> <span class="n">Atlas</span>
 <span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="kn">import</span> <span class="n">Builder</span>
@@ -66,123 +66,125 @@
 
 
 <div class="viewcode-block" id="SwatchButton"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.pallet.SwatchButton">[docs]</a><span class="k">class</span> <span class="nc">SwatchButton</span><span class="p">(</span><span class="n">ToggleButton</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Toggle button containing a texture and its name, which, when</span>
+	<span class="sd">&quot;&quot;&quot;Toggle button containing a texture and its name, which, when</span>
 <span class="sd">    toggled, will report the fact to the :class:`Pallet` it&#39;s in.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">tex</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;Texture to display here&quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">on_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;down&#39;</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection_mode</span> <span class="o">==</span> <span class="s1">&#39;single&#39;</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">wid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">wid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">:</span>
-                        <span class="n">wid</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;normal&#39;</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+	<span class="n">tex</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="sd">&quot;&quot;&quot;Texture to display here&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">tex</span><span class="p">:</span>
-            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_parent</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">after</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">after</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_img_rect</span> <span class="o">=</span> <span class="n">Rectangle</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_img_rect_pos</span><span class="p">(),</span>
-                                       <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tex</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
-                                       <span class="n">texture</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tex</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upd_img_rect_pos</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;tex&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upd_img_rect_tex</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">on_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;down&#39;</span><span class="p">:</span>
+			<span class="k">assert</span> <span class="p">(</span><span class="bp">self</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="p">)</span>
+			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection_mode</span> <span class="o">==</span> <span class="s1">&#39;single&#39;</span><span class="p">:</span>
+				<span class="k">for</span> <span class="n">wid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="p">:</span>
+					<span class="k">if</span> <span class="n">wid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">:</span>
+						<span class="n">wid</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;normal&#39;</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">]</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">if</span> <span class="bp">self</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_get_img_rect_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span>
-        <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span>
-        <span class="n">tw</span><span class="p">,</span> <span class="n">th</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tex</span><span class="o">.</span><span class="n">size</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="p">(</span><span class="n">width</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">tw</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">y</span> <span class="o">+</span> <span class="n">height</span> <span class="o">-</span> <span class="n">th</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">tex</span><span class="p">:</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_parent</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">after</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+		<span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">after</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_img_rect</span> <span class="o">=</span> <span class="n">Rectangle</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_img_rect_pos</span><span class="p">(),</span>
+										<span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tex</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+										<span class="n">texture</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tex</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upd_img_rect_pos</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;tex&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upd_img_rect_tex</span><span class="p">)</span>
 
-    <span class="nd">@trigger</span>
-    <span class="k">def</span> <span class="nf">_upd_img_rect_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_img_rect</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_img_rect_pos</span><span class="p">()</span>
+	<span class="k">def</span> <span class="nf">_get_img_rect_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span>
+		<span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span>
+		<span class="n">tw</span><span class="p">,</span> <span class="n">th</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tex</span><span class="o">.</span><span class="n">size</span>
+		<span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="p">(</span><span class="n">width</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">tw</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">y</span> <span class="o">+</span> <span class="n">height</span> <span class="o">-</span> <span class="n">th</span><span class="p">)</span>
 
-    <span class="nd">@trigger</span>
-    <span class="k">def</span> <span class="nf">_upd_img_rect_tex</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_img_rect</span><span class="o">.</span><span class="n">texture</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tex</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_img_rect</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tex</span><span class="o">.</span><span class="n">size</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_img_rect</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_img_rect_pos</span><span class="p">()</span>
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_upd_img_rect_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_img_rect</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_img_rect_pos</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">on_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">text_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span></div>
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_upd_img_rect_tex</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_img_rect</span><span class="o">.</span><span class="n">texture</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tex</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_img_rect</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tex</span><span class="o">.</span><span class="n">size</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_img_rect</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_img_rect_pos</span><span class="p">()</span>
+
+	<span class="k">def</span> <span class="nf">on_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">text_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span></div>
 
 
 <div class="viewcode-block" id="Pallet"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.pallet.Pallet">[docs]</a><span class="k">class</span> <span class="nc">Pallet</span><span class="p">(</span><span class="n">StackLayout</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Many :class:`SwatchButton`, gathered from an :class:`kivy.atlas.Atlas`.&quot;&quot;&quot;</span>
-    <span class="n">atlas</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;:class:`kivy.atlas.Atlas` object I&#39;ll make :class:`SwatchButton` from.&quot;&quot;&quot;</span>
-    <span class="n">filename</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;Path to an atlas; will construct :class:`kivy.atlas.Atlas` when set&quot;&quot;&quot;</span>
-    <span class="n">swatches</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">({})</span>
-    <span class="sd">&quot;&quot;&quot;:class:`SwatchButton` widgets here, keyed by name of their graphic&quot;&quot;&quot;</span>
-    <span class="n">swatch_width</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
-    <span class="sd">&quot;&quot;&quot;Width of each and every :class:`SwatchButton` here&quot;&quot;&quot;</span>
-    <span class="n">swatch_height</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">75</span><span class="p">)</span>
-    <span class="sd">&quot;&quot;&quot;Height of each and every :class:`SwatchButton` here&quot;&quot;&quot;</span>
-    <span class="n">swatch_size</span> <span class="o">=</span> <span class="n">ReferenceListProperty</span><span class="p">(</span><span class="n">swatch_width</span><span class="p">,</span> <span class="n">swatch_height</span><span class="p">)</span>
-    <span class="sd">&quot;&quot;&quot;Size of each and every :class:`SwatchButton` here&quot;&quot;&quot;</span>
-    <span class="n">selection</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([])</span>
-    <span class="sd">&quot;&quot;&quot;List of :class:`SwatchButton`s that are selected&quot;&quot;&quot;</span>
-    <span class="n">selection_mode</span> <span class="o">=</span> <span class="n">OptionProperty</span><span class="p">(</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="s1">&#39;multiple&#39;</span><span class="p">])</span>
-    <span class="sd">&quot;&quot;&quot;Whether to allow only a &#39;single&#39; selected :class:`SwatchButton` (default), or &#39;multiple&#39;&quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">on_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Pallet: </span><span class="si">{}</span><span class="s1"> got selection </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection</span><span class="p">))</span>
+	<span class="sd">&quot;&quot;&quot;Many :class:`SwatchButton`, gathered from an :class:`kivy.atlas.Atlas`.&quot;&quot;&quot;</span>
+	<span class="n">atlas</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="sd">&quot;&quot;&quot;:class:`kivy.atlas.Atlas` object I&#39;ll make :class:`SwatchButton` from.&quot;&quot;&quot;</span>
+	<span class="n">filename</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+	<span class="sd">&quot;&quot;&quot;Path to an atlas; will construct :class:`kivy.atlas.Atlas` when set&quot;&quot;&quot;</span>
+	<span class="n">swatches</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">({})</span>
+	<span class="sd">&quot;&quot;&quot;:class:`SwatchButton` widgets here, keyed by name of their graphic&quot;&quot;&quot;</span>
+	<span class="n">swatch_width</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+	<span class="sd">&quot;&quot;&quot;Width of each and every :class:`SwatchButton` here&quot;&quot;&quot;</span>
+	<span class="n">swatch_height</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">75</span><span class="p">)</span>
+	<span class="sd">&quot;&quot;&quot;Height of each and every :class:`SwatchButton` here&quot;&quot;&quot;</span>
+	<span class="n">swatch_size</span> <span class="o">=</span> <span class="n">ReferenceListProperty</span><span class="p">(</span><span class="n">swatch_width</span><span class="p">,</span> <span class="n">swatch_height</span><span class="p">)</span>
+	<span class="sd">&quot;&quot;&quot;Size of each and every :class:`SwatchButton` here&quot;&quot;&quot;</span>
+	<span class="n">selection</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([])</span>
+	<span class="sd">&quot;&quot;&quot;List of :class:`SwatchButton`s that are selected&quot;&quot;&quot;</span>
+	<span class="n">selection_mode</span> <span class="o">=</span> <span class="n">OptionProperty</span><span class="p">(</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="s1">&#39;multiple&#39;</span><span class="p">])</span>
+	<span class="sd">&quot;&quot;&quot;Whether to allow only a &#39;single&#39; selected :class:`SwatchButton` (default), or &#39;multiple&#39;&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">on_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>
-            <span class="k">return</span>
-        <span class="n">resource</span> <span class="o">=</span> <span class="n">resource_find</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">resource</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t find atlas: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">atlas</span> <span class="o">=</span> <span class="n">Atlas</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">on_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Pallet: </span><span class="si">{}</span><span class="s1"> got selection </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">on_atlas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atlas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">upd_textures</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">atlas</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">textures</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_upd_textures</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">on_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>
+			<span class="k">return</span>
+		<span class="n">resource</span> <span class="o">=</span> <span class="n">resource_find</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="n">resource</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t find atlas: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">atlas</span> <span class="o">=</span> <span class="n">Atlas</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Pallet.upd_textures"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.pallet.Pallet.upd_textures">[docs]</a>    <span class="k">def</span> <span class="nf">upd_textures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Create one :class:`SwatchButton` for each texture&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">upd_textures</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="n">swatches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">swatches</span>
-        <span class="n">atlas_textures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atlas</span><span class="o">.</span><span class="n">textures</span>
-        <span class="n">remove_widget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_widget</span>
-        <span class="n">add_widget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span>
-        <span class="n">swatch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">swatch_size</span>
-        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">swatch</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">swatches</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">atlas_textures</span><span class="p">:</span>
-                <span class="n">remove_widget</span><span class="p">(</span><span class="n">swatch</span><span class="p">)</span>
-                <span class="k">del</span> <span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
-        <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">tex</span><span class="p">)</span> <span class="ow">in</span> <span class="n">atlas_textures</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">swatches</span> <span class="ow">and</span> <span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">!=</span> <span class="n">tex</span><span class="p">:</span>
-                <span class="n">remove_widget</span><span class="p">(</span><span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">swatches</span> <span class="ow">or</span> <span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">!=</span> <span class="n">tex</span><span class="p">:</span>
-                <span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">SwatchButton</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-                                              <span class="n">tex</span><span class="o">=</span><span class="n">tex</span><span class="p">,</span>
-                                              <span class="n">size_hint</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-                                              <span class="n">size</span><span class="o">=</span><span class="n">swatch_size</span><span class="p">)</span>
-                <span class="n">add_widget</span><span class="p">(</span><span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">])</span></div>
+	<span class="k">def</span> <span class="nf">on_atlas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atlas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="k">return</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">upd_textures</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">atlas</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">textures</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_upd_textures</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_trigger_upd_textures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scheduled_upd_textures&#39;</span><span class="p">):</span>
-            <span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_upd_textures</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_upd_textures</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_upd_textures</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Pallet.upd_textures"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.pallet.Pallet.upd_textures">[docs]</a>	<span class="k">def</span> <span class="nf">upd_textures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Create one :class:`SwatchButton` for each texture&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">upd_textures</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="n">swatches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">swatches</span>
+		<span class="n">atlas_textures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atlas</span><span class="o">.</span><span class="n">textures</span>
+		<span class="n">remove_widget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_widget</span>
+		<span class="n">add_widget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span>
+		<span class="n">swatch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">swatch_size</span>
+		<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">swatch</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">swatches</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+			<span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">atlas_textures</span><span class="p">:</span>
+				<span class="n">remove_widget</span><span class="p">(</span><span class="n">swatch</span><span class="p">)</span>
+				<span class="k">del</span> <span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+		<span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">tex</span><span class="p">)</span> <span class="ow">in</span> <span class="n">atlas_textures</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+			<span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">swatches</span> <span class="ow">and</span> <span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">!=</span> <span class="n">tex</span><span class="p">:</span>
+				<span class="n">remove_widget</span><span class="p">(</span><span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+			<span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">swatches</span> <span class="ow">or</span> <span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">!=</span> <span class="n">tex</span><span class="p">:</span>
+				<span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">SwatchButton</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+												<span class="n">tex</span><span class="o">=</span><span class="n">tex</span><span class="p">,</span>
+												<span class="n">size_hint</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+												<span class="n">size</span><span class="o">=</span><span class="n">swatch_size</span><span class="p">)</span>
+				<span class="n">add_widget</span><span class="p">(</span><span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">])</span></div>
+
+	<span class="k">def</span> <span class="nf">_trigger_upd_textures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scheduled_upd_textures&#39;</span><span class="p">):</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_upd_textures</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_upd_textures</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_upd_textures</span><span class="p">)</span></div>
 
 
 <span class="n">kv</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
@@ -196,7 +198,7 @@
 
 
 <div class="viewcode-block" id="PalletBox"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.pallet.PalletBox">[docs]</a><span class="k">class</span> <span class="nc">PalletBox</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
-    <span class="n">pallets</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span></div>
+	<span class="n">pallets</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span></div>
 </pre></div>
 
           </div>

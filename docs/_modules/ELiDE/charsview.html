@@ -61,71 +61,71 @@
 
 
 <div class="viewcode-block" id="CharactersRecycleBoxLayout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charsview.CharactersRecycleBoxLayout">[docs]</a><span class="k">class</span> <span class="nc">CharactersRecycleBoxLayout</span><span class="p">(</span><span class="n">SelectableRecycleBoxLayout</span><span class="p">):</span>
-    <span class="n">character_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+	<span class="n">character_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
 
-<div class="viewcode-block" id="CharactersRecycleBoxLayout.apply_selection"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charsview.CharactersRecycleBoxLayout.apply_selection">[docs]</a>    <span class="k">def</span> <span class="nf">apply_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">view</span><span class="p">,</span> <span class="n">is_selected</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">apply_selection</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">view</span><span class="p">,</span> <span class="n">is_selected</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">is_selected</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">character_name</span> <span class="o">=</span> <span class="n">view</span><span class="o">.</span><span class="n">text</span></div></div>
+<div class="viewcode-block" id="CharactersRecycleBoxLayout.apply_selection"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charsview.CharactersRecycleBoxLayout.apply_selection">[docs]</a>	<span class="k">def</span> <span class="nf">apply_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">view</span><span class="p">,</span> <span class="n">is_selected</span><span class="p">):</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">apply_selection</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">view</span><span class="p">,</span> <span class="n">is_selected</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">is_selected</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">character_name</span> <span class="o">=</span> <span class="n">view</span><span class="o">.</span><span class="n">text</span></div></div>
 
 
 <div class="viewcode-block" id="CharactersView"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charsview.CharactersView">[docs]</a><span class="k">class</span> <span class="nc">CharactersView</span><span class="p">(</span><span class="n">RecycleView</span><span class="p">):</span>
-    <span class="n">character_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+	<span class="n">character_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">i2name</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">name2i</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">i2name</span> <span class="o">=</span> <span class="p">{}</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">name2i</span> <span class="o">=</span> <span class="p">{}</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="CharactersScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charsview.CharactersScreen">[docs]</a><span class="k">class</span> <span class="nc">CharactersScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
-    <span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="n">charsview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="n">character_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
-    <span class="n">wallpaper_path</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
-    <span class="n">names</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
-    <span class="n">new_board</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="n">push_character_name</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="n">charsview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="n">character_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+	<span class="n">wallpaper_path</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+	<span class="n">names</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+	<span class="n">new_board</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="n">push_character_name</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">engine</span>
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">engine</span>
 
-    <span class="k">def</span> <span class="nf">new_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">add_character</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">newname</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-        <span class="n">i</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">i2name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">name2i</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;index&#39;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">})</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">new_board</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">push_character_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">new_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">add_character</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">newname</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+		<span class="n">i</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">i2name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">name2i</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;index&#39;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">})</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">new_board</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">push_character_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_trigger_new_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="n">part</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">new_character</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scheduled_new_character&#39;</span><span class="p">):</span>
-            <span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_new_character</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_new_character</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">_trigger_new_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+		<span class="n">part</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">new_character</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scheduled_new_character&#39;</span><span class="p">):</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_new_character</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_new_character</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_munge_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">i2name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">name2i</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
-            <span class="k">yield</span> <span class="p">{</span><span class="s1">&#39;index&#39;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">}</span>
+	<span class="k">def</span> <span class="nf">_munge_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
+		<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">i2name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">name2i</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+			<span class="k">yield</span> <span class="p">{</span><span class="s1">&#39;index&#39;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">on_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="p">:</span>
-            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_names</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_munge_names</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">))</span>
+	<span class="k">def</span> <span class="nf">on_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="p">:</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_names</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_munge_names</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">on_charsview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">push_character_name</span><span class="p">:</span>
-            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_charsview</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">character_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;character_name&#39;</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">character_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">push_character_name</span><span class="p">)</span></div>
+	<span class="k">def</span> <span class="nf">on_charsview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">push_character_name</span><span class="p">:</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_charsview</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">character_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;character_name&#39;</span><span class="p">))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">character_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">push_character_name</span><span class="p">)</span></div>
 
 
 <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>

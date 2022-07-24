@@ -4,7 +4,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
     <title>ELiDE &#8212; LiSE 0.9dev documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
@@ -48,7 +48,7 @@
 If this method returns a widget (tree), it will be used as the root
 widget and added to the window.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None or a root <code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code> instance
 if no self.root exists.</p>
 </dd>
@@ -72,14 +72,14 @@ if no self.root exists.</p>
 <span class="sig-name descname"><span class="pre">wait_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">turns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameApp.wait_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameApp.wait_command" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call <code class="docutils literal notranslate"><span class="pre">start_func</span></code>, and wait to call <code class="docutils literal notranslate"><span class="pre">end_func</span></code> after simulating <code class="docutils literal notranslate"><span class="pre">turns</span></code> (default 1)</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>start_func</strong> – function to call before waiting</p></li>
 <li><p><strong>turns</strong> – number of turns to wait</p></li>
 <li><p><strong>end_func</strong> – function to call after waiting</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
 </dd>
 </dl>
@@ -90,7 +90,7 @@ if no self.root exists.</p>
 <span class="sig-name descname"><span class="pre">wait_travel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">character</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameApp.wait_travel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameApp.wait_travel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Schedule a thing to travel someplace, then wait for it to finish, and call <code class="docutils literal notranslate"><span class="pre">cb</span></code> if provided</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>character</strong> – name of the character</p></li>
 <li><p><strong>thing</strong> – name of the thing</p></li>
@@ -98,7 +98,7 @@ if no self.root exists.</p>
 <li><p><strong>cb</strong> – function to be called when I’m done</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
 </dd>
 </dl>
@@ -109,7 +109,7 @@ if no self.root exists.</p>
 <span class="sig-name descname"><span class="pre">wait_travel_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">character</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">turns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameApp.wait_travel_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameApp.wait_travel_command" title="Permalink to this definition">¶</a></dt>
 <dd><p>Schedule a thing to travel someplace and do something, then wait for it to finish.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>character</strong> – name of the character</p></li>
 <li><p><strong>thing</strong> – name of the thing</p></li>
@@ -119,7 +119,7 @@ if no self.root exists.</p>
 <li><p><strong>end_func</strong> – optional. Function to call after waiting <code class="docutils literal notranslate"><span class="pre">turns</span></code> after start_func</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
 </dd>
 </dl>
@@ -131,14 +131,14 @@ if no self.root exists.</p>
 <dd><p>Call <code class="docutils literal notranslate"><span class="pre">self.engine.next_turn()</span></code> <code class="docutils literal notranslate"><span class="pre">n</span></code> times, waiting <code class="docutils literal notranslate"><span class="pre">self.turn_length</span></code> in between</p>
 <p>If provided, call <code class="docutils literal notranslate"><span class="pre">cb</span></code> when done.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>turns</strong> – number of turns to wait</p></li>
 <li><p><strong>dt</strong> – unused, just satisfies the clock</p></li>
 <li><p><strong>cb</strong> – callback function to call when done, optional</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
 </dd>
 </dl>
@@ -159,10 +159,10 @@ to them with the <code class="docutils literal notranslate"><span class="pre">sw
 <span class="sig-name descname"><span class="pre">disable_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameScreen.disable_input"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameScreen.disable_input" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set <code class="docutils literal notranslate"><span class="pre">self.disabled</span></code> to <code class="docutils literal notranslate"><span class="pre">True</span></code>, then call <code class="docutils literal notranslate"><span class="pre">cb</span></code> if provided</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>cb</strong> – callback function for after disabling</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
 </dd>
 </dl>
@@ -179,10 +179,10 @@ to them with the <code class="docutils literal notranslate"><span class="pre">sw
 <span class="sig-name descname"><span class="pre">enable_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameScreen.enable_input"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameScreen.enable_input" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call <code class="docutils literal notranslate"><span class="pre">cb</span></code> if provided, then set <code class="docutils literal notranslate"><span class="pre">self.disabled</span></code> to <code class="docutils literal notranslate"><span class="pre">False</span></code></p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>cb</strong> – callback function for before enabling</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
 </dd>
 </dl>
@@ -200,14 +200,14 @@ to them with the <code class="docutils literal notranslate"><span class="pre">sw
 <dd><p>Call <code class="docutils literal notranslate"><span class="pre">start_func</span></code>, wait <code class="docutils literal notranslate"><span class="pre">turns</span></code>, and then call <code class="docutils literal notranslate"><span class="pre">end_func</span></code> if provided</p>
 <p>Disables input for the duration.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>start_func</strong> – function to call just after disabling input</p></li>
 <li><p><strong>turns</strong> – number of turns to wait</p></li>
 <li><p><strong>end_func</strong> – function to call just before re-enabling input</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
 </dd>
 </dl>
@@ -218,7 +218,7 @@ to them with the <code class="docutils literal notranslate"><span class="pre">sw
 <span class="sig-name descname"><span class="pre">wait_travel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">character</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameScreen.wait_travel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameScreen.wait_travel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Schedule a thing to travel someplace, then wait for it to finish.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>character</strong> – name of the character</p></li>
 <li><p><strong>thing</strong> – name of the thing that will travel</p></li>
@@ -226,7 +226,7 @@ to them with the <code class="docutils literal notranslate"><span class="pre">sw
 <li><p><strong>cb</strong> – callback function for when it’s done, optional</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
 </dd>
 </dl>
@@ -238,7 +238,7 @@ to them with the <code class="docutils literal notranslate"><span class="pre">sw
 <dd><p>Schedule a thing to travel someplace and do something, then wait for it to finish.</p>
 <p>Input will be disabled for the duration.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>character</strong> – name of the character</p></li>
 <li><p><strong>thing</strong> – name of the thing</p></li>
@@ -248,7 +248,7 @@ to them with the <code class="docutils literal notranslate"><span class="pre">sw
 <li><p><strong>end_func</strong> – optional. Function to call after waiting <code class="docutils literal notranslate"><span class="pre">turns</span></code> after start_func</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
 </dd>
 </dl>
@@ -260,13 +260,13 @@ to them with the <code class="docutils literal notranslate"><span class="pre">sw
 <dd><p>Call <code class="docutils literal notranslate"><span class="pre">self.app.engine.next_turn()</span></code> <code class="docutils literal notranslate"><span class="pre">n</span></code> times, waiting <code class="docutils literal notranslate"><span class="pre">self.app.turn_length</span></code> in between</p>
 <p>Disables input for the duration.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>turns</strong> – number of turns to wait</p></li>
 <li><p><strong>cb</strong> – function to call when done waiting, optional</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
 </dd>
 </dl>
@@ -284,7 +284,7 @@ to them with the <code class="docutils literal notranslate"><span class="pre">sw
 <dd><p>Add a new widget as a child of this widget.</p>
 <blockquote>
 <div><dl class="field-list">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
 <dt><cite>widget</cite>: <code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></dt><dd><p>Widget to add to our list of children.</p>
 </dd>
@@ -383,7 +383,7 @@ current <code class="docutils literal notranslate"><span class="pre">play_speed<
 <span class="sig-name descname"><span class="pre">on_touch_down</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#MainScreen.on_touch_down"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.MainScreen.on_touch_down" title="Permalink to this definition">¶</a></dt>
 <dd><p>Receive a touch down event.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
 <dt><cite>touch</cite>: <code class="xref py py-class docutils literal notranslate"><span class="pre">MotionEvent</span></code> class</dt><dd><p>Touch received. The touch is in parent coordinates. See
 <code class="xref py py-mod docutils literal notranslate"><span class="pre">relativelayout</span></code> for a discussion on
@@ -391,7 +391,7 @@ coordinate systems.</p>
 </dd>
 </dl>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>bool
 If True, the dispatching of the touch event will stop.
 If False, the event will continue to be dispatched to the rest
@@ -1047,7 +1047,7 @@ called multiple times even if the selection state may not have changed.</p>
 the selection state. Otherwise, the this method is responsible
 for applying the selection.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
 <dt><cite>index</cite>: int</dt><dd><p>The index of the data item that is associated with the view.</p>
 </dd>
@@ -1402,7 +1402,7 @@ deckbuilder in it with a column of used functions and a column of unused actions
 <span class="sig-name descname"><span class="pre">get_functions_cards</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">what</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allfuncs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesView.get_functions_cards"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.rulesview.RulesView.get_functions_cards" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a pair of lists of Card widgets for used and unused functions.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>what</strong> – a string: ‘trigger’, ‘prereq’, or ‘action’</p></li>
 <li><p><strong>allfuncs</strong> – a sequence of functions’ (name, sourcecode, signature)</p></li>
@@ -1446,7 +1446,7 @@ deckbuilder in it with a column of used functions and a column of unused actions
 <span class="sig-name descname"><span class="pre">set_functions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">what</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allfuncs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesView.set_functions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.rulesview.RulesView.set_functions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the cards in the <code class="docutils literal notranslate"><span class="pre">what</span></code> builder to <code class="docutils literal notranslate"><span class="pre">allfuncs</span></code></p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>what</strong> – a string, ‘trigger’, ‘prereq’, or ‘action’</p></li>
 <li><p><strong>allfuncs</strong> – a sequence of triples of (name, sourcecode, signature) as taken by my</p></li>
@@ -2004,7 +2004,7 @@ function in order to pre-process text for input validation.</p>
 <span class="sig-name descname"><span class="pre">on_touch_down</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#RecycleToggleButton.on_touch_down"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.stores.RecycleToggleButton.on_touch_down" title="Permalink to this definition">¶</a></dt>
 <dd><p>Receive a touch down event.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
 <dt><cite>touch</cite>: <code class="xref py py-class docutils literal notranslate"><span class="pre">MotionEvent</span></code> class</dt><dd><p>Touch received. The touch is in parent coordinates. See
 <code class="xref py py-mod docutils literal notranslate"><span class="pre">relativelayout</span></code> for a discussion on
@@ -2012,7 +2012,7 @@ coordinate systems.</p>
 </dd>
 </dl>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>bool
 If True, the dispatching of the touch event will stop.
 If False, the event will continue to be dispatched to the rest
@@ -2217,7 +2217,7 @@ object otherwise.</p>
 If this method returns a widget (tree), it will be used as the root
 widget and added to the window.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None or a root <code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code> instance
 if no self.root exists.</p>
 </dd>
