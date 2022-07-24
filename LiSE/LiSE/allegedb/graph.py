@@ -947,7 +947,7 @@ class DiGraph(networkx.DiGraph):
 		return before_branch, rev - 1, branch, rev
 
 	def remove_node(self, n):
-		__doc__ = networkx.DiGraph.remove_node.__doc__
+		"""Version of remove_node that minimizes writes"""
 		if n not in self._node:
 			raise NetworkXError("The node %s is not in the digraph." % (n, ))
 		nbrs = self._succ[n]
@@ -1048,6 +1048,7 @@ class DiGraph(networkx.DiGraph):
 		self.graph.clear()
 
 	def add_node(self, node_for_adding, **attr):
+		"""Version of add_node that minimizes writes"""
 		if node_for_adding not in self._succ:
 			self._succ[node_for_adding] = self.adjlist_inner_dict_factory()
 			self._pred[node_for_adding] = self.adjlist_inner_dict_factory()

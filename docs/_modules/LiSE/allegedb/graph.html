@@ -981,7 +981,7 @@
 		<span class="k">return</span> <span class="n">before_branch</span><span class="p">,</span> <span class="n">rev</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">rev</span>
 
 <div class="viewcode-block" id="DiGraph.remove_node"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.DiGraph.remove_node">[docs]</a>	<span class="k">def</span> <span class="nf">remove_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
-		<span class="vm">__doc__</span> <span class="o">=</span> <span class="n">networkx</span><span class="o">.</span><span class="n">DiGraph</span><span class="o">.</span><span class="n">remove_node</span><span class="o">.</span><span class="vm">__doc__</span>
+		<span class="sd">&quot;&quot;&quot;Version of remove_node that minimizes writes&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="n">NetworkXError</span><span class="p">(</span><span class="s2">&quot;The node </span><span class="si">%s</span><span class="s2"> is not in the digraph.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="p">))</span>
 		<span class="n">nbrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_succ</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
@@ -1082,6 +1082,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DiGraph.add_node"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.DiGraph.add_node">[docs]</a>	<span class="k">def</span> <span class="nf">add_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_for_adding</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Version of add_node that minimizes writes&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">node_for_adding</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_succ</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_succ</span><span class="p">[</span><span class="n">node_for_adding</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjlist_inner_dict_factory</span><span class="p">()</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_pred</span><span class="p">[</span><span class="n">node_for_adding</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjlist_inner_dict_factory</span><span class="p">()</span>

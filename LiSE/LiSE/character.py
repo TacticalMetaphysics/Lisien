@@ -492,9 +492,11 @@ class Facade(AbstractCharacter, nx.DiGraph):
 		self.place[name] = kwargs
 
 	def add_node(self, name, **kwargs):
+		"""Version of add_node that assumes it's a place"""
 		self.place[name] = kwargs
 
 	def remove_node(self, node):
+		"""Version of remove_node that handles place or thing"""
 		if node in self.thing:
 			del self.thing[node]
 		else:
@@ -521,6 +523,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
 		del self.portal[origin][destination]
 
 	def add_edge(self, orig, dest, **kwargs):
+		"""Wrapper for add_portal"""
 		self.add_portal(orig, dest, **kwargs)
 
 	def add_unit(self, a, b=None):

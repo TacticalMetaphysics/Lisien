@@ -1526,75 +1526,13 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 <dl class="py method">
 <dt class="sig sig-object py" id="LiSE.character.Facade.add_edge">
 <span class="sig-name descname"><span class="pre">add_edge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Facade.add_edge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Facade.add_edge" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add an edge between u and v.</p>
-<p>The nodes u and v will be automatically added if they are
-not already in the graph.</p>
-<p>Edge attributes can be specified with keywords or by directly
-accessing the edge’s attribute dictionary. See examples below.</p>
-<dl class="simple">
-<dt>u, v<span class="classifier">nodes</span></dt><dd><p>Nodes can be, for example, strings or numbers.
-Nodes must be hashable (and not None) Python objects.</p>
-</dd>
-<dt>attr<span class="classifier">keyword arguments, optional</span></dt><dd><p>Edge data (or labels or objects) can be assigned using
-keyword arguments.</p>
-</dd>
-</dl>
-<p>add_edges_from : add a collection of edges</p>
-<p>Adding an edge that already exists updates the edge data.</p>
-<p>Many NetworkX algorithms designed for weighted graphs use
-an edge attribute (by default <cite>weight</cite>) to hold a numerical value.</p>
-<p>The following all add the edge e=(1, 2) to graph G:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>  <span class="c1"># or DiGraph, MultiGraph, MultiDiGraph, etc</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># explicit two-node form</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="o">*</span><span class="n">e</span><span class="p">)</span>  <span class="c1"># single edge as tuple of two nodes</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_edges_from</span><span class="p">([(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)])</span>  <span class="c1"># add edges from iterable container</span>
-</pre></div>
-</div>
-<p>Associate data to edges using keywords:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">capacity</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mf">342.7</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>For non-string attribute keys, use subscript notation.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="mi">0</span><span class="p">:</span> <span class="mi">5</span><span class="p">})</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="mi">0</span><span class="p">:</span> <span class="mi">5</span><span class="p">})</span>
-</pre></div>
-</div>
+<dd><p>Wrapper for add_portal</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="LiSE.character.Facade.add_node">
 <span class="sig-name descname"><span class="pre">add_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Facade.add_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Facade.add_node" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add a single node <cite>node_for_adding</cite> and update node attributes.</p>
-<dl class="simple">
-<dt>node_for_adding<span class="classifier">node</span></dt><dd><p>A node can be any hashable Python object except None.</p>
-</dd>
-<dt>attr<span class="classifier">keyword arguments, optional</span></dt><dd><p>Set or change node attributes using key=value.</p>
-</dd>
-</dl>
-<p>add_nodes_from</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>  <span class="c1"># or DiGraph, MultiGraph, MultiDiGraph, etc</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">&quot;Hello&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">K3</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">K3</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">number_of_nodes</span><span class="p">()</span>
-<span class="go">3</span>
-</pre></div>
-</div>
-<p>Use keywords set/change node attributes:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">UTM</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;13S&quot;</span><span class="p">,</span> <span class="mi">382871</span><span class="p">,</span> <span class="mi">3972649</span><span class="p">))</span>
-</pre></div>
-</div>
-<p>A hashable object is one that can be used as a key in a Python
-dictionary. This includes strings, numbers, tuples of strings
-and numbers, etc.</p>
-<p>On many platforms hashable items also include mutables such as
-NetworkX Graphs, though one should be careful that the hash
-doesn’t change on mutables.</p>
+<dd><p>Version of add_node that assumes it’s a place</p>
 </dd></dl>
 
 <dl class="py property">
@@ -1622,26 +1560,7 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 <dl class="py method">
 <dt class="sig sig-object py" id="LiSE.character.Facade.remove_node">
 <span class="sig-name descname"><span class="pre">remove_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Facade.remove_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Facade.remove_node" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove node n.</p>
-<p>Removes the node n and all adjacent edges.
-Attempting to remove a non-existent node will raise an exception.</p>
-<dl class="simple">
-<dt>n<span class="classifier">node</span></dt><dd><p>A node in the graph</p>
-</dd>
-</dl>
-<dl class="simple">
-<dt>NetworkXError</dt><dd><p>If n is not in the graph.</p>
-</dd>
-</dl>
-<p>remove_nodes_from</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">path_graph</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># or DiGraph, MultiGraph, MultiDiGraph, etc</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span>
-<span class="go">[(0, 1), (1, 2)]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">remove_node</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span>
-<span class="go">[]</span>
-</pre></div>
-</div>
+<dd><p>Version of remove_node that handles place or thing</p>
 </dd></dl>
 
 </dd></dl>
@@ -3203,34 +3122,7 @@ database.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="LiSE.allegedb.graph.DiGraph.add_node">
 <span class="sig-name descname"><span class="pre">add_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_for_adding</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">attr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/allegedb/graph.html#DiGraph.add_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.allegedb.graph.DiGraph.add_node" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add a single node <cite>node_for_adding</cite> and update node attributes.</p>
-<dl class="simple">
-<dt>node_for_adding<span class="classifier">node</span></dt><dd><p>A node can be any hashable Python object except None.</p>
-</dd>
-<dt>attr<span class="classifier">keyword arguments, optional</span></dt><dd><p>Set or change node attributes using key=value.</p>
-</dd>
-</dl>
-<p>add_nodes_from</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>  <span class="c1"># or DiGraph, MultiGraph, MultiDiGraph, etc</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">&quot;Hello&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">K3</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">K3</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">number_of_nodes</span><span class="p">()</span>
-<span class="go">3</span>
-</pre></div>
-</div>
-<p>Use keywords set/change node attributes:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">UTM</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;13S&quot;</span><span class="p">,</span> <span class="mi">382871</span><span class="p">,</span> <span class="mi">3972649</span><span class="p">))</span>
-</pre></div>
-</div>
-<p>A hashable object is one that can be used as a key in a Python
-dictionary. This includes strings, numbers, tuples of strings
-and numbers, etc.</p>
-<p>On many platforms hashable items also include mutables such as
-NetworkX Graphs, though one should be careful that the hash
-doesn’t change on mutables.</p>
+<dd><p>Version of add_node that minimizes writes</p>
 </dd></dl>
 
 <dl class="py property">
@@ -3338,26 +3230,7 @@ succ mappings</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="LiSE.allegedb.graph.DiGraph.remove_node">
 <span class="sig-name descname"><span class="pre">remove_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/allegedb/graph.html#DiGraph.remove_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.allegedb.graph.DiGraph.remove_node" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove node n.</p>
-<p>Removes the node n and all adjacent edges.
-Attempting to remove a non-existent node will raise an exception.</p>
-<dl class="simple">
-<dt>n<span class="classifier">node</span></dt><dd><p>A node in the graph</p>
-</dd>
-</dl>
-<dl class="simple">
-<dt>NetworkXError</dt><dd><p>If n is not in the graph.</p>
-</dd>
-</dl>
-<p>remove_nodes_from</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">path_graph</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># or DiGraph, MultiGraph, MultiDiGraph, etc</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span>
-<span class="go">[(0, 1), (1, 2)]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">remove_node</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span>
-<span class="go">[]</span>
-</pre></div>
-</div>
+<dd><p>Version of remove_node that minimizes writes</p>
 </dd></dl>
 
 <dl class="py property">
