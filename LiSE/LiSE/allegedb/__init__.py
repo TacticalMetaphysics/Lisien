@@ -12,13 +12,15 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""The main interface to the allegedb ORM, and some supporting functions and classes"""
+"""The main interface to the allegedb ORM"""
+
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
 import gc
 from queue import Queue
 from threading import RLock, Thread
-from typing import Callable, Dict, Any, Union, Tuple, Optional, List, Hashable
+from typing import (Callable, Dict, Any, Union, Tuple, Optional, List,
+					Hashable, Iterator)
 from weakref import WeakValueDictionary
 
 from blinker import Signal
@@ -143,8 +145,8 @@ class PlanningContext(ContextDecorator):
 class TimeSignal:
 	"""Acts like a tuple of ``(branch, turn)`` for the most part.
 
-    This wraps a ``Signal``. To set a function to be called whenever the branch
-    or turn changes, pass it to my ``connect`` method.
+    This wraps a ``Signal``. To set a function to be called whenever the
+    branch or turn changes, pass it to my ``connect`` method.
 
     """
 
@@ -249,8 +251,8 @@ class TimeSignalDescriptor:
 			if not e._planning and (turn_now > turn_end or
 									(turn_now == turn_end
 										and tick_now > tick_end)):
-				branches[
-					branch_now] = parent, turn_start, tick_start, turn_now, tick_now
+				branches[branch_now] = (parent, turn_start, tick_start,
+										turn_now, tick_now)
 		else:
 			tick_now = tick_then
 			branches[branch_now] = (branch_then, turn_now, tick_now, turn_now,
@@ -282,13 +284,13 @@ def setgraphval(delta: DeltaType, graph: Hashable, key: Hashable,
 
 
 def setnode(delta: DeltaType, graph: Hashable, node: Hashable,
-			exists: Optional[bool]):
+			exists: Optional[bool]) -> None:
 	"""Change a delta to say that a node was created or deleted"""
 	delta.setdefault(graph, {}).setdefault('nodes', {})[node] = bool(exists)
 
 
 def setnodeval(delta: DeltaType, graph: Hashable, node: Hashable,
-				key: Hashable, value: Any):
+				key: Hashable, value: Any) -> None:
 	"""Change a delta to say that a node stat was set to a certain value"""
 	if (graph in delta and 'nodes' in delta[graph]
 		and node in delta[graph]['nodes'] and not delta[graph]['nodes'][node]):
@@ -333,7 +335,7 @@ def setedgeval(delta: DeltaType, is_multigraph: Callable, graph: Hashable,
 			orig, {}).setdefault(dest, {})[key] = value
 
 
-class ORM(object):
+class ORM:
 	"""Instantiate this with the same string argument you'd use for a
     SQLAlchemy ``create_engine`` call. This will be your interface to
     allegedb.
@@ -484,7 +486,8 @@ class ORM(object):
 			gc.collect()
 		self._no_kc = False
 
-	def _arrange_caches_at_time(self, _, *, branch, turn, tick):
+	def _arrange_caches_at_time(self, _, *, branch: str, turn: int,
+								tick: int) -> None:
 		lock = self.world_lock
 		with lock:
 			graphs = list(self.graph)
@@ -536,7 +539,7 @@ class ORM(object):
 							self._edge_val_cache._base_retrieve(
 								(graph, node, dest, stat, branch, turn, tick))
 
-	def _arrange_cache_loop(self):
+	def _arrange_cache_loop(self) -> None:
 		q = self.cache_arrange_queue
 		while True:
 			inst = q.get()
@@ -564,11 +567,12 @@ class ORM(object):
 					turn_to: int, tick_to: int) -> DeltaType:
 		"""Get a dictionary describing changes to all graphs.
 
-        The keys are graph names. Their values are dictionaries of the graphs'
-        attributes' new values, with ``None`` for deleted keys. Also in those graph
-        dictionaries are special keys 'node_val' and 'edge_val' describing changes
-        to node and edge attributes, and 'nodes' and 'edges' full of booleans
-        indicating whether a node or edge exists.
+        The keys are graph names. Their values are dictionaries of the
+        graphs' attributes' new values, with ``None`` for deleted keys. Also
+        in those graph dictionaries are special keys 'node_val' and
+        'edge_val' describing changes to node and edge attributes,
+        and 'nodes' and 'edges' full of booleans indicating whether a node
+        or edge exists.
 
         """
 		from functools import partial
@@ -627,11 +631,12 @@ class ORM(object):
         If ``tick_to`` is not supplied, report all changes after ``tick_from``
         (default 0).
 
-        The keys are graph names. Their values are dictionaries of the graphs'
-        attributes' new values, with ``None`` for deleted keys. Also in those graph
-        dictionaries are special keys 'node_val' and 'edge_val' describing changes
-        to node and edge attributes, and 'nodes' and 'edges' full of booleans
-        indicating whether a node or edge exists.
+        The keys are graph names. Their values are dictionaries of the
+        graphs' attributes' new values, with ``None`` for deleted keys. Also
+        in those graph dictionaries are special keys 'node_val' and
+        'edge_val' describing changes to node and edge attributes,
+        and 'nodes' and 'edges' full of booleans indicating whether a node
+        or edge exists.
 
         :arg branch: A branch of history; defaults to the current branch
         :arg turn: The turn in the branch; defaults to the current turn
@@ -750,7 +755,7 @@ class ORM(object):
 		self._turn_end = defaultdict(lambda: 0)
 		"""Tick on which a (branch, turn) ends"""
 		self._turn_end_plan = defaultdict(lambda: 0)
-		"""Tick on which a (branch, turn) ends, even if it hasn't been simulated"""
+		"Tick on which a (branch, turn) ends, even if it hasn't been simulated"
 		self._branch_end_plan = defaultdict(lambda: 0)
 		"""Turn on which a branch ends, even if it hasn't been simulated"""
 		self._graph_objs = {}
@@ -792,12 +797,11 @@ class ORM(object):
 		"""Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
         either case, begin a transaction.
 
-        :arg dbstring: rfc1738 URL for a database connection. Unless it begins with
-        "sqlite:///", SQLAlchemy will be required.
-        :arg alchemy: Set to ``False`` to use the precompiled SQLite queries even if
-        SQLAlchemy is available.
-        :arg connect_args: Dictionary of keyword arguments to be used for the database
-        connection.
+        :arg dbstring: rfc1738 URL for a database connection. Unless it
+        begins with "sqlite:///", SQLAlchemy will be required. :arg alchemy:
+        Set to ``False`` to use the precompiled SQLite queries even if
+        SQLAlchemy is available. :arg connect_args: Dictionary of keyword
+        arguments to be used for the database connection.
 
         """
 		self.world_lock = RLock()
@@ -886,7 +890,7 @@ class ORM(object):
 		if cache_arranger:
 			self._cache_arrange_thread.start()
 
-	def _init_load(self):
+	def _init_load(self) -> None:
 		keyframes_list = self._keyframes_list
 		keyframes_dict = self._keyframes_dict
 		keyframes_times = self._keyframes_times
@@ -918,7 +922,7 @@ class ORM(object):
 			plan_ticks[plan][turn].append(tick)
 			time_plan[plans[plan][0], turn, tick] = plan
 
-	def _upd_branch_parentage(self, parent, child):
+	def _upd_branch_parentage(self, parent: str, child: str) -> None:
 		self._childbranch[parent].add(child)
 		self._branch_parents[child].add(parent)
 		while parent in self._branches:
@@ -926,9 +930,10 @@ class ORM(object):
 			self._branch_parents[child].add(parent)
 
 	@world_locked
-	def _snap_keyframe(self, graph, branch: str, turn: int, tick: int,
-						nodes: NodeValDictType, edges: EdgeValDictType,
-						graph_val: StatDictType):
+	def _snap_keyframe(self, graph: Hashable, branch: str, turn: int,
+						tick: int, nodes: NodeValDictType,
+						edges: EdgeValDictType,
+						graph_val: StatDictType) -> None:
 		nodes_keyframes_branch_d = self._nodes_cache.keyframe[graph, ][branch]
 		if turn in nodes_keyframes_branch_d:
 			nodes_keyframes_branch_d[turn][tick] = {
@@ -971,7 +976,7 @@ class ORM(object):
 			gvkb[turn] = {tick: graph_val}
 
 	@world_locked
-	def snap_keyframe(self):
+	def snap_keyframe(self) -> None:
 		branch, turn, tick = self._btt()
 		snapp = self._snap_keyframe
 		kfl = self._keyframes_list
@@ -1003,7 +1008,9 @@ class ORM(object):
 			self, branch_from: str, turn_from: int, tick_from: int,
 			branch_to: str, turn_to: int,
 			tick_to: int) -> List[Tuple[str, int, int, int, int]]:
-		"""Return windows of time I've got to load in order to have a complete timeline between these points
+		"""Return windows of time I've got to load
+
+		In order to have a complete timeline between these points.
 
         Returned windows are in reverse chronological order.
         """
@@ -1035,10 +1042,10 @@ class ORM(object):
 		branch_now, turn_now, tick_now = branch, turn, tick
 		branch_parents = self._branch_parents
 		for (branch, turn, tick) in self._keyframes_times:
-			# Figure out the latest keyframe that is earlier than the present moment,
-			# and the earliest keyframe that is later than the present moment,
-			# for each graph.
-			# Can I avoid iterating over the entire keyframes table, somehow?
+			# Figure out the latest keyframe that is earlier than the present
+			# moment, and the earliest keyframe that is later than the
+			# present moment, for each graph. Can I avoid iterating over the
+			# entire keyframes table, somehow?
 			if branch == branch_now:
 				if turn < turn_now:
 					if latest_past_keyframe:
@@ -1085,11 +1092,11 @@ class ORM(object):
 						latest_past_keyframe = (branch, turn, tick)
 				else:
 					latest_past_keyframe = (branch, turn, tick)
-		# If branch is a descendant of branch_now, don't load the keyframe there,
-		# because then we'd potentially be loading keyframes from any number of
-		# possible futures, and we're trying to be conservative about what we load.
-		# If neither branch is an ancestor of the other, we can't use the keyframe
-		# for this load.
+		# If branch is a descendant of branch_now, don't load the keyframe
+		# there, because then we'd potentially be loading keyframes from any
+		# number of possible futures, and we're trying to be conservative
+		# about what we load. If neither branch is an ancestor of the other,
+		# we can't use the keyframe for this load.
 		loaded = self._loaded
 		if earliest_future_keyframe:
 			kfb, kfr, kft = earliest_future_keyframe
@@ -1174,7 +1181,8 @@ class ORM(object):
 				self._graph_val_cache.load(graphvalrows)
 				self._node_val_cache.load(nodevalrows)
 				self._edge_val_cache.load(edgevalrows)
-			return None, None, {}, noderows, edgerows, graphvalrows, nodevalrows, edgevalrows
+			return (None, None, {}, noderows, edgerows, graphvalrows,
+					nodevalrows, edgevalrows)
 		past_branch, past_turn, past_tick = latest_past_keyframe
 		keyframed = {}
 
@@ -1269,7 +1277,8 @@ class ORM(object):
 			self._node_val_cache.load(nodevalrows)
 			self._edge_val_cache.load(edgevalrows)
 
-		return latest_past_keyframe, earliest_future_keyframe, keyframed, noderows, edgerows, graphvalrows, nodevalrows, edgevalrows
+		return (latest_past_keyframe, earliest_future_keyframe, keyframed,
+				noderows, edgerows, graphvalrows, nodevalrows, edgevalrows)
 
 	@world_locked
 	def unload(self):
@@ -1442,8 +1451,9 @@ class ORM(object):
 			self._load_at(v, curturn, tick)
 
 	@world_locked
-	def _copy_plans(self, branch_from: str, turn_from: int, tick_from: int):
-		"""Collect all plans that are active at the given time and copy them to the current branch"""
+	def _copy_plans(self, branch_from: str, turn_from: int,
+					tick_from: int) -> None:
+		"""Copy all plans active at the given time to the current branch"""
 		plan_ticks = self._plan_ticks
 		plan_ticks_uncommitted = self._plan_ticks_uncommitted
 		time_plan = self._time_plan
@@ -1488,7 +1498,8 @@ class ORM(object):
 	def delete_plan(self, plan: int):
 		"""Delete the portion of a plan that has yet to occur.
 
-        :arg plan: integer ID of a plan, as given by ``with self.plan() as plan:``
+        :arg plan: integer ID of a plan, as given by
+        ``with self.plan() as plan:``
 
         """
 		branch, turn, tick = self._btt()
@@ -1502,7 +1513,8 @@ class ORM(object):
 						to_delete.append((trn, tck))
 			elif trn > turn:
 				to_delete.extend((trn, tck) for tck in tcks)
-		# Delete stuff that happened at contradicted times, and then delete the times from the plan
+		# Delete stuff that happened at contradicted times,
+		# and then delete the times from the plan
 		where_cached = self._where_cached
 		time_plan = self._time_plan
 		for trn, tck in to_delete:
@@ -1593,7 +1605,7 @@ class ORM(object):
 	def turn(self, v: int):
 		self._set_turn(v)
 
-	def _get_tick(self):
+	def _get_tick(self) -> int:
 		return self._otick
 
 	@world_locked
@@ -1645,7 +1657,7 @@ class ORM(object):
 		(self._obranch, self._oturn, self._otick) = (branch, turn, tick)
 
 	@world_locked
-	def _nbtt(self):
+	def _nbtt(self) -> Tuple[str, int, int]:
 		"""Increment the tick and return branch, turn, tick
 
         Unless we're viewing the past, in which case raise HistoryError.
@@ -1662,9 +1674,9 @@ class ORM(object):
 		if branch_turn in turn_end_plan and tick <= turn_end_plan[branch_turn]:
 			tick = turn_end_plan[branch_turn] + 1
 		if turn_end[branch_turn] > tick:
-			raise HistoricKeyError(
-				"You're not at the end of turn {}. Go to tick {} to change things"
-				.format(turn, turn_end[branch_turn]))
+			raise HistoricKeyError("You're not at the end of turn {}. "
+									"Go to tick {} to change things".format(
+										turn, turn_end[branch_turn]))
 		parent, turn_start, tick_start, turn_end, tick_end = branches[branch]
 		if turn < turn_end:
 			# There used to be a check for turn == turn_end and tick < tick_end
@@ -1677,8 +1689,9 @@ class ORM(object):
 			last_plan = self._last_plan
 			if (turn, tick) in plan_ticks[last_plan]:
 				raise OutOfTimelineError(
-					"Trying to make a plan at {}, but that time already happened"
-					.format((branch, turn, tick)), self.branch, self.turn,
+					"Trying to make a plan at {}, "
+					"but that time already happened".format(
+						(branch, turn, tick)), self.branch, self.turn,
 					self.tick, self.branch, self.turn, tick)
 			plan_ticks[last_plan][turn].append(tick)
 			plan_ticks_uncommitted.append((last_plan, turn, tick))
@@ -1699,8 +1712,8 @@ class ORM(object):
 		return branch, turn, tick
 
 	@world_locked
-	def commit(self):
-		"""Write the state of all graphs to the database and commit the transaction.
+	def commit(self) -> None:
+		"""Write the state of all graphs and commit the transaction.
 
         Also saves the current branch, turn, and tick.
 
@@ -1728,7 +1741,7 @@ class ORM(object):
 		self._plans_uncommitted = []
 		self._plan_ticks_uncommitted = []
 
-	def close(self):
+	def close(self) -> None:
 		"""Write changes to database and close the connection"""
 		if hasattr(self, 'cache_arrange_queue'):
 			self.cache_arrange_queue.put('shutdown')
@@ -1737,7 +1750,7 @@ class ORM(object):
 		self.commit()
 		self.query.close()
 
-	def _nudge_loaded(self, branch: str, turn: int, tick: int):
+	def _nudge_loaded(self, branch: str, turn: int, tick: int) -> None:
 		loaded = self._loaded
 		if branch in loaded:
 			past_turn, past_tick, future_turn, future_tick = loaded[branch]
@@ -1750,10 +1763,11 @@ class ORM(object):
 			loaded[branch] = turn, tick, turn, tick
 
 	@world_locked
-	def _init_graph(self,
-					name: Hashable,
-					type_s='DiGraph',
-					data: Union[Graph, nx.Graph, dict, KeyframeType] = None):
+	def _init_graph(
+			self,
+			name: Hashable,
+			type_s='DiGraph',
+			data: Union[Graph, nx.Graph, dict, KeyframeType] = None) -> None:
 		if self.query.have_graph(name):
 			raise GraphNameError("Already have a graph by that name")
 		if name in self.illegal_graph_names:
@@ -1895,12 +1909,14 @@ class ORM(object):
 		if name in self._graph_objs:
 			del self._graph_objs[name]
 
-	def _iter_parent_btt(self,
-							branch: str = None,
-							turn: int = None,
-							tick: int = None,
-							*,
-							stoptime: Tuple[str, int, int] = None):
+	def _iter_parent_btt(
+		self,
+		branch: str = None,
+		turn: int = None,
+		tick: int = None,
+		*,
+		stoptime: Tuple[str, int,
+						int] = None) -> Iterator[Tuple[str, int, int]]:
 		"""Private use. Iterate over (branch, turn, tick), where the branch is
         a descendant of the previous (starting with whatever branch is
         presently active and ending at 'trunk'), and the turn is the
@@ -1908,8 +1924,8 @@ class ORM(object):
 
         :arg stoptime: a triple,
         ``(branch, turn, tick)``. Iteration will stop instead of
-        yielding that time or any before it. The tick may be ``None``, in which case
-        iteration will stop instead of yielding the turn.
+        yielding that time or any before it. The tick may be ``None``,
+        in which case, iteration will stop instead of yielding the turn.
 
         """
 		branch = branch or self.branch
@@ -1931,7 +1947,7 @@ class ORM(object):
 				return
 			yield branch, trn, tck
 
-	def _branch_descendants(self, branch=None):
+	def _branch_descendants(self, branch=None) -> Iterator[str]:
 		"""Iterate over all branches immediately descended from the current
         one (or the given one, if available).
 
@@ -1949,7 +1965,10 @@ class ORM(object):
 			return False
 
 	@world_locked
-	def _exist_node(self, character: Hashable, node: Hashable, exist=True):
+	def _exist_node(self,
+					character: Hashable,
+					node: Hashable,
+					exist=True) -> None:
 		nbtt, exist_node, store = self._exist_node_stuff
 		branch, turn, tick = nbtt()
 		exist_node(character, node, branch, turn, tick, exist)
@@ -1972,7 +1991,7 @@ class ORM(object):
 					orig: Hashable,
 					dest: Hashable,
 					idx=0,
-					exist=True):
+					exist=True) -> None:
 		nbtt, exist_edge, store = self._exist_edge_stuff
 		branch, turn, tick = nbtt()
 		exist_edge(character, orig, dest, idx, branch, turn, tick, exist)
