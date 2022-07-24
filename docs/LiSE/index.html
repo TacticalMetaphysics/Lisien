@@ -2603,11 +2603,10 @@ data if provided.</p>
 <span class="sig-name descname"><span class="pre">plan</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#LiSE.allegedb.PlanningContext" title="LiSE.allegedb.PlanningContext"><span class="pre">PlanningContext</span></a></span></span><a class="reference internal" href="../_modules/LiSE/allegedb.html#ORM.plan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.allegedb.ORM.plan" title="Permalink to this definition">¶</a></dt>
 <dd><p>A context manager for ‘hypothetical’ edits.</p>
 <p>Start a block of code like:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;</span><span class="k">with</span> <span class="n">orm</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">orm</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
+        <span class="o">...</span>
 </pre></div>
 </div>
-<p>&gt;    …
-&gt;</p>
 <p>and any changes you make to the world state within that block will be
 ‘plans,’ meaning that they are used as defaults. The world will
 obey your plan unless you make changes to the same entities outside
@@ -2643,11 +2642,10 @@ consider another approach instead of making a very large plan.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.allegedb.</span></span><span class="sig-name descname"><span class="pre">PlanningContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#LiSE.allegedb.ORM" title="LiSE.allegedb.ORM"><span class="pre">ORM</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/allegedb.html#PlanningContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.allegedb.PlanningContext" title="Permalink to this definition">¶</a></dt>
 <dd><p>A context manager for ‘hypothetical’ edits.</p>
 <p>Start a block of code like:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;</span><span class="k">with</span> <span class="n">orm</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">orm</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
+        <span class="o">...</span>
 </pre></div>
 </div>
-<p>&gt;    …
-&gt;</p>
 <p>and any changes you make to the world state within that block will be
 ‘plans,’ meaning that they are used as defaults. The world will
 obey your plan unless you make changes to the same entities outside

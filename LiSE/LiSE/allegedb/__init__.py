@@ -100,9 +100,9 @@ class PlanningContext(ContextDecorator):
 
     Start a block of code like::
 
-	>with orm.plan():
-    >    ...
-    >
+		with orm.plan():
+			...
+
 
     and any changes you make to the world state within that block will be
     'plans,' meaning that they are used as defaults. The world will
