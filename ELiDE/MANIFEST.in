@@ -1,5 +1,5 @@
-include assets/*.png
-include assets/*.jpg
-include assets/*.ttf
-include assets/*.atlas
-include assets/rltiles/*
+include ELiDE/assets/*.png
+include ELiDE/assets/*.jpg
+include ELiDE/assets/*.ttf
+include ELiDE/assets/*.atlas
+include ELiDE/assets/rltiles/*
