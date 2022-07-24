@@ -1,0 +1,811 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ELiDE.graph.arrow &#8212; LiSE 0.13.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for ELiDE.graph.arrow</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (c) Zachary Spector, public@zacharyspector.com</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU Affero General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, version 3.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU Affero General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
+<span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">&quot;&quot;&quot;That which displays a one-way connection between two places.</span>
+
+<span class="sd">An arrow connects two spots, the origin and the destination, and it</span>
+<span class="sd">points from the origin to the destination, regardless of where on the</span>
+<span class="sd">screen they are at the moment.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">cos</span><span class="p">,</span> <span class="n">sin</span><span class="p">,</span> <span class="n">atan</span><span class="p">,</span> <span class="n">pi</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.widget</span> <span class="kn">import</span> <span class="n">Widget</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.floatlayout</span> <span class="kn">import</span> <span class="n">FloatLayout</span>
+<span class="kn">from</span> <span class="nn">kivy.graphics.fbo</span> <span class="kn">import</span> <span class="n">Fbo</span>
+<span class="kn">from</span> <span class="nn">kivy.graphics</span> <span class="kn">import</span> <span class="p">(</span><span class="n">Translate</span><span class="p">,</span> <span class="n">Rectangle</span><span class="p">,</span> <span class="n">Quad</span><span class="p">,</span> <span class="n">Color</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span><span class="n">ReferenceListProperty</span><span class="p">,</span> <span class="n">AliasProperty</span><span class="p">,</span>
+								<span class="n">ObjectProperty</span><span class="p">,</span> <span class="n">NumericProperty</span><span class="p">,</span> <span class="n">ListProperty</span><span class="p">,</span>
+								<span class="n">BooleanProperty</span><span class="p">,</span> <span class="n">StringProperty</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span>
+
+<span class="kn">from</span> <span class="nn">..dummy</span> <span class="kn">import</span> <span class="n">Dummy</span>
+<span class="kn">from</span> <span class="nn">..util</span> <span class="kn">import</span> <span class="n">trigger</span>
+
+<span class="k">try</span><span class="p">:</span>
+	<span class="kn">from</span> <span class="nn">kivy.garden.collider</span> <span class="kn">import</span> <span class="n">Collide2DPoly</span>
+<span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ImportError</span><span class="p">):</span>
+	<span class="kn">from</span> <span class="nn">..collide</span> <span class="kn">import</span> <span class="n">Collide2DPoly</span>
+<span class="kn">from</span> <span class="nn">..util</span> <span class="kn">import</span> <span class="n">get_thin_rect_vertices</span><span class="p">,</span> <span class="n">fortyfive</span>
+
+<span class="n">cos45</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">fortyfive</span><span class="p">)</span>
+<span class="n">sin45</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">fortyfive</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">up_and_down</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">):</span>
+	<span class="k">if</span> <span class="n">orig</span><span class="o">.</span><span class="n">center_y</span> <span class="o">==</span> <span class="n">dest</span><span class="o">.</span><span class="n">center_y</span><span class="p">:</span>
+		<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t draw an arrow at a point&quot;</span><span class="p">)</span>
+	<span class="n">flipped</span> <span class="o">=</span> <span class="n">orig</span><span class="o">.</span><span class="n">center_y</span> <span class="o">&gt;</span> <span class="n">dest</span><span class="o">.</span><span class="n">center_y</span>
+	<span class="k">if</span> <span class="n">flipped</span><span class="p">:</span>
+		<span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="n">dest</span><span class="p">,</span> <span class="n">orig</span>
+	<span class="n">x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig</span><span class="o">.</span><span class="n">center_x</span><span class="p">)</span>
+	<span class="n">dy</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dest</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+	<span class="n">oy</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig</span><span class="o">.</span><span class="n">top</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">flipped</span><span class="p">:</span>
+		<span class="n">oy</span><span class="p">,</span> <span class="n">dy</span> <span class="o">=</span> <span class="n">dy</span><span class="p">,</span> <span class="n">oy</span>
+	<span class="n">off1</span> <span class="o">=</span> <span class="n">cos45</span> <span class="o">*</span> <span class="n">taillen</span>
+	<span class="n">off2</span> <span class="o">=</span> <span class="n">sin45</span> <span class="o">*</span> <span class="n">taillen</span>
+	<span class="n">x0</span> <span class="o">=</span> <span class="n">x</span>
+	<span class="n">y0</span> <span class="o">=</span> <span class="n">oy</span>
+	<span class="n">endx</span> <span class="o">=</span> <span class="n">x</span>
+	<span class="n">endy</span> <span class="o">=</span> <span class="n">dy</span>
+	<span class="n">x1</span> <span class="o">=</span> <span class="n">endx</span> <span class="o">-</span> <span class="n">off1</span>
+	<span class="n">x2</span> <span class="o">=</span> <span class="n">endx</span> <span class="o">+</span> <span class="n">off1</span>
+	<span class="n">y1</span> <span class="o">=</span> <span class="n">y2</span> <span class="o">=</span> <span class="n">endy</span> <span class="o">-</span> <span class="n">off2</span> <span class="k">if</span> <span class="n">oy</span> <span class="o">&lt;</span> <span class="n">dy</span> <span class="k">else</span> <span class="n">endy</span> <span class="o">+</span> <span class="n">off2</span>
+	<span class="k">return</span> <span class="p">([</span><span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">],</span> <span class="p">[</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">left_and_right</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">):</span>
+	<span class="k">if</span> <span class="n">orig</span><span class="o">.</span><span class="n">center_x</span> <span class="o">==</span> <span class="n">dest</span><span class="o">.</span><span class="n">center_x</span><span class="p">:</span>
+		<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t draw an arrow at a point&quot;</span><span class="p">)</span>
+	<span class="n">flipped</span> <span class="o">=</span> <span class="n">orig</span><span class="o">.</span><span class="n">center_x</span> <span class="o">&gt;</span> <span class="n">dest</span><span class="o">.</span><span class="n">center_x</span>
+	<span class="k">if</span> <span class="n">flipped</span><span class="p">:</span>
+		<span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="n">dest</span><span class="p">,</span> <span class="n">orig</span>
+	<span class="n">y</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig</span><span class="o">.</span><span class="n">center_y</span><span class="p">)</span>
+	<span class="n">dx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dest</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+	<span class="n">ox</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig</span><span class="o">.</span><span class="n">right</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">flipped</span><span class="p">:</span>
+		<span class="n">ox</span><span class="p">,</span> <span class="n">dx</span> <span class="o">=</span> <span class="n">dx</span><span class="p">,</span> <span class="n">ox</span>
+	<span class="n">off1</span> <span class="o">=</span> <span class="n">cos45</span> <span class="o">*</span> <span class="n">taillen</span>
+	<span class="n">off2</span> <span class="o">=</span> <span class="n">sin45</span> <span class="o">*</span> <span class="n">taillen</span>
+	<span class="n">x0</span> <span class="o">=</span> <span class="n">ox</span>
+	<span class="n">y0</span> <span class="o">=</span> <span class="n">y</span>
+	<span class="n">endx</span> <span class="o">=</span> <span class="n">dx</span>
+	<span class="n">endy</span> <span class="o">=</span> <span class="n">y</span>
+	<span class="n">y1</span> <span class="o">=</span> <span class="n">endy</span> <span class="o">-</span> <span class="n">off1</span>
+	<span class="n">y2</span> <span class="o">=</span> <span class="n">endy</span> <span class="o">+</span> <span class="n">off1</span>
+	<span class="n">x1</span> <span class="o">=</span> <span class="n">x2</span> <span class="o">=</span> <span class="n">endx</span> <span class="o">-</span> <span class="n">off2</span> <span class="k">if</span> <span class="n">ox</span> <span class="o">&lt;</span> <span class="n">dx</span> <span class="k">else</span> <span class="n">endx</span> <span class="o">+</span> <span class="n">off2</span>
+	<span class="k">return</span> <span class="p">([</span><span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">],</span> <span class="p">[</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">_get_points_first_part</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">):</span>
+	<span class="n">ox</span><span class="p">,</span> <span class="n">oy</span> <span class="o">=</span> <span class="n">orig</span><span class="o">.</span><span class="n">center</span>
+	<span class="n">ow</span><span class="p">,</span> <span class="n">oh</span> <span class="o">=</span> <span class="n">orig</span><span class="o">.</span><span class="n">size</span>
+	<span class="n">dx</span><span class="p">,</span> <span class="n">dy</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">center</span>
+	<span class="n">dw</span><span class="p">,</span> <span class="n">dh</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">size</span>
+	<span class="c1"># Flip the endpoints around so that the arrow faces up and right.</span>
+	<span class="c1"># We&#39;ll flip it back at the end as needed.</span>
+	<span class="n">xco</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">ox</span> <span class="o">&lt;</span> <span class="n">dx</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+	<span class="n">yco</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">oy</span> <span class="o">&lt;</span> <span class="n">dy</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+	<span class="n">ox</span> <span class="o">*=</span> <span class="n">xco</span>
+	<span class="n">dx</span> <span class="o">*=</span> <span class="n">xco</span>
+	<span class="n">oy</span> <span class="o">*=</span> <span class="n">yco</span>
+	<span class="n">dy</span> <span class="o">*=</span> <span class="n">yco</span>
+	<span class="c1"># Nudge my endpoints so that I start and end at the edge of</span>
+	<span class="c1"># a Spot.</span>
+	<span class="k">if</span> <span class="n">dy</span> <span class="o">-</span> <span class="n">oy</span> <span class="o">&gt;</span> <span class="n">dx</span> <span class="o">-</span> <span class="n">ox</span><span class="p">:</span>
+		<span class="n">topy</span> <span class="o">=</span> <span class="n">dy</span> <span class="o">-</span> <span class="n">dh</span> <span class="o">/</span> <span class="mi">2</span>
+		<span class="n">boty</span> <span class="o">=</span> <span class="n">oy</span> <span class="o">+</span> <span class="n">oh</span> <span class="o">/</span> <span class="mi">2</span>
+		<span class="n">leftx</span> <span class="o">=</span> <span class="n">ox</span>
+		<span class="n">rightx</span> <span class="o">=</span> <span class="n">dx</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="n">leftx</span> <span class="o">=</span> <span class="n">ox</span> <span class="o">+</span> <span class="n">ow</span> <span class="o">/</span> <span class="mi">2</span>
+		<span class="n">rightx</span> <span class="o">=</span> <span class="n">dx</span> <span class="o">-</span> <span class="n">dw</span> <span class="o">/</span> <span class="mi">2</span>
+		<span class="n">topy</span> <span class="o">=</span> <span class="n">dy</span>
+		<span class="n">boty</span> <span class="o">=</span> <span class="n">oy</span>
+	<span class="c1"># Degenerate cases.</span>
+	<span class="c1"># Also, these need to be handled specially to avoid</span>
+	<span class="c1"># division by zero later on.</span>
+	<span class="k">if</span> <span class="n">rightx</span> <span class="o">==</span> <span class="n">leftx</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">up_and_down</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">topy</span> <span class="o">==</span> <span class="n">boty</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">left_and_right</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span>
+	<span class="k">return</span> <span class="n">ow</span><span class="p">,</span> <span class="n">oh</span><span class="p">,</span> <span class="n">dw</span><span class="p">,</span> <span class="n">dh</span><span class="p">,</span> <span class="n">xco</span><span class="p">,</span> <span class="n">leftx</span><span class="p">,</span> <span class="n">rightx</span><span class="p">,</span> <span class="n">yco</span><span class="p">,</span> <span class="n">topy</span><span class="p">,</span> <span class="n">boty</span>
+
+
+<div class="viewcode-block" id="get_points_multi"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.get_points_multi">[docs]</a><span class="k">def</span> <span class="nf">get_points_multi</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;Return a dictionary mapping (orig, dest) to pairs of point lists for arrows</span>
+
+<span class="sd">    Takes an iterable of (orig, dest, taillen) where orig and dest are Spot instances</span>
+
+<span class="sd">    taillen is an integer specifying how long the arrowhead should be.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+	<span class="n">ret</span> <span class="o">=</span> <span class="p">{}</span>
+	<span class="n">keys</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">topys</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">botys</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">leftxs</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">rightxs</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">taillens</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">xcos</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">ycos</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="k">for</span> <span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="n">p1</span> <span class="o">=</span> <span class="n">_get_points_first_part</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span>
+		<span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+			<span class="n">p1</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span>
+		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+			<span class="n">ret</span><span class="p">[</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">]</span> <span class="o">=</span> <span class="n">p1</span>
+			<span class="k">continue</span>
+		<span class="n">ow</span><span class="p">,</span> <span class="n">oh</span><span class="p">,</span> <span class="n">dw</span><span class="p">,</span> <span class="n">dh</span><span class="p">,</span> <span class="n">xco</span><span class="p">,</span> <span class="n">leftx</span><span class="p">,</span> <span class="n">rightx</span><span class="p">,</span> <span class="n">yco</span><span class="p">,</span> <span class="n">topy</span><span class="p">,</span> <span class="n">boty</span> <span class="o">=</span> <span class="n">p1</span>
+		<span class="n">keys</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">))</span>
+		<span class="n">leftxs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">leftx</span><span class="p">)</span>
+		<span class="n">rightxs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rightx</span><span class="p">)</span>
+		<span class="n">topys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">topy</span><span class="p">)</span>
+		<span class="n">botys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">boty</span><span class="p">)</span>
+		<span class="n">taillens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">taillen</span><span class="p">)</span>
+		<span class="n">xcos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xco</span><span class="p">)</span>
+		<span class="n">ycos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">yco</span><span class="p">)</span>
+	<span class="n">topys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">topys</span><span class="p">)</span>
+	<span class="n">botys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">botys</span><span class="p">)</span>
+	<span class="n">rightxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rightxs</span><span class="p">)</span>
+	<span class="n">leftxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">leftxs</span><span class="p">)</span>
+	<span class="n">rises</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">topys</span><span class="p">,</span> <span class="n">botys</span><span class="p">)</span>
+	<span class="n">runs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">rightxs</span><span class="p">,</span> <span class="n">leftxs</span><span class="p">)</span>
+	<span class="n">slopes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">rises</span><span class="p">,</span> <span class="n">runs</span><span class="p">)</span>
+	<span class="n">unslopes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">runs</span><span class="p">,</span> <span class="n">rises</span><span class="p">)</span>
+	<span class="n">start_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">slopes</span><span class="p">)</span>
+	<span class="n">end_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">unslopes</span><span class="p">)</span>
+	<span class="n">top_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">start_thetas</span><span class="p">,</span> <span class="n">fortyfive</span><span class="p">)</span>
+	<span class="n">bot_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">pi</span> <span class="o">-</span> <span class="n">fortyfive</span><span class="p">,</span> <span class="n">end_thetas</span><span class="p">)</span>
+	<span class="n">topsins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">top_thetas</span><span class="p">)</span>
+	<span class="n">topcoss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">top_thetas</span><span class="p">)</span>
+	<span class="n">botsins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">bot_thetas</span><span class="p">)</span>
+	<span class="n">botcoss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">bot_thetas</span><span class="p">)</span>
+	<span class="n">taillens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">taillens</span><span class="p">)</span>
+	<span class="n">xoff1s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">topcoss</span><span class="p">,</span> <span class="n">taillens</span><span class="p">)</span>
+	<span class="n">yoff1s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">topsins</span><span class="p">,</span> <span class="n">taillens</span><span class="p">)</span>
+	<span class="n">xoff2s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">botcoss</span><span class="p">,</span> <span class="n">taillens</span><span class="p">)</span>
+	<span class="n">yoff2s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">botsins</span><span class="p">,</span> <span class="n">taillens</span><span class="p">)</span>
+	<span class="n">xcos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xcos</span><span class="p">)</span>
+	<span class="n">ycos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ycos</span><span class="p">)</span>
+	<span class="n">x1s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">rightxs</span><span class="p">,</span> <span class="n">xoff1s</span><span class="p">),</span> <span class="n">xcos</span><span class="p">)</span>
+	<span class="n">x2s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">rightxs</span><span class="p">,</span> <span class="n">xoff2s</span><span class="p">),</span> <span class="n">xcos</span><span class="p">)</span>
+	<span class="n">y1s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">topys</span><span class="p">,</span> <span class="n">yoff1s</span><span class="p">),</span> <span class="n">ycos</span><span class="p">)</span>
+	<span class="n">y2s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">topys</span><span class="p">,</span> <span class="n">yoff2s</span><span class="p">),</span> <span class="n">ycos</span><span class="p">)</span>
+	<span class="n">startxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">leftxs</span><span class="p">,</span> <span class="n">xcos</span><span class="p">)</span>
+	<span class="n">startys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">botys</span><span class="p">,</span> <span class="n">ycos</span><span class="p">)</span>
+	<span class="n">endxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">rightxs</span><span class="p">,</span> <span class="n">xcos</span><span class="p">)</span>
+	<span class="n">endys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">topys</span><span class="p">,</span> <span class="n">ycos</span><span class="p">)</span>
+	<span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">startx</span><span class="p">,</span> <span class="n">starty</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+		<span class="n">keys</span><span class="p">,</span> <span class="n">startxs</span><span class="p">,</span> <span class="n">startys</span><span class="p">,</span> <span class="n">endxs</span><span class="p">,</span> <span class="n">endys</span><span class="p">,</span> <span class="n">x1s</span><span class="p">,</span> <span class="n">y1s</span><span class="p">,</span> <span class="n">endxs</span><span class="p">,</span> <span class="n">endys</span><span class="p">,</span> <span class="n">x2s</span><span class="p">,</span>
+		<span class="n">y2s</span><span class="p">):</span>
+		<span class="n">ret</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">([</span><span class="n">startx</span><span class="p">,</span> <span class="n">starty</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">],</span> <span class="p">[</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">])</span>
+	<span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="get_points"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.get_points">[docs]</a><span class="k">def</span> <span class="nf">get_points</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;Return a pair of lists of points for use making an arrow.</span>
+
+<span class="sd">    The first list is the beginning and end point of the trunk of the arrow.</span>
+
+<span class="sd">    The second list is the arrowhead.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+	<span class="n">p1</span> <span class="o">=</span> <span class="n">_get_points_first_part</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">p1</span>
+	<span class="n">ow</span><span class="p">,</span> <span class="n">oh</span><span class="p">,</span> <span class="n">dw</span><span class="p">,</span> <span class="n">dh</span><span class="p">,</span> <span class="n">xco</span><span class="p">,</span> <span class="n">leftx</span><span class="p">,</span> <span class="n">rightx</span><span class="p">,</span> <span class="n">yco</span><span class="p">,</span> <span class="n">topy</span><span class="p">,</span> <span class="n">boty</span> <span class="o">=</span> <span class="n">p1</span>
+	<span class="n">rise</span> <span class="o">=</span> <span class="n">topy</span> <span class="o">-</span> <span class="n">boty</span>
+	<span class="n">run</span> <span class="o">=</span> <span class="n">rightx</span> <span class="o">-</span> <span class="n">leftx</span>
+	<span class="n">slope</span> <span class="o">=</span> <span class="n">rise</span> <span class="o">/</span> <span class="n">run</span>
+	<span class="n">unslope</span> <span class="o">=</span> <span class="n">run</span> <span class="o">/</span> <span class="n">rise</span>
+	<span class="n">start_theta</span> <span class="o">=</span> <span class="n">atan</span><span class="p">(</span><span class="n">slope</span><span class="p">)</span>
+	<span class="n">end_theta</span> <span class="o">=</span> <span class="n">atan</span><span class="p">(</span><span class="n">unslope</span><span class="p">)</span>
+
+	<span class="c1"># make the little wedge at the end so you can tell which way the</span>
+	<span class="c1"># arrow&#39;s pointing, and flip it all back around to the way it was</span>
+	<span class="n">top_theta</span> <span class="o">=</span> <span class="n">start_theta</span> <span class="o">-</span> <span class="n">fortyfive</span>
+	<span class="n">bot_theta</span> <span class="o">=</span> <span class="n">pi</span> <span class="o">-</span> <span class="n">fortyfive</span> <span class="o">-</span> <span class="n">end_theta</span>
+	<span class="n">xoff1</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">top_theta</span><span class="p">)</span> <span class="o">*</span> <span class="n">taillen</span>
+	<span class="n">yoff1</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">top_theta</span><span class="p">)</span> <span class="o">*</span> <span class="n">taillen</span>
+	<span class="n">xoff2</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">bot_theta</span><span class="p">)</span> <span class="o">*</span> <span class="n">taillen</span>
+	<span class="n">yoff2</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">bot_theta</span><span class="p">)</span> <span class="o">*</span> <span class="n">taillen</span>
+	<span class="n">x1</span> <span class="o">=</span> <span class="p">(</span><span class="n">rightx</span> <span class="o">-</span> <span class="n">xoff1</span><span class="p">)</span> <span class="o">*</span> <span class="n">xco</span>
+	<span class="n">x2</span> <span class="o">=</span> <span class="p">(</span><span class="n">rightx</span> <span class="o">-</span> <span class="n">xoff2</span><span class="p">)</span> <span class="o">*</span> <span class="n">xco</span>
+	<span class="n">y1</span> <span class="o">=</span> <span class="p">(</span><span class="n">topy</span> <span class="o">-</span> <span class="n">yoff1</span><span class="p">)</span> <span class="o">*</span> <span class="n">yco</span>
+	<span class="n">y2</span> <span class="o">=</span> <span class="p">(</span><span class="n">topy</span> <span class="o">-</span> <span class="n">yoff2</span><span class="p">)</span> <span class="o">*</span> <span class="n">yco</span>
+	<span class="n">startx</span> <span class="o">=</span> <span class="n">leftx</span> <span class="o">*</span> <span class="n">xco</span>
+	<span class="n">starty</span> <span class="o">=</span> <span class="n">boty</span> <span class="o">*</span> <span class="n">yco</span>
+	<span class="n">endx</span> <span class="o">=</span> <span class="n">rightx</span> <span class="o">*</span> <span class="n">xco</span>
+	<span class="n">endy</span> <span class="o">=</span> <span class="n">topy</span> <span class="o">*</span> <span class="n">yco</span>
+	<span class="k">return</span> <span class="p">([</span><span class="n">startx</span><span class="p">,</span> <span class="n">starty</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">],</span> <span class="p">[</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">])</span></div>
+
+
+<span class="n">eight0s</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">8</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="GraphArrowWidget"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.GraphArrowWidget">[docs]</a><span class="k">class</span> <span class="nc">GraphArrowWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;A widget that points from one :class:`~LiSE.gui.graph.Spot` to</span>
+<span class="sd">    another.</span>
+
+<span class="sd">    :class:`Arrow`s are the graphical representations of</span>
+<span class="sd">    :class:`~LiSE.model.Portal`s. They point from the :class:`Spot`</span>
+<span class="sd">    representing the :class:`Portal`&#39;s origin, to the one representing</span>
+<span class="sd">    its destination.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+	<span class="n">board</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="n">name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+	<span class="n">margin</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+	<span class="sd">&quot;&quot;&quot;When deciding whether a touch collides with me, how far away can</span>
+<span class="sd">    the touch get before I should consider it a miss?&quot;&quot;&quot;</span>
+	<span class="n">w</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+	<span class="sd">&quot;&quot;&quot;The width of the inner, brighter portion of the :class:`Arrow`. The</span>
+<span class="sd">    whole :class:`Arrow` will end up thicker.&quot;&quot;&quot;</span>
+	<span class="n">pawns_here</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+	<span class="n">trunk_points</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+	<span class="n">head_points</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+	<span class="n">points</span> <span class="o">=</span> <span class="n">ReferenceListProperty</span><span class="p">(</span><span class="n">trunk_points</span><span class="p">,</span> <span class="n">head_points</span><span class="p">)</span>
+	<span class="n">trunk_quad_vertices_bg</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">(</span><span class="n">eight0s</span><span class="p">)</span>
+	<span class="n">trunk_quad_vertices_fg</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">(</span><span class="n">eight0s</span><span class="p">)</span>
+	<span class="n">left_head_quad_vertices_bg</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">(</span><span class="n">eight0s</span><span class="p">)</span>
+	<span class="n">right_head_quad_vertices_bg</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">(</span><span class="n">eight0s</span><span class="p">)</span>
+	<span class="n">left_head_quad_vertices_fg</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">(</span><span class="n">eight0s</span><span class="p">)</span>
+	<span class="n">right_head_quad_vertices_fg</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">(</span><span class="n">eight0s</span><span class="p">)</span>
+	<span class="n">slope</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+	<span class="n">origin</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="n">destination</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="n">repointed</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+	<span class="n">bg_scale_unselected</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+	<span class="n">bg_scale_selected</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+	<span class="n">selected</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+	<span class="n">bg_color_unselected</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">])</span>
+	<span class="n">bg_color_selected</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+	<span class="n">fg_color_unselected</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+	<span class="n">fg_color_selected</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+	<span class="n">bg_color_unselected_head</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+	<span class="n">bg_color_selected_head</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+	<span class="n">fg_color_unselected_head</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+	<span class="n">fg_color_selected_head</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+	<span class="n">arrowhead_size</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+	<span class="n">collide_radius</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+	<span class="n">collider</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="n">portal</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+<div class="viewcode-block" id="GraphArrowWidget.on_portal"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.GraphArrowWidget.on_portal">[docs]</a>	<span class="k">def</span> <span class="nf">on_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Set my ``name`` and instantiate my ``mirrormap`` as soon as I have</span>
+<span class="sd">        the properties I need to do so.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">board</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span>
+				<span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span>
+				<span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">):</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_portal</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-&gt;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="s1">&#39;origin&#39;</span><span class="p">],</span>
+									<span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="GraphArrowWidget.collide_point"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.GraphArrowWidget.collide_point">[docs]</a>	<span class="k">def</span> <span class="nf">collide_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Delegate to my ``collider``, or return ``False`` if I don&#39;t have</span>
+<span class="sd">        one.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">collider</span><span class="p">:</span>
+			<span class="k">return</span> <span class="kc">False</span>
+		<span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">collider</span></div>
+
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Create trigger for my _repoint method. Delegate to parent for</span>
+<span class="sd">        everything else.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">create_trigger</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_repoint</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GraphArrowWidget.on_origin"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.GraphArrowWidget.on_origin">[docs]</a>	<span class="k">def</span> <span class="nf">on_origin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Make sure to redraw whenever the origin moves.&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_origin</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_origin&#39;</span><span class="p">):</span>
+			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="p">,</span> <span class="s1">&#39;_bound_pos_repoint&#39;</span><span class="p">):</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="o">.</span><span class="n">_bound_pos_repoint</span><span class="p">)</span>
+				<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="o">.</span><span class="n">_bound_pos_repoint</span>
+			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="p">,</span> <span class="s1">&#39;_bound_size_repoint&#39;</span><span class="p">):</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">_origin_unbind_uid</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">,</span>
+										<span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="o">.</span><span class="n">_bound_size_repoint</span><span class="p">)</span>
+				<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="o">.</span><span class="n">_bound_size</span>
+		<span class="n">origin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span>
+		<span class="n">origin</span><span class="o">.</span><span class="n">_bound_pos_repoint</span> <span class="o">=</span> <span class="n">origin</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
+		<span class="n">origin</span><span class="o">.</span><span class="n">_bound_size_repoint</span> <span class="o">=</span> <span class="n">origin</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">,</span>
+													<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphArrowWidget.on_destination"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.GraphArrowWidget.on_destination">[docs]</a>	<span class="k">def</span> <span class="nf">on_destination</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Make sure to redraw whenever the destination moves.&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_destination</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_destination&#39;</span><span class="p">):</span>
+			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_destination</span><span class="p">,</span> <span class="s1">&#39;_bound_pos_repoint&#39;</span><span class="p">):</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">_destination</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span>
+					<span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_destination</span><span class="o">.</span><span class="n">_bound_pos_repoint</span><span class="p">)</span>
+				<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_destination</span><span class="o">.</span><span class="n">_bound_pos_repoint</span>
+			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_destination</span><span class="p">,</span> <span class="s1">&#39;_bound_size_repoint&#39;</span><span class="p">):</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span>
+					<span class="s1">&#39;size&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_destination</span><span class="o">.</span><span class="n">_bound_size_repoint</span><span class="p">)</span>
+				<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_destination</span><span class="o">.</span><span class="n">_bound_size_repoint</span>
+		<span class="n">destination</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_destination</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span>
+		<span class="n">destination</span><span class="o">.</span><span class="n">_bound_pos_repoint</span> <span class="o">=</span> <span class="n">destination</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
+			<span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
+		<span class="n">destination</span><span class="o">.</span><span class="n">_bound_size_repoint</span> <span class="o">=</span> <span class="n">destination</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
+			<span class="s1">&#39;size&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphArrowWidget.add_widget"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.GraphArrowWidget.add_widget">[docs]</a>	<span class="k">def</span> <span class="nf">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wid</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">canvas</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Put the :class:`Pawn` at a point along my length proportionate to</span>
+<span class="sd">        how close it is to finishing its travel through me.</span>
+
+<span class="sd">        Only :class:`Pawn` should ever be added as a child of :class:`Arrow`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">wid</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">canvas</span><span class="p">)</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">wid</span><span class="p">,</span> <span class="s1">&#39;group&#39;</span><span class="p">):</span>
+			<span class="k">return</span>
+		<span class="n">wid</span><span class="o">.</span><span class="n">_no_use_canvas</span> <span class="o">=</span> <span class="kc">True</span>
+		<span class="n">mycanvas</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">before</span> <span class="k">if</span> <span class="n">canvas</span> <span class="o">==</span> <span class="s1">&#39;before&#39;</span> <span class="k">else</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">after</span> <span class="k">if</span> <span class="n">canvas</span> <span class="o">==</span> <span class="s1">&#39;after&#39;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="p">)</span>
+		<span class="n">mycanvas</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">wid</span><span class="o">.</span><span class="n">canvas</span><span class="p">)</span>
+		<span class="n">pawncanvas</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">spotlayout</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">before</span> <span class="k">if</span> <span class="n">canvas</span> <span class="o">==</span> <span class="s1">&#39;before&#39;</span>
+						<span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">spotlayout</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">after</span>
+						<span class="k">if</span> <span class="n">canvas</span> <span class="o">==</span> <span class="s1">&#39;after&#39;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">spotlayout</span><span class="o">.</span><span class="n">canvas</span><span class="p">)</span>
+		<span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="s1">&#39;group&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">child</span><span class="o">.</span><span class="n">group</span> <span class="ow">in</span> <span class="n">pawncanvas</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+				<span class="n">pawncanvas</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">group</span><span class="p">)</span>
+			<span class="n">pawncanvas</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">group</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">pospawn</span><span class="p">(</span><span class="n">wid</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphArrowWidget.remove_widget"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.GraphArrowWidget.remove_widget">[docs]</a>	<span class="k">def</span> <span class="nf">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wid</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Remove the special :class:`InstructionGroup` I was using to draw</span>
+<span class="sd">        this :class:`Pawn`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="n">wid</span><span class="p">)</span>
+		<span class="n">wid</span><span class="o">.</span><span class="n">_no_use_canvas</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="GraphArrowWidget.on_points"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.GraphArrowWidget.on_points">[docs]</a>	<span class="k">def</span> <span class="nf">on_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Reposition my children when I have new points.&quot;&quot;&quot;</span>
+		<span class="k">for</span> <span class="n">pawn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">pospawn</span><span class="p">(</span><span class="n">pawn</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphArrowWidget.pos_along"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.GraphArrowWidget.pos_along">[docs]</a>	<span class="k">def</span> <span class="nf">pos_along</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pct</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Return coordinates for where a Pawn should be if it has travelled</span>
+<span class="sd">        along ``pct`` of my length (between 0 and 1).</span>
+
+<span class="sd">        Might get complex when I switch over to using beziers for</span>
+<span class="sd">        arrows, but for now this is quite simple, using distance along</span>
+<span class="sd">        a line segment.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="n">pct</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">pct</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid portion&quot;</span><span class="p">)</span>
+		<span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">center</span>
+		<span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">center</span>
+		<span class="n">xdist</span> <span class="o">=</span> <span class="p">(</span><span class="n">dx</span> <span class="o">-</span> <span class="n">ox</span><span class="p">)</span> <span class="o">*</span> <span class="n">pct</span>
+		<span class="n">ydist</span> <span class="o">=</span> <span class="p">(</span><span class="n">dy</span> <span class="o">-</span> <span class="n">oy</span><span class="p">)</span> <span class="o">*</span> <span class="n">pct</span>
+		<span class="k">return</span> <span class="p">(</span><span class="n">ox</span> <span class="o">+</span> <span class="n">xdist</span><span class="p">,</span> <span class="n">oy</span> <span class="o">+</span> <span class="n">ydist</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphArrowWidget.pospawn"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.GraphArrowWidget.pospawn">[docs]</a>	<span class="k">def</span> <span class="nf">pospawn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pawn</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Position a :class:`Pawn` that is my child so as to reflect how far</span>
+<span class="sd">        its :class:`Thing` has gone along my :class:`Portal`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_turn</span> <span class="o">&lt;</span> <span class="n">pawn</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="s1">&#39;arrival_time&#39;</span><span class="p">]:</span>
+			<span class="c1"># It&#39;s weird that the pawn is getting placed in me, but</span>
+			<span class="c1"># I&#39;ll do my best..</span>
+			<span class="n">pawn</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_along</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="k">elif</span> <span class="p">(</span><span class="n">pawn</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="s1">&#39;next_arrival_time&#39;</span><span class="p">]</span>
+				<span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_turn</span> <span class="o">&gt;=</span> <span class="n">pawn</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="s1">&#39;next_arrival_time&#39;</span><span class="p">]):</span>
+			<span class="n">pawn</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_along</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="n">pawn</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_along</span><span class="p">(</span>
+				<span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_turn</span> <span class="o">-</span> <span class="n">pawn</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="s1">&#39;arrival_time&#39;</span><span class="p">])</span> <span class="o">/</span>
+				<span class="p">(</span><span class="n">pawn</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="s1">&#39;next_arrival_time&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">pawn</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="s1">&#39;arrival_time&#39;</span><span class="p">]))</span>
+		<span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ZeroDivisionError</span><span class="p">):</span>
+			<span class="n">pawn</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_along</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+	<span class="k">def</span> <span class="nf">_get_points</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Return the coordinates of the points that describe my shape.&quot;&quot;&quot;</span>
+		<span class="k">return</span> <span class="n">get_points</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrowhead_size</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="nf">_get_slope</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Return a float of the increase in y divided by the increase in x,</span>
+<span class="sd">        both from left to right.&quot;&quot;&quot;</span>
+		<span class="n">orig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span>
+		<span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span>
+		<span class="n">ox</span> <span class="o">=</span> <span class="n">orig</span><span class="o">.</span><span class="n">x</span>
+		<span class="n">oy</span> <span class="o">=</span> <span class="n">orig</span><span class="o">.</span><span class="n">y</span>
+		<span class="n">dx</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">x</span>
+		<span class="n">dy</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">y</span>
+		<span class="k">if</span> <span class="n">oy</span> <span class="o">==</span> <span class="n">dy</span><span class="p">:</span>
+			<span class="k">return</span> <span class="mi">0</span>
+		<span class="k">elif</span> <span class="n">ox</span> <span class="o">==</span> <span class="n">dx</span><span class="p">:</span>
+			<span class="k">return</span> <span class="kc">None</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">rise</span> <span class="o">=</span> <span class="n">dy</span> <span class="o">-</span> <span class="n">oy</span>
+			<span class="n">run</span> <span class="o">=</span> <span class="n">dx</span> <span class="o">-</span> <span class="n">ox</span>
+			<span class="k">return</span> <span class="n">rise</span> <span class="o">/</span> <span class="n">run</span>
+
+	<span class="k">def</span> <span class="nf">_get_b</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Return my Y-intercept.</span>
+
+<span class="sd">        I probably don&#39;t really hit the left edge of the window, but</span>
+<span class="sd">        this is where I would, if I were long enough.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+		<span class="n">orig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span>
+		<span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span>
+		<span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">)</span> <span class="o">=</span> <span class="n">orig</span><span class="o">.</span><span class="n">pos</span>
+		<span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">pos</span>
+		<span class="n">denominator</span> <span class="o">=</span> <span class="n">dx</span> <span class="o">-</span> <span class="n">ox</span>
+		<span class="n">x_numerator</span> <span class="o">=</span> <span class="p">(</span><span class="n">dy</span> <span class="o">-</span> <span class="n">oy</span><span class="p">)</span> <span class="o">*</span> <span class="n">ox</span>
+		<span class="n">y_numerator</span> <span class="o">=</span> <span class="n">denominator</span> <span class="o">*</span> <span class="n">oy</span>
+		<span class="k">return</span> <span class="p">((</span><span class="n">y_numerator</span> <span class="o">-</span> <span class="n">x_numerator</span><span class="p">),</span> <span class="n">denominator</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="nf">_repoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Recalculate points, y-intercept, and slope&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="p">):</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_repoint</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trunk_points</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_points</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_points</span><span class="p">()</span>
+		<span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">trunk_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_points</span> <span class="o">=</span> <span class="p">[]</span>
+			<span class="k">return</span>
+		<span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunk_points</span>
+		<span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">/</span> <span class="mi">2</span>
+		<span class="n">bgr</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_scale_selected</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span> \
+               <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_scale_unselected</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">trunk_quad_vertices_bg</span> <span class="o">=</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span>
+			<span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">bgr</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">collider</span> <span class="o">=</span> <span class="n">Collide2DPoly</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trunk_quad_vertices_bg</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">trunk_quad_vertices_fg</span> <span class="o">=</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+		<span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_points</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">left_head_quad_vertices_bg</span> <span class="o">=</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span>
+			<span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">bgr</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">right_head_quad_vertices_bg</span> <span class="o">=</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span>
+			<span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">bgr</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">left_head_quad_vertices_fg</span> <span class="o">=</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span>
+			<span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">right_head_quad_vertices_fg</span> <span class="o">=</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span>
+			<span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">slope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_slope</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">repointed</span> <span class="o">=</span> <span class="kc">True</span>
+
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_pull_bg_color0</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_color0</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_selected</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_unselected</span>
+
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_pull_points_quad0</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_quad0</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunk_quad_vertices_bg</span>
+
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_pull_head_bg_color1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_color1</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_selected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_selected</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_color1</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_unselected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_unselected</span>
+
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_pull_bg_left_head_points_quad1_0</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_quad1_0</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_head_quad_vertices_bg</span>
+
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_pull_bg_right_head_points_quad1_1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_quad1_1</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">right_head_quad_vertices_bg</span>
+
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_pull_color2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_color2</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_selected</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_color2</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected</span>
+
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_pull_color3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_color3</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_selected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_selected</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_color3</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected</span>
+
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_pull_quad2_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_quad2</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunk_quad_vertices_fg</span>
+
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_pull_points_quad3_0</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_quad3_0</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_head_quad_vertices_fg</span>
+
+	<span class="nd">@trigger</span>
+	<span class="k">def</span> <span class="nf">_pull_points_quad3_1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_quad3_1</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">right_head_quad_vertices_fg</span>
+
+	<span class="k">def</span> <span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="p">:</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_parent</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunk_points</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_points</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_repoint</span><span class="p">()</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_color0&#39;</span><span class="p">):</span>
+			<span class="k">return</span>
+		<span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_color0</span> <span class="o">=</span> <span class="n">Color</span><span class="p">(</span><span class="n">rgba</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bg_color_selected</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span>
+									<span class="n">selected</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_unselected</span><span class="p">)</span>
+			<span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="p">(</span>
+				<span class="s1">&#39;bg_color_selected&#39;</span><span class="p">,</span>
+				<span class="s1">&#39;bg_color_unselected&#39;</span><span class="p">,</span>
+				<span class="s1">&#39;selected&#39;</span><span class="p">,</span>
+			<span class="p">):</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="n">att</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_bg_color0</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_quad0</span> <span class="o">=</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">trunk_quad_vertices_bg</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;trunk_quad_vertices_bg&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_points_quad0</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_color1</span> <span class="o">=</span> <span class="n">Color</span><span class="p">(</span><span class="n">rgba</span><span class="o">=</span><span class="p">(</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">bg_color_selected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_selected</span>
+			<span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span> <span class="k">else</span> <span class="p">(</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">bg_color_unselected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_unselected</span><span class="p">))</span>
+			<span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;bg_color_selected_head&#39;</span><span class="p">,</span> <span class="s1">&#39;bg_color_selected&#39;</span><span class="p">,</span>
+						<span class="s1">&#39;bg_color_unselected_head&#39;</span><span class="p">,</span> <span class="s1">&#39;bg_color_unselected&#39;</span><span class="p">,</span>
+						<span class="s1">&#39;selected&#39;</span><span class="p">):</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="n">att</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_head_bg_color1</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_quad1_0</span> <span class="o">=</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">left_head_quad_vertices_bg</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;left_head_quad_vertices_bg&#39;</span><span class="p">,</span>
+						<span class="bp">self</span><span class="o">.</span><span class="n">_pull_bg_left_head_points_quad1_0</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_quad1_1</span> <span class="o">=</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">right_head_quad_vertices_bg</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;right_head_quad_vertices_bg&#39;</span><span class="p">,</span>
+						<span class="bp">self</span><span class="o">.</span><span class="n">_pull_bg_right_head_points_quad1_1</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_color2</span> <span class="o">=</span> <span class="n">Color</span><span class="p">(</span><span class="n">rgba</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fg_color_selected</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span>
+									<span class="n">selected</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected</span><span class="p">)</span>
+			<span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;fg_color_selected&#39;</span><span class="p">,</span> <span class="s1">&#39;fg_color_unselected&#39;</span><span class="p">,</span>
+						<span class="s1">&#39;selected&#39;</span><span class="p">):</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="n">att</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_color2</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_quad2</span> <span class="o">=</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">trunk_quad_vertices_fg</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;trunk_quad_vertices_fg&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_quad2_points</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_color3</span> <span class="o">=</span> <span class="n">Color</span><span class="p">(</span><span class="n">rgba</span><span class="o">=</span><span class="p">(</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">fg_color_selected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_selected</span>
+			<span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span> <span class="k">else</span> <span class="p">(</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected</span><span class="p">))</span>
+			<span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;selected&#39;</span><span class="p">,</span> <span class="s1">&#39;fg_color_selected_head&#39;</span><span class="p">,</span>
+						<span class="s1">&#39;fg_color_selected&#39;</span><span class="p">,</span> <span class="s1">&#39;fg_color_unselected_head&#39;</span><span class="p">,</span>
+						<span class="s1">&#39;fg_color_unselected&#39;</span><span class="p">):</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="n">att</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_color3</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_quad3_0</span> <span class="o">=</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">left_head_quad_vertices_fg</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;left_head_quad_vertices_fg&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_points_quad3_0</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_quad3_1</span> <span class="o">=</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">right_head_quad_vertices_fg</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;right_head_quad_vertices_fg&#39;</span><span class="p">,</span>
+						<span class="bp">self</span><span class="o">.</span><span class="n">_pull_points_quad3_1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GraphArrow"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.GraphArrow">[docs]</a><span class="k">class</span> <span class="nc">GraphArrow</span><span class="p">(</span><span class="n">GraphArrowWidget</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;A :class:`GraphArrowWidget` that represents a :class:`Portal` object.</span>
+
+<span class="sd">    This subclass is much more often used than :class:`GraphArrowWidget`,</span>
+<span class="sd">    which is only seen on its own when the user is in the process of</span>
+<span class="sd">    creating a new :class:`Portal`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+	<span class="n">origspot</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="n">destspot</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="n">portal</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+	<span class="sd">&quot;&quot;&quot;The portal that I represent.&quot;&quot;&quot;</span>
+	<span class="n">reciprocal</span> <span class="o">=</span> <span class="n">AliasProperty</span><span class="p">(</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_reciprocal</span><span class="p">()</span>
+								<span class="k">if</span> <span class="kc">None</span> <span class="ow">not</span> <span class="ow">in</span>
+								<span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+								<span class="k">lambda</span> <span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+								<span class="n">bind</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;portal&#39;</span><span class="p">,</span> <span class="p">))</span>
+	<span class="n">grabbed</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+	<span class="n">_turn</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">()</span>
+
+	<span class="k">def</span> <span class="nf">_get_reciprocal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Return the :class:`Arrow` that connects my origin and destination</span>
+<span class="sd">        in the opposite direction, if it exists.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+		<span class="n">orign</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="s1">&#39;origin&#39;</span><span class="p">]</span>
+		<span class="n">destn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">]</span>
+		<span class="k">if</span> <span class="p">(</span><span class="n">destn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">arrow</span> <span class="ow">and</span> <span class="n">orign</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">arrow</span><span class="p">[</span><span class="n">destn</span><span class="p">]):</span>
+			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">arrow</span><span class="p">[</span><span class="n">destn</span><span class="p">][</span><span class="n">orign</span><span class="p">]</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="GraphArrow.on_portal"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.GraphArrow.on_portal">[docs]</a>	<span class="k">def</span> <span class="nf">on_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="n">orig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="s1">&#39;origin&#39;</span><span class="p">]</span>
+		<span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">]</span>
+		<span class="n">spot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">spot</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="n">spot</span><span class="p">[</span><span class="n">orig</span><span class="p">]</span> <span class="k">if</span> <span class="n">orig</span> <span class="ow">in</span> <span class="n">spot</span> <span class="k">else</span> <span class="n">Dummy</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">destination</span> <span class="o">=</span> <span class="n">spot</span><span class="p">[</span><span class="n">dest</span><span class="p">]</span> <span class="k">if</span> <span class="n">dest</span> <span class="ow">in</span> <span class="n">spot</span> <span class="k">else</span> <span class="n">Dummy</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="ArrowLayout"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.ArrowLayout">[docs]</a><span class="k">class</span> <span class="nc">ArrowLayout</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
+
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">create_trigger</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">redraw</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">children</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span><span class="p">)</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="p">:</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_parent</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span> <span class="o">=</span> <span class="n">Fbo</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_translate</span> <span class="o">=</span> <span class="n">Translate</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_rectangle</span> <span class="o">=</span> <span class="n">Rectangle</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+										<span class="n">texture</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span><span class="o">.</span><span class="n">texture</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="nf">redraw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_rectangle&#39;</span><span class="p">):</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span><span class="p">()</span>
+			<span class="k">return</span>
+		<span class="n">fbo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span>
+		<span class="n">fbo</span><span class="o">.</span><span class="n">bind</span><span class="p">()</span>
+		<span class="n">fbo</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+		<span class="n">fbo</span><span class="o">.</span><span class="n">clear_buffer</span><span class="p">()</span>
+		<span class="n">fbo</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+		<span class="n">trigger_redraw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span>
+		<span class="n">redraw_bound</span> <span class="o">=</span> <span class="s1">&#39;_redraw_bound_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+		<span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">):</span>
+				<span class="n">child</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s1">&#39;selected&#39;</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">))</span>
+			<span class="n">fbo</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">canvas</span><span class="p">)</span>
+			<span class="nb">setattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">,</span> <span class="n">child</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;selected&#39;</span><span class="p">,</span>
+														<span class="n">trigger_redraw</span><span class="p">))</span>
+			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">origspot</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">):</span>
+				<span class="n">child</span><span class="o">.</span><span class="n">origspot</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span>
+					<span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">origspot</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">))</span>
+			<span class="nb">setattr</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">origspot</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">,</span>
+					<span class="n">child</span><span class="o">.</span><span class="n">origspot</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="n">trigger_redraw</span><span class="p">))</span>
+			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">destspot</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">):</span>
+				<span class="n">child</span><span class="o">.</span><span class="n">destspot</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span>
+					<span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">destspot</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">))</span>
+			<span class="nb">setattr</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">destspot</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">,</span>
+					<span class="n">child</span><span class="o">.</span><span class="n">destspot</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="n">trigger_redraw</span><span class="p">))</span>
+
+	<span class="k">def</span> <span class="nf">on_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_translate&#39;</span><span class="p">):</span>
+			<span class="k">return</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_translate</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_translate</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span>
+
+	<span class="k">def</span> <span class="nf">on_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_rectangle&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_fbo&#39;</span><span class="p">):</span>
+			<span class="k">return</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_rectangle</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">redraw</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ArrowLayout.add_widget"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.ArrowLayout.add_widget">[docs]</a>	<span class="k">def</span> <span class="nf">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">widget</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">canvas</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+		<span class="n">ret</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">canvas</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">canvas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">widget</span><span class="o">.</span><span class="n">canvas</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span><span class="p">()</span>
+		<span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="ArrowLayout.remove_widget"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.ArrowLayout.remove_widget">[docs]</a>	<span class="k">def</span> <span class="nf">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">widget</span><span class="p">):</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span><span class="p">()</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">LiSE</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ELiDE/index.html">ELiDE</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
