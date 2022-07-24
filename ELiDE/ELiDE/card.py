@@ -86,8 +86,7 @@ class ColorTextureBox(Widget):
 
 
 class Card(FloatLayout):
-	"""A trading card, similar to the kind you use to play games like
-    _Magic: the Gathering_.
+	"""A trading card with text and illustration
 
     Its appearance is determined by several properties, the most
     important being:

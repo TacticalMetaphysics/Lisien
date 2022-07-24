@@ -203,8 +203,8 @@
 <span class="sd">    - ``turn``: Units of time that have passed since the sim started.</span>
 <span class="sd">    - ``time``: ``(branch, turn)``</span>
 <span class="sd">    - ``tick``: A counter of how many changes have occurred this turn.</span>
-<span class="sd">    Can be set manually, but is more often set to the last tick in a turn</span>
-<span class="sd">    as a side effect of setting ``turn``.</span>
+<span class="sd">      Can be set manually, but is more often set to the last tick in a turn</span>
+<span class="sd">      as a side effect of setting ``turn``.</span>
 <span class="sd">    - ``character``: A mapping of :class:`Character` objects by name.</span>
 <span class="sd">    - ``rule``: A mapping of all rules that have been made.</span>
 <span class="sd">    - ``rulebook``: A mapping of lists of rules. They are followed in</span>
@@ -217,9 +217,9 @@
 <span class="sd">      state as a result of a rule running.</span>
 <span class="sd">    - ``method``: Extension methods to be added to the engine object.</span>
 <span class="sd">    - ``function``: Generic functions. All of ``trigger``, ``prereq``,</span>
-<span class="sd">    ``action``, ``method``, and ``function`` are modules or similar;</span>
-<span class="sd">    they default to :class:`FunctionStore` objects, which can write</span>
-<span class="sd">    Python code to the underlying module at runtime.</span>
+<span class="sd">      ``action``, ``method``, and ``function`` are modules or similar;</span>
+<span class="sd">      they default to :class:`FunctionStore` objects, which can write</span>
+<span class="sd">      Python code to the underlying module at runtime.</span>
 <span class="sd">    - ``string``: A mapping of strings, probably shown to the player</span>
 <span class="sd">      at some point. Defaults to a :class:`StringStore` object,</span>
 <span class="sd">      which can alter the underlying JSON file at runtime.</span>
@@ -637,9 +637,9 @@
 <span class="sd">        Keys at the top level that are not character names:</span>
 
 <span class="sd">        * &#39;rulebooks&#39;, a dictionary keyed by the name of each changed</span>
-<span class="sd">        rulebook, the value being a list of rule names</span>
+<span class="sd">          rulebook, the value being a list of rule names</span>
 <span class="sd">        * &#39;rules&#39;, a dictionary keyed by the name of each changed rule,</span>
-<span class="sd">        containing any of the lists &#39;triggers&#39;, &#39;prereqs&#39;, and &#39;actions&#39;</span>
+<span class="sd">          containing any of the lists &#39;triggers&#39;, &#39;prereqs&#39;, and &#39;actions&#39;</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 		<span class="kn">from</span> <span class="nn">.allegedb.window</span> <span class="kn">import</span> <span class="n">update_window</span><span class="p">,</span> <span class="n">update_backward_window</span>
@@ -792,9 +792,9 @@
 
 <span class="sd">        :arg branch: branch of history, defaulting to the present branch</span>
 <span class="sd">        :arg turn: turn within the branch, defaulting to the present</span>
-<span class="sd">        turn</span>
+<span class="sd">                   turn</span>
 <span class="sd">        :arg tick: tick at which to stop the delta, defaulting to the</span>
-<span class="sd">        present tick</span>
+<span class="sd">                   present tick</span>
 <span class="sd">        :arg start_tick: tick at which to start the delta, default 0</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -1484,8 +1484,9 @@
 		<span class="sd">&quot;&quot;&quot;Yield the turns in this branch when the query held true</span>
 
 <span class="sd">        :arg qry: a Query, likely constructed by comparing the result</span>
-<span class="sd">        of a call to an entity&#39;s ``historical`` method with the output</span>
-<span class="sd">        of ``self.alias(..)`` or another ``historical(..)``</span>
+<span class="sd">                  of a call to an entity&#39;s ``historical`` method with</span>
+<span class="sd">                  the output of ``self.alias(..)`` or another</span>
+<span class="sd">                  ``historical(..)``</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 		<span class="c1"># yeah, it&#39;s just a loop over the query&#39;s method...I&#39;m planning</span>

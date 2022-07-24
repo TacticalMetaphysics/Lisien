@@ -51,7 +51,7 @@ class StatRowListItem(Widget):
 	listen = ObjectProperty()
 	"Function that takes a function and calls it when the stat changes."
 	unlisten = ObjectProperty()
-	"Function that takes a ``listen``ed function and stops it listening."
+	"Function that takes a listened function and stops it listening."
 	config = DictProperty()
 	"Dictionary of some parameters for how to present myself."
 

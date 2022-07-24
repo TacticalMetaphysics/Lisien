@@ -169,8 +169,8 @@ class Engine(AbstractEngine, gORM):
     - ``turn``: Units of time that have passed since the sim started.
     - ``time``: ``(branch, turn)``
     - ``tick``: A counter of how many changes have occurred this turn.
-    Can be set manually, but is more often set to the last tick in a turn
-    as a side effect of setting ``turn``.
+      Can be set manually, but is more often set to the last tick in a turn
+      as a side effect of setting ``turn``.
     - ``character``: A mapping of :class:`Character` objects by name.
     - ``rule``: A mapping of all rules that have been made.
     - ``rulebook``: A mapping of lists of rules. They are followed in
@@ -183,9 +183,9 @@ class Engine(AbstractEngine, gORM):
       state as a result of a rule running.
     - ``method``: Extension methods to be added to the engine object.
     - ``function``: Generic functions. All of ``trigger``, ``prereq``,
-    ``action``, ``method``, and ``function`` are modules or similar;
-    they default to :class:`FunctionStore` objects, which can write
-    Python code to the underlying module at runtime.
+      ``action``, ``method``, and ``function`` are modules or similar;
+      they default to :class:`FunctionStore` objects, which can write
+      Python code to the underlying module at runtime.
     - ``string``: A mapping of strings, probably shown to the player
       at some point. Defaults to a :class:`StringStore` object,
       which can alter the underlying JSON file at runtime.
@@ -603,9 +603,9 @@ class Engine(AbstractEngine, gORM):
         Keys at the top level that are not character names:
 
         * 'rulebooks', a dictionary keyed by the name of each changed
-        rulebook, the value being a list of rule names
+          rulebook, the value being a list of rule names
         * 'rules', a dictionary keyed by the name of each changed rule,
-        containing any of the lists 'triggers', 'prereqs', and 'actions'
+          containing any of the lists 'triggers', 'prereqs', and 'actions'
 
         """
 		from .allegedb.window import update_window, update_backward_window
@@ -758,9 +758,9 @@ class Engine(AbstractEngine, gORM):
 
         :arg branch: branch of history, defaulting to the present branch
         :arg turn: turn within the branch, defaulting to the present
-        turn
+                   turn
         :arg tick: tick at which to stop the delta, defaulting to the
-        present tick
+                   present tick
         :arg start_tick: tick at which to start the delta, default 0
 
         """
@@ -1450,8 +1450,9 @@ class Engine(AbstractEngine, gORM):
 		"""Yield the turns in this branch when the query held true
 
         :arg qry: a Query, likely constructed by comparing the result
-        of a call to an entity's ``historical`` method with the output
-        of ``self.alias(..)`` or another ``historical(..)``
+                  of a call to an entity's ``historical`` method with
+                  the output of ``self.alias(..)`` or another
+                  ``historical(..)``
 
         """
 		# yeah, it's just a loop over the query's method...I'm planning

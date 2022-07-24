@@ -195,35 +195,27 @@ what they were just before the change you want to undo.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">branch</span></code>: The fork of the timestream that we’re on.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">turn</span></code>: Units of time that have passed since the sim started.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">time</span></code>: <code class="docutils literal notranslate"><span class="pre">(branch,</span> <span class="pre">turn)</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">tick</span></code>: A counter of how many changes have occurred this turn.</p></li>
-</ul>
-<p>Can be set manually, but is more often set to the last tick in a turn
-as a side effect of setting <code class="docutils literal notranslate"><span class="pre">turn</span></code>.
-- <code class="docutils literal notranslate"><span class="pre">character</span></code>: A mapping of <a class="reference internal" href="#LiSE.engine.Engine.Character" title="LiSE.engine.Engine.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a> objects by name.
-- <code class="docutils literal notranslate"><span class="pre">rule</span></code>: A mapping of all rules that have been made.
-- <code class="docutils literal notranslate"><span class="pre">rulebook</span></code>: A mapping of lists of rules. They are followed in</p>
-<blockquote>
-<div><p>their order.  A whole rulebook full of rules may be assigned to
-an entity at once.</p>
-</div></blockquote>
-<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">tick</span></code>: A counter of how many changes have occurred this turn.
+Can be set manually, but is more often set to the last tick in a turn
+as a side effect of setting <code class="docutils literal notranslate"><span class="pre">turn</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">character</span></code>: A mapping of <a class="reference internal" href="#LiSE.engine.Engine.Character" title="LiSE.engine.Engine.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a> objects by name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rule</span></code>: A mapping of all rules that have been made.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rulebook</span></code>: A mapping of lists of rules. They are followed in
+their order.  A whole rulebook full of rules may be assigned to
+an entity at once.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">trigger</span></code>: Functions that might trigger a rule.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">prereq</span></code>: Functions a rule might require to return
 <code class="docutils literal notranslate"><span class="pre">True</span></code> for it to run.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">action</span></code>: Functions that might manipulate the world
 state as a result of a rule running.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">method</span></code>: Extension methods to be added to the engine object.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">function</span></code>: Generic functions. All of <code class="docutils literal notranslate"><span class="pre">trigger</span></code>, <code class="docutils literal notranslate"><span class="pre">prereq</span></code>,</p></li>
-</ul>
-<p><code class="docutils literal notranslate"><span class="pre">action</span></code>, <code class="docutils literal notranslate"><span class="pre">method</span></code>, and <code class="docutils literal notranslate"><span class="pre">function</span></code> are modules or similar;
+<li><p><code class="docutils literal notranslate"><span class="pre">function</span></code>: Generic functions. All of <code class="docutils literal notranslate"><span class="pre">trigger</span></code>, <code class="docutils literal notranslate"><span class="pre">prereq</span></code>,
+<code class="docutils literal notranslate"><span class="pre">action</span></code>, <code class="docutils literal notranslate"><span class="pre">method</span></code>, and <code class="docutils literal notranslate"><span class="pre">function</span></code> are modules or similar;
 they default to <code class="xref py py-class docutils literal notranslate"><span class="pre">FunctionStore</span></code> objects, which can write
-Python code to the underlying module at runtime.
-- <code class="docutils literal notranslate"><span class="pre">string</span></code>: A mapping of strings, probably shown to the player</p>
-<blockquote>
-<div><p>at some point. Defaults to a <code class="xref py py-class docutils literal notranslate"><span class="pre">StringStore</span></code> object,
-which can alter the underlying JSON file at runtime.</p>
-</div></blockquote>
-<ul class="simple">
+Python code to the underlying module at runtime.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">string</span></code>: A mapping of strings, probably shown to the player
+at some point. Defaults to a <code class="xref py py-class docutils literal notranslate"><span class="pre">StringStore</span></code> object,
+which can alter the underlying JSON file at runtime.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">eternal</span></code>: Mapping of arbitrary serializable objects. It isn’t
 sensitive to sim-time. A good place to keep game settings.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">universal</span></code>: Another mapping of arbitrary serializable
@@ -921,11 +913,11 @@ If a node is a thing, it gets a ‘location’; when the ‘location’
 is deleted, that means it’s back to being a place.</p>
 <p>Keys at the top level that are not character names:</p>
 <ul class="simple">
-<li><p>‘rulebooks’, a dictionary keyed by the name of each changed</p></li>
+<li><p>‘rulebooks’, a dictionary keyed by the name of each changed
+rulebook, the value being a list of rule names</p></li>
+<li><p>‘rules’, a dictionary keyed by the name of each changed rule,
+containing any of the lists ‘triggers’, ‘prereqs’, and ‘actions’</p></li>
 </ul>
-<p>rulebook, the value being a list of rule names
-* ‘rules’, a dictionary keyed by the name of each changed rule,
-containing any of the lists ‘triggers’, ‘prereqs’, and ‘actions’</p>
 </dd></dl>
 
 <dl class="py method">
@@ -940,14 +932,14 @@ description of the delta format.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>branch</strong> – branch of history, defaulting to the present branch</p></li>
-<li><p><strong>turn</strong> – turn within the branch, defaulting to the present</p></li>
+<li><p><strong>turn</strong> – turn within the branch, defaulting to the present
+turn</p></li>
+<li><p><strong>tick</strong> – tick at which to stop the delta, defaulting to the
+present tick</p></li>
+<li><p><strong>start_tick</strong> – tick at which to start the delta, default 0</p></li>
 </ul>
 </dd>
 </dl>
-<p>turn
-:arg tick: tick at which to stop the delta, defaulting to the
-present tick
-:arg start_tick: tick at which to start the delta, default 0</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1004,11 +996,12 @@ present tick
 <dd><p>Yield the turns in this branch when the query held true</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>qry</strong> – a Query, likely constructed by comparing the result</p>
+<dd class="field-odd"><p><strong>qry</strong> – a Query, likely constructed by comparing the result
+of a call to an entity’s <code class="docutils literal notranslate"><span class="pre">historical</span></code> method with
+the output of <code class="docutils literal notranslate"><span class="pre">self.alias(..)</span></code> or another
+<code class="docutils literal notranslate"><span class="pre">historical(..)</span></code></p>
 </dd>
 </dl>
-<p>of a call to an entity’s <code class="docutils literal notranslate"><span class="pre">historical</span></code> method with the output
-of <code class="docutils literal notranslate"><span class="pre">self.alias(..)</span></code> or another <code class="docutils literal notranslate"><span class="pre">historical(..)</span></code></p>
 </dd></dl>
 
 <dl class="py method">

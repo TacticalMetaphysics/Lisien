@@ -126,7 +126,8 @@
 	<span class="sd">&quot;&quot;&quot;The view to edit a rule</span>
 
 <span class="sd">    Presents three tabs, one each for trigger, prereq, and action. Each has a</span>
-<span class="sd">    deckbuilder in it with a column of used functions and a column of unused actions.</span>
+<span class="sd">    deckbuilder in it with a column of used functions and a column of unused</span>
+<span class="sd">    actions.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 	<span class="n">rulebook</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -273,8 +274,8 @@
 		<span class="sd">&quot;&quot;&quot;Set the cards in the ``what`` builder to ``allfuncs``</span>
 
 <span class="sd">        :param what: a string, &#39;trigger&#39;, &#39;prereq&#39;, or &#39;action&#39;</span>
-<span class="sd">        :param allfuncs: a sequence of triples of (name, sourcecode, signature) as taken by my</span>
-<span class="sd">        ``get_function_cards`` method.</span>
+<span class="sd">        :param allfuncs: a sequence of triples of (name, sourcecode, signature)</span>
+<span class="sd">                        as taken by my ``get_function_cards`` method.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 		<span class="nb">setattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_</span><span class="si">{}</span><span class="s1">_builder&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">what</span><span class="p">)),</span> <span class="s1">&#39;decks&#39;</span><span class="p">,</span>

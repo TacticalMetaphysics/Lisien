@@ -92,7 +92,8 @@ class RulesView(Widget):
 	"""The view to edit a rule
 
     Presents three tabs, one each for trigger, prereq, and action. Each has a
-    deckbuilder in it with a column of used functions and a column of unused actions.
+    deckbuilder in it with a column of used functions and a column of unused
+    actions.
 
     """
 	rulebook = ObjectProperty()
@@ -239,8 +240,8 @@ class RulesView(Widget):
 		"""Set the cards in the ``what`` builder to ``allfuncs``
 
         :param what: a string, 'trigger', 'prereq', or 'action'
-        :param allfuncs: a sequence of triples of (name, sourcecode, signature) as taken by my
-        ``get_function_cards`` method.
+        :param allfuncs: a sequence of triples of (name, sourcecode, signature)
+                        as taken by my ``get_function_cards`` method.
 
         """
 		setattr(getattr(self, '_{}_builder'.format(what)), 'decks',

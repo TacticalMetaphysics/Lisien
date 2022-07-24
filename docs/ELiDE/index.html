@@ -968,8 +968,7 @@ of other cards.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.card.Card">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.card.</span></span><span class="sig-name descname"><span class="pre">Card</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/card.html#Card"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.card.Card" title="Permalink to this definition">¶</a></dt>
-<dd><p>A trading card, similar to the kind you use to play games like
-_Magic: the <a href="#id5"><span class="problematic" id="id6">Gathering_</span></a>.</p>
+<dd><p>A trading card with text and illustration</p>
 <p>Its appearance is determined by several properties, the most
 important being:</p>
 <ul class="simple">
@@ -1891,7 +1890,8 @@ name; and a close button.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.rulesview.</span></span><span class="sig-name descname"><span class="pre">RulesView</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesView"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.rulesview.RulesView" title="Permalink to this definition">¶</a></dt>
 <dd><p>The view to edit a rule</p>
 <p>Presents three tabs, one each for trigger, prereq, and action. Each has a
-deckbuilder in it with a column of used functions and a column of unused actions.</p>
+deckbuilder in it with a column of used functions and a column of unused
+actions.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="ELiDE.rulesview.RulesView.finalize">
 <span class="sig-name descname"><span class="pre">finalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesView.finalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.rulesview.RulesView.finalize" title="Permalink to this definition">¶</a></dt>
@@ -1950,11 +1950,11 @@ deckbuilder in it with a column of used functions and a column of unused actions
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>what</strong> – a string, ‘trigger’, ‘prereq’, or ‘action’</p></li>
-<li><p><strong>allfuncs</strong> – a sequence of triples of (name, sourcecode, signature) as taken by my</p></li>
+<li><p><strong>allfuncs</strong> – a sequence of triples of (name, sourcecode, signature)
+as taken by my <code class="docutils literal notranslate"><span class="pre">get_function_cards</span></code> method.</p></li>
 </ul>
 </dd>
 </dl>
-<p><code class="docutils literal notranslate"><span class="pre">get_function_cards</span></code> method.</p>
 </dd></dl>
 
 </dd></dl>
@@ -2213,7 +2213,7 @@ user. Autoupdates when there’s a change for any reason.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItem.unlisten">
 <span class="sig-name descname"><span class="pre">unlisten</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowListItem.unlisten" title="Permalink to this definition">¶</a></dt>
-<dd><p>Function that takes a <a href="#id3"><span class="problematic" id="id4">``</span></a>listen``ed function and stops it listening.</p>
+<dd><p>Function that takes a listened function and stops it listening.</p>
 </dd></dl>
 
 <dl class="py attribute">
