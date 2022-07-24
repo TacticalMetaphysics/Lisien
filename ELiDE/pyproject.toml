@@ -15,7 +15,7 @@ classifiers = [
 	"Development Status :: 2 - Pre-Alpha"
 ]
 dependencies = [
-	"LiSE>=0.13,<0.14",
+	"LiSE>=0.13.1,<0.14",
 	"kivy>=2.0.0,<3",
 	"pygments>=2.7.4",
 	"numpy>=1.19.5,<2"
