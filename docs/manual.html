@@ -1,7 +1,7 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
@@ -12,6 +12,7 @@
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -34,10 +35,10 @@
           <div class="body" role="main">
             
   <section id="introduction">
-<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading">¶</a></h1>
 <p>Life sims all seem to have two problems in common:</p>
 <section id="too-much-world-state">
-<h2>Too much world state<a class="headerlink" href="#too-much-world-state" title="Permalink to this headline">¶</a></h2>
+<h2>Too much world state<a class="headerlink" href="#too-much-world-state" title="Permalink to this heading">¶</a></h2>
 <p>The number of variables the game is tracking – just for game logic,
 not graphics or physics or anything – is very large. Like how The
 Sims tracks sims’ opinions of one another, their likes and dislikes
@@ -59,7 +60,7 @@ you to know about it, they can send you their database, and you’ll
 know everything they did and everything that happened in their game.</p>
 </section>
 <section id="too-many-rules">
-<h2>Too many rules<a class="headerlink" href="#too-many-rules" title="Permalink to this headline">¶</a></h2>
+<h2>Too many rules<a class="headerlink" href="#too-many-rules" title="Permalink to this heading">¶</a></h2>
 <p>Fans of life sims tend to appreciate complexity. Developers are best
 served by reducing complexity as much as possible. So LiSE makes it
 easy to compartmentalize complexity and choose what of it you want to
@@ -80,7 +81,7 @@ release version of LiSE, so that you can throw together a toy sim
 without really writing any code.</p>
 </section>
 <section id="architecture">
-<h2>Architecture<a class="headerlink" href="#architecture" title="Permalink to this headline">¶</a></h2>
+<h2>Architecture<a class="headerlink" href="#architecture" title="Permalink to this heading">¶</a></h2>
 <p>LiSE is a tool for constructing turn-based simulations following rules
 in a directed graph-based world model. It has special affordances for
 the kinds of things you might need to simulate in the life simulation
@@ -121,7 +122,7 @@ another, though it’s possible to write rules that change one branch
 when they are run in another.</p>
 </section>
 <section id="ide">
-<h2>IDE<a class="headerlink" href="#ide" title="Permalink to this headline">¶</a></h2>
+<h2>IDE<a class="headerlink" href="#ide" title="Permalink to this heading">¶</a></h2>
 <p>The graphical interface, ELiDE, lets the developer change whatever
 they want about the world. A game made with ELiDE will be more
 restrictive about what the player is allowed to change, but all of the
@@ -152,7 +153,7 @@ current turn.</p>
 deliberate, but it’s not a good idea at the moment, because ELiDE
 doesn’t know how to make plans yet.</p>
 <section id="stat-editor">
-<h3>Stat Editor<a class="headerlink" href="#stat-editor" title="Permalink to this headline">¶</a></h3>
+<h3>Stat Editor<a class="headerlink" href="#stat-editor" title="Permalink to this heading">¶</a></h3>
 <p>This two-column table displays the keys and values in the selected
 entity. By default, they are all shown as Readouts, which is to say,
 plain text.</p>
@@ -174,7 +175,7 @@ change you can make with it.</p>
 monitor the state of the world.</p>
 </section>
 <section id="python-editor">
-<h3>Python Editor<a class="headerlink" href="#python-editor" title="Permalink to this headline">¶</a></h3>
+<h3>Python Editor<a class="headerlink" href="#python-editor" title="Permalink to this heading">¶</a></h3>
 <p>Click the Python button to edit your game code in the IDE if you like.
 In this case, you can’t use any of the decorators. Choose the
 appropriate tab from Trigger, Prereq, or Action at the top, and the
@@ -182,7 +183,7 @@ function you write will show up in the appropriate part of the rules
 editor.</p>
 </section>
 <section id="rules-editor">
-<h3>Rules Editor<a class="headerlink" href="#rules-editor" title="Permalink to this headline">¶</a></h3>
+<h3>Rules Editor<a class="headerlink" href="#rules-editor" title="Permalink to this heading">¶</a></h3>
 <p>Here you can assemble rules out of prewritten functions. First pick
 which rule to edit from the menu on the left, using the box at the
 bottom to add one if needed.  Then go through the trigger, prereq, and
@@ -196,7 +197,7 @@ case you get the option to edit rulebooks that apply to the current
 character overall,</p>
 </section>
 <section id="strings-editor">
-<h3>Strings Editor<a class="headerlink" href="#strings-editor" title="Permalink to this headline">¶</a></h3>
+<h3>Strings Editor<a class="headerlink" href="#strings-editor" title="Permalink to this heading">¶</a></h3>
 <p>The LiSE engine has an attribute <code class="docutils literal notranslate"><span class="pre">string</span></code> that is accessed like a
 dictionary and used to store arbitrary strings, such as might be shown
 in a menu. You can edit those here. You can store strings for multiple
@@ -260,7 +261,7 @@ languages, and switch between them programmatically by setting
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -277,7 +278,7 @@ languages, and switch between them programmatically by setting
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.4.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

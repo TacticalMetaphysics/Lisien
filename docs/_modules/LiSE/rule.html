@@ -1,16 +1,17 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LiSE.rule &#8212; LiSE 0.9dev documentation</title>
+    <title>LiSE.rule &#8212; LiSE 0.13.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
     <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -61,37 +62,34 @@
 <span class="sd">need to change that.</span>
 
 <span class="sd">To add a new rule to a LiSE entity, the easiest thing is to use the</span>
-<span class="sd">decorator syntax:</span>
-
-<span class="sd">```</span>
-<span class="sd">@entity.rule</span>
-<span class="sd">def do_something(entity):</span>
-<span class="sd">    ...</span>
-
-<span class="sd">@do_something.trigger</span>
-<span class="sd">def whenever(entity):</span>
-<span class="sd">    ...</span>
-
-<span class="sd">@do_something.trigger</span>
-<span class="sd">def forever(entity):</span>
-<span class="sd">    ...</span>
-
-<span class="sd">@do_something.action</span>
-<span class="sd">def do_something_else(entity):</span>
-<span class="sd">    ...</span>
-
-<span class="sd">```</span>
+<span class="sd">decorator syntax::</span>
+<span class="sd">&gt;@entity.rule</span>
+<span class="sd">&gt;def do_something(entity):</span>
+<span class="sd">&gt;	...</span>
+<span class="sd">&gt;</span>
+<span class="sd">&gt;@do_something.trigger</span>
+<span class="sd">&gt;def whenever(entity):</span>
+<span class="sd">&gt;	...</span>
+<span class="sd">&gt;</span>
+<span class="sd">&gt;@do_something.trigger</span>
+<span class="sd">&gt;def forever(entity):</span>
+<span class="sd">&gt;	....</span>
+<span class="sd">&gt;</span>
+<span class="sd">&gt;@do_something.action</span>
+<span class="sd">&gt;def do_something_else(entity):</span>
+<span class="sd">&gt;	...</span>
+<span class="sd">&gt;</span>
 
 <span class="sd">When run, this code will:</span>
 <span class="sd">* copy the `do_something` function to `action.py`, where LiSE knows</span>
-<span class="sd">  to run it when a rule triggers it</span>
+<span class="sd">to run it when a rule triggers it</span>
 <span class="sd">* create a new rule named `&#39;do_something&#39;`</span>
 <span class="sd">* set the function `do_something` as the first (and, so far, only) entry</span>
-<span class="sd">  in the actions list of the rule by that name</span>
+<span class="sd">in the actions list of the rule by that name</span>
 <span class="sd">* copy the `whenever` function to `trigger.py`, where LiSE knows to</span>
-<span class="sd">  call it when a rule has it as a trigger</span>
+<span class="sd">call it when a rule has it as a trigger</span>
 <span class="sd">* set the function `whenever` as the first entry in the triggers list</span>
-<span class="sd">  of the rule `&#39;do_something&#39;`</span>
+<span class="sd">of the rule `&#39;do_something&#39;`</span>
 <span class="sd">* append the function `forever` to the same triggers list</span>
 <span class="sd">* copy `do_something_else` to `action.py`</span>
 <span class="sd">* append `do_something_else` to the actions list of the rule</span>
@@ -817,7 +815,7 @@
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -834,7 +832,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.4.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

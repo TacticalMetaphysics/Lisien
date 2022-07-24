@@ -240,7 +240,7 @@ class Thing(Node):
 		"""Find the shortest path to the given node from where I am
         now, and follow it.
 
-        If supplied, the ``weight`` stat of the :class:`Portal`s along
+        If supplied, the ``weight`` stat of each :class:`Portal` along
         the path will be used in pathfinding, and for deciding how
         long to stay in each Place along the way.
 

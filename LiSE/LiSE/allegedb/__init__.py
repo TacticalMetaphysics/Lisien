@@ -98,12 +98,11 @@ class OutOfTimelineError(ValueError):
 class PlanningContext(ContextDecorator):
 	"""A context manager for 'hypothetical' edits.
 
-    Start a block of code like:
+    Start a block of code like::
 
-    ```
-    with orm.plan():
-        ...
-    ```
+	>with orm.plan():
+    >    ...
+    >
 
     and any changes you make to the world state within that block will be
     'plans,' meaning that they are used as defaults. The world will
@@ -1499,7 +1498,7 @@ class ORM:
 		"""Delete the portion of a plan that has yet to occur.
 
         :arg plan: integer ID of a plan, as given by
-        ``with self.plan() as plan:``
+                   ``with self.plan() as plan:``
 
         """
 		branch, turn, tick = self._btt()

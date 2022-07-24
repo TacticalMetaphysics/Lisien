@@ -143,13 +143,13 @@ class DialogLayout(FloatLayout):
     To make dialogs, set my ``todo`` property to a list. It may contain:
 
     * Strings, which will be displayed with an "OK" button to dismiss them
-    * Lists of pairs of strings and callables, which generate buttons with the string
-    on them that, when clicked, call the callable
-    * Lists of pairs of dictionaries, which are interpreted as keyword arguments
-    to :class:`MessageBox` and :class:`DialogMenu`
+    * Lists of pairs of strings and callables, which generate buttons with the
+      string on them that, when clicked, call the callable
+    * Lists of pairs of dictionaries, which are interpreted as keyword
+      arguments to :class:`MessageBox` and :class:`DialogMenu`
 
-    In place of a callable you can use the name of a function in my ``usermod``,
-    a Python module given by name. I'll import it when I need it.
+    In place of a callable you can use the name of a function in my
+    ``usermod``, a Python module given by name. I'll import it when I need it.
 
     Needs to be instantiated with a LiSE ``engine`` -- probably an
     :class:`EngineProxy`.

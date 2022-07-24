@@ -1,7 +1,7 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,6 +11,7 @@
     <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -131,12 +132,11 @@
 <div class="viewcode-block" id="PlanningContext"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.allegedb.PlanningContext">[docs]</a><span class="k">class</span> <span class="nc">PlanningContext</span><span class="p">(</span><span class="n">ContextDecorator</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;A context manager for &#39;hypothetical&#39; edits.</span>
 
-<span class="sd">    Start a block of code like:</span>
+<span class="sd">    Start a block of code like::</span>
 
-<span class="sd">    ```</span>
-<span class="sd">    with orm.plan():</span>
-<span class="sd">        ...</span>
-<span class="sd">    ```</span>
+<span class="sd">	&gt;with orm.plan():</span>
+<span class="sd">    &gt;    ...</span>
+<span class="sd">    &gt;</span>
 
 <span class="sd">    and any changes you make to the world state within that block will be</span>
 <span class="sd">    &#39;plans,&#39; meaning that they are used as defaults. The world will</span>
@@ -1532,7 +1532,7 @@
 		<span class="sd">&quot;&quot;&quot;Delete the portion of a plan that has yet to occur.</span>
 
 <span class="sd">        :arg plan: integer ID of a plan, as given by</span>
-<span class="sd">        ``with self.plan() as plan:``</span>
+<span class="sd">                   ``with self.plan() as plan:``</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
@@ -2072,7 +2072,7 @@
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -2089,7 +2089,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.4.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

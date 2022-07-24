@@ -28,37 +28,34 @@ but each game entity has its own RuleBook by default, and you never
 need to change that.
 
 To add a new rule to a LiSE entity, the easiest thing is to use the
-decorator syntax:
-
-```
-@entity.rule
-def do_something(entity):
-    ...
-
-@do_something.trigger
-def whenever(entity):
-    ...
-
-@do_something.trigger
-def forever(entity):
-    ...
-
-@do_something.action
-def do_something_else(entity):
-    ...
-
-```
+decorator syntax::
+>@entity.rule
+>def do_something(entity):
+>	...
+>
+>@do_something.trigger
+>def whenever(entity):
+>	...
+>
+>@do_something.trigger
+>def forever(entity):
+>	....
+>
+>@do_something.action
+>def do_something_else(entity):
+>	...
+>
 
 When run, this code will:
 * copy the `do_something` function to `action.py`, where LiSE knows
-  to run it when a rule triggers it
+to run it when a rule triggers it
 * create a new rule named `'do_something'`
 * set the function `do_something` as the first (and, so far, only) entry
-  in the actions list of the rule by that name
+in the actions list of the rule by that name
 * copy the `whenever` function to `trigger.py`, where LiSE knows to
-  call it when a rule has it as a trigger
+call it when a rule has it as a trigger
 * set the function `whenever` as the first entry in the triggers list
-  of the rule `'do_something'`
+of the rule `'do_something'`
 * append the function `forever` to the same triggers list
 * copy `do_something_else` to `action.py`
 * append `do_something_else` to the actions list of the rule
