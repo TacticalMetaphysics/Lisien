@@ -1308,8 +1308,8 @@ class ORM:
 					# Maybe I need another loadedness dict that gives the two
 					# keyframes I am between and gets upkept upon time travel
 					for kftick in kfticks:
-						if loaded_keep_test(kfturn, kftick, early_turn,
-											early_tick, late_turn, late_tick):
+						if (early_turn, early_tick) <= (kfturn, kftick) <= (
+							late_turn, late_tick):
 							if (kfturn < turn or
 								(kfturn == turn and kftick < tick)) and (
 									kfturn > early_turn or
@@ -1322,9 +1322,8 @@ class ORM:
 										(kfturn == late_turn
 											and kftick < late_tick)):
 								late_turn, late_tick = kfturn, kftick
-				assert loaded_keep_test(
-					past_turn, past_tick, early_turn, early_tick, late_turn,
-					late_tick
+				assert (early_turn, early_tick) <= (past_turn, past_tick) <= (
+					late_turn, late_tick
 				), "Unloading failed due to an invalid cache state"
 				to_keep[
 					past_branch] = early_turn, early_tick, past_turn, past_tick
@@ -1376,7 +1375,9 @@ class ORM:
 		if turn is None:
 			return True
 		if tick is not None:
-			return loaded_keep_test(turn, tick, *loaded[branch])
+			early_turn, early_tick, late_turn, late_tick = loaded[branch]
+			return (early_turn, early_tick) <= (turn, tick) <= (late_turn,
+																late_tick)
 		(past_turn, past_tick, future_turn, future_tick) = loaded[branch]
 		return past_turn <= turn <= future_turn
 
