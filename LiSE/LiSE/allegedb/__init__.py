@@ -133,7 +133,7 @@ class PlanningContext(ContextDecorator):
 		orm._plans[myid] = branch, turn, tick
 		orm._plans_uncommitted.append((myid, branch, turn, tick))
 		orm._branches_plans[branch].add(myid)
-		return self
+		return myid
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		self.orm._planning = False
