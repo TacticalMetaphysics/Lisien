@@ -793,10 +793,11 @@ class ORM:
         either case, begin a transaction.
 
         :arg dbstring: rfc1738 URL for a database connection. Unless it
-        begins with "sqlite:///", SQLAlchemy will be required. :arg alchemy:
-        Set to ``False`` to use the precompiled SQLite queries even if
-        SQLAlchemy is available. :arg connect_args: Dictionary of keyword
-        arguments to be used for the database connection.
+        begins with "sqlite:///", SQLAlchemy will be required.
+
+        :arg alchemy: Set to ``False`` to use the precompiled SQLite queries
+        even if SQLAlchemy is available. :arg connect_args: Dictionary of
+        keyword arguments to be used for the database connection.
 
         """
 		self.world_lock = RLock()
