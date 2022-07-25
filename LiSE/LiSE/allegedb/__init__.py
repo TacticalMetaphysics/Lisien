@@ -1405,7 +1405,7 @@ class ORM:
 			return True
 		return self.is_parent_of(parent, self._branches[child][0])
 
-	def _get_branch(self):
+	def _get_branch(self) -> str:
 		return self._obranch
 
 	@world_locked
@@ -1499,7 +1499,7 @@ class ORM:
 							(branch_end_plan[branch], turn))
 
 	@world_locked
-	def delete_plan(self, plan: int):
+	def delete_plan(self, plan: int) -> None:
 		"""Delete the portion of a plan that has yet to occur.
 
         :arg plan: integer ID of a plan, as given by
@@ -1534,14 +1534,14 @@ class ORM:
 
 	# easier to override things this way
 	@property
-	def branch(self):
+	def branch(self) -> str:
 		return self._get_branch()
 
 	@branch.setter
 	def branch(self, v: str):
 		self._set_branch(v)
 
-	def _get_turn(self):
+	def _get_turn(self) -> int:
 		return self._oturn
 
 	@world_locked
@@ -1602,7 +1602,7 @@ class ORM:
 
 	# easier to override things this way
 	@property
-	def turn(self):
+	def turn(self) -> int:
 		return self._get_turn()
 
 	@turn.setter
@@ -1613,7 +1613,7 @@ class ORM:
 		return self._otick
 
 	@world_locked
-	def _set_tick(self, v: int):
+	def _set_tick(self, v: int) -> None:
 		if not isinstance(v, int):
 			raise TypeError("tick must be an integer")
 		time = branch, turn = self._obranch, self._oturn
@@ -1646,7 +1646,7 @@ class ORM:
 
 	# easier to override things this way
 	@property
-	def tick(self):
+	def tick(self) -> int:
 		return self._get_tick()
 
 	@tick.setter
@@ -1853,7 +1853,7 @@ class ORM:
         """
 		raise NotImplementedError("Only DiGraph for now")
 
-	def new_digraph(self, name, data=None, **attr):
+	def new_digraph(self, name, data=None, **attr) -> DiGraph:
 		"""Return a new instance of type DiGraph, initialized with the given
         data if provided.
 
@@ -1890,7 +1890,7 @@ class ORM:
         """
 		raise NotImplementedError("Only DiGraph for now")
 
-	def get_graph(self, name):
+	def get_graph(self, name) -> Graph:
 		"""Return a graph previously created with ``new_graph``,
         ``new_digraph``, ``new_multigraph``, or
         ``new_multidigraph``
@@ -1901,7 +1901,7 @@ class ORM:
 		return self._graph_objs[name]
 
 	@world_locked
-	def del_graph(self, name):
+	def del_graph(self, name: Hashable) -> None:
 		"""Remove all traces of a graph's existence from the database
 
         :arg name: name of an existing graph
