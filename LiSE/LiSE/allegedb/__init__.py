@@ -44,15 +44,6 @@ KeyframeType = Tuple[Hashable, str, int, int, NodeValDictType, EdgeValDictType,
 						StatDictType]
 
 
-def loaded_keep_test(test_turn: int, test_tick: int, past_turn: int,
-						past_tick: int, future_turn: int,
-						future_tick: int) -> bool:
-	return (past_turn < test_turn or
-			(past_turn == test_turn and past_tick <= test_tick)) and (
-				future_turn > test_turn or
-				(future_turn == test_turn and future_tick >= test_tick))
-
-
 def world_locked(fn: Callable) -> Callable:
 
 	@wraps(fn)
@@ -518,45 +509,43 @@ class ORM:
         """
 
 		def setgraphval(delta: DeltaType, graph: Hashable, key: Hashable,
-		                val: Any) -> None:
+						val: Any) -> None:
 			"""Change a delta to say that a graph stat was set to a certain value"""
 			delta.setdefault(graph, {})[key] = val
 
 		def setnode(delta: DeltaType, graph: Hashable, node: Hashable,
-		            exists: Optional[bool]) -> None:
+					exists: Optional[bool]) -> None:
 			"""Change a delta to say that a node was created or deleted"""
-			delta.setdefault(graph, {}).setdefault('nodes', {})[node] = bool(
-				exists)
+			delta.setdefault(graph, {}).setdefault('nodes',
+													{})[node] = bool(exists)
 
 		def setnodeval(delta: DeltaType, graph: Hashable, node: Hashable,
-		               key: Hashable, value: Any) -> None:
+						key: Hashable, value: Any) -> None:
 			"""Change a delta to say that a node stat was set to a certain value"""
 			if (graph in delta and 'nodes' in delta[graph]
-				and node in delta[graph]['nodes'] and not
-				delta[graph]['nodes'][node]):
+				and node in delta[graph]['nodes']
+				and not delta[graph]['nodes'][node]):
 				return
-			delta.setdefault(graph, {}).setdefault('node_val',
-			                                       {}).setdefault(node,
-			                                                      {})[
-				key] = value
+			delta.setdefault(graph, {}).setdefault('node_val', {}).setdefault(
+				node, {})[key] = value
 
 		def setedge(delta: DeltaType, is_multigraph: Callable, graph: Hashable,
-		            orig: Hashable, dest: Hashable, idx: int,
-		            exists: Optional[bool]) -> None:
+					orig: Hashable, dest: Hashable, idx: int,
+					exists: Optional[bool]) -> None:
 			"""Change a delta to say that an edge was created or deleted"""
 			if is_multigraph(graph):
-				delta.setdefault(graph, {}).setdefault('edges', {})[orig, dest,
-				                                                    idx] = bool(
-					exists)
-			else:
 				delta.setdefault(graph, {}).setdefault('edges',
-				                                       {})[orig, dest] = bool(
-					exists)
+														{})[orig, dest,
+															idx] = bool(exists)
+			else:
+				delta.setdefault(graph,
+									{}).setdefault('edges',
+													{})[orig,
+														dest] = bool(exists)
 
 		def setedgeval(delta: DeltaType, is_multigraph: Callable,
-		               graph: Hashable,
-		               orig: Hashable, dest: Hashable, idx: int, key: Hashable,
-		               value: Any) -> None:
+						graph: Hashable, orig: Hashable, dest: Hashable,
+						idx: int, key: Hashable, value: Any) -> None:
 			"""Change a delta to say that an edge stat was set to a certain value"""
 			if is_multigraph(graph):
 				if (graph in delta and 'edges' in delta[graph]
@@ -565,19 +554,21 @@ class ORM:
 					and idx in delta[graph]['edges'][orig][dest]
 					and not delta[graph]['edges'][orig][dest][idx]):
 					return
-				delta.setdefault(graph, {}).setdefault('edge_val',
-				                                       {}).setdefault(
-					orig, {}).setdefault(dest, {}).setdefault(idx, {})[
-					key] = value
+				delta.setdefault(graph,
+									{}).setdefault('edge_val', {}).setdefault(
+										orig,
+										{}).setdefault(dest, {}).setdefault(
+											idx, {})[key] = value
 			else:
 				if (graph in delta and 'edges' in delta[graph]
 					and orig in delta[graph]['edges']
 					and dest in delta[graph]['edges'][orig]
 					and not delta[graph]['edges'][orig][dest]):
 					return
-				delta.setdefault(graph, {}).setdefault('edge_val',
-				                                       {}).setdefault(
-					orig, {}).setdefault(dest, {})[key] = value
+				delta.setdefault(graph,
+									{}).setdefault('edge_val', {}).setdefault(
+										orig,
+										{}).setdefault(dest, {})[key] = value
 
 		from functools import partial
 		if turn_from == turn_to:
