@@ -407,9 +407,6 @@ ELiDE uses third-party graphics sets:
   BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 * The ELiDE icon is by Robin Hill, used with permission.
 
-``reify.py`` is derived from the Pyramid project and carries its
-BSD-like license.
-
 ``collide.py`` is ported from Kivy's ``garden.collider`` module and
 carries the MIT license.
 

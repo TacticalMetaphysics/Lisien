@@ -28,9 +28,10 @@ from types import MethodType, FunctionType
 from typing import Mapping, Iterable, Union, Callable, Dict, Hashable
 from weakref import WeakValueDictionary
 
+from cached_property import cached_property
+
 import msgpack
 import networkx as nx
-from .reify import reify
 from . import exc
 
 
@@ -307,7 +308,7 @@ class AbstractEngine(ABC):
 		meth = super().__getattribute__('method').__getattr__(item)
 		return MethodType(meth, self)
 
-	@reify
+	@cached_property
 	def pack(self):
 		handlers = {
 			self.char_cls:
@@ -370,7 +371,7 @@ class AbstractEngine(ABC):
 							use_bin_type=True)
 		return packer
 
-	@reify
+	@cached_property
 	def unpack(self):
 		charmap = self.character
 		char_cls = self.char_cls

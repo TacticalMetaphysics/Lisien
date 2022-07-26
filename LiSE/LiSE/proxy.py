@@ -34,12 +34,12 @@ from typing import Hashable
 from blinker import Signal
 import lz4.frame
 import msgpack
+from cached_property import cached_property
 
 from .allegedb import HistoricKeyError
 from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
 from .character import Facade
-from .reify import reify
 from .util import getatt, AbstractEngine, MsgpackExtensionType, AbstractCharacter
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
@@ -1241,7 +1241,7 @@ class CharacterProxy(AbstractCharacter):
 							block=False,
 							branching=True)
 
-	@reify
+	@cached_property
 	def unit(self):
 		return UnitMapProxy(self)
 

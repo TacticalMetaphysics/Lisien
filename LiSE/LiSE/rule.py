@@ -76,8 +76,8 @@ from typing import Callable
 
 from astunparse import unparse
 from blinker import Signal
+from cached_property import cached_property
 
-from .reify import reify
 from .util import dedent_source, AbstractEngine
 from .xcollections import FunctionStore
 from .cache import Cache
@@ -180,15 +180,15 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 class TriggerList(RuleFuncList):
 	"""A list of trigger functions for rules"""
 
-	@reify
+	@cached_property
 	def _funcstore(self):
 		return self.rule.engine.trigger
 
-	@reify
+	@cached_property
 	def _cache(self):
 		return self.rule.engine._triggers_cache
 
-	@reify
+	@cached_property
 	def _setter(self):
 		return self.rule.engine.query.set_rule_triggers
 
@@ -196,15 +196,15 @@ class TriggerList(RuleFuncList):
 class PrereqList(RuleFuncList):
 	"""A list of prereq functions for rules"""
 
-	@reify
+	@cached_property
 	def _funcstore(self):
 		return self.rule.engine.prereq
 
-	@reify
+	@cached_property
 	def _cache(self):
 		return self.rule.engine._prereqs_cache
 
-	@reify
+	@cached_property
 	def _setter(self):
 		return self.rule.engine.query.set_rule_prereqs
 
@@ -212,15 +212,15 @@ class PrereqList(RuleFuncList):
 class ActionList(RuleFuncList):
 	"""A list of action functions for rules"""
 
-	@reify
+	@cached_property
 	def _funcstore(self):
 		return self.rule.engine.action
 
-	@reify
+	@cached_property
 	def _cache(self):
 		return self.rule.engine._actions_cache
 
-	@reify
+	@cached_property
 	def _setter(self):
 		return self.rule.engine.query.set_rule_actions
 
@@ -665,7 +665,7 @@ class AllRules(MutableMapping, Signal):
 		super().__init__()
 		self.engine = engine
 
-	@reify
+	@cached_property
 	def _cache(self):
 		return self.engine._rules_cache
 
