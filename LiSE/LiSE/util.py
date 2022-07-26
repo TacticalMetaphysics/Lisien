@@ -257,8 +257,8 @@ def sort_set(s):
 
     This is intended to be used to iterate over world state.
 
-    Non-strings come before strings and then tuples. Tuples compare element-wise as normal.
-    But ultimately all comparisons are between values' ``repr``.
+    Non-strings come before strings and then tuples. Tuples compare
+    element-wise as normal.
 
     This is memoized.
 
