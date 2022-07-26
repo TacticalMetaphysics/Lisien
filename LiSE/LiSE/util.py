@@ -1002,11 +1002,4 @@ class AbstractCharacter(Mapping):
 		self.remove_edges_from(dead)
 		return self
 
-	def cull_edges(self, stat, threshold=0.5, comparator=ge):
-		"""Delete edges whose stat >= ``threshold`` (default 0.5).
-
-        Optional argument ``comparator`` will replace >= as the test
-        for whether to cull. You can use the name of a stored function.
-
-        """
-		return self.cull_portals(stat, threshold, comparator)
+	cull_edges = cull_portals
