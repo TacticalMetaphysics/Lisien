@@ -384,12 +384,6 @@ entities:
 	sq.rulebook = tri.rulebook = 'parable'
 ```
 
-There are a variety of graph generators accessible on character
-objects, and convenience methods for common game actions like
-travelling along a path (``Thing.travel_to``) accessible on thing and
-place objects.  The API for these isn't really solid yet, but tell me
-how you like them.
-
 # License Information
 
 ELiDE uses third-party graphics sets:
