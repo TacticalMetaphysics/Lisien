@@ -805,14 +805,14 @@ class AbstractCharacter(Mapping):
 	def do(self, func, *args, **kwargs):
 		"""Apply the function to myself, and return myself.
 
-        Look up the function in the database if needed. Pass it any
+        Look up the function in the method store if needed. Pass it any
         arguments given, keyword or positional.
 
         Useful chiefly when chaining.
 
         """
 		if not callable(func):
-			func = getattr(self.engine.function, func)
+			func = getattr(self.engine.method, func)
 		func(self, *args, **kwargs)
 		return self
 
