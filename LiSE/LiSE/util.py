@@ -31,8 +31,7 @@ from weakref import WeakValueDictionary
 import msgpack
 import networkx as nx
 from .reify import reify
-
-from LiSE import exc
+from . import exc
 
 
 class FinalRule:
