@@ -41,7 +41,7 @@ class PawnBehavior:
 			Clock.schedule_once(self.on_parent, 0)
 			return
 		self.board = self.parent.board
-		self.bind(loc_name=self._trigger_relocate)
+		self._relocate_binding = self.fbind('loc_name', self._trigger_relocate)
 		if self.proxy:
 			self._trigger_relocate()
 
@@ -49,11 +49,12 @@ class PawnBehavior:
 		if initial:
 			self.loc_name = self.proxy['location']
 			self.priority = self.proxy.get('_priority', 0.0)
-		self.bind(loc_name=self._trigger_push_location)
+		self._push_loc_binding = self.fbind('loc_name',
+											self._trigger_push_location)
 		super().finalize(initial)
 
 	def unfinalize(self):
-		self.unbind(loc_name=self._trigger_push_location)
+		self.unbind_uid('loc_name', self._push_loc_binding)
 		super().unfinalize()
 
 	def pull_from_proxy(self, *args):
@@ -61,7 +62,10 @@ class PawnBehavior:
 		relocate = False
 		if self.loc_name != self.proxy['location']:
 			self.unfinalize()
+			self.unbind_uid('loc_name', self._relocate_binding)
 			self.loc_name = self.proxy['location']
+			self._relocate_binding = self.fbind('loc_name',
+												self._trigger_relocate)
 			self.finalize(initial=False)
 			relocate = True
 		if '_priority' in self.proxy:
