@@ -41,24 +41,27 @@ class ImageStackProxy(ImageStack):
 			else:
 				self.paths = self.proxy.setdefault('_image_paths',
 													self.default_image_paths)
-		self.bind(paths=self._trigger_push_image_paths,
-					offxs=self._trigger_push_offxs,
-					offys=self._trigger_push_offys)
-		self._finalized = True
+		self._paths_binding = self.fbind('paths',
+											self._trigger_push_image_paths)
+		self._offxs_binding = self.fbind('offxs', self._trigger_push_offxs)
+		self._offys_binding = self.fbind('offys', self._trigger_push_offys)
 		self.finalize_children(initial)
+		self._finalized = True
 
 	def finalize_children(self, initial=True, *args):
 		for child in self.children:
 			if not getattr(child, '_finalized', False):
 				child.finalize(initial=initial)
-		self.bind(children=self._trigger_finalize_children)
+		self._children_binding = self.fbind('children',
+											self._trigger_finalize_children)
 
 	_trigger_finalize_children = trigger(finalize_children)
 
 	def unfinalize(self):
-		self.unbind(paths=self._trigger_push_image_paths,
-					offxs=self._trigger_push_offxs,
-					offys=self._trigger_push_offys)
+		self.unbind_uid('paths', self._paths_binding)
+		self.unbind_uid('offxs', self._offxs_binding)
+		self.unbind_uid('offys', self._offys_binding)
+		self.unbind_uid('children', self._children_binding)
 		self._finalized = False
 
 	def pull_from_proxy(self, *args):
