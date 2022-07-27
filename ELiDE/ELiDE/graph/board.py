@@ -271,9 +271,9 @@ class GraphBoard(RelativeLayout):
 					candidate.selected = True
 				if hasattr(self.app.selection, 'selected'):
 					self.app.selection.selected = False
-					if isinstance(self.app.selection,
-									GraphArrow) and self.app.selection.reciprocal \
-                                     and candidate is not self.app.selection.reciprocal:
+					if isinstance(
+						self.app.selection, GraphArrow
+					) and self.app.selection.reciprocal and candidate is not self.app.selection.reciprocal:
 						self.app.selection.reciprocal.selected = False
 				self.app.selection = candidate
 				self.keep_selection = True
@@ -338,8 +338,7 @@ class GraphBoard(RelativeLayout):
 		self.engine = getattr(self.character, 'engine', None)
 		self.wallpaper_path = self.character.stat.setdefault(
 			'wallpaper', 'wallpape.jpg')
-		if '_control' not in self.character.stat or 'wallpaper' not in \
-                self.character.stat[
+		if '_control' not in self.character.stat or 'wallpaper' not in self.character.stat[
 			'_control']:
 			control = self.character.stat.setdefault('_control', {})
 			control['wallpaper'] = 'textinput'
@@ -722,8 +721,8 @@ class GraphBoard(RelativeLayout):
 		for (node, extant) in delta.get('nodes', {}).items():
 			if extant:
 				if node in delta.get('node_val', {}) \
-                              and 'location' in delta['node_val'][node] \
-                              and node not in self.pawn:
+                                                      and 'location' in delta['node_val'][node] \
+                                                      and node not in self.pawn:
 					self.add_pawn(node)
 				elif node not in self.spot:
 					self.add_spot(node)
@@ -920,8 +919,9 @@ class BoardScatterPlane(ScatterPlane):
 		if touch.is_mouse_scrolling:
 			scale = self.scale + (0.05
 									if touch.button == 'scrolldown' else -0.05)
-			if (self.scale_min and scale < self.scale_min) \
-                       or (self.scale_max and scale > self.scale_max):
+			if (self.scale_min
+				and scale < self.scale_min) or (self.scale_max
+												and scale > self.scale_max):
 				return
 			rescale = scale * 1.0 / self.scale
 			self.apply_transform(Matrix().scale(rescale, rescale, rescale),
