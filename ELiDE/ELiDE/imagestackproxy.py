@@ -45,11 +45,12 @@ class ImageStackProxy(ImageStack):
 					offxs=self._trigger_push_offxs,
 					offys=self._trigger_push_offys)
 		self._finalized = True
-		self.finalize_children()
+		self.finalize_children(initial)
 
-	def finalize_children(self, *args):
+	def finalize_children(self, initial=True, *args):
 		for child in self.children:
-			child.finalize()
+			if not getattr(child, '_finalized', False):
+				child.finalize(initial=initial)
 		self.bind(children=self._trigger_finalize_children)
 
 	_trigger_finalize_children = trigger(finalize_children)

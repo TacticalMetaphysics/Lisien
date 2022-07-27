@@ -60,7 +60,9 @@ class PawnBehavior:
 		super().pull_from_proxy(*args)
 		relocate = False
 		if self.loc_name != self.proxy['location']:
+			self.unfinalize()
 			self.loc_name = self.proxy['location']
+			self.finalize(initial=False)
 			relocate = True
 		if '_priority' in self.proxy:
 			self.priority = self.proxy['_priority']

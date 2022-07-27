@@ -204,10 +204,9 @@ class GridBoard(RelativeLayout):
 		if 'nodes' in delta:
 			for node, extant in delta['nodes'].items():
 				if extant:
-					if 'node_val' in delta \
-                                     and node in delta['node_val'] \
-                                     and 'location' in delta['node_val'][node] \
-                                     and node not in pawnmap:
+					if 'node_val' in delta and node in delta[
+						'node_val'] and 'location' in delta['node_val'][
+							node] and node not in pawnmap:
 						add_pawn(node)
 					elif node not in spotmap:
 						add_spot(node)
@@ -219,15 +218,17 @@ class GridBoard(RelativeLayout):
 		if 'node_val' in delta:
 			for node, stats in delta['node_val'].items():
 				if node in spotmap and '_image_paths' in stats:
-					spotmap[node].paths = stats['_image_paths'] \
-                                                         or GridSpot.default_image_paths
+					spotmap[node].paths = stats[
+						'_image_paths'] or GridSpot.default_image_paths
 				elif node in pawnmap:
 					pawn = pawnmap[node]
+					pawn.unfinalize()
 					if 'location' in stats:
 						pawn.loc_name = stats['location']
 					if '_image_paths' in stats:
-						pawn.paths = stats['_image_paths'] \
-                                                       or GridPawn.default_image_paths
+						pawn.paths = stats[
+							'_image_paths'] or GridPawn.default_image_paths
+					pawn.finalize(initial=False)
 				else:
 					Logger.warning(
 						"GridBoard: diff tried to change stats of node {}"
