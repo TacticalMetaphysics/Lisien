@@ -7,8 +7,8 @@ from kivy.app import App
 from kivy.clock import triggered
 from kivy.lang import Builder
 from kivy.logger import Logger
-from kivy.properties import BooleanProperty, NumericProperty, ObjectProperty, \
- StringProperty
+from kivy.properties import (BooleanProperty, NumericProperty, ObjectProperty,
+								StringProperty)
 from kivy.graphics import Color, Line
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.button import Button

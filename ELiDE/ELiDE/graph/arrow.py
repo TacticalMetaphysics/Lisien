@@ -477,8 +477,8 @@ class GraphArrowWidget(Widget):
 			return
 		(ox, oy, dx, dy) = self.trunk_points
 		r = self.w / 2
-		bgr = r * self.bg_scale_selected if self.selected \
-               else self.bg_scale_unselected
+		bgr = r * (self.bg_scale_selected
+					if self.selected else self.bg_scale_unselected)
 		self.trunk_quad_vertices_bg = get_thin_rect_vertices(
 			ox, oy, dx, dy, bgr)
 		self.collider = Collide2DPoly(self.trunk_quad_vertices_bg)

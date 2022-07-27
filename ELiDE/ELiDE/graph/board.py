@@ -720,9 +720,8 @@ class GraphBoard(RelativeLayout):
 		"""Apply the changes described in the dict ``delta``."""
 		for (node, extant) in delta.get('nodes', {}).items():
 			if extant:
-				if node in delta.get('node_val', {}) \
-                                                                  and 'location' in delta['node_val'][node] \
-                                                                  and node not in self.pawn:
+				if node in delta.get('node_val', {}) and 'location' in delta[
+					'node_val'][node] and node not in self.pawn:
 					self.add_pawn(node)
 				elif node not in self.spot:
 					self.add_spot(node)
