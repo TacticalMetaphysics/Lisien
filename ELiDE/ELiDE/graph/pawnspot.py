@@ -163,10 +163,6 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		super().add_widget(wid, index=index, canvas=canvas)
 		self._trigger_layout()
 
-	def remove_widget(self, widget):
-		super().remove_widget(widget)
-		self._trigger_layout()
-
 	def do_layout(self, *args):
 		# First try to lay out my children inside of me,
 		# leaving at least this much space on the sides
