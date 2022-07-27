@@ -119,7 +119,7 @@ class ConnectionHolder:
 			return self.connection.cursor().execute(
 				s.format(**kwargs) if kwargs else s, args)
 
-	def sqlmany(self, stringname, *args):
+	def sqlmany(self, stringname, args):
 		"""Wrapper for executing many SQL calls on my connection.
 
         First arg is the name of a query, either a key in the
@@ -213,7 +213,7 @@ class ConnectionHolder:
 				raise ValueError(f"Invalid instruction: {inst[0]}")
 			else:
 				try:
-					res = self.sqlmany(inst[1], *inst[2])
+					res = self.sqlmany(inst[1], inst[2])
 					if not silent:
 						if hasattr(res, 'returns_rows'):
 							if res.returns_rows:
@@ -305,7 +305,7 @@ class QueryEngine(object):
 			raise ret
 		return ret
 
-	def sqlmany(self, string, *args):
+	def sqlmany(self, string, args):
 		__doc__ = ConnectionHolder.sqlmany.__doc__
 		with self._holder.lock:
 			self._inq.put(('many', string, args))
@@ -333,11 +333,11 @@ class QueryEngine(object):
 
 	def keyframes_insert_many(self, many):
 		pack = self.pack
-		return self.sqlmany(
-			'keyframes_insert',
-			*[(pack(graph), branch, turn, tick, pack(nodes), pack(edges),
-				pack(graph_val)) for (graph, branch, turn, tick, nodes, edges,
-										graph_val) in many])
+		return self.sqlmany('keyframes_insert', [
+			(pack(graph), branch, turn, tick, pack(nodes), pack(edges),
+				pack(graph_val))
+			for (graph, branch, turn, tick, nodes, edges, graph_val) in many
+		])
 
 	def keyframes_dump(self):
 		unpack = self.unpack
@@ -517,7 +517,7 @@ class QueryEngine(object):
 		pack = self.pack
 		self.sqlmany(
 			'graph_val_insert',
-			*((pack(graph), pack(key), branch, turn, tick, pack(value))
+			((pack(graph), pack(key), branch, turn, tick, pack(value))
 				for (graph, key, branch, turn, tick,
 						value) in self._graphvals2set))
 		self._graphvals2set = []
@@ -543,7 +543,7 @@ class QueryEngine(object):
 		pack = self.pack
 		self.sqlmany(
 			'nodes_insert',
-			*((pack(graph), pack(node), branch, turn, tick, bool(extant))
+			((pack(graph), pack(node), branch, turn, tick, bool(extant))
 				for (graph, node, branch, turn, tick,
 						extant) in self._nodes2set))
 		self._nodes2set = []
@@ -631,10 +631,10 @@ class QueryEngine(object):
 		if not self._nodevals2set:
 			return
 		pack = self.pack
-		self.sqlmany(
-			'node_val_insert',
-			*((pack(graph), pack(node), pack(key), branch, turn, tick,
-				pack(value)) for (graph, node, key, branch, turn, tick,
+		self.sqlmany('node_val_insert',
+						((pack(graph), pack(node), pack(key), branch, turn,
+							tick, pack(value))
+							for (graph, node, key, branch, turn, tick,
 									value) in self._nodevals2set))
 		self._nodevals2set = []
 
@@ -693,8 +693,7 @@ class QueryEngine(object):
 		start = monotonic()
 		if not self._edges2set:
 			return
-		self.sqlmany('edges_insert', *map(self._pack_edge2set,
-											self._edges2set))
+		self.sqlmany('edges_insert', map(self._pack_edge2set, self._edges2set))
 		self._edges2set = []
 		QueryEngine.flush_edges_t += monotonic() - start
 
@@ -753,7 +752,7 @@ class QueryEngine(object):
 		if not self._edgevals2set:
 			return
 		self.sqlmany('edge_val_insert',
-						*map(self._pack_edgeval2set, self._edgevals2set))
+						map(self._pack_edgeval2set, self._edgevals2set))
 		self._edgevals2set = []
 
 	def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick,
@@ -777,13 +776,13 @@ class QueryEngine(object):
 		return self.sql('plans_insert', plan_id, branch, turn, tick)
 
 	def plans_insert_many(self, many):
-		return self.sqlmany('plans_insert', *many)
+		return self.sqlmany('plans_insert', many)
 
 	def plan_ticks_insert(self, plan_id, turn, tick):
 		return self.sql('plan_ticks_insert', plan_id, turn, tick)
 
 	def plan_ticks_insert_many(self, many):
-		return self.sqlmany('plan_ticks_insert', *many)
+		return self.sqlmany('plan_ticks_insert', many)
 
 	def plan_ticks_dump(self):
 		return self.sql('plan_ticks_dump')

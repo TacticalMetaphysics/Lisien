@@ -98,8 +98,10 @@ class NextTurn(Signal):
 													tick_from=start_tick,
 													tick_to=tick)
 		engine._turns_completed[start_branch] = engine.turn
-		if not self.engine.keep_rules_journal:
-			engine.query.complete_turn(start_branch, engine.turn)
+		engine.query.complete_turn(
+			start_branch,
+			engine.turn,
+			discard_rules=not engine.keep_rules_journal)
 		if engine.flush_modulus and engine.turn % engine.flush_modulus == 0:
 			engine.query.flush()
 		if engine.commit_modulus and engine.turn % engine.commit_modulus == 0:
