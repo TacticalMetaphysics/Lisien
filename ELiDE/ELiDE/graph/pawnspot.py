@@ -74,11 +74,11 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 			self.offxs = self.proxy.setdefault('_offxs', zeroes)
 			self.offys = self.proxy.setdefault('_offys', zeroes)
 			self.proxy.connect(self._trigger_pull_from_proxy)
+			self.finalize_children(initial=True)
 		self.bind(paths=self._trigger_push_image_paths,
 					offxs=self._trigger_push_offxs,
 					offys=self._trigger_push_offys)
 		self._finalized = True
-		self.finalize_children()
 
 	def unfinalize(self):
 		self.unbind(paths=self._trigger_push_image_paths,
