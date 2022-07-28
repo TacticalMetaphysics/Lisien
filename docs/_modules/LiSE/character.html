@@ -1636,10 +1636,8 @@
 		<span class="n">makenode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_get_node</span>
 		<span class="k">for</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">avit</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
 			<span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">avit</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
-				<span class="k">try</span><span class="p">:</span>
-					<span class="k">yield</span> <span class="n">makenode</span><span class="p">(</span><span class="n">charmap</span><span class="p">[</span><span class="n">graph</span><span class="p">],</span> <span class="n">node</span><span class="p">)</span>
-				<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-					<span class="k">continue</span></div>
+				<span class="k">if</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">charmap</span><span class="p">:</span>
+					<span class="k">yield</span> <span class="n">makenode</span><span class="p">(</span><span class="n">charmap</span><span class="p">[</span><span class="n">graph</span><span class="p">],</span> <span class="n">node</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Character.historical"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Character.historical">[docs]</a>	<span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Get a historical view on the given stat</span>
@@ -1711,7 +1709,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

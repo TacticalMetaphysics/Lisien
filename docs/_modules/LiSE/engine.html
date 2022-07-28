@@ -132,8 +132,10 @@
 													<span class="n">tick_from</span><span class="o">=</span><span class="n">start_tick</span><span class="p">,</span>
 													<span class="n">tick_to</span><span class="o">=</span><span class="n">tick</span><span class="p">)</span>
 		<span class="n">engine</span><span class="o">.</span><span class="n">_turns_completed</span><span class="p">[</span><span class="n">start_branch</span><span class="p">]</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">turn</span>
-		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">keep_rules_journal</span><span class="p">:</span>
-			<span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">complete_turn</span><span class="p">(</span><span class="n">start_branch</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">turn</span><span class="p">)</span>
+		<span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">complete_turn</span><span class="p">(</span>
+			<span class="n">start_branch</span><span class="p">,</span>
+			<span class="n">engine</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span>
+			<span class="n">discard_rules</span><span class="o">=</span><span class="ow">not</span> <span class="n">engine</span><span class="o">.</span><span class="n">keep_rules_journal</span><span class="p">)</span>
 		<span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">flush_modulus</span> <span class="ow">and</span> <span class="n">engine</span><span class="o">.</span><span class="n">turn</span> <span class="o">%</span> <span class="n">engine</span><span class="o">.</span><span class="n">flush_modulus</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
 			<span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 		<span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">commit_modulus</span> <span class="ow">and</span> <span class="n">engine</span><span class="o">.</span><span class="n">turn</span> <span class="o">%</span> <span class="n">engine</span><span class="o">.</span><span class="n">commit_modulus</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -259,12 +261,13 @@
 					<span class="n">connect_args</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 					<span class="n">schema_cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">AbstractSchema</span><span class="p">]</span> <span class="o">=</span> <span class="n">NullSchema</span><span class="p">,</span>
 					<span class="n">alchemy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-					<span class="n">flush_modulus</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-					<span class="n">commit_modulus</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+					<span class="n">flush_modulus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+					<span class="n">commit_modulus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 					<span class="n">random_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 					<span class="n">logfun</span><span class="p">:</span> <span class="n">FunctionType</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 					<span class="n">clear</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 					<span class="n">keep_rules_journal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+					<span class="n">keyframe_on_close</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 					<span class="n">cache_arranger</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Store the connections for the world database and the code database;</span>
 <span class="sd">        set up listeners; and start a transaction</span>
@@ -295,11 +298,11 @@
 <span class="sd">        :arg alchemy: whether to use SQLAlchemy to connect to the</span>
 <span class="sd">        database. If False, LiSE can only use SQLite</span>
 <span class="sd">        :arg flush_modulus: LiSE will put pending changes into the database</span>
-<span class="sd">        transaction every ``flush_modulus`` turns, default 1. If `None`,</span>
-<span class="sd">        only flush on commit</span>
+<span class="sd">        transaction every ``flush_modulus`` turns. If ``None``</span>
+<span class="sd">        (the default), only flush on commit</span>
 <span class="sd">        :arg commit_modulus: LiSE will commit changes to disk every</span>
-<span class="sd">        ``commit_modulus`` turns, default 10. If `None`, only commit</span>
-<span class="sd">        on close or manual call to `commit`</span>
+<span class="sd">        ``commit_modulus`` turns. If ``None`` (the default), only commit</span>
+<span class="sd">        on close or manual call to ``commit``</span>
 <span class="sd">        :arg random_seed: a number to initialize the randomizer</span>
 <span class="sd">        :arg logfun: an optional function taking arguments</span>
 <span class="sd">        ``level, message``, which should log `message` somehow</span>
@@ -308,6 +311,10 @@
 <span class="sd">        :arg keep_rules_journal: Boolean; if true (default), keep</span>
 <span class="sd">        information on the behavior of the rules engine in the database.</span>
 <span class="sd">        Makes the database rather large, but useful for debugging.</span>
+<span class="sd">        :arg keyframe_on_close: Whether to snap a keyframe when closing the</span>
+<span class="sd">        engine, default ``True``. This is usually what you want, as it will</span>
+<span class="sd">        make future startups faster, but could cause database bloat if</span>
+<span class="sd">        your game runs few turns per session.</span>
 <span class="sd">        :arg cache_arranger: If true (default), start a background</span>
 <span class="sd">        process that indexes the caches to make time travel faster</span>
 <span class="sd">        when it&#39;s to points we anticipate. If you use this, you can</span>
@@ -332,6 +339,7 @@
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">prefix</span><span class="p">):</span>
 			<span class="k">raise</span> <span class="ne">FileExistsError</span><span class="p">(</span><span class="s2">&quot;Need a directory&quot;</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">keep_rules_journal</span> <span class="o">=</span> <span class="n">keep_rules_journal</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_keyframe_on_close</span> <span class="o">=</span> <span class="n">keyframe_on_close</span>
 		<span class="k">if</span> <span class="n">string</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">string</span> <span class="o">=</span> <span class="n">string</span>
 		<span class="k">else</span><span class="p">:</span>
@@ -989,6 +997,8 @@
 		<span class="sd">&quot;&quot;&quot;Commit changes and close the database.&quot;&quot;&quot;</span>
 		<span class="kn">import</span> <span class="nn">sys</span>
 		<span class="kn">import</span> <span class="nn">os</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keyframe_on_close</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">snap_keyframe</span><span class="p">()</span>
 		<span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stores</span><span class="p">:</span>
 			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="s1">&#39;save&#39;</span><span class="p">):</span>
 				<span class="n">store</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">reimport</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -1632,7 +1642,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

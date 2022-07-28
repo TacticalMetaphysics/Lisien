@@ -267,9 +267,8 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
 
 	<span class="k">def</span> <span class="nf">_get_worlddb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="n">filen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_file</span> <span class="ow">or</span> \
-                      <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;World.db&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> \
-               <span class="k">else</span> <span class="s1">&#39;LiSEWorld.db&#39;</span>
+		<span class="n">filen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_file</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;World.db&#39;</span>
+									<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="k">else</span> <span class="s1">&#39;LiSEWorld.db&#39;</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">resource_find</span><span class="p">(</span><span class="n">filen</span><span class="p">)</span> <span class="ow">or</span> <span class="n">filen</span>
 
 	<span class="n">worlddb</span> <span class="o">=</span> <span class="n">AliasProperty</span><span class="p">(</span><span class="n">_get_worlddb</span><span class="p">,</span> <span class="k">lambda</span> <span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
@@ -373,7 +372,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

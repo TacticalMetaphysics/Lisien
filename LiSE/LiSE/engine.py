@@ -233,6 +233,7 @@ class Engine(AbstractEngine, gORM):
 					logfun: FunctionType = None,
 					clear=False,
 					keep_rules_journal=True,
+					keyframe_on_close=True,
 					cache_arranger=True):
 		"""Store the connections for the world database and the code database;
         set up listeners; and start a transaction
@@ -276,6 +277,10 @@ class Engine(AbstractEngine, gORM):
         :arg keep_rules_journal: Boolean; if true (default), keep
         information on the behavior of the rules engine in the database.
         Makes the database rather large, but useful for debugging.
+        :arg keyframe_on_close: Whether to snap a keyframe when closing the
+        engine, default ``True``. This is usually what you want, as it will
+        make future startups faster, but could cause database bloat if
+        your game runs few turns per session.
         :arg cache_arranger: If true (default), start a background
         process that indexes the caches to make time travel faster
         when it's to points we anticipate. If you use this, you can
@@ -300,6 +305,7 @@ class Engine(AbstractEngine, gORM):
 		if not os.path.isdir(prefix):
 			raise FileExistsError("Need a directory")
 		self.keep_rules_journal = keep_rules_journal
+		self._keyframe_on_close = keyframe_on_close
 		if string:
 			self.string = string
 		else:
@@ -957,6 +963,8 @@ class Engine(AbstractEngine, gORM):
 		"""Commit changes and close the database."""
 		import sys
 		import os
+		if self._keyframe_on_close:
+			self.snap_keyframe()
 		for store in self.stores:
 			if hasattr(store, 'save'):
 				store.save(reimport=False)

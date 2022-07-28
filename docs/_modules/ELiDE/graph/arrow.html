@@ -511,8 +511,8 @@
 			<span class="k">return</span>
 		<span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunk_points</span>
 		<span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">/</span> <span class="mi">2</span>
-		<span class="n">bgr</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_scale_selected</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span> \
-               <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_scale_unselected</span>
+		<span class="n">bgr</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bg_scale_selected</span>
+					<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_scale_unselected</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">trunk_quad_vertices_bg</span> <span class="o">=</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span>
 			<span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">bgr</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">collider</span> <span class="o">=</span> <span class="n">Collide2DPoly</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trunk_quad_vertices_bg</span><span class="p">)</span>
@@ -799,7 +799,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
