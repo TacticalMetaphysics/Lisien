@@ -1815,6 +1815,7 @@ class ORM:
 			kfl = self._keyframes_list
 			kfd = self._keyframes_dict
 			kfs = self._keyframes_times
+			kfs.add((branch, turn, tick))
 			nkfs = self._new_keyframes
 			already_keyframed = {nkf[:4] for nkf in self._new_keyframes}
 			for graphn in others:
@@ -1827,7 +1828,6 @@ class ORM:
 				snapp(graphn, branch, turn, tick, nodes, edges, val)
 				nkfs.append((graphn, branch, turn, tick, nodes, edges, val))
 				kfl.append((graphn, branch, turn, tick))
-				kfs.add((branch, turn, tick))
 				if branch not in kfd:
 					kfd[branch] = {
 						turn: {
