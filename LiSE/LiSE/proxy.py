@@ -568,17 +568,17 @@ class NodeMapProxy(MutableMapping, Signal):
 	def patch(self, patch):
 		"""Change a bunch of node stats at once.
 
-        This works similarly to ``update``, but only accepts a dict-like
-        argument, and it recurses one level.
+		This works similarly to ``update``, but only accepts a dict-like
+		argument, and it recurses one level.
 
-        The patch is sent to the LiSE core all at once, so this is faster than
-        using ``update``, too.
+		The patch is sent to the LiSE core all at once, so this is faster than
+		using ``update``, too.
 
-        :param patch: a dictionary. Keys are node names, values are other dicts
-        describing updates to the nodes, where a value of None means delete the
-        stat. Other values overwrite.
+		:param patch: a dictionary. Keys are node names, values are other dicts
+		describing updates to the nodes, where a value of None means delete the
+		stat. Other values overwrite.
 
-        """
+		"""
 		self.engine.handle('update_nodes',
 							char=self.character.name,
 							patch=patch,
@@ -2003,10 +2003,10 @@ class RandoProxy(Random):
 class EngineProxy(AbstractEngine):
 	"""An engine-like object for controlling a LiSE process
 
-    Don't instantiate this directly. Use :class:`EngineProcessManager` instead.
-    The ``start`` method will return an :class:`EngineProxy` instance.
+	Don't instantiate this directly. Use :class:`EngineProcessManager` instead.
+	The ``start`` method will return an :class:`EngineProxy` instance.
 
-    """
+	"""
 	char_cls = CharacterProxy
 	thing_cls = ThingProxy
 	place_cls = PlaceProxy
@@ -2152,34 +2152,34 @@ class EngineProxy(AbstractEngine):
 	def handle(self, cmd=None, **kwargs):
 		"""Send a command to the LiSE core.
 
-        The only positional argument should be the name of a
-        method in :class:``EngineHandle``. All keyword arguments
-        will be passed to it, with the exceptions of
-        ``cb``, ``branching``, and ``silent``.
+		The only positional argument should be the name of a
+		method in :class:``EngineHandle``. All keyword arguments
+		will be passed to it, with the exceptions of
+		``cb``, ``branching``, and ``silent``.
 
-        With ``block=False``, don't wait for a result.
-        This is best for when you want to make some change to the game
-        state and already know what effect it will have.
+		With ``block=False``, don't wait for a result.
+		This is best for when you want to make some change to the game
+		state and already know what effect it will have.
 
-        With ``branching=True``, handle paradoxes by creating new
-        branches of history. I will switch to the new branch if needed.
-        If I have an attribute ``branching_cb``, I'll call it if and
-        only if the branch changes upon completing a command with
-        ``branching=True``.
+		With ``branching=True``, handle paradoxes by creating new
+		branches of history. I will switch to the new branch if needed.
+		If I have an attribute ``branching_cb``, I'll call it if and
+		only if the branch changes upon completing a command with
+		``branching=True``.
 
-        With a function ``cb``, I will call ``cb`` when I get
-        a result. If ``block=False`` this will happen in a thread.
-        ``cb`` will be called with keyword arguments ``command``,
-        the same command you asked for; ``result``, the value returned
-        by it, possibly ``None``; and the present ``branch``,
-        ``turn``, and ``tick``, possibly different than when you called
-        ``handle``.
+		With a function ``cb``, I will call ``cb`` when I get
+		a result. If ``block=False`` this will happen in a thread.
+		``cb`` will be called with keyword arguments ``command``,
+		the same command you asked for; ``result``, the value returned
+		by it, possibly ``None``; and the present ``branch``,
+		``turn``, and ``tick``, possibly different than when you called
+		``handle``.
 
-        If any of ``branching``, ``cb``, or ``future`` are ``True``,
-        I will return a ``Future``. The ``Future``'s return value
-        is a tuple of ``(command, branch, turn, tick, result)``.
+		If any of ``branching``, ``cb``, or ``future`` are ``True``,
+		I will return a ``Future``. The ``Future``'s return value
+		is a tuple of ``(command, branch, turn, tick, result)``.
 
-        """
+		"""
 		if self.closed:
 			raise RedundantProcessError(f"Already closed: {id(self)}")
 		if 'command' in kwargs:
@@ -2392,21 +2392,21 @@ class EngineProxy(AbstractEngine):
 					block=True):
 		"""Move to a different point in the timestream
 
-        Needs ``branch`` and ``turn`` arguments. The ``tick`` is
-        optional; if unspecified, you'll travel to the last tick
-        in the turn.
+		Needs ``branch`` and ``turn`` arguments. The ``tick`` is
+		optional; if unspecified, you'll travel to the last tick
+		in the turn.
 
-        May take a callback function ``cb``, which will receive a
-        dictionary describing changes to the characters in ``chars``.
-        ``chars`` defaults to 'all', indicating that every character
-        should be included, but may be a list of character names
-        to include.
+		May take a callback function ``cb``, which will receive a
+		dictionary describing changes to the characters in ``chars``.
+		``chars`` defaults to 'all', indicating that every character
+		should be included, but may be a list of character names
+		to include.
 
-        With ``block=True`` (the default), wait until finished computing
-        differences before returning. Otherwise my ``branch``, ``turn``,
-        and ``tick`` will stay where they are until that's done.
+		With ``block=True`` (the default), wait until finished computing
+		differences before returning. Otherwise my ``branch``, ``turn``,
+		and ``tick`` will stay where they are until that's done.
 
-        """
+		"""
 		if cb and not chars:
 			raise TypeError("Callbacks require chars")
 		if cb is not None and not callable(cb):

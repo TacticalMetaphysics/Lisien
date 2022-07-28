@@ -57,7 +57,7 @@ resource_add_path(ELiDE.__path__[0] + "/assets/rltiles")
 class ELiDEApp(App):
 	"""Extensible LiSE Development Environment.
 
-    """
+	"""
 	title = 'ELiDE'
 
 	engine = None
@@ -147,9 +147,9 @@ class ELiDEApp(App):
 
 	def select_character(self, char):
 		"""Change my ``character`` to the selected character object if they
-        aren't the same.
+		aren't the same.
 
-        """
+		"""
 		if char == self.character:
 			return
 		self.character = char
@@ -223,9 +223,9 @@ class ELiDEApp(App):
 	def start_subprocess(self, *args):
 		"""Start the LiSE core and get a proxy to it
 
-        Must be called before ``init_board``
+		Must be called before ``init_board``
 
-        """
+		"""
 		if hasattr(self, '_started'):
 			raise ChildProcessError("Subprocess already running")
 		config = self.config
@@ -251,9 +251,9 @@ class ELiDEApp(App):
 	def init_board(self, *args):
 		"""Get the board widgets initialized to display the game state
 
-        Must be called after start_subprocess
+		Must be called after start_subprocess
 
-        """
+		"""
 		if 'boardchar' not in self.engine.eternal:
 			if 'physical' in self.engine.character:
 				self.engine.eternal['boardchar'] = self.engine.character[

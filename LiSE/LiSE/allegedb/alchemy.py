@@ -434,7 +434,7 @@ def compile_sql(dialect, meta):
 class Alchemist(object):
 	"""Holds an engine and runs queries on it.
 
-    """
+	"""
 
 	def __init__(self, engine):
 		self.engine = engine

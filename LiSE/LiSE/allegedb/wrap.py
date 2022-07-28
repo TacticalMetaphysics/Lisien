@@ -254,10 +254,10 @@ class SubSetWrapper(MutableWrapperSet, set):
 class DictWrapper(MutableMappingWrapper, dict):
 	"""A dictionary synchronized with a serialized field.
 
-    This is meant to be used in allegedb entities (graph, node, or
-    edge), for when the user stores a dictionary in them.
+	This is meant to be used in allegedb entities (graph, node, or
+	edge), for when the user stores a dictionary in them.
 
-    """
+	"""
 	__slots__ = ('_getter', '_setter', '_outer', '_key')
 	_getter: Callable
 
@@ -279,10 +279,10 @@ class DictWrapper(MutableMappingWrapper, dict):
 class ListWrapper(MutableWrapperDictList, MutableSequence, list):
 	"""A list synchronized with a serialized field.
 
-    This is meant to be used in allegedb entities (graph, node, or
-    edge), for when the user stores a list in them.
+	This is meant to be used in allegedb entities (graph, node, or
+	edge), for when the user stores a list in them.
 
-    """
+	"""
 
 	__slots__ = ('_getter', '_setter', '_outer', '_key')
 
@@ -336,10 +336,10 @@ class ListWrapper(MutableWrapperDictList, MutableSequence, list):
 class SetWrapper(MutableWrapperSet, set):
 	"""A set synchronized with a serialized field.
 
-    This is meant to be used in allegedb entities (graph, node, or
-    edge), for when the user stores a set in them.
+	This is meant to be used in allegedb entities (graph, node, or
+	edge), for when the user stores a set in them.
 
-    """
+	"""
 	__slots__ = ('_getter', '_setter', '_outer', '_key')
 	_getter: Callable
 

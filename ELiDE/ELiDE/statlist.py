@@ -39,7 +39,7 @@ from .util import trigger
 class StatRowListItem(Widget):
 	"""Mixin class for widgets that show a stat's current value.
 
-    """
+	"""
 	key = ObjectProperty()
 	"The stat I am about. Same as in the LiSE entity."
 	value = ObjectProperty(None, allownone=True)
@@ -173,14 +173,14 @@ class StatRowSlider(StatRowListItem, Slider):
 class StatRowListItemContainer(BoxLayout):
 	"""The name of a stat followed by a widget representing its value.
 
-    The widget can be
+	The widget can be
 
-    * :class:`StatRowLabel`
-    * :class:`StatRowTextInput`
-    * :class:`StatRowToggleButton`
-    * :class:`StatRowSlider`
+	* :class:`StatRowLabel`
+	* :class:`StatRowTextInput`
+	* :class:`StatRowToggleButton`
+	* :class:`StatRowSlider`
 
-    """
+	"""
 	key = ObjectProperty()
 	"""The name of the stat"""
 	reg = ObjectProperty()
@@ -195,25 +195,25 @@ class StatRowListItemContainer(BoxLayout):
 	"""Function to unregister a listener from a LiSE entity"""
 	config = DictProperty()
 	"""Dictionary describing the configuration of this stat's widget.
-    
-    The key 'control' has the widget type as its value, which may be
-    
-    * 'readout'
-    * 'textinput'
-    * 'togglebutton'
-    * 'slider'
-    
-    Other keys are specific to one widget type or another.
-    
-    """
+	
+	The key 'control' has the widget type as its value, which may be
+	
+	* 'readout'
+	* 'textinput'
+	* 'togglebutton'
+	* 'slider'
+	
+	Other keys are specific to one widget type or another.
+	
+	"""
 
 	def set_value(self, *args):
 		"""Use my ``sett`` function to set my stat (``key``) to my new ``value``.
 
-        This doesn't need arguments, but accepts any positional arguments provided,
-        so that you can use this in kvlang
+		This doesn't need arguments, but accepts any positional arguments provided,
+		so that you can use this in kvlang
 
-        """
+		"""
 		self.sett(self.key, self.value)
 
 	def __init__(self, **kwargs):
@@ -233,10 +233,10 @@ class StatRowListItemContainer(BoxLayout):
 	def remake(self, *args):
 		"""Replace any existing child widget with the one described by my ``config``.
 
-        This doesn't need arguments, but accepts any positional arguments provided,
-        so that you can use this in kvlang
+		This doesn't need arguments, but accepts any positional arguments provided,
+		so that you can use this in kvlang
 
-        """
+		"""
 		if not self.config:
 			return
 		if not all(
@@ -451,28 +451,28 @@ class StatListView(BaseStatListView):
 
 Builder.load_string("""
 <StatRowListItem>:
-    height: 30
+	height: 30
 <StatRowLabel>:
-    text: str(self.value)
+	text: str(self.value)
 <StatRowTextInput>:
-    hint_text: str(self.value)
-    multiline: False
+	hint_text: str(self.value)
+	multiline: False
 <StatRowToggleButton>:
-    text: self.true_text if self.value else self.false_text
-    state: 'down' if self.value else 'normal'
+	text: self.true_text if self.value else self.false_text
+	state: 'down' if self.value else 'normal'
 <StatRowSlider>:
-    Label:
-        center_x: root.center_x
-        y: root.center_y
-        text: str(root.value)
-        size: self.texture_size
+	Label:
+		center_x: root.center_x
+		y: root.center_y
+		text: str(root.value)
+		size: self.texture_size
 <StatListView>:
-    viewclass: 'StatRowListItemContainer'
-    app: app
-    RecycleBoxLayout:
-        default_size: None, dp(56)
-        default_size_hint: 1, None
-        size_hint_y: None
-        height: self.minimum_height
-        orientation: 'vertical'
+	viewclass: 'StatRowListItemContainer'
+	app: app
+	RecycleBoxLayout:
+		default_size: None, dp(56)
+		default_size_hint: 1, None
+		size_hint_y: None
+		height: self.minimum_height
+		orientation: 'vertical'
 """)

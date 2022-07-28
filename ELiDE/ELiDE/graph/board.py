@@ -39,10 +39,10 @@ import numpy as np
 def normalize_layout(l):
 	"""Make sure all the spots in a layout are where you can click.
 
-    Returns a copy of the layout with all spot coordinates are
-    normalized to within (0.0, 0.98).
+	Returns a copy of the layout with all spot coordinates are
+	normalized to within (0.0, 0.98).
 
-    """
+	"""
 	xs = []
 	ys = []
 	ks = []
@@ -70,17 +70,17 @@ def normalize_layout(l):
 class KvLayoutBack(FloatLayout):
 	"""What to show behind the graph.
 
-    By default, shows nothing.
+	By default, shows nothing.
 
-    """
+	"""
 
 
 class KvLayoutFront(FloatLayout):
 	"""What to show in front of the graph.
 
-    By default, shows nothing.
+	By default, shows nothing.
 
-    """
+	"""
 	pass
 
 
@@ -96,9 +96,9 @@ class FinalLayout(FloatLayout):
 
 class GraphBoard(RelativeLayout):
 	"""A graphical view onto a :class:`LiSE.Character`, resembling a game
-    graph.
+	graph.
 
-    """
+	"""
 	app = ObjectProperty()
 	character = ObjectProperty()
 	wallpaper_path = StringProperty()
@@ -374,9 +374,9 @@ class GraphBoard(RelativeLayout):
 
 	def make_pawn(self, thing):
 		"""Make a :class:`Pawn` to represent a :class:`Thing`, store it, and
-        return it.
+		return it.
 
-        """
+		"""
 		if thing["name"] in self.pawn:
 			raise KeyError("Already have a Pawn for this Thing")
 		r = self.pawn_cls(board=self, proxy=thing)
@@ -385,9 +385,9 @@ class GraphBoard(RelativeLayout):
 
 	def make_spot(self, place):
 		"""Make a :class:`Spot` to represent a :class:`Place`, store it, and
-        return it.
+		return it.
 
-        """
+		"""
 		if place["name"] in self.spot:
 			raise KeyError("Already have a Spot for this Place")
 		r = self.spot_cls(board=self, place=place)
@@ -398,9 +398,9 @@ class GraphBoard(RelativeLayout):
 
 	def make_arrow(self, portal):
 		"""Make an :class:`Arrow` to represent a :class:`Portal`, store it,
-        and return it.
+		and return it.
 
-        """
+		"""
 		if (portal["origin"] not in self.spot
 			or portal["destination"] not in self.spot):
 			raise ValueError("An :class:`Arrow` should only be made after "
@@ -688,11 +688,11 @@ class GraphBoard(RelativeLayout):
 	def update(self, *args):
 		"""Force an update to match the current state of my character.
 
-        This polls every element of the character, and therefore
-        causes me to sync with the LiSE core for a long time. Avoid
-        when possible.
+		This polls every element of the character, and therefore
+		causes me to sync with the LiSE core for a long time. Avoid
+		when possible.
 
-        """
+		"""
 		if not hasattr(self, 'engine') or getattr(self.engine, 'closed',
 													False):
 			Logger.warning(
@@ -854,11 +854,11 @@ class BoardScatterPlane(ScatterPlane):
 	def spot_from_dummy(self, dummy):
 		"""Make a real place and its spot from a dummy spot.
 
-        Create a new :class:`graph.Spot` instance, along with the
-        underlying :class:`LiSE.Place` instance, and give it the name,
-        position, and imagery of the provided dummy.
+		Create a new :class:`graph.Spot` instance, along with the
+		underlying :class:`LiSE.Place` instance, and give it the name,
+		position, and imagery of the provided dummy.
 
-        """
+		"""
 		(x, y) = self.to_local(*dummy.pos_up)
 		x /= self.board.width
 		y /= self.board.height
@@ -874,11 +874,11 @@ class BoardScatterPlane(ScatterPlane):
 	def pawn_from_dummy(self, dummy):
 		"""Make a real thing and its pawn from a dummy pawn.
 
-        Create a new :class:`graph.Pawn` instance, along with the
-        underlying :class:`LiSE.Thing` instance, and give it the name,
-        location, and imagery of the provided dummy.
+		Create a new :class:`graph.Pawn` instance, along with the
+		underlying :class:`LiSE.Thing` instance, and give it the name,
+		location, and imagery of the provided dummy.
 
-        """
+		"""
 		candidates = []
 		dummy_center = self.to_local(*dummy.center)
 		dummy.pos = self.to_local(*dummy.pos)
@@ -963,15 +963,15 @@ class GraphBoardView(BoardView):
 
 Builder.load_string("""
 <GraphBoard>:
-    app: app
-    size_hint: None, None
+	app: app
+	size_hint: None, None
 <GraphBoardView>:
-    plane: boardplane
-    BoardScatterPlane:
-        id: boardplane
-        board: root.board
-        adding_portal: root.adding_portal
-        reciprocal_portal: root.reciprocal_portal
-        scale_min: root.scale_min
-        scale_max: root.scale_max
+	plane: boardplane
+	BoardScatterPlane:
+		id: boardplane
+		board: root.board
+		adding_portal: root.adding_portal
+		reciprocal_portal: root.reciprocal_portal
+		scale_min: root.scale_min
+		scale_max: root.scale_max
 """)

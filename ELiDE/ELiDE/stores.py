@@ -82,9 +82,9 @@ class StoreButton(RecycleToggleButton):
 
 class StoreList(RecycleView):
 	"""Holder for a :class:`kivy.uix.listview.ListView` that shows what's
-    in a store, using one of the StoreAdapter classes.
+	in a store, using one of the StoreAdapter classes.
 
-    """
+	"""
 	store = ObjectProperty()
 	"""Either a FunctionStore or a StringStore"""
 	selection_name = StringProperty()
@@ -167,11 +167,11 @@ class LanguageInput(TextInput):
 class StringsEdScreen(Screen):
 	"""A screen in which to edit strings to be presented to humans
 
-    Needs a ``toggle`` function to switch back to the main screen;
-    a ``language`` identifier; and a ``language_setter`` function to be called
-    with that ``language`` when changed.
+	Needs a ``toggle`` function to switch back to the main screen;
+	a ``language`` identifier; and a ``language_setter`` function to be called
+	with that ``language`` when changed.
 
-    """
+	"""
 	toggle = ObjectProperty()
 	"""Function to switch back to the main screen"""
 	language = StringProperty('eng')
@@ -309,9 +309,9 @@ class StringInput(Editor):
 class EdBox(BoxLayout):
 	"""Box containing most of an editor's screen
 
-    Has a StoreList and an Editor, which in turn holds a name field and a big text entry box.
+	Has a StoreList and an Editor, which in turn holds a name field and a big text entry box.
 
-    """
+	"""
 	storelist = ObjectProperty()
 	"""An instance of ``StoreList``"""
 	editor = ObjectProperty()
@@ -412,10 +412,10 @@ class StringNameInput(TextInput):
 class StringsEdBox(EdBox):
 	"""Box containing most of the strings editing screen
 
-    Contains the storelist and the editor, which in turn contains the string name input
-    and a bigger input field for the string itself.
+	Contains the storelist and the editor, which in turn contains the string name input
+	and a bigger input field for the string itself.
 
-    """
+	"""
 	language = StringProperty('eng')
 
 	@staticmethod
@@ -433,9 +433,9 @@ sig_ex = re.compile(r'^ *def .+?\((.+)\):$')
 class FunctionNameInput(TextInput):
 	"""Input for the name of a function
 
-    Filters out illegal characters.
+	Filters out illegal characters.
 
-    """
+	"""
 	_trigger_save = ObjectProperty()
 
 	def insert_text(self, s, from_undo=False):
@@ -475,10 +475,10 @@ def munge_source(v):
 class FuncEditor(Editor):
 	"""The editor widget for working with any particular function.
 
-    Contains a one-line field for the function's name and a multi-line
-    field for its code.
+	Contains a one-line field for the function's name and a multi-line
+	field for its code.
 
-    """
+	"""
 	storelist = ObjectProperty()
 	"""Instance of ``StoreList`` that shows all the functions you can edit"""
 	codeinput = ObjectProperty()
@@ -518,10 +518,10 @@ class FuncEditor(Editor):
 class FuncsEdBox(EdBox):
 	"""Widget for editing the Python source of funcs to be used in LiSE sims.
 
-    Contains a list of functions in the store it's about, next to a
-    FuncEditor showing the source of the selected one, and a close button.
+	Contains a list of functions in the store it's about, next to a
+	FuncEditor showing the source of the selected one, and a close button.
 
-    """
+	"""
 
 	def get_default_text(self, newname):
 		return self.editor.get_default_text(newname)
@@ -535,9 +535,9 @@ class FuncsEdBox(EdBox):
 class FuncsEdScreen(Screen):
 	"""Screen containing three FuncsEdBox
 
-    Triggers, prereqs, and actions.
+	Triggers, prereqs, and actions.
 
-    """
+	"""
 	toggle = ObjectProperty()
 
 	def save(self, *args):
@@ -549,198 +549,198 @@ class FuncsEdScreen(Screen):
 Builder.load_string("""
 #: import py3lexer pygments.lexers.Python3Lexer
 <StoreButton>:
-    size_hint_y: None
-    height: 30
+	size_hint_y: None
+	height: 30
 <StoreList>:
-    viewclass: 'StoreButton'
-    boxl: boxl
-    SelectableRecycleBoxLayout:
-        id: boxl
-        default_size: None, dp(56)
-        default_size_hint: 1, None
-        height: self.minimum_height
-        size_hint_y: None
-        orientation: 'vertical'
+	viewclass: 'StoreButton'
+	boxl: boxl
+	SelectableRecycleBoxLayout:
+		id: boxl
+		default_size: None, dp(56)
+		default_size_hint: 1, None
+		height: self.minimum_height
+		size_hint_y: None
+		orientation: 'vertical'
 <StringInput>:
-    name_wid: stringname
-    orientation: 'vertical'
-    BoxLayout:
-        size_hint_y: 0.05
-        Label:
-            id: title
-            text: 'Title: '
-            size_hint_x: None
-            width: self.texture_size[0]
-        StringNameInput:
-            id: stringname
-            multiline: False
-            write_tab: False
-            _trigger_save: root._trigger_save
-        Button:
-            text: 'del'
-            size_hint_x: 0.1
-            on_release: root._trigger_delete()
-    TextInput:
-        id: string
-        disabled: root.disable_text_input
+	name_wid: stringname
+	orientation: 'vertical'
+	BoxLayout:
+		size_hint_y: 0.05
+		Label:
+			id: title
+			text: 'Title: '
+			size_hint_x: None
+			width: self.texture_size[0]
+		StringNameInput:
+			id: stringname
+			multiline: False
+			write_tab: False
+			_trigger_save: root._trigger_save
+		Button:
+			text: 'del'
+			size_hint_x: 0.1
+			on_release: root._trigger_delete()
+	TextInput:
+		id: string
+		disabled: root.disable_text_input
 <StringsEdBox>:
-    editor: strings_ed
-    storelist: strings_list
-    orientation: 'vertical'
-    BoxLayout:
-        orientation: 'horizontal'
-        StoreList:
-            id: strings_list
-            size_hint_x: 0.2
-            store: root.store
-        StringInput:
-            id: strings_ed
-            store: root.store
-            disable_text_input: root.disable_text_input
-            validate_name_input: root.validate_name_input
-            _trigger_save: root._trigger_save
-            _trigger_delete: root._trigger_delete
+	editor: strings_ed
+	storelist: strings_list
+	orientation: 'vertical'
+	BoxLayout:
+		orientation: 'horizontal'
+		StoreList:
+			id: strings_list
+			size_hint_x: 0.2
+			store: root.store
+		StringInput:
+			id: strings_ed
+			store: root.store
+			disable_text_input: root.disable_text_input
+			validate_name_input: root.validate_name_input
+			_trigger_save: root._trigger_save
+			_trigger_delete: root._trigger_delete
 <StringsEdScreen>:
-    name: 'strings'
-    edbox: edbox
-    BoxLayout:
-        orientation: 'vertical'
-        StringsEdBox:
-            id: edbox
-            toggle: root.toggle
-            store_name: 'string'
-            language: root.language
-        BoxLayout:
-            size_hint_y: 0.05
-            Button:
-                text: 'Close'
-                on_release: edbox.dismiss()
-            Label:
-                text_size: self.size
-                halign: 'right'
-                valign: 'middle'
-                text: 'Language: '
-            LanguageInput:
-                id: language
-                screen: root
-                hint_text: root.language
-                write_tab: False
-                multiline: False
+	name: 'strings'
+	edbox: edbox
+	BoxLayout:
+		orientation: 'vertical'
+		StringsEdBox:
+			id: edbox
+			toggle: root.toggle
+			store_name: 'string'
+			language: root.language
+		BoxLayout:
+			size_hint_y: 0.05
+			Button:
+				text: 'Close'
+				on_release: edbox.dismiss()
+			Label:
+				text_size: self.size
+				halign: 'right'
+				valign: 'middle'
+				text: 'Language: '
+			LanguageInput:
+				id: language
+				screen: root
+				hint_text: root.language
+				write_tab: False
+				multiline: False
 <Py3CodeInput@CodeInput>:
-    lexer: py3lexer()
+	lexer: py3lexer()
 <FuncEditor>:
-    codeinput: code
-    name_wid: funname
-    orientation: 'vertical'
-    BoxLayout:
-        orientation: 'horizontal'
-        size_hint_y: None
-        height: funname.height
-        Py3CodeInput:
-            id: imafunction
-            text: 'def'
-            disabled: True
-            size_hint: (None, None)
-            height: self.line_height + self.font_size
-            width: self.font_size * len(self.text)
-            background_disabled_normal: ''
-            disabled_foreground_color: self.foreground_color
-        FunctionNameInput:
-            id: funname
-            size_hint: (0.4, None)
-            height: self.line_height + self.font_size
-            multiline: False
-            write_tab: False
-            _trigger_save: root._trigger_save
-            on_text: root.validate_name_input(self.text)
-        Py3CodeInput:
-            id: params
-            text: '({}):'.format(', '.join(root.params))
-            disabled: True
-            size_hint_y: None
-            height: self.line_height + self.font_size
-            background_disabled_normal: ''
-            disabled_foreground_color: self.foreground_color
-        Button:
-            text: 'del'
-            size_hint_x: 0.1
-            on_release: root._trigger_delete()
-    BoxLayout:
-        orientation: 'horizontal'
-        Label:
-            canvas:
-                Color:
-                    rgba: params.background_color
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
-                Color:
-                    rgba: [1., 1., 1., 1.]
-            # PEP8 standard indentation width is 4 spaces
-            text: ' ' * 4
-            size_hint_x: None
-            width: self.texture_size[0]
-        Py3CodeInput:
-            id: code
-            disabled: root.disable_text_input
+	codeinput: code
+	name_wid: funname
+	orientation: 'vertical'
+	BoxLayout:
+		orientation: 'horizontal'
+		size_hint_y: None
+		height: funname.height
+		Py3CodeInput:
+			id: imafunction
+			text: 'def'
+			disabled: True
+			size_hint: (None, None)
+			height: self.line_height + self.font_size
+			width: self.font_size * len(self.text)
+			background_disabled_normal: ''
+			disabled_foreground_color: self.foreground_color
+		FunctionNameInput:
+			id: funname
+			size_hint: (0.4, None)
+			height: self.line_height + self.font_size
+			multiline: False
+			write_tab: False
+			_trigger_save: root._trigger_save
+			on_text: root.validate_name_input(self.text)
+		Py3CodeInput:
+			id: params
+			text: '({}):'.format(', '.join(root.params))
+			disabled: True
+			size_hint_y: None
+			height: self.line_height + self.font_size
+			background_disabled_normal: ''
+			disabled_foreground_color: self.foreground_color
+		Button:
+			text: 'del'
+			size_hint_x: 0.1
+			on_release: root._trigger_delete()
+	BoxLayout:
+		orientation: 'horizontal'
+		Label:
+			canvas:
+				Color:
+					rgba: params.background_color
+				Rectangle:
+					pos: self.pos
+					size: self.size
+				Color:
+					rgba: [1., 1., 1., 1.]
+			# PEP8 standard indentation width is 4 spaces
+			text: ' ' * 4
+			size_hint_x: None
+			width: self.texture_size[0]
+		Py3CodeInput:
+			id: code
+			disabled: root.disable_text_input
 <FuncsEdBox>:
-    editor: funcs_ed
-    storelist: funcs_list
-    orientation: 'vertical'
-    data: [(item['name'], self.store.get_source(item['name'])) for item in funcs_list.data[1:]]
-    BoxLayout:
-        orientation: 'horizontal'
-        BoxLayout:
-            orientation: 'vertical'
-            size_hint_x: 0.2
-            StoreList:
-                id: funcs_list
-                store: root.store
-        FuncEditor:
-            id: funcs_ed
-            store: root.store
-            storelist: funcs_list
-            disable_text_input: root.disable_text_input
-            validate_name_input: root.validate_name_input
-            _trigger_save: root._trigger_save
-            _trigger_delete: root._trigger_delete
-    BoxLayout:
-        size_hint_y: 0.05
-        Button:
-            text: 'Close'
-            on_release: root.dismiss()
-            size_hint_x: 0.2
-        Widget:
-            id: spacer
+	editor: funcs_ed
+	storelist: funcs_list
+	orientation: 'vertical'
+	data: [(item['name'], self.store.get_source(item['name'])) for item in funcs_list.data[1:]]
+	BoxLayout:
+		orientation: 'horizontal'
+		BoxLayout:
+			orientation: 'vertical'
+			size_hint_x: 0.2
+			StoreList:
+				id: funcs_list
+				store: root.store
+		FuncEditor:
+			id: funcs_ed
+			store: root.store
+			storelist: funcs_list
+			disable_text_input: root.disable_text_input
+			validate_name_input: root.validate_name_input
+			_trigger_save: root._trigger_save
+			_trigger_delete: root._trigger_delete
+	BoxLayout:
+		size_hint_y: 0.05
+		Button:
+			text: 'Close'
+			on_release: root.dismiss()
+			size_hint_x: 0.2
+		Widget:
+			id: spacer
 <FuncsEdScreen>:
-    name: 'funcs'
-    TabbedPanel:
-        default_tab: action
-        TabbedPanelItem:
-            id: trigger
-            text: 'Trigger'
-            on_state: triggers.save()
-            FuncsEdBox:
-                id: triggers
-                toggle: root.toggle
-                store_name: 'trigger'
-                on_data: app.rules.rulesview.set_functions('trigger', map(app.rules.rulesview.inspect_func, self.data))
-        TabbedPanelItem:
-            id: prereq
-            text: 'Prereq'
-            on_state: prereqs.save()
-            FuncsEdBox:
-                id: prereqs
-                toggle: root.toggle
-                store_name: 'prereq'
-                on_data: app.rules.rulesview.set_functions('prereq', map(app.rules.rulesview.inspect_func, self.data))
-        TabbedPanelItem:
-            id: action
-            text: 'Action'
-            on_state: actions.save()
-            FuncsEdBox:
-                id: actions
-                toggle: root.toggle
-                store_name: 'action'
-                on_data: app.rules.rulesview.set_functions('action', map(app.rules.rulesview.inspect_func, self.data))
+	name: 'funcs'
+	TabbedPanel:
+		default_tab: action
+		TabbedPanelItem:
+			id: trigger
+			text: 'Trigger'
+			on_state: triggers.save()
+			FuncsEdBox:
+				id: triggers
+				toggle: root.toggle
+				store_name: 'trigger'
+				on_data: app.rules.rulesview.set_functions('trigger', map(app.rules.rulesview.inspect_func, self.data))
+		TabbedPanelItem:
+			id: prereq
+			text: 'Prereq'
+			on_state: prereqs.save()
+			FuncsEdBox:
+				id: prereqs
+				toggle: root.toggle
+				store_name: 'prereq'
+				on_data: app.rules.rulesview.set_functions('prereq', map(app.rules.rulesview.inspect_func, self.data))
+		TabbedPanelItem:
+			id: action
+			text: 'Action'
+			on_state: actions.save()
+			FuncsEdBox:
+				id: actions
+				toggle: root.toggle
+				store_name: 'action'
+				on_data: app.rules.rulesview.set_functions('action', map(app.rules.rulesview.inspect_func, self.data))
 """)

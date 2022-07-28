@@ -24,29 +24,29 @@ from array import array
 
 class Collide2DPoly(object):
 	''' Collide2DPoly checks whether a point is within a polygon defined by a
-    list of corner points.
+	list of corner points.
 
-    Based on http://alienryderflex.com/polygon/
+	Based on http://alienryderflex.com/polygon/
 
-    For example, a simple triangle::
+	For example, a simple triangle::
 
-        >>> collider = Collide2DPoly([10., 10., 20., 30., 30., 10.],
-        ... cache=True)
-        >>> (0.0, 0.0) in collider
-        False
-        >>> (20.0, 20.0) in collider
-        True
+		>>> collider = Collide2DPoly([10., 10., 20., 30., 30., 10.],
+		... cache=True)
+		>>> (0.0, 0.0) in collider
+		False
+		>>> (20.0, 20.0) in collider
+		True
 
-    The constructor takes a list of x,y points in the form of [x1,y1,x2,y2...]
-    as the points argument. These points define the corners of the
-    polygon. The boundary is linearly interpolated between each set of points.
-    The x, and y values must be floating points.
-    The cache argument, if True, will calculate membership for all the points
-    so when collide_point is called it'll just be a table lookup.
+	The constructor takes a list of x,y points in the form of [x1,y1,x2,y2...]
+	as the points argument. These points define the corners of the
+	polygon. The boundary is linearly interpolated between each set of points.
+	The x, and y values must be floating points.
+	The cache argument, if True, will calculate membership for all the points
+	so when collide_point is called it'll just be a table lookup.
 
-    This pure Python version was ported from the kivy.garden.collider
-    package. It is available under the MIT license.
-    '''
+	This pure Python version was ported from the kivy.garden.collider
+	package. It is available under the MIT license.
+	'''
 
 	def __init__(self, points, cache=False, **kwargs):
 		length = len(points)

@@ -26,20 +26,20 @@ from ..util import trigger
 class GraphSpot(GraphPawnSpot):
 	"""The icon that represents a :class:`Place`.
 
-    Each :class:`Spot` is located on the Board that represents the
-    :class:`Character` that the underlying :class:`Place` is in. Its
-    coordinates are relative to its :class:`Board`, not necessarily
-    the window the :class:`Board` is in.
+	Each :class:`Spot` is located on the Board that represents the
+	:class:`Character` that the underlying :class:`Place` is in. Its
+	coordinates are relative to its :class:`Board`, not necessarily
+	the window the :class:`Board` is in.
 
-    """
+	"""
 	default_image_paths = ['atlas://rltiles/floor.atlas/floor-stone']
 	default_pos = (0.5, 0.5)
 
 	def __init__(self, **kwargs):
 		"""Deal with triggers and bindings, and arrange to take care of
-        changes in game-time.
+		changes in game-time.
 
-        """
+		"""
 		self._pospawn_partials = {}
 		self._pospawn_triggers = {}
 		kwargs['size_hint'] = (None, None)
@@ -69,11 +69,11 @@ class GraphSpot(GraphPawnSpot):
 
 	def push_pos(self, *args):
 		"""Set my current position, expressed as proportions of the graph's
-        width and height, into the ``_x`` and ``_y`` keys of the
-        entity in my ``proxy`` property, such that it will be
-        recorded in the database.
+		width and height, into the ``_x`` and ``_y`` keys of the
+		entity in my ``proxy`` property, such that it will be
+		recorded in the database.
 
-        """
+		"""
 		self.proxy['_x'] = self.x / self.board.width
 		self.proxy['_y'] = self.y / self.board.height
 

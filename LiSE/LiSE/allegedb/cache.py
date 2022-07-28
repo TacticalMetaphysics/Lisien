@@ -22,7 +22,7 @@ from collections import OrderedDict, defaultdict, deque
 def _default_args_munger(self, k):
 	"""By default, `PickyDefaultDict`'s ``type`` takes no positional arguments.
 
-    """
+	"""
 	return tuple()
 
 
@@ -34,15 +34,15 @@ def _default_kwargs_munger(self, k):
 class PickyDefaultDict(dict):
 	"""A ``defaultdict`` alternative that requires values of a specific type.
 
-    Pass some type object (such as a class) to the constructor to
-    specify what type to use by default, which is the only type I will
-    accept.
+	Pass some type object (such as a class) to the constructor to
+	specify what type to use by default, which is the only type I will
+	accept.
 
-    Default values are constructed with no arguments by default;
-    supply ``args_munger`` and/or ``kwargs_munger`` to override this.
-    They take arguments ``self`` and the unused key being looked up.
+	Default values are constructed with no arguments by default;
+	supply ``args_munger`` and/or ``kwargs_munger`` to override this.
+	They take arguments ``self`` and the unused key being looked up.
 
-    """
+	"""
 	__slots__ = ['type', 'args_munger', 'kwargs_munger', 'parent', 'key']
 
 	def __init__(self,
@@ -75,12 +75,12 @@ class PickyDefaultDict(dict):
 class StructuredDefaultDict(dict):
 	"""A `defaultdict`-like class with values stored at a specific depth.
 
-    Requires an integer to tell it how many layers deep to go.
-    The innermost layer will be ``PickyDefaultDict``, which will take the
-    ``type``, ``args_munger``, and ``kwargs_munger`` arguments supplied
-    to my constructor.
+	Requires an integer to tell it how many layers deep to go.
+	The innermost layer will be ``PickyDefaultDict``, which will take the
+	``type``, ``args_munger``, and ``kwargs_munger`` arguments supplied
+	to my constructor.
 
-    """
+	"""
 	__slots__ = ('layer', 'type', 'args_munger', 'kwargs_munger', 'parent',
 					'key', '_stuff', 'gettest', 'settest')
 
@@ -147,14 +147,14 @@ KEYCACHE_MAXSIZE = 1024
 def lru_append(kc, lru, kckey, maxsize):
 	"""Delete old data from ``kc``, then add new ``kckey`` to ``lru``
 
-    :param kc: a three-layer keycache
-    :param lru: an :class:`OrderedDict` with a key for each triple that should
-                fill out ``kc``'s three layers
-    :param kckey: a triple that indexes into ``kc``, which will be added to
-                  ``lru`` if needed
-    :param maxsize: maximum number of entries in ``lru`` and, therefore, ``kc``
+	:param kc: a three-layer keycache
+	:param lru: an :class:`OrderedDict` with a key for each triple that should
+				fill out ``kc``'s three layers
+	:param kckey: a triple that indexes into ``kc``, which will be added to
+				  ``lru`` if needed
+	:param maxsize: maximum number of entries in ``lru`` and, therefore, ``kc``
 
-    """
+	"""
 	if kckey in lru:
 		return
 	while len(lru) >= maxsize:
@@ -188,33 +188,33 @@ class Cache:
 		self.parents = StructuredDefaultDict(3, SettingsTurnDict)
 		"""Entity data keyed by the entities' parents.
 
-        An entity's parent is what it's contained in. When speaking of a node,
-        this is its graph. When speaking of an edge, the parent is usually the
-        graph and the origin in a pair, though for multigraphs the destination
-        might be part of the parent as well.
+		An entity's parent is what it's contained in. When speaking of a node,
+		this is its graph. When speaking of an edge, the parent is usually the
+		graph and the origin in a pair, though for multigraphs the destination
+		might be part of the parent as well.
 
-        Deeper layers of this cache are keyed by branch and revision.
+		Deeper layers of this cache are keyed by branch and revision.
 
-        """
+		"""
 		self.keys = StructuredDefaultDict(2, SettingsTurnDict)
 		"""Cache of entity data keyed by the entities themselves.
 
-        That means the whole tuple identifying the entity is the
-        top-level key in this cache here. The second-to-top level
-        is the key within the entity.
+		That means the whole tuple identifying the entity is the
+		top-level key in this cache here. The second-to-top level
+		is the key within the entity.
 
-        Deeper layers of this cache are keyed by branch, turn, and tick.
+		Deeper layers of this cache are keyed by branch, turn, and tick.
 
-        """
+		"""
 		self.keycache = PickyDefaultDict(SettingsTurnDict)
 		"""Keys an entity has at a given turn and tick."""
 		self.branches = StructuredDefaultDict(1, SettingsTurnDict)
 		"""A less structured alternative to ``keys``.
 
-        For when you already know the entity and the key within it,
-        but still need to iterate through history to find the value.
+		For when you already know the entity and the key within it,
+		but still need to iterate through history to find the value.
 
-        """
+		"""
 		self.keyframe = StructuredDefaultDict(1, SettingsTurnDict,
 												**(kfkvs or {}))
 		"""Key-value dictionaries representing my state at a given time"""
@@ -241,10 +241,10 @@ class Cache:
 	def load(self, data):
 		"""Add a bunch of data. Must be in chronological order.
 
-        But it doesn't need to all be from the same branch, as long as
-        each branch is chronological of itself.
+		But it doesn't need to all be from the same branch, as long as
+		each branch is chronological of itself.
 
-        """
+		"""
 		branches = defaultdict(list)
 		for row in data:
 			branches[row[-4]].append(row)
@@ -298,9 +298,9 @@ class Cache:
 							branch, turn, tick, *, forward):
 		"""Try to retrieve a frozenset representing extant keys.
 
-        If I can't, generate one, store it, and return it.
+		If I can't, generate one, store it, and return it.
 
-        """
+		"""
 		keycache_key = parentity + (branch, )
 		keycache2 = keycache3 = None
 		if keycache_key in keycache:
@@ -388,10 +388,10 @@ class Cache:
 	def _get_keycache(self, parentity, branch, turn, tick, *, forward):
 		"""Get a frozenset of keys that exist in the entity at the moment.
 
-        With ``forward=True``, enable an optimization that copies old key sets
-        forward and updates them.
+		With ``forward=True``, enable an optimization that copies old key sets
+		forward and updates them.
 
-        """
+		"""
 		lru_append(self.keycache, self._kc_lru,
 					(parentity + (branch, ), turn, tick), KEYCACHE_MAXSIZE)
 		return self._get_keycachelike(self.keycache,
@@ -428,14 +428,14 @@ class Cache:
 						cache=None):
 		"""Return a pair of sets describing changes to the entity's keys
 
-        Returns a pair of sets: ``(added, deleted)``. These are the changes
-        to the key set that occurred since ``stoptime``, which, if present,
-        should be a triple ``(branch, turn, tick)``.
+		Returns a pair of sets: ``(added, deleted)``. These are the changes
+		to the key set that occurred since ``stoptime``, which, if present,
+		should be a triple ``(branch, turn, tick)``.
 
-        With ``stoptime=None`` (the default), ``added`` will in fact be all
-        keys, and ``deleted`` will be empty.
+		With ``stoptime=None`` (the default), ``added`` will in fact be all
+		keys, and ``deleted`` will be empty.
 
-        """
+		"""
 		# Not using the journal because that doesn't distinguish entities.
 		# I think I might not want to use ``stoptime`` at all, now that
 		# there is such a thing as keyframes...
@@ -494,24 +494,24 @@ class Cache:
 				contra=True):
 		"""Put a value in various dictionaries for later .retrieve(...).
 
-        Needs at least five arguments, of which the -1th is the value
-        to store, the -2th is the tick to store it at, the -3th
-        is the turn to store it in, the -4th is the branch the
-        revision is in, the -5th is the key the value is for,
-        and the remaining arguments identify the entity that has
-        the key, eg. a graph, node, or edge.
+		Needs at least five arguments, of which the -1th is the value
+		to store, the -2th is the tick to store it at, the -3th
+		is the turn to store it in, the -4th is the branch the
+		revision is in, the -5th is the key the value is for,
+		and the remaining arguments identify the entity that has
+		the key, eg. a graph, node, or edge.
 
-        With ``planning=True``, you will be permitted to alter
-        "history" that takes place after the last non-planning
-        moment of time, without much regard to consistency.
-        Otherwise, contradictions will be handled by deleting
-        everything in the contradicted plan after the present moment,
-        unless you set ``contra=False``.
+		With ``planning=True``, you will be permitted to alter
+		"history" that takes place after the last non-planning
+		moment of time, without much regard to consistency.
+		Otherwise, contradictions will be handled by deleting
+		everything in the contradicted plan after the present moment,
+		unless you set ``contra=False``.
 
-        ``loading=True`` prevents me from updating the ORM's records
-        of the ends of branches and turns.
+		``loading=True`` prevents me from updating the ORM's records
+		of the ends of branches and turns.
 
-        """
+		"""
 		(self_parents, self_branches, self_keys, delete_plan, time_plan,
 			self_iter_future_contradictions, db_branches, db_turn_end,
 			self_store_journal, self_time_entity, db_where_cached, keycache,
@@ -952,13 +952,13 @@ class Cache:
 	def retrieve(self, *args):
 		"""Get a value previously .store(...)'d.
 
-        Needs at least five arguments. The -1th is the tick
-        within the turn you want,
-        the -2th is that turn, the -3th is the branch,
-        and the -4th is the key. All other arguments identify
-        the entity that the key is in.
+		Needs at least five arguments. The -1th is the tick
+		within the turn you want,
+		the -2th is that turn, the -3th is the branch,
+		and the -4th is the key. All other arguments identify
+		the entity that the key is in.
 
-        """
+		"""
 		ret = self._base_retrieve(args)
 		if ret is None:
 			raise HistoricKeyError("Set, then deleted", deleted=True)
@@ -969,10 +969,10 @@ class Cache:
 	def iter_entities_or_keys(self, *args, forward=None):
 		"""Iterate over the keys an entity has, if you specify an entity.
 
-        Otherwise iterate over the entities themselves, or at any rate the
-        tuple specifying which entity.
+		Otherwise iterate over the entities themselves, or at any rate the
+		tuple specifying which entity.
 
-        """
+		"""
 		if forward is None:
 			forward = self.db._forward
 		entity = args[:-3]
@@ -991,9 +991,9 @@ class Cache:
 	def count_entities_or_keys(self, *args, forward=None):
 		"""Return the number of keys an entity has, if you specify an entity.
 
-        Otherwise return the number of entities.
+		Otherwise return the number of entities.
 
-        """
+		"""
 		if forward is None:
 			forward = self.db._forward
 		entity = args[:-3]
@@ -1008,9 +1008,9 @@ class Cache:
 	def contains_entity_or_key(self, *args):
 		"""Check if an entity has a key at the given time, if entity specified.
 
-        Otherwise check if the entity exists.
+		Otherwise check if the entity exists.
 
-        """
+		"""
 		retr = self._base_retrieve(args)
 		return retr is not None and not isinstance(retr, Exception)
 
@@ -1332,7 +1332,7 @@ class EdgesCache(Cache):
 							forward=None):
 		"""Return the number of successors to an origin node at a given time.
 
-        """
+		"""
 		if self.db._no_kc:
 			return len(
 				self._adds_dels_successors((graph, orig), branch, turn,
@@ -1357,7 +1357,7 @@ class EdgesCache(Cache):
 							forward=None):
 		"""Return the number of predecessors from a destination node at a time.
 
-        """
+		"""
 		if self.db._no_kc:
 			return len(
 				self._adds_dels_predecessors(graph, dest, branch, turn,
@@ -1383,10 +1383,10 @@ class EdgesCache(Cache):
 						forward=None):
 		"""Return whether an edge connects the origin to the destination now
 
-        Doesn't require the edge's index, which makes it slower than retrieving
-        a particular edge.
+		Doesn't require the edge's index, which makes it slower than retrieving
+		a particular edge.
 
-        """
+		"""
 		if forward is None:
 			forward = self.db._forward
 		return dest in self._get_destcache(graph,
@@ -1407,10 +1407,10 @@ class EdgesCache(Cache):
 						forward=None):
 		"""Return whether an edge connects the destination to the origin now
 
-        Doesn't require the edge's index, which makes it slower than retrieving
-        a particular edge.
+		Doesn't require the edge's index, which makes it slower than retrieving
+		a particular edge.
 
-        """
+		"""
 		if forward is None:
 			forward = self.db._forward
 		return orig in self._get_origcache(graph,
@@ -1456,14 +1456,14 @@ class EdgesCache(Cache):
 			graph, orig][dest][idx][branch][turn]
 
 	# if ex:
-	#     assert self.retrieve(graph, orig, dest, idx, branch, turn, tick)
-	#     assert self.has_successor(graph, orig, dest, branch, turn, tick)
-	#     assert self.has_predecessor(g
-	#     raph, dest, orig, branch, turn, tick)
+	#	 assert self.retrieve(graph, orig, dest, idx, branch, turn, tick)
+	#	 assert self.has_successor(graph, orig, dest, branch, turn, tick)
+	#	 assert self.has_predecessor(g
+	#	 raph, dest, orig, branch, turn, tick)
 	# else:
-	#     assert self._base_retrieve(
-	#     (graph, orig, dest, idx, branch, turn, tick)) in (None, KeyError)
-	#     assert not self.has_successor(
-	#     graph, orig, dest, branch, turn, tick)
-	#     assert not self.has_predecessor(
-	#     graph, dest, orig, branch, turn, tick)
+	#	 assert self._base_retrieve(
+	#	 (graph, orig, dest, idx, branch, turn, tick)) in (None, KeyError)
+	#	 assert not self.has_successor(
+	#	 graph, orig, dest, branch, turn, tick)
+	#	 assert not self.has_predecessor(
+	#	 graph, dest, orig, branch, turn, tick)

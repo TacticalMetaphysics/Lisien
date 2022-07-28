@@ -107,9 +107,9 @@ class CharMenu(BoxLayout):
 
 	def toggle_spot_cfg(self):
 		"""Show the dialog where you select graphics and a name for a place,
-        or hide it if already showing.
+		or hide it if already showing.
 
-        """
+		"""
 		if self.app.manager.current == 'spotcfg':
 			dummyplace = self.screendummyplace
 			self.ids.placetab.remove_widget(dummyplace)
@@ -149,10 +149,10 @@ class CharMenu(BoxLayout):
 
 	def toggle_reciprocal(self):
 		"""Flip my ``reciprocal_portal`` boolean, and draw (or stop drawing)
-        an extra arrow on the appropriate button to indicate the
-        fact.
+		an extra arrow on the appropriate button to indicate the
+		fact.
 
-        """
+		"""
 		self.screen.boardview.reciprocal_portal = not self.screen.boardview.reciprocal_portal
 		if self.screen.boardview.reciprocal_portal:
 			assert (self.revarrow is None)
@@ -185,68 +185,68 @@ class CharMenu(BoxLayout):
 
 Builder.load_string("""
 <CharMenu>:
-    orientation: 'vertical'
-    dummyplace: dummyplace
-    dummything: dummything
-    portaladdbut: portaladdbut
-    portaldirbut: portaldirbut
-    Button:
-        text: 'Characters'
-        on_release: root.toggle_chars_screen()
-    Button:
-        text: 'Strings'
-        on_release: root.toggle_strings_editor()
-    Button:
-        text: 'Python'
-        on_release: root.toggle_funcs_editor()
-    Button:
-        text: 'Rules'
-        on_release: root.toggle_rules()
-    Button:
-        text: 'Delete'
-        on_release: app.delete_selection()
-    BoxLayout:
-        Widget:
-            id: placetab
-            Dummy:
-                id: dummyplace
-                center: placetab.center
-                prefix: 'place'
-                on_pos_up: root.spot_from_dummy(self)
-        Button:
-            text: 'cfg'
-            on_release: root.toggle_spot_cfg()
-    BoxLayout:
-        orientation: 'vertical'
-        ToggleButton:
-            id: portaladdbut
-            Widget:
-                id: emptyleft
-                center_x: portaladdbut.x + portaladdbut.width / 3
-                center_y: portaladdbut.center_y
-                size: (0, 0)
-            Widget:
-                id: emptyright
-                center_x: portaladdbut.right - portaladdbut.width / 3
-                center_y: portaladdbut.center_y
-                size: (0, 0)
-            GraphArrowWidget:
-                graph: root.screen.boardview.graph if root.screen and root.screen.boardview else None
-                origin: emptyleft
-                destination: emptyright
-        Button:
-            id: portaldirbut
-            text: 'One-way' if root.reciprocal_portal else 'Two-way'
-            on_release: root.toggle_reciprocal()
-    BoxLayout:
-        Widget:
-            id: thingtab
-            Dummy:
-                id: dummything
-                center: thingtab.center
-                prefix: 'thing'
-                on_pos_up: root.pawn_from_dummy(self)
-        Button:
-            text: 'cfg'
-            on_release: root.toggle_pawn_cfg()
+	orientation: 'vertical'
+	dummyplace: dummyplace
+	dummything: dummything
+	portaladdbut: portaladdbut
+	portaldirbut: portaldirbut
+	Button:
+		text: 'Characters'
+		on_release: root.toggle_chars_screen()
+	Button:
+		text: 'Strings'
+		on_release: root.toggle_strings_editor()
+	Button:
+		text: 'Python'
+		on_release: root.toggle_funcs_editor()
+	Button:
+		text: 'Rules'
+		on_release: root.toggle_rules()
+	Button:
+		text: 'Delete'
+		on_release: app.delete_selection()
+	BoxLayout:
+		Widget:
+			id: placetab
+			Dummy:
+				id: dummyplace
+				center: placetab.center
+				prefix: 'place'
+				on_pos_up: root.spot_from_dummy(self)
+		Button:
+			text: 'cfg'
+			on_release: root.toggle_spot_cfg()
+	BoxLayout:
+		orientation: 'vertical'
+		ToggleButton:
+			id: portaladdbut
+			Widget:
+				id: emptyleft
+				center_x: portaladdbut.x + portaladdbut.width / 3
+				center_y: portaladdbut.center_y
+				size: (0, 0)
+			Widget:
+				id: emptyright
+				center_x: portaladdbut.right - portaladdbut.width / 3
+				center_y: portaladdbut.center_y
+				size: (0, 0)
+			GraphArrowWidget:
+				graph: root.screen.boardview.graph if root.screen and root.screen.boardview else None
+				origin: emptyleft
+				destination: emptyright
+		Button:
+			id: portaldirbut
+			text: 'One-way' if root.reciprocal_portal else 'Two-way'
+			on_release: root.toggle_reciprocal()
+	BoxLayout:
+		Widget:
+			id: thingtab
+			Dummy:
+				id: dummything
+				center: thingtab.center
+				prefix: 'thing'
+				on_pos_up: root.pawn_from_dummy(self)
+		Button:
+			text: 'cfg'
+			on_release: root.toggle_pawn_cfg()
 """)

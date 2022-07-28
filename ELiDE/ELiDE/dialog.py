@@ -51,9 +51,9 @@ class ScrollableLabel(ScrollView):
 class MessageBox(Box):
 	"""Looks like a TextInput but doesn't accept any input.
 
-    Does support styled text with BBcode.
+	Does support styled text with BBcode.
 
-    """
+	"""
 	line_spacing = NumericProperty(0)
 	text = StringProperty()
 
@@ -61,11 +61,11 @@ class MessageBox(Box):
 class DialogMenu(Box):
 	"""Some buttons that make the game do things.
 
-    Set ``options`` to a list of pairs of ``(text, function)`` and the
-    menu will be populated with buttons that say ``text`` that call
-    ``function`` when pressed.
+	Set ``options`` to a list of pairs of ``(text, function)`` and the
+	menu will be populated with buttons that say ``text`` that call
+	``function`` when pressed.
 
-    """
+	"""
 	options = ListProperty()
 	"""List of pairs of (button_text, callable)"""
 
@@ -99,12 +99,12 @@ class DialogMenu(Box):
 class Dialog(BoxLayout):
 	"""MessageBox with a DialogMenu beneath it.
 
-    Set the properties ``message_kwargs`` and ``menu_kwargs``,
-    respectively, to control them -- but you probably want
-    to do that by returning a pair of dicts from an action
-    in LiSE.
+	Set the properties ``message_kwargs`` and ``menu_kwargs``,
+	respectively, to control them -- but you probably want
+	to do that by returning a pair of dicts from an action
+	in LiSE.
 
-    """
+	"""
 	message_kwargs = DictProperty({})
 	menu_kwargs = DictProperty({})
 
@@ -140,21 +140,21 @@ class Dialog(BoxLayout):
 class DialogLayout(FloatLayout):
 	"""A layout, normally empty, that can generate dialogs
 
-    To make dialogs, set my ``todo`` property to a list. It may contain:
+	To make dialogs, set my ``todo`` property to a list. It may contain:
 
-    * Strings, which will be displayed with an "OK" button to dismiss them
-    * Lists of pairs of strings and callables, which generate buttons with the
-      string on them that, when clicked, call the callable
-    * Lists of pairs of dictionaries, which are interpreted as keyword
-      arguments to :class:`MessageBox` and :class:`DialogMenu`
+	* Strings, which will be displayed with an "OK" button to dismiss them
+	* Lists of pairs of strings and callables, which generate buttons with the
+	  string on them that, when clicked, call the callable
+	* Lists of pairs of dictionaries, which are interpreted as keyword
+	  arguments to :class:`MessageBox` and :class:`DialogMenu`
 
-    In place of a callable you can use the name of a function in my
-    ``usermod``, a Python module given by name. I'll import it when I need it.
+	In place of a callable you can use the name of a function in my
+	``usermod``, a Python module given by name. I'll import it when I need it.
 
-    Needs to be instantiated with a LiSE ``engine`` -- probably an
-    :class:`EngineProxy`.
+	Needs to be instantiated with a LiSE ``engine`` -- probably an
+	:class:`EngineProxy`.
 
-    """
+	"""
 	dialog = ObjectProperty()
 	engine = ObjectProperty()
 	todo = ListProperty()
@@ -285,37 +285,37 @@ class DialogLayout(FloatLayout):
 
 Builder.load_string("""
 <Box>:
-    canvas.before:
-        Color:
-            rgba: self.background_color
-        BorderImage:
-            border: self.border
-            pos: self.pos
-            size: self.size
-            source: self.background
-        Color:
-            rgba: 1, 1, 1, 1
+	canvas.before:
+		Color:
+			rgba: self.background_color
+		BorderImage:
+			border: self.border
+			pos: self.pos
+			size: self.size
+			source: self.background
+		Color:
+			rgba: 1, 1, 1, 1
 <ScrollableLabel>:
-    Label:
-        size_hint_y: None
-        height: self.texture_size[1]
-        text_size: self.width, None
-        text: root.text
-        color: root.color
+	Label:
+		size_hint_y: None
+		height: self.texture_size[1]
+		text_size: self.width, None
+		text: root.text
+		color: root.color
 <MessageBox>:
-    ScrollableLabel:
-        x: root.x + root.padding[0]
-        y: root.y + root.padding[3]
-        width: root.width - root.padding[2]
-        height: root.height - root.padding[1]
-        text: root.text
-        color: root.foreground_color
+	ScrollableLabel:
+		x: root.x + root.padding[0]
+		y: root.y + root.padding[3]
+		width: root.width - root.padding[2]
+		height: root.height - root.padding[1]
+		text: root.text
+		color: root.foreground_color
 <Dialog>:
-    orientation: 'vertical'
-    pos_hint: {'x': 0, 'y': 0}
-    size_hint: 1, 0.3
-    MessageBox:
-        id: msg
-    DialogMenu:
-        id: menu
+	orientation: 'vertical'
+	pos_hint: {'x': 0, 'y': 0}
+	size_hint: 1, 0.3
+	MessageBox:
+		id: msg
+	DialogMenu:
+		id: menu
 """)

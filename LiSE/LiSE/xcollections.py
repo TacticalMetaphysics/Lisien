@@ -91,17 +91,17 @@ class LanguageDescriptor(AbstractLanguageDescriptor):
 class StringStore(MutableMapping, Signal):
 	"""Store strings in database, and format them with one another upon retrieval.
 
-    In any one string, putting the key of another string in curly
-    braces will cause the other string to be substituted in.
+	In any one string, putting the key of another string in curly
+	braces will cause the other string to be substituted in.
 
-    """
+	"""
 	language = LanguageDescriptor()
 
 	def __init__(self, query, filename, lang='eng'):
 		"""Store the engine, the name of the database table to use, and the
-        language code.
+		language code.
 
-        """
+		"""
 		super().__init__()
 		self.query = query
 		self._filename = filename
@@ -128,9 +128,9 @@ class StringStore(MutableMapping, Signal):
 
 	def __delitem__(self, k):
 		"""Delete the string from the current language, and remove it from the
-        cache.
+		cache.
 
-        """
+		"""
 		del self.cache[self.language][k]
 		self.send(self, key=k, val=None)
 
@@ -148,22 +148,21 @@ class StringStore(MutableMapping, Signal):
 class FunctionStore(Signal):
 	"""A module-like object that lets you alter its code and save your changes.
 
-    Instantiate it with a path to a file that you want to keep the code in.
-    Assign functions to its attributes, then call its ``save()`` method,
-    and they'll be unparsed and written to the file.
+	Instantiate it with a path to a file that you want to keep the code in.
+	Assign functions to its attributes, then call its ``save()`` method,
+	and they'll be unparsed and written to the file.
 
-    This is a ``Signal``, so you can pass a function to its ``connect`` method,
-    and it will be called when a function is added, changed, or deleted.
-    The keyword arguments will be ``attr``, the name of the function, and ``val``,
-    the function itself.
+	This is a ``Signal``, so you can pass a function to its ``connect`` method,
+	and it will be called when a function is added, changed, or deleted.
+	The keyword arguments will be ``attr``, the name of the function, and ``val``,
+	the function itself.
 
-    """
+	"""
 
 	def __init__(self, filename):
 		if not filename.endswith(".py"):
 			raise ValueError(
-				"FunctionStore can only work with pure Python source code"
-			)
+				"FunctionStore can only work with pure Python source code")
 		super().__init__()
 		self._filename = fullname = os.path.abspath(os.path.realpath(filename))
 		path, filename = os.path.split(fullname)
@@ -289,9 +288,9 @@ class UniversalMapping(MutableMapping, Signal):
 
 	def __init__(self, engine):
 		"""Store the engine and initialize my private dictionary of
-        listeners.
+		listeners.
 
-        """
+		"""
 		super().__init__()
 		self.engine = engine
 
@@ -323,13 +322,13 @@ class UniversalMapping(MutableMapping, Signal):
 class CharacterMapping(MutableMapping, Signal):
 	"""A mapping by which to access :class:`Character` objects.
 
-    If a character already exists, you can always get its name here to
-    get the :class:`Character` object. Deleting an item here will
-    delete the character from the world, even if there are still
-    :class:`Character` objects referring to it; those won't do
-    anything useful anymore.
+	If a character already exists, you can always get its name here to
+	get the :class:`Character` object. Deleting an item here will
+	delete the character from the world, even if there are still
+	:class:`Character` objects referring to it; those won't do
+	anything useful anymore.
 
-    """
+	"""
 	__slots__ = ['engine', '_cache']
 
 	def __init__(self, engine):
@@ -362,9 +361,9 @@ class CharacterMapping(MutableMapping, Signal):
 	def __getitem__(self, name):
 		"""Return the named character, if it's been created.
 
-        Try to use the cache if possible.
+		Try to use the cache if possible.
 
-        """
+		"""
 		from .character import Character
 		if name not in self:
 			raise KeyError("No such character")
@@ -376,15 +375,15 @@ class CharacterMapping(MutableMapping, Signal):
 		ret = cache[name]
 		if not isinstance(ret, Character):
 			raise TypeError("""Tried to get a graph that isn't a Character.
-                This should never happen. It probably indicates
-                a bug in allegedb.""")
+				This should never happen. It probably indicates
+				a bug in allegedb.""")
 		return ret
 
 	def __setitem__(self, name, value):
 		"""Make a new character by the given name, and initialize its data to
-        the given value.
+		the given value.
 
-        """
+		"""
 		from .character import Character
 		if isinstance(value, Character):
 			self.engine._graph_objs[name] = value

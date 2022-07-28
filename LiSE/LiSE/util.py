@@ -211,7 +211,7 @@ class EntityStatAccessor(object):
 	def iter_history(self, beginning, end):
 		"""Iterate over all the values this stat has had in the given window, inclusive.
 
-        """
+		"""
 		# It might be useful to do this in a way that doesn't change the engine's time, perhaps for thread safety
 		engine = self.engine
 		entity = self.entity
@@ -256,14 +256,14 @@ _sort_set_memo = {}
 def sort_set(s):
 	"""Return a sorted list of the contents of a set
 
-    This is intended to be used to iterate over world state.
+	This is intended to be used to iterate over world state.
 
-    Non-strings come before strings and then tuples. Tuples compare
-    element-wise as normal.
+	Non-strings come before strings and then tuples. Tuples compare
+	element-wise as normal.
 
-    This is memoized.
+	This is memoized.
 
-    """
+	"""
 	if not isinstance(s, Set):
 		raise TypeError("sets only")
 	s = frozenset(s)
@@ -275,10 +275,10 @@ def sort_set(s):
 def fake_submit(func, *args, **kwargs):
 	"""A replacement for `concurrent.futures.Executor.submit` that works in serial
 
-    This is for testing. Use, eg., `@patch.object(executor, 'submit', new=fake_submit)`
-    to make normally parallel operations serial.
+	This is for testing. Use, eg., `@patch.object(executor, 'submit', new=fake_submit)`
+	to make normally parallel operations serial.
 
-    """
+	"""
 
 	class FakeFuture:
 
@@ -296,13 +296,13 @@ def fake_submit(func, *args, **kwargs):
 class AbstractEngine(ABC):
 	"""Parent class to the real Engine as well as EngineProxy.
 
-    Implements serialization and the __getattr__ for stored methods.
+	Implements serialization and the __getattr__ for stored methods.
 
-    By default, the deserializers will refuse to create LiSE entities.
-    If you want them to, use my ``loading`` property to open a ``with``
-    block, in which deserialized entities will be created as needed.
+	By default, the deserializers will refuse to create LiSE entities.
+	If you want them to, use my ``loading`` property to open a ``with``
+	block, in which deserialized entities will be created as needed.
 
-    """
+	"""
 
 	def __getattr__(self, item):
 		meth = super().__getattribute__('method').__getattr__(item)
@@ -539,10 +539,10 @@ class AbstractEngine(ABC):
 	def dice(self, n, d) -> Iterable[int]:
 		"""Roll ``n`` dice with ``d`` faces, and yield the results.
 
-        This is an iterator. You'll get the result of each die in
-        succession.
+		This is an iterator. You'll get the result of each die in
+		succession.
 
-        """
+		"""
 		for i in range(0, n):
 			yield self.die_roll(d)
 
@@ -553,10 +553,10 @@ class AbstractEngine(ABC):
 					comparator: Union[str, Callable] = '<=') -> bool:
 		"""Roll ``n`` dice with ``d`` sides, sum them, and compare
 
-        If ``comparator`` is provided, use it instead of the default <=.
-        You may use a string like '<' or '>='.
+		If ``comparator`` is provided, use it instead of the default <=.
+		You may use a string like '<' or '>='.
 
-        """
+		"""
 		from operator import gt, lt, ge, le, eq, ne
 
 		comps: Dict[str, Callable] = {
@@ -575,10 +575,10 @@ class AbstractEngine(ABC):
 	def percent_chance(self, pct: int) -> bool:
 		"""Return True or False with a given percentile probability
 
-        Values not between 0 and 100 are treated as though they
-        were 0 or 100, whichever is nearer.
+		Values not between 0 and 100 are treated as though they
+		were 0 or 100, whichever is nearer.
 
-        """
+		"""
 		if pct <= 0:
 			return False
 		if pct >= 100:
@@ -636,15 +636,15 @@ class SpecialMappingDescriptor:
 class AbstractCharacter(Mapping):
 	"""The Character API, with all requisite mappings and graph generators.
 
-    Mappings resemble those of a NetworkX digraph:
+	Mappings resemble those of a NetworkX digraph:
 
-    * ``thing`` and ``place`` are subsets of ``node``
-    * ``edge``, ``adj``, and ``succ`` are aliases of ``portal``
-    * ``pred`` is an alias to ``preportal``
-    * ``stat`` is a dict-like mapping of data that changes over game-time,
-    to be used in place of graph attributes
+	* ``thing`` and ``place`` are subsets of ``node``
+	* ``edge``, ``adj``, and ``succ`` are aliases of ``portal``
+	* ``pred`` is an alias to ``preportal``
+	* ``stat`` is a dict-like mapping of data that changes over game-time,
+	to be used in place of graph attributes
 
-    """
+	"""
 	engine = getatt('db')
 	no_unwrap = True
 	name: Hashable
@@ -809,12 +809,12 @@ class AbstractCharacter(Mapping):
 	def do(self, func, *args, **kwargs):
 		"""Apply the function to myself, and return myself.
 
-        Look up the function in the method store if needed. Pass it any
-        arguments given, keyword or positional.
+		Look up the function in the method store if needed. Pass it any
+		arguments given, keyword or positional.
 
-        Useful chiefly when chaining.
+		Useful chiefly when chaining.
 
-        """
+		"""
 		if not callable(func):
 			func = getattr(self.engine.method, func)
 		func(self, *args, **kwargs)
@@ -823,9 +823,9 @@ class AbstractCharacter(Mapping):
 	def copy_from(self, g):
 		"""Copy all nodes and edges from the given graph into this.
 
-        Return myself.
+		Return myself.
 
-        """
+		"""
 		renamed = {}
 		for k in g.nodes:
 			ok = k
@@ -851,11 +851,11 @@ class AbstractCharacter(Mapping):
 
 	def become(self, g):
 		"""Erase all my nodes and edges. Replace them with a copy of the graph
-        provided.
+		provided.
 
-        Return myself.
+		Return myself.
 
-        """
+		"""
 		self.clear()
 		self.place.update(g.nodes)
 		self.adj.update(g.adj)
@@ -877,10 +877,10 @@ class AbstractCharacter(Mapping):
 	def cull_nodes(self, stat, threshold=0.5, comparator=ge):
 		"""Delete nodes whose stat >= ``threshold`` (default 0.5).
 
-        Optional argument ``comparator`` will replace >= as the test
-        for whether to cull. You can use the name of a stored function.
+		Optional argument ``comparator`` will replace >= as the test
+		for whether to cull. You can use the name of a stored function.
 
-        """
+		"""
 		comparator = self._lookup_comparator(comparator)
 		dead = [
 			name for name, node in self.node.items()
@@ -892,10 +892,10 @@ class AbstractCharacter(Mapping):
 	def cull_portals(self, stat, threshold=0.5, comparator=ge):
 		"""Delete portals whose stat >= ``threshold`` (default 0.5).
 
-        Optional argument ``comparator`` will replace >= as the test
-        for whether to cull. You can use the name of a stored function.
+		Optional argument ``comparator`` will replace >= as the test
+		for whether to cull. You can use the name of a stored function.
 
-        """
+		"""
 		comparator = self._lookup_comparator(comparator)
 		dead = []
 		for u in self.portal:

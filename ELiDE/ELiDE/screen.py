@@ -53,14 +53,14 @@ class KvLayout(FloatLayout):
 
 class StatListPanel(BoxLayout):
 	"""A panel that displays a simple two-column grid showing the stats of
-    the selected entity, defaulting to those of the character being
-    viewed.
+	the selected entity, defaulting to those of the character being
+	viewed.
 
-    Has a button on the bottom to open the StatWindow in which
-    to add and delete stats, or to change the way they are displayed
-    in the StatListPanel.
+	Has a button on the bottom to open the StatWindow in which
+	to add and delete stats, or to change the way they are displayed
+	in the StatListPanel.
 
-    """
+	"""
 	selection_name = StringProperty()
 	button_text = StringProperty('Configure stats')
 	cfgstatbut = ObjectProperty()
@@ -122,18 +122,18 @@ class OneTurnButton(Button):
 
 class TimePanel(BoxLayout):
 	"""A panel that lets you to start and stop the game, or browse through
-    its history.
+	its history.
 
-    There's a "simulate" button, which is toggleable. When toggled on, the
-    simulation will continue to run until it's toggled off
-    again. Next to this is a "1 turn" button, which will simulate
-    exactly one turn and stop. And there are two text fields in which
-    you can manually enter a Branch and Tick to go to. Moving through
-    time this way doesn't simulate anything--you'll only see what
-    happened as a result of "simulate," "1 turn," or some other way
-    the LiSE rules engine has been made to run.
+	There's a "simulate" button, which is toggleable. When toggled on, the
+	simulation will continue to run until it's toggled off
+	again. Next to this is a "1 turn" button, which will simulate
+	exactly one turn and stop. And there are two text fields in which
+	you can manually enter a Branch and Tick to go to. Moving through
+	time this way doesn't simulate anything--you'll only see what
+	happened as a result of "simulate," "1 turn," or some other way
+	the LiSE rules engine has been made to run.
 
-    """
+	"""
 	screen = ObjectProperty()
 	buttons_font_size = NumericProperty(18)
 	disable_one_turn = BooleanProperty()
@@ -185,13 +185,13 @@ class TimePanel(BoxLayout):
 class MainScreen(Screen):
 	"""A master layout that contains one graph and some menus.
 
-    This contains three elements: a scrollview (containing the graph),
-    a menu, and the time control panel. This class has some support methods
-    for handling interactions with the menu and the character sheet,
-    but if neither of those happen, the scrollview handles touches on its
-    own.
+	This contains three elements: a scrollview (containing the graph),
+	a menu, and the time control panel. This class has some support methods
+	for handling interactions with the menu and the character sheet,
+	but if neither of those happen, the scrollview handles touches on its
+	own.
 
-    """
+	"""
 	manager = ObjectProperty()
 	graphboards = DictProperty()
 	gridboards = DictProperty()
@@ -291,9 +291,9 @@ class MainScreen(Screen):
 
 	def on_play_speed(self, *args):
 		"""Change the interval at which ``self.play`` is called to match my
-        current ``play_speed``.
+		current ``play_speed``.
 
-        """
+		"""
 		if hasattr(self, '_play_scheduled'):
 			Clock.unschedule(self._play_scheduled)
 		self._play_scheduled = Clock.schedule_interval(self.play,
@@ -302,7 +302,7 @@ class MainScreen(Screen):
 	def remake_display(self, *args):
 		"""Remake any affected widgets after a change in my ``kv``.
 
-        """
+		"""
 		Builder.load_string(self.kv)
 		if hasattr(self, '_kv_layout'):
 			self.remove_widget(self._kv_layout)
@@ -336,10 +336,10 @@ class MainScreen(Screen):
 
 	def on_dummies(self, *args):
 		"""Give the dummies numbers such that, when appended to their names,
-        they give a unique name for the resulting new
-        :class:`graph.Pawn` or :class:`graph.Spot`.
+		they give a unique name for the resulting new
+		:class:`graph.Pawn` or :class:`graph.Spot`.
 
-        """
+		"""
 		if not self.app.character:
 			Clock.schedule_once(self.on_dummies, 0)
 			return
@@ -389,9 +389,9 @@ class MainScreen(Screen):
 	def play(self, *args):
 		"""If the 'play' button is pressed, advance a turn.
 
-        If you want to disable this, set ``engine.universal['block'] = True``
+		If you want to disable this, set ``engine.universal['block'] = True``
 
-        """
+		"""
 		if self.playbut.state == 'normal' or not hasattr(
 			self.app,
 			'engine') or self.app.engine is None or self.app.engine.closed:
@@ -418,7 +418,7 @@ class MainScreen(Screen):
 	def next_turn(self, cb=None, *args):
 		"""Advance time by one turn, if it's not blocked.
 
-        Block time by setting ``engine.universal['block'] = True``"""
+		Block time by setting ``engine.universal['block'] = True``"""
 		if self.tmp_block:
 			return
 		eng = self.app.engine
@@ -526,169 +526,169 @@ class CharMenuContainer(BoxLayout):
 Builder.load_string("""
 #: import resource_find kivy.resources.resource_find
 <StatListPanel>:
-    orientation: 'vertical'
-    cfgstatbut: cfgstatbut
-    statlist: statlist
-    id: statpanel
-    proxy: app.selected_proxy
-    Label:
-        size_hint_y: 0.05
-        text: root.selection_name
-        bold: True
-    Calendar:
-        id: statlist
-        size_hint_y: 0.8
-        entity: root.proxy
-        update_mode: 'present'
-        disabled: app.edit_locked
-    Button:
-        id: gridviewbut
-        size_hint_y: 0.05
-        text: 'Toggle grid'
-        on_release: root.toggle_gridview()
-    Button:
-        id: cfgstatbut
-        size_hint_y: 0.05
-        text: root.button_text
-        on_release: root.toggle_stat_cfg()
-    Button:
-        id: timestreambut
-        size_hint_y: 0.05
-        text: 'Timestream'
-        on_release: root.toggle_timestream()
+	orientation: 'vertical'
+	cfgstatbut: cfgstatbut
+	statlist: statlist
+	id: statpanel
+	proxy: app.selected_proxy
+	Label:
+		size_hint_y: 0.05
+		text: root.selection_name
+		bold: True
+	Calendar:
+		id: statlist
+		size_hint_y: 0.8
+		entity: root.proxy
+		update_mode: 'present'
+		disabled: app.edit_locked
+	Button:
+		id: gridviewbut
+		size_hint_y: 0.05
+		text: 'Toggle grid'
+		on_release: root.toggle_gridview()
+	Button:
+		id: cfgstatbut
+		size_hint_y: 0.05
+		text: root.button_text
+		on_release: root.toggle_stat_cfg()
+	Button:
+		id: timestreambut
+		size_hint_y: 0.05
+		text: 'Timestream'
+		on_release: root.toggle_timestream()
 <SimulateButton>:
-    graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
-    graphics_bot: self.y + self.font_size + 3
-    graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2
-    play_arrow_left: self.center_x - self.width / 6
-    play_arrow_right: self.center_x + self.width / 6
-    play_arrow_points: self.play_arrow_left, self.graphics_top, self.play_arrow_right, self.graphics_center_y, self.play_arrow_left, self.graphics_bot
-    canvas:
-        Triangle:
-            points: root.play_arrow_points
-        SmoothLine:
-            points: root.play_arrow_points[:-2] + [root.play_arrow_points[-2]+1, root.play_arrow_points[-1]+1]
-    Label:
-        id: playlabel
-        font_size: root.font_size
-        center_x: root.center_x
-        y: root.y
-        size: self.texture_size
-        text: 'Simulate'
+	graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
+	graphics_bot: self.y + self.font_size + 3
+	graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2
+	play_arrow_left: self.center_x - self.width / 6
+	play_arrow_right: self.center_x + self.width / 6
+	play_arrow_points: self.play_arrow_left, self.graphics_top, self.play_arrow_right, self.graphics_center_y, self.play_arrow_left, self.graphics_bot
+	canvas:
+		Triangle:
+			points: root.play_arrow_points
+		SmoothLine:
+			points: root.play_arrow_points[:-2] + [root.play_arrow_points[-2]+1, root.play_arrow_points[-1]+1]
+	Label:
+		id: playlabel
+		font_size: root.font_size
+		center_x: root.center_x
+		y: root.y
+		size: self.texture_size
+		text: 'Simulate'
 <OneTurnButton>:
-    graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
-    graphics_bot: self.y + self.font_size + 3
-    graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2
-    step_arrow_left: self.center_x - (self.width / 6)
-    step_center_x: self.center_x + self.width / 6
-    step_bar_right: self.center_x + self.width / 4
-    step_arrow_points: self.step_arrow_left, self.graphics_top, self.step_center_x, self.graphics_center_y, self.step_arrow_left, self.graphics_bot
-    step_rect_points: self.step_center_x, self.graphics_top, self.step_bar_right, self.graphics_top, self.step_bar_right, self.graphics_bot, self.step_center_x, self.graphics_bot
-    canvas:
-        Triangle:
-            points: root.step_arrow_points
-        Quad:
-            points: root.step_rect_points 
-        SmoothLine:
-            points: root.step_arrow_points
-        SmoothLine:
-            points: root.step_rect_points 
-    Label:
-        font_size: root.font_size
-        center_x: root.center_x
-        y: root.y
-        size: self.texture_size
-        text: '1 turn'
+	graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
+	graphics_bot: self.y + self.font_size + 3
+	graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2
+	step_arrow_left: self.center_x - (self.width / 6)
+	step_center_x: self.center_x + self.width / 6
+	step_bar_right: self.center_x + self.width / 4
+	step_arrow_points: self.step_arrow_left, self.graphics_top, self.step_center_x, self.graphics_center_y, self.step_arrow_left, self.graphics_bot
+	step_rect_points: self.step_center_x, self.graphics_top, self.step_bar_right, self.graphics_top, self.step_bar_right, self.graphics_bot, self.step_center_x, self.graphics_bot
+	canvas:
+		Triangle:
+			points: root.step_arrow_points
+		Quad:
+			points: root.step_rect_points 
+		SmoothLine:
+			points: root.step_arrow_points
+		SmoothLine:
+			points: root.step_rect_points 
+	Label:
+		font_size: root.font_size
+		center_x: root.center_x
+		y: root.y
+		size: self.texture_size
+		text: '1 turn'
 <TimePanel>:
-    orientation: 'vertical'
-    playbut: playbut
-    BoxLayout:
-        size_hint_y: 0.4
-        BoxLayout:
-            orientation: 'vertical'
-            Label:
-                size_hint_y: 0.4
-                text: 'Branch'
-            MenuTextInput:
-                id: branchfield
-                set_value: root.set_branch
-                hint_text: root.screen.app.branch if root.screen else ''
-        BoxLayout:
-            BoxLayout:
-                orientation: 'vertical'
-                Label:
-                    size_hint_y: 0.4
-                    text: 'Turn'
-                MenuIntInput:
-                    id: turnfield
-                    set_value: root.set_turn
-                    hint_text: str(root.screen.app.turn) if root.screen else ''
-            BoxLayout:
-                orientation: 'vertical'
-                Label:
-                    size_hint_y: 0.4
-                    text: 'Tick'
-                MenuIntInput:
-                    id: tickfield
-                    set_value: root.set_tick
-                    hint_text: str(root.screen.app.tick) if root.screen else ''
-    BoxLayout:
-        size_hint_y: 0.6
-        SimulateButton:
-            id: playbut
-            font_size: root.buttons_font_size
-        OneTurnButton:
-            id: stepbut
-            font_size: root.buttons_font_size
-            screen: root.screen
-            disabled: root.disable_one_turn or app.edit_locked
+	orientation: 'vertical'
+	playbut: playbut
+	BoxLayout:
+		size_hint_y: 0.4
+		BoxLayout:
+			orientation: 'vertical'
+			Label:
+				size_hint_y: 0.4
+				text: 'Branch'
+			MenuTextInput:
+				id: branchfield
+				set_value: root.set_branch
+				hint_text: root.screen.app.branch if root.screen else ''
+		BoxLayout:
+			BoxLayout:
+				orientation: 'vertical'
+				Label:
+					size_hint_y: 0.4
+					text: 'Turn'
+				MenuIntInput:
+					id: turnfield
+					set_value: root.set_turn
+					hint_text: str(root.screen.app.turn) if root.screen else ''
+			BoxLayout:
+				orientation: 'vertical'
+				Label:
+					size_hint_y: 0.4
+					text: 'Tick'
+				MenuIntInput:
+					id: tickfield
+					set_value: root.set_tick
+					hint_text: str(root.screen.app.tick) if root.screen else ''
+	BoxLayout:
+		size_hint_y: 0.6
+		SimulateButton:
+			id: playbut
+			font_size: root.buttons_font_size
+		OneTurnButton:
+			id: stepbut
+			font_size: root.buttons_font_size
+			screen: root.screen
+			disabled: root.disable_one_turn or app.edit_locked
 <MainScreen>:
-    name: 'main'
-    dummyplace: charmenu.dummyplace
-    dummything: charmenu.dummything
-    mainview: mainview
-    playbut: timepanel.playbut
-    portaladdbut: charmenu.portaladdbut
-    charmenu: charmenu
-    statlist: statpanel.statlist
-    statpanel: statpanel
-    timepanel: timepanel
-    dialoglayout: dialoglayout
-    Widget:
-        id: mainview
-        x: statpanel.right
-        y: 0
-        size_hint: (None, None)
-        width: charmenu.x - statpanel.right
-        height: root.height
-    StatListPanel:
-        id: statpanel
-        engine: app.engine
-        toggle_stat_cfg: app.statcfg.toggle
-        toggle_calendar: root.toggle_calendar
-        toggle_gridview: root.toggle_gridview
-        pos_hint: {'left': 0, 'top': 1}
-        size_hint: (0.25, 0.8)
-        selection_name: app.selected_proxy_name
-        toggle_timestream: root.toggle_timestream
-    TimePanel:
-        id: timepanel
-        screen: root
-        pos_hint: {'bot': 0}
-        size_hint: (0.25, 0.2)
-        disable_one_turn: root.tmp_block
-    CharMenuContainer:
-        id: charmenu
-        orientation: 'vertical'
-        screen: root
-        pos_hint: {'right': 1, 'top': 1}
-        size_hint: (0.1, 1)
-    DialogLayout:
-        id: dialoglayout
-        engine: app.engine
-        size_hint: None, None
-        x: statpanel.right
-        y: timepanel.top
-        width: charmenu.x - statpanel.right
-        height: root.height - timepanel.top
+	name: 'main'
+	dummyplace: charmenu.dummyplace
+	dummything: charmenu.dummything
+	mainview: mainview
+	playbut: timepanel.playbut
+	portaladdbut: charmenu.portaladdbut
+	charmenu: charmenu
+	statlist: statpanel.statlist
+	statpanel: statpanel
+	timepanel: timepanel
+	dialoglayout: dialoglayout
+	Widget:
+		id: mainview
+		x: statpanel.right
+		y: 0
+		size_hint: (None, None)
+		width: charmenu.x - statpanel.right
+		height: root.height
+	StatListPanel:
+		id: statpanel
+		engine: app.engine
+		toggle_stat_cfg: app.statcfg.toggle
+		toggle_calendar: root.toggle_calendar
+		toggle_gridview: root.toggle_gridview
+		pos_hint: {'left': 0, 'top': 1}
+		size_hint: (0.25, 0.8)
+		selection_name: app.selected_proxy_name
+		toggle_timestream: root.toggle_timestream
+	TimePanel:
+		id: timepanel
+		screen: root
+		pos_hint: {'bot': 0}
+		size_hint: (0.25, 0.2)
+		disable_one_turn: root.tmp_block
+	CharMenuContainer:
+		id: charmenu
+		orientation: 'vertical'
+		screen: root
+		pos_hint: {'right': 1, 'top': 1}
+		size_hint: (0.1, 1)
+	DialogLayout:
+		id: dialoglayout
+		engine: app.engine
+		size_hint: None, None
+		x: statpanel.right
+		y: timepanel.top
+		width: charmenu.x - statpanel.right
+		height: root.height - timepanel.top
 """)

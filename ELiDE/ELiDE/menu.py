@@ -38,10 +38,10 @@ class MenuTextInput(TextInput):
 
 	def on_enter(self, *args):
 		"""Call the setter and blank myself out so that my hint text shows
-        up. It will be the same you just entered if everything's
-        working.
+		up. It will be the same you just entered if everything's
+		working.
 
-        """
+		"""
 		if self.text == '':
 			return
 		self.set_value(Clock.get_time(), self.text)
@@ -147,49 +147,49 @@ class DirPicker(Screen):
 Builder.load_string("""
 #: import os os
 <GeneratorButton>:
-    size_hint_y: None
-    height: self.texture_size[1] + 10
+	size_hint_y: None
+	height: self.texture_size[1] + 10
 <WorldStartConfigurator>:
-    orientation: 'vertical'
-    init_board: app.init_board
-    starter: app.start_subprocess
-    Label:
-        text: 'Generate an initial map?'
-    Button:
-        id: drop
-        text: 'None'
-        on_release: root.generator_dropdown.open(drop)
-    Widget:
-        id: controls
-        size_hint_y: None
-        height: 200
-    BoxLayout:
-        orientation: 'horizontal'
-        Button:
-            text: 'OK'
-            on_release:
-                root.start()
-        Button:
-            text: 'Cancel'
-            on_release:
-                controls.clear_widgets()
-                controls.size_hint_y = 0
-                root._trigger_layout()
-                root.dismiss()
+	orientation: 'vertical'
+	init_board: app.init_board
+	starter: app.start_subprocess
+	Label:
+		text: 'Generate an initial map?'
+	Button:
+		id: drop
+		text: 'None'
+		on_release: root.generator_dropdown.open(drop)
+	Widget:
+		id: controls
+		size_hint_y: None
+		height: 200
+	BoxLayout:
+		orientation: 'horizontal'
+		Button:
+			text: 'OK'
+			on_release:
+				root.start()
+		Button:
+			text: 'Cancel'
+			on_release:
+				controls.clear_widgets()
+				controls.size_hint_y = 0
+				root._trigger_layout()
+				root.dismiss()
 <DirPicker>:
-    name: 'mainmenu'
-    start: app.start_subprocess
-    init_board: app.init_board
-    BoxLayout:
-        orientation: 'vertical'
-        Label:
-            text: 'Pick a directory to create or load a simulation in'
-            size_hint_y: None
-        FileChooserListView:
-            id: filechooser
-            path: os.getcwd()
-        Button:
-            text: 'Work here'
-            size_hint_y: 0.1
-            on_release: root.open(filechooser.path)
+	name: 'mainmenu'
+	start: app.start_subprocess
+	init_board: app.init_board
+	BoxLayout:
+		orientation: 'vertical'
+		Label:
+			text: 'Pick a directory to create or load a simulation in'
+			size_hint_y: None
+		FileChooserListView:
+			id: filechooser
+			path: os.getcwd()
+		Button:
+			text: 'Work here'
+			size_hint_y: 0.1
+			on_release: root.open(filechooser.path)
 """)

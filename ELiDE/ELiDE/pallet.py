@@ -34,9 +34,9 @@ from .util import trigger
 
 class SwatchButton(ToggleButton):
 	"""Toggle button containing a texture and its name, which, when
-    toggled, will report the fact to the :class:`Pallet` it's in.
+	toggled, will report the fact to the :class:`Pallet` it's in.
 
-    """
+	"""
 	tex = ObjectProperty()
 	"""Texture to display here"""
 
@@ -156,10 +156,10 @@ class Pallet(StackLayout):
 
 kv = """
 <Pallet>:
-    orientation: 'lr-tb'
-    padding_y: 100
-    size_hint: (None, None)
-    height: self.minimum_height
+	orientation: 'lr-tb'
+	padding_y: 100
+	size_hint: (None, None)
+	height: self.minimum_height
 """
 Builder.load_string(kv)
 

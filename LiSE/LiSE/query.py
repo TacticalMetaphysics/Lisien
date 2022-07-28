@@ -38,9 +38,9 @@ import LiSE
 def windows_union(windows):
 	"""Given a list of (beginning, ending), return a minimal version that contains the same ranges.
 
-    :rtype: list
+	:rtype: list
 
-    """
+	"""
 
 	def fix_overlap(left, right):
 		if left == right:
@@ -90,8 +90,8 @@ def windows_union(windows):
 def windows_intersection(windows):
 	"""Given a list of (beginning, ending), return another describing where they overlap.
 
-    :rtype: list
-    """
+	:rtype: list
+	"""
 
 	def intersect2(left, right):
 		if left == right:
@@ -318,9 +318,9 @@ class StatusAlias(EntityStatAccessor):
 def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
 	"""Iterate over all turns on which a comparison holds.
 
-    This is expensive. It evaluates the query for every turn in history.
+	This is expensive. It evaluates the query for every turn in history.
 
-    """
+	"""
 
 	def mungeside(side):
 		if isinstance(side, Query):
@@ -353,9 +353,9 @@ class ConnectionHolder(query.ConnectionHolder):
 
 	def initdb(self):
 		"""Set up the database schema, both for allegedb and the special
-        extensions for LiSE
+		extensions for LiSE
 
-        """
+		"""
 		super().initdb()
 		init_table = self.init_table
 		for table in ('universals', 'rules', 'rulebooks', 'things',

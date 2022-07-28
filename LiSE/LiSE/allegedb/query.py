@@ -54,9 +54,9 @@ class TimeError(ValueError):
 class GlobalKeyValueStore(MutableMapping):
 	"""A dict-like object that keeps its contents in a table.
 
-    Mostly this is for holding the current branch and revision.
+	Mostly this is for holding the current branch and revision.
 
-    """
+	"""
 
 	def __init__(self, qe):
 		self.qe = qe
@@ -106,12 +106,12 @@ class ConnectionHolder:
 	def sql(self, stringname, *args, **kwargs):
 		"""Wrapper for the various prewritten or compiled SQL calls.
 
-        First argument is the name of the query, either a key in
-        ``sqlite.json`` or a method name in
-        ``allegedb.alchemy.Alchemist``. The rest of the arguments are
-        parameters to the query.
+		First argument is the name of the query, either a key in
+		``sqlite.json`` or a method name in
+		``allegedb.alchemy.Alchemist``. The rest of the arguments are
+		parameters to the query.
 
-        """
+		"""
 		if hasattr(self, 'alchemist'):
 			return getattr(self.alchemist, stringname)(*args, **kwargs)
 		else:
@@ -122,12 +122,12 @@ class ConnectionHolder:
 	def sqlmany(self, stringname, args):
 		"""Wrapper for executing many SQL calls on my connection.
 
-        First arg is the name of a query, either a key in the
-        precompiled JSON or a method name in
-        ``allegedb.alchemy.Alchemist``. Remaining arguments should be
-        tuples of argument sequences to be passed to the query.
+		First arg is the name of a query, either a key in the
+		precompiled JSON or a method name in
+		``allegedb.alchemy.Alchemist``. Remaining arguments should be
+		tuples of argument sequences to be passed to the query.
 
-        """
+		"""
 		if hasattr(self, 'alchemist'):
 			return getattr(self.alchemist.many, stringname)(*args)
 		s = self.strings[stringname]
@@ -243,9 +243,9 @@ class ConnectionHolder:
 
 class QueryEngine(object):
 	"""Wrapper around either a DBAPI2.0 connection or an
-    Alchemist. Provides methods to run queries using either.
+	Alchemist. Provides methods to run queries using either.
 
-    """
+	"""
 	flush_edges_t = 0
 	holder_cls = ConnectionHolder
 	tables = ('global', 'branches', 'turns', 'graphs', 'keyframes',
@@ -260,14 +260,14 @@ class QueryEngine(object):
 					pack=None,
 					unpack=None):
 		"""If ``alchemy`` is True and ``dbstring`` is a legit database URI,
-        instantiate an Alchemist and start a transaction with
-        it. Otherwise use sqlite3.
+		instantiate an Alchemist and start a transaction with
+		it. Otherwise use sqlite3.
 
-        You may pass an already created sqlalchemy :class:`Engine`
-        object in place of ``dbstring`` if you wish. I'll still create
-        my own transaction though.
+		You may pass an already created sqlalchemy :class:`Engine`
+		object in place of ``dbstring`` if you wish. I'll still create
+		my own transaction though.
 
-        """
+		"""
 		dbstring = dbstring or 'sqlite:///:memory:'
 		self._inq = Queue()
 		self._outq = Queue()
@@ -380,9 +380,9 @@ class QueryEngine(object):
 
 	def all_branches(self):
 		"""Return all the branch data in tuples of (branch, parent,
-        parent_turn).
+		parent_turn).
 
-        """
+		"""
 		return self.sql('branches_dump')
 
 	def global_get(self, key):
@@ -420,9 +420,9 @@ class QueryEngine(object):
 
 	def global_set(self, key, value):
 		"""Set ``key`` to ``value`` globally (not at any particular branch or
-        revision)
+		revision)
 
-        """
+		"""
 		(key, value) = map(self.pack, (key, value))
 		try:
 			return self.sql('global_insert', key, value)
@@ -436,9 +436,9 @@ class QueryEngine(object):
 
 	def new_branch(self, branch, parent, parent_turn, parent_tick):
 		"""Declare that the ``branch`` is descended from ``parent`` at
-        ``parent_turn``, ``parent_tick``
+		``parent_turn``, ``parent_tick``
 
-        """
+		"""
 		return self.sql('branches_insert', branch, parent, parent_turn,
 						parent_tick, parent_turn, parent_tick)
 
@@ -551,9 +551,9 @@ class QueryEngine(object):
 	def exist_node(self, graph, node, branch, turn, tick, extant):
 		"""Declare that the node exists or doesn't.
 
-        Inserts a new record or updates an old one, as needed.
+		Inserts a new record or updates an old one, as needed.
 
-        """
+		"""
 		if (branch, turn, tick) in self._btts:
 			raise TimeError
 		self._btts.add((branch, turn, tick))

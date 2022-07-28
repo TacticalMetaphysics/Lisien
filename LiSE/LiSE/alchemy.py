@@ -39,9 +39,9 @@ from allegedb import alchemy
 
 def tables_for_meta(meta):
 	"""Return a dictionary full of all the tables I need for LiSE. Use the
-    provided metadata object.
+	provided metadata object.
 
-    """
+	"""
 	alchemy.tables_for_meta(meta)
 
 	# Table for global variables that are not sensitive to sim-time.
@@ -333,18 +333,18 @@ def indices_for_table_dict(table):
 
 def queries(table):
 	"""Given dictionaries of tables and view-queries, return a dictionary
-    of all the rest of the queries I need.
+	of all the rest of the queries I need.
 
-    """
+	"""
 
 	def update_where(updcols, wherecols):
 		"""Return an ``UPDATE`` statement that updates the columns ``updcols``
-        when the ``wherecols`` match. Every column has a bound parameter of
-        the same name.
+		when the ``wherecols`` match. Every column has a bound parameter of
+		the same name.
 
-        updcols are strings, wherecols are column objects
+		updcols are strings, wherecols are column objects
 
-        """
+		"""
 		vmap = OrderedDict()
 		for col in updcols:
 			vmap[col] = bindparam(col)

@@ -127,11 +127,11 @@ def _get_points_first_part(orig, dest, taillen):
 def get_points_multi(args):
 	"""Return a dictionary mapping (orig, dest) to pairs of point lists for arrows
 
-    Takes an iterable of (orig, dest, taillen) where orig and dest are Spot instances
+	Takes an iterable of (orig, dest, taillen) where orig and dest are Spot instances
 
-    taillen is an integer specifying how long the arrowhead should be.
+	taillen is an integer specifying how long the arrowhead should be.
 
-    """
+	"""
 	ret = {}
 	keys = []
 	topys = []
@@ -199,11 +199,11 @@ def get_points_multi(args):
 def get_points(orig, dest, taillen):
 	"""Return a pair of lists of points for use making an arrow.
 
-    The first list is the beginning and end point of the trunk of the arrow.
+	The first list is the beginning and end point of the trunk of the arrow.
 
-    The second list is the arrowhead.
+	The second list is the arrowhead.
 
-    """
+	"""
 	p1 = _get_points_first_part(orig, dest, taillen)
 	if len(p1) == 2:
 		return p1
@@ -239,22 +239,22 @@ eight0s = tuple([0] * 8)
 
 class GraphArrowWidget(Widget):
 	"""A widget that points from one :class:`~LiSE.gui.graph.Spot` to
-    another.
+	another.
 
-    :class:`Arrow`s are the graphical representations of
-    :class:`~LiSE.model.Portal`s. They point from the :class:`Spot`
-    representing the :class:`Portal`'s origin, to the one representing
-    its destination.
+	:class:`Arrow`s are the graphical representations of
+	:class:`~LiSE.model.Portal`s. They point from the :class:`Spot`
+	representing the :class:`Portal`'s origin, to the one representing
+	its destination.
 
-    """
+	"""
 	board = ObjectProperty()
 	name = StringProperty()
 	margin = NumericProperty(10)
 	"""When deciding whether a touch collides with me, how far away can
-    the touch get before I should consider it a miss?"""
+	the touch get before I should consider it a miss?"""
 	w = NumericProperty(2)
 	"""The width of the inner, brighter portion of the :class:`Arrow`. The
-    whole :class:`Arrow` will end up thicker."""
+	whole :class:`Arrow` will end up thicker."""
 	pawns_here = ListProperty()
 	trunk_points = ListProperty()
 	head_points = ListProperty()
@@ -287,9 +287,9 @@ class GraphArrowWidget(Widget):
 
 	def on_portal(self, *args):
 		"""Set my ``name`` and instantiate my ``mirrormap`` as soon as I have
-        the properties I need to do so.
+		the properties I need to do so.
 
-        """
+		"""
 		if not (self.board and self.origin and self.destination
 				and self.origin.name in self.board.character.portal
 				and self.destination.name in self.board.character.portal):
@@ -300,18 +300,18 @@ class GraphArrowWidget(Widget):
 
 	def collide_point(self, x, y):
 		"""Delegate to my ``collider``, or return ``False`` if I don't have
-        one.
+		one.
 
-        """
+		"""
 		if not self.collider:
 			return False
 		return (x, y) in self.collider
 
 	def __init__(self, **kwargs):
 		"""Create trigger for my _repoint method. Delegate to parent for
-        everything else.
+		everything else.
 
-        """
+		"""
 		self._trigger_repoint = Clock.create_trigger(self._repoint, timeout=-1)
 		super().__init__(**kwargs)
 
@@ -355,11 +355,11 @@ class GraphArrowWidget(Widget):
 
 	def add_widget(self, wid, index=0, canvas=None):
 		"""Put the :class:`Pawn` at a point along my length proportionate to
-        how close it is to finishing its travel through me.
+		how close it is to finishing its travel through me.
 
-        Only :class:`Pawn` should ever be added as a child of :class:`Arrow`.
+		Only :class:`Pawn` should ever be added as a child of :class:`Arrow`.
 
-        """
+		"""
 		super().add_widget(wid, index, canvas)
 		if not hasattr(wid, 'group'):
 			return
@@ -378,9 +378,9 @@ class GraphArrowWidget(Widget):
 
 	def remove_widget(self, wid):
 		"""Remove the special :class:`InstructionGroup` I was using to draw
-        this :class:`Pawn`.
+		this :class:`Pawn`.
 
-        """
+		"""
 		super().remove_widget(wid)
 		wid._no_use_canvas = False
 
@@ -391,13 +391,13 @@ class GraphArrowWidget(Widget):
 
 	def pos_along(self, pct):
 		"""Return coordinates for where a Pawn should be if it has travelled
-        along ``pct`` of my length (between 0 and 1).
+		along ``pct`` of my length (between 0 and 1).
 
-        Might get complex when I switch over to using beziers for
-        arrows, but for now this is quite simple, using distance along
-        a line segment.
+		Might get complex when I switch over to using beziers for
+		arrows, but for now this is quite simple, using distance along
+		a line segment.
 
-        """
+		"""
 		if pct < 0 or pct > 1:
 			raise ValueError("Invalid portion")
 		(ox, oy) = self.origin.center
@@ -408,9 +408,9 @@ class GraphArrowWidget(Widget):
 
 	def pospawn(self, pawn):
 		"""Position a :class:`Pawn` that is my child so as to reflect how far
-        its :class:`Thing` has gone along my :class:`Portal`.
+		its :class:`Thing` has gone along my :class:`Portal`.
 
-        """
+		"""
 		if self._turn < pawn.thing['arrival_time']:
 			# It's weird that the pawn is getting placed in me, but
 			# I'll do my best..
@@ -433,7 +433,7 @@ class GraphArrowWidget(Widget):
 
 	def _get_slope(self):
 		"""Return a float of the increase in y divided by the increase in x,
-        both from left to right."""
+		both from left to right."""
 		orig = self.origin
 		dest = self.destination
 		ox = orig.x
@@ -452,10 +452,10 @@ class GraphArrowWidget(Widget):
 	def _get_b(self):
 		"""Return my Y-intercept.
 
-        I probably don't really hit the left edge of the window, but
-        this is where I would, if I were long enough.
+		I probably don't really hit the left edge of the window, but
+		this is where I would, if I were long enough.
 
-        """
+		"""
 		orig = self.origin
 		dest = self.destination
 		(ox, oy) = orig.pos
@@ -602,11 +602,11 @@ class GraphArrowWidget(Widget):
 class GraphArrow(GraphArrowWidget):
 	"""A :class:`GraphArrowWidget` that represents a :class:`Portal` object.
 
-    This subclass is much more often used than :class:`GraphArrowWidget`,
-    which is only seen on its own when the user is in the process of
-    creating a new :class:`Portal`.
+	This subclass is much more often used than :class:`GraphArrowWidget`,
+	which is only seen on its own when the user is in the process of
+	creating a new :class:`Portal`.
 
-    """
+	"""
 	origspot = ObjectProperty()
 	destspot = ObjectProperty()
 	portal = ObjectProperty()
@@ -621,9 +621,9 @@ class GraphArrow(GraphArrowWidget):
 
 	def _get_reciprocal(self):
 		"""Return the :class:`Arrow` that connects my origin and destination
-        in the opposite direction, if it exists.
+		in the opposite direction, if it exists.
 
-        """
+		"""
 		orign = self.portal['origin']
 		destn = self.portal['destination']
 		if (destn in self.board.arrow and orign in self.board.arrow[destn]):

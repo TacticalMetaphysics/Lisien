@@ -58,9 +58,9 @@ class AllegedMapping(MutableMappingUnwrapper, ABC):
 	def connect(self, func):
 		"""Arrange to call this function whenever something changes here.
 
-        The arguments will be this object, the key changed, and the value set.
+		The arguments will be this object, the key changed, and the value set.
 
-        """
+		"""
 		l = _alleged_receivers[id(self)]
 		if func not in l:
 			l.append(func)
@@ -123,9 +123,9 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 
 	def __getitem__(self, key):
 		"""If key is 'graph', return myself as a dict, else get the present
-        value of the key and return that
+		value of the key and return that
 
-        """
+		"""
 
 		def wrapval(v):
 			from functools import partial
@@ -363,9 +363,9 @@ class Edge(AbstractEntityMapping):
 	def __init__(self, graph, orig, dest, idx=0):
 		"""Store the graph, the names of the nodes, and the index.
 
-        For non-multigraphs the index is always 0.
+		For non-multigraphs the index is always 0.
 
-        """
+		"""
 		super().__init__()
 		self.graph = graph
 		self.db = db = graph.db
@@ -471,10 +471,10 @@ class GraphNodeMapping(AllegedMapping):
 
 	def __setitem__(self, node, dikt):
 		"""Only accept dict-like values for assignment. These are taken to be
-        dicts of node attributes, and so, a new GraphNodeMapping.Node
-        is made with them, perhaps clearing out the one already there.
+		dicts of node attributes, and so, a new GraphNodeMapping.Node
+		is made with them, perhaps clearing out the one already there.
 
-        """
+		"""
 		created = False
 		db = self.db
 		graph = self.graph
@@ -509,9 +509,9 @@ class GraphNodeMapping(AllegedMapping):
 
 class GraphEdgeMapping(AllegedMapping):
 	"""Provides an adjacency mapping and possibly a predecessor mapping
-    for a graph.
+	for a graph.
 
-    """
+	"""
 	__slots__ = ('graph', '_cache')
 
 	db = getatt('graph.db')
@@ -525,13 +525,13 @@ class GraphEdgeMapping(AllegedMapping):
 	def __eq__(self, other):
 		"""Compare dictified versions of the edge mappings within me.
 
-        As I serve custom Predecessor or Successor classes, which
-        themselves serve the custom Edge class, I wouldn't normally be
-        comparable to a networkx adjacency dictionary. Converting
-        myself and the other argument to dicts allows the comparison
-        to work anyway.
+		As I serve custom Predecessor or Successor classes, which
+		themselves serve the custom Edge class, I wouldn't normally be
+		comparable to a networkx adjacency dictionary. Converting
+		myself and the other argument to dicts allows the comparison
+		to work anyway.
 
-        """
+		"""
 		if not hasattr(other, 'keys'):
 			return False
 		if self.keys() != other.keys():
@@ -589,9 +589,9 @@ class AbstractSuccessors(GraphEdgeMapping):
 
 	def __setitem__(self, dest, value):
 		"""Set the edge between my orig and the given dest to the given
-        value, a mapping.
+		value, a mapping.
 
-        """
+		"""
 		real_dest = dest
 		orig, dest = self._order_nodes(dest)
 		created = dest not in self
@@ -652,9 +652,9 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 
 	def __setitem__(self, key, val):
 		"""Wipe out any edges presently emanating from orig and replace them
-        with those described by val
+		with those described by val
 
-        """
+		"""
 		if key in self:
 			sucs = self[key]
 			created = False
@@ -704,9 +704,9 @@ class DiGraphSuccessorsMapping(GraphSuccessorsMapping):
 
 class DiGraphPredecessorsMapping(GraphEdgeMapping):
 	"""Mapping for Predecessors instances, which map to Edges that end at
-    the dest provided to this
+	the dest provided to this
 
-    """
+	"""
 	__slots__ = ('graph', )
 
 	def __contains__(self, dest):
@@ -714,9 +714,9 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
 	def __getitem__(self, dest):
 		"""Return a Predecessors instance for edges ending at the given
-        node
+		node
 
-        """
+		"""
 		if dest not in self:
 			raise KeyError("No edges available")
 		if dest not in self._cache:
@@ -760,7 +760,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 		def __iter__(self):
 			"""Iterate over the edges that exist at the present (branch, rev)
 
-            """
+			"""
 			return self.db._edges_cache.iter_predecessors(
 				self.graph.name, self.dest, *self.db._btt())
 
@@ -783,9 +783,9 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
 		def __setitem__(self, orig, value):
 			"""Use ``value`` as a mapping of edge attributes, set an edge from the
-            given node to mine.
+			given node to mine.
 
-            """
+			"""
 			branch, turn, tick = self.db._nbtt()
 			try:
 				e = self[orig]
@@ -827,9 +827,9 @@ def unwrapped_dict(d):
 
 class DiGraph(networkx.DiGraph):
 	"""A version of the networkx.DiGraph class that stores its state in a
-    database.
+	database.
 
-    """
+	"""
 	adj_cls = DiGraphSuccessorsMapping
 	pred_cls = DiGraphPredecessorsMapping
 	graph_map_cls = GraphMapping
@@ -934,12 +934,12 @@ class DiGraph(networkx.DiGraph):
 
 	def _and_previous(self):
 		"""Return a 4-tuple that will usually be (current branch, current
-        revision - 1, current branch, current revision), unless
-        current revision - 1 is before the start of the current
-        branch, in which case the first element will be the parent
-        branch.
+		revision - 1, current branch, current revision), unless
+		current revision - 1 is before the start of the current
+		branch, in which case the first element will be the parent
+		branch.
 
-        """
+		"""
 		branch = self.db.branch
 		rev = self.db.rev
 		(parent, parent_rev) = self.db.sql('parparrev', branch).fetchone()
@@ -961,10 +961,10 @@ class DiGraph(networkx.DiGraph):
 
 	def remove_edge(self, u, v):
 		"""Version of remove_edge that's much like normal networkx but only
-        deletes once, since the database doesn't keep separate adj and
-        succ mappings
+		deletes once, since the database doesn't keep separate adj and
+		succ mappings
 
-        """
+		"""
 		try:
 			del self.succ[u][v]
 		except KeyError:
@@ -973,10 +973,10 @@ class DiGraph(networkx.DiGraph):
 
 	def remove_edges_from(self, ebunch):
 		"""Version of remove_edges_from that's much like normal networkx but only
-        deletes once, since the database doesn't keep separate adj and
-        succ mappings
+		deletes once, since the database doesn't keep separate adj and
+		succ mappings
 
-        """
+		"""
 		for e in ebunch:
 			(u, v) = e[:2]
 			if u in self.succ and v in self.succ[u]:
@@ -1038,11 +1038,11 @@ class DiGraph(networkx.DiGraph):
 	def clear(self):
 		"""Remove all nodes and edges from the graph.
 
-        Unlike the regular networkx implementation, this does *not*
-        remove the graph's name. But all the other graph, node, and
-        edge attributes go away.
+		Unlike the regular networkx implementation, this does *not*
+		remove the graph's name. But all the other graph, node, and
+		edge attributes go away.
 
-        """
+		"""
 		self.adj.clear()
 		self.node.clear()
 		self.graph.clear()

@@ -38,9 +38,9 @@ dbg = Logger.debug
 
 def get_pos_hint_x(poshints, sizehintx):
 	"""Return ``poshints['x']`` if available, or its computed equivalent
-    otherwise.
+	otherwise.
 
-    """
+	"""
 	if 'x' in poshints:
 		return poshints['x']
 	elif sizehintx is not None:
@@ -52,9 +52,9 @@ def get_pos_hint_x(poshints, sizehintx):
 
 def get_pos_hint_y(poshints, sizehinty):
 	"""Return ``poshints['y']`` if available, or its computed equivalent
-    otherwise.
+	otherwise.
 
-    """
+	"""
 	if 'y' in poshints:
 		return poshints['y']
 	elif sizehinty is not None:
@@ -66,20 +66,20 @@ def get_pos_hint_y(poshints, sizehinty):
 
 def get_pos_hint(poshints, sizehintx, sizehinty):
 	"""Return a tuple of ``(pos_hint_x, pos_hint_y)`` even if neither of
-    those keys are present in the provided ``poshints`` -- they can be
-    computed using the available keys together with ``size_hint_x``
-    and ``size_hint_y``.
+	those keys are present in the provided ``poshints`` -- they can be
+	computed using the available keys together with ``size_hint_x``
+	and ``size_hint_y``.
 
-    """
+	"""
 	return (get_pos_hint_x(poshints,
 							sizehintx), get_pos_hint_y(poshints, sizehinty))
 
 
 class ColorTextureBox(Widget):
 	"""A box, with a background of one solid color, an outline of another
-    color, and possibly a texture covering the background.
+	color, and possibly a texture covering the background.
 
-    """
+	"""
 	color = ListProperty([1, 1, 1, 1])
 	outline_color = ListProperty([0, 0, 0, 0])
 	texture = ObjectProperty(None, allownone=True)
@@ -88,31 +88,31 @@ class ColorTextureBox(Widget):
 class Card(FloatLayout):
 	"""A trading card with text and illustration
 
-    Its appearance is determined by several properties, the most
-    important being:
+	Its appearance is determined by several properties, the most
+	important being:
 
-    * ``headline_text``, a string to be shown at the top of the card;
-      may be styled with eg. ``headline_font_name`` or
-      ``headline_color``
+	* ``headline_text``, a string to be shown at the top of the card;
+	  may be styled with eg. ``headline_font_name`` or
+	  ``headline_color``
 
-    * ``art_source``, the path to an image to be displayed below the
-      headline; may be hidden by setting ``show_art`` to ``False``
+	* ``art_source``, the path to an image to be displayed below the
+	  headline; may be hidden by setting ``show_art`` to ``False``
 
-    * ``midline_text``, similar to ``headline_text`` but appearing
-      below the art
+	* ``midline_text``, similar to ``headline_text`` but appearing
+	  below the art
 
-    * ``text``, shown in a box the same size as the art. Styleable
-      like ``headline_text`` and you can customize the box with
-      eg. ``foreground_color`` and ``foreground_source``
+	* ``text``, shown in a box the same size as the art. Styleable
+	  like ``headline_text`` and you can customize the box with
+	  eg. ``foreground_color`` and ``foreground_source``
 
-    * ``footer_text``, like ``headline_text`` but at the bottom
+	* ``footer_text``, like ``headline_text`` but at the bottom
 
-    :class:`Card` is particularly useful when put in a
-    :class:`DeckLayout`, allowing the user to drag cards in between
-    any number of piles, into particular positions within a particular
-    pile, and so forth.
+	:class:`Card` is particularly useful when put in a
+	:class:`DeckLayout`, allowing the user to drag cards in between
+	any number of piles, into particular positions within a particular
+	pile, and so forth.
 
-    """
+	"""
 	dragging = BooleanProperty(False)
 	deck = NumericProperty()
 	idx = NumericProperty()
@@ -174,58 +174,58 @@ class Card(FloatLayout):
 
 	def on_background_source(self, *args):
 		"""When I get a new ``background_source``, load it as an
-        :class:`Image` and store that in ``background_image``.
+		:class:`Image` and store that in ``background_image``.
 
-        """
+		"""
 		if self.background_source:
 			self.background_image = Image(source=self.background_source)
 
 	def on_background_image(self, *args):
 		"""When I get a new ``background_image``, store its texture in
-        ``background_texture``.
+		``background_texture``.
 
-        """
+		"""
 		if self.background_image is not None:
 			self.background_texture = self.background_image.texture
 
 	def on_foreground_source(self, *args):
 		"""When I get a new ``foreground_source``, load it as an
-        :class:`Image` and store that in ``foreground_image``.
+		:class:`Image` and store that in ``foreground_image``.
 
-        """
+		"""
 		if self.foreground_source:
 			self.foreground_image = Image(source=self.foreground_source)
 
 	def on_foreground_image(self, *args):
 		"""When I get a new ``foreground_image``, store its texture in my
-        ``foreground_texture``.
+		``foreground_texture``.
 
-        """
+		"""
 		if self.foreground_image is not None:
 			self.foreground_texture = self.foreground_image.texture
 
 	def on_art_source(self, *args):
 		"""When I get a new ``art_source``, load it as an :class:`Image` and
-        store that in ``art_image``.
+		store that in ``art_image``.
 
-        """
+		"""
 		if self.art_source:
 			self.art_image = Image(source=self.art_source)
 
 	def on_art_image(self, *args):
 		"""When I get a new ``art_image``, store its texture in
-        ``art_texture``.
+		``art_texture``.
 
-        """
+		"""
 		if self.art_image is not None:
 			self.art_texture = self.art_image.texture
 
 	def on_touch_down(self, touch):
 		"""If I'm the first card to collide this touch, grab it, store my
-        metadata in its userdict, and store the relative coords upon
-        me where the collision happened.
+		metadata in its userdict, and store the relative coords upon
+		me where the collision happened.
 
-        """
+		"""
 		if not self.collide_point(*touch.pos):
 			return
 		if 'card' in touch.ud:
@@ -241,9 +241,9 @@ class Card(FloatLayout):
 
 	def on_touch_move(self, touch):
 		"""If I'm being dragged, move so as to be always positioned the same
-        relative to the touch.
+		relative to the touch.
 
-        """
+		"""
 		if not self.dragging:
 			touch.ungrab(self)
 			return
@@ -281,9 +281,9 @@ class Card(FloatLayout):
 
 class Foundation(ColorTextureBox):
 	"""An empty outline to indicate where a deck is when there are no
-    cards in it.
+	cards in it.
 
-    """
+	"""
 	color = ListProperty([])
 	"""Color of the outline"""
 	deck = NumericProperty(0)
@@ -291,9 +291,9 @@ class Foundation(ColorTextureBox):
 
 	def upd_pos(self, *args):
 		"""Ask the foundation where I should be, based on what deck I'm
-        for.
+		for.
 
-        """
+		"""
 		self.pos = self.parent._get_foundation_pos(self.deck)
 
 	def upd_size(self, *args):
@@ -304,16 +304,16 @@ class Foundation(ColorTextureBox):
 
 class DeckBuilderLayout(Layout):
 	"""Sizes and positions :class:`Card` objects based on their order
-    within ``decks``, a list of lists where each sublist is a deck of
-    cards.
+	within ``decks``, a list of lists where each sublist is a deck of
+	cards.
 
-    """
+	"""
 	direction = OptionProperty('ascending',
 								options=['ascending', 'descending'])
 	"""Should the beginning card of each deck appear on the bottom
-    ('ascending'), or the top ('descending')?
+	('ascending'), or the top ('descending')?
 
-    """
+	"""
 	card_size_hint_x = BoundedNumericProperty(1, min=0, max=1)
 	"""Each card's width, expressed as a proportion of my width."""
 	card_size_hint_y = BoundedNumericProperty(1, min=0, max=1)
@@ -324,48 +324,48 @@ class DeckBuilderLayout(Layout):
 	"""Pos hint at which to place the initial card of the initial deck."""
 	card_x_hint_step = NumericProperty(0)
 	"""Each time I put another card on a deck, I'll move it this much of
-    my width to the right of the previous card.
+	my width to the right of the previous card.
 
-    """
+	"""
 	card_y_hint_step = NumericProperty(-1)
 	"""Each time I put another card on a deck, I'll move it this much of
-    my height above the previous card.
+	my height above the previous card.
 
-    """
+	"""
 	card_hint_step = ReferenceListProperty(card_x_hint_step, card_y_hint_step)
 	"""An offset, expressed in proportion to my size, applied to each
-    successive card in a given deck.
+	successive card in a given deck.
 
-    """
+	"""
 	deck_x_hint_step = NumericProperty(1)
 	"""When I start a new deck, it will be this far to the right of the
-    previous deck, expressed as a proportion of my width.
+	previous deck, expressed as a proportion of my width.
 
-    """
+	"""
 	deck_y_hint_step = NumericProperty(0)
 	"""When I start a new deck, it will be this far above the previous
-    deck, expressed as a proportion of my height.
+	deck, expressed as a proportion of my height.
 
-    """
+	"""
 	deck_hint_step = ReferenceListProperty(deck_x_hint_step, deck_y_hint_step)
 	"""Offset of each deck with respect to the previous, as a proportion
-    of my size.
+	of my size.
 
-    """
+	"""
 	decks = ListProperty([[]])  # list of lists of cards
 	"""Put a list of lists of :class:`Card` objects here and I'll position
-    them appropriately. Please don't use ``add_widget``.
+	them appropriately. Please don't use ``add_widget``.
 
-    """
+	"""
 	deck_x_hint_offsets = ListProperty([])
 	"""An additional proportional x-offset for each deck, defaulting to 0."""
 	deck_y_hint_offsets = ListProperty([])
 	"""An additional proportional y-offset for each deck, defaulting to 0."""
 	foundation_color = ListProperty([1, 1, 1, 1])
 	"""Color to use for the outline showing where a deck is when it's
-    empty.
+	empty.
 
-    """
+	"""
 	insertion_deck = BoundedNumericProperty(None, min=0, allownone=True)
 	"""Index of the deck that a card is being dragged into."""
 	insertion_card = BoundedNumericProperty(None, min=0, allownone=True)
@@ -413,11 +413,11 @@ class DeckBuilderLayout(Layout):
 
 	def _get_foundation_pos(self, i):
 		"""Private. Get the absolute coordinates to use for a deck's
-        foundation, based on the ``starting_pos_hint``, the
-        ``deck_hint_step``, ``deck_x_hint_offsets``, and
-        ``deck_y_hint_offsets``.
+		foundation, based on the ``starting_pos_hint``, the
+		``deck_hint_step``, ``deck_x_hint_offsets``, and
+		``deck_y_hint_offsets``.
 
-        """
+		"""
 		(phx, phy) = get_pos_hint(self.starting_pos_hint, *self.card_size_hint)
 		phx += self.deck_x_hint_step * i + self.deck_x_hint_offsets[i]
 		phy += self.deck_y_hint_step * i + self.deck_y_hint_offsets[i]
@@ -427,9 +427,9 @@ class DeckBuilderLayout(Layout):
 
 	def _get_foundation(self, i):
 		"""Return a :class:`Foundation` for some deck, creating it if
-        needed.
+		needed.
 
-        """
+		"""
 		if i >= len(self._foundations) or self._foundations[i] is None:
 			oldfound = list(self._foundations)
 			extend = i - len(oldfound) + 1
@@ -453,10 +453,10 @@ class DeckBuilderLayout(Layout):
 
 	def on_decks(self, *args):
 		"""Inform the cards of their deck and their index within the deck;
-        extend the ``_hint_offsets`` properties as needed; and trigger
-        a layout.
+		extend the ``_hint_offsets`` properties as needed; and trigger
+		a layout.
 
-        """
+		"""
 		if None in (self.canvas, self.decks, self.deck_x_hint_offsets,
 					self.deck_y_hint_offsets):
 			Clock.schedule_once(self.on_decks, 0)
@@ -486,13 +486,13 @@ class DeckBuilderLayout(Layout):
 
 	def point_before_card(self, card, x, y):
 		"""Return whether ``(x, y)`` is somewhere before ``card``, given how I
-        know cards to be arranged.
+		know cards to be arranged.
 
-        If the cards are being stacked down and to the right, that
-        means I'm testing whether ``(x, y)`` is above or to the left
-        of the card.
+		If the cards are being stacked down and to the right, that
+		means I'm testing whether ``(x, y)`` is above or to the left
+		of the card.
 
-        """
+		"""
 
 		def ycmp():
 			if self.card_y_hint_step == 0:
@@ -519,13 +519,13 @@ class DeckBuilderLayout(Layout):
 
 	def point_after_card(self, card, x, y):
 		"""Return whether ``(x, y)`` is somewhere after ``card``, given how I
-        know cards to be arranged.
+		know cards to be arranged.
 
-        If the cards are being stacked down and to the right, that
-        means I'm testing whether ``(x, y)`` is below or to the left
-        of ``card``.
+		If the cards are being stacked down and to the right, that
+		means I'm testing whether ``(x, y)`` is below or to the left
+		of ``card``.
 
-        """
+		"""
 
 		def ycmp():
 			if self.card_y_hint_step == 0:
@@ -552,9 +552,9 @@ class DeckBuilderLayout(Layout):
 
 	def on_touch_move(self, touch):
 		"""If a card is being dragged, move other cards out of the way to show
-        where the dragged card will go if you drop it.
+		where the dragged card will go if you drop it.
 
-        """
+		"""
 		if ('card' not in touch.ud or 'layout' not in touch.ud
 			or touch.ud['layout'] != self):
 			return
@@ -608,9 +608,9 @@ class DeckBuilderLayout(Layout):
 
 	def on_touch_up(self, touch):
 		"""If a card is being dragged, put it in the place it was just dropped
-        and trigger a layout.
+		and trigger a layout.
 
-        """
+		"""
 		if ('card' not in touch.ud or 'layout' not in touch.ud
 			or touch.ud['layout'] != self):
 			return
@@ -648,9 +648,9 @@ class DeckBuilderLayout(Layout):
 
 	def layout_deck(self, i):
 		"""Stack the cards, starting at my deck's foundation, and proceeding
-        by ``card_pos_hint``
+		by ``card_pos_hint``
 
-        """
+		"""
 
 		def get_dragidx(cards):
 			j = 0
@@ -699,17 +699,17 @@ class DeckBuilderLayout(Layout):
 
 class DeckBuilderView(DeckBuilderLayout, StencilView):
 	"""Just a :class:`DeckBuilderLayout` mixed with
-    :class:`StencilView`.
+	:class:`StencilView`.
 
-    """
+	"""
 	pass
 
 
 class ScrollBarBar(ColorTextureBox):
 	"""Tiny tweak to :class:`ColorTextureBox` to make it work within
-    :class:`DeckBuilderScrollBar`
+	:class:`DeckBuilderScrollBar`
 
-    """
+	"""
 
 	def on_touch_down(self, touch):
 		"""Tell my parent if I've been touched"""
@@ -721,10 +721,10 @@ class ScrollBarBar(ColorTextureBox):
 
 class DeckBuilderScrollBar(FloatLayout):
 	"""A widget that looks a lot like one of the scrollbars on the sides
-    of eg. :class:`kivy.uix.ScrollView`, which moves a single deck
-    within a :class:`DeckBuilderLayout`.
+	of eg. :class:`kivy.uix.ScrollView`, which moves a single deck
+	within a :class:`DeckBuilderLayout`.
 
-    """
+	"""
 	orientation = OptionProperty('vertical',
 									options=['horizontal', 'vertical'])
 	"""Which way to scroll? Options are 'horizontal' and 'vertical'."""
@@ -732,23 +732,23 @@ class DeckBuilderScrollBar(FloatLayout):
 	"""The :class:`DeckBuilderLayout` of the deck to scroll."""
 	deckidx = NumericProperty(0)
 	"""The index of the deck to scroll, within its
-    :class:`DeckBuilderLayout`'s ``decks`` property.
+	:class:`DeckBuilderLayout`'s ``decks`` property.
 
-    """
+	"""
 	scrolling = BooleanProperty(False)
 	"""Has the user grabbed me?"""
 	scroll_min = NumericProperty(-1)
 	"""How far left (if horizontal) or down (if vertical) I can move my
-    deck, expressed as a proportion of the
-    :class:`DeckBuilderLayout`'s width or height, respectively.
+	deck, expressed as a proportion of the
+	:class:`DeckBuilderLayout`'s width or height, respectively.
 
-    """
+	"""
 	scroll_max = NumericProperty(1)
 	"""How far right (if horizontal) or up (if vertical) I can move my
-    deck, expressed as a proportion of the
-    :class:`DeckBuilderLayout`'s width or height, respectively.
+	deck, expressed as a proportion of the
+	:class:`DeckBuilderLayout`'s width or height, respectively.
 
-    """
+	"""
 
 	scroll_hint = AliasProperty(
 		lambda self: abs(self.scroll_max - self.scroll_min),
@@ -757,9 +757,9 @@ class DeckBuilderScrollBar(FloatLayout):
 	"""The distance between ``scroll_max`` and ``scroll_min``."""
 	_scroll = NumericProperty(0)
 	"""Private. The current adjustment to the deck's ``pos_hint_x`` or
-    ``pos_hint_y``.
+	``pos_hint_y``.
 
-    """
+	"""
 
 	def _get_scroll(self):
 		zero = self._scroll - self.scroll_min
@@ -777,9 +777,9 @@ class DeckBuilderScrollBar(FloatLayout):
 							_set_scroll,
 							bind=('_scroll', 'scroll_min', 'scroll_max'))
 	"""A number between 0 and 1 representing how far beyond ``scroll_min``
-    toward ``scroll_max`` I am presently scrolled.
+	toward ``scroll_max`` I am presently scrolled.
 
-    """
+	"""
 
 	def _get_vbar(self):
 		if self.deckbuilder is None:
@@ -823,9 +823,9 @@ class DeckBuilderScrollBar(FloatLayout):
 
 	def __init__(self, **kwargs):
 		"""Arrange to be laid out whenever I'm scrolled or the range of my
-        scrolling changes.
+		scrolling changes.
 
-        """
+		"""
 		super().__init__(**kwargs)
 		self.bind(_scroll=self._trigger_layout,
 					scroll_min=self._trigger_layout,
@@ -833,9 +833,9 @@ class DeckBuilderScrollBar(FloatLayout):
 
 	def do_layout(self, *args):
 		"""Put the bar where it's supposed to be, and size it in proportion to
-        the size of the scrollable area.
+		the size of the scrollable area.
 
-        """
+		"""
 		if 'bar' not in self.ids:
 			Clock.schedule_once(self.do_layout)
 			return
@@ -849,18 +849,18 @@ class DeckBuilderScrollBar(FloatLayout):
 
 	def upd_scroll(self, *args):
 		"""Update my own ``scroll`` property to where my deck is actually
-        scrolled.
+		scrolled.
 
-        """
+		"""
 		att = 'deck_{}_hint_offsets'.format('x' if self.orientation ==
 											'horizontal' else 'y')
 		self._scroll = getattr(self.deckbuilder, att)[self.deckidx]
 
 	def on_deckbuilder(self, *args):
 		"""Bind my deckbuilder to update my ``scroll``, and my ``scroll`` to
-        update my deckbuilder.
+		update my deckbuilder.
 
-        """
+		"""
 		if self.deckbuilder is None:
 			return
 		att = 'deck_{}_hint_offsets'.format('x' if self.orientation ==
@@ -876,9 +876,9 @@ class DeckBuilderScrollBar(FloatLayout):
 
 	def handle_scroll(self, *args):
 		"""When my ``scroll`` changes, tell my deckbuilder how it's scrolled
-        now.
+		now.
 
-        """
+		"""
 		if 'bar' not in self.ids:
 			Clock.schedule_once(self.handle_scroll, 0)
 			return
@@ -906,9 +906,9 @@ class DeckBuilderScrollBar(FloatLayout):
 
 	def on_touch_move(self, touch):
 		"""Move the scrollbar to the touch, and update my ``scroll``
-        accordingly.
+		accordingly.
 
-        """
+		"""
 		if not self.scrolling or 'bar' not in self.ids:
 			touch.ungrab(self)
 			return
@@ -932,107 +932,107 @@ class DeckBuilderScrollBar(FloatLayout):
 
 kv = """
 <ColorTextureBox>:
-    canvas:
-        Color:
-            rgba: root.color
-        Rectangle:
-            texture: root.texture
-            pos: root.pos
-            size: root.size
-        Color:
-            rgba: root.outline_color
-        Line:
-            points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
-        Color:
-            rgba: [1, 1, 1, 1]
+	canvas:
+		Color:
+			rgba: root.color
+		Rectangle:
+			texture: root.texture
+			pos: root.pos
+			size: root.size
+		Color:
+			rgba: root.outline_color
+		Line:
+			points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
+		Color:
+			rgba: [1, 1, 1, 1]
 <Foundation>:
-    color: [0, 0, 0, 0]
-    outline_color: [1, 1, 1, 1]
+	color: [0, 0, 0, 0]
+	outline_color: [1, 1, 1, 1]
 <Card>:
-    headline: headline
-    midline: midline
-    footer: footer
-    art: art
-    foreground: foreground
-    canvas:
-        Color:
-            rgba: root.background_color
-        Rectangle:
-            texture: root.background_texture
-            pos: root.pos
-            size: root.size
-        Color:
-            rgba: root.outline_color
-        Line:
-            points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
-        Color:
-            rgba: [1, 1, 1, 1]
-    BoxLayout:
-        size_hint: 0.9, 0.9
-        pos_hint: {'x': 0.05, 'y': 0.05}
-        orientation: 'vertical'
-        canvas:
-            Color:
-                rgba: root.content_outline_color
-            Line:
-                points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
-            Color:
-                rgba: [1, 1, 1, 1]
-        Label:
-            id: headline
-            text: root.headline_text
-            markup: root.headline_markup
-            font_name: root.headline_font_name
-            font_size: root.headline_font_size
-            color: root.headline_color
-            size_hint: (None, None)
-            size: self.texture_size
-        ColorTextureBox:
-            id: art
-            color: root.art_color
-            texture: root.art_texture
-            outline_color: root.art_outline_color if root.show_art else [0, 0, 0, 0]
-            size_hint: (1, 1) if root.show_art else (None, None)
-            size: (0, 0)
-        Label:
-            id: midline
-            text: root.midline_text
-            markup: root.midline_markup
-            font_name: root.midline_font_name
-            font_size: root.midline_font_size
-            color: root.midline_color
-            size_hint: (None, None)
-            size: self.texture_size
-        ColorTextureBox:
-            id: foreground
-            color: root.foreground_color
-            outline_color: root.foreground_outline_color
-            texture: root.foreground_texture
-            Label:
-                text: root.text
-                color: root.text_color
-                markup: root.markup
-                font_name: root.font_name
-                font_size: root.font_size
-                text_size: foreground.size
-                size_hint: (None, None)
-                size: self.texture_size
-                pos: foreground.pos
-                valign: 'top'
-        Label:
-            id: footer
-            text: root.footer_text
-            markup: root.footer_markup
-            font_name: root.footer_font_name
-            font_size: root.footer_font_size
-            color: root.footer_color
-            size_hint: (None, None)
-            size: self.texture_size
+	headline: headline
+	midline: midline
+	footer: footer
+	art: art
+	foreground: foreground
+	canvas:
+		Color:
+			rgba: root.background_color
+		Rectangle:
+			texture: root.background_texture
+			pos: root.pos
+			size: root.size
+		Color:
+			rgba: root.outline_color
+		Line:
+			points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
+		Color:
+			rgba: [1, 1, 1, 1]
+	BoxLayout:
+		size_hint: 0.9, 0.9
+		pos_hint: {'x': 0.05, 'y': 0.05}
+		orientation: 'vertical'
+		canvas:
+			Color:
+				rgba: root.content_outline_color
+			Line:
+				points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
+			Color:
+				rgba: [1, 1, 1, 1]
+		Label:
+			id: headline
+			text: root.headline_text
+			markup: root.headline_markup
+			font_name: root.headline_font_name
+			font_size: root.headline_font_size
+			color: root.headline_color
+			size_hint: (None, None)
+			size: self.texture_size
+		ColorTextureBox:
+			id: art
+			color: root.art_color
+			texture: root.art_texture
+			outline_color: root.art_outline_color if root.show_art else [0, 0, 0, 0]
+			size_hint: (1, 1) if root.show_art else (None, None)
+			size: (0, 0)
+		Label:
+			id: midline
+			text: root.midline_text
+			markup: root.midline_markup
+			font_name: root.midline_font_name
+			font_size: root.midline_font_size
+			color: root.midline_color
+			size_hint: (None, None)
+			size: self.texture_size
+		ColorTextureBox:
+			id: foreground
+			color: root.foreground_color
+			outline_color: root.foreground_outline_color
+			texture: root.foreground_texture
+			Label:
+				text: root.text
+				color: root.text_color
+				markup: root.markup
+				font_name: root.font_name
+				font_size: root.font_size
+				text_size: foreground.size
+				size_hint: (None, None)
+				size: self.texture_size
+				pos: foreground.pos
+				valign: 'top'
+		Label:
+			id: footer
+			text: root.footer_text
+			markup: root.footer_markup
+			font_name: root.footer_font_name
+			font_size: root.footer_font_size
+			color: root.footer_color
+			size_hint: (None, None)
+			size: self.texture_size
 <DeckBuilderScrollBar>:
-    ScrollBarBar:
-        id: bar
-        color: root.bar_color if root.scrolling else root.bar_inactive_color
-        texture: root.bar_texture
+	ScrollBarBar:
+		id: bar
+		color: root.bar_color if root.scrolling else root.bar_inactive_color
+		texture: root.bar_texture
 """
 Builder.load_string(kv)
 

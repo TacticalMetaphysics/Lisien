@@ -27,9 +27,9 @@ from ..imagestackproxy import ImageStackProxy
 
 class GraphPawnSpot(ImageStackProxy, Layout):
 	"""The kind of ImageStack that represents a :class:`Thing` or
-    :class:`Place`.
+	:class:`Place`.
 
-    """
+	"""
 	board = ObjectProperty()
 	engine = ObjectProperty()
 	selected = BooleanProperty(False)
@@ -120,10 +120,10 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 
 	def on_linecolor(self, *args):
 		"""If I don't yet have the instructions for drawing the selection box
-        in my canvas, put them there. In any case, set the
-        :class:`Color` instruction to match my current ``linecolor``.
+		in my canvas, put them there. In any case, set the
+		:class:`Color` instruction to match my current ``linecolor``.
 
-        """
+		"""
 		if hasattr(self, 'color'):
 			self.color.rgba = self.linecolor
 			return

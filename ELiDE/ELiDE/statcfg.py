@@ -198,10 +198,10 @@ class StatScreen(Screen):
 
 	def new_stat(self):
 		"""Look at the key and value that the user has entered into the stat
-        configurator, and set them on the currently selected
-        entity.
+		configurator, and set them on the currently selected
+		entity.
 
-        """
+		"""
 		key = self.ids.newstatkey.text
 		value = self.ids.newstatval.text
 		if not (key and value):
@@ -218,91 +218,91 @@ class StatScreen(Screen):
 
 Builder.load_string("""
 <ConfigListItemCustomization>:
-    pos_hint: {'x': 0, 'y': 0}
+	pos_hint: {'x': 0, 'y': 0}
 <ConfigListItemToggleButton>:
-    Label:
-        text: 'True text:'
-    TextInput:
-        id: truetext
-        hint_text: root.true_text
-        on_text_validate: root.set_true_text()
-    Label:
-        text: 'False text:'
-    TextInput:
-        id: falsetext
-        hint_text: root.false_text
-        on_text_validate: root.set_false_text()
+	Label:
+		text: 'True text:'
+	TextInput:
+		id: truetext
+		hint_text: root.true_text
+		on_text_validate: root.set_true_text()
+	Label:
+		text: 'False text:'
+	TextInput:
+		id: falsetext
+		hint_text: root.false_text
+		on_text_validate: root.set_false_text()
 <ConfigListItemSlider>:
-    Label:
-        text: 'Minimum:'
-    TextInput:
-        id: minimum
-        hint_text: str(root.min)
-        on_text_validate: root.set_min()
-    Label:
-        text: 'Maximum:'
-    TextInput:
-        id: maximum
-        hint_text: str(root.max)
-        on_text_validate: root.set_max()
+	Label:
+		text: 'Minimum:'
+	TextInput:
+		id: minimum
+		hint_text: str(root.min)
+		on_text_validate: root.set_min()
+	Label:
+		text: 'Maximum:'
+	TextInput:
+		id: maximum
+		hint_text: str(root.max)
+		on_text_validate: root.set_max()
 <ConfigListItem>:
-    height: 30
-    Button:
-        size_hint_x: 0.4 / 3
-        text: 'del'
-        on_release: root.deleter(root.key)
-    Label:
-        size_hint_x: 0.4 / 3
-        text: str(root.key)
-    ControlTypePicker:
-        size_hint_x: 0.4 / 3
-        key: root.key
-        set_control: root.set_control
-        text: root.config['control'] if 'control' in root.config else 'readout'
-    ConfigListItemCustomizer:
-        size_hint_x: 0.6
-        control: root.config['control'] if 'control' in root.config else 'readout'
-        config: root.config
-        key: root.key
-        set_config: root.set_config
+	height: 30
+	Button:
+		size_hint_x: 0.4 / 3
+		text: 'del'
+		on_release: root.deleter(root.key)
+	Label:
+		size_hint_x: 0.4 / 3
+		text: str(root.key)
+	ControlTypePicker:
+		size_hint_x: 0.4 / 3
+		key: root.key
+		set_control: root.set_control
+		text: root.config['control'] if 'control' in root.config else 'readout'
+	ConfigListItemCustomizer:
+		size_hint_x: 0.6
+		control: root.config['control'] if 'control' in root.config else 'readout'
+		config: root.config
+		key: root.key
+		set_config: root.set_config
 <StatScreen>:
-    name: 'statcfg'
-    statcfg: cfg
-    BoxLayout:
-        orientation: 'vertical'
-        StatListViewConfigurator:
-            viewclass: 'ConfigListItem'
-            id: cfg
-            app: app
-            engine: root.engine
-            proxy: root.proxy
-            statlist: root.statlist
-            size_hint_y: 0.95
-            RecycleBoxLayout:
-                default_size: None, dp(56)
-                default_size_hint: 1, None
-                size_hint_y: None
-                height: self.minimum_height
-                orientation: 'vertical'
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: 0.05
-            TextInput:
-                id: newstatkey
-                multiline: False
-                write_tab: False
-                hint_text: 'New stat'
-            TextInput:
-                id: newstatval
-                multiline: False
-                write_tab: False
-                hint_text: 'Value'
-            Button:
-                id: newstatbut
-                text: '+'
-                on_release: root.new_stat()
-            Button:
-                id: closer
-                text: 'Close'
-                on_release: root.toggle()
+	name: 'statcfg'
+	statcfg: cfg
+	BoxLayout:
+		orientation: 'vertical'
+		StatListViewConfigurator:
+			viewclass: 'ConfigListItem'
+			id: cfg
+			app: app
+			engine: root.engine
+			proxy: root.proxy
+			statlist: root.statlist
+			size_hint_y: 0.95
+			RecycleBoxLayout:
+				default_size: None, dp(56)
+				default_size_hint: 1, None
+				size_hint_y: None
+				height: self.minimum_height
+				orientation: 'vertical'
+		BoxLayout:
+			orientation: 'horizontal'
+			size_hint_y: 0.05
+			TextInput:
+				id: newstatkey
+				multiline: False
+				write_tab: False
+				hint_text: 'New stat'
+			TextInput:
+				id: newstatval
+				multiline: False
+				write_tab: False
+				hint_text: 'Value'
+			Button:
+				id: newstatbut
+				text: '+'
+				on_release: root.new_stat()
+			Button:
+				id: closer
+				text: 'Close'
+				on_release: root.toggle()
 """)

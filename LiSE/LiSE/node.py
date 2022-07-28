@@ -33,13 +33,13 @@ from .exc import AmbiguousUserError
 class UserMapping(Mapping):
 	"""A mapping of the characters that have a particular node as an avatar.
 
-    Getting characters from here isn't any better than getting them from
-    the engine direct, but with this you can do things like use the
-    .get() method to get a character if it's a user and otherwise
-    get something else; or test whether the character's name is in
-    the keys; and so on.
+	Getting characters from here isn't any better than getting them from
+	the engine direct, but with this you can do things like use the
+	.get() method to get a character if it's a user and otherwise
+	get something else; or test whether the character's name is in
+	the keys; and so on.
 
-    """
+	"""
 	__slots__ = ['node']
 
 	def __init__(self, node):
@@ -256,15 +256,15 @@ class Origs(Mapping):
 
 class Node(graph.Node, rule.RuleFollower):
 	"""The fundamental graph component, which edges (in LiSE, "portals")
-    go between.
+	go between.
 
-    Every LiSE node is either a thing or a place. They share in common
-    the abilities to follow rules; to be connected by portals; and to
-    contain things.
+	Every LiSE node is either a thing or a place. They share in common
+	the abilities to follow rules; to be connected by portals; and to
+	contain things.
 
-    This is truthy if it exists, falsy if it's been deleted.
+	This is truthy if it exists, falsy if it's been deleted.
 
-    """
+	"""
 	__slots__ = ('_real_rule_mapping', )
 	character = getatt('graph')
 	name = getatt('node')
@@ -375,10 +375,10 @@ class Node(graph.Node, rule.RuleFollower):
 	def shortest_path_length(self, dest, weight=None):
 		"""Return the length of the path from me to ``dest``.
 
-        Raise ``ValueError`` if ``dest`` is not a node in my character
-        or the name of one.
+		Raise ``ValueError`` if ``dest`` is not a node in my character
+		or the name of one.
 
-        """
+		"""
 
 		return shortest_path_length(self.character, self.name,
 									self._plain_dest_name(dest), weight)
@@ -386,23 +386,23 @@ class Node(graph.Node, rule.RuleFollower):
 	def shortest_path(self, dest, weight=None):
 		"""Return a list of node names leading from me to ``dest``.
 
-        Raise ``ValueError`` if ``dest`` is not a node in my character
-        or the name of one.
+		Raise ``ValueError`` if ``dest`` is not a node in my character
+		or the name of one.
 
-        """
+		"""
 		return shortest_path(self.character, self.name,
 								self._plain_dest_name(dest), weight)
 
 	def path_exists(self, dest, weight=None):
 		"""Return whether there is a path leading from me to ``dest``.
 
-        With ``weight``, only consider edges that have a stat by the
-        given name.
+		With ``weight``, only consider edges that have a stat by the
+		given name.
 
-        Raise ``ValueError`` if ``dest`` is not a node in my character
-        or the name of one.
+		Raise ``ValueError`` if ``dest`` is not a node in my character
+		or the name of one.
 
-        """
+		"""
 		try:
 			return bool(self.shortest_path_length(dest, weight))
 		except KeyError:
@@ -418,11 +418,11 @@ class Node(graph.Node, rule.RuleFollower):
 	def delete(self):
 		"""Get rid of this, starting now.
 
-        Apart from deleting the node, this also informs all its users
-        that it doesn't exist and therefore can't be their avatar
-        anymore.
+		Apart from deleting the node, this also informs all its users
+		that it doesn't exist and therefore can't be their avatar
+		anymore.
 
-        """
+		"""
 		self.clear()
 		for contained in list(self.contents()):
 			contained.delete()
@@ -468,11 +468,11 @@ class Node(graph.Node, rule.RuleFollower):
 	def historical(self, stat):
 		"""Return a reference to the values that a stat has had in the past.
 
-        You can use the reference in comparisons to make a history
-        query, and execute the query by calling it, or passing it to
-        ``self.engine.ticks_when``.
+		You can use the reference in comparisons to make a history
+		query, and execute the query by calling it, or passing it to
+		``self.engine.ticks_when``.
 
-        """
+		"""
 		return StatusAlias(entity=self, stat=stat)
 
 	def __bool__(self):

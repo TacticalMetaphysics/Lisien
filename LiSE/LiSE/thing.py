@@ -39,13 +39,13 @@ def roerror(*args, **kwargs):
 class Thing(Node):
 	"""The sort of item that has a particular location at any given time.
 
-    Things are always in Places or other Things, and may additionally be
-    travelling through a Portal.
+	Things are always in Places or other Things, and may additionally be
+	travelling through a Portal.
 
-    LiSE entities are truthy so long as they exist, falsy if they've
-    been deleted.
+	LiSE entities are truthy so long as they exist, falsy if they've
+	been deleted.
 
-    """
+	"""
 	__slots__ = ('graph', 'db', 'node', '_rulebook', '_rulebooks',
 					'_real_rule_mapping')
 
@@ -90,12 +90,12 @@ class Thing(Node):
 	def __getitem__(self, key: Hashable):
 		"""Return one of my stats stored in the database, or special cases:
 
-        ``name``: return the name that uniquely identifies me within
-        my Character
+		``name``: return the name that uniquely identifies me within
+		my Character
 
-        ``location``: return the name of my location
+		``location``: return the name of my location
 
-        """
+		"""
 		disp = self._getitem_dispatch
 		if key in disp:
 			return disp[key](self)
@@ -166,14 +166,14 @@ class Thing(Node):
 					place: Union[Node, Hashable],
 					weight: Hashable = None) -> int:
 		"""Assuming I'm in a node that has a :class:`Portal` direct
-        to the given node, schedule myself to travel to the
-        given :class:`Place`, taking an amount of time indicated by
-        the ``weight`` stat on the :class:`Portal`, if given; else 1
-        turn.
+		to the given node, schedule myself to travel to the
+		given :class:`Place`, taking an amount of time indicated by
+		the ``weight`` stat on the :class:`Portal`, if given; else 1
+		turn.
 
-        Return the number of turns the travel will take.
+		Return the number of turns the travel will take.
 
-        """
+		"""
 		if hasattr(place, 'name'):
 			placen = place.name
 		else:
@@ -189,16 +189,16 @@ class Thing(Node):
 
 	def follow_path(self, path: list, weight: Hashable = None) -> int:
 		"""Go to several nodes in succession, deciding how long to
-        spend in each by consulting the ``weight`` stat of the
-        :class:`Portal` connecting the one node to the next,
-        default 1 turn.
+		spend in each by consulting the ``weight`` stat of the
+		:class:`Portal` connecting the one node to the next,
+		default 1 turn.
 
-        Return the total number of turns the travel will take. Raise
-        :class:`TravelException` if I can't follow the whole path,
-        either because some of its nodes don't exist, or because I'm
-        scheduled to be somewhere else.
+		Return the total number of turns the travel will take. Raise
+		:class:`TravelException` if I can't follow the whole path,
+		either because some of its nodes don't exist, or because I'm
+		scheduled to be somewhere else.
 
-        """
+		"""
 		if len(path) < 2:
 			raise ValueError("Paths need at least 2 nodes")
 		eng = self.character.engine
@@ -238,25 +238,25 @@ class Thing(Node):
 					weight: Hashable = None,
 					graph: AbstractCharacter = None) -> int:
 		"""Find the shortest path to the given node from where I am
-        now, and follow it.
+		now, and follow it.
 
-        If supplied, the ``weight`` stat of each :class:`Portal` along
-        the path will be used in pathfinding, and for deciding how
-        long to stay in each Place along the way.
+		If supplied, the ``weight`` stat of each :class:`Portal` along
+		the path will be used in pathfinding, and for deciding how
+		long to stay in each Place along the way.
 
-        The ``graph`` argument may be any NetworkX-style graph. It
-        will be used for pathfinding if supplied, otherwise I'll use
-        my :class:`Character`. In either case, however, I will attempt
-        to actually follow the path using my :class:`Character`, which
-        might not be possible if the supplied ``graph`` and my
-        :class:`Character` are too different. If it's not possible,
-        I'll raise a :class:`TravelException`, whose ``subpath``
-        attribute holds the part of the path that I *can* follow. To
-        make me follow it, pass it to my ``follow_path`` method.
+		The ``graph`` argument may be any NetworkX-style graph. It
+		will be used for pathfinding if supplied, otherwise I'll use
+		my :class:`Character`. In either case, however, I will attempt
+		to actually follow the path using my :class:`Character`, which
+		might not be possible if the supplied ``graph`` and my
+		:class:`Character` are too different. If it's not possible,
+		I'll raise a :class:`TravelException`, whose ``subpath``
+		attribute holds the part of the path that I *can* follow. To
+		make me follow it, pass it to my ``follow_path`` method.
 
-        Return value is the number of turns the travel will take.
+		Return value is the number of turns the travel will take.
 
-        """
+		"""
 		destn = dest.name if hasattr(dest, 'name') else dest
 		if destn == self.location.name:
 			raise ValueError("I'm already at {}".format(destn))

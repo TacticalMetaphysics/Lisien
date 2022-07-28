@@ -38,10 +38,10 @@ from ELiDE.util import trigger
 class CalendarWidget(RecycleDataViewBehavior, Widget):
 	"""Base class for widgets within a Calendar
 
-    Shows the value of its ``key`` at a particular ``turn``, and sets
-    it at that turn if the value changes.
+	Shows the value of its ``key`` at a particular ``turn``, and sets
+	it at that turn if the value changes.
 
-    """
+	"""
 	turn = NumericProperty()
 	"""What turn I'm displaying the stat's value for"""
 	key = ObjectProperty()
@@ -215,31 +215,31 @@ class AbstractCalendar(RecycleView):
 	"""Whether there are changes yet to be committed to the LiSE core"""
 	update_mode = OptionProperty('batch', options=['batch', 'present', 'all'])
 	"""How to go about submitting changes to the LiSE core. Options:
-    
-    * ``'batch'`` (default): don't submit changes automatically. You have to call
-    ``get_track`` and apply the changes using the ``LiSE.handle`` method
-    ``apply_choices``, eg.
-        ``engine_proxy.handle('apply_choices', choices=calendar.get_track())``
-    * ``'present'``: immediately apply changes that affect the current turn,
-    possibly wiping out anything in the future -- so you still have to use
-    ``get_track`` and ``apply_choices``. However, if you're using a calendar
-    in the same interface as another control widget for the same stat,
-    ``'present'`` will ensure that the two widgets always display the same value.
-    * ``'all'``: apply every change immediately to the LiSE core. Should only be
-    used when the LiSE core is in planning mode.
-    
-    """
+	
+	* ``'batch'`` (default): don't submit changes automatically. You have to call
+	``get_track`` and apply the changes using the ``LiSE.handle`` method
+	``apply_choices``, eg.
+		``engine_proxy.handle('apply_choices', choices=calendar.get_track())``
+	* ``'present'``: immediately apply changes that affect the current turn,
+	possibly wiping out anything in the future -- so you still have to use
+	``get_track`` and ``apply_choices``. However, if you're using a calendar
+	in the same interface as another control widget for the same stat,
+	``'present'`` will ensure that the two widgets always display the same value.
+	* ``'all'``: apply every change immediately to the LiSE core. Should only be
+	used when the LiSE core is in planning mode.
+	
+	"""
 	headers = BooleanProperty(True)
 	"""Whether to display the name of the stat above its column, default ``True``"""
 	turn_labels = BooleanProperty(True)
 	"""Whether to display the turn of the value before its row, default ``True``"""
 	turn_label_transformer = ObjectProperty(str)
 	"""A function taking the turn number and returning a string to represent it
-    
-    Defaults to ``str``, but you might use this to display eg. the day of the
-    week instead.
-    
-    """
+	
+	Defaults to ``str``, but you might use this to display eg. the day of the
+	week instead.
+	
+	"""
 
 	def on_data(self, *args):
 		idx = self.idx
@@ -250,10 +250,10 @@ class AbstractCalendar(RecycleView):
 	def get_track(self):
 		"""Get a dictionary that can be used to submit my changes to ``LiSE.Engine.apply_choices``
 
-        If a data dictionary does not have the key 'turn', it will not be included in the track.
-        You can use this to add labels and other non-input widgets to the calendar.
+		If a data dictionary does not have the key 'turn', it will not be included in the track.
+		You can use this to add labels and other non-input widgets to the calendar.
 
-        """
+		"""
 		changes = []
 		track = {'entity': self.entity, 'changes': changes}
 		if not self.data:
@@ -404,37 +404,37 @@ class Calendar(AbstractCalendar):
 
 Builder.load_string("""
 <Agenda>:
-    key_viewclass: 'widget'
-    RecycleGridLayout:
-        cols: root.cols
-        size_hint: None, None
-        default_size: dp(84), dp(36)
-        default_size_hint: None, None
-        size: self.minimum_size
-        orientation: 'tb-lr'
+	key_viewclass: 'widget'
+	RecycleGridLayout:
+		cols: root.cols
+		size_hint: None, None
+		default_size: dp(84), dp(36)
+		default_size_hint: None, None
+		size: self.minimum_size
+		orientation: 'tb-lr'
 <Calendar>:
-    turn_labels: False
-    key_viewclass: 'widget'
-    RecycleGridLayout:
-        cols: 1
-        orientation: 'lr-tb'
-        default_size_hint: 1, None
-        default_size: dp(84), dp(36)
-        size: self.minimum_size
+	turn_labels: False
+	key_viewclass: 'widget'
+	RecycleGridLayout:
+		cols: 1
+		orientation: 'lr-tb'
+		default_size_hint: 1, None
+		default_size: dp(84), dp(36)
+		size: self.minimum_size
 <CalendarLabel>:
-    text: str(self.value) if self.value is not None else ''
+	text: str(self.value) if self.value is not None else ''
 <CalendarSlider>:
-    padding: 5
-    Label:
-        x: root.center_x - (self.width / 2)
-        y: root.center_y
-        text: str(root.value)
-        size: self.texture_size
+	padding: 5
+	Label:
+		x: root.center_x - (self.width / 2)
+		y: root.center_y
+		text: str(root.value)
+		size: self.texture_size
 <CalendarOptionButton>:
-    text: str(self.value)
+	text: str(self.value)
 <CalendarTextInput>:
-    multiline: False
-    on_text_validate: self._trigger_parse_text()
+	multiline: False
+	on_text_validate: self._trigger_parse_text()
 """)
 
 if __name__ == '__main__':

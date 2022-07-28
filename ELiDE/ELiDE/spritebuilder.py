@@ -173,46 +173,46 @@ class SpotConfigScreen(Screen):
 
 Builder.load_string("""
 <SpriteDialog>:
-    orientation: 'vertical'
-    SpriteBuilder:
-        id: builder
-        prefix: root.prefix
-        default_imgpaths: root.default_imgpaths
-        imgpaths: root.imgpaths
-        data: root.data
-    SpriteSelector:
-        id: selector
-        textbox: textbox
-        size_hint_y: 0.1
-        prefix: root.prefix
-        default_imgpaths: root.default_imgpaths
-        imgpaths: root.imgpaths
-        pallets: builder.pallets
-        preview: preview
-        TextInput:
-            id: textbox
-            multiline: False
-            write_tab: False
-            hint_text: 'Enter name prefix'
-        Widget:
-            id: preview
-        Button:
-            text: 'OK'
-            on_release: root.pressed()
+	orientation: 'vertical'
+	SpriteBuilder:
+		id: builder
+		prefix: root.prefix
+		default_imgpaths: root.default_imgpaths
+		imgpaths: root.imgpaths
+		data: root.data
+	SpriteSelector:
+		id: selector
+		textbox: textbox
+		size_hint_y: 0.1
+		prefix: root.prefix
+		default_imgpaths: root.default_imgpaths
+		imgpaths: root.imgpaths
+		pallets: builder.pallets
+		preview: preview
+		TextInput:
+			id: textbox
+			multiline: False
+			write_tab: False
+			hint_text: 'Enter name prefix'
+		Widget:
+			id: preview
+		Button:
+			text: 'OK'
+			on_release: root.pressed()
 <PawnConfigScreen>:
-    name: 'pawncfg'
-    imgpaths: dialog.imgpaths
-    PawnConfigDialog:
-        id: dialog
-        toggle: root.toggle
-        default_imgpaths: ['atlas://rltiles/base/unseen']
-        data: root.data
+	name: 'pawncfg'
+	imgpaths: dialog.imgpaths
+	PawnConfigDialog:
+		id: dialog
+		toggle: root.toggle
+		default_imgpaths: ['atlas://rltiles/base/unseen']
+		data: root.data
 <SpotConfigScreen>:
-    name: 'spotcfg'
-    imgpaths: dialog.imgpaths
-    SpotConfigDialog:
-        id: dialog
-        toggle: root.toggle
-        default_imgpaths: ['atlas://rltiles/floor/floor-stone']
-        data: root.data
+	name: 'spotcfg'
+	imgpaths: dialog.imgpaths
+	SpotConfigDialog:
+		id: dialog
+		toggle: root.toggle
+		default_imgpaths: ['atlas://rltiles/floor/floor-stone']
+		data: root.data
 """)

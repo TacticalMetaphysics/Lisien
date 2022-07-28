@@ -258,20 +258,20 @@ class RuleFuncListDescriptor(object):
 class Rule(object):
 	"""Stuff that might happen in the simulation under some conditions
 
-    Rules are comprised of three lists of functions:
+	Rules are comprised of three lists of functions:
 
-    * actions, which mutate the world state
-    * triggers, which make the actions happen
-    * prereqs, which prevent the actions from happening when triggered
+	* actions, which mutate the world state
+	* triggers, which make the actions happen
+	* prereqs, which prevent the actions from happening when triggered
 
-    Each kind of function should be stored in the appropriate module
-    supplied to the LiSE core at startup. This makes it possible to
-    load the functions on later startups. You may instead use the string
-    name of a function already stored in the module, or use the
-    `trigger`, `prereq`, or `action` decorator on a new function to
-    add it to both the module and the rule.
+	Each kind of function should be stored in the appropriate module
+	supplied to the LiSE core at startup. This makes it possible to
+	load the functions on later startups. You may instead use the string
+	name of a function already stored in the module, or use the
+	`trigger`, `prereq`, or `action` decorator on a new function to
+	add it to both the module and the rule.
 
-    """
+	"""
 
 	triggers = RuleFuncListDescriptor(TriggerList)
 	prereqs = RuleFuncListDescriptor(PrereqList)
@@ -285,10 +285,10 @@ class Rule(object):
 					actions=None,
 					create=True):
 		"""Store the engine and my name, make myself a record in the database
-        if needed, and instantiate one FunList each for my triggers,
-        actions, and prereqs.
+		if needed, and instantiate one FunList each for my triggers,
+		actions, and prereqs.
 
-        """
+		"""
 		self.engine = engine
 		self.name = self.__name__ = name
 		branch, turn, tick = engine._btt()
@@ -311,11 +311,11 @@ class Rule(object):
 
 	def _fun_names_iter(self, functyp, val):
 		"""Iterate over the names of the functions in ``val``,
-        adding them to ``funcstore`` if they are missing;
-        or if the items in ``val`` are already the names of functions
-        in ``funcstore``, iterate over those.
+		adding them to ``funcstore`` if they are missing;
+		or if the items in ``val`` are already the names of functions
+		in ``funcstore``, iterate over those.
 
-        """
+		"""
 		funcstore = getattr(self.engine, functyp)
 		for v in val:
 			if callable(v):
@@ -348,9 +348,9 @@ class Rule(object):
 
 	def duplicate(self, newname):
 		"""Return a new rule that's just like this one, but under a new
-        name.
+		name.
 
-        """
+		"""
 		if self.engine.rule.query.haverule(newname):
 			raise KeyError("Already have a rule called {}".format(newname))
 		return Rule(self.engine, newname, list(self.triggers),
@@ -363,9 +363,9 @@ class Rule(object):
 
 class RuleBook(MutableSequence, Signal):
 	"""A list of rules to be followed for some Character, or a part of it
-    anyway.
+	anyway.
 
-    """
+	"""
 
 	def _get_cache(self, branch, turn, tick):
 		try:
@@ -463,22 +463,22 @@ class RuleBook(MutableSequence, Signal):
 class RuleMapping(MutableMapping, Signal):
 	"""Wraps a :class:`RuleBook` so you can get its rules by name.
 
-    You can access the rules in this either dictionary-style or as
-    attributes. This is for convenience if you want to get at a rule's
-    decorators, eg. to add an Action to the rule.
+	You can access the rules in this either dictionary-style or as
+	attributes. This is for convenience if you want to get at a rule's
+	decorators, eg. to add an Action to the rule.
 
-    Using this as a decorator will create a new rule, named for the
-    decorated function, and using the decorated function as the
-    initial Action.
+	Using this as a decorator will create a new rule, named for the
+	decorated function, and using the decorated function as the
+	initial Action.
 
-    Using this like a dictionary will let you create new rules,
-    appending them onto the underlying :class:`RuleBook`; replace one
-    rule with another, where the new one will have the same index in
-    the :class:`RuleBook` as the old one; and activate or deactivate
-    rules. The name of a rule may be used in place of the actual rule,
-    so long as the rule already exists.
+	Using this like a dictionary will let you create new rules,
+	appending them onto the underlying :class:`RuleBook`; replace one
+	rule with another, where the new one will have the same index in
+	the :class:`RuleBook` as the old one; and activate or deactivate
+	rules. The name of a rule may be used in place of the actual rule,
+	so long as the rule already exists.
 
-    """
+	"""
 
 	def __init__(self, engine, rulebook):
 		super().__init__()
@@ -553,9 +553,9 @@ class RuleMapping(MutableMapping, Signal):
 
 class RuleFollower(ABC):
 	"""Interface for that which has a rulebook associated, which you can
-    get a :class:`RuleMapping` into
+	get a :class:`RuleMapping` into
 
-    """
+	"""
 	__slots__ = ()
 	engine: AbstractEngine
 
@@ -612,9 +612,9 @@ class RuleFollower(ABC):
 	@abstractmethod
 	def _set_rulebook_name(self, n):
 		"""Tell the database that this is the name of the rulebook to use for
-        me.
+		me.
 
-        """
+		"""
 		raise NotImplementedError("_set_rulebook_name")
 
 
@@ -656,10 +656,10 @@ class AllRuleBooks(MutableMapping, Signal):
 class AllRules(MutableMapping, Signal):
 	"""A mapping of every rule in the game.
 
-    You can use this as a decorator to make a rule and not assign it
-    to anything.
+	You can use this as a decorator to make a rule and not assign it
+	to anything.
 
-    """
+	"""
 
 	def __init__(self, engine):
 		super().__init__()

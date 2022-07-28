@@ -83,34 +83,34 @@ def grid_2d_8graph(m, n):
 class CharRuleMapping(RuleMapping):
 	"""Get rules by name, or make new ones by decorator
 
-    You can access the rules in this either dictionary-style or as
-    attributes. This is for convenience if you want to get at a rule's
-    decorators, eg. to add an Action to the rule.
+	You can access the rules in this either dictionary-style or as
+	attributes. This is for convenience if you want to get at a rule's
+	decorators, eg. to add an Action to the rule.
 
-    Using this as a decorator will create a new rule, named for the
-    decorated function, and using the decorated function as the
-    initial Action.
+	Using this as a decorator will create a new rule, named for the
+	decorated function, and using the decorated function as the
+	initial Action.
 
-    Using this like a dictionary will let you create new rules,
-    appending them onto the underlying :class:`RuleBook`; replace one
-    rule with another, where the new one will have the same index in
-    the :class:`RuleBook` as the old one; and activate or deactivate
-    rules. The name of a rule may be used in place of the actual rule,
-    so long as the rule already exists.
+	Using this like a dictionary will let you create new rules,
+	appending them onto the underlying :class:`RuleBook`; replace one
+	rule with another, where the new one will have the same index in
+	the :class:`RuleBook` as the old one; and activate or deactivate
+	rules. The name of a rule may be used in place of the actual rule,
+	so long as the rule already exists.
 
-    You can also set a rule active or inactive by setting it to
-    ``True`` or ``False``, respectively. Inactive rules are still in
-    the rulebook, but won't be followed.
+	You can also set a rule active or inactive by setting it to
+	``True`` or ``False``, respectively. Inactive rules are still in
+	the rulebook, but won't be followed.
 
-    """
+	"""
 
 	def __init__(self, character, rulebook, booktyp):
 		"""Initialize as usual for the ``rulebook``, mostly.
 
-        My ``character`` property will be the one passed in, and my
-        ``_table`` will be the ``booktyp`` with ``"_rules"`` appended.
+		My ``character`` property will be the one passed in, and my
+		``_table`` will be the ``booktyp`` with ``"_rules"`` appended.
 
-        """
+		"""
 		super().__init__(rulebook.engine, rulebook)
 		self.character = character
 		self._table = booktyp + "_rules"
@@ -312,10 +312,10 @@ class FacadePortal(FacadeEntity):
 class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 	"""Mapping that contains entities in a Facade.
 
-    All the entities are of the same type, ``facadecls``, possibly
-    being distorted views of entities of the type ``innercls``.
+	All the entities are of the same type, ``facadecls``, possibly
+	being distorted views of entities of the type ``innercls``.
 
-    """
+	"""
 	facadecls: Type[FacadeEntity]
 
 	@abstractmethod
@@ -649,42 +649,42 @@ class Facade(AbstractCharacter, nx.DiGraph):
 class Character(DiGraph, AbstractCharacter, RuleFollower):
 	"""A digraph that follows game rules and has a containment hierarchy
 
-    Nodes in a Character are subcategorized into Things and
-    Places. Things have locations, and those locations may be Places
-    or other Things. To get at those, use the `thing` and `place`
-    mappings -- but in situations where the distinction does not matter,
-    you may simply address the Character as a mapping, as in NetworkX.
+	Nodes in a Character are subcategorized into Things and
+	Places. Things have locations, and those locations may be Places
+	or other Things. To get at those, use the `thing` and `place`
+	mappings -- but in situations where the distinction does not matter,
+	you may simply address the Character as a mapping, as in NetworkX.
 
-    Characters may have units in other Characters. These are just
-    nodes. You can apply rules to a Character's units, and thus to
-    any collection of nodes you want, perhaps in many different
-    Characters. The `unit` attribute handles this. It is a mapping,
-    keyed by the other Character's name, then by the name of the node
-    that is this Character's unit. In the common case where a
-    Character has exactly one unit, it may be retrieved as
-    `unit.only`. When it has more than one unit, but only has
-    any units in a single other Character, you can get the mapping
-    of units in that Character as `unit.node`. Add units with the
-    `add_unit` method and remove them with `del_unit`.
+	Characters may have units in other Characters. These are just
+	nodes. You can apply rules to a Character's units, and thus to
+	any collection of nodes you want, perhaps in many different
+	Characters. The `unit` attribute handles this. It is a mapping,
+	keyed by the other Character's name, then by the name of the node
+	that is this Character's unit. In the common case where a
+	Character has exactly one unit, it may be retrieved as
+	`unit.only`. When it has more than one unit, but only has
+	any units in a single other Character, you can get the mapping
+	of units in that Character as `unit.node`. Add units with the
+	`add_unit` method and remove them with `del_unit`.
 
-    You can assign rules to Characters with their `rule` attribute,
-    typically using it as a decorator (see the documentation for
-    the `rule` module). You can do the same to some of Character's
-    attributes:
+	You can assign rules to Characters with their `rule` attribute,
+	typically using it as a decorator (see the documentation for
+	the `rule` module). You can do the same to some of Character's
+	attributes:
 
-    * `thing.rule` to make a rule run on all Things in this Character
-      every turn
-    * `place.rule` to make a rule run on all Places in this Character
-      every turn
-    * `node.rule` to make a rule run on all Things and Places in this
-      Character every turn
-    * `unit.rule` to make a rule run on all the units this
-      Character has every turn, regardless of what Character the
-      unit is in
-    * `adj.rule` to make a rule run on all the edges this Character
-      has every turn
+	* `thing.rule` to make a rule run on all Things in this Character
+	  every turn
+	* `place.rule` to make a rule run on all Places in this Character
+	  every turn
+	* `node.rule` to make a rule run on all Things and Places in this
+	  Character every turn
+	* `unit.rule` to make a rule run on all the units this
+	  Character has every turn, regardless of what Character the
+	  unit is in
+	* `adj.rule` to make a rule run on all the edges this Character
+	  has every turn
 
-    """
+	"""
 	_book = "character"
 	remove_portal = getatt('remove_edge')
 
@@ -996,10 +996,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 	class PortalSuccessorsMapping(DiGraphSuccessorsMapping, RuleFollower):
 		"""Mapping of nodes that have at least one outgoing edge.
 
-        Maps them to another mapping, keyed by the destination nodes,
-        which maps to Portal objects.
+		Maps them to another mapping, keyed by the destination nodes,
+		which maps to Portal objects.
 
-        """
+		"""
 		_book = "character_portal"
 
 		character = getatt('graph')
@@ -1032,16 +1032,16 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		def update(self, other, **kwargs):
 			"""Recursively update the stats of all portals
 
-            Input should be a dictionary of dictionaries of dictionaries
-            --just like networkx ``DiGraph._edge``.
+			Input should be a dictionary of dictionaries of dictionaries
+			--just like networkx ``DiGraph._edge``.
 
-            This will create portals as needed, but will only delete
-            them if you set their value to ``None``. Likewise, stats
-            not specified in the input will be left untouched, if they
-            are already present, but you can set them to ``None`` to
-            delete them.
+			This will create portals as needed, but will only delete
+			them if you set their value to ``None``. Likewise, stats
+			not specified in the input will be left untouched, if they
+			are already present, but you can set them to ``None`` to
+			delete them.
 
-            """
+			"""
 			engine = self.engine
 			planning = engine._planning
 			forward = engine._forward
@@ -1228,10 +1228,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 	class PortalPredecessorsMapping(DiGraphPredecessorsMapping, RuleFollower):
 		"""Mapping of nodes that have at least one incoming edge.
 
-        Maps to another mapping keyed by the origin nodes, which maps to
-        Portal objects.
+		Maps to another mapping keyed by the origin nodes, which maps to
+		Portal objects.
 
-        """
+		"""
 		_book = "character_portal"
 
 		def __init__(self, graph):
@@ -1265,11 +1265,11 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 	class UnitGraphMapping(Mapping, RuleFollower):
 		"""A mapping of other characters in which one has a unit.
 
-        Maps to a mapping of the units themselves, unless there's
-        only one other character you have units in, in which case
-        this maps to those.
+		Maps to a mapping of the units themselves, unless there's
+		only one other character you have units in, in which case
+		this maps to those.
 
-        """
+		"""
 		_book = "unit"
 
 		engine = getatt('character.engine')
@@ -1298,9 +1298,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		def __call__(self, av):
 			"""Add the unit
 
-            It must be an instance of Place or Thing.
+			It must be an instance of Place or Thing.
 
-            """
+			"""
 			if av.__class__ not in (Place, Thing):
 				raise TypeError("Only Things and Places may be units")
 			self._add_av(av.name, av.character.name)
@@ -1333,9 +1333,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		def node(self):
 			"""If I have units in only one graph, return a map of them
 
-            Otherwise, raise AttributeError.
+			Otherwise, raise AttributeError.
 
-            """
+			"""
 			get_char_av_cache: MethodType
 			get_char_av_cache, get_char_only_graph, charn, btt = self._node_stuff
 			try:
@@ -1348,9 +1348,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		def only(self):
 			"""If I have only one unit, this is it
 
-            Otherwise, raise AttributeError.
+			Otherwise, raise AttributeError.
 
-            """
+			"""
 			get_char_only_av, charn, btt, get_node, charmap = self._only_stuff
 			try:
 				charn, noden = get_char_only_av(charn, *btt())
@@ -1452,10 +1452,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 	def place2thing(self, name, location):
 		"""Turn a Place into a Thing with the given location.
-        
-        It will keep all its attached Portals.
+		
+		It will keep all its attached Portals.
 
-        """
+		"""
 		self.engine._set_thing_loc(self.name, name, location)
 		if (self.name, name) in self.engine._node_objs:
 			obj = self.engine._node_objs[self.name, name]
@@ -1481,15 +1481,15 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 	def add_portal(self, origin, destination, symmetrical=False, **kwargs):
 		"""Connect the origin to the destination with a :class:`Portal`.
 
-        Keyword arguments are the :class:`Portal`'s
-        attributes. Exception: if keyword ``symmetrical`` == ``True``,
-        a mirror-:class:`Portal` will be placed in the opposite
-        direction between the same nodes. It will always appear to
-        have the placed :class:`Portal`'s stats, and any change to the
-        mirror :class:`Portal`'s stats will affect the placed
-        :class:`Portal`.
+		Keyword arguments are the :class:`Portal`'s
+		attributes. Exception: if keyword ``symmetrical`` == ``True``,
+		a mirror-:class:`Portal` will be placed in the opposite
+		direction between the same nodes. It will always appear to
+		have the placed :class:`Portal`'s stats, and any change to the
+		mirror :class:`Portal`'s stats will affect the placed
+		:class:`Portal`.
 
-        """
+		"""
 		if isinstance(origin, Node):
 			origin = origin.name
 		if isinstance(destination, Node):
@@ -1509,15 +1509,15 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 	def add_portals_from(self, seq, symmetrical=False):
 		"""Make portals for a sequence of (origin, destination) pairs
 
-        Actually, triples are acceptable too, in which case the third
-        item is a dictionary of stats for the new :class:`Portal`.
+		Actually, triples are acceptable too, in which case the third
+		item is a dictionary of stats for the new :class:`Portal`.
 
-        If optional argument ``symmetrical`` is set to ``True``, all
-        the :class:`Portal` instances will have a mirror portal going
-        in the opposite direction, which will always have the same
-        stats.
+		If optional argument ``symmetrical`` is set to ``True``, all
+		the :class:`Portal` instances will have a mirror portal going
+		in the opposite direction, which will always have the same
+		stats.
 
-        """
+		"""
 		for tup in seq:
 			orig = tup[0]
 			dest = tup[1]
@@ -1592,9 +1592,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 	def units(self):
 		"""Iterate over all my units
 
-        Regardless of what character they are in.
+		Regardless of what character they are in.
 
-        """
+		"""
 		charname = self.character.name
 		branch, turn, tick = self.engine._btt()
 		charmap = self.engine.character
@@ -1608,10 +1608,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 	def historical(self, stat):
 		"""Get a historical view on the given stat
 
-        This functions like the value of the stat, but changes
-        when you time travel. Comparisons performed on the
-        historical view can be passed to ``engine.turns_when``
-        to find out when the comparison held true.
+		This functions like the value of the stat, but changes
+		when you time travel. Comparisons performed on the
+		historical view can be passed to ``engine.turns_when``
+		to find out when the comparison held true.
 
-        """
+		"""
 		return StatusAlias(entity=self.stat, stat=stat, engine=self.engine)

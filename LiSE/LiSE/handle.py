@@ -104,7 +104,7 @@ def _packed_dict_delta(old: Dict[bytes, bytes],
 						new: Dict[bytes, bytes]) -> FormerAndCurrentType:
 	"""Describe changes from one shallow dictionary of msgpack data to another
 
-    """
+	"""
 	post = {}
 	pre = {}
 	added_thread = Thread(target=_dict_delta_added, args=(old, new, pre, post))
@@ -219,26 +219,26 @@ def prepacked(fun: Callable) -> Callable:
 
 class EngineHandle(object):
 	"""A wrapper for a :class:`LiSE.Engine` object that runs in the same
-    process, but with an API built to be used in a command-processing
-    loop that takes commands from another process.
+	process, but with an API built to be used in a command-processing
+	loop that takes commands from another process.
 
-    It's probably a bad idea to use this class unless you're
-    developing your own API.
+	It's probably a bad idea to use this class unless you're
+	developing your own API.
 
-    """
+	"""
 	_after_ret: Callable
 
 	def __init__(self, args=(), kwargs=None, logq=None, loglevel=None):
 		"""Instantiate an engine with the positional arguments ``args`` and
-        the keyword arguments ``kwargs``.
+		the keyword arguments ``kwargs``.
 
-        ``logq`` is a :class:`Queue` into which I'll put tuples of
-        ``(loglevel, message)``. ``loglevel`` is one of
-        `'debug'`, `'info'`, `'warning'`, `'error'`, or `'critical'`
-        (or the constants from the `logging` module, or an integer)
-        and controls what messages will be logged.
+		``logq`` is a :class:`Queue` into which I'll put tuples of
+		``(loglevel, message)``. ``loglevel`` is one of
+		`'debug'`, `'info'`, `'warning'`, `'error'`, or `'critical'`
+		(or the constants from the `logging` module, or an integer)
+		and controls what messages will be logged.
 
-        """
+		"""
 		if kwargs is None:
 			kwargs = {}
 		kwargs.setdefault('logfun', self.log)
@@ -659,12 +659,12 @@ class EngineHandle(object):
 
 		"""
 		# TODO: detect if you're headed to sometime outside of the already
-		#       simulated past, and respond appropriately
-		#       - refuse to time travel to a plan
-		#       - refuse to go too far outside the past (I think no more than
-		#       one turn)
-		#       That last would also make a lot of sense as a restriction of
-		#       the LiSE core...
+		#	   simulated past, and respond appropriately
+		#	   - refuse to time travel to a plan
+		#	   - refuse to go too far outside the past (I think no more than
+		#	   one turn)
+		#	   That last would also make a lot of sense as a restriction of
+		#	   the LiSE core...
 		branch_from, turn_from, tick_from = self._real._btt()
 		slow_delta = branch != branch_from
 		self._real.time = (branch, turn)
@@ -1238,9 +1238,9 @@ class EngineHandle(object):
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> FormerAndCurrentType:
 		"""Return a dictionary describing changes to a node's stats since the
-        last time you looked at it.
+		last time you looked at it.
 
-        """
+		"""
 		old = self.node_stat_copy(char, node, btt=btt_from)
 		new = self.node_stat_copy(char, node, btt=btt_to)
 		return packed_dict_delta(old, new)
@@ -1254,9 +1254,9 @@ class EngineHandle(object):
 	) -> Tuple[Dict[bytes, Dict[bytes, bytes]], Dict[bytes, Dict[bytes,
 																	bytes]]]:
 		"""Return a dictionary of ``node_stat_delta`` output for each node in a
-        character.
+		character.
 
-        """
+		"""
 		pack = self._real.pack
 		former = {}
 		current = {}
@@ -1297,11 +1297,11 @@ class EngineHandle(object):
 	def update_node(self, char: Hashable, node: Hashable, patch: Dict) -> None:
 		"""Change a node's stats according to a dictionary.
 
-        The ``patch`` dictionary should hold the new values of stats,
-        keyed by the stats' names; a value of ``None`` deletes the
-        stat.
+		The ``patch`` dictionary should hold the new values of stats,
+		keyed by the stats' names; a value of ``None`` deletes the
+		stat.
 
-        """
+		"""
 		character = self._real.character[char]
 		if patch is None:
 			del character.node[node]
@@ -1313,9 +1313,9 @@ class EngineHandle(object):
 
 	def update_nodes(self, char: Hashable, patch: Dict, backdate=False):
 		"""Change the stats of nodes in a character according to a
-        dictionary.
+		dictionary.
 
-        """
+		"""
 		# Performance could be improved by preserving the packed values
 		tick_now = self._real.tick
 		if backdate:
@@ -1455,12 +1455,12 @@ class EngineHandle(object):
 						graph=None) -> int:
 		"""Make something find a path to ``dest`` and follow it.
 
-        Optional argument ``weight`` is the portal stat to use to schedule movement times.
+		Optional argument ``weight`` is the portal stat to use to schedule movement times.
 
-        Optional argument ``graph`` is an alternative graph to use for pathfinding.
-        Should resemble a networkx DiGraph.
+		Optional argument ``graph`` is an alternative graph to use for pathfinding.
+		Should resemble a networkx DiGraph.
 
-        """
+		"""
 		return self._real.character[char].thing[thing].travel_to(
 			dest, weight, graph)
 

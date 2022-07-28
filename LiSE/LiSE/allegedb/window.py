@@ -434,24 +434,24 @@ class WindowDictReverseSlice:
 class WindowDict(MutableMapping):
 	"""A dict that keeps every value that a variable has had over time.
 
-    Look up a revision number in this dict and it will give you the
-    effective value as of that revision. Keys should always be
-    revision numbers.
+	Look up a revision number in this dict and it will give you the
+	effective value as of that revision. Keys should always be
+	revision numbers.
 
-    Optimized for the cases where you look up the same revision
-    repeatedly, or its neighbors.
+	Optimized for the cases where you look up the same revision
+	repeatedly, or its neighbors.
 
-    This supports slice notation to get all values in a given
-    time-frame. If you do not supply a step, you'll just get the
-    values, with no indication of when they're from exactly --
-    so explicitly supply a step of 1 to get the value at each point in
-    the slice, or use the ``future`` and ``past`` methods to get read-only
-    mappings of data relative to a particular revision.
+	This supports slice notation to get all values in a given
+	time-frame. If you do not supply a step, you'll just get the
+	values, with no indication of when they're from exactly --
+	so explicitly supply a step of 1 to get the value at each point in
+	the slice, or use the ``future`` and ``past`` methods to get read-only
+	mappings of data relative to a particular revision.
 
-    Unlike slices of eg. lists, you can slice with a start greater than the stop
-    even if you don't supply a step. That will get you values in reverse order.
+	Unlike slices of eg. lists, you can slice with a start greater than the stop
+	even if you don't supply a step. That will get you values in reverse order.
 
-    """
+	"""
 	__slots__ = ('_future', '_past', '_keys', 'beginning', 'end', '_last')
 
 	_past: List[Tuple[int, Any]]
@@ -464,9 +464,9 @@ class WindowDict(MutableMapping):
 	def future(self, rev: int = None) -> WindowDictFutureView:
 		"""Return a Mapping of items after the given revision.
 
-        Default revision is the last one looked up.
+		Default revision is the last one looked up.
 
-        """
+		"""
 		if rev is not None:
 			self.seek(rev)
 		return WindowDictFutureView(self._future)
@@ -474,9 +474,9 @@ class WindowDict(MutableMapping):
 	def past(self, rev: int = None) -> WindowDictPastView:
 		"""Return a Mapping of items at or before the given revision.
 
-        Default revision is the last one looked up.
+		Default revision is the last one looked up.
 
-        """
+		"""
 		if rev is not None:
 			self.seek(rev)
 		return WindowDictPastView(self._past)
@@ -484,7 +484,7 @@ class WindowDict(MutableMapping):
 	def seek(self, rev: int) -> None:
 		"""Arrange the caches to help look up the given revision."""
 		# TODO: binary search? Perhaps only when one or the other
-		#       stack is very large?
+		#	   stack is very large?
 		if rev == self._last:
 			return
 		past = self._past
@@ -548,10 +548,10 @@ class WindowDict(MutableMapping):
 	def truncate(self, rev: int, direction: Direction = 'forward') -> None:
 		"""Delete everything after the given revision, exclusive.
 
-        With direction='backward', delete everything before the revision,
-        exclusive, instead.
+		With direction='backward', delete everything before the revision,
+		exclusive, instead.
 
-        """
+		"""
 		self.seek(rev)
 		if direction == 'forward':
 			self._keys.difference_update(map(get0, self._future))

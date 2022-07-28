@@ -37,17 +37,17 @@ class RuleMapping(BaseRuleMapping):
 class Portal(Edge, RuleFollower):
 	"""Connection between two Places that Things may travel along.
 
-    Portals are one-way, but you can make one appear two-way by
-    setting the ``symmetrical`` key to ``True``,
-    eg. ``character.add_portal(orig, dest, symmetrical=True)``.
-    The portal going the other way will appear to have all the
-    stats of this one, and attempting to set a stat on it will
-    set it here instead.
+	Portals are one-way, but you can make one appear two-way by
+	setting the ``symmetrical`` key to ``True``,
+	eg. ``character.add_portal(orig, dest, symmetrical=True)``.
+	The portal going the other way will appear to have all the
+	stats of this one, and attempting to set a stat on it will
+	set it here instead.
 
-    LiSE entities are truthy so long as they exist, falsy if they've
-    been deleted.
+	LiSE entities are truthy so long as they exist, falsy if they've
+	been deleted.
 
-    """
+	"""
 	__slots__ = ('graph', 'orig', 'dest', 'idx', 'origin', 'destination',
 					'_rulebook', '_real_rule_mapping')
 	character = getatt('graph')
@@ -113,10 +113,10 @@ class Portal(Edge, RuleFollower):
 	def __getitem__(self, key):
 		"""Get the present value of the key.
 
-        If I am a mirror of another Portal, return the value from that
-        Portal instead.
+		If I am a mirror of another Portal, return the value from that
+		Portal instead.
 
-        """
+		"""
 		if key == 'origin':
 			return self.orig
 		elif key == 'destination':
@@ -136,10 +136,10 @@ class Portal(Edge, RuleFollower):
 	def __setitem__(self, key, value):
 		"""Set ``key``=``value`` at the present game-time.
 
-        If I am a mirror of another Portal, set ``key``=``value`` on
-        that Portal instead.
+		If I am a mirror of another Portal, set ``key``=``value`` on
+		that Portal instead.
 
-        """
+		"""
 		if key in ('origin', 'destination', 'character'):
 			raise KeyError("Can't change " + key)
 		elif 'is_mirror' in self and self['is_mirror']:
@@ -176,10 +176,10 @@ class Portal(Edge, RuleFollower):
 	@property
 	def reciprocal(self):
 		"""If there's another Portal connecting the same origin and
-        destination that I do, but going the opposite way, return
-        it. Else raise KeyError.
+		destination that I do, but going the opposite way, return
+		it. Else raise KeyError.
 
-        """
+		"""
 		try:
 			return self.character.portal[self.dest][self.orig]
 		except KeyError:
@@ -188,19 +188,19 @@ class Portal(Edge, RuleFollower):
 	def historical(self, stat):
 		"""Return a reference to the values that a stat has had in the past.
 
-        You can use the reference in comparisons to make a history
-        query, and execute the query by calling it, or passing it to
-        ``self.engine.ticks_when``.
+		You can use the reference in comparisons to make a history
+		query, and execute the query by calling it, or passing it to
+		``self.engine.ticks_when``.
 
-        """
+		"""
 		return StatusAlias(entity=self, stat=stat)
 
 	def update(self, e: Union[Mapping, List[Tuple[Any, Any]]] = None, **f):
 		"""Works like regular update, but only actually updates when the new
-        value and the old value differ. This is necessary to prevent
-        certain infinite loops.
+		value and the old value differ. This is necessary to prevent
+		certain infinite loops.
 
-        """
+		"""
 		if e is not None:
 			if hasattr(e, 'keys') and callable(e.keys):
 				for k in e.keys():
@@ -221,9 +221,9 @@ class Portal(Edge, RuleFollower):
 	def delete(self):
 		"""Remove myself from my :class:`Character`.
 
-        For symmetry with :class:`Thing` and :class:`Place`.
+		For symmetry with :class:`Thing` and :class:`Place`.
 
-        """
+		"""
 		self.clear()
 		branch, turn, tick = self.engine._nbtt()
 		self.engine._edges_cache.store(self.character.name, self.origin.name,

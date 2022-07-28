@@ -39,17 +39,17 @@ class AmbiguousUserError(NonUniqueError, AttributeError):
 
 class UserFunctionError(SyntaxError):
 	"""Error condition for when I try to load a user-defined function and
-    something goes wrong.
+	something goes wrong.
 
-    """
+	"""
 	pass
 
 
 class WorldIntegrityError(ValueError):
 	"""Error condition for when something breaks the world model, even if
-    it might be allowed by the database schema.
+	it might be allowed by the database schema.
 
-    """
+	"""
 
 
 class CacheError(ValueError):
@@ -59,9 +59,9 @@ class CacheError(ValueError):
 
 class TravelException(Exception):
 	"""Exception for problems with pathfinding. Not necessarily an error
-    because sometimes somebody SHOULD get confused finding a path.
+	because sometimes somebody SHOULD get confused finding a path.
 
-    """
+	"""
 
 	def __init__(self,
 					message,
@@ -73,20 +73,20 @@ class TravelException(Exception):
 					lastplace=None):
 		"""Store the message as usual, and also the optional arguments:
 
-        ``path``: a list of Place names to show such a path as you found
+		``path``: a list of Place names to show such a path as you found
 
-        ``followed``: the portion of the path actually followed
+		``followed``: the portion of the path actually followed
 
-        ``traveller``: the Thing doing the travelling
+		``traveller``: the Thing doing the travelling
 
-        ``branch``: branch during travel
+		``branch``: branch during travel
 
-        ``tick``: tick at time of error (might not be the tick at the
-        time this exception is raised)
+		``tick``: tick at time of error (might not be the tick at the
+		time this exception is raised)
 
-        ``lastplace``: where the traveller was, when the error happened
+		``lastplace``: where the traveller was, when the error happened
 
-        """
+		"""
 		self.path = path
 		self.followed = followed
 		self.traveller = traveller
@@ -103,24 +103,24 @@ class PlanError(AttributeError):
 class RulesEngineError(Exception):
 	"""For problems to do with the rules engine
 
-    Rules themselves should never raise this. Only the engine should.
+	Rules themselves should never raise this. Only the engine should.
 
-    """
+	"""
 
 
 class RuleError(RulesEngineError):
 	"""For problems to do with rules
 
-    Rather than the operation of the rules engine as a whole.
+	Rather than the operation of the rules engine as a whole.
 
-    Don't use this in your trigger, prereq, or action functions.
-    It's only for Rule objects as such.
+	Don't use this in your trigger, prereq, or action functions.
+	It's only for Rule objects as such.
 
-    """
+	"""
 
 
 class RedundantRuleError(RuleError):
 	"""Error condition for when you try to run a rule on a (branch,
-    turn) it's already been executed.
+	turn) it's already been executed.
 
-    """
+	"""

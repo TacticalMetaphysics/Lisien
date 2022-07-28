@@ -246,13 +246,13 @@ class GridBoardView(BoardView):
 
 Builder.load_string("""
 <GridBoard>:
-    app: app
-    size_hint: None, None
+	app: app
+	size_hint: None, None
 <GridBoardView>:
-    plane: boardplane
-    BoardScatterPlane:
-        id: boardplane
-        board: root.board
-        scale_min: root.scale_min
-        scale_max: root.scale_max
+	plane: boardplane
+	BoardScatterPlane:
+		id: boardplane
+		board: root.board
+		scale_min: root.scale_min
+		scale_max: root.scale_max
 """)

@@ -46,28 +46,28 @@ class GridGeneratorDialog(BoxLayout):
 
 Builder.load_string("""
 <GridGeneratorDialog>:
-    directions: 4 if but4.state == 'down' else 8
-    orientation: 'vertical'
-    BoxLayout:
-        orientation: 'horizontal'
-        MenuIntInput:
-            id: input_x
-            hint_text: str(root.xval) if root.xval else 'x'
-            set_value: root.setter('xval')
-        Label:
-            text: 'x'
-            size_hint_x: 0.1
-        MenuIntInput:
-            id: input_y
-            hint_text: str(root.yval) if root.yval else 'y'
-            set_value: root.setter('yval')
-    BoxLayout:
-        ToggleButton:
-            id: but4
-            group: 'dir'
-            text: '4-way'
-            state: 'down'
-        ToggleButton:
-            id: but8
-            group: 'dir'
-            text: '8-way'""")
+	directions: 4 if but4.state == 'down' else 8
+	orientation: 'vertical'
+	BoxLayout:
+		orientation: 'horizontal'
+		MenuIntInput:
+			id: input_x
+			hint_text: str(root.xval) if root.xval else 'x'
+			set_value: root.setter('xval')
+		Label:
+			text: 'x'
+			size_hint_x: 0.1
+		MenuIntInput:
+			id: input_y
+			hint_text: str(root.yval) if root.yval else 'y'
+			set_value: root.setter('yval')
+	BoxLayout:
+		ToggleButton:
+			id: but4
+			group: 'dir'
+			text: '4-way'
+			state: 'down'
+		ToggleButton:
+			id: but8
+			group: 'dir'
+			text: '8-way'""")

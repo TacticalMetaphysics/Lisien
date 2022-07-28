@@ -37,9 +37,9 @@ def college24_premade():
 
 def roommate_collisions(college24_premade):
 	"""Test queries' ability to tell that all of the students that share
-    rooms have been in the same place.
+	rooms have been in the same place.
 
-    """
+	"""
 	engine = college24_premade
 	done = set()
 	for chara in engine.character.values():
@@ -75,9 +75,9 @@ def test_roomie_collisions_premade(college24_premade):
 
 def sober_collisions(college24_premade):
 	"""Students that are neither lazy nor drunkards should all have been
-    in class together at least once.
+	in class together at least once.
 
-    """
+	"""
 	engine = college24_premade
 	students = [
 		stu for stu in engine.character['student_body'].stat['characters']
@@ -92,9 +92,9 @@ def sober_collisions(college24_premade):
 				stu0.unit.only.historical('location') == stu1.unit.only.
 				historical('location') == engine.alias('classroom'))
 		), """{stu0} seems not to have been in the classroom 
-                at the same time as {stu1}.
-                {stu0} was there at turns {turns0}
-                {stu1} was there at turns {turns1}""".format(
+				at the same time as {stu1}.
+				{stu0} was there at turns {turns0}
+				{stu1} was there at turns {turns1}""".format(
 			stu0=stu0.name,
 			stu1=stu1.name,
 			turns0=list(

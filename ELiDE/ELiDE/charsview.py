@@ -98,38 +98,38 @@ class CharactersScreen(Screen):
 Builder.load_string("""
 #: import resource_find kivy.resources.resource_find
 <CharactersView>:
-    viewclass: 'RecycleToggleButton'
-    character_name: boxl.character_name
-    CharactersRecycleBoxLayout:
-        id: boxl
-        multiselect: False
-        default_size: None, dp(56)
-        default_size_hint: 1, None
-        size_hint_y: None
-        height: self.minimum_height
-        orientation: 'vertical'
+	viewclass: 'RecycleToggleButton'
+	character_name: boxl.character_name
+	CharactersRecycleBoxLayout:
+		id: boxl
+		multiselect: False
+		default_size: None, dp(56)
+		default_size_hint: 1, None
+		size_hint_y: None
+		height: self.minimum_height
+		orientation: 'vertical'
 <CharactersScreen>:
-    name: 'chars'
-    charsview: charsview
-    BoxLayout:
-        id: chars
-        orientation: 'vertical'
-        CharactersView:
-            id: charsview
-            size_hint_y: 0.8
-            character_name: root.character_name
-        TextInput:
-            id: newname
-            size_hint_y: 0.1
-            hint_text: 'New character name'
-            write_tab: False
-            multiline: False
-        Button:
-            text: '+'
-            on_release: root._trigger_new_character(newname.text)
-            size_hint_y: 0.05
-        Button:
-            text: 'Close'
-            on_release: root.toggle()
-            size_hint_y: 0.05
+	name: 'chars'
+	charsview: charsview
+	BoxLayout:
+		id: chars
+		orientation: 'vertical'
+		CharactersView:
+			id: charsview
+			size_hint_y: 0.8
+			character_name: root.character_name
+		TextInput:
+			id: newname
+			size_hint_y: 0.1
+			hint_text: 'New character name'
+			write_tab: False
+			multiline: False
+		Button:
+			text: '+'
+			on_release: root._trigger_new_character(newname.text)
+			size_hint_y: 0.05
+		Button:
+			text: 'Close'
+			on_release: root.toggle()
+			size_hint_y: 0.05
 """)

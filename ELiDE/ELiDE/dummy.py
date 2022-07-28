@@ -24,9 +24,9 @@ from . import menu  # for kv
 
 class Dummy(ImageStack):
 	"""A widget that looks like the ones on the graph, which, when dragged
-    onto the graph, creates one of them.
+	onto the graph, creates one of them.
 
-    """
+	"""
 	_touch = ObjectProperty(None, allownone=True)
 	name = StringProperty()
 	prefix = StringProperty()
@@ -52,10 +52,10 @@ class Dummy(ImageStack):
 
 	def on_touch_down(self, touch):
 		"""If hit, record my starting position, that I may return to it in
-        ``on_touch_up`` after creating a real :class:`graph.Spot` or
-        :class:`graph.Pawn` instance.
+		``on_touch_up`` after creating a real :class:`graph.Spot` or
+		:class:`graph.Pawn` instance.
 
-        """
+		"""
 		if not self.collide_point(*touch.pos):
 			return False
 		self.pos_start = self.pos
@@ -73,10 +73,10 @@ class Dummy(ImageStack):
 
 	def on_touch_up(self, touch):
 		"""Return to ``pos_start``, but first, save my current ``pos`` into
-        ``pos_up``, so that the layout knows where to put the real
-        :class:`graph.Spot` or :class:`graph.Pawn` instance.
+		``pos_up``, so that the layout knows where to put the real
+		:class:`graph.Spot` or :class:`graph.Pawn` instance.
 
-        """
+		"""
 		if touch is not self._touch:
 			return False
 		self.pos_up = self.pos
@@ -87,10 +87,10 @@ class Dummy(ImageStack):
 
 kv = """
 <Dummy>:
-    name: "".join((self.prefix, str(self.num)))
-    x_center_up: self.x_up + self.width / 2
-    y_center_up: self.y_up + self.height / 2
-    right_up: self.x_up + self.width
-    top_up: self.y_up + self.height
+	name: "".join((self.prefix, str(self.num)))
+	x_center_up: self.x_up + self.width / 2
+	y_center_up: self.y_up + self.height / 2
+	right_up: self.x_up + self.width
+	top_up: self.y_up + self.height
 """
 Builder.load_string(kv)

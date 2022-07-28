@@ -89,23 +89,23 @@ class OutOfTimelineError(ValueError):
 class PlanningContext(ContextDecorator):
 	"""A context manager for 'hypothetical' edits.
 
-    Start a block of code like::
+	Start a block of code like::
 
 		with orm.plan():
 			...
 
 
-    and any changes you make to the world state within that block will be
-    'plans,' meaning that they are used as defaults. The world will
-    obey your plan unless you make changes to the same entities outside
-    of the plan, in which case the world will obey those, and cancel any
-    future plan.
+	and any changes you make to the world state within that block will be
+	'plans,' meaning that they are used as defaults. The world will
+	obey your plan unless you make changes to the same entities outside
+	of the plan, in which case the world will obey those, and cancel any
+	future plan.
 
-    New branches cannot be started within plans. The ``with orm.forward():``
-    optimization is disabled within a ``with orm.plan():`` block, so
-    consider another approach instead of making a very large plan.
+	New branches cannot be started within plans. The ``with orm.forward():``
+	optimization is disabled within a ``with orm.plan():`` block, so
+	consider another approach instead of making a very large plan.
 
-    """
+	"""
 	__slots__ = ['orm', 'id', 'forward']
 
 	def __init__(self, orm: 'ORM'):
@@ -135,10 +135,10 @@ class PlanningContext(ContextDecorator):
 class TimeSignal:
 	"""Acts like a tuple of ``(branch, turn)`` for the most part.
 
-    This wraps a ``Signal``. To set a function to be called whenever the
-    branch or turn changes, pass it to my ``connect`` method.
+	This wraps a ``Signal``. To set a function to be called whenever the
+	branch or turn changes, pass it to my ``connect`` method.
 
-    """
+	"""
 
 	def __init__(self, engine: 'ORM', sig: Signal):
 		self.engine = engine
@@ -269,10 +269,10 @@ class TimeSignalDescriptor:
 
 class ORM:
 	"""Instantiate this with the same string argument you'd use for a
-    SQLAlchemy ``create_engine`` call. This will be your interface to
-    allegedb.
+	SQLAlchemy ``create_engine`` call. This will be your interface to
+	allegedb.
 
-    """
+	"""
 	node_cls = Node
 	edge_cls = Edge
 	query_engine_cls = QueryEngine
@@ -387,10 +387,10 @@ class ORM:
 	def advancing(self):
 		"""A context manager for when time is moving forward one turn at a time.
 
-        When used in LiSE, this means that the game is being simulated.
-        It changes how the caching works, making it more efficient.
+		When used in LiSE, this means that the game is being simulated.
+		It changes how the caching works, making it more efficient.
 
-        """
+		"""
 		if self._forward:
 			raise ValueError("Already advancing")
 		self._forward = True
@@ -401,11 +401,11 @@ class ORM:
 	def batch(self):
 		"""A context manager for when you're creating lots of state.
 
-        Reads will be much slower in a batch, but writes will be faster.
+		Reads will be much slower in a batch, but writes will be faster.
 
-        You *can* combine this with ``advancing`` but it isn't any faster.
+		You *can* combine this with ``advancing`` but it isn't any faster.
 
-        """
+		"""
 		if self._no_kc:
 			raise ValueError("Already in a batch")
 		self._no_kc = True
@@ -499,14 +499,14 @@ class ORM:
 					turn_to: int, tick_to: int) -> DeltaType:
 		"""Get a dictionary describing changes to all graphs.
 
-        The keys are graph names. Their values are dictionaries of the
-        graphs' attributes' new values, with ``None`` for deleted keys. Also
-        in those graph dictionaries are special keys 'node_val' and
-        'edge_val' describing changes to node and edge attributes,
-        and 'nodes' and 'edges' full of booleans indicating whether a node
-        or edge exists.
+		The keys are graph names. Their values are dictionaries of the
+		graphs' attributes' new values, with ``None`` for deleted keys. Also
+		in those graph dictionaries are special keys 'node_val' and
+		'edge_val' describing changes to node and edge attributes,
+		and 'nodes' and 'edges' full of booleans indicating whether a node
+		or edge exists.
 
-        """
+		"""
 
 		def setgraphval(delta: DeltaType, graph: Hashable, key: Hashable,
 						val: Any) -> None:
@@ -623,21 +623,21 @@ class ORM:
 						tick_to: int = None) -> DeltaType:
 		"""Get a dictionary describing changes made on a given turn.
 
-        If ``tick_to`` is not supplied, report all changes after ``tick_from``
-        (default 0).
+		If ``tick_to`` is not supplied, report all changes after ``tick_from``
+		(default 0).
 
-        The keys are graph names. Their values are dictionaries of the
-        graphs' attributes' new values, with ``None`` for deleted keys. Also
-        in those graph dictionaries are special keys 'node_val' and
-        'edge_val' describing changes to node and edge attributes,
-        and 'nodes' and 'edges' full of booleans indicating whether a node
-        or edge exists.
+		The keys are graph names. Their values are dictionaries of the
+		graphs' attributes' new values, with ``None`` for deleted keys. Also
+		in those graph dictionaries are special keys 'node_val' and
+		'edge_val' describing changes to node and edge attributes,
+		and 'nodes' and 'edges' full of booleans indicating whether a node
+		or edge exists.
 
-        :arg branch: A branch of history; defaults to the current branch
-        :arg turn: The turn in the branch; defaults to the current turn
-        :arg tick_from: Starting tick; defaults to 0
+		:arg branch: A branch of history; defaults to the current branch
+		:arg turn: The turn in the branch; defaults to the current turn
+		:arg tick_from: Starting tick; defaults to 0
 
-        """
+		"""
 		branch = branch or self.branch
 		turn = turn or self.turn
 		tick_to = tick_to or self.tick
@@ -790,16 +790,18 @@ class ORM:
 					connect_args: dict = None,
 					cache_arranger=False):
 		"""Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
-        either case, begin a transaction.
+		either case, begin a transaction.
 
-        :arg dbstring: rfc1738 URL for a database connection. Unless it
-        begins with "sqlite:///", SQLAlchemy will be required.
+		:arg dbstring: rfc1738 URL for a database connection. Unless it
+		begins with "sqlite:///", SQLAlchemy will be required.
 
-        :arg alchemy: Set to ``False`` to use the precompiled SQLite queries
-        even if SQLAlchemy is available. :arg connect_args: Dictionary of
-        keyword arguments to be used for the database connection.
+		:arg alchemy: Set to ``False`` to use the precompiled SQLite queries
+		even if SQLAlchemy is available.
+		
+		:arg connect_args: Dictionary of
+		keyword arguments to be used for the database connection.
 
-        """
+		"""
 		self.world_lock = RLock()
 		connect_args = connect_args or {}
 		self._planning = False
@@ -1010,8 +1012,9 @@ class ORM:
 
 		In order to have a complete timeline between these points.
 
-        Returned windows are in reverse chronological order.
-        """
+		Returned windows are in reverse chronological order.
+		
+		"""
 		if branch_from == branch_to:
 			return [(branch_from, turn_from, tick_from, turn_to, tick_to)]
 		parentage_iter = self._iter_parent_btt(branch_to, turn_to, tick_to)
@@ -1385,9 +1388,9 @@ class ORM:
 
 	def is_parent_of(self, parent: str, child: str) -> bool:
 		"""Return whether ``child`` is a branch descended from ``parent`` at
-        any remove.
+		any remove.
 
-        """
+		"""
 		if parent == 'trunk':
 			return True
 		if child == 'trunk':
@@ -1497,10 +1500,10 @@ class ORM:
 	def delete_plan(self, plan: int) -> None:
 		"""Delete the portion of a plan that has yet to occur.
 
-        :arg plan: integer ID of a plan, as given by
-                   ``with self.plan() as plan:``
+		:arg plan: integer ID of a plan, as given by
+				   ``with self.plan() as plan:``
 
-        """
+		"""
 		branch, turn, tick = self._btt()
 		to_delete = []
 		plan_ticks = self._plan_ticks[plan]
@@ -1659,12 +1662,12 @@ class ORM:
 	def _nbtt(self) -> Tuple[str, int, int]:
 		"""Increment the tick and return branch, turn, tick
 
-        Unless we're viewing the past, in which case raise HistoryError.
+		Unless we're viewing the past, in which case raise HistoryError.
 
-        Idea is you use this when you want to advance time, which you
-        can only do once per branch, turn, tick.
+		Idea is you use this when you want to advance time, which you
+		can only do once per branch, turn, tick.
 
-        """
+		"""
 		(btt, branch_end_plan, turn_end_plan, turn_end, plan_ticks,
 			plan_ticks_uncommitted, time_plan, branches) = self._nbtt_stuff
 		branch, turn, tick = btt()
@@ -1714,9 +1717,9 @@ class ORM:
 	def commit(self) -> None:
 		"""Write the state of all graphs and commit the transaction.
 
-        Also saves the current branch, turn, and tick.
+		Also saves the current branch, turn, and tick.
 
-        """
+		"""
 		self.query.globl['branch'] = self._obranch
 		self.query.globl['turn'] = self._oturn
 		self.query.globl['tick'] = self._otick
@@ -1840,22 +1843,22 @@ class ORM:
 
 	def new_graph(self, name, data=None, **attr):
 		"""Return a new instance of type Graph, initialized with the given
-        data if provided.
+		data if provided.
 
-        :arg name: a name for the graph
-        :arg data: dictionary or NetworkX graph object providing initial state
+		:arg name: a name for the graph
+		:arg data: dictionary or NetworkX graph object providing initial state
 
-        """
+		"""
 		raise NotImplementedError("Only DiGraph for now")
 
 	def new_digraph(self, name, data=None, **attr) -> DiGraph:
 		"""Return a new instance of type DiGraph, initialized with the given
-        data if provided.
+		data if provided.
 
-        :arg name: a name for the graph
-        :arg data: dictionary or NetworkX graph object providing initial state
+		:arg name: a name for the graph
+		:arg data: dictionary or NetworkX graph object providing initial state
 
-        """
+		"""
 		if data and isinstance(data, nx.Graph):
 			if not data.is_directed():
 				data = nx.to_directed(data)
@@ -1867,41 +1870,41 @@ class ORM:
 
 	def new_multigraph(self, name, data=None, **attr):
 		"""Return a new instance of type MultiGraph, initialized with the given
-        data if provided.
+		data if provided.
 
-        :arg name: a name for the graph
-        :arg data: dictionary or NetworkX graph object providing initial state
+		:arg name: a name for the graph
+		:arg data: dictionary or NetworkX graph object providing initial state
 
-        """
+		"""
 		raise NotImplementedError("Only DiGraph for now")
 
 	def new_multidigraph(self, name, data=None, **attr):
 		"""Return a new instance of type MultiDiGraph, initialized with the given
-        data if provided.
+		data if provided.
 
-        :arg name: a name for the graph
-        :arg data: dictionary or NetworkX graph object providing initial state
+		:arg name: a name for the graph
+		:arg data: dictionary or NetworkX graph object providing initial state
 
-        """
+		"""
 		raise NotImplementedError("Only DiGraph for now")
 
 	def get_graph(self, name) -> Graph:
 		"""Return a graph previously created with ``new_graph``,
-        ``new_digraph``, ``new_multigraph``, or
-        ``new_multidigraph``
+		``new_digraph``, ``new_multigraph``, or
+		``new_multidigraph``
 
-        :arg name: name of an existing graph
+		:arg name: name of an existing graph
 
-        """
+		"""
 		return self._graph_objs[name]
 
 	@world_locked
 	def del_graph(self, name: Hashable) -> None:
 		"""Remove all traces of a graph's existence from the database
 
-        :arg name: name of an existing graph
+		:arg name: name of an existing graph
 
-        """
+		"""
 		# make sure the graph exists before deleting anything
 		self.get_graph(name)
 		self.query.del_graph(name)
@@ -1917,16 +1920,16 @@ class ORM:
 		stoptime: Tuple[str, int,
 						int] = None) -> Iterator[Tuple[str, int, int]]:
 		"""Private use. Iterate over (branch, turn, tick), where the branch is
-        a descendant of the previous (starting with whatever branch is
-        presently active and ending at 'trunk'), and the turn is the
-        latest revision in the branch that matters.
+		a descendant of the previous (starting with whatever branch is
+		presently active and ending at 'trunk'), and the turn is the
+		latest revision in the branch that matters.
 
-        :arg stoptime: a triple,
-        ``(branch, turn, tick)``. Iteration will stop instead of
-        yielding that time or any before it. The tick may be ``None``,
-        in which case, iteration will stop instead of yielding the turn.
+		:arg stoptime: a triple, ``(branch, turn, tick)``. Iteration will
+		stop instead of yielding that time or any before it. The tick may be
+		``None``, in which case, iteration will stop instead of yielding the
+		turn.
 
-        """
+		"""
 		branch = branch or self.branch
 		trn = self.turn if turn is None else turn
 		tck = self.tick if tick is None else tick
@@ -1948,9 +1951,9 @@ class ORM:
 
 	def _branch_descendants(self, branch=None) -> Iterator[str]:
 		"""Iterate over all branches immediately descended from the current
-        one (or the given one, if available).
+		one (or the given one, if available).
 
-        """
+		"""
 		branch = branch or self.branch
 		for (parent, (child, _, _, _, _)) in self._branches.items():
 			if parent == branch:

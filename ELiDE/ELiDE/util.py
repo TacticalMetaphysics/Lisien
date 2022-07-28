@@ -34,14 +34,14 @@ class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior,
 class trigger(object):
 	"""Make a trigger from a method.
 
-    Decorate a method with this and it will become a trigger. Supply a
-    numeric parameter to set a timeout.
+	Decorate a method with this and it will become a trigger. Supply a
+	numeric parameter to set a timeout.
 
-    Not suitable for methods that expect any arguments other than
-    ``dt``. However you should make your method accept ``*args`` for
-    compatibility.
+	Not suitable for methods that expect any arguments other than
+	``dt``. However you should make your method accept ``*args`` for
+	compatibility.
 
-    """
+	"""
 
 	def __init__(self, func_or_timeout):
 		if callable(func_or_timeout):
@@ -69,9 +69,9 @@ class trigger(object):
 
 def try_load(loader, obj):
 	"""Return the JSON interpretation the object if possible, or just the
-    object otherwise.
+	object otherwise.
 
-    """
+	"""
 	try:
 		return loader(obj)
 	except (TypeError, ValueError):
@@ -80,9 +80,9 @@ def try_load(loader, obj):
 
 def dummynum(character, name):
 	"""Count how many nodes there already are in the character whose name
-    starts the same.
+	starts the same.
 
-    """
+	"""
 	num = 0
 	for nodename in character.node:
 		nodename = str(nodename)
@@ -98,10 +98,10 @@ def dummynum(character, name):
 
 def get_thin_rect_vertices(ox, oy, dx, dy, r):
 	"""Given the starting point, ending point, and width, return a list of
-    vertex coordinates at the corners of the line segment
-    (really a thin rectangle).
+	vertex coordinates at the corners of the line segment
+	(really a thin rectangle).
 
-    """
+	"""
 	if ox < dx:
 		leftx = ox
 		rightx = dx

@@ -31,13 +31,13 @@ from functools import partial
 class GameScreen(Screen):
 	"""A version of :class:`kivy.uix.screenmanager.Screen` that is easier to set up and use with ELiDE
 
-    Should be a child of the :class:`ELiDE.game.Screens` widget, which will never itself be displayed.
-    ``GameScreen`` instances in it will be added to the screen manager, so that you can switch
-    to them with the ``switch_screen`` method.
+	Should be a child of the :class:`ELiDE.game.Screens` widget, which will never itself be displayed.
+	``GameScreen`` instances in it will be added to the screen manager, so that you can switch
+	to them with the ``switch_screen`` method.
 
-    Every ``GameScreen`` needs a ``name``, just like regular ``Screen``.
+	Every ``GameScreen`` needs a ``name``, just like regular ``Screen``.
 
-    """
+	"""
 	switch_screen = ObjectProperty()
 	"""Method to set the ``screen`` attribute of the main :class:`kivy.uix.screenmanager.ScreenManager`"""
 	disabled = BooleanProperty(False)
@@ -54,10 +54,10 @@ class GameScreen(Screen):
 	def disable_input(self, cb=None):
 		"""Set ``self.disabled`` to ``True``, then call ``cb`` if provided
 
-        :param cb: callback function for after disabling
-        :return: ``None``
+		:param cb: callback function for after disabling
+		:return: ``None``
 
-        """
+		"""
 		self.disabled = True
 		if cb:
 			cb()
@@ -65,10 +65,10 @@ class GameScreen(Screen):
 	def enable_input(self, cb=None):
 		"""Call ``cb`` if provided, then set ``self.disabled`` to ``False``
 
-        :param cb: callback function for before enabling
-        :return: ``None``
+		:param cb: callback function for before enabling
+		:return: ``None``
 
-        """
+		"""
 		if cb:
 			cb()
 		self.disabled = False
@@ -76,13 +76,13 @@ class GameScreen(Screen):
 	def wait_travel(self, character, thing, dest, cb=None):
 		"""Schedule a thing to travel someplace, then wait for it to finish.
 
-        :param character: name of the character
-        :param thing: name of the thing that will travel
-        :param dest: name of the place it will travel to
-        :param cb: callback function for when it's done, optional
-        :return: ``None``
+		:param character: name of the character
+		:param thing: name of the thing that will travel
+		:param dest: name of the place it will travel to
+		:param cb: callback function for when it's done, optional
+		:return: ``None``
 
-        """
+		"""
 		self.disable_input()
 		self.app.wait_travel(character,
 								thing,
@@ -92,27 +92,27 @@ class GameScreen(Screen):
 	def wait_turns(self, turns, cb=None):
 		"""Call ``self.app.engine.next_turn()`` ``n`` times, waiting ``self.app.turn_length`` in between
 
-        Disables input for the duration.
+		Disables input for the duration.
 
-        :param turns: number of turns to wait
-        :param cb: function to call when done waiting, optional
-        :return: ``None``
+		:param turns: number of turns to wait
+		:param cb: function to call when done waiting, optional
+		:return: ``None``
 
-        """
+		"""
 		self.disable_input()
 		self.app.wait_turns(turns, cb=partial(self.enable_input, cb))
 
 	def wait_command(self, start_func, turns=1, end_func=None):
 		"""Call ``start_func``, wait ``turns``, and then call ``end_func`` if provided
 
-        Disables input for the duration.
+		Disables input for the duration.
 
-        :param start_func: function to call just after disabling input
-        :param turns: number of turns to wait
-        :param end_func: function to call just before re-enabling input
-        :return: ``None``
+		:param start_func: function to call just after disabling input
+		:param turns: number of turns to wait
+		:param end_func: function to call just before re-enabling input
+		:return: ``None``
 
-        """
+		"""
 		self.disable_input()
 		start_func()
 		self.app.wait_turns(turns, cb=partial(self.enable_input, end_func))
@@ -126,17 +126,17 @@ class GameScreen(Screen):
 							end_func=lambda: None):
 		"""Schedule a thing to travel someplace and do something, then wait for it to finish.
 
-        Input will be disabled for the duration.
+		Input will be disabled for the duration.
 
-        :param character: name of the character
-        :param thing: name of the thing
-        :param dest: name of the destination (a place)
-        :param start_func: function to call when the thing gets to dest
-        :param turns: number of turns to wait after start_func before re-enabling input
-        :param end_func: optional. Function to call after waiting ``turns`` after start_func
-        :return: ``None``
+		:param character: name of the character
+		:param thing: name of the thing
+		:param dest: name of the destination (a place)
+		:param start_func: function to call when the thing gets to dest
+		:param turns: number of turns to wait after start_func before re-enabling input
+		:param end_func: optional. Function to call after waiting ``turns`` after start_func
+		:return: ``None``
 
-        """
+		"""
 		self.disable_input()
 		self.app.wait_travel_command(character, thing, dest, start_func, turns,
 										partial(self.enable_input, end_func))
@@ -159,14 +159,14 @@ class GameApp(ELiDEApp):
 	def wait_turns(self, turns, dt=None, *, cb=None):
 		"""Call ``self.engine.next_turn()`` ``n`` times, waiting ``self.turn_length`` in between
 
-        If provided, call ``cb`` when done.
+		If provided, call ``cb`` when done.
 
-        :param turns: number of turns to wait
-        :param dt: unused, just satisfies the clock
-        :param cb: callback function to call when done, optional
-        :return: ``None``
+		:param turns: number of turns to wait
+		:param dt: unused, just satisfies the clock
+		:param cb: callback function to call when done, optional
+		:return: ``None``
 
-        """
+		"""
 		if turns == 0:
 			if cb:
 				cb()
@@ -179,13 +179,13 @@ class GameApp(ELiDEApp):
 	def wait_travel(self, character, thing, dest, cb=None):
 		"""Schedule a thing to travel someplace, then wait for it to finish, and call ``cb`` if provided
 
-        :param character: name of the character
-        :param thing: name of the thing
-        :param dest: name of the destination (a place)
-        :param cb: function to be called when I'm done
-        :return: ``None``
-        
-        """
+		:param character: name of the character
+		:param thing: name of the thing
+		:param dest: name of the destination (a place)
+		:param cb: function to be called when I'm done
+		:return: ``None``
+		
+		"""
 		self.wait_turns(
 			self.engine.character[character].thing[thing].travel_to(dest),
 			cb=cb)
@@ -193,12 +193,12 @@ class GameApp(ELiDEApp):
 	def wait_command(self, start_func, turns=1, end_func=None):
 		"""Call ``start_func``, and wait to call ``end_func`` after simulating ``turns`` (default 1)
 
-        :param start_func: function to call before waiting
-        :param turns: number of turns to wait
-        :param end_func: function to call after waiting
-        :return: ``None``
+		:param start_func: function to call before waiting
+		:param turns: number of turns to wait
+		:param end_func: function to call after waiting
+		:return: ``None``
 
-        """
+		"""
 		start_func()
 		self.wait_turns(turns, cb=end_func)
 
@@ -211,14 +211,14 @@ class GameApp(ELiDEApp):
 							end_func=None):
 		"""Schedule a thing to travel someplace and do something, then wait for it to finish.
 
-        :param character: name of the character
-        :param thing: name of the thing
-        :param dest: name of the destination (a place)
-        :param start_func: function to call when the thing gets to dest
-        :param turns: number of turns to wait after start_func before re-enabling input
-        :param end_func: optional. Function to call after waiting ``turns`` after start_func
-        :return: ``None``
-        """
+		:param character: name of the character
+		:param thing: name of the thing
+		:param dest: name of the destination (a place)
+		:param start_func: function to call when the thing gets to dest
+		:param turns: number of turns to wait after start_func before re-enabling input
+		:param end_func: optional. Function to call after waiting ``turns`` after start_func
+		:return: ``None``
+		"""
 		self.wait_travel(character,
 							thing,
 							dest,

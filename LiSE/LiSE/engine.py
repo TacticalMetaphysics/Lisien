@@ -50,13 +50,13 @@ class DummyEntity(dict):
 class NextTurn(Signal):
 	"""Make time move forward in the simulation.
 
-    Calls ``advance`` repeatedly, returning a list of the rules' return values.
+	Calls ``advance`` repeatedly, returning a list of the rules' return values.
 
-    I am also a ``Signal``, so you can register functions to be
-    called when the simulation runs. Pass them to my ``connect``
-    method.
+	I am also a ``Signal``, so you can register functions to be
+	called when the simulation runs. Pass them to my ``connect``
+	method.
 
-    """
+	"""
 
 	def __init__(self, engine: AbstractEngine):
 		super().__init__()
@@ -146,59 +146,59 @@ class NullSchema(AbstractSchema):
 class Engine(AbstractEngine, gORM):
 	"""LiSE, the Life Simulator Engine.
 
-    Each instance of LiSE maintains a connection to a database
-    representing the state of a simulated world. Simulation rules
-    within this world are described by lists of Python functions, some
-    of which make changes to the world.
+	Each instance of LiSE maintains a connection to a database
+	representing the state of a simulated world. Simulation rules
+	within this world are described by lists of Python functions, some
+	of which make changes to the world.
 
-    The top-level data structure within LiSE is the character. Most
-    data within the world model is kept in some character or other;
-    these will quite frequently represent people, but can be readily
-    adapted to represent any kind of data that can be comfortably
-    described as a graph or a JSON object. Every change to a character
-    will be written to the database.
+	The top-level data structure within LiSE is the character. Most
+	data within the world model is kept in some character or other;
+	these will quite frequently represent people, but can be readily
+	adapted to represent any kind of data that can be comfortably
+	described as a graph or a JSON object. Every change to a character
+	will be written to the database.
 
-    LiSE tracks history as a series of turns. In each turn, each
-    simulation rule is evaluated once for each of the simulated
-    entities it's been applied to. World changes in a given turn are
-    remembered together, such that the whole world state can be
-    rewound: simply set the properties ``branch`` and ``turn`` back to
-    what they were just before the change you want to undo.
+	LiSE tracks history as a series of turns. In each turn, each
+	simulation rule is evaluated once for each of the simulated
+	entities it's been applied to. World changes in a given turn are
+	remembered together, such that the whole world state can be
+	rewound: simply set the properties ``branch`` and ``turn`` back to
+	what they were just before the change you want to undo.
 
-    Properties:
+	Properties:
 
-    - ``branch``: The fork of the timestream that we're on.
-    - ``turn``: Units of time that have passed since the sim started.
-    - ``time``: ``(branch, turn)``
-    - ``tick``: A counter of how many changes have occurred this turn.
-      Can be set manually, but is more often set to the last tick in a turn
-      as a side effect of setting ``turn``.
-    - ``character``: A mapping of :class:`Character` objects by name.
-    - ``rule``: A mapping of all rules that have been made.
-    - ``rulebook``: A mapping of lists of rules. They are followed in
-      their order.  A whole rulebook full of rules may be assigned to
-      an entity at once.
-    - ``trigger``: Functions that might trigger a rule.
-    - ``prereq``: Functions a rule might require to return
-      ``True`` for it to run.
-    - ``action``: Functions that might manipulate the world
-      state as a result of a rule running.
-    - ``method``: Extension methods to be added to the engine object.
-    - ``function``: Generic functions. All of ``trigger``, ``prereq``,
-      ``action``, ``method``, and ``function`` are modules or similar;
-      they default to :class:`FunctionStore` objects, which can write
-      Python code to the underlying module at runtime.
-    - ``string``: A mapping of strings, probably shown to the player
-      at some point. Defaults to a :class:`StringStore` object,
-      which can alter the underlying JSON file at runtime.
-    - ``eternal``: Mapping of arbitrary serializable objects. It isn't
-      sensitive to sim-time. A good place to keep game settings.
-    - ``universal``: Another mapping of arbitrary serializable
-      objects, but this one *is* sensitive to sim-time. Each turn, the
-      state of the randomizer is saved here under the key
-      ``'rando_state'``.
+	- ``branch``: The fork of the timestream that we're on.
+	- ``turn``: Units of time that have passed since the sim started.
+	- ``time``: ``(branch, turn)``
+	- ``tick``: A counter of how many changes have occurred this turn.
+	  Can be set manually, but is more often set to the last tick in a turn
+	  as a side effect of setting ``turn``.
+	- ``character``: A mapping of :class:`Character` objects by name.
+	- ``rule``: A mapping of all rules that have been made.
+	- ``rulebook``: A mapping of lists of rules. They are followed in
+	  their order.  A whole rulebook full of rules may be assigned to
+	  an entity at once.
+	- ``trigger``: Functions that might trigger a rule.
+	- ``prereq``: Functions a rule might require to return
+	  ``True`` for it to run.
+	- ``action``: Functions that might manipulate the world
+	  state as a result of a rule running.
+	- ``method``: Extension methods to be added to the engine object.
+	- ``function``: Generic functions. All of ``trigger``, ``prereq``,
+	  ``action``, ``method``, and ``function`` are modules or similar;
+	  they default to :class:`FunctionStore` objects, which can write
+	  Python code to the underlying module at runtime.
+	- ``string``: A mapping of strings, probably shown to the player
+	  at some point. Defaults to a :class:`StringStore` object,
+	  which can alter the underlying JSON file at runtime.
+	- ``eternal``: Mapping of arbitrary serializable objects. It isn't
+	  sensitive to sim-time. A good place to keep game settings.
+	- ``universal``: Another mapping of arbitrary serializable
+	  objects, but this one *is* sensitive to sim-time. Each turn, the
+	  state of the randomizer is saved here under the key
+	  ``'rando_state'``.
 
-    """
+	"""
 	from .character import Character
 	from .thing import Thing
 	from .place import Place
@@ -236,58 +236,58 @@ class Engine(AbstractEngine, gORM):
 					keyframe_on_close=True,
 					cache_arranger=True):
 		"""Store the connections for the world database and the code database;
-        set up listeners; and start a transaction
+		set up listeners; and start a transaction
 
-        :arg prefix: directory containing the simulation and its code;
-        defaults to the working directory
-        :arg string: module storing strings to be used in the game
-        :arg function: module containing utility functions
-        :arg method: module containing functions taking this engine as
-        first arg
-        :arg trigger: module containing trigger functions, taking a LiSE
-        entity and returning a boolean for whether to run a rule
-        :arg prereq: module containing prereq functions, taking a LiSE entity and
-        returning a boolean for whether to permit a rule to run
-        :arg action: module containing action functions, taking a LiSE entity and
-        mutating it (and possibly the rest of the world)
-        :arg connect_string: a rfc1738 URI for a database to connect to;
-        if absent, we'll use a SQLite database in the prefix directory.
-        With ``alchemy=False`` we can only open SQLite databases,
-        in which case ``connect_string`` is just a path to the database--
-        unless it's ``":memory:"``, which is an in-memory database that
-        won't be saved
-        :arg connect_args: dictionary of keyword arguments for the
-        database connection
-        :arg schema: a Schema class that determines which changes to allow to
-        the world; used when a player should not be able to change just anything.
-        Defaults to `NullSchema`
-        :arg alchemy: whether to use SQLAlchemy to connect to the
-        database. If False, LiSE can only use SQLite
-        :arg flush_modulus: LiSE will put pending changes into the database
-        transaction every ``flush_modulus`` turns. If ``None``
-        (the default), only flush on commit
-        :arg commit_modulus: LiSE will commit changes to disk every
-        ``commit_modulus`` turns. If ``None`` (the default), only commit
-        on close or manual call to ``commit``
-        :arg random_seed: a number to initialize the randomizer
-        :arg logfun: an optional function taking arguments
-        ``level, message``, which should log `message` somehow
-        :arg clear: whether to delete *any and all* existing data
-        and code in ``prefix``. Use with caution!
-        :arg keep_rules_journal: Boolean; if true (default), keep
-        information on the behavior of the rules engine in the database.
-        Makes the database rather large, but useful for debugging.
-        :arg keyframe_on_close: Whether to snap a keyframe when closing the
-        engine, default ``True``. This is usually what you want, as it will
-        make future startups faster, but could cause database bloat if
-        your game runs few turns per session.
-        :arg cache_arranger: If true (default), start a background
-        process that indexes the caches to make time travel faster
-        when it's to points we anticipate. If you use this, you can
-        specify some other point in time to index by putting the
-        `(branch, turn, tick)` in my `cache_arrange_queue`.
+		:arg prefix: directory containing the simulation and its code;
+		defaults to the working directory
+		:arg string: module storing strings to be used in the game
+		:arg function: module containing utility functions
+		:arg method: module containing functions taking this engine as
+		first arg
+		:arg trigger: module containing trigger functions, taking a LiSE
+		entity and returning a boolean for whether to run a rule
+		:arg prereq: module containing prereq functions, taking a LiSE entity and
+		returning a boolean for whether to permit a rule to run
+		:arg action: module containing action functions, taking a LiSE entity and
+		mutating it (and possibly the rest of the world)
+		:arg connect_string: a rfc1738 URI for a database to connect to;
+		if absent, we'll use a SQLite database in the prefix directory.
+		With ``alchemy=False`` we can only open SQLite databases,
+		in which case ``connect_string`` is just a path to the database--
+		unless it's ``":memory:"``, which is an in-memory database that
+		won't be saved
+		:arg connect_args: dictionary of keyword arguments for the
+		database connection
+		:arg schema: a Schema class that determines which changes to allow to
+		the world; used when a player should not be able to change just anything.
+		Defaults to `NullSchema`
+		:arg alchemy: whether to use SQLAlchemy to connect to the
+		database. If False, LiSE can only use SQLite
+		:arg flush_modulus: LiSE will put pending changes into the database
+		transaction every ``flush_modulus`` turns. If ``None``
+		(the default), only flush on commit
+		:arg commit_modulus: LiSE will commit changes to disk every
+		``commit_modulus`` turns. If ``None`` (the default), only commit
+		on close or manual call to ``commit``
+		:arg random_seed: a number to initialize the randomizer
+		:arg logfun: an optional function taking arguments
+		``level, message``, which should log `message` somehow
+		:arg clear: whether to delete *any and all* existing data
+		and code in ``prefix``. Use with caution!
+		:arg keep_rules_journal: Boolean; if true (default), keep
+		information on the behavior of the rules engine in the database.
+		Makes the database rather large, but useful for debugging.
+		:arg keyframe_on_close: Whether to snap a keyframe when closing the
+		engine, default ``True``. This is usually what you want, as it will
+		make future startups faster, but could cause database bloat if
+		your game runs few turns per session.
+		:arg cache_arranger: If true (default), start a background
+		process that indexes the caches to make time travel faster
+		when it's to points we anticipate. If you use this, you can
+		specify some other point in time to index by putting the
+		`(branch, turn, tick)` in my `cache_arrange_queue`.
 
-        """
+		"""
 		if logfun is None:
 			from logging import getLogger
 			logger = getLogger("Life Sim Engine")
@@ -586,36 +586,36 @@ class Engine(AbstractEngine, gORM):
 					turn_to: int, tick_to: int) -> DeltaType:
 		"""Get a dictionary describing changes to the world.
 
-        Most keys will be character names, and their values will be
-        dictionaries of the character's stats' new values, with ``None``
-        for deleted keys. Characters' dictionaries have special keys
-        'nodes' and 'edges' which contain booleans indicating whether
-        the node or edge exists at the moment, and 'node_val' and
-        'edge_val' for the stats of those entities. For edges (also
-        called portals) these dictionaries are two layers deep, keyed
-        first by the origin, then by the destination.
+		Most keys will be character names, and their values will be
+		dictionaries of the character's stats' new values, with ``None``
+		for deleted keys. Characters' dictionaries have special keys
+		'nodes' and 'edges' which contain booleans indicating whether
+		the node or edge exists at the moment, and 'node_val' and
+		'edge_val' for the stats of those entities. For edges (also
+		called portals) these dictionaries are two layers deep, keyed
+		first by the origin, then by the destination.
 
-        Characters also have special keys for the various rulebooks
-        they have:
+		Characters also have special keys for the various rulebooks
+		they have:
 
-        * 'character_rulebook'
-        * 'unit_rulebook'
-        * 'character_thing_rulebook'
-        * 'character_place_rulebook'
-        * 'character_portal_rulebook'
+		* 'character_rulebook'
+		* 'unit_rulebook'
+		* 'character_thing_rulebook'
+		* 'character_place_rulebook'
+		* 'character_portal_rulebook'
 
-        And each node and edge may have a 'rulebook' stat of its own.
-        If a node is a thing, it gets a 'location'; when the 'location'
-        is deleted, that means it's back to being a place.
+		And each node and edge may have a 'rulebook' stat of its own.
+		If a node is a thing, it gets a 'location'; when the 'location'
+		is deleted, that means it's back to being a place.
 
-        Keys at the top level that are not character names:
+		Keys at the top level that are not character names:
 
-        * 'rulebooks', a dictionary keyed by the name of each changed
-          rulebook, the value being a list of rule names
-        * 'rules', a dictionary keyed by the name of each changed rule,
-          containing any of the lists 'triggers', 'prereqs', and 'actions'
+		* 'rulebooks', a dictionary keyed by the name of each changed
+		  rulebook, the value being a list of rule names
+		* 'rules', a dictionary keyed by the name of each changed rule,
+		  containing any of the lists 'triggers', 'prereqs', and 'actions'
 
-        """
+		"""
 		from .allegedb.window import update_window, update_backward_window
 		if not isinstance(branch, str):
 			raise TypeError("branch must be str")
@@ -758,20 +758,20 @@ class Engine(AbstractEngine, gORM):
 						start_tick=0) -> DeltaType:
 		"""Get a dictionary of changes to the world within a given turn
 
-        Defaults to the present turn, and stops at the present tick
-        unless specified.
+		Defaults to the present turn, and stops at the present tick
+		unless specified.
 
-        See the documentation for ``get_delta`` for a detailed
-        description of the delta format.
+		See the documentation for ``get_delta`` for a detailed
+		description of the delta format.
 
-        :arg branch: branch of history, defaulting to the present branch
-        :arg turn: turn within the branch, defaulting to the present
-                   turn
-        :arg tick: tick at which to stop the delta, defaulting to the
-                   present tick
-        :arg start_tick: tick at which to start the delta, default 0
+		:arg branch: branch of history, defaulting to the present branch
+		:arg turn: turn within the branch, defaulting to the present
+				   turn
+		:arg tick: tick at which to stop the delta, defaulting to the
+				   present tick
+		:arg start_tick: tick at which to start the delta, default 0
 
-        """
+		"""
 		branch = branch or self.branch
 		turn = turn or self.turn
 		tick = tick or self.tick
@@ -895,14 +895,14 @@ class Engine(AbstractEngine, gORM):
 							tick: int = None) -> None:
 		"""Use this to record a change in unitness.
 
-        Should be called whenever a node that wasn't an unit of a
-        character now is, and whenever a node that was an unit of a
-        character now isn't.
+		Should be called whenever a node that wasn't an unit of a
+		character now is, and whenever a node that was an unit of a
+		character now isn't.
 
-        ``character`` is the one using the node as an unit,
-        ``graph`` is the character the node is in.
+		``character`` is the one using the node as an unit,
+		``graph`` is the character the node is in.
 
-        """
+		"""
 		branch = branch or self.branch
 		turn = turn or self.turn
 		tick = tick or self.tick
@@ -1331,9 +1331,9 @@ class Engine(AbstractEngine, gORM):
 	def advance(self) -> Any:
 		"""Follow the next rule if available.
 
-        If we've run out of rules, reset the rules iterator.
+		If we've run out of rules, reset the rules iterator.
 
-        """
+		"""
 		assert self.turn > self._turns_completed[self.branch]
 		try:
 			return next(self._rules_iter)
@@ -1345,8 +1345,8 @@ class Engine(AbstractEngine, gORM):
 			return final_rule
 
 	# except Exception as ex:
-	#     self._rules_iter = self._follow_rules()
-	#     return ex
+	#	 self._rules_iter = self._follow_rules()
+	#	 return ex
 
 	def new_character(self,
 						name: Hashable,
@@ -1364,15 +1364,15 @@ class Engine(AbstractEngine, gORM):
 						**kwargs) -> None:
 		"""Create a new character.
 
-        You'll be able to access it as a :class:`Character` object by
-        looking up ``name`` in my ``character`` property.
+		You'll be able to access it as a :class:`Character` object by
+		looking up ``name`` in my ``character`` property.
 
-        ``data``, if provided, should be a networkx-compatible graph
-        object. Your new character will be a copy of it.
+		``data``, if provided, should be a networkx-compatible graph
+		object. Your new character will be a copy of it.
 
-        Any keyword arguments will be set as stats of the new character.
+		Any keyword arguments will be set as stats of the new character.
 
-        """
+		"""
 		self._init_graph(name, 'DiGraph', data)
 		self._graph_objs[name] = graph_obj = self.char_cls(self, name)
 		if kwargs:
@@ -1381,9 +1381,9 @@ class Engine(AbstractEngine, gORM):
 	def del_character(self, name: Hashable) -> None:
 		"""Remove the Character from the database entirely.
 
-        This also deletes all its history. You'd better be sure.
+		This also deletes all its history. You'd better be sure.
 
-        """
+		"""
 		self.query.del_character(name)
 		self.del_graph(name)
 		del self.character[name]
@@ -1401,15 +1401,15 @@ class Engine(AbstractEngine, gORM):
 	def alias(self, v: Any, stat: Hashable = 'dummy') -> EntityStatAccessor:
 		"""Return a pointer to a value for use in historical queries.
 
-        It will behave much as if you assigned the value to some entity
-        and then used its ``historical`` method to get a reference to
-        the set of its past values, which happens to contain only the
-        value you've provided here, ``v``.
+		It will behave much as if you assigned the value to some entity
+		and then used its ``historical`` method to get a reference to
+		the set of its past values, which happens to contain only the
+		value you've provided here, ``v``.
 
-        :arg v: the value to represent
-        :arg stat: what name to pretend its stat has; usually irrelevant
+		:arg v: the value to represent
+		:arg stat: what name to pretend its stat has; usually irrelevant
 
-        """
+		"""
 		from .util import EntityStatAccessor
 		r = DummyEntity(self)
 		r[stat] = v
@@ -1459,12 +1459,12 @@ class Engine(AbstractEngine, gORM):
 	def turns_when(self, qry):
 		"""Yield the turns in this branch when the query held true
 
-        :arg qry: a Query, likely constructed by comparing the result
-                  of a call to an entity's ``historical`` method with
-                  the output of ``self.alias(..)`` or another
-                  ``historical(..)``
+		:arg qry: a Query, likely constructed by comparing the result
+				  of a call to an entity's ``historical`` method with
+				  the output of ``self.alias(..)`` or another
+				  ``historical(..)``
 
-        """
+		"""
 		# yeah, it's just a loop over the query's method...I'm planning
 		# on moving some iter_turns logic in here when I figure out what
 		# of it is truly independent of any given type of query
@@ -1483,23 +1483,23 @@ class Engine(AbstractEngine, gORM):
 	) -> Tuple[List[Tuple[Any, Any]], List[Tuple[Any, Any]]]:
 		"""Validate changes a player wants to make, and apply if acceptable.
 
-        Returns a pair of lists containing acceptance and rejection messages,
-        which the UI may present as it sees fit. They are always in a pair with
-        the change request as the zeroth item. The message may be None or a string.
+		Returns a pair of lists containing acceptance and rejection messages,
+		which the UI may present as it sees fit. They are always in a pair with
+		the change request as the zeroth item. The message may be None or a string.
 
-        Validator functions may return only a boolean indicating acceptance.
-        If they instead return a pair, the initial boolean indicates acceptance
-        and the following item is the message.
+		Validator functions may return only a boolean indicating acceptance.
+		If they instead return a pair, the initial boolean indicates acceptance
+		and the following item is the message.
 
-        This function will not actually result in any simulation happening.
-        It creates a plan. See my ``plan`` context manager for the precise
-        meaning of this.
+		This function will not actually result in any simulation happening.
+		It creates a plan. See my ``plan`` context manager for the precise
+		meaning of this.
 
-        With ``dry_run=True`` just return the acceptances and rejections without
-        really planning anything. With ``perfectionist=True`` apply changes if
-        and only if all of them are accepted.
+		With ``dry_run=True`` just return the acceptances and rejections without
+		really planning anything. With ``perfectionist=True`` apply changes if
+		and only if all of them are accepted.
 
-        """
+		"""
 		schema = self.schema
 		todo = defaultdict(list)
 		acceptances = []

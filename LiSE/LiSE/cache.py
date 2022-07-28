@@ -678,9 +678,9 @@ class NodeContentsCache(Cache):
 	def remove(self, branch, turn, tick):
 		"""Delete data on or after this tick
 
-        On the assumption that the future has been invalidated.
+		On the assumption that the future has been invalidated.
 
-        """
+		"""
 		for parent, entitys in list(self.parents.items()):
 			for entity, keys in list(entitys.items()):
 				for key, branchs in list(keys.items()):
@@ -775,9 +775,9 @@ class NodeContentsCache(Cache):
 	def truncate_loc(self, character, location, branch, turn, tick):
 		"""Remove future data about a particular location
 
-        Return True if I deleted anything, False otherwise.
+		Return True if I deleted anything, False otherwise.
 
-        """
+		"""
 		r = False
 		branches_turns = self.branches[character, location][branch]
 		branches_turns.truncate(turn)
