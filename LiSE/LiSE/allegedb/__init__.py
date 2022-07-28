@@ -978,6 +978,8 @@ class ORM:
 		kfl = self._keyframes_list
 		kfd = self._keyframes_dict
 		kfs = self._keyframes_times
+		if (branch, turn, tick) in kfs:
+			return
 		nkfs = self._new_keyframes
 		for graphn, graph in self.graph.items():
 			nodes = graph._nodes_state()
