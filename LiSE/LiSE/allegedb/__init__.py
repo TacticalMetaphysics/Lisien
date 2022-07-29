@@ -18,7 +18,7 @@ from contextlib import ContextDecorator, contextmanager
 from functools import wraps
 import gc
 from queue import Queue
-from threading import Lock, Thread
+from threading import RLock, Thread
 from typing import (Callable, Dict, Any, Union, Tuple, Optional, List,
 					Hashable, Iterator)
 from weakref import WeakValueDictionary
@@ -802,7 +802,7 @@ class ORM:
 		keyword arguments to be used for the database connection.
 
 		"""
-		self.world_lock = Lock()
+		self.world_lock = RLock()
 		connect_args = connect_args or {}
 		self._planning = False
 		self._forward = False
@@ -927,6 +927,7 @@ class ORM:
 			parent, _, _, _, _ = self._branches[parent]
 			self._branch_parents[child].add(parent)
 
+	@world_locked
 	def _snap_keyframe(self, graph: Hashable, branch: str, turn: int,
 						tick: int, nodes: NodeValDictType,
 						edges: EdgeValDictType,
@@ -972,6 +973,7 @@ class ORM:
 		else:
 			gvkb[turn] = {tick: graph_val}
 
+	@world_locked
 	def snap_keyframe(self) -> None:
 		branch, turn, tick = self._btt()
 		snapp = self._snap_keyframe
@@ -1028,6 +1030,7 @@ class ORM:
 			raise HistoricKeyError("Couldn't build sensible loading windows")
 		return windows
 
+	@world_locked
 	def _load_at(
 		self, branch: str, turn: int, tick: int
 	) -> Tuple[Optional[Tuple[str, int, int]], Optional[Tuple[
@@ -1278,6 +1281,7 @@ class ORM:
 		return (latest_past_keyframe, earliest_future_keyframe, keyframed,
 				noderows, edgerows, graphvalrows, nodevalrows, edgevalrows)
 
+	@world_locked
 	def unload(self):
 		"""Remove everything from memory we can"""
 		# find the slices of time that need to stay loaded
@@ -1402,6 +1406,7 @@ class ORM:
 	def _get_branch(self) -> str:
 		return self._obranch
 
+	@world_locked
 	def _set_branch(self, v: str):
 		if self._planning:
 			raise ValueError("Don't change branches while planning")
@@ -1447,6 +1452,7 @@ class ORM:
 				(curturn == start_turn and tick < start_tick)):
 			self._load_at(v, curturn, tick)
 
+	@world_locked
 	def _copy_plans(self, branch_from: str, turn_from: int,
 					tick_from: int) -> None:
 		"""Copy all plans active at the given time to the current branch"""
@@ -1490,6 +1496,7 @@ class ORM:
 						branch_end_plan[branch] = max(
 							(branch_end_plan[branch], turn))
 
+	@world_locked
 	def delete_plan(self, plan: int) -> None:
 		"""Delete the portion of a plan that has yet to occur.
 
@@ -1535,6 +1542,7 @@ class ORM:
 	def _get_turn(self) -> int:
 		return self._oturn
 
+	@world_locked
 	def _set_turn(self, v: int):
 		branch = self.branch
 		loaded = self._loaded
@@ -1602,6 +1610,7 @@ class ORM:
 	def _get_tick(self) -> int:
 		return self._otick
 
+	@world_locked
 	def _set_tick(self, v: int) -> None:
 		if not isinstance(v, int):
 			raise TypeError("tick must be an integer")
@@ -1704,6 +1713,7 @@ class ORM:
 		self._otick = tick
 		return branch, turn, tick
 
+	@world_locked
 	def commit(self) -> None:
 		"""Write the state of all graphs and commit the transaction.
 
@@ -1754,6 +1764,7 @@ class ORM:
 		else:
 			loaded[branch] = turn, tick, turn, tick
 
+	@world_locked
 	def _init_graph(
 			self,
 			name: Hashable,
@@ -1887,6 +1898,7 @@ class ORM:
 		"""
 		return self._graph_objs[name]
 
+	@world_locked
 	def del_graph(self, name: Hashable) -> None:
 		"""Remove all traces of a graph's existence from the database
 
@@ -1954,6 +1966,7 @@ class ORM:
 		except KeyError:
 			return False
 
+	@world_locked
 	def _exist_node(self,
 					character: Hashable,
 					node: Hashable,
@@ -1974,6 +1987,7 @@ class ORM:
 		except KeyError:
 			return False
 
+	@world_locked
 	def _exist_edge(self,
 					character: Hashable,
 					orig: Hashable,
