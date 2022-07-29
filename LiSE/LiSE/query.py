@@ -414,13 +414,35 @@ class QueryEngine(query.QueryEngine):
 
 	def flush(self):
 		super().flush()
-		self._flush_char_rules_handled()
-		self._flush_unit_rules_handled()
-		self._flush_char_thing_rules_handled()
-		self._flush_char_place_rules_handled()
-		self._flush_char_portal_rules_handled()
-		self._flush_node_rules_handled()
-		self._flush_portal_rules_handled()
+		put = self._inq.put
+		if self._char_rules_handled:
+			put(('silent', 'many', 'character_rules_handled_insert',
+					self._char_rules_handled))
+			self._char_rules_handled = []
+		if self._unit_rules_handled:
+			put(('silent', 'many', 'unit_rules_handled_insert',
+					self._unit_rules_handled))
+			self._unit_rules_handled = []
+		if self._char_thing_rules_handled:
+			put(('silent', 'many', 'character_thing_rules_handled_insert',
+					self._char_thing_rules_handled))
+			self._char_thing_rules_handled = []
+		if self._char_place_rules_handled:
+			put(('silent', 'many', 'character_place_rules_handled_insert',
+					self._char_place_rules_handled))
+			self._char_place_rules_handled = []
+		if self._char_portal_rules_handled:
+			put(('silent', 'many', 'character_portal_rules_handled_insert',
+					self._char_portal_rules_handled))
+			self._char_portal_rules_handled = []
+		if self._node_rules_handled:
+			put(('silent', 'many', 'node_rules_handled_insert',
+					self._node_rules_handled))
+			self._node_rules_handled = []
+		if self._portal_rules_handled:
+			put(('silent', 'many', 'portal_rules_handled_insert',
+					self._portal_rules_handled))
+			self._portal_rules_handled = []
 
 	def universals_dump(self):
 		unpack = self.unpack
