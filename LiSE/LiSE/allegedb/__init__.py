@@ -716,19 +716,18 @@ class ORM:
 		edge_cls = self.edge_cls
 		self._where_cached = defaultdict(list)
 		self._node_objs = node_objs = {}
-		self._get_node_stuff: Tuple[dict,
-									Callable[[Hashable, Hashable], bool],
+		self._get_node_stuff: Tuple[dict, Callable[[Hashable, Hashable], bool],
 									Callable[[Hashable, Hashable],
 												node_cls]] = (
 													node_objs,
 													self._node_exists,
 													self._make_node)
 		self._edge_objs = edge_objs = {}
-		self._get_edge_stuff: Tuple[dict, Callable[
-			[Hashable, Hashable, Hashable, int],
-			bool], Callable[[Hashable, Hashable, Hashable, int],
-							edge_cls]] = (edge_objs, self._edge_exists,
-											self._make_edge)
+		self._get_edge_stuff: Tuple[
+			dict, Callable[[Hashable, Hashable, Hashable, int], bool],
+			Callable[[Hashable, Hashable, Hashable, int],
+						edge_cls]] = (edge_objs, self._edge_exists,
+										self._make_edge)
 		self._childbranch = defaultdict(set)
 		"""Immediate children of a branch"""
 		self._branches = {}
@@ -841,8 +840,9 @@ class ORM:
 							self._time_plan, self._branches)
 		self._node_exists_stuff: Tuple[
 			Callable[[Hashable, Hashable, str, int, int], Any],
-			Callable[[], Tuple[str, int, int]]] = (
-			self._nodes_cache._base_retrieve, self._btt)
+			Callable[[], Tuple[str, int,
+								int]]] = (self._nodes_cache._base_retrieve,
+											self._btt)
 		self._exist_node_stuff: Tuple[
 			Callable[[], Tuple[str, int, int]],
 			Callable[[Hashable, Hashable, str, int, int, bool], None],
@@ -1949,7 +1949,8 @@ class ORM:
 
 	def _node_exists(self, character: Hashable, node: Hashable) -> bool:
 		retrieve, btt = self._node_exists_stuff
-		retrieved = retrieve(character, node, *btt())
+		args = (character, node) + btt()
+		retrieved = retrieve(args)
 		return retrieved is not None and not isinstance(retrieved, Exception)
 
 	@world_locked
