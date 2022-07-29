@@ -842,8 +842,8 @@ class ORM:
 							self._time_plan, self._branches)
 		self._node_exists_stuff: Tuple[
 			Callable[[Hashable, Hashable, str, int, int], Any],
-			Callable[[], Tuple[str, int, int]]] = (self._nodes_cache.retrieve,
-													self._btt)
+			Callable[[], Tuple[str, int, int]]] = (
+			self._nodes_cache._base_retrieve, self._btt)
 		self._exist_node_stuff: Tuple[
 			Callable[[], Tuple[str, int, int]],
 			Callable[[Hashable, Hashable, str, int, int, bool], None],
@@ -1950,10 +1950,8 @@ class ORM:
 
 	def _node_exists(self, character: Hashable, node: Hashable) -> bool:
 		retrieve, btt = self._node_exists_stuff
-		try:
-			return retrieve(character, node, *btt()) is not None
-		except KeyError:
-			return False
+		retrieved = retrieve(character, node, *btt())
+		return retrieved is not None and not isinstance(retrieved, Exception)
 
 	@world_locked
 	def _exist_node(self,
