@@ -1924,20 +1924,25 @@ class ORM:
 		trn = self.turn if turn is None else turn
 		tck = self.tick if tick is None else tick
 		yield branch, trn, tck
-		stopbranch = None
+		_branches = self._branches
 		if stoptime:
 			stopbranch = stoptime[0]
-		_branches = self._branches
-		while branch in _branches:
-			(branch, trn, tck, _, _) = _branches[branch]
-			if branch is None:
-				return
-			if branch == stopbranch and (
-				trn < stoptime[1] or
-				(trn == stoptime[1] and
-					(stoptime[2] is None or tck <= stoptime[2]))):
-				return
-			yield branch, trn, tck
+			while branch in _branches:
+				(branch, trn, tck, _, _) = _branches[branch]
+				if branch is None:
+					return
+				if branch == stopbranch and (
+					trn < stoptime[1] or
+					(trn == stoptime[1] and
+						(stoptime[2] is None or tck <= stoptime[2]))):
+					return
+				yield branch, trn, tck
+		else:
+			while branch in _branches:
+				(branch, trn, tck, _, _) = _branches[branch]
+				if branch is None:
+					return
+				yield branch, trn, tck
 
 	def _branch_descendants(self, branch=None) -> Iterator[str]:
 		"""Iterate over all branches immediately descended from the current
