@@ -282,7 +282,9 @@ class Node(AbstractEntityMapping):
 					format(node, graph.name,
 							type(ret).__name__))
 			return ret
-		return super(Node, cls).__new__(cls)
+		ret = super(Node, cls).__new__(cls)
+		nobjs[gnn] = ret
+		return ret
 
 	def __init__(self, graph, node, clobber=False):
 		"""Store name and graph"""
