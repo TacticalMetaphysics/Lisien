@@ -839,7 +839,7 @@ class ORM:
 							self._plan_ticks, self._plan_ticks_uncommitted,
 							self._time_plan, self._branches)
 		self._node_exists_stuff: Tuple[
-			Callable[[Hashable, Hashable, str, int, int], Any],
+			Callable[[Tuple[Hashable, Hashable, str, int, int]], Any],
 			Callable[[], Tuple[str, int,
 								int]]] = (self._nodes_cache._base_retrieve,
 											self._btt)
@@ -849,10 +849,12 @@ class ORM:
 			Callable[[Hashable, Hashable, str, int, int, Any],
 						None]] = (self._nbtt, self.query.exist_node,
 									self._nodes_cache.store)
-		self._edge_exists_stuff: Tuple[
-			Callable[[Hashable, Hashable, Hashable, int, str, int, int], bool],
-			Callable[[], Tuple[str, int, int]]] = (self._edges_cache.retrieve,
-													self._btt)
+		self._edge_exists_stuff: Tuple[Callable[
+			[Tuple[Hashable, Hashable, Hashable, int, str, int, int]],
+			bool], Callable[[],
+							Tuple[str, int,
+									int]]] = (self._edges_cache._base_retrieve,
+												self._btt)
 		self._exist_edge_stuff: Tuple[
 			Callable[[], Tuple[str, int, int]],
 			Callable[[Hashable, Hashable, Hashable, int, str, int, int, bool],
@@ -1969,10 +1971,9 @@ class ORM:
 						dest: Hashable,
 						idx=0) -> bool:
 		retrieve, btt = self._edge_exists_stuff
-		try:
-			return retrieve(character, orig, dest, idx, *btt()) is not None
-		except KeyError:
-			return False
+		args = (character, orig, dest, idx) + btt()
+		retrieved = retrieve(args)
+		return retrieved is not None and not isinstance(retrieved, Exception)
 
 	@world_locked
 	def _exist_edge(self,
