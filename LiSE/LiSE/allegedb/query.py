@@ -791,36 +791,35 @@ class QueryEngine(object):
 		"""Put all pending changes into the SQL transaction."""
 		pack = self.pack
 		put = self._inq.put
-		with self._holder.lock:
-			if self._nodes2set:
-				put(('silent', 'many', 'nodes_insert', [
-					(pack(graph), pack(node), branch, turn, tick, bool(extant))
-					for (graph, node, branch, turn, tick,
-							extant) in self._nodes2set
-				]))
-				self._nodes2set = []
-			if self._edges2set:
-				put(('silent', 'many', 'edges_insert',
-						list(map(self._pack_edge2set, self._edges2set))))
-				self._edges2set = []
-			if self._graphvals2set:
-				put(('silent', 'many', 'graph_val_insert', [
-					(pack(graph), pack(key), branch, turn, tick, pack(value))
-					for (graph, key, branch, turn, tick,
-							value) in self._graphvals2set
-				]))
-				self._graphvals2set = []
-			if self._nodevals2set:
-				put(('silent', 'many', 'node_val_insert', [
-					(pack(graph), pack(node), pack(key), branch, turn, tick,
-						pack(value)) for (graph, node, key, branch, turn, tick,
-											value) in self._nodevals2set
-				]))
-				self._nodes2set = []
-			if self._edgevals2set:
-				put(('silent', 'many', 'edge_val_insert',
-						list(map(self._pack_edgeval2set, self._edgevals2set))))
-				self._edgevals2set = []
+		if self._nodes2set:
+			put(('silent', 'many', 'nodes_insert', [
+				(pack(graph), pack(node), branch, turn, tick, bool(extant))
+				for (graph, node, branch, turn, tick,
+						extant) in self._nodes2set
+			]))
+			self._nodes2set = []
+		if self._edges2set:
+			put(('silent', 'many', 'edges_insert',
+					list(map(self._pack_edge2set, self._edges2set))))
+			self._edges2set = []
+		if self._graphvals2set:
+			put(('silent', 'many', 'graph_val_insert', [
+				(pack(graph), pack(key), branch, turn, tick, pack(value))
+				for (graph, key, branch, turn, tick,
+						value) in self._graphvals2set
+			]))
+			self._graphvals2set = []
+		if self._nodevals2set:
+			put(('silent', 'many', 'node_val_insert', [
+				(pack(graph), pack(node), pack(key), branch, turn, tick,
+					pack(value)) for (graph, node, key, branch, turn, tick,
+										value) in self._nodevals2set
+			]))
+			self._nodes2set = []
+		if self._edgevals2set:
+			put(('silent', 'many', 'edge_val_insert',
+					list(map(self._pack_edgeval2set, self._edgevals2set))))
+			self._edgevals2set = []
 
 	def commit(self):
 		"""Commit the transaction"""
