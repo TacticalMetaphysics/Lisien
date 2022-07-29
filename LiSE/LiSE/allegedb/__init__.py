@@ -1926,15 +1926,15 @@ class ORM:
 		yield branch, trn, tck
 		_branches = self._branches
 		if stoptime:
-			stopbranch = stoptime[0]
+			stopbranch, stopturn, stoptick = stoptime
 			while branch in _branches:
 				(branch, trn, tck, _, _) = _branches[branch]
 				if branch is None:
 					return
 				if branch == stopbranch and (
-					trn < stoptime[1] or
-					(trn == stoptime[1] and
-						(stoptime[2] is None or tck <= stoptime[2]))):
+					trn < stopturn or
+					(trn == stopturn and
+						(stoptick is None or tck <= stoptick))):
 					return
 				yield branch, trn, tck
 		else:
