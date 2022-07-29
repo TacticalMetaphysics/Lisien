@@ -106,9 +106,9 @@ class NextTurn(Signal):
 		kfi = engine.keyframe_interval
 		if kfi and engine.turn % kfi == 0:
 			engine.snap_keyframe()
-		if engine.flush_modulus and engine.turn % engine.flush_modulus == 0:
+		if engine.flush_interval and engine.turn % engine.flush_interval == 0:
 			engine.query.flush()
-		if engine.commit_modulus and engine.turn % engine.commit_modulus == 0:
+		if engine.commit_interval and engine.turn % engine.commit_interval == 0:
 			engine.query.commit()
 		self.send(self.engine,
 					branch=engine.branch,
@@ -231,9 +231,9 @@ class Engine(AbstractEngine, gORM):
 					connect_args: dict = None,
 					schema_cls: Type[AbstractSchema] = NullSchema,
 					alchemy=False,
-					flush_modulus=1,
+					flush_interval=1,
 					keyframe_interval=10,
-					commit_modulus=None,
+					commit_interval=None,
 					random_seed: int = None,
 					logfun: FunctionType = None,
 					clear=False,
@@ -268,14 +268,14 @@ class Engine(AbstractEngine, gORM):
 		Defaults to `NullSchema`
 		:arg alchemy: whether to use SQLAlchemy to connect to the
 		database. If False, LiSE can only use SQLite
-		:arg flush_modulus: LiSE will put pending changes into the database
-		transaction every ``flush_modulus`` turns. If ``None``), only flush
+		:arg flush_interval: LiSE will put pending changes into the database
+		transaction every ``flush_interval`` turns. If ``None``), only flush
 		on commit. Default ``1``.
 		:arg keyframe_interval: How many turns to pass before automatically
 		snapping a keyframe, default ``10``. If ``None``, you'll need
 		to call ``snap_keyframe`` yourself.
-		:arg commit_modulus: LiSE will commit changes to disk every
-		``commit_modulus`` turns. If ``None`` (the default), only commit
+		:arg commit_interval: LiSE will commit changes to disk every
+		``commit_interval`` turns. If ``None`` (the default), only commit
 		on close or manual call to ``commit``
 		:arg random_seed: a number to initialize the randomizer
 		:arg logfun: an optional function taking arguments
@@ -370,9 +370,9 @@ class Engine(AbstractEngine, gORM):
 				self.query, self._string_file,
 				self.eternal.setdefault('language', 'eng'))
 		self.next_turn = NextTurn(self)
-		self.commit_modulus = commit_modulus
+		self.commit_interval = commit_interval
 		self.keyframe_interval = keyframe_interval
-		self.flush_modulus = flush_modulus
+		self.flush_interval = flush_interval
 		self.random_seed = random_seed
 		self._rules_iter = self._follow_rules()
 		# set up the randomizer
@@ -521,15 +521,15 @@ class Engine(AbstractEngine, gORM):
 		self._characters_things_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_things_rulebooks_cache.name \
-                                             = 'characters_things_rulebooks_cache'
+                                                         = 'characters_things_rulebooks_cache'
 		self._characters_places_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_places_rulebooks_cache.name \
-                                             = 'characters_places_rulebooks_cache'
+                                                         = 'characters_places_rulebooks_cache'
 		self._characters_portals_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_portals_rulebooks_cache.name \
-                                             = 'characters_portals_rulebooks_cache'
+                                                         = 'characters_portals_rulebooks_cache'
 		self._nodes_rulebooks_cache = InitializedCache(self)
 		self._nodes_rulebooks_cache.name = 'nodes_rulebooks_cache'
 		self._portals_rulebooks_cache = InitializedCache(self)
@@ -549,18 +549,18 @@ class Engine(AbstractEngine, gORM):
 		self._unit_rules_handled_cache = UnitRulesHandledCache(self)
 		self._unit_rules_handled_cache.name = 'unit_rules_handled_cache'
 		self._character_thing_rules_handled_cache \
-                                             = CharacterThingRulesHandledCache(
+                                                         = CharacterThingRulesHandledCache(
 			self)
 		self._character_thing_rules_handled_cache.name \
-                                             = 'character_thing_rules_handled_cache'
+                                                         = 'character_thing_rules_handled_cache'
 		self._character_place_rules_handled_cache = CharacterPlaceRulesHandledCache(
 			self)
 		self._character_place_rules_handled_cache.name \
-                                             = 'character_place_rules_handled_cache'
+                                                         = 'character_place_rules_handled_cache'
 		self._character_portal_rules_handled_cache = CharacterPortalRulesHandledCache(
 			self)
 		self._character_portal_rules_handled_cache.name \
-                                             = 'character_portal_rules_handled_cache'
+                                                         = 'character_portal_rules_handled_cache'
 		self._unitness_cache = UnitnessCache(self)
 		self._unitness_cache.name = 'unitness_cache'
 		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
@@ -1315,7 +1315,7 @@ class Engine(AbstractEngine, gORM):
 				return f"{entity.character.name}.node[{entity.name}]"
 			else:
 				return f"{entity.character.name}.portal" \
-                                                                                   f"[{entity.origin.name}][{entity.destination.name}]"
+                                                                                                           f"[{entity.origin.name}][{entity.destination.name}]"
 
 		for rulebook in sort_set(todo.keys()):
 			for rule, handled, entity in todo[rulebook]:
