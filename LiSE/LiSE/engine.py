@@ -227,7 +227,7 @@ class Engine(AbstractEngine, gORM):
 					connect_args: dict = None,
 					schema_cls: Type[AbstractSchema] = NullSchema,
 					alchemy=False,
-					flush_modulus=None,
+					flush_modulus=1,
 					commit_modulus=None,
 					random_seed: int = None,
 					logfun: FunctionType = None,
@@ -264,8 +264,8 @@ class Engine(AbstractEngine, gORM):
 		:arg alchemy: whether to use SQLAlchemy to connect to the
 		database. If False, LiSE can only use SQLite
 		:arg flush_modulus: LiSE will put pending changes into the database
-		transaction every ``flush_modulus`` turns. If ``None``
-		(the default), only flush on commit
+		transaction every ``flush_modulus`` turns. If ``None``), only flush
+		on commit. Default ``1``.
 		:arg commit_modulus: LiSE will commit changes to disk every
 		``commit_modulus`` turns. If ``None`` (the default), only commit
 		on close or manual call to ``commit``
