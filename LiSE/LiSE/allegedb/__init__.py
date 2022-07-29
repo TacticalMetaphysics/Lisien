@@ -420,54 +420,43 @@ class ORM:
 
 	def _arrange_caches_at_time(self, _, *, branch: str, turn: int,
 								tick: int) -> None:
-		lock = self.world_lock
-		with lock:
+		with self.world_lock:
 			graphs = list(self.graph)
-		for graph in graphs:
-			with lock:
+			for graph in graphs:
 				graph_stats = self._graph_val_cache._get_keycache(
 					(graph, ), branch, turn, tick, forward=False)
-			for stat in graph_stats:
-				with lock:
+				for stat in graph_stats:
 					self._graph_val_cache._base_retrieve(
 						(graph, stat, branch, turn, tick))
-			with lock:
 				nodes = self._nodes_cache._get_keycache((graph, ),
 														branch,
 														turn,
 														tick,
 														forward=False)
-			for node in nodes:
-				with lock:
+				for node in nodes:
 					self._nodes_cache._base_retrieve(
 						(graph, node, branch, turn, tick))
-				with lock:
 					node_stats = self._node_val_cache._get_keycache(
 						(graph, node), branch, turn, tick, forward=False)
-				for stat in node_stats:
-					with lock:
+					for stat in node_stats:
 						self._node_val_cache._base_retrieve(
 							(graph, node, stat, branch, turn, tick))
-				with lock:
 					dests = self._edges_cache._get_destcache(graph,
 																node,
 																branch,
 																turn,
 																tick,
 																forward=False)
-				for dest in dests:
-					with lock:
+					for dest in dests:
 						self._edges_cache._base_retrieve(
 							(graph, node, dest, branch, turn, tick))
-					with lock:
 						edge_stats = self._edge_val_cache._get_keycache(
 							(graph, node, dest),
 							branch,
 							turn,
 							tick,
 							forward=False)
-					for stat in edge_stats:
-						with lock:
+						for stat in edge_stats:
 							self._edge_val_cache._base_retrieve(
 								(graph, node, dest, stat, branch, turn, tick))
 
