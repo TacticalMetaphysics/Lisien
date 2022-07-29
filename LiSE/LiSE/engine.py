@@ -234,7 +234,7 @@ class Engine(AbstractEngine, gORM):
 					clear=False,
 					keep_rules_journal=True,
 					keyframe_on_close=True,
-					cache_arranger=True):
+					cache_arranger=False):
 		"""Store the connections for the world database and the code database;
 		set up listeners; and start a transaction
 
@@ -281,11 +281,11 @@ class Engine(AbstractEngine, gORM):
 		engine, default ``True``. This is usually what you want, as it will
 		make future startups faster, but could cause database bloat if
 		your game runs few turns per session.
-		:arg cache_arranger: If true (default), start a background
+		:arg cache_arranger: Whether to start a background
 		process that indexes the caches to make time travel faster
 		when it's to points we anticipate. If you use this, you can
 		specify some other point in time to index by putting the
-		`(branch, turn, tick)` in my `cache_arrange_queue`.
+		`(branch, turn, tick)` in my `cache_arrange_queue`. Default ``False``.
 
 		"""
 		if logfun is None:
@@ -512,15 +512,15 @@ class Engine(AbstractEngine, gORM):
 		self._characters_things_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_things_rulebooks_cache.name \
-               = 'characters_things_rulebooks_cache'
+                           = 'characters_things_rulebooks_cache'
 		self._characters_places_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_places_rulebooks_cache.name \
-               = 'characters_places_rulebooks_cache'
+                           = 'characters_places_rulebooks_cache'
 		self._characters_portals_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_portals_rulebooks_cache.name \
-               = 'characters_portals_rulebooks_cache'
+                           = 'characters_portals_rulebooks_cache'
 		self._nodes_rulebooks_cache = InitializedCache(self)
 		self._nodes_rulebooks_cache.name = 'nodes_rulebooks_cache'
 		self._portals_rulebooks_cache = InitializedCache(self)
@@ -540,18 +540,18 @@ class Engine(AbstractEngine, gORM):
 		self._unit_rules_handled_cache = UnitRulesHandledCache(self)
 		self._unit_rules_handled_cache.name = 'unit_rules_handled_cache'
 		self._character_thing_rules_handled_cache \
-               = CharacterThingRulesHandledCache(
+                           = CharacterThingRulesHandledCache(
 			self)
 		self._character_thing_rules_handled_cache.name \
-               = 'character_thing_rules_handled_cache'
+                           = 'character_thing_rules_handled_cache'
 		self._character_place_rules_handled_cache = CharacterPlaceRulesHandledCache(
 			self)
 		self._character_place_rules_handled_cache.name \
-               = 'character_place_rules_handled_cache'
+                           = 'character_place_rules_handled_cache'
 		self._character_portal_rules_handled_cache = CharacterPortalRulesHandledCache(
 			self)
 		self._character_portal_rules_handled_cache.name \
-               = 'character_portal_rules_handled_cache'
+                           = 'character_portal_rules_handled_cache'
 		self._unitness_cache = UnitnessCache(self)
 		self._unitness_cache.name = 'unitness_cache'
 		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
@@ -1305,7 +1305,7 @@ class Engine(AbstractEngine, gORM):
 				return f"{entity.character.name}.node[{entity.name}]"
 			else:
 				return f"{entity.character.name}.portal" \
-                       f"[{entity.origin.name}][{entity.destination.name}]"
+                                               f"[{entity.origin.name}][{entity.destination.name}]"
 
 		for rulebook in sort_set(todo.keys()):
 			for rule, handled, entity in todo[rulebook]:
