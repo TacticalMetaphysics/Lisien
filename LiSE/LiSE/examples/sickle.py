@@ -194,5 +194,5 @@ def sickle_cell_test(engine,
 
 
 if __name__ == '__main__':
-	with Engine(random_seed=69105, clear=True) as engine:
+	with Engine(random_seed=69106, clear=True) as engine:
 		sickle_cell_test(engine)
