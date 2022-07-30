@@ -25,5 +25,5 @@ def tempdir():
 
 @pytest.fixture(scope='function')
 def engy(tempdir):
-	with Engine(tempdir) as eng:
+	with Engine(tempdir, random_seed=69105) as eng:
 		yield eng
