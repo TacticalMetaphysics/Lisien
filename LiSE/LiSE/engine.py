@@ -1313,8 +1313,8 @@ class Engine(AbstractEngine, gORM):
 			elif hasattr(entity, 'name'):
 				return f"{entity.character.name}.node[{entity.name}]"
 			else:
-				return f"{entity.character.name}.portal" \
-                                                                                                                       f"[{entity.origin.name}][{entity.destination.name}]"
+				return (f"{entity.character.name}.portal"
+						f"[{entity.origin.name}][{entity.destination.name}]")
 
 		for rulebook in sort_set(todo.keys()):
 			for rule, handled, entity in todo[rulebook]:
