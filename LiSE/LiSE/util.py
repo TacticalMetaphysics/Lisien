@@ -26,7 +26,6 @@ from textwrap import dedent
 from time import monotonic
 from types import MethodType, FunctionType
 from typing import Mapping, Iterable, Union, Callable, Dict, Hashable
-from weakref import WeakValueDictionary
 
 from cached_property import cached_property
 
@@ -608,27 +607,22 @@ class AbstractEngine(ABC):
 class SpecialMappingDescriptor:
 
 	def __init__(self, mapclsname):
-		self.insts = WeakValueDictionary()
 		self.mapps = {}
 		self.mapclsname = mapclsname
 
 	def __get__(self, instance, owner):
-		if id(instance) in self.mapps:
-			if id(instance) not in self.insts:
-				del self.mapps[id(instance)]
-			else:
-				return self.mapps[id(instance)]
-		self.insts[id(instance)] = instance
-		mappcls = getattr(instance, self.mapclsname)
-		ret = self.mapps[id(instance)] = mappcls(instance)
-		return ret
+		attname = "_" + self.mapclsname
+		if not hasattr(instance, attname):
+			mappcls = getattr(instance, self.mapclsname)
+			setattr(instance, attname, mappcls(instance))
+		return getattr(instance, attname)
 
 	def __set__(self, instance, value):
-		if id(instance) not in self.mapps:
-			self.insts[id(instance)] = instance
-			self.mapps[id(instance)] = getattr(instance,
-												self.mapclsname)(instance)
-		it = self.mapps[id(instance)]
+		attname = "_" + self.mapclsname
+		if not hasattr(instance, attname):
+			mappcls = getattr(instance, self.mapclsname)
+			setattr(instance, attname, mappcls(instance))
+		it = getattr(instance, attname)
 		it.clear()
 		it.update(value)
 
