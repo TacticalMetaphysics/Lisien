@@ -439,11 +439,11 @@ class Cache:
 		# Not using the journal because that doesn't distinguish entities.
 		# I think I might not want to use ``stoptime`` at all, now that
 		# there is such a thing as keyframes...
-		cache = cache or self.keys[entity]
+		cache = cache or self.keys
 		added = set()
 		deleted = set()
 		kf = self.keyframe.get(entity, None)
-		for key, branches in cache.items():
+		for key, branches in cache.get(entity, {}).items():
 			for (branc, trn,
 					tck) in self.db._iter_parent_btt(branch,
 														turn,
@@ -470,20 +470,18 @@ class Cache:
 				else:
 					added.add(key)
 				break
-		else:
-			if stoptime or not kf:
-				return added, deleted
-			for (branc, trn,
-					tck) in self.db._iter_parent_btt(branch, turn, tick):
-				if branc not in kf or not kf[branc].rev_gettable(trn):
-					continue
-				kfb = kf[branc]
-				if trn in kfb:
-					kfbr = kfb[trn]
-					if kfbr.rev_gettable(tck):
-						added.update(set(kfbr[tck]).difference(deleted))
-				elif kfb.rev_gettable(trn):
-					added.update(set(kfb[trn].final()).difference(deleted))
+		if stoptime or not kf:
+			return added, deleted
+		for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn, tick):
+			if branc not in kf or not kf[branc].rev_gettable(trn):
+				continue
+			kfb = kf[branc]
+			if trn in kfb:
+				kfbr = kfb[trn]
+				if kfbr.rev_gettable(tck):
+					added.update(set(kfbr[tck]).difference(deleted))
+			elif kfb.rev_gettable(trn):
+				added.update(set(kfb[trn].final()).difference(deleted))
 		return added, deleted
 
 	def store(self,
