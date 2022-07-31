@@ -188,7 +188,7 @@ Now we have our world, but nothing ever happens in it. Let's add the
 rules of the simulation:
 
 ```python
-    @eng.function
+@eng.function
 def cmp_neighbor_shapes(poly, cmp, stat):
 	"""Compare the proportion of neighboring polys with the same shape as this one
 
