@@ -65,13 +65,13 @@
 <div class="viewcode-block" id="GameScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameScreen">[docs]</a><span class="k">class</span> <span class="nc">GameScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;A version of :class:`kivy.uix.screenmanager.Screen` that is easier to set up and use with ELiDE</span>
 
-<span class="sd">    Should be a child of the :class:`ELiDE.game.Screens` widget, which will never itself be displayed.</span>
-<span class="sd">    ``GameScreen`` instances in it will be added to the screen manager, so that you can switch</span>
-<span class="sd">    to them with the ``switch_screen`` method.</span>
+<span class="sd">	Should be a child of the :class:`ELiDE.game.Screens` widget, which will never itself be displayed.</span>
+<span class="sd">	``GameScreen`` instances in it will be added to the screen manager, so that you can switch</span>
+<span class="sd">	to them with the ``switch_screen`` method.</span>
 
-<span class="sd">    Every ``GameScreen`` needs a ``name``, just like regular ``Screen``.</span>
+<span class="sd">	Every ``GameScreen`` needs a ``name``, just like regular ``Screen``.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">switch_screen</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="sd">&quot;&quot;&quot;Method to set the ``screen`` attribute of the main :class:`kivy.uix.screenmanager.ScreenManager`&quot;&quot;&quot;</span>
 	<span class="n">disabled</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
@@ -88,10 +88,10 @@
 <div class="viewcode-block" id="GameScreen.disable_input"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameScreen.disable_input">[docs]</a>	<span class="k">def</span> <span class="nf">disable_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Set ``self.disabled`` to ``True``, then call ``cb`` if provided</span>
 
-<span class="sd">        :param cb: callback function for after disabling</span>
-<span class="sd">        :return: ``None``</span>
+<span class="sd">		:param cb: callback function for after disabling</span>
+<span class="sd">		:return: ``None``</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">disabled</span> <span class="o">=</span> <span class="kc">True</span>
 		<span class="k">if</span> <span class="n">cb</span><span class="p">:</span>
 			<span class="n">cb</span><span class="p">()</span></div>
@@ -99,10 +99,10 @@
 <div class="viewcode-block" id="GameScreen.enable_input"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameScreen.enable_input">[docs]</a>	<span class="k">def</span> <span class="nf">enable_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Call ``cb`` if provided, then set ``self.disabled`` to ``False``</span>
 
-<span class="sd">        :param cb: callback function for before enabling</span>
-<span class="sd">        :return: ``None``</span>
+<span class="sd">		:param cb: callback function for before enabling</span>
+<span class="sd">		:return: ``None``</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">cb</span><span class="p">:</span>
 			<span class="n">cb</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">disabled</span> <span class="o">=</span> <span class="kc">False</span></div>
@@ -110,13 +110,13 @@
 <div class="viewcode-block" id="GameScreen.wait_travel"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameScreen.wait_travel">[docs]</a>	<span class="k">def</span> <span class="nf">wait_travel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Schedule a thing to travel someplace, then wait for it to finish.</span>
 
-<span class="sd">        :param character: name of the character</span>
-<span class="sd">        :param thing: name of the thing that will travel</span>
-<span class="sd">        :param dest: name of the place it will travel to</span>
-<span class="sd">        :param cb: callback function for when it&#39;s done, optional</span>
-<span class="sd">        :return: ``None``</span>
+<span class="sd">		:param character: name of the character</span>
+<span class="sd">		:param thing: name of the thing that will travel</span>
+<span class="sd">		:param dest: name of the place it will travel to</span>
+<span class="sd">		:param cb: callback function for when it&#39;s done, optional</span>
+<span class="sd">		:return: ``None``</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">disable_input</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">wait_travel</span><span class="p">(</span><span class="n">character</span><span class="p">,</span>
 								<span class="n">thing</span><span class="p">,</span>
@@ -126,27 +126,27 @@
 <div class="viewcode-block" id="GameScreen.wait_turns"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameScreen.wait_turns">[docs]</a>	<span class="k">def</span> <span class="nf">wait_turns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Call ``self.app.engine.next_turn()`` ``n`` times, waiting ``self.app.turn_length`` in between</span>
 
-<span class="sd">        Disables input for the duration.</span>
+<span class="sd">		Disables input for the duration.</span>
 
-<span class="sd">        :param turns: number of turns to wait</span>
-<span class="sd">        :param cb: function to call when done waiting, optional</span>
-<span class="sd">        :return: ``None``</span>
+<span class="sd">		:param turns: number of turns to wait</span>
+<span class="sd">		:param cb: function to call when done waiting, optional</span>
+<span class="sd">		:return: ``None``</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">disable_input</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">wait_turns</span><span class="p">(</span><span class="n">turns</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_input</span><span class="p">,</span> <span class="n">cb</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="GameScreen.wait_command"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameScreen.wait_command">[docs]</a>	<span class="k">def</span> <span class="nf">wait_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_func</span><span class="p">,</span> <span class="n">turns</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">end_func</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Call ``start_func``, wait ``turns``, and then call ``end_func`` if provided</span>
 
-<span class="sd">        Disables input for the duration.</span>
+<span class="sd">		Disables input for the duration.</span>
 
-<span class="sd">        :param start_func: function to call just after disabling input</span>
-<span class="sd">        :param turns: number of turns to wait</span>
-<span class="sd">        :param end_func: function to call just before re-enabling input</span>
-<span class="sd">        :return: ``None``</span>
+<span class="sd">		:param start_func: function to call just after disabling input</span>
+<span class="sd">		:param turns: number of turns to wait</span>
+<span class="sd">		:param end_func: function to call just before re-enabling input</span>
+<span class="sd">		:return: ``None``</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">disable_input</span><span class="p">()</span>
 		<span class="n">start_func</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">wait_turns</span><span class="p">(</span><span class="n">turns</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_input</span><span class="p">,</span> <span class="n">end_func</span><span class="p">))</span></div>
@@ -160,17 +160,17 @@
 							<span class="n">end_func</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Schedule a thing to travel someplace and do something, then wait for it to finish.</span>
 
-<span class="sd">        Input will be disabled for the duration.</span>
+<span class="sd">		Input will be disabled for the duration.</span>
 
-<span class="sd">        :param character: name of the character</span>
-<span class="sd">        :param thing: name of the thing</span>
-<span class="sd">        :param dest: name of the destination (a place)</span>
-<span class="sd">        :param start_func: function to call when the thing gets to dest</span>
-<span class="sd">        :param turns: number of turns to wait after start_func before re-enabling input</span>
-<span class="sd">        :param end_func: optional. Function to call after waiting ``turns`` after start_func</span>
-<span class="sd">        :return: ``None``</span>
+<span class="sd">		:param character: name of the character</span>
+<span class="sd">		:param thing: name of the thing</span>
+<span class="sd">		:param dest: name of the destination (a place)</span>
+<span class="sd">		:param start_func: function to call when the thing gets to dest</span>
+<span class="sd">		:param turns: number of turns to wait after start_func before re-enabling input</span>
+<span class="sd">		:param end_func: optional. Function to call after waiting ``turns`` after start_func</span>
+<span class="sd">		:return: ``None``</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">disable_input</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">wait_travel_command</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">start_func</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span>
 										<span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_input</span><span class="p">,</span> <span class="n">end_func</span><span class="p">))</span></div></div>
@@ -193,14 +193,14 @@
 <div class="viewcode-block" id="GameApp.wait_turns"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameApp.wait_turns">[docs]</a>	<span class="k">def</span> <span class="nf">wait_turns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Call ``self.engine.next_turn()`` ``n`` times, waiting ``self.turn_length`` in between</span>
 
-<span class="sd">        If provided, call ``cb`` when done.</span>
+<span class="sd">		If provided, call ``cb`` when done.</span>
 
-<span class="sd">        :param turns: number of turns to wait</span>
-<span class="sd">        :param dt: unused, just satisfies the clock</span>
-<span class="sd">        :param cb: callback function to call when done, optional</span>
-<span class="sd">        :return: ``None``</span>
+<span class="sd">		:param turns: number of turns to wait</span>
+<span class="sd">		:param dt: unused, just satisfies the clock</span>
+<span class="sd">		:param cb: callback function to call when done, optional</span>
+<span class="sd">		:return: ``None``</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">turns</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
 			<span class="k">if</span> <span class="n">cb</span><span class="p">:</span>
 				<span class="n">cb</span><span class="p">()</span>
@@ -213,13 +213,13 @@
 <div class="viewcode-block" id="GameApp.wait_travel"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameApp.wait_travel">[docs]</a>	<span class="k">def</span> <span class="nf">wait_travel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Schedule a thing to travel someplace, then wait for it to finish, and call ``cb`` if provided</span>
 
-<span class="sd">        :param character: name of the character</span>
-<span class="sd">        :param thing: name of the thing</span>
-<span class="sd">        :param dest: name of the destination (a place)</span>
-<span class="sd">        :param cb: function to be called when I&#39;m done</span>
-<span class="sd">        :return: ``None``</span>
-<span class="sd">        </span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		:param character: name of the character</span>
+<span class="sd">		:param thing: name of the thing</span>
+<span class="sd">		:param dest: name of the destination (a place)</span>
+<span class="sd">		:param cb: function to be called when I&#39;m done</span>
+<span class="sd">		:return: ``None``</span>
+<span class="sd">		</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">wait_turns</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">character</span><span class="p">]</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">thing</span><span class="p">]</span><span class="o">.</span><span class="n">travel_to</span><span class="p">(</span><span class="n">dest</span><span class="p">),</span>
 			<span class="n">cb</span><span class="o">=</span><span class="n">cb</span><span class="p">)</span></div>
@@ -227,12 +227,12 @@
 <div class="viewcode-block" id="GameApp.wait_command"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameApp.wait_command">[docs]</a>	<span class="k">def</span> <span class="nf">wait_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_func</span><span class="p">,</span> <span class="n">turns</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">end_func</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Call ``start_func``, and wait to call ``end_func`` after simulating ``turns`` (default 1)</span>
 
-<span class="sd">        :param start_func: function to call before waiting</span>
-<span class="sd">        :param turns: number of turns to wait</span>
-<span class="sd">        :param end_func: function to call after waiting</span>
-<span class="sd">        :return: ``None``</span>
+<span class="sd">		:param start_func: function to call before waiting</span>
+<span class="sd">		:param turns: number of turns to wait</span>
+<span class="sd">		:param end_func: function to call after waiting</span>
+<span class="sd">		:return: ``None``</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">start_func</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">wait_turns</span><span class="p">(</span><span class="n">turns</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">end_func</span><span class="p">)</span></div>
 
@@ -245,14 +245,14 @@
 							<span class="n">end_func</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Schedule a thing to travel someplace and do something, then wait for it to finish.</span>
 
-<span class="sd">        :param character: name of the character</span>
-<span class="sd">        :param thing: name of the thing</span>
-<span class="sd">        :param dest: name of the destination (a place)</span>
-<span class="sd">        :param start_func: function to call when the thing gets to dest</span>
-<span class="sd">        :param turns: number of turns to wait after start_func before re-enabling input</span>
-<span class="sd">        :param end_func: optional. Function to call after waiting ``turns`` after start_func</span>
-<span class="sd">        :return: ``None``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		:param character: name of the character</span>
+<span class="sd">		:param thing: name of the thing</span>
+<span class="sd">		:param dest: name of the destination (a place)</span>
+<span class="sd">		:param start_func: function to call when the thing gets to dest</span>
+<span class="sd">		:param turns: number of turns to wait after start_func before re-enabling input</span>
+<span class="sd">		:param end_func: optional. Function to call after waiting ``turns`` after start_func</span>
+<span class="sd">		:return: ``None``</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">wait_travel</span><span class="p">(</span><span class="n">character</span><span class="p">,</span>
 							<span class="n">thing</span><span class="p">,</span>
 							<span class="n">dest</span><span class="p">,</span>

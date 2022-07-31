@@ -60,20 +60,20 @@
 <div class="viewcode-block" id="GraphSpot"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.spot.GraphSpot">[docs]</a><span class="k">class</span> <span class="nc">GraphSpot</span><span class="p">(</span><span class="n">GraphPawnSpot</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;The icon that represents a :class:`Place`.</span>
 
-<span class="sd">    Each :class:`Spot` is located on the Board that represents the</span>
-<span class="sd">    :class:`Character` that the underlying :class:`Place` is in. Its</span>
-<span class="sd">    coordinates are relative to its :class:`Board`, not necessarily</span>
-<span class="sd">    the window the :class:`Board` is in.</span>
+<span class="sd">	Each :class:`Spot` is located on the Board that represents the</span>
+<span class="sd">	:class:`Character` that the underlying :class:`Place` is in. Its</span>
+<span class="sd">	coordinates are relative to its :class:`Board`, not necessarily</span>
+<span class="sd">	the window the :class:`Board` is in.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">default_image_paths</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;atlas://rltiles/floor.atlas/floor-stone&#39;</span><span class="p">]</span>
 	<span class="n">default_pos</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Deal with triggers and bindings, and arrange to take care of</span>
-<span class="sd">        changes in game-time.</span>
+<span class="sd">		changes in game-time.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_pospawn_partials</span> <span class="o">=</span> <span class="p">{}</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_pospawn_triggers</span> <span class="o">=</span> <span class="p">{}</span>
 		<span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;size_hint&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
@@ -103,11 +103,11 @@
 
 <div class="viewcode-block" id="GraphSpot.push_pos"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.spot.GraphSpot.push_pos">[docs]</a>	<span class="k">def</span> <span class="nf">push_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Set my current position, expressed as proportions of the graph&#39;s</span>
-<span class="sd">        width and height, into the ``_x`` and ``_y`` keys of the</span>
-<span class="sd">        entity in my ``proxy`` property, such that it will be</span>
-<span class="sd">        recorded in the database.</span>
+<span class="sd">		width and height, into the ``_x`` and ``_y`` keys of the</span>
+<span class="sd">		entity in my ``proxy`` property, such that it will be</span>
+<span class="sd">		recorded in the database.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">width</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">height</span></div>
 
@@ -185,7 +185,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

@@ -73,13 +73,13 @@
 <div class="viewcode-block" id="Thing"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Thing">[docs]</a><span class="k">class</span> <span class="nc">Thing</span><span class="p">(</span><span class="n">Node</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;The sort of item that has a particular location at any given time.</span>
 
-<span class="sd">    Things are always in Places or other Things, and may additionally be</span>
-<span class="sd">    travelling through a Portal.</span>
+<span class="sd">	Things are always in Places or other Things, and may additionally be</span>
+<span class="sd">	travelling through a Portal.</span>
 
-<span class="sd">    LiSE entities are truthy so long as they exist, falsy if they&#39;ve</span>
-<span class="sd">    been deleted.</span>
+<span class="sd">	LiSE entities are truthy so long as they exist, falsy if they&#39;ve</span>
+<span class="sd">	been deleted.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="s1">&#39;db&#39;</span><span class="p">,</span> <span class="s1">&#39;node&#39;</span><span class="p">,</span> <span class="s1">&#39;_rulebook&#39;</span><span class="p">,</span> <span class="s1">&#39;_rulebooks&#39;</span><span class="p">,</span>
 					<span class="s1">&#39;_real_rule_mapping&#39;</span><span class="p">)</span>
 
@@ -124,12 +124,12 @@
 	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return one of my stats stored in the database, or special cases:</span>
 
-<span class="sd">        ``name``: return the name that uniquely identifies me within</span>
-<span class="sd">        my Character</span>
+<span class="sd">		``name``: return the name that uniquely identifies me within</span>
+<span class="sd">		my Character</span>
 
-<span class="sd">        ``location``: return the name of my location</span>
+<span class="sd">		``location``: return the name of my location</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">disp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getitem_dispatch</span>
 		<span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">disp</span><span class="p">:</span>
 			<span class="k">return</span> <span class="n">disp</span><span class="p">[</span><span class="n">key</span><span class="p">](</span><span class="bp">self</span><span class="p">)</span>
@@ -200,14 +200,14 @@
 					<span class="n">place</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Node</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">],</span>
 					<span class="n">weight</span><span class="p">:</span> <span class="n">Hashable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 		<span class="sd">&quot;&quot;&quot;Assuming I&#39;m in a node that has a :class:`Portal` direct</span>
-<span class="sd">        to the given node, schedule myself to travel to the</span>
-<span class="sd">        given :class:`Place`, taking an amount of time indicated by</span>
-<span class="sd">        the ``weight`` stat on the :class:`Portal`, if given; else 1</span>
-<span class="sd">        turn.</span>
+<span class="sd">		to the given node, schedule myself to travel to the</span>
+<span class="sd">		given :class:`Place`, taking an amount of time indicated by</span>
+<span class="sd">		the ``weight`` stat on the :class:`Portal`, if given; else 1</span>
+<span class="sd">		turn.</span>
 
-<span class="sd">        Return the number of turns the travel will take.</span>
+<span class="sd">		Return the number of turns the travel will take.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">place</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">):</span>
 			<span class="n">placen</span> <span class="o">=</span> <span class="n">place</span><span class="o">.</span><span class="n">name</span>
 		<span class="k">else</span><span class="p">:</span>
@@ -223,16 +223,16 @@
 
 <div class="viewcode-block" id="Thing.follow_path"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Thing.follow_path">[docs]</a>	<span class="k">def</span> <span class="nf">follow_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="n">Hashable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 		<span class="sd">&quot;&quot;&quot;Go to several nodes in succession, deciding how long to</span>
-<span class="sd">        spend in each by consulting the ``weight`` stat of the</span>
-<span class="sd">        :class:`Portal` connecting the one node to the next,</span>
-<span class="sd">        default 1 turn.</span>
+<span class="sd">		spend in each by consulting the ``weight`` stat of the</span>
+<span class="sd">		:class:`Portal` connecting the one node to the next,</span>
+<span class="sd">		default 1 turn.</span>
 
-<span class="sd">        Return the total number of turns the travel will take. Raise</span>
-<span class="sd">        :class:`TravelException` if I can&#39;t follow the whole path,</span>
-<span class="sd">        either because some of its nodes don&#39;t exist, or because I&#39;m</span>
-<span class="sd">        scheduled to be somewhere else.</span>
+<span class="sd">		Return the total number of turns the travel will take. Raise</span>
+<span class="sd">		:class:`TravelException` if I can&#39;t follow the whole path,</span>
+<span class="sd">		either because some of its nodes don&#39;t exist, or because I&#39;m</span>
+<span class="sd">		scheduled to be somewhere else.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Paths need at least 2 nodes&quot;</span><span class="p">)</span>
 		<span class="n">eng</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">engine</span>
@@ -272,25 +272,25 @@
 					<span class="n">weight</span><span class="p">:</span> <span class="n">Hashable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 					<span class="n">graph</span><span class="p">:</span> <span class="n">AbstractCharacter</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 		<span class="sd">&quot;&quot;&quot;Find the shortest path to the given node from where I am</span>
-<span class="sd">        now, and follow it.</span>
+<span class="sd">		now, and follow it.</span>
 
-<span class="sd">        If supplied, the ``weight`` stat of each :class:`Portal` along</span>
-<span class="sd">        the path will be used in pathfinding, and for deciding how</span>
-<span class="sd">        long to stay in each Place along the way.</span>
+<span class="sd">		If supplied, the ``weight`` stat of each :class:`Portal` along</span>
+<span class="sd">		the path will be used in pathfinding, and for deciding how</span>
+<span class="sd">		long to stay in each Place along the way.</span>
 
-<span class="sd">        The ``graph`` argument may be any NetworkX-style graph. It</span>
-<span class="sd">        will be used for pathfinding if supplied, otherwise I&#39;ll use</span>
-<span class="sd">        my :class:`Character`. In either case, however, I will attempt</span>
-<span class="sd">        to actually follow the path using my :class:`Character`, which</span>
-<span class="sd">        might not be possible if the supplied ``graph`` and my</span>
-<span class="sd">        :class:`Character` are too different. If it&#39;s not possible,</span>
-<span class="sd">        I&#39;ll raise a :class:`TravelException`, whose ``subpath``</span>
-<span class="sd">        attribute holds the part of the path that I *can* follow. To</span>
-<span class="sd">        make me follow it, pass it to my ``follow_path`` method.</span>
+<span class="sd">		The ``graph`` argument may be any NetworkX-style graph. It</span>
+<span class="sd">		will be used for pathfinding if supplied, otherwise I&#39;ll use</span>
+<span class="sd">		my :class:`Character`. In either case, however, I will attempt</span>
+<span class="sd">		to actually follow the path using my :class:`Character`, which</span>
+<span class="sd">		might not be possible if the supplied ``graph`` and my</span>
+<span class="sd">		:class:`Character` are too different. If it&#39;s not possible,</span>
+<span class="sd">		I&#39;ll raise a :class:`TravelException`, whose ``subpath``</span>
+<span class="sd">		attribute holds the part of the path that I *can* follow. To</span>
+<span class="sd">		make me follow it, pass it to my ``follow_path`` method.</span>
 
-<span class="sd">        Return value is the number of turns the travel will take.</span>
+<span class="sd">		Return value is the number of turns the travel will take.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">destn</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">dest</span>
 		<span class="k">if</span> <span class="n">destn</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;I&#39;m already at </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">destn</span><span class="p">))</span>
@@ -357,7 +357,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

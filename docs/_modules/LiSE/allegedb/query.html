@@ -88,9 +88,9 @@
 <div class="viewcode-block" id="GlobalKeyValueStore"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.GlobalKeyValueStore">[docs]</a><span class="k">class</span> <span class="nc">GlobalKeyValueStore</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;A dict-like object that keeps its contents in a table.</span>
 
-<span class="sd">    Mostly this is for holding the current branch and revision.</span>
+<span class="sd">	Mostly this is for holding the current branch and revision.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qe</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">qe</span> <span class="o">=</span> <span class="n">qe</span>
@@ -140,12 +140,12 @@
 	<span class="k">def</span> <span class="nf">sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stringname</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Wrapper for the various prewritten or compiled SQL calls.</span>
 
-<span class="sd">        First argument is the name of the query, either a key in</span>
-<span class="sd">        ``sqlite.json`` or a method name in</span>
-<span class="sd">        ``allegedb.alchemy.Alchemist``. The rest of the arguments are</span>
-<span class="sd">        parameters to the query.</span>
+<span class="sd">		First argument is the name of the query, either a key in</span>
+<span class="sd">		``sqlite.json`` or a method name in</span>
+<span class="sd">		``allegedb.alchemy.Alchemist``. The rest of the arguments are</span>
+<span class="sd">		parameters to the query.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;alchemist&#39;</span><span class="p">):</span>
 			<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alchemist</span><span class="p">,</span> <span class="n">stringname</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 		<span class="k">else</span><span class="p">:</span>
@@ -156,12 +156,12 @@
 	<span class="k">def</span> <span class="nf">sqlmany</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stringname</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Wrapper for executing many SQL calls on my connection.</span>
 
-<span class="sd">        First arg is the name of a query, either a key in the</span>
-<span class="sd">        precompiled JSON or a method name in</span>
-<span class="sd">        ``allegedb.alchemy.Alchemist``. Remaining arguments should be</span>
-<span class="sd">        tuples of argument sequences to be passed to the query.</span>
+<span class="sd">		First arg is the name of a query, either a key in the</span>
+<span class="sd">		precompiled JSON or a method name in</span>
+<span class="sd">		``allegedb.alchemy.Alchemist``. Remaining arguments should be</span>
+<span class="sd">		tuples of argument sequences to be passed to the query.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;alchemist&#39;</span><span class="p">):</span>
 			<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alchemist</span><span class="o">.</span><span class="n">many</span><span class="p">,</span> <span class="n">stringname</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
 		<span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strings</span><span class="p">[</span><span class="n">stringname</span><span class="p">]</span>
@@ -277,9 +277,9 @@
 
 <div class="viewcode-block" id="QueryEngine"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.QueryEngine">[docs]</a><span class="k">class</span> <span class="nc">QueryEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Wrapper around either a DBAPI2.0 connection or an</span>
-<span class="sd">    Alchemist. Provides methods to run queries using either.</span>
+<span class="sd">	Alchemist. Provides methods to run queries using either.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">flush_edges_t</span> <span class="o">=</span> <span class="mi">0</span>
 	<span class="n">holder_cls</span> <span class="o">=</span> <span class="n">ConnectionHolder</span>
 	<span class="n">tables</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;global&#39;</span><span class="p">,</span> <span class="s1">&#39;branches&#39;</span><span class="p">,</span> <span class="s1">&#39;turns&#39;</span><span class="p">,</span> <span class="s1">&#39;graphs&#39;</span><span class="p">,</span> <span class="s1">&#39;keyframes&#39;</span><span class="p">,</span>
@@ -294,14 +294,14 @@
 					<span class="n">pack</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 					<span class="n">unpack</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;If ``alchemy`` is True and ``dbstring`` is a legit database URI,</span>
-<span class="sd">        instantiate an Alchemist and start a transaction with</span>
-<span class="sd">        it. Otherwise use sqlite3.</span>
+<span class="sd">		instantiate an Alchemist and start a transaction with</span>
+<span class="sd">		it. Otherwise use sqlite3.</span>
 
-<span class="sd">        You may pass an already created sqlalchemy :class:`Engine`</span>
-<span class="sd">        object in place of ``dbstring`` if you wish. I&#39;ll still create</span>
-<span class="sd">        my own transaction though.</span>
+<span class="sd">		You may pass an already created sqlalchemy :class:`Engine`</span>
+<span class="sd">		object in place of ``dbstring`` if you wish. I&#39;ll still create</span>
+<span class="sd">		my own transaction though.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">dbstring</span> <span class="o">=</span> <span class="n">dbstring</span> <span class="ow">or</span> <span class="s1">&#39;sqlite:///:memory:&#39;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_inq</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_outq</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">()</span>
@@ -414,9 +414,9 @@
 
 <div class="viewcode-block" id="QueryEngine.all_branches"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.QueryEngine.all_branches">[docs]</a>	<span class="k">def</span> <span class="nf">all_branches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return all the branch data in tuples of (branch, parent,</span>
-<span class="sd">        parent_turn).</span>
+<span class="sd">		parent_turn).</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;branches_dump&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QueryEngine.global_get"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.QueryEngine.global_get">[docs]</a>	<span class="k">def</span> <span class="nf">global_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
@@ -454,9 +454,9 @@
 
 <div class="viewcode-block" id="QueryEngine.global_set"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.QueryEngine.global_set">[docs]</a>	<span class="k">def</span> <span class="nf">global_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Set ``key`` to ``value`` globally (not at any particular branch or</span>
-<span class="sd">        revision)</span>
+<span class="sd">		revision)</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;global_insert&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
@@ -470,9 +470,9 @@
 
 <div class="viewcode-block" id="QueryEngine.new_branch"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.QueryEngine.new_branch">[docs]</a>	<span class="k">def</span> <span class="nf">new_branch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">parent_turn</span><span class="p">,</span> <span class="n">parent_tick</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Declare that the ``branch`` is descended from ``parent`` at</span>
-<span class="sd">        ``parent_turn``, ``parent_tick``</span>
+<span class="sd">		``parent_turn``, ``parent_tick``</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;branches_insert&#39;</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">parent_turn</span><span class="p">,</span>
 						<span class="n">parent_tick</span><span class="p">,</span> <span class="n">parent_turn</span><span class="p">,</span> <span class="n">parent_tick</span><span class="p">)</span></div>
 
@@ -585,9 +585,9 @@
 <div class="viewcode-block" id="QueryEngine.exist_node"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.QueryEngine.exist_node">[docs]</a>	<span class="k">def</span> <span class="nf">exist_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Declare that the node exists or doesn&#39;t.</span>
 
-<span class="sd">        Inserts a new record or updates an old one, as needed.</span>
+<span class="sd">		Inserts a new record or updates an old one, as needed.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btts</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="n">TimeError</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_btts</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">))</span>
@@ -823,11 +823,37 @@
 
 <div class="viewcode-block" id="QueryEngine.flush"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.QueryEngine.flush">[docs]</a>	<span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Put all pending changes into the SQL transaction.&quot;&quot;&quot;</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_flush_nodes</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_flush_edges</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_flush_graph_val</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_flush_node_val</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_flush_edge_val</span><span class="p">()</span></div>
+		<span class="n">pack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span>
+		<span class="n">put</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inq</span><span class="o">.</span><span class="n">put</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodes2set</span><span class="p">:</span>
+			<span class="n">put</span><span class="p">((</span><span class="s1">&#39;silent&#39;</span><span class="p">,</span> <span class="s1">&#39;many&#39;</span><span class="p">,</span> <span class="s1">&#39;nodes_insert&#39;</span><span class="p">,</span> <span class="p">[</span>
+				<span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">graph</span><span class="p">),</span> <span class="n">pack</span><span class="p">(</span><span class="n">node</span><span class="p">),</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="nb">bool</span><span class="p">(</span><span class="n">extant</span><span class="p">))</span>
+				<span class="k">for</span> <span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
+						<span class="n">extant</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodes2set</span>
+			<span class="p">]))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_nodes2set</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edges2set</span><span class="p">:</span>
+			<span class="n">put</span><span class="p">((</span><span class="s1">&#39;silent&#39;</span><span class="p">,</span> <span class="s1">&#39;many&#39;</span><span class="p">,</span> <span class="s1">&#39;edges_insert&#39;</span><span class="p">,</span>
+					<span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pack_edge2set</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edges2set</span><span class="p">))))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_edges2set</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graphvals2set</span><span class="p">:</span>
+			<span class="n">put</span><span class="p">((</span><span class="s1">&#39;silent&#39;</span><span class="p">,</span> <span class="s1">&#39;many&#39;</span><span class="p">,</span> <span class="s1">&#39;graph_val_insert&#39;</span><span class="p">,</span> <span class="p">[</span>
+				<span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">graph</span><span class="p">),</span> <span class="n">pack</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">pack</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+				<span class="k">for</span> <span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
+						<span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graphvals2set</span>
+			<span class="p">]))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_graphvals2set</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodevals2set</span><span class="p">:</span>
+			<span class="n">put</span><span class="p">((</span><span class="s1">&#39;silent&#39;</span><span class="p">,</span> <span class="s1">&#39;many&#39;</span><span class="p">,</span> <span class="s1">&#39;node_val_insert&#39;</span><span class="p">,</span> <span class="p">[</span>
+				<span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">graph</span><span class="p">),</span> <span class="n">pack</span><span class="p">(</span><span class="n">node</span><span class="p">),</span> <span class="n">pack</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
+					<span class="n">pack</span><span class="p">(</span><span class="n">value</span><span class="p">))</span> <span class="k">for</span> <span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
+										<span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodevals2set</span>
+			<span class="p">]))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_nodes2set</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edgevals2set</span><span class="p">:</span>
+			<span class="n">put</span><span class="p">((</span><span class="s1">&#39;silent&#39;</span><span class="p">,</span> <span class="s1">&#39;many&#39;</span><span class="p">,</span> <span class="s1">&#39;edge_val_insert&#39;</span><span class="p">,</span>
+					<span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pack_edgeval2set</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edgevals2set</span><span class="p">))))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_edgevals2set</span> <span class="o">=</span> <span class="p">[]</span></div>
 
 <div class="viewcode-block" id="QueryEngine.commit"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.QueryEngine.commit">[docs]</a>	<span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Commit the transaction&quot;&quot;&quot;</span>

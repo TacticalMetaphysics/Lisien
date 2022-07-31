@@ -72,10 +72,10 @@
 
 <div class="viewcode-block" id="MenuTextInput.on_enter"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.MenuTextInput.on_enter">[docs]</a>	<span class="k">def</span> <span class="nf">on_enter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Call the setter and blank myself out so that my hint text shows</span>
-<span class="sd">        up. It will be the same you just entered if everything&#39;s</span>
-<span class="sd">        working.</span>
+<span class="sd">		up. It will be the same you just entered if everything&#39;s</span>
+<span class="sd">		working.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">Clock</span><span class="o">.</span><span class="n">get_time</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
@@ -181,51 +181,51 @@
 <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">#: import os os</span>
 <span class="s2">&lt;GeneratorButton&gt;:</span>
-<span class="s2">    size_hint_y: None</span>
-<span class="s2">    height: self.texture_size[1] + 10</span>
+<span class="s2">	size_hint_y: None</span>
+<span class="s2">	height: self.texture_size[1] + 10</span>
 <span class="s2">&lt;WorldStartConfigurator&gt;:</span>
-<span class="s2">    orientation: &#39;vertical&#39;</span>
-<span class="s2">    init_board: app.init_board</span>
-<span class="s2">    starter: app.start_subprocess</span>
-<span class="s2">    Label:</span>
-<span class="s2">        text: &#39;Generate an initial map?&#39;</span>
-<span class="s2">    Button:</span>
-<span class="s2">        id: drop</span>
-<span class="s2">        text: &#39;None&#39;</span>
-<span class="s2">        on_release: root.generator_dropdown.open(drop)</span>
-<span class="s2">    Widget:</span>
-<span class="s2">        id: controls</span>
-<span class="s2">        size_hint_y: None</span>
-<span class="s2">        height: 200</span>
-<span class="s2">    BoxLayout:</span>
-<span class="s2">        orientation: &#39;horizontal&#39;</span>
-<span class="s2">        Button:</span>
-<span class="s2">            text: &#39;OK&#39;</span>
-<span class="s2">            on_release:</span>
-<span class="s2">                root.start()</span>
-<span class="s2">        Button:</span>
-<span class="s2">            text: &#39;Cancel&#39;</span>
-<span class="s2">            on_release:</span>
-<span class="s2">                controls.clear_widgets()</span>
-<span class="s2">                controls.size_hint_y = 0</span>
-<span class="s2">                root._trigger_layout()</span>
-<span class="s2">                root.dismiss()</span>
+<span class="s2">	orientation: &#39;vertical&#39;</span>
+<span class="s2">	init_board: app.init_board</span>
+<span class="s2">	starter: app.start_subprocess</span>
+<span class="s2">	Label:</span>
+<span class="s2">		text: &#39;Generate an initial map?&#39;</span>
+<span class="s2">	Button:</span>
+<span class="s2">		id: drop</span>
+<span class="s2">		text: &#39;None&#39;</span>
+<span class="s2">		on_release: root.generator_dropdown.open(drop)</span>
+<span class="s2">	Widget:</span>
+<span class="s2">		id: controls</span>
+<span class="s2">		size_hint_y: None</span>
+<span class="s2">		height: 200</span>
+<span class="s2">	BoxLayout:</span>
+<span class="s2">		orientation: &#39;horizontal&#39;</span>
+<span class="s2">		Button:</span>
+<span class="s2">			text: &#39;OK&#39;</span>
+<span class="s2">			on_release:</span>
+<span class="s2">				root.start()</span>
+<span class="s2">		Button:</span>
+<span class="s2">			text: &#39;Cancel&#39;</span>
+<span class="s2">			on_release:</span>
+<span class="s2">				controls.clear_widgets()</span>
+<span class="s2">				controls.size_hint_y = 0</span>
+<span class="s2">				root._trigger_layout()</span>
+<span class="s2">				root.dismiss()</span>
 <span class="s2">&lt;DirPicker&gt;:</span>
-<span class="s2">    name: &#39;mainmenu&#39;</span>
-<span class="s2">    start: app.start_subprocess</span>
-<span class="s2">    init_board: app.init_board</span>
-<span class="s2">    BoxLayout:</span>
-<span class="s2">        orientation: &#39;vertical&#39;</span>
-<span class="s2">        Label:</span>
-<span class="s2">            text: &#39;Pick a directory to create or load a simulation in&#39;</span>
-<span class="s2">            size_hint_y: None</span>
-<span class="s2">        FileChooserListView:</span>
-<span class="s2">            id: filechooser</span>
-<span class="s2">            path: os.getcwd()</span>
-<span class="s2">        Button:</span>
-<span class="s2">            text: &#39;Work here&#39;</span>
-<span class="s2">            size_hint_y: 0.1</span>
-<span class="s2">            on_release: root.open(filechooser.path)</span>
+<span class="s2">	name: &#39;mainmenu&#39;</span>
+<span class="s2">	start: app.start_subprocess</span>
+<span class="s2">	init_board: app.init_board</span>
+<span class="s2">	BoxLayout:</span>
+<span class="s2">		orientation: &#39;vertical&#39;</span>
+<span class="s2">		Label:</span>
+<span class="s2">			text: &#39;Pick a directory to create or load a simulation in&#39;</span>
+<span class="s2">			size_hint_y: None</span>
+<span class="s2">		FileChooserListView:</span>
+<span class="s2">			id: filechooser</span>
+<span class="s2">			path: os.getcwd()</span>
+<span class="s2">		Button:</span>
+<span class="s2">			text: &#39;Work here&#39;</span>
+<span class="s2">			size_hint_y: 0.1</span>
+<span class="s2">			on_release: root.open(filechooser.path)</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
 </pre></div>
 
@@ -287,7 +287,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

@@ -132,40 +132,40 @@
 <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">#: import resource_find kivy.resources.resource_find</span>
 <span class="s2">&lt;CharactersView&gt;:</span>
-<span class="s2">    viewclass: &#39;RecycleToggleButton&#39;</span>
-<span class="s2">    character_name: boxl.character_name</span>
-<span class="s2">    CharactersRecycleBoxLayout:</span>
-<span class="s2">        id: boxl</span>
-<span class="s2">        multiselect: False</span>
-<span class="s2">        default_size: None, dp(56)</span>
-<span class="s2">        default_size_hint: 1, None</span>
-<span class="s2">        size_hint_y: None</span>
-<span class="s2">        height: self.minimum_height</span>
-<span class="s2">        orientation: &#39;vertical&#39;</span>
+<span class="s2">	viewclass: &#39;RecycleToggleButton&#39;</span>
+<span class="s2">	character_name: boxl.character_name</span>
+<span class="s2">	CharactersRecycleBoxLayout:</span>
+<span class="s2">		id: boxl</span>
+<span class="s2">		multiselect: False</span>
+<span class="s2">		default_size: None, dp(56)</span>
+<span class="s2">		default_size_hint: 1, None</span>
+<span class="s2">		size_hint_y: None</span>
+<span class="s2">		height: self.minimum_height</span>
+<span class="s2">		orientation: &#39;vertical&#39;</span>
 <span class="s2">&lt;CharactersScreen&gt;:</span>
-<span class="s2">    name: &#39;chars&#39;</span>
-<span class="s2">    charsview: charsview</span>
-<span class="s2">    BoxLayout:</span>
-<span class="s2">        id: chars</span>
-<span class="s2">        orientation: &#39;vertical&#39;</span>
-<span class="s2">        CharactersView:</span>
-<span class="s2">            id: charsview</span>
-<span class="s2">            size_hint_y: 0.8</span>
-<span class="s2">            character_name: root.character_name</span>
-<span class="s2">        TextInput:</span>
-<span class="s2">            id: newname</span>
-<span class="s2">            size_hint_y: 0.1</span>
-<span class="s2">            hint_text: &#39;New character name&#39;</span>
-<span class="s2">            write_tab: False</span>
-<span class="s2">            multiline: False</span>
-<span class="s2">        Button:</span>
-<span class="s2">            text: &#39;+&#39;</span>
-<span class="s2">            on_release: root._trigger_new_character(newname.text)</span>
-<span class="s2">            size_hint_y: 0.05</span>
-<span class="s2">        Button:</span>
-<span class="s2">            text: &#39;Close&#39;</span>
-<span class="s2">            on_release: root.toggle()</span>
-<span class="s2">            size_hint_y: 0.05</span>
+<span class="s2">	name: &#39;chars&#39;</span>
+<span class="s2">	charsview: charsview</span>
+<span class="s2">	BoxLayout:</span>
+<span class="s2">		id: chars</span>
+<span class="s2">		orientation: &#39;vertical&#39;</span>
+<span class="s2">		CharactersView:</span>
+<span class="s2">			id: charsview</span>
+<span class="s2">			size_hint_y: 0.8</span>
+<span class="s2">			character_name: root.character_name</span>
+<span class="s2">		TextInput:</span>
+<span class="s2">			id: newname</span>
+<span class="s2">			size_hint_y: 0.1</span>
+<span class="s2">			hint_text: &#39;New character name&#39;</span>
+<span class="s2">			write_tab: False</span>
+<span class="s2">			multiline: False</span>
+<span class="s2">		Button:</span>
+<span class="s2">			text: &#39;+&#39;</span>
+<span class="s2">			on_release: root._trigger_new_character(newname.text)</span>
+<span class="s2">			size_hint_y: 0.05</span>
+<span class="s2">		Button:</span>
+<span class="s2">			text: &#39;Close&#39;</span>
+<span class="s2">			on_release: root.toggle()</span>
+<span class="s2">			size_hint_y: 0.05</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
 </pre></div>
 
@@ -227,7 +227,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

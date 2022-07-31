@@ -73,10 +73,10 @@
 <div class="viewcode-block" id="normalize_layout"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.normalize_layout">[docs]</a><span class="k">def</span> <span class="nf">normalize_layout</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Make sure all the spots in a layout are where you can click.</span>
 
-<span class="sd">    Returns a copy of the layout with all spot coordinates are</span>
-<span class="sd">    normalized to within (0.0, 0.98).</span>
+<span class="sd">	Returns a copy of the layout with all spot coordinates are</span>
+<span class="sd">	normalized to within (0.0, 0.98).</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">xs</span> <span class="o">=</span> <span class="p">[]</span>
 	<span class="n">ys</span> <span class="o">=</span> <span class="p">[]</span>
 	<span class="n">ks</span> <span class="o">=</span> <span class="p">[]</span>
@@ -104,17 +104,17 @@
 <div class="viewcode-block" id="KvLayoutBack"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.KvLayoutBack">[docs]</a><span class="k">class</span> <span class="nc">KvLayoutBack</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;What to show behind the graph.</span>
 
-<span class="sd">    By default, shows nothing.</span>
+<span class="sd">	By default, shows nothing.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span></div>
+<span class="sd">	&quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="KvLayoutFront"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.KvLayoutFront">[docs]</a><span class="k">class</span> <span class="nc">KvLayoutFront</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;What to show in front of the graph.</span>
 
-<span class="sd">    By default, shows nothing.</span>
+<span class="sd">	By default, shows nothing.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="k">pass</span></div>
 
 
@@ -130,9 +130,9 @@
 
 <div class="viewcode-block" id="GraphBoard"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard">[docs]</a><span class="k">class</span> <span class="nc">GraphBoard</span><span class="p">(</span><span class="n">RelativeLayout</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;A graphical view onto a :class:`LiSE.Character`, resembling a game</span>
-<span class="sd">    graph.</span>
+<span class="sd">	graph.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">app</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">character</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">wallpaper_path</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
@@ -408,9 +408,9 @@
 
 <div class="viewcode-block" id="GraphBoard.make_pawn"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.make_pawn">[docs]</a>	<span class="k">def</span> <span class="nf">make_pawn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Make a :class:`Pawn` to represent a :class:`Thing`, store it, and</span>
-<span class="sd">        return it.</span>
+<span class="sd">		return it.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">thing</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Already have a Pawn for this Thing&quot;</span><span class="p">)</span>
 		<span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn_cls</span><span class="p">(</span><span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">proxy</span><span class="o">=</span><span class="n">thing</span><span class="p">)</span>
@@ -419,9 +419,9 @@
 
 <div class="viewcode-block" id="GraphBoard.make_spot"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.make_spot">[docs]</a>	<span class="k">def</span> <span class="nf">make_spot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Make a :class:`Spot` to represent a :class:`Place`, store it, and</span>
-<span class="sd">        return it.</span>
+<span class="sd">		return it.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">place</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Already have a Spot for this Place&quot;</span><span class="p">)</span>
 		<span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot_cls</span><span class="p">(</span><span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="o">=</span><span class="n">place</span><span class="p">)</span>
@@ -432,9 +432,9 @@
 
 <div class="viewcode-block" id="GraphBoard.make_arrow"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.make_arrow">[docs]</a>	<span class="k">def</span> <span class="nf">make_arrow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">portal</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Make an :class:`Arrow` to represent a :class:`Portal`, store it,</span>
-<span class="sd">        and return it.</span>
+<span class="sd">		and return it.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="p">(</span><span class="n">portal</span><span class="p">[</span><span class="s2">&quot;origin&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span>
 			<span class="ow">or</span> <span class="n">portal</span><span class="p">[</span><span class="s2">&quot;destination&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">):</span>
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;An :class:`Arrow` should only be made after &quot;</span>
@@ -722,11 +722,11 @@
 <div class="viewcode-block" id="GraphBoard.update"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.update">[docs]</a>	<span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Force an update to match the current state of my character.</span>
 
-<span class="sd">        This polls every element of the character, and therefore</span>
-<span class="sd">        causes me to sync with the LiSE core for a long time. Avoid</span>
-<span class="sd">        when possible.</span>
+<span class="sd">		This polls every element of the character, and therefore</span>
+<span class="sd">		causes me to sync with the LiSE core for a long time. Avoid</span>
+<span class="sd">		when possible.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;engine&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="s1">&#39;closed&#39;</span><span class="p">,</span>
 													<span class="kc">False</span><span class="p">):</span>
 			<span class="n">Logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
@@ -888,11 +888,11 @@
 <div class="viewcode-block" id="BoardScatterPlane.spot_from_dummy"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.BoardScatterPlane.spot_from_dummy">[docs]</a>	<span class="k">def</span> <span class="nf">spot_from_dummy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dummy</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Make a real place and its spot from a dummy spot.</span>
 
-<span class="sd">        Create a new :class:`graph.Spot` instance, along with the</span>
-<span class="sd">        underlying :class:`LiSE.Place` instance, and give it the name,</span>
-<span class="sd">        position, and imagery of the provided dummy.</span>
+<span class="sd">		Create a new :class:`graph.Spot` instance, along with the</span>
+<span class="sd">		underlying :class:`LiSE.Place` instance, and give it the name,</span>
+<span class="sd">		position, and imagery of the provided dummy.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_local</span><span class="p">(</span><span class="o">*</span><span class="n">dummy</span><span class="o">.</span><span class="n">pos_up</span><span class="p">)</span>
 		<span class="n">x</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">width</span>
 		<span class="n">y</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">height</span>
@@ -908,11 +908,11 @@
 <div class="viewcode-block" id="BoardScatterPlane.pawn_from_dummy"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.BoardScatterPlane.pawn_from_dummy">[docs]</a>	<span class="k">def</span> <span class="nf">pawn_from_dummy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dummy</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Make a real thing and its pawn from a dummy pawn.</span>
 
-<span class="sd">        Create a new :class:`graph.Pawn` instance, along with the</span>
-<span class="sd">        underlying :class:`LiSE.Thing` instance, and give it the name,</span>
-<span class="sd">        location, and imagery of the provided dummy.</span>
+<span class="sd">		Create a new :class:`graph.Pawn` instance, along with the</span>
+<span class="sd">		underlying :class:`LiSE.Thing` instance, and give it the name,</span>
+<span class="sd">		location, and imagery of the provided dummy.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">candidates</span> <span class="o">=</span> <span class="p">[]</span>
 		<span class="n">dummy_center</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_local</span><span class="p">(</span><span class="o">*</span><span class="n">dummy</span><span class="o">.</span><span class="n">center</span><span class="p">)</span>
 		<span class="n">dummy</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_local</span><span class="p">(</span><span class="o">*</span><span class="n">dummy</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
@@ -997,17 +997,17 @@
 
 <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">&lt;GraphBoard&gt;:</span>
-<span class="s2">    app: app</span>
-<span class="s2">    size_hint: None, None</span>
+<span class="s2">	app: app</span>
+<span class="s2">	size_hint: None, None</span>
 <span class="s2">&lt;GraphBoardView&gt;:</span>
-<span class="s2">    plane: boardplane</span>
-<span class="s2">    BoardScatterPlane:</span>
-<span class="s2">        id: boardplane</span>
-<span class="s2">        board: root.board</span>
-<span class="s2">        adding_portal: root.adding_portal</span>
-<span class="s2">        reciprocal_portal: root.reciprocal_portal</span>
-<span class="s2">        scale_min: root.scale_min</span>
-<span class="s2">        scale_max: root.scale_max</span>
+<span class="s2">	plane: boardplane</span>
+<span class="s2">	BoardScatterPlane:</span>
+<span class="s2">		id: boardplane</span>
+<span class="s2">		board: root.board</span>
+<span class="s2">		adding_portal: root.adding_portal</span>
+<span class="s2">		reciprocal_portal: root.reciprocal_portal</span>
+<span class="s2">		scale_min: root.scale_min</span>
+<span class="s2">		scale_max: root.scale_max</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
 </pre></div>
 

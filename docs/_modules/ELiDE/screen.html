@@ -87,14 +87,14 @@
 
 <div class="viewcode-block" id="StatListPanel"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.StatListPanel">[docs]</a><span class="k">class</span> <span class="nc">StatListPanel</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;A panel that displays a simple two-column grid showing the stats of</span>
-<span class="sd">    the selected entity, defaulting to those of the character being</span>
-<span class="sd">    viewed.</span>
+<span class="sd">	the selected entity, defaulting to those of the character being</span>
+<span class="sd">	viewed.</span>
 
-<span class="sd">    Has a button on the bottom to open the StatWindow in which</span>
-<span class="sd">    to add and delete stats, or to change the way they are displayed</span>
-<span class="sd">    in the StatListPanel.</span>
+<span class="sd">	Has a button on the bottom to open the StatWindow in which</span>
+<span class="sd">	to add and delete stats, or to change the way they are displayed</span>
+<span class="sd">	in the StatListPanel.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">selection_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
 	<span class="n">button_text</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;Configure stats&#39;</span><span class="p">)</span>
 	<span class="n">cfgstatbut</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -156,18 +156,18 @@
 
 <div class="viewcode-block" id="TimePanel"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.TimePanel">[docs]</a><span class="k">class</span> <span class="nc">TimePanel</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;A panel that lets you to start and stop the game, or browse through</span>
-<span class="sd">    its history.</span>
+<span class="sd">	its history.</span>
 
-<span class="sd">    There&#39;s a &quot;simulate&quot; button, which is toggleable. When toggled on, the</span>
-<span class="sd">    simulation will continue to run until it&#39;s toggled off</span>
-<span class="sd">    again. Next to this is a &quot;1 turn&quot; button, which will simulate</span>
-<span class="sd">    exactly one turn and stop. And there are two text fields in which</span>
-<span class="sd">    you can manually enter a Branch and Tick to go to. Moving through</span>
-<span class="sd">    time this way doesn&#39;t simulate anything--you&#39;ll only see what</span>
-<span class="sd">    happened as a result of &quot;simulate,&quot; &quot;1 turn,&quot; or some other way</span>
-<span class="sd">    the LiSE rules engine has been made to run.</span>
+<span class="sd">	There&#39;s a &quot;simulate&quot; button, which is toggleable. When toggled on, the</span>
+<span class="sd">	simulation will continue to run until it&#39;s toggled off</span>
+<span class="sd">	again. Next to this is a &quot;1 turn&quot; button, which will simulate</span>
+<span class="sd">	exactly one turn and stop. And there are two text fields in which</span>
+<span class="sd">	you can manually enter a Branch and Tick to go to. Moving through</span>
+<span class="sd">	time this way doesn&#39;t simulate anything--you&#39;ll only see what</span>
+<span class="sd">	happened as a result of &quot;simulate,&quot; &quot;1 turn,&quot; or some other way</span>
+<span class="sd">	the LiSE rules engine has been made to run.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">screen</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">buttons_font_size</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">18</span><span class="p">)</span>
 	<span class="n">disable_one_turn</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">()</span>
@@ -219,13 +219,13 @@
 <div class="viewcode-block" id="MainScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen">[docs]</a><span class="k">class</span> <span class="nc">MainScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;A master layout that contains one graph and some menus.</span>
 
-<span class="sd">    This contains three elements: a scrollview (containing the graph),</span>
-<span class="sd">    a menu, and the time control panel. This class has some support methods</span>
-<span class="sd">    for handling interactions with the menu and the character sheet,</span>
-<span class="sd">    but if neither of those happen, the scrollview handles touches on its</span>
-<span class="sd">    own.</span>
+<span class="sd">	This contains three elements: a scrollview (containing the graph),</span>
+<span class="sd">	a menu, and the time control panel. This class has some support methods</span>
+<span class="sd">	for handling interactions with the menu and the character sheet,</span>
+<span class="sd">	but if neither of those happen, the scrollview handles touches on its</span>
+<span class="sd">	own.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">manager</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">graphboards</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
 	<span class="n">gridboards</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
@@ -325,9 +325,9 @@
 
 <div class="viewcode-block" id="MainScreen.on_play_speed"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.on_play_speed">[docs]</a>	<span class="k">def</span> <span class="nf">on_play_speed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Change the interval at which ``self.play`` is called to match my</span>
-<span class="sd">        current ``play_speed``.</span>
+<span class="sd">		current ``play_speed``.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_play_scheduled&#39;</span><span class="p">):</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_play_scheduled</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_play_scheduled</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_interval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">play</span><span class="p">,</span>
@@ -336,7 +336,7 @@
 <div class="viewcode-block" id="MainScreen.remake_display"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.remake_display">[docs]</a>	<span class="k">def</span> <span class="nf">remake_display</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Remake any affected widgets after a change in my ``kv``.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kv</span><span class="p">)</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_kv_layout&#39;</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kv_layout</span><span class="p">)</span>
@@ -370,10 +370,10 @@
 
 <div class="viewcode-block" id="MainScreen.on_dummies"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.on_dummies">[docs]</a>	<span class="k">def</span> <span class="nf">on_dummies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Give the dummies numbers such that, when appended to their names,</span>
-<span class="sd">        they give a unique name for the resulting new</span>
-<span class="sd">        :class:`graph.Pawn` or :class:`graph.Spot`.</span>
+<span class="sd">		they give a unique name for the resulting new</span>
+<span class="sd">		:class:`graph.Pawn` or :class:`graph.Spot`.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character</span><span class="p">:</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_dummies</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 			<span class="k">return</span>
@@ -423,9 +423,9 @@
 <div class="viewcode-block" id="MainScreen.play"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.play">[docs]</a>	<span class="k">def</span> <span class="nf">play</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;If the &#39;play&#39; button is pressed, advance a turn.</span>
 
-<span class="sd">        If you want to disable this, set ``engine.universal[&#39;block&#39;] = True``</span>
+<span class="sd">		If you want to disable this, set ``engine.universal[&#39;block&#39;] = True``</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">playbut</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">,</span>
 			<span class="s1">&#39;engine&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
@@ -452,7 +452,7 @@
 <div class="viewcode-block" id="MainScreen.next_turn"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.next_turn">[docs]</a>	<span class="k">def</span> <span class="nf">next_turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Advance time by one turn, if it&#39;s not blocked.</span>
 
-<span class="sd">        Block time by setting ``engine.universal[&#39;block&#39;] = True``&quot;&quot;&quot;</span>
+<span class="sd">		Block time by setting ``engine.universal[&#39;block&#39;] = True``&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tmp_block</span><span class="p">:</span>
 			<span class="k">return</span>
 		<span class="n">eng</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span>
@@ -560,171 +560,171 @@
 <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">#: import resource_find kivy.resources.resource_find</span>
 <span class="s2">&lt;StatListPanel&gt;:</span>
-<span class="s2">    orientation: &#39;vertical&#39;</span>
-<span class="s2">    cfgstatbut: cfgstatbut</span>
-<span class="s2">    statlist: statlist</span>
-<span class="s2">    id: statpanel</span>
-<span class="s2">    proxy: app.selected_proxy</span>
-<span class="s2">    Label:</span>
-<span class="s2">        size_hint_y: 0.05</span>
-<span class="s2">        text: root.selection_name</span>
-<span class="s2">        bold: True</span>
-<span class="s2">    Calendar:</span>
-<span class="s2">        id: statlist</span>
-<span class="s2">        size_hint_y: 0.8</span>
-<span class="s2">        entity: root.proxy</span>
-<span class="s2">        update_mode: &#39;present&#39;</span>
-<span class="s2">        disabled: app.edit_locked</span>
-<span class="s2">    Button:</span>
-<span class="s2">        id: gridviewbut</span>
-<span class="s2">        size_hint_y: 0.05</span>
-<span class="s2">        text: &#39;Toggle grid&#39;</span>
-<span class="s2">        on_release: root.toggle_gridview()</span>
-<span class="s2">    Button:</span>
-<span class="s2">        id: cfgstatbut</span>
-<span class="s2">        size_hint_y: 0.05</span>
-<span class="s2">        text: root.button_text</span>
-<span class="s2">        on_release: root.toggle_stat_cfg()</span>
-<span class="s2">    Button:</span>
-<span class="s2">        id: timestreambut</span>
-<span class="s2">        size_hint_y: 0.05</span>
-<span class="s2">        text: &#39;Timestream&#39;</span>
-<span class="s2">        on_release: root.toggle_timestream()</span>
+<span class="s2">	orientation: &#39;vertical&#39;</span>
+<span class="s2">	cfgstatbut: cfgstatbut</span>
+<span class="s2">	statlist: statlist</span>
+<span class="s2">	id: statpanel</span>
+<span class="s2">	proxy: app.selected_proxy</span>
+<span class="s2">	Label:</span>
+<span class="s2">		size_hint_y: 0.05</span>
+<span class="s2">		text: root.selection_name</span>
+<span class="s2">		bold: True</span>
+<span class="s2">	Calendar:</span>
+<span class="s2">		id: statlist</span>
+<span class="s2">		size_hint_y: 0.8</span>
+<span class="s2">		entity: root.proxy</span>
+<span class="s2">		update_mode: &#39;present&#39;</span>
+<span class="s2">		disabled: app.edit_locked</span>
+<span class="s2">	Button:</span>
+<span class="s2">		id: gridviewbut</span>
+<span class="s2">		size_hint_y: 0.05</span>
+<span class="s2">		text: &#39;Toggle grid&#39;</span>
+<span class="s2">		on_release: root.toggle_gridview()</span>
+<span class="s2">	Button:</span>
+<span class="s2">		id: cfgstatbut</span>
+<span class="s2">		size_hint_y: 0.05</span>
+<span class="s2">		text: root.button_text</span>
+<span class="s2">		on_release: root.toggle_stat_cfg()</span>
+<span class="s2">	Button:</span>
+<span class="s2">		id: timestreambut</span>
+<span class="s2">		size_hint_y: 0.05</span>
+<span class="s2">		text: &#39;Timestream&#39;</span>
+<span class="s2">		on_release: root.toggle_timestream()</span>
 <span class="s2">&lt;SimulateButton&gt;:</span>
-<span class="s2">    graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)</span>
-<span class="s2">    graphics_bot: self.y + self.font_size + 3</span>
-<span class="s2">    graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2</span>
-<span class="s2">    play_arrow_left: self.center_x - self.width / 6</span>
-<span class="s2">    play_arrow_right: self.center_x + self.width / 6</span>
-<span class="s2">    play_arrow_points: self.play_arrow_left, self.graphics_top, self.play_arrow_right, self.graphics_center_y, self.play_arrow_left, self.graphics_bot</span>
-<span class="s2">    canvas:</span>
-<span class="s2">        Triangle:</span>
-<span class="s2">            points: root.play_arrow_points</span>
-<span class="s2">        SmoothLine:</span>
-<span class="s2">            points: root.play_arrow_points[:-2] + [root.play_arrow_points[-2]+1, root.play_arrow_points[-1]+1]</span>
-<span class="s2">    Label:</span>
-<span class="s2">        id: playlabel</span>
-<span class="s2">        font_size: root.font_size</span>
-<span class="s2">        center_x: root.center_x</span>
-<span class="s2">        y: root.y</span>
-<span class="s2">        size: self.texture_size</span>
-<span class="s2">        text: &#39;Simulate&#39;</span>
+<span class="s2">	graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)</span>
+<span class="s2">	graphics_bot: self.y + self.font_size + 3</span>
+<span class="s2">	graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2</span>
+<span class="s2">	play_arrow_left: self.center_x - self.width / 6</span>
+<span class="s2">	play_arrow_right: self.center_x + self.width / 6</span>
+<span class="s2">	play_arrow_points: self.play_arrow_left, self.graphics_top, self.play_arrow_right, self.graphics_center_y, self.play_arrow_left, self.graphics_bot</span>
+<span class="s2">	canvas:</span>
+<span class="s2">		Triangle:</span>
+<span class="s2">			points: root.play_arrow_points</span>
+<span class="s2">		SmoothLine:</span>
+<span class="s2">			points: root.play_arrow_points[:-2] + [root.play_arrow_points[-2]+1, root.play_arrow_points[-1]+1]</span>
+<span class="s2">	Label:</span>
+<span class="s2">		id: playlabel</span>
+<span class="s2">		font_size: root.font_size</span>
+<span class="s2">		center_x: root.center_x</span>
+<span class="s2">		y: root.y</span>
+<span class="s2">		size: self.texture_size</span>
+<span class="s2">		text: &#39;Simulate&#39;</span>
 <span class="s2">&lt;OneTurnButton&gt;:</span>
-<span class="s2">    graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)</span>
-<span class="s2">    graphics_bot: self.y + self.font_size + 3</span>
-<span class="s2">    graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2</span>
-<span class="s2">    step_arrow_left: self.center_x - (self.width / 6)</span>
-<span class="s2">    step_center_x: self.center_x + self.width / 6</span>
-<span class="s2">    step_bar_right: self.center_x + self.width / 4</span>
-<span class="s2">    step_arrow_points: self.step_arrow_left, self.graphics_top, self.step_center_x, self.graphics_center_y, self.step_arrow_left, self.graphics_bot</span>
-<span class="s2">    step_rect_points: self.step_center_x, self.graphics_top, self.step_bar_right, self.graphics_top, self.step_bar_right, self.graphics_bot, self.step_center_x, self.graphics_bot</span>
-<span class="s2">    canvas:</span>
-<span class="s2">        Triangle:</span>
-<span class="s2">            points: root.step_arrow_points</span>
-<span class="s2">        Quad:</span>
-<span class="s2">            points: root.step_rect_points </span>
-<span class="s2">        SmoothLine:</span>
-<span class="s2">            points: root.step_arrow_points</span>
-<span class="s2">        SmoothLine:</span>
-<span class="s2">            points: root.step_rect_points </span>
-<span class="s2">    Label:</span>
-<span class="s2">        font_size: root.font_size</span>
-<span class="s2">        center_x: root.center_x</span>
-<span class="s2">        y: root.y</span>
-<span class="s2">        size: self.texture_size</span>
-<span class="s2">        text: &#39;1 turn&#39;</span>
+<span class="s2">	graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)</span>
+<span class="s2">	graphics_bot: self.y + self.font_size + 3</span>
+<span class="s2">	graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2</span>
+<span class="s2">	step_arrow_left: self.center_x - (self.width / 6)</span>
+<span class="s2">	step_center_x: self.center_x + self.width / 6</span>
+<span class="s2">	step_bar_right: self.center_x + self.width / 4</span>
+<span class="s2">	step_arrow_points: self.step_arrow_left, self.graphics_top, self.step_center_x, self.graphics_center_y, self.step_arrow_left, self.graphics_bot</span>
+<span class="s2">	step_rect_points: self.step_center_x, self.graphics_top, self.step_bar_right, self.graphics_top, self.step_bar_right, self.graphics_bot, self.step_center_x, self.graphics_bot</span>
+<span class="s2">	canvas:</span>
+<span class="s2">		Triangle:</span>
+<span class="s2">			points: root.step_arrow_points</span>
+<span class="s2">		Quad:</span>
+<span class="s2">			points: root.step_rect_points </span>
+<span class="s2">		SmoothLine:</span>
+<span class="s2">			points: root.step_arrow_points</span>
+<span class="s2">		SmoothLine:</span>
+<span class="s2">			points: root.step_rect_points </span>
+<span class="s2">	Label:</span>
+<span class="s2">		font_size: root.font_size</span>
+<span class="s2">		center_x: root.center_x</span>
+<span class="s2">		y: root.y</span>
+<span class="s2">		size: self.texture_size</span>
+<span class="s2">		text: &#39;1 turn&#39;</span>
 <span class="s2">&lt;TimePanel&gt;:</span>
-<span class="s2">    orientation: &#39;vertical&#39;</span>
-<span class="s2">    playbut: playbut</span>
-<span class="s2">    BoxLayout:</span>
-<span class="s2">        size_hint_y: 0.4</span>
-<span class="s2">        BoxLayout:</span>
-<span class="s2">            orientation: &#39;vertical&#39;</span>
-<span class="s2">            Label:</span>
-<span class="s2">                size_hint_y: 0.4</span>
-<span class="s2">                text: &#39;Branch&#39;</span>
-<span class="s2">            MenuTextInput:</span>
-<span class="s2">                id: branchfield</span>
-<span class="s2">                set_value: root.set_branch</span>
-<span class="s2">                hint_text: root.screen.app.branch if root.screen else &#39;&#39;</span>
-<span class="s2">        BoxLayout:</span>
-<span class="s2">            BoxLayout:</span>
-<span class="s2">                orientation: &#39;vertical&#39;</span>
-<span class="s2">                Label:</span>
-<span class="s2">                    size_hint_y: 0.4</span>
-<span class="s2">                    text: &#39;Turn&#39;</span>
-<span class="s2">                MenuIntInput:</span>
-<span class="s2">                    id: turnfield</span>
-<span class="s2">                    set_value: root.set_turn</span>
-<span class="s2">                    hint_text: str(root.screen.app.turn) if root.screen else &#39;&#39;</span>
-<span class="s2">            BoxLayout:</span>
-<span class="s2">                orientation: &#39;vertical&#39;</span>
-<span class="s2">                Label:</span>
-<span class="s2">                    size_hint_y: 0.4</span>
-<span class="s2">                    text: &#39;Tick&#39;</span>
-<span class="s2">                MenuIntInput:</span>
-<span class="s2">                    id: tickfield</span>
-<span class="s2">                    set_value: root.set_tick</span>
-<span class="s2">                    hint_text: str(root.screen.app.tick) if root.screen else &#39;&#39;</span>
-<span class="s2">    BoxLayout:</span>
-<span class="s2">        size_hint_y: 0.6</span>
-<span class="s2">        SimulateButton:</span>
-<span class="s2">            id: playbut</span>
-<span class="s2">            font_size: root.buttons_font_size</span>
-<span class="s2">        OneTurnButton:</span>
-<span class="s2">            id: stepbut</span>
-<span class="s2">            font_size: root.buttons_font_size</span>
-<span class="s2">            screen: root.screen</span>
-<span class="s2">            disabled: root.disable_one_turn or app.edit_locked</span>
+<span class="s2">	orientation: &#39;vertical&#39;</span>
+<span class="s2">	playbut: playbut</span>
+<span class="s2">	BoxLayout:</span>
+<span class="s2">		size_hint_y: 0.4</span>
+<span class="s2">		BoxLayout:</span>
+<span class="s2">			orientation: &#39;vertical&#39;</span>
+<span class="s2">			Label:</span>
+<span class="s2">				size_hint_y: 0.4</span>
+<span class="s2">				text: &#39;Branch&#39;</span>
+<span class="s2">			MenuTextInput:</span>
+<span class="s2">				id: branchfield</span>
+<span class="s2">				set_value: root.set_branch</span>
+<span class="s2">				hint_text: root.screen.app.branch if root.screen else &#39;&#39;</span>
+<span class="s2">		BoxLayout:</span>
+<span class="s2">			BoxLayout:</span>
+<span class="s2">				orientation: &#39;vertical&#39;</span>
+<span class="s2">				Label:</span>
+<span class="s2">					size_hint_y: 0.4</span>
+<span class="s2">					text: &#39;Turn&#39;</span>
+<span class="s2">				MenuIntInput:</span>
+<span class="s2">					id: turnfield</span>
+<span class="s2">					set_value: root.set_turn</span>
+<span class="s2">					hint_text: str(root.screen.app.turn) if root.screen else &#39;&#39;</span>
+<span class="s2">			BoxLayout:</span>
+<span class="s2">				orientation: &#39;vertical&#39;</span>
+<span class="s2">				Label:</span>
+<span class="s2">					size_hint_y: 0.4</span>
+<span class="s2">					text: &#39;Tick&#39;</span>
+<span class="s2">				MenuIntInput:</span>
+<span class="s2">					id: tickfield</span>
+<span class="s2">					set_value: root.set_tick</span>
+<span class="s2">					hint_text: str(root.screen.app.tick) if root.screen else &#39;&#39;</span>
+<span class="s2">	BoxLayout:</span>
+<span class="s2">		size_hint_y: 0.6</span>
+<span class="s2">		SimulateButton:</span>
+<span class="s2">			id: playbut</span>
+<span class="s2">			font_size: root.buttons_font_size</span>
+<span class="s2">		OneTurnButton:</span>
+<span class="s2">			id: stepbut</span>
+<span class="s2">			font_size: root.buttons_font_size</span>
+<span class="s2">			screen: root.screen</span>
+<span class="s2">			disabled: root.disable_one_turn or app.edit_locked</span>
 <span class="s2">&lt;MainScreen&gt;:</span>
-<span class="s2">    name: &#39;main&#39;</span>
-<span class="s2">    dummyplace: charmenu.dummyplace</span>
-<span class="s2">    dummything: charmenu.dummything</span>
-<span class="s2">    mainview: mainview</span>
-<span class="s2">    playbut: timepanel.playbut</span>
-<span class="s2">    portaladdbut: charmenu.portaladdbut</span>
-<span class="s2">    charmenu: charmenu</span>
-<span class="s2">    statlist: statpanel.statlist</span>
-<span class="s2">    statpanel: statpanel</span>
-<span class="s2">    timepanel: timepanel</span>
-<span class="s2">    dialoglayout: dialoglayout</span>
-<span class="s2">    Widget:</span>
-<span class="s2">        id: mainview</span>
-<span class="s2">        x: statpanel.right</span>
-<span class="s2">        y: 0</span>
-<span class="s2">        size_hint: (None, None)</span>
-<span class="s2">        width: charmenu.x - statpanel.right</span>
-<span class="s2">        height: root.height</span>
-<span class="s2">    StatListPanel:</span>
-<span class="s2">        id: statpanel</span>
-<span class="s2">        engine: app.engine</span>
-<span class="s2">        toggle_stat_cfg: app.statcfg.toggle</span>
-<span class="s2">        toggle_calendar: root.toggle_calendar</span>
-<span class="s2">        toggle_gridview: root.toggle_gridview</span>
-<span class="s2">        pos_hint: {&#39;left&#39;: 0, &#39;top&#39;: 1}</span>
-<span class="s2">        size_hint: (0.25, 0.8)</span>
-<span class="s2">        selection_name: app.selected_proxy_name</span>
-<span class="s2">        toggle_timestream: root.toggle_timestream</span>
-<span class="s2">    TimePanel:</span>
-<span class="s2">        id: timepanel</span>
-<span class="s2">        screen: root</span>
-<span class="s2">        pos_hint: {&#39;bot&#39;: 0}</span>
-<span class="s2">        size_hint: (0.25, 0.2)</span>
-<span class="s2">        disable_one_turn: root.tmp_block</span>
-<span class="s2">    CharMenuContainer:</span>
-<span class="s2">        id: charmenu</span>
-<span class="s2">        orientation: &#39;vertical&#39;</span>
-<span class="s2">        screen: root</span>
-<span class="s2">        pos_hint: {&#39;right&#39;: 1, &#39;top&#39;: 1}</span>
-<span class="s2">        size_hint: (0.1, 1)</span>
-<span class="s2">    DialogLayout:</span>
-<span class="s2">        id: dialoglayout</span>
-<span class="s2">        engine: app.engine</span>
-<span class="s2">        size_hint: None, None</span>
-<span class="s2">        x: statpanel.right</span>
-<span class="s2">        y: timepanel.top</span>
-<span class="s2">        width: charmenu.x - statpanel.right</span>
-<span class="s2">        height: root.height - timepanel.top</span>
+<span class="s2">	name: &#39;main&#39;</span>
+<span class="s2">	dummyplace: charmenu.dummyplace</span>
+<span class="s2">	dummything: charmenu.dummything</span>
+<span class="s2">	mainview: mainview</span>
+<span class="s2">	playbut: timepanel.playbut</span>
+<span class="s2">	portaladdbut: charmenu.portaladdbut</span>
+<span class="s2">	charmenu: charmenu</span>
+<span class="s2">	statlist: statpanel.statlist</span>
+<span class="s2">	statpanel: statpanel</span>
+<span class="s2">	timepanel: timepanel</span>
+<span class="s2">	dialoglayout: dialoglayout</span>
+<span class="s2">	Widget:</span>
+<span class="s2">		id: mainview</span>
+<span class="s2">		x: statpanel.right</span>
+<span class="s2">		y: 0</span>
+<span class="s2">		size_hint: (None, None)</span>
+<span class="s2">		width: charmenu.x - statpanel.right</span>
+<span class="s2">		height: root.height</span>
+<span class="s2">	StatListPanel:</span>
+<span class="s2">		id: statpanel</span>
+<span class="s2">		engine: app.engine</span>
+<span class="s2">		toggle_stat_cfg: app.statcfg.toggle</span>
+<span class="s2">		toggle_calendar: root.toggle_calendar</span>
+<span class="s2">		toggle_gridview: root.toggle_gridview</span>
+<span class="s2">		pos_hint: {&#39;left&#39;: 0, &#39;top&#39;: 1}</span>
+<span class="s2">		size_hint: (0.25, 0.8)</span>
+<span class="s2">		selection_name: app.selected_proxy_name</span>
+<span class="s2">		toggle_timestream: root.toggle_timestream</span>
+<span class="s2">	TimePanel:</span>
+<span class="s2">		id: timepanel</span>
+<span class="s2">		screen: root</span>
+<span class="s2">		pos_hint: {&#39;bot&#39;: 0}</span>
+<span class="s2">		size_hint: (0.25, 0.2)</span>
+<span class="s2">		disable_one_turn: root.tmp_block</span>
+<span class="s2">	CharMenuContainer:</span>
+<span class="s2">		id: charmenu</span>
+<span class="s2">		orientation: &#39;vertical&#39;</span>
+<span class="s2">		screen: root</span>
+<span class="s2">		pos_hint: {&#39;right&#39;: 1, &#39;top&#39;: 1}</span>
+<span class="s2">		size_hint: (0.1, 1)</span>
+<span class="s2">	DialogLayout:</span>
+<span class="s2">		id: dialoglayout</span>
+<span class="s2">		engine: app.engine</span>
+<span class="s2">		size_hint: None, None</span>
+<span class="s2">		x: statpanel.right</span>
+<span class="s2">		y: timepanel.top</span>
+<span class="s2">		width: charmenu.x - statpanel.right</span>
+<span class="s2">		height: root.height - timepanel.top</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
 </pre></div>
 

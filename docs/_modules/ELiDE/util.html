@@ -68,14 +68,14 @@
 <div class="viewcode-block" id="trigger"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.trigger">[docs]</a><span class="k">class</span> <span class="nc">trigger</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Make a trigger from a method.</span>
 
-<span class="sd">    Decorate a method with this and it will become a trigger. Supply a</span>
-<span class="sd">    numeric parameter to set a timeout.</span>
+<span class="sd">	Decorate a method with this and it will become a trigger. Supply a</span>
+<span class="sd">	numeric parameter to set a timeout.</span>
 
-<span class="sd">    Not suitable for methods that expect any arguments other than</span>
-<span class="sd">    ``dt``. However you should make your method accept ``*args`` for</span>
-<span class="sd">    compatibility.</span>
+<span class="sd">	Not suitable for methods that expect any arguments other than</span>
+<span class="sd">	``dt``. However you should make your method accept ``*args`` for</span>
+<span class="sd">	compatibility.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func_or_timeout</span><span class="p">):</span>
 		<span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">func_or_timeout</span><span class="p">):</span>
@@ -103,9 +103,9 @@
 
 <div class="viewcode-block" id="try_load"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.try_load">[docs]</a><span class="k">def</span> <span class="nf">try_load</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Return the JSON interpretation the object if possible, or just the</span>
-<span class="sd">    object otherwise.</span>
+<span class="sd">	object otherwise.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="k">try</span><span class="p">:</span>
 		<span class="k">return</span> <span class="n">loader</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
 	<span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
@@ -114,9 +114,9 @@
 
 <div class="viewcode-block" id="dummynum"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.dummynum">[docs]</a><span class="k">def</span> <span class="nf">dummynum</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Count how many nodes there already are in the character whose name</span>
-<span class="sd">    starts the same.</span>
+<span class="sd">	starts the same.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">num</span> <span class="o">=</span> <span class="mi">0</span>
 	<span class="k">for</span> <span class="n">nodename</span> <span class="ow">in</span> <span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="p">:</span>
 		<span class="n">nodename</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">nodename</span><span class="p">)</span>
@@ -132,10 +132,10 @@
 
 <div class="viewcode-block" id="get_thin_rect_vertices"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.get_thin_rect_vertices">[docs]</a><span class="k">def</span> <span class="nf">get_thin_rect_vertices</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Given the starting point, ending point, and width, return a list of</span>
-<span class="sd">    vertex coordinates at the corners of the line segment</span>
-<span class="sd">    (really a thin rectangle).</span>
+<span class="sd">	vertex coordinates at the corners of the line segment</span>
+<span class="sd">	(really a thin rectangle).</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="k">if</span> <span class="n">ox</span> <span class="o">&lt;</span> <span class="n">dx</span><span class="p">:</span>
 		<span class="n">leftx</span> <span class="o">=</span> <span class="n">ox</span>
 		<span class="n">rightx</span> <span class="o">=</span> <span class="n">dx</span>
@@ -235,7 +235,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

@@ -56,19 +56,19 @@
 <div class="viewcode-block" id="Pawn"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.pawn.Pawn">[docs]</a><span class="k">class</span> <span class="nc">Pawn</span><span class="p">(</span><span class="n">PawnBehavior</span><span class="p">,</span> <span class="n">GraphPawnSpot</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;A token to represent a :class:`Thing`.</span>
 
-<span class="sd">    :class:`Thing` is the LiSE class to represent items that are</span>
-<span class="sd">    located in some :class:`Place` or other. Accordingly,</span>
-<span class="sd">    :class:`Pawn`&#39;s coordinates are never set directly; they are</span>
-<span class="sd">    instead derived from the location of the :class:`Thing`</span>
-<span class="sd">    represented. That means a :class:`Pawn` will appear next to the</span>
-<span class="sd">    :class:`Spot` representing the :class:`Place` that its</span>
-<span class="sd">    :class:`Thing` is in. The exception is if the :class:`Thing` is</span>
-<span class="sd">    currently moving from its current :class:`Place` to another one,</span>
-<span class="sd">    in which case the :class:`Pawn` will appear some distance along</span>
-<span class="sd">    the :class:`Arrow` that represents the :class:`Portal` it&#39;s moving</span>
-<span class="sd">    through.</span>
+<span class="sd">	:class:`Thing` is the LiSE class to represent items that are</span>
+<span class="sd">	located in some :class:`Place` or other. Accordingly,</span>
+<span class="sd">	:class:`Pawn`&#39;s coordinates are never set directly; they are</span>
+<span class="sd">	instead derived from the location of the :class:`Thing`</span>
+<span class="sd">	represented. That means a :class:`Pawn` will appear next to the</span>
+<span class="sd">	:class:`Spot` representing the :class:`Place` that its</span>
+<span class="sd">	:class:`Thing` is in. The exception is if the :class:`Thing` is</span>
+<span class="sd">	currently moving from its current :class:`Place` to another one,</span>
+<span class="sd">	in which case the :class:`Pawn` will appear some distance along</span>
+<span class="sd">	the :class:`Arrow` that represents the :class:`Portal` it&#39;s moving</span>
+<span class="sd">	through.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="nf">_get_location_wid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">loc_name</span><span class="p">]</span>
@@ -136,7 +136,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

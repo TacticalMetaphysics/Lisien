@@ -72,9 +72,9 @@
 <div class="viewcode-block" id="windows_union"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.windows_union">[docs]</a><span class="k">def</span> <span class="nf">windows_union</span><span class="p">(</span><span class="n">windows</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Given a list of (beginning, ending), return a minimal version that contains the same ranges.</span>
 
-<span class="sd">    :rtype: list</span>
+<span class="sd">	:rtype: list</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="nf">fix_overlap</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">):</span>
 		<span class="k">if</span> <span class="n">left</span> <span class="o">==</span> <span class="n">right</span><span class="p">:</span>
@@ -124,8 +124,8 @@
 <div class="viewcode-block" id="windows_intersection"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.windows_intersection">[docs]</a><span class="k">def</span> <span class="nf">windows_intersection</span><span class="p">(</span><span class="n">windows</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Given a list of (beginning, ending), return another describing where they overlap.</span>
 
-<span class="sd">    :rtype: list</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	:rtype: list</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="nf">intersect2</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">):</span>
 		<span class="k">if</span> <span class="n">left</span> <span class="o">==</span> <span class="n">right</span><span class="p">:</span>
@@ -352,9 +352,9 @@
 <div class="viewcode-block" id="slow_iter_turns_eval_cmp"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.slow_iter_turns_eval_cmp">[docs]</a><span class="k">def</span> <span class="nf">slow_iter_turns_eval_cmp</span><span class="p">(</span><span class="n">qry</span><span class="p">,</span> <span class="n">oper</span><span class="p">,</span> <span class="n">start_branch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Iterate over all turns on which a comparison holds.</span>
 
-<span class="sd">    This is expensive. It evaluates the query for every turn in history.</span>
+<span class="sd">	This is expensive. It evaluates the query for every turn in history.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="nf">mungeside</span><span class="p">(</span><span class="n">side</span><span class="p">):</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">side</span><span class="p">,</span> <span class="n">Query</span><span class="p">):</span>
@@ -387,9 +387,9 @@
 
 	<span class="k">def</span> <span class="nf">initdb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Set up the database schema, both for allegedb and the special</span>
-<span class="sd">        extensions for LiSE</span>
+<span class="sd">		extensions for LiSE</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initdb</span><span class="p">()</span>
 		<span class="n">init_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_table</span>
 		<span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;universals&#39;</span><span class="p">,</span> <span class="s1">&#39;rules&#39;</span><span class="p">,</span> <span class="s1">&#39;rulebooks&#39;</span><span class="p">,</span> <span class="s1">&#39;things&#39;</span><span class="p">,</span>
@@ -448,13 +448,35 @@
 
 <div class="viewcode-block" id="QueryEngine.flush"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.QueryEngine.flush">[docs]</a>	<span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_flush_char_rules_handled</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_flush_unit_rules_handled</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_flush_char_thing_rules_handled</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_flush_char_place_rules_handled</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_flush_char_portal_rules_handled</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_flush_node_rules_handled</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_flush_portal_rules_handled</span><span class="p">()</span></div>
+		<span class="n">put</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inq</span><span class="o">.</span><span class="n">put</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_char_rules_handled</span><span class="p">:</span>
+			<span class="n">put</span><span class="p">((</span><span class="s1">&#39;silent&#39;</span><span class="p">,</span> <span class="s1">&#39;many&#39;</span><span class="p">,</span> <span class="s1">&#39;character_rules_handled_insert&#39;</span><span class="p">,</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">_char_rules_handled</span><span class="p">))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_char_rules_handled</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unit_rules_handled</span><span class="p">:</span>
+			<span class="n">put</span><span class="p">((</span><span class="s1">&#39;silent&#39;</span><span class="p">,</span> <span class="s1">&#39;many&#39;</span><span class="p">,</span> <span class="s1">&#39;unit_rules_handled_insert&#39;</span><span class="p">,</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">_unit_rules_handled</span><span class="p">))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_unit_rules_handled</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_char_thing_rules_handled</span><span class="p">:</span>
+			<span class="n">put</span><span class="p">((</span><span class="s1">&#39;silent&#39;</span><span class="p">,</span> <span class="s1">&#39;many&#39;</span><span class="p">,</span> <span class="s1">&#39;character_thing_rules_handled_insert&#39;</span><span class="p">,</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">_char_thing_rules_handled</span><span class="p">))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_char_thing_rules_handled</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_char_place_rules_handled</span><span class="p">:</span>
+			<span class="n">put</span><span class="p">((</span><span class="s1">&#39;silent&#39;</span><span class="p">,</span> <span class="s1">&#39;many&#39;</span><span class="p">,</span> <span class="s1">&#39;character_place_rules_handled_insert&#39;</span><span class="p">,</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">_char_place_rules_handled</span><span class="p">))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_char_place_rules_handled</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_char_portal_rules_handled</span><span class="p">:</span>
+			<span class="n">put</span><span class="p">((</span><span class="s1">&#39;silent&#39;</span><span class="p">,</span> <span class="s1">&#39;many&#39;</span><span class="p">,</span> <span class="s1">&#39;character_portal_rules_handled_insert&#39;</span><span class="p">,</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">_char_portal_rules_handled</span><span class="p">))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_char_portal_rules_handled</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_rules_handled</span><span class="p">:</span>
+			<span class="n">put</span><span class="p">((</span><span class="s1">&#39;silent&#39;</span><span class="p">,</span> <span class="s1">&#39;many&#39;</span><span class="p">,</span> <span class="s1">&#39;node_rules_handled_insert&#39;</span><span class="p">,</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">_node_rules_handled</span><span class="p">))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_node_rules_handled</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_portal_rules_handled</span><span class="p">:</span>
+			<span class="n">put</span><span class="p">((</span><span class="s1">&#39;silent&#39;</span><span class="p">,</span> <span class="s1">&#39;many&#39;</span><span class="p">,</span> <span class="s1">&#39;portal_rules_handled_insert&#39;</span><span class="p">,</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">_portal_rules_handled</span><span class="p">))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_portal_rules_handled</span> <span class="o">=</span> <span class="p">[]</span></div>
 
 	<span class="k">def</span> <span class="nf">universals_dump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="n">unpack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span>

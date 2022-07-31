@@ -67,13 +67,13 @@
 <div class="viewcode-block" id="UserMapping"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.UserMapping">[docs]</a><span class="k">class</span> <span class="nc">UserMapping</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;A mapping of the characters that have a particular node as an avatar.</span>
 
-<span class="sd">    Getting characters from here isn&#39;t any better than getting them from</span>
-<span class="sd">    the engine direct, but with this you can do things like use the</span>
-<span class="sd">    .get() method to get a character if it&#39;s a user and otherwise</span>
-<span class="sd">    get something else; or test whether the character&#39;s name is in</span>
-<span class="sd">    the keys; and so on.</span>
+<span class="sd">	Getting characters from here isn&#39;t any better than getting them from</span>
+<span class="sd">	the engine direct, but with this you can do things like use the</span>
+<span class="sd">	.get() method to get a character if it&#39;s a user and otherwise</span>
+<span class="sd">	get something else; or test whether the character&#39;s name is in</span>
+<span class="sd">	the keys; and so on.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;node&#39;</span><span class="p">]</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
@@ -290,15 +290,15 @@
 
 <div class="viewcode-block" id="Node"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node">[docs]</a><span class="k">class</span> <span class="nc">Node</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">Node</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">RuleFollower</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;The fundamental graph component, which edges (in LiSE, &quot;portals&quot;)</span>
-<span class="sd">    go between.</span>
+<span class="sd">	go between.</span>
 
-<span class="sd">    Every LiSE node is either a thing or a place. They share in common</span>
-<span class="sd">    the abilities to follow rules; to be connected by portals; and to</span>
-<span class="sd">    contain things.</span>
+<span class="sd">	Every LiSE node is either a thing or a place. They share in common</span>
+<span class="sd">	the abilities to follow rules; to be connected by portals; and to</span>
+<span class="sd">	contain things.</span>
 
-<span class="sd">    This is truthy if it exists, falsy if it&#39;s been deleted.</span>
+<span class="sd">	This is truthy if it exists, falsy if it&#39;s been deleted.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;_real_rule_mapping&#39;</span><span class="p">,</span> <span class="p">)</span>
 	<span class="n">character</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">)</span>
 	<span class="n">name</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;node&#39;</span><span class="p">)</span>
@@ -409,10 +409,10 @@
 <div class="viewcode-block" id="Node.shortest_path_length"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.shortest_path_length">[docs]</a>	<span class="k">def</span> <span class="nf">shortest_path_length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return the length of the path from me to ``dest``.</span>
 
-<span class="sd">        Raise ``ValueError`` if ``dest`` is not a node in my character</span>
-<span class="sd">        or the name of one.</span>
+<span class="sd">		Raise ``ValueError`` if ``dest`` is not a node in my character</span>
+<span class="sd">		or the name of one.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 
 		<span class="k">return</span> <span class="n">shortest_path_length</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
 									<span class="bp">self</span><span class="o">.</span><span class="n">_plain_dest_name</span><span class="p">(</span><span class="n">dest</span><span class="p">),</span> <span class="n">weight</span><span class="p">)</span></div>
@@ -420,23 +420,23 @@
 <div class="viewcode-block" id="Node.shortest_path"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.shortest_path">[docs]</a>	<span class="k">def</span> <span class="nf">shortest_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return a list of node names leading from me to ``dest``.</span>
 
-<span class="sd">        Raise ``ValueError`` if ``dest`` is not a node in my character</span>
-<span class="sd">        or the name of one.</span>
+<span class="sd">		Raise ``ValueError`` if ``dest`` is not a node in my character</span>
+<span class="sd">		or the name of one.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="n">shortest_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
 								<span class="bp">self</span><span class="o">.</span><span class="n">_plain_dest_name</span><span class="p">(</span><span class="n">dest</span><span class="p">),</span> <span class="n">weight</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Node.path_exists"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.path_exists">[docs]</a>	<span class="k">def</span> <span class="nf">path_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return whether there is a path leading from me to ``dest``.</span>
 
-<span class="sd">        With ``weight``, only consider edges that have a stat by the</span>
-<span class="sd">        given name.</span>
+<span class="sd">		With ``weight``, only consider edges that have a stat by the</span>
+<span class="sd">		given name.</span>
 
-<span class="sd">        Raise ``ValueError`` if ``dest`` is not a node in my character</span>
-<span class="sd">        or the name of one.</span>
+<span class="sd">		Raise ``ValueError`` if ``dest`` is not a node in my character</span>
+<span class="sd">		or the name of one.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shortest_path_length</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="n">weight</span><span class="p">))</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
@@ -452,11 +452,11 @@
 <div class="viewcode-block" id="Node.delete"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.delete">[docs]</a>	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Get rid of this, starting now.</span>
 
-<span class="sd">        Apart from deleting the node, this also informs all its users</span>
-<span class="sd">        that it doesn&#39;t exist and therefore can&#39;t be their avatar</span>
-<span class="sd">        anymore.</span>
+<span class="sd">		Apart from deleting the node, this also informs all its users</span>
+<span class="sd">		that it doesn&#39;t exist and therefore can&#39;t be their avatar</span>
+<span class="sd">		anymore.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
 		<span class="k">for</span> <span class="n">contained</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">contents</span><span class="p">()):</span>
 			<span class="n">contained</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
@@ -502,11 +502,11 @@
 <div class="viewcode-block" id="Node.historical"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.historical">[docs]</a>	<span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return a reference to the values that a stat has had in the past.</span>
 
-<span class="sd">        You can use the reference in comparisons to make a history</span>
-<span class="sd">        query, and execute the query by calling it, or passing it to</span>
-<span class="sd">        ``self.engine.ticks_when``.</span>
+<span class="sd">		You can use the reference in comparisons to make a history</span>
+<span class="sd">		query, and execute the query by calling it, or passing it to</span>
+<span class="sd">		``self.engine.ticks_when``.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="n">StatusAlias</span><span class="p">(</span><span class="n">entity</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">)</span></div>
 
 	<span class="k">def</span> <span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -571,7 +571,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

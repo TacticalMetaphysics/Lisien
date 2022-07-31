@@ -73,7 +73,7 @@
 <div class="viewcode-block" id="StatRowListItem"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowListItem">[docs]</a><span class="k">class</span> <span class="nc">StatRowListItem</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Mixin class for widgets that show a stat&#39;s current value.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">key</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="s2">&quot;The stat I am about. Same as in the LiSE entity.&quot;</span>
 	<span class="n">value</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -207,14 +207,14 @@
 <div class="viewcode-block" id="StatRowListItemContainer"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowListItemContainer">[docs]</a><span class="k">class</span> <span class="nc">StatRowListItemContainer</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;The name of a stat followed by a widget representing its value.</span>
 
-<span class="sd">    The widget can be</span>
+<span class="sd">	The widget can be</span>
 
-<span class="sd">    * :class:`StatRowLabel`</span>
-<span class="sd">    * :class:`StatRowTextInput`</span>
-<span class="sd">    * :class:`StatRowToggleButton`</span>
-<span class="sd">    * :class:`StatRowSlider`</span>
+<span class="sd">	* :class:`StatRowLabel`</span>
+<span class="sd">	* :class:`StatRowTextInput`</span>
+<span class="sd">	* :class:`StatRowToggleButton`</span>
+<span class="sd">	* :class:`StatRowSlider`</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">key</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="sd">&quot;&quot;&quot;The name of the stat&quot;&quot;&quot;</span>
 	<span class="n">reg</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -229,25 +229,25 @@
 	<span class="sd">&quot;&quot;&quot;Function to unregister a listener from a LiSE entity&quot;&quot;&quot;</span>
 	<span class="n">config</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
 	<span class="sd">&quot;&quot;&quot;Dictionary describing the configuration of this stat&#39;s widget.</span>
-<span class="sd">    </span>
-<span class="sd">    The key &#39;control&#39; has the widget type as its value, which may be</span>
-<span class="sd">    </span>
-<span class="sd">    * &#39;readout&#39;</span>
-<span class="sd">    * &#39;textinput&#39;</span>
-<span class="sd">    * &#39;togglebutton&#39;</span>
-<span class="sd">    * &#39;slider&#39;</span>
-<span class="sd">    </span>
-<span class="sd">    Other keys are specific to one widget type or another.</span>
-<span class="sd">    </span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	</span>
+<span class="sd">	The key &#39;control&#39; has the widget type as its value, which may be</span>
+<span class="sd">	</span>
+<span class="sd">	* &#39;readout&#39;</span>
+<span class="sd">	* &#39;textinput&#39;</span>
+<span class="sd">	* &#39;togglebutton&#39;</span>
+<span class="sd">	* &#39;slider&#39;</span>
+<span class="sd">	</span>
+<span class="sd">	Other keys are specific to one widget type or another.</span>
+<span class="sd">	</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="StatRowListItemContainer.set_value"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowListItemContainer.set_value">[docs]</a>	<span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Use my ``sett`` function to set my stat (``key``) to my new ``value``.</span>
 
-<span class="sd">        This doesn&#39;t need arguments, but accepts any positional arguments provided,</span>
-<span class="sd">        so that you can use this in kvlang</span>
+<span class="sd">		This doesn&#39;t need arguments, but accepts any positional arguments provided,</span>
+<span class="sd">		so that you can use this in kvlang</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">sett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -267,10 +267,10 @@
 <div class="viewcode-block" id="StatRowListItemContainer.remake"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statlist.StatRowListItemContainer.remake">[docs]</a>	<span class="k">def</span> <span class="nf">remake</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Replace any existing child widget with the one described by my ``config``.</span>
 
-<span class="sd">        This doesn&#39;t need arguments, but accepts any positional arguments provided,</span>
-<span class="sd">        so that you can use this in kvlang</span>
+<span class="sd">		This doesn&#39;t need arguments, but accepts any positional arguments provided,</span>
+<span class="sd">		so that you can use this in kvlang</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">:</span>
 			<span class="k">return</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
@@ -485,30 +485,30 @@
 
 <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">&lt;StatRowListItem&gt;:</span>
-<span class="s2">    height: 30</span>
+<span class="s2">	height: 30</span>
 <span class="s2">&lt;StatRowLabel&gt;:</span>
-<span class="s2">    text: str(self.value)</span>
+<span class="s2">	text: str(self.value)</span>
 <span class="s2">&lt;StatRowTextInput&gt;:</span>
-<span class="s2">    hint_text: str(self.value)</span>
-<span class="s2">    multiline: False</span>
+<span class="s2">	hint_text: str(self.value)</span>
+<span class="s2">	multiline: False</span>
 <span class="s2">&lt;StatRowToggleButton&gt;:</span>
-<span class="s2">    text: self.true_text if self.value else self.false_text</span>
-<span class="s2">    state: &#39;down&#39; if self.value else &#39;normal&#39;</span>
+<span class="s2">	text: self.true_text if self.value else self.false_text</span>
+<span class="s2">	state: &#39;down&#39; if self.value else &#39;normal&#39;</span>
 <span class="s2">&lt;StatRowSlider&gt;:</span>
-<span class="s2">    Label:</span>
-<span class="s2">        center_x: root.center_x</span>
-<span class="s2">        y: root.center_y</span>
-<span class="s2">        text: str(root.value)</span>
-<span class="s2">        size: self.texture_size</span>
+<span class="s2">	Label:</span>
+<span class="s2">		center_x: root.center_x</span>
+<span class="s2">		y: root.center_y</span>
+<span class="s2">		text: str(root.value)</span>
+<span class="s2">		size: self.texture_size</span>
 <span class="s2">&lt;StatListView&gt;:</span>
-<span class="s2">    viewclass: &#39;StatRowListItemContainer&#39;</span>
-<span class="s2">    app: app</span>
-<span class="s2">    RecycleBoxLayout:</span>
-<span class="s2">        default_size: None, dp(56)</span>
-<span class="s2">        default_size_hint: 1, None</span>
-<span class="s2">        size_hint_y: None</span>
-<span class="s2">        height: self.minimum_height</span>
-<span class="s2">        orientation: &#39;vertical&#39;</span>
+<span class="s2">	viewclass: &#39;StatRowListItemContainer&#39;</span>
+<span class="s2">	app: app</span>
+<span class="s2">	RecycleBoxLayout:</span>
+<span class="s2">		default_size: None, dp(56)</span>
+<span class="s2">		default_size_hint: 1, None</span>
+<span class="s2">		size_hint_y: None</span>
+<span class="s2">		height: self.minimum_height</span>
+<span class="s2">		orientation: &#39;vertical&#39;</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
 </pre></div>
 
@@ -570,7 +570,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

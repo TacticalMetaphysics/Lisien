@@ -91,7 +91,7 @@
 <div class="viewcode-block" id="ELiDEApp"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.app.ELiDEApp">[docs]</a><span class="k">class</span> <span class="nc">ELiDEApp</span><span class="p">(</span><span class="n">App</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Extensible LiSE Development Environment.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">title</span> <span class="o">=</span> <span class="s1">&#39;ELiDE&#39;</span>
 
 	<span class="n">engine</span> <span class="o">=</span> <span class="kc">None</span>
@@ -181,9 +181,9 @@
 
 <div class="viewcode-block" id="ELiDEApp.select_character"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.app.ELiDEApp.select_character">[docs]</a>	<span class="k">def</span> <span class="nf">select_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">char</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Change my ``character`` to the selected character object if they</span>
-<span class="sd">        aren&#39;t the same.</span>
+<span class="sd">		aren&#39;t the same.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">char</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">:</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">character</span> <span class="o">=</span> <span class="n">char</span></div>
@@ -257,9 +257,9 @@
 <div class="viewcode-block" id="ELiDEApp.start_subprocess"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.app.ELiDEApp.start_subprocess">[docs]</a>	<span class="k">def</span> <span class="nf">start_subprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Start the LiSE core and get a proxy to it</span>
 
-<span class="sd">        Must be called before ``init_board``</span>
+<span class="sd">		Must be called before ``init_board``</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_started&#39;</span><span class="p">):</span>
 			<span class="k">raise</span> <span class="ne">ChildProcessError</span><span class="p">(</span><span class="s2">&quot;Subprocess already running&quot;</span><span class="p">)</span>
 		<span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span>
@@ -285,9 +285,9 @@
 <div class="viewcode-block" id="ELiDEApp.init_board"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.app.ELiDEApp.init_board">[docs]</a>	<span class="k">def</span> <span class="nf">init_board</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Get the board widgets initialized to display the game state</span>
 
-<span class="sd">        Must be called after start_subprocess</span>
+<span class="sd">		Must be called after start_subprocess</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="s1">&#39;boardchar&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">eternal</span><span class="p">:</span>
 			<span class="k">if</span> <span class="s1">&#39;physical&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">:</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">eternal</span><span class="p">[</span><span class="s1">&#39;boardchar&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span>
@@ -556,7 +556,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

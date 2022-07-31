@@ -292,20 +292,20 @@
 <div class="viewcode-block" id="Rule"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.Rule">[docs]</a><span class="k">class</span> <span class="nc">Rule</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Stuff that might happen in the simulation under some conditions</span>
 
-<span class="sd">    Rules are comprised of three lists of functions:</span>
+<span class="sd">	Rules are comprised of three lists of functions:</span>
 
-<span class="sd">    * actions, which mutate the world state</span>
-<span class="sd">    * triggers, which make the actions happen</span>
-<span class="sd">    * prereqs, which prevent the actions from happening when triggered</span>
+<span class="sd">	* actions, which mutate the world state</span>
+<span class="sd">	* triggers, which make the actions happen</span>
+<span class="sd">	* prereqs, which prevent the actions from happening when triggered</span>
 
-<span class="sd">    Each kind of function should be stored in the appropriate module</span>
-<span class="sd">    supplied to the LiSE core at startup. This makes it possible to</span>
-<span class="sd">    load the functions on later startups. You may instead use the string</span>
-<span class="sd">    name of a function already stored in the module, or use the</span>
-<span class="sd">    `trigger`, `prereq`, or `action` decorator on a new function to</span>
-<span class="sd">    add it to both the module and the rule.</span>
+<span class="sd">	Each kind of function should be stored in the appropriate module</span>
+<span class="sd">	supplied to the LiSE core at startup. This makes it possible to</span>
+<span class="sd">	load the functions on later startups. You may instead use the string</span>
+<span class="sd">	name of a function already stored in the module, or use the</span>
+<span class="sd">	`trigger`, `prereq`, or `action` decorator on a new function to</span>
+<span class="sd">	add it to both the module and the rule.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="n">triggers</span> <span class="o">=</span> <span class="n">RuleFuncListDescriptor</span><span class="p">(</span><span class="n">TriggerList</span><span class="p">)</span>
 	<span class="n">prereqs</span> <span class="o">=</span> <span class="n">RuleFuncListDescriptor</span><span class="p">(</span><span class="n">PrereqList</span><span class="p">)</span>
@@ -319,10 +319,10 @@
 					<span class="n">actions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 					<span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Store the engine and my name, make myself a record in the database</span>
-<span class="sd">        if needed, and instantiate one FunList each for my triggers,</span>
-<span class="sd">        actions, and prereqs.</span>
+<span class="sd">		if needed, and instantiate one FunList each for my triggers,</span>
+<span class="sd">		actions, and prereqs.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">name</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
@@ -345,11 +345,11 @@
 
 	<span class="k">def</span> <span class="nf">_fun_names_iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">functyp</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Iterate over the names of the functions in ``val``,</span>
-<span class="sd">        adding them to ``funcstore`` if they are missing;</span>
-<span class="sd">        or if the items in ``val`` are already the names of functions</span>
-<span class="sd">        in ``funcstore``, iterate over those.</span>
+<span class="sd">		adding them to ``funcstore`` if they are missing;</span>
+<span class="sd">		or if the items in ``val`` are already the names of functions</span>
+<span class="sd">		in ``funcstore``, iterate over those.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">funcstore</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">functyp</span><span class="p">)</span>
 		<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="p">:</span>
 			<span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
@@ -382,9 +382,9 @@
 
 <div class="viewcode-block" id="Rule.duplicate"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.Rule.duplicate">[docs]</a>	<span class="k">def</span> <span class="nf">duplicate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">newname</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return a new rule that&#39;s just like this one, but under a new</span>
-<span class="sd">        name.</span>
+<span class="sd">		name.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">haverule</span><span class="p">(</span><span class="n">newname</span><span class="p">):</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Already have a rule called </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">newname</span><span class="p">))</span>
 		<span class="k">return</span> <span class="n">Rule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">newname</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">triggers</span><span class="p">),</span>
@@ -397,9 +397,9 @@
 
 <div class="viewcode-block" id="RuleBook"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleBook">[docs]</a><span class="k">class</span> <span class="nc">RuleBook</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;A list of rules to be followed for some Character, or a part of it</span>
-<span class="sd">    anyway.</span>
+<span class="sd">	anyway.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="nf">_get_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
 		<span class="k">try</span><span class="p">:</span>
@@ -497,22 +497,22 @@
 <div class="viewcode-block" id="RuleMapping"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleMapping">[docs]</a><span class="k">class</span> <span class="nc">RuleMapping</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Wraps a :class:`RuleBook` so you can get its rules by name.</span>
 
-<span class="sd">    You can access the rules in this either dictionary-style or as</span>
-<span class="sd">    attributes. This is for convenience if you want to get at a rule&#39;s</span>
-<span class="sd">    decorators, eg. to add an Action to the rule.</span>
+<span class="sd">	You can access the rules in this either dictionary-style or as</span>
+<span class="sd">	attributes. This is for convenience if you want to get at a rule&#39;s</span>
+<span class="sd">	decorators, eg. to add an Action to the rule.</span>
 
-<span class="sd">    Using this as a decorator will create a new rule, named for the</span>
-<span class="sd">    decorated function, and using the decorated function as the</span>
-<span class="sd">    initial Action.</span>
+<span class="sd">	Using this as a decorator will create a new rule, named for the</span>
+<span class="sd">	decorated function, and using the decorated function as the</span>
+<span class="sd">	initial Action.</span>
 
-<span class="sd">    Using this like a dictionary will let you create new rules,</span>
-<span class="sd">    appending them onto the underlying :class:`RuleBook`; replace one</span>
-<span class="sd">    rule with another, where the new one will have the same index in</span>
-<span class="sd">    the :class:`RuleBook` as the old one; and activate or deactivate</span>
-<span class="sd">    rules. The name of a rule may be used in place of the actual rule,</span>
-<span class="sd">    so long as the rule already exists.</span>
+<span class="sd">	Using this like a dictionary will let you create new rules,</span>
+<span class="sd">	appending them onto the underlying :class:`RuleBook`; replace one</span>
+<span class="sd">	rule with another, where the new one will have the same index in</span>
+<span class="sd">	the :class:`RuleBook` as the old one; and activate or deactivate</span>
+<span class="sd">	rules. The name of a rule may be used in place of the actual rule,</span>
+<span class="sd">	so long as the rule already exists.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -587,9 +587,9 @@
 
 <div class="viewcode-block" id="RuleFollower"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleFollower">[docs]</a><span class="k">class</span> <span class="nc">RuleFollower</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Interface for that which has a rulebook associated, which you can</span>
-<span class="sd">    get a :class:`RuleMapping` into</span>
+<span class="sd">	get a :class:`RuleMapping` into</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
 	<span class="n">engine</span><span class="p">:</span> <span class="n">AbstractEngine</span>
 
@@ -646,9 +646,9 @@
 	<span class="nd">@abstractmethod</span>
 	<span class="k">def</span> <span class="nf">_set_rulebook_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Tell the database that this is the name of the rulebook to use for</span>
-<span class="sd">        me.</span>
+<span class="sd">		me.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;_set_rulebook_name&quot;</span><span class="p">)</span></div>
 
 
@@ -690,10 +690,10 @@
 <div class="viewcode-block" id="AllRules"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.AllRules">[docs]</a><span class="k">class</span> <span class="nc">AllRules</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;A mapping of every rule in the game.</span>
 
-<span class="sd">    You can use this as a decorator to make a rule and not assign it</span>
-<span class="sd">    to anything.</span>
+<span class="sd">	You can use this as a decorator to make a rule and not assign it</span>
+<span class="sd">	to anything.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>

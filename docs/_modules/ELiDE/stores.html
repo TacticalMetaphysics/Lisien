@@ -116,9 +116,9 @@
 
 <div class="viewcode-block" id="StoreList"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StoreList">[docs]</a><span class="k">class</span> <span class="nc">StoreList</span><span class="p">(</span><span class="n">RecycleView</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Holder for a :class:`kivy.uix.listview.ListView` that shows what&#39;s</span>
-<span class="sd">    in a store, using one of the StoreAdapter classes.</span>
+<span class="sd">	in a store, using one of the StoreAdapter classes.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">store</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="sd">&quot;&quot;&quot;Either a FunctionStore or a StringStore&quot;&quot;&quot;</span>
 	<span class="n">selection_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
@@ -201,11 +201,11 @@
 <div class="viewcode-block" id="StringsEdScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StringsEdScreen">[docs]</a><span class="k">class</span> <span class="nc">StringsEdScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;A screen in which to edit strings to be presented to humans</span>
 
-<span class="sd">    Needs a ``toggle`` function to switch back to the main screen;</span>
-<span class="sd">    a ``language`` identifier; and a ``language_setter`` function to be called</span>
-<span class="sd">    with that ``language`` when changed.</span>
+<span class="sd">	Needs a ``toggle`` function to switch back to the main screen;</span>
+<span class="sd">	a ``language`` identifier; and a ``language_setter`` function to be called</span>
+<span class="sd">	with that ``language`` when changed.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="sd">&quot;&quot;&quot;Function to switch back to the main screen&quot;&quot;&quot;</span>
 	<span class="n">language</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;eng&#39;</span><span class="p">)</span>
@@ -343,9 +343,9 @@
 <div class="viewcode-block" id="EdBox"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.EdBox">[docs]</a><span class="k">class</span> <span class="nc">EdBox</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Box containing most of an editor&#39;s screen</span>
 
-<span class="sd">    Has a StoreList and an Editor, which in turn holds a name field and a big text entry box.</span>
+<span class="sd">	Has a StoreList and an Editor, which in turn holds a name field and a big text entry box.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">storelist</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="sd">&quot;&quot;&quot;An instance of ``StoreList``&quot;&quot;&quot;</span>
 	<span class="n">editor</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -446,10 +446,10 @@
 <div class="viewcode-block" id="StringsEdBox"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StringsEdBox">[docs]</a><span class="k">class</span> <span class="nc">StringsEdBox</span><span class="p">(</span><span class="n">EdBox</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Box containing most of the strings editing screen</span>
 
-<span class="sd">    Contains the storelist and the editor, which in turn contains the string name input</span>
-<span class="sd">    and a bigger input field for the string itself.</span>
+<span class="sd">	Contains the storelist and the editor, which in turn contains the string name input</span>
+<span class="sd">	and a bigger input field for the string itself.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">language</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;eng&#39;</span><span class="p">)</span>
 
 	<span class="nd">@staticmethod</span>
@@ -467,9 +467,9 @@
 <div class="viewcode-block" id="FunctionNameInput"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FunctionNameInput">[docs]</a><span class="k">class</span> <span class="nc">FunctionNameInput</span><span class="p">(</span><span class="n">TextInput</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Input for the name of a function</span>
 
-<span class="sd">    Filters out illegal characters.</span>
+<span class="sd">	Filters out illegal characters.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">_trigger_save</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
 <div class="viewcode-block" id="FunctionNameInput.insert_text"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FunctionNameInput.insert_text">[docs]</a>	<span class="k">def</span> <span class="nf">insert_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">from_undo</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -509,10 +509,10 @@
 <div class="viewcode-block" id="FuncEditor"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FuncEditor">[docs]</a><span class="k">class</span> <span class="nc">FuncEditor</span><span class="p">(</span><span class="n">Editor</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;The editor widget for working with any particular function.</span>
 
-<span class="sd">    Contains a one-line field for the function&#39;s name and a multi-line</span>
-<span class="sd">    field for its code.</span>
+<span class="sd">	Contains a one-line field for the function&#39;s name and a multi-line</span>
+<span class="sd">	field for its code.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">storelist</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="sd">&quot;&quot;&quot;Instance of ``StoreList`` that shows all the functions you can edit&quot;&quot;&quot;</span>
 	<span class="n">codeinput</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -552,10 +552,10 @@
 <div class="viewcode-block" id="FuncsEdBox"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FuncsEdBox">[docs]</a><span class="k">class</span> <span class="nc">FuncsEdBox</span><span class="p">(</span><span class="n">EdBox</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Widget for editing the Python source of funcs to be used in LiSE sims.</span>
 
-<span class="sd">    Contains a list of functions in the store it&#39;s about, next to a</span>
-<span class="sd">    FuncEditor showing the source of the selected one, and a close button.</span>
+<span class="sd">	Contains a list of functions in the store it&#39;s about, next to a</span>
+<span class="sd">	FuncEditor showing the source of the selected one, and a close button.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="nf">get_default_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">newname</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">editor</span><span class="o">.</span><span class="n">get_default_text</span><span class="p">(</span><span class="n">newname</span><span class="p">)</span>
@@ -569,9 +569,9 @@
 <div class="viewcode-block" id="FuncsEdScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FuncsEdScreen">[docs]</a><span class="k">class</span> <span class="nc">FuncsEdScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Screen containing three FuncsEdBox</span>
 
-<span class="sd">    Triggers, prereqs, and actions.</span>
+<span class="sd">	Triggers, prereqs, and actions.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
 	<span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -583,200 +583,200 @@
 <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">#: import py3lexer pygments.lexers.Python3Lexer</span>
 <span class="s2">&lt;StoreButton&gt;:</span>
-<span class="s2">    size_hint_y: None</span>
-<span class="s2">    height: 30</span>
+<span class="s2">	size_hint_y: None</span>
+<span class="s2">	height: 30</span>
 <span class="s2">&lt;StoreList&gt;:</span>
-<span class="s2">    viewclass: &#39;StoreButton&#39;</span>
-<span class="s2">    boxl: boxl</span>
-<span class="s2">    SelectableRecycleBoxLayout:</span>
-<span class="s2">        id: boxl</span>
-<span class="s2">        default_size: None, dp(56)</span>
-<span class="s2">        default_size_hint: 1, None</span>
-<span class="s2">        height: self.minimum_height</span>
-<span class="s2">        size_hint_y: None</span>
-<span class="s2">        orientation: &#39;vertical&#39;</span>
+<span class="s2">	viewclass: &#39;StoreButton&#39;</span>
+<span class="s2">	boxl: boxl</span>
+<span class="s2">	SelectableRecycleBoxLayout:</span>
+<span class="s2">		id: boxl</span>
+<span class="s2">		default_size: None, dp(56)</span>
+<span class="s2">		default_size_hint: 1, None</span>
+<span class="s2">		height: self.minimum_height</span>
+<span class="s2">		size_hint_y: None</span>
+<span class="s2">		orientation: &#39;vertical&#39;</span>
 <span class="s2">&lt;StringInput&gt;:</span>
-<span class="s2">    name_wid: stringname</span>
-<span class="s2">    orientation: &#39;vertical&#39;</span>
-<span class="s2">    BoxLayout:</span>
-<span class="s2">        size_hint_y: 0.05</span>
-<span class="s2">        Label:</span>
-<span class="s2">            id: title</span>
-<span class="s2">            text: &#39;Title: &#39;</span>
-<span class="s2">            size_hint_x: None</span>
-<span class="s2">            width: self.texture_size[0]</span>
-<span class="s2">        StringNameInput:</span>
-<span class="s2">            id: stringname</span>
-<span class="s2">            multiline: False</span>
-<span class="s2">            write_tab: False</span>
-<span class="s2">            _trigger_save: root._trigger_save</span>
-<span class="s2">        Button:</span>
-<span class="s2">            text: &#39;del&#39;</span>
-<span class="s2">            size_hint_x: 0.1</span>
-<span class="s2">            on_release: root._trigger_delete()</span>
-<span class="s2">    TextInput:</span>
-<span class="s2">        id: string</span>
-<span class="s2">        disabled: root.disable_text_input</span>
+<span class="s2">	name_wid: stringname</span>
+<span class="s2">	orientation: &#39;vertical&#39;</span>
+<span class="s2">	BoxLayout:</span>
+<span class="s2">		size_hint_y: 0.05</span>
+<span class="s2">		Label:</span>
+<span class="s2">			id: title</span>
+<span class="s2">			text: &#39;Title: &#39;</span>
+<span class="s2">			size_hint_x: None</span>
+<span class="s2">			width: self.texture_size[0]</span>
+<span class="s2">		StringNameInput:</span>
+<span class="s2">			id: stringname</span>
+<span class="s2">			multiline: False</span>
+<span class="s2">			write_tab: False</span>
+<span class="s2">			_trigger_save: root._trigger_save</span>
+<span class="s2">		Button:</span>
+<span class="s2">			text: &#39;del&#39;</span>
+<span class="s2">			size_hint_x: 0.1</span>
+<span class="s2">			on_release: root._trigger_delete()</span>
+<span class="s2">	TextInput:</span>
+<span class="s2">		id: string</span>
+<span class="s2">		disabled: root.disable_text_input</span>
 <span class="s2">&lt;StringsEdBox&gt;:</span>
-<span class="s2">    editor: strings_ed</span>
-<span class="s2">    storelist: strings_list</span>
-<span class="s2">    orientation: &#39;vertical&#39;</span>
-<span class="s2">    BoxLayout:</span>
-<span class="s2">        orientation: &#39;horizontal&#39;</span>
-<span class="s2">        StoreList:</span>
-<span class="s2">            id: strings_list</span>
-<span class="s2">            size_hint_x: 0.2</span>
-<span class="s2">            store: root.store</span>
-<span class="s2">        StringInput:</span>
-<span class="s2">            id: strings_ed</span>
-<span class="s2">            store: root.store</span>
-<span class="s2">            disable_text_input: root.disable_text_input</span>
-<span class="s2">            validate_name_input: root.validate_name_input</span>
-<span class="s2">            _trigger_save: root._trigger_save</span>
-<span class="s2">            _trigger_delete: root._trigger_delete</span>
+<span class="s2">	editor: strings_ed</span>
+<span class="s2">	storelist: strings_list</span>
+<span class="s2">	orientation: &#39;vertical&#39;</span>
+<span class="s2">	BoxLayout:</span>
+<span class="s2">		orientation: &#39;horizontal&#39;</span>
+<span class="s2">		StoreList:</span>
+<span class="s2">			id: strings_list</span>
+<span class="s2">			size_hint_x: 0.2</span>
+<span class="s2">			store: root.store</span>
+<span class="s2">		StringInput:</span>
+<span class="s2">			id: strings_ed</span>
+<span class="s2">			store: root.store</span>
+<span class="s2">			disable_text_input: root.disable_text_input</span>
+<span class="s2">			validate_name_input: root.validate_name_input</span>
+<span class="s2">			_trigger_save: root._trigger_save</span>
+<span class="s2">			_trigger_delete: root._trigger_delete</span>
 <span class="s2">&lt;StringsEdScreen&gt;:</span>
-<span class="s2">    name: &#39;strings&#39;</span>
-<span class="s2">    edbox: edbox</span>
-<span class="s2">    BoxLayout:</span>
-<span class="s2">        orientation: &#39;vertical&#39;</span>
-<span class="s2">        StringsEdBox:</span>
-<span class="s2">            id: edbox</span>
-<span class="s2">            toggle: root.toggle</span>
-<span class="s2">            store_name: &#39;string&#39;</span>
-<span class="s2">            language: root.language</span>
-<span class="s2">        BoxLayout:</span>
-<span class="s2">            size_hint_y: 0.05</span>
-<span class="s2">            Button:</span>
-<span class="s2">                text: &#39;Close&#39;</span>
-<span class="s2">                on_release: edbox.dismiss()</span>
-<span class="s2">            Label:</span>
-<span class="s2">                text_size: self.size</span>
-<span class="s2">                halign: &#39;right&#39;</span>
-<span class="s2">                valign: &#39;middle&#39;</span>
-<span class="s2">                text: &#39;Language: &#39;</span>
-<span class="s2">            LanguageInput:</span>
-<span class="s2">                id: language</span>
-<span class="s2">                screen: root</span>
-<span class="s2">                hint_text: root.language</span>
-<span class="s2">                write_tab: False</span>
-<span class="s2">                multiline: False</span>
+<span class="s2">	name: &#39;strings&#39;</span>
+<span class="s2">	edbox: edbox</span>
+<span class="s2">	BoxLayout:</span>
+<span class="s2">		orientation: &#39;vertical&#39;</span>
+<span class="s2">		StringsEdBox:</span>
+<span class="s2">			id: edbox</span>
+<span class="s2">			toggle: root.toggle</span>
+<span class="s2">			store_name: &#39;string&#39;</span>
+<span class="s2">			language: root.language</span>
+<span class="s2">		BoxLayout:</span>
+<span class="s2">			size_hint_y: 0.05</span>
+<span class="s2">			Button:</span>
+<span class="s2">				text: &#39;Close&#39;</span>
+<span class="s2">				on_release: edbox.dismiss()</span>
+<span class="s2">			Label:</span>
+<span class="s2">				text_size: self.size</span>
+<span class="s2">				halign: &#39;right&#39;</span>
+<span class="s2">				valign: &#39;middle&#39;</span>
+<span class="s2">				text: &#39;Language: &#39;</span>
+<span class="s2">			LanguageInput:</span>
+<span class="s2">				id: language</span>
+<span class="s2">				screen: root</span>
+<span class="s2">				hint_text: root.language</span>
+<span class="s2">				write_tab: False</span>
+<span class="s2">				multiline: False</span>
 <span class="s2">&lt;Py3CodeInput@CodeInput&gt;:</span>
-<span class="s2">    lexer: py3lexer()</span>
+<span class="s2">	lexer: py3lexer()</span>
 <span class="s2">&lt;FuncEditor&gt;:</span>
-<span class="s2">    codeinput: code</span>
-<span class="s2">    name_wid: funname</span>
-<span class="s2">    orientation: &#39;vertical&#39;</span>
-<span class="s2">    BoxLayout:</span>
-<span class="s2">        orientation: &#39;horizontal&#39;</span>
-<span class="s2">        size_hint_y: None</span>
-<span class="s2">        height: funname.height</span>
-<span class="s2">        Py3CodeInput:</span>
-<span class="s2">            id: imafunction</span>
-<span class="s2">            text: &#39;def&#39;</span>
-<span class="s2">            disabled: True</span>
-<span class="s2">            size_hint: (None, None)</span>
-<span class="s2">            height: self.line_height + self.font_size</span>
-<span class="s2">            width: self.font_size * len(self.text)</span>
-<span class="s2">            background_disabled_normal: &#39;&#39;</span>
-<span class="s2">            disabled_foreground_color: self.foreground_color</span>
-<span class="s2">        FunctionNameInput:</span>
-<span class="s2">            id: funname</span>
-<span class="s2">            size_hint: (0.4, None)</span>
-<span class="s2">            height: self.line_height + self.font_size</span>
-<span class="s2">            multiline: False</span>
-<span class="s2">            write_tab: False</span>
-<span class="s2">            _trigger_save: root._trigger_save</span>
-<span class="s2">            on_text: root.validate_name_input(self.text)</span>
-<span class="s2">        Py3CodeInput:</span>
-<span class="s2">            id: params</span>
-<span class="s2">            text: &#39;(</span><span class="si">{}</span><span class="s2">):&#39;.format(&#39;, &#39;.join(root.params))</span>
-<span class="s2">            disabled: True</span>
-<span class="s2">            size_hint_y: None</span>
-<span class="s2">            height: self.line_height + self.font_size</span>
-<span class="s2">            background_disabled_normal: &#39;&#39;</span>
-<span class="s2">            disabled_foreground_color: self.foreground_color</span>
-<span class="s2">        Button:</span>
-<span class="s2">            text: &#39;del&#39;</span>
-<span class="s2">            size_hint_x: 0.1</span>
-<span class="s2">            on_release: root._trigger_delete()</span>
-<span class="s2">    BoxLayout:</span>
-<span class="s2">        orientation: &#39;horizontal&#39;</span>
-<span class="s2">        Label:</span>
-<span class="s2">            canvas:</span>
-<span class="s2">                Color:</span>
-<span class="s2">                    rgba: params.background_color</span>
-<span class="s2">                Rectangle:</span>
-<span class="s2">                    pos: self.pos</span>
-<span class="s2">                    size: self.size</span>
-<span class="s2">                Color:</span>
-<span class="s2">                    rgba: [1., 1., 1., 1.]</span>
-<span class="s2">            # PEP8 standard indentation width is 4 spaces</span>
-<span class="s2">            text: &#39; &#39; * 4</span>
-<span class="s2">            size_hint_x: None</span>
-<span class="s2">            width: self.texture_size[0]</span>
-<span class="s2">        Py3CodeInput:</span>
-<span class="s2">            id: code</span>
-<span class="s2">            disabled: root.disable_text_input</span>
+<span class="s2">	codeinput: code</span>
+<span class="s2">	name_wid: funname</span>
+<span class="s2">	orientation: &#39;vertical&#39;</span>
+<span class="s2">	BoxLayout:</span>
+<span class="s2">		orientation: &#39;horizontal&#39;</span>
+<span class="s2">		size_hint_y: None</span>
+<span class="s2">		height: funname.height</span>
+<span class="s2">		Py3CodeInput:</span>
+<span class="s2">			id: imafunction</span>
+<span class="s2">			text: &#39;def&#39;</span>
+<span class="s2">			disabled: True</span>
+<span class="s2">			size_hint: (None, None)</span>
+<span class="s2">			height: self.line_height + self.font_size</span>
+<span class="s2">			width: self.font_size * len(self.text)</span>
+<span class="s2">			background_disabled_normal: &#39;&#39;</span>
+<span class="s2">			disabled_foreground_color: self.foreground_color</span>
+<span class="s2">		FunctionNameInput:</span>
+<span class="s2">			id: funname</span>
+<span class="s2">			size_hint: (0.4, None)</span>
+<span class="s2">			height: self.line_height + self.font_size</span>
+<span class="s2">			multiline: False</span>
+<span class="s2">			write_tab: False</span>
+<span class="s2">			_trigger_save: root._trigger_save</span>
+<span class="s2">			on_text: root.validate_name_input(self.text)</span>
+<span class="s2">		Py3CodeInput:</span>
+<span class="s2">			id: params</span>
+<span class="s2">			text: &#39;(</span><span class="si">{}</span><span class="s2">):&#39;.format(&#39;, &#39;.join(root.params))</span>
+<span class="s2">			disabled: True</span>
+<span class="s2">			size_hint_y: None</span>
+<span class="s2">			height: self.line_height + self.font_size</span>
+<span class="s2">			background_disabled_normal: &#39;&#39;</span>
+<span class="s2">			disabled_foreground_color: self.foreground_color</span>
+<span class="s2">		Button:</span>
+<span class="s2">			text: &#39;del&#39;</span>
+<span class="s2">			size_hint_x: 0.1</span>
+<span class="s2">			on_release: root._trigger_delete()</span>
+<span class="s2">	BoxLayout:</span>
+<span class="s2">		orientation: &#39;horizontal&#39;</span>
+<span class="s2">		Label:</span>
+<span class="s2">			canvas:</span>
+<span class="s2">				Color:</span>
+<span class="s2">					rgba: params.background_color</span>
+<span class="s2">				Rectangle:</span>
+<span class="s2">					pos: self.pos</span>
+<span class="s2">					size: self.size</span>
+<span class="s2">				Color:</span>
+<span class="s2">					rgba: [1., 1., 1., 1.]</span>
+<span class="s2">			# PEP8 standard indentation width is 4 spaces</span>
+<span class="s2">			text: &#39; &#39; * 4</span>
+<span class="s2">			size_hint_x: None</span>
+<span class="s2">			width: self.texture_size[0]</span>
+<span class="s2">		Py3CodeInput:</span>
+<span class="s2">			id: code</span>
+<span class="s2">			disabled: root.disable_text_input</span>
 <span class="s2">&lt;FuncsEdBox&gt;:</span>
-<span class="s2">    editor: funcs_ed</span>
-<span class="s2">    storelist: funcs_list</span>
-<span class="s2">    orientation: &#39;vertical&#39;</span>
-<span class="s2">    data: [(item[&#39;name&#39;], self.store.get_source(item[&#39;name&#39;])) for item in funcs_list.data[1:]]</span>
-<span class="s2">    BoxLayout:</span>
-<span class="s2">        orientation: &#39;horizontal&#39;</span>
-<span class="s2">        BoxLayout:</span>
-<span class="s2">            orientation: &#39;vertical&#39;</span>
-<span class="s2">            size_hint_x: 0.2</span>
-<span class="s2">            StoreList:</span>
-<span class="s2">                id: funcs_list</span>
-<span class="s2">                store: root.store</span>
-<span class="s2">        FuncEditor:</span>
-<span class="s2">            id: funcs_ed</span>
-<span class="s2">            store: root.store</span>
-<span class="s2">            storelist: funcs_list</span>
-<span class="s2">            disable_text_input: root.disable_text_input</span>
-<span class="s2">            validate_name_input: root.validate_name_input</span>
-<span class="s2">            _trigger_save: root._trigger_save</span>
-<span class="s2">            _trigger_delete: root._trigger_delete</span>
-<span class="s2">    BoxLayout:</span>
-<span class="s2">        size_hint_y: 0.05</span>
-<span class="s2">        Button:</span>
-<span class="s2">            text: &#39;Close&#39;</span>
-<span class="s2">            on_release: root.dismiss()</span>
-<span class="s2">            size_hint_x: 0.2</span>
-<span class="s2">        Widget:</span>
-<span class="s2">            id: spacer</span>
+<span class="s2">	editor: funcs_ed</span>
+<span class="s2">	storelist: funcs_list</span>
+<span class="s2">	orientation: &#39;vertical&#39;</span>
+<span class="s2">	data: [(item[&#39;name&#39;], self.store.get_source(item[&#39;name&#39;])) for item in funcs_list.data[1:]]</span>
+<span class="s2">	BoxLayout:</span>
+<span class="s2">		orientation: &#39;horizontal&#39;</span>
+<span class="s2">		BoxLayout:</span>
+<span class="s2">			orientation: &#39;vertical&#39;</span>
+<span class="s2">			size_hint_x: 0.2</span>
+<span class="s2">			StoreList:</span>
+<span class="s2">				id: funcs_list</span>
+<span class="s2">				store: root.store</span>
+<span class="s2">		FuncEditor:</span>
+<span class="s2">			id: funcs_ed</span>
+<span class="s2">			store: root.store</span>
+<span class="s2">			storelist: funcs_list</span>
+<span class="s2">			disable_text_input: root.disable_text_input</span>
+<span class="s2">			validate_name_input: root.validate_name_input</span>
+<span class="s2">			_trigger_save: root._trigger_save</span>
+<span class="s2">			_trigger_delete: root._trigger_delete</span>
+<span class="s2">	BoxLayout:</span>
+<span class="s2">		size_hint_y: 0.05</span>
+<span class="s2">		Button:</span>
+<span class="s2">			text: &#39;Close&#39;</span>
+<span class="s2">			on_release: root.dismiss()</span>
+<span class="s2">			size_hint_x: 0.2</span>
+<span class="s2">		Widget:</span>
+<span class="s2">			id: spacer</span>
 <span class="s2">&lt;FuncsEdScreen&gt;:</span>
-<span class="s2">    name: &#39;funcs&#39;</span>
-<span class="s2">    TabbedPanel:</span>
-<span class="s2">        default_tab: action</span>
-<span class="s2">        TabbedPanelItem:</span>
-<span class="s2">            id: trigger</span>
-<span class="s2">            text: &#39;Trigger&#39;</span>
-<span class="s2">            on_state: triggers.save()</span>
-<span class="s2">            FuncsEdBox:</span>
-<span class="s2">                id: triggers</span>
-<span class="s2">                toggle: root.toggle</span>
-<span class="s2">                store_name: &#39;trigger&#39;</span>
-<span class="s2">                on_data: app.rules.rulesview.set_functions(&#39;trigger&#39;, map(app.rules.rulesview.inspect_func, self.data))</span>
-<span class="s2">        TabbedPanelItem:</span>
-<span class="s2">            id: prereq</span>
-<span class="s2">            text: &#39;Prereq&#39;</span>
-<span class="s2">            on_state: prereqs.save()</span>
-<span class="s2">            FuncsEdBox:</span>
-<span class="s2">                id: prereqs</span>
-<span class="s2">                toggle: root.toggle</span>
-<span class="s2">                store_name: &#39;prereq&#39;</span>
-<span class="s2">                on_data: app.rules.rulesview.set_functions(&#39;prereq&#39;, map(app.rules.rulesview.inspect_func, self.data))</span>
-<span class="s2">        TabbedPanelItem:</span>
-<span class="s2">            id: action</span>
-<span class="s2">            text: &#39;Action&#39;</span>
-<span class="s2">            on_state: actions.save()</span>
-<span class="s2">            FuncsEdBox:</span>
-<span class="s2">                id: actions</span>
-<span class="s2">                toggle: root.toggle</span>
-<span class="s2">                store_name: &#39;action&#39;</span>
-<span class="s2">                on_data: app.rules.rulesview.set_functions(&#39;action&#39;, map(app.rules.rulesview.inspect_func, self.data))</span>
+<span class="s2">	name: &#39;funcs&#39;</span>
+<span class="s2">	TabbedPanel:</span>
+<span class="s2">		default_tab: action</span>
+<span class="s2">		TabbedPanelItem:</span>
+<span class="s2">			id: trigger</span>
+<span class="s2">			text: &#39;Trigger&#39;</span>
+<span class="s2">			on_state: triggers.save()</span>
+<span class="s2">			FuncsEdBox:</span>
+<span class="s2">				id: triggers</span>
+<span class="s2">				toggle: root.toggle</span>
+<span class="s2">				store_name: &#39;trigger&#39;</span>
+<span class="s2">				on_data: app.rules.rulesview.set_functions(&#39;trigger&#39;, map(app.rules.rulesview.inspect_func, self.data))</span>
+<span class="s2">		TabbedPanelItem:</span>
+<span class="s2">			id: prereq</span>
+<span class="s2">			text: &#39;Prereq&#39;</span>
+<span class="s2">			on_state: prereqs.save()</span>
+<span class="s2">			FuncsEdBox:</span>
+<span class="s2">				id: prereqs</span>
+<span class="s2">				toggle: root.toggle</span>
+<span class="s2">				store_name: &#39;prereq&#39;</span>
+<span class="s2">				on_data: app.rules.rulesview.set_functions(&#39;prereq&#39;, map(app.rules.rulesview.inspect_func, self.data))</span>
+<span class="s2">		TabbedPanelItem:</span>
+<span class="s2">			id: action</span>
+<span class="s2">			text: &#39;Action&#39;</span>
+<span class="s2">			on_state: actions.save()</span>
+<span class="s2">			FuncsEdBox:</span>
+<span class="s2">				id: actions</span>
+<span class="s2">				toggle: root.toggle</span>
+<span class="s2">				store_name: &#39;action&#39;</span>
+<span class="s2">				on_data: app.rules.rulesview.set_functions(&#39;action&#39;, map(app.rules.rulesview.inspect_func, self.data))</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
 </pre></div>
 
@@ -838,7 +838,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

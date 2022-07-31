@@ -85,9 +85,9 @@
 <div class="viewcode-block" id="MessageBox"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.dialog.MessageBox">[docs]</a><span class="k">class</span> <span class="nc">MessageBox</span><span class="p">(</span><span class="n">Box</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Looks like a TextInput but doesn&#39;t accept any input.</span>
 
-<span class="sd">    Does support styled text with BBcode.</span>
+<span class="sd">	Does support styled text with BBcode.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">line_spacing</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 	<span class="n">text</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span></div>
 
@@ -95,11 +95,11 @@
 <div class="viewcode-block" id="DialogMenu"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.dialog.DialogMenu">[docs]</a><span class="k">class</span> <span class="nc">DialogMenu</span><span class="p">(</span><span class="n">Box</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;Some buttons that make the game do things.</span>
 
-<span class="sd">    Set ``options`` to a list of pairs of ``(text, function)`` and the</span>
-<span class="sd">    menu will be populated with buttons that say ``text`` that call</span>
-<span class="sd">    ``function`` when pressed.</span>
+<span class="sd">	Set ``options`` to a list of pairs of ``(text, function)`` and the</span>
+<span class="sd">	menu will be populated with buttons that say ``text`` that call</span>
+<span class="sd">	``function`` when pressed.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">options</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
 	<span class="sd">&quot;&quot;&quot;List of pairs of (button_text, callable)&quot;&quot;&quot;</span>
 
@@ -133,12 +133,12 @@
 <div class="viewcode-block" id="Dialog"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.dialog.Dialog">[docs]</a><span class="k">class</span> <span class="nc">Dialog</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;MessageBox with a DialogMenu beneath it.</span>
 
-<span class="sd">    Set the properties ``message_kwargs`` and ``menu_kwargs``,</span>
-<span class="sd">    respectively, to control them -- but you probably want</span>
-<span class="sd">    to do that by returning a pair of dicts from an action</span>
-<span class="sd">    in LiSE.</span>
+<span class="sd">	Set the properties ``message_kwargs`` and ``menu_kwargs``,</span>
+<span class="sd">	respectively, to control them -- but you probably want</span>
+<span class="sd">	to do that by returning a pair of dicts from an action</span>
+<span class="sd">	in LiSE.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">message_kwargs</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">({})</span>
 	<span class="n">menu_kwargs</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">({})</span>
 
@@ -174,21 +174,21 @@
 <div class="viewcode-block" id="DialogLayout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.dialog.DialogLayout">[docs]</a><span class="k">class</span> <span class="nc">DialogLayout</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;A layout, normally empty, that can generate dialogs</span>
 
-<span class="sd">    To make dialogs, set my ``todo`` property to a list. It may contain:</span>
+<span class="sd">	To make dialogs, set my ``todo`` property to a list. It may contain:</span>
 
-<span class="sd">    * Strings, which will be displayed with an &quot;OK&quot; button to dismiss them</span>
-<span class="sd">    * Lists of pairs of strings and callables, which generate buttons with the</span>
-<span class="sd">      string on them that, when clicked, call the callable</span>
-<span class="sd">    * Lists of pairs of dictionaries, which are interpreted as keyword</span>
-<span class="sd">      arguments to :class:`MessageBox` and :class:`DialogMenu`</span>
+<span class="sd">	* Strings, which will be displayed with an &quot;OK&quot; button to dismiss them</span>
+<span class="sd">	* Lists of pairs of strings and callables, which generate buttons with the</span>
+<span class="sd">	  string on them that, when clicked, call the callable</span>
+<span class="sd">	* Lists of pairs of dictionaries, which are interpreted as keyword</span>
+<span class="sd">	  arguments to :class:`MessageBox` and :class:`DialogMenu`</span>
 
-<span class="sd">    In place of a callable you can use the name of a function in my</span>
-<span class="sd">    ``usermod``, a Python module given by name. I&#39;ll import it when I need it.</span>
+<span class="sd">	In place of a callable you can use the name of a function in my</span>
+<span class="sd">	``usermod``, a Python module given by name. I&#39;ll import it when I need it.</span>
 
-<span class="sd">    Needs to be instantiated with a LiSE ``engine`` -- probably an</span>
-<span class="sd">    :class:`EngineProxy`.</span>
+<span class="sd">	Needs to be instantiated with a LiSE ``engine`` -- probably an</span>
+<span class="sd">	:class:`EngineProxy`.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">dialog</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">todo</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
@@ -319,39 +319,39 @@
 
 <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">&lt;Box&gt;:</span>
-<span class="s2">    canvas.before:</span>
-<span class="s2">        Color:</span>
-<span class="s2">            rgba: self.background_color</span>
-<span class="s2">        BorderImage:</span>
-<span class="s2">            border: self.border</span>
-<span class="s2">            pos: self.pos</span>
-<span class="s2">            size: self.size</span>
-<span class="s2">            source: self.background</span>
-<span class="s2">        Color:</span>
-<span class="s2">            rgba: 1, 1, 1, 1</span>
+<span class="s2">	canvas.before:</span>
+<span class="s2">		Color:</span>
+<span class="s2">			rgba: self.background_color</span>
+<span class="s2">		BorderImage:</span>
+<span class="s2">			border: self.border</span>
+<span class="s2">			pos: self.pos</span>
+<span class="s2">			size: self.size</span>
+<span class="s2">			source: self.background</span>
+<span class="s2">		Color:</span>
+<span class="s2">			rgba: 1, 1, 1, 1</span>
 <span class="s2">&lt;ScrollableLabel&gt;:</span>
-<span class="s2">    Label:</span>
-<span class="s2">        size_hint_y: None</span>
-<span class="s2">        height: self.texture_size[1]</span>
-<span class="s2">        text_size: self.width, None</span>
-<span class="s2">        text: root.text</span>
-<span class="s2">        color: root.color</span>
+<span class="s2">	Label:</span>
+<span class="s2">		size_hint_y: None</span>
+<span class="s2">		height: self.texture_size[1]</span>
+<span class="s2">		text_size: self.width, None</span>
+<span class="s2">		text: root.text</span>
+<span class="s2">		color: root.color</span>
 <span class="s2">&lt;MessageBox&gt;:</span>
-<span class="s2">    ScrollableLabel:</span>
-<span class="s2">        x: root.x + root.padding[0]</span>
-<span class="s2">        y: root.y + root.padding[3]</span>
-<span class="s2">        width: root.width - root.padding[2]</span>
-<span class="s2">        height: root.height - root.padding[1]</span>
-<span class="s2">        text: root.text</span>
-<span class="s2">        color: root.foreground_color</span>
+<span class="s2">	ScrollableLabel:</span>
+<span class="s2">		x: root.x + root.padding[0]</span>
+<span class="s2">		y: root.y + root.padding[3]</span>
+<span class="s2">		width: root.width - root.padding[2]</span>
+<span class="s2">		height: root.height - root.padding[1]</span>
+<span class="s2">		text: root.text</span>
+<span class="s2">		color: root.foreground_color</span>
 <span class="s2">&lt;Dialog&gt;:</span>
-<span class="s2">    orientation: &#39;vertical&#39;</span>
-<span class="s2">    pos_hint: {&#39;x&#39;: 0, &#39;y&#39;: 0}</span>
-<span class="s2">    size_hint: 1, 0.3</span>
-<span class="s2">    MessageBox:</span>
-<span class="s2">        id: msg</span>
-<span class="s2">    DialogMenu:</span>
-<span class="s2">        id: menu</span>
+<span class="s2">	orientation: &#39;vertical&#39;</span>
+<span class="s2">	pos_hint: {&#39;x&#39;: 0, &#39;y&#39;: 0}</span>
+<span class="s2">	size_hint: 1, 0.3</span>
+<span class="s2">	MessageBox:</span>
+<span class="s2">		id: msg</span>
+<span class="s2">	DialogMenu:</span>
+<span class="s2">		id: menu</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
 </pre></div>
 
@@ -413,7 +413,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
