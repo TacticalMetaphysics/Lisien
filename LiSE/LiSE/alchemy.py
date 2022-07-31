@@ -25,16 +25,16 @@ where LiSE will look for it, as in:
 """
 from collections import OrderedDict
 from functools import partial
-from sqlalchemy import Table, Column, ForeignKeyConstraint, select, bindparam, \
- func, and_, or_, INT, TEXT, BOOLEAN
+from json import dumps
+
+from sqlalchemy import (Table, Column, ForeignKeyConstraint, select, bindparam,
+						func, and_, or_, INT, TEXT, BOOLEAN)
 from sqlalchemy.sql.ddl import CreateTable, CreateIndex
+
+from allegedb import alchemy
 
 BaseColumn = Column
 Column = partial(BaseColumn, nullable=False)
-
-from json import dumps
-
-from allegedb import alchemy
 
 
 def tables_for_meta(meta):

@@ -263,8 +263,9 @@ class EngineHandle(object):
 
 		self.unpack_dict = unpack_dict
 		self._muted_chars = set()
-		# It's possible that the memoization I've done could break if this handle observes the world while it's in
-		# a planning context. This shouldn't happen, I think
+		# It's possible that the memoization I've done could break if this
+		# handle observes the world while it's in a planning context. This
+		# shouldn't happen, I think
 		self._node_stat_copy_memo: Dict[tuple, Dict[bytes, bytes]] = {}
 		self._portal_stat_copy_memo: Dict[tuple, Dict[bytes, bytes]] = {}
 		self._char_stat_copy_memo: Dict[tuple, Dict[bytes, bytes]] = {}
@@ -395,8 +396,8 @@ class EngineHandle(object):
 									int] = None) -> Dict[bytes, bytes]:
 		"""Return a mapping describing a character
 
-		It has the keys 'nodes', 'edges', 'units', 'rulebooks', 'node_val', 'edge_val',
-		and whatever stats the character has.
+		It has the keys 'nodes', 'edges', 'units', 'rulebooks', 'node_val',
+		'edge_val', and whatever stats the character has.
 
 		"""
 		units = self._character_units_copy(char, btt=btt)
@@ -433,7 +434,8 @@ class EngineHandle(object):
 	def copy_chars(self, chars: Union[str, Iterable[Hashable]]):
 		"""Return a mapping describing several characters
 
-		See the `copy_character` method for details on the format of submappings.
+		See the `copy_character` method for details on the format of
+		submappings.
 
 		Special value 'all' gets mappings for every character that exists.
 
@@ -661,10 +663,6 @@ class EngineHandle(object):
 		# TODO: detect if you're headed to sometime outside of the already
 		#	   simulated past, and respond appropriately
 		#	   - refuse to time travel to a plan
-		#	   - refuse to go too far outside the past (I think no more than
-		#	   one turn)
-		#	   That last would also make a lot of sense as a restriction of
-		#	   the LiSE core...
 		branch_from, turn_from, tick_from = self._real._btt()
 		slow_delta = branch != branch_from
 		self._real.time = (branch, turn)

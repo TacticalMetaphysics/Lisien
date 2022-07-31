@@ -917,7 +917,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 					and not things_contains(charn, place, branch, turn, tick))
 
 		def __getitem__(self, place):
-			nodes_contains, things_contains, charn, btt, cache, character = self._get_stuff
+			(nodes_contains, things_contains, charn, btt, cache,
+				character) = self._get_stuff
 			branch, turn, tick = btt()
 			if not nodes_contains(charn, place, branch, turn,
 									tick) or things_contains(
@@ -930,7 +931,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			return cache[(charn, place)]
 
 		def __setitem__(self, place, v):
-			node_exists, exist_node, get_node, charn, character = self._set_stuff
+			(node_exists, exist_node, get_node, charn,
+				character) = self._set_stuff
 			exist_node(charn, place, True)
 			pl = get_node(character, place)
 			if not isinstance(pl, Place):
@@ -983,7 +985,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			self._placemap[k] = v
 
 		def __delitem__(self, k):
-			node_exists, charn, is_thing, thingmap, placemap = self._delitem_stuff
+			(node_exists, charn, is_thing, thingmap,
+				placemap) = self._delitem_stuff
 			if not node_exists(charn, k):
 				raise KeyError
 			if is_thing(charn, k):

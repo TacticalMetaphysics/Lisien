@@ -26,7 +26,7 @@ except ImportError:
 
 
 class NonUniqueError(Exception):
-	"""For when you tried to look up the only one of something but there wasn't just one"""
+	"""You tried to look up the only one of something but there wasn't just one"""
 
 
 class AmbiguousAvatarError(NonUniqueError, KeyError):
@@ -58,8 +58,10 @@ class CacheError(ValueError):
 
 
 class TravelException(Exception):
-	"""Exception for problems with pathfinding. Not necessarily an error
-	because sometimes somebody SHOULD get confused finding a path.
+	"""Exception for problems with pathfinding.
+
+	Not necessarily an error because sometimes somebody SHOULD get
+	confused finding a path.
 
 	"""
 

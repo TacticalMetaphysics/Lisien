@@ -455,8 +455,8 @@ class PortalProxy(CachingEntityProxy):
 
 	@property
 	def reciprocal(self):
-		if self._origin not in self.character.pred or self._destination not in self.character.pred[
-			self._origin]:
+		if (self._origin not in self.character.pred
+			or self._destination not in self.character.pred[self._origin]):
 			return None
 		return self.character.pred[self._origin][self._destination]
 

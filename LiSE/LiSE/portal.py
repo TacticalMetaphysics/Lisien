@@ -170,8 +170,8 @@ class Portal(Edge, RuleFollower):
 
 	def __bool__(self):
 		"""It means something that I exist, even if I have no data."""
-		return self.orig in self.character.portal and self.dest in self.character.portal[
-			self.orig]
+		return (self.orig in self.character.portal
+				and self.dest in self.character.portal[self.orig])
 
 	@property
 	def reciprocal(self):
@@ -196,9 +196,10 @@ class Portal(Edge, RuleFollower):
 		return StatusAlias(entity=self, stat=stat)
 
 	def update(self, e: Union[Mapping, List[Tuple[Any, Any]]] = None, **f):
-		"""Works like regular update, but only actually updates when the new
-		value and the old value differ. This is necessary to prevent
-		certain infinite loops.
+		"""Works like regular update, but less
+
+		Only actually updates when the new value and the old value differ.
+		This is necessary to prevent certain infinite loops.
 
 		"""
 		if e is not None:

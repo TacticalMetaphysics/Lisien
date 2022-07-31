@@ -211,7 +211,8 @@ class EntityStatAccessor(object):
 		"""Iterate over all the values this stat has had in the given window, inclusive.
 
 		"""
-		# It might be useful to do this in a way that doesn't change the engine's time, perhaps for thread safety
+		# It might be useful to do this in a way that doesn't change the
+		# engine's time, perhaps for thread safety
 		engine = self.engine
 		entity = self.entity
 		oldturn = engine.turn
@@ -274,7 +275,8 @@ def sort_set(s):
 def fake_submit(func, *args, **kwargs):
 	"""A replacement for `concurrent.futures.Executor.submit` that works in serial
 
-	This is for testing. Use, eg., `@patch.object(executor, 'submit', new=fake_submit)`
+	This is for testing. Use, eg.,
+	``@patch.object(executor, 'submit', new=fake_submit)``
 	to make normally parallel operations serial.
 
 	"""
