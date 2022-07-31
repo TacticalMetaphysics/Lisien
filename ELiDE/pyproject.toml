@@ -1,6 +1,6 @@
 [project]
 name = "ELiDE"
-version = "0.13.1"
+version = "0.13.2"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
@@ -15,7 +15,7 @@ classifiers = [
 	"Development Status :: 2 - Pre-Alpha"
 ]
 dependencies = [
-	"LiSE[proxy]>=0.13.1,<0.14",
+	"LiSE[proxy]>=0.13.2,<0.14",
 	"kivy>=2.0.0,<3",
 	"pygments>=2.7.4"
 ]
