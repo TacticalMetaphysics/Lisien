@@ -35,50 +35,44 @@ that rules are only run when you advance time using Simulate or 1
 Turn.  The Tick field indicates how many changes have occurred in the
 current turn.
 
-Python Editor
-_____________
-
-Click the Python button to edit your game code in the IDE if you like.
-In this case, you can't use any of the decorators. Choose the
-appropriate tab from Trigger, Prereq, or Action at the top, and the
-function you write will show up in the appropriate part of the rules
-editor.
-
-Strings Editor
-______________
-
-The LiSE engine has an attribute ``string`` that is accessed like a
-dictionary and used to store arbitrary strings, such as might be shown
-in a menu. You can edit those here. You can store strings for multiple
-languages, and switch between them programmatically by setting
-``engine.string.language``.
-
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
 game
 ----
+Tools to make it easier to script your own game using the ELiDE widgets.
+
 .. automodule:: ELiDE.game
     :members:
 
-board
+graph
 -----
+The default view on the state of the world.
+
+board
+`````
 .. automodule:: ELiDE.graph.board
     :members:
 
 pawn
 ````
+Representations of Things
+
 .. automodule:: ELiDE.graph.pawn
     :members:
 
 spot
 ````
+Representations of Places
+
 .. automodule:: ELiDE.graph.spot
     :members:
 
 arrow
 `````
+Representations of directed edges
+
 .. automodule:: ELiDE.graph.arrow
     :members:
 
@@ -89,37 +83,36 @@ screen
 
 card
 ----
+The widget used to represent functions in the rules editor
+
 .. automodule:: ELiDE.card
     :members:
 
 charmenu
 --------
+The menu along the right side of the screen, where you can add things to the character
+
 .. automodule:: ELiDE.charmenu
     :members:
 
 charsview
 ---------
+Menu for selecting which Character to work on
+
 .. automodule:: ELiDE.charsview
     :members:
 
 dialog
 ------
-.. automodule:: ELiDE.dialog
-    :members:
+Simple data-driven UI interactions
 
-dummy
------
-.. automodule:: ELiDE.dummy
+.. automodule:: ELiDE.dialog
     :members:
 
 menu
 ----
+The menu along the left side of the screen, containing time controls and the stat editor
 .. automodule:: ELiDE.menu
-    :members:
-
-pallet
-------
-.. automodule:: ELiDE.pallet
     :members:
 
 rulesview
@@ -142,12 +135,24 @@ character overall.
 
 spritebuilder
 -------------
+A screen to put together a graphic from premade parts for a Place or Thing.
+
 .. automodule:: ELiDE.spritebuilder
     :members:
 
-statcfg
--------
-.. automodule:: ELiDE.statcfg
+
+dummy
+`````
+The pawn and spot that you can drag to place into the world.
+
+.. automodule:: ELiDE.dummy
+    :members:
+
+pallet
+``````
+Individual menus of parts for the sprites.
+
+.. automodule:: ELiDE.pallet
     :members:
 
 statlist
@@ -174,19 +179,49 @@ with its key ``"control"`` set to one of:
 .. automodule:: ELiDE.statlist
     :members:
 
+statcfg
+```````
+Configurator to change stat display modes within ELiDE.
+
+.. automodule:: ELiDE.statcfg
+    :members:
+
 stores
 ------
+Editor widgets for strings and Python code.
+
 .. automodule:: ELiDE.stores
     :members:
+Python Editor
+````````````
+
+Click the Python button to edit your game code in the IDE if you like.
+In this case, you can't use any of the decorators. Choose the
+appropriate tab from Trigger, Prereq, or Action at the top, and the
+function you write will show up in the appropriate part of the rules
+editor.
+
+Strings Editor
+`````````````
+
+The LiSE engine has an attribute ``string`` that is accessed like a
+dictionary and used to store arbitrary strings, such as might be shown
+in a menu. You can edit those here. You can store strings for multiple
+languages, and switch between them programmatically by setting
+``engine.string.language``.
 
 util
 ----
+Miscellaneous helpful things
+
 .. automodule:: ELiDE.util
     :members:
 
 
 app
 ---
+Entry point to ELiDE
+
 .. automodule:: ELiDE.app
     :members:
 

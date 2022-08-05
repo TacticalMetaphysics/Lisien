@@ -61,26 +61,12 @@ are also text fields with which you can enter the time by hand.  Note
 that rules are only run when you advance time using Simulate or 1
 Turn.  The Tick field indicates how many changes have occurred in the
 current turn.</p>
-<section id="python-editor">
-<h2>Python Editor<a class="headerlink" href="#python-editor" title="Permalink to this heading">¶</a></h2>
-<p>Click the Python button to edit your game code in the IDE if you like.
-In this case, you can’t use any of the decorators. Choose the
-appropriate tab from Trigger, Prereq, or Action at the top, and the
-function you write will show up in the appropriate part of the rules
-editor.</p>
-</section>
-<section id="strings-editor">
-<h2>Strings Editor<a class="headerlink" href="#strings-editor" title="Permalink to this heading">¶</a></h2>
-<p>The LiSE engine has an attribute <code class="docutils literal notranslate"><span class="pre">string</span></code> that is accessed like a
-dictionary and used to store arbitrary strings, such as might be shown
-in a menu. You can edit those here. You can store strings for multiple
-languages, and switch between them programmatically by setting
-<code class="docutils literal notranslate"><span class="pre">engine.string.language</span></code>.</p>
 <div class="toctree-wrapper compound">
 </div>
-<section id="module-ELiDE.game">
-<span id="game"></span><h3>game<a class="headerlink" href="#module-ELiDE.game" title="Permalink to this heading">¶</a></h3>
-<dl class="py class">
+<section id="game">
+<h2>game<a class="headerlink" href="#game" title="Permalink to this heading">¶</a></h2>
+<p>Tools to make it easier to script your own game using the ELiDE widgets.</p>
+<span class="target" id="module-ELiDE.game"></span><dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.game.GameApp">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.game.</span></span><span class="sig-name descname"><span class="pre">GameApp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameApp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameApp" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py method">
@@ -362,6 +348,9 @@ None for the default canvas.</p>
 </dd></dl>
 
 </section>
+<section id="graph">
+<h2>graph<a class="headerlink" href="#graph" title="Permalink to this heading">¶</a></h2>
+<p>The default view on the state of the world.</p>
 <section id="module-ELiDE.graph.board">
 <span id="board"></span><h3>board<a class="headerlink" href="#module-ELiDE.graph.board" title="Permalink to this heading">¶</a></h3>
 <p>The big widget that shows the graph of the selected Character.</p>
@@ -605,9 +594,11 @@ when possible.</p>
 normalized to within (0.0, 0.98).</p>
 </dd></dl>
 
-<section id="module-ELiDE.graph.pawn">
-<span id="pawn"></span><h4>pawn<a class="headerlink" href="#module-ELiDE.graph.pawn" title="Permalink to this heading">¶</a></h4>
-<p>Widget representing things that move about from place to place.</p>
+</section>
+<section id="pawn">
+<h3>pawn<a class="headerlink" href="#pawn" title="Permalink to this heading">¶</a></h3>
+<p>Representations of Things</p>
+<span class="target" id="module-ELiDE.graph.pawn"></span><p>Widget representing things that move about from place to place.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.graph.pawn.Pawn">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.pawn.</span></span><span class="sig-name descname"><span class="pre">Pawn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/pawn.html#Pawn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.pawn.Pawn" title="Permalink to this definition">¶</a></dt>
@@ -626,9 +617,10 @@ through.</p>
 </dd></dl>
 
 </section>
-<section id="module-ELiDE.graph.spot">
-<span id="spot"></span><h4>spot<a class="headerlink" href="#module-ELiDE.graph.spot" title="Permalink to this heading">¶</a></h4>
-<p>Widget to represent <code class="xref py py-class docutils literal notranslate"><span class="pre">Place`s.</span> <span class="pre">:class:`Pawn</span></code> moves around on
+<section id="spot">
+<h3>spot<a class="headerlink" href="#spot" title="Permalink to this heading">¶</a></h3>
+<p>Representations of Places</p>
+<span class="target" id="module-ELiDE.graph.spot"></span><p>Widget to represent <code class="xref py py-class docutils literal notranslate"><span class="pre">Place`s.</span> <span class="pre">:class:`Pawn</span></code> moves around on
 top of these.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.graph.spot.GraphSpot">
@@ -663,9 +655,10 @@ recorded in the database.</p>
 </dd></dl>
 
 </section>
-<section id="module-ELiDE.graph.arrow">
-<span id="arrow"></span><h4>arrow<a class="headerlink" href="#module-ELiDE.graph.arrow" title="Permalink to this heading">¶</a></h4>
-<p>That which displays a one-way connection between two places.</p>
+<section id="arrow">
+<h3>arrow<a class="headerlink" href="#arrow" title="Permalink to this heading">¶</a></h3>
+<p>Representations of directed edges</p>
+<span class="target" id="module-ELiDE.graph.arrow"></span><p>That which displays a one-way connection between two places.</p>
 <p>An arrow connects two spots, the origin and the destination, and it
 points from the origin to the destination, regardless of where on the
 screen they are at the moment.</p>
@@ -866,7 +859,7 @@ whole <code class="xref py py-class docutils literal notranslate"><span class="p
 </section>
 </section>
 <section id="module-ELiDE.screen">
-<span id="screen"></span><h3>screen<a class="headerlink" href="#module-ELiDE.screen" title="Permalink to this heading">¶</a></h3>
+<span id="screen"></span><h2>screen<a class="headerlink" href="#module-ELiDE.screen" title="Permalink to this heading">¶</a></h2>
 <p>The big layout that you view all of ELiDE through.</p>
 <p>Handles touch, selection, and time control. Contains a graph, a stat
 grid, the time control panel, and the menu.</p>
@@ -1001,9 +994,10 @@ the LiSE rules engine has been made to run.</p>
 </dd></dl>
 
 </section>
-<section id="module-ELiDE.card">
-<span id="card"></span><h3>card<a class="headerlink" href="#module-ELiDE.card" title="Permalink to this heading">¶</a></h3>
-<p>Widget that looks like a trading card, and a layout within which it
+<section id="card">
+<h2>card<a class="headerlink" href="#card" title="Permalink to this heading">¶</a></h2>
+<p>The widget used to represent functions in the rules editor</p>
+<span class="target" id="module-ELiDE.card"></span><p>Widget that looks like a trading card, and a layout within which it
 can be dragged and dropped to some particular position within stacks
 of other cards.</p>
 <dl class="py class">
@@ -1520,9 +1514,10 @@ otherwise.</p>
 </dd></dl>
 
 </section>
-<section id="module-ELiDE.charmenu">
-<span id="charmenu"></span><h3>charmenu<a class="headerlink" href="#module-ELiDE.charmenu" title="Permalink to this heading">¶</a></h3>
-<dl class="py class">
+<section id="charmenu">
+<h2>charmenu<a class="headerlink" href="#charmenu" title="Permalink to this heading">¶</a></h2>
+<p>The menu along the right side of the screen, where you can add things to the character</p>
+<span class="target" id="module-ELiDE.charmenu"></span><dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.charmenu.CharMenu">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.charmenu.</span></span><span class="sig-name descname"><span class="pre">CharMenu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/charmenu.html#CharMenu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.charmenu.CharMenu" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py method">
@@ -1567,9 +1562,10 @@ or hide it if already showing.</p>
 </dd></dl>
 
 </section>
-<section id="module-ELiDE.charsview">
-<span id="charsview"></span><h3>charsview<a class="headerlink" href="#module-ELiDE.charsview" title="Permalink to this heading">¶</a></h3>
-<dl class="py class">
+<section id="charsview">
+<h2>charsview<a class="headerlink" href="#charsview" title="Permalink to this heading">¶</a></h2>
+<p>Menu for selecting which Character to work on</p>
+<span class="target" id="module-ELiDE.charsview"></span><dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.charsview.CharactersRecycleBoxLayout">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.charsview.</span></span><span class="sig-name descname"><span class="pre">CharactersRecycleBoxLayout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/charsview.html#CharactersRecycleBoxLayout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.charsview.CharactersRecycleBoxLayout" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py method">
@@ -1614,9 +1610,10 @@ for applying the selection.</p>
 <dd></dd></dl>
 
 </section>
-<section id="module-ELiDE.dialog">
-<span id="dialog"></span><h3>dialog<a class="headerlink" href="#module-ELiDE.dialog" title="Permalink to this heading">¶</a></h3>
-<p>Generic dialog boxes and menus, for in front of a Board</p>
+<section id="dialog">
+<h2>dialog<a class="headerlink" href="#dialog" title="Permalink to this heading">¶</a></h2>
+<p>Simple data-driven UI interactions</p>
+<span class="target" id="module-ELiDE.dialog"></span><p>Generic dialog boxes and menus, for in front of a Board</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.dialog.Box">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.dialog.</span></span><span class="sig-name descname"><span class="pre">Box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dialog.html#Box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dialog.Box" title="Permalink to this definition">¶</a></dt>
@@ -1690,190 +1687,19 @@ menu will be populated with buttons that say <code class="docutils literal notra
 <dd></dd></dl>
 
 </section>
-<section id="module-ELiDE.dummy">
-<span id="dummy"></span><h3>dummy<a class="headerlink" href="#module-ELiDE.dummy" title="Permalink to this heading">¶</a></h3>
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.dummy.Dummy">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.dummy.</span></span><span class="sig-name descname"><span class="pre">Dummy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy" title="Permalink to this definition">¶</a></dt>
-<dd><p>A widget that looks like the ones on the graph, which, when dragged
-onto the graph, creates one of them.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.dummy.Dummy.on_paths">
-<span class="sig-name descname"><span class="pre">on_paths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy.on_paths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy.on_paths" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make textures from the images in <code class="docutils literal notranslate"><span class="pre">paths</span></code>, and assign them at the
-same index in my <code class="docutils literal notranslate"><span class="pre">texs</span></code> as in my <code class="docutils literal notranslate"><span class="pre">paths</span></code>.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.dummy.Dummy.on_touch_down">
-<span class="sig-name descname"><span class="pre">on_touch_down</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy.on_touch_down"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy.on_touch_down" title="Permalink to this definition">¶</a></dt>
-<dd><p>If hit, record my starting position, that I may return to it in
-<code class="docutils literal notranslate"><span class="pre">on_touch_up</span></code> after creating a real <code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Spot</span></code> or
-<code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Pawn</span></code> instance.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.dummy.Dummy.on_touch_move">
-<span class="sig-name descname"><span class="pre">on_touch_move</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy.on_touch_move"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy.on_touch_move" title="Permalink to this definition">¶</a></dt>
-<dd><p>Follow the touch</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.dummy.Dummy.on_touch_up">
-<span class="sig-name descname"><span class="pre">on_touch_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy.on_touch_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy.on_touch_up" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return to <code class="docutils literal notranslate"><span class="pre">pos_start</span></code>, but first, save my current <code class="docutils literal notranslate"><span class="pre">pos</span></code> into
-<code class="docutils literal notranslate"><span class="pre">pos_up</span></code>, so that the layout knows where to put the real
-<code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Spot</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Pawn</span></code> instance.</p>
-</dd></dl>
-
-</dd></dl>
-
-</section>
-<section id="module-ELiDE.menu">
-<span id="menu"></span><h3>menu<a class="headerlink" href="#module-ELiDE.menu" title="Permalink to this heading">¶</a></h3>
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.menu.DirPicker">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">DirPicker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#DirPicker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.DirPicker" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.menu.GeneratorButton">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">GeneratorButton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#GeneratorButton"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.GeneratorButton" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.menu.MenuIntInput">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">MenuIntInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuIntInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuIntInput" title="Permalink to this definition">¶</a></dt>
-<dd><p>Special text input for setting the turn or tick</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.menu.MenuIntInput.insert_text">
-<span class="sig-name descname"><span class="pre">insert_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_undo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuIntInput.insert_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuIntInput.insert_text" title="Permalink to this definition">¶</a></dt>
-<dd><p>Natural numbers only.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.menu.MenuTextInput">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">MenuTextInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuTextInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuTextInput" title="Permalink to this definition">¶</a></dt>
-<dd><p>Special text input for setting the branch</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.menu.MenuTextInput.on_enter">
-<span class="sig-name descname"><span class="pre">on_enter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuTextInput.on_enter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuTextInput.on_enter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call the setter and blank myself out so that my hint text shows
-up. It will be the same you just entered if everything’s
-working.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.menu.MenuTextInput.on_focus">
-<span class="sig-name descname"><span class="pre">on_focus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuTextInput.on_focus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuTextInput.on_focus" title="Permalink to this definition">¶</a></dt>
-<dd><p>If I’ve lost focus, treat it as if the user hit Enter.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.menu.MenuTextInput.on_text_validate">
-<span class="sig-name descname"><span class="pre">on_text_validate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuTextInput.on_text_validate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuTextInput.on_text_validate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Equivalent to hitting Enter.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.menu.WorldStartConfigurator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">WorldStartConfigurator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#WorldStartConfigurator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.WorldStartConfigurator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Give options for how to initialize the world state</p>
-</dd></dl>
-
-</section>
-<section id="module-ELiDE.pallet">
-<span id="pallet"></span><h3>pallet<a class="headerlink" href="#module-ELiDE.pallet" title="Permalink to this heading">¶</a></h3>
-<p>Widget to display the contents of a <code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.atlas.Atlas</span></code> in
-one <code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.uix.togglebutton.ToggleButton</span></code> apiece, arranged in a
-<code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.uix.stacklayout.StackLayout</span></code>. The user selects graphics
-from the <a class="reference internal" href="#ELiDE.pallet.Pallet" title="ELiDE.pallet.Pallet"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pallet</span></code></a>, and the <a class="reference internal" href="#ELiDE.pallet.Pallet" title="ELiDE.pallet.Pallet"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pallet</span></code></a> updates its
-<code class="docutils literal notranslate"><span class="pre">selection</span></code> list to show what the user selected.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.pallet.Pallet">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.pallet.</span></span><span class="sig-name descname"><span class="pre">Pallet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/pallet.html#Pallet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.pallet.Pallet" title="Permalink to this definition">¶</a></dt>
-<dd><p>Many <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a>, gathered from an <code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.atlas.Atlas</span></code>.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.atlas">
-<span class="sig-name descname"><span class="pre">atlas</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.atlas" title="Permalink to this definition">¶</a></dt>
-<dd><p><code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.atlas.Atlas</span></code> object I’ll make <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> from.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.filename">
-<span class="sig-name descname"><span class="pre">filename</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.filename" title="Permalink to this definition">¶</a></dt>
-<dd><p>Path to an atlas; will construct <code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.atlas.Atlas</span></code> when set</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.selection">
-<span class="sig-name descname"><span class="pre">selection</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.selection" title="Permalink to this definition">¶</a></dt>
-<dd><p>List of :class:<a href="#id1"><span class="problematic" id="id2">`</span></a>SwatchButton`s that are selected</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.selection_mode">
-<span class="sig-name descname"><span class="pre">selection_mode</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.selection_mode" title="Permalink to this definition">¶</a></dt>
-<dd><p>Whether to allow only a ‘single’ selected <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> (default), or ‘multiple’</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.swatch_height">
-<span class="sig-name descname"><span class="pre">swatch_height</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.swatch_height" title="Permalink to this definition">¶</a></dt>
-<dd><p>Height of each and every <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> here</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.swatch_size">
-<span class="sig-name descname"><span class="pre">swatch_size</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.swatch_size" title="Permalink to this definition">¶</a></dt>
-<dd><p>Size of each and every <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> here</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.swatch_width">
-<span class="sig-name descname"><span class="pre">swatch_width</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.swatch_width" title="Permalink to this definition">¶</a></dt>
-<dd><p>Width of each and every <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> here</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.swatches">
-<span class="sig-name descname"><span class="pre">swatches</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.swatches" title="Permalink to this definition">¶</a></dt>
-<dd><p><a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> widgets here, keyed by name of their graphic</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.upd_textures">
-<span class="sig-name descname"><span class="pre">upd_textures</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/pallet.html#Pallet.upd_textures"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.pallet.Pallet.upd_textures" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create one <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> for each texture</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.pallet.PalletBox">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.pallet.</span></span><span class="sig-name descname"><span class="pre">PalletBox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/pallet.html#PalletBox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.pallet.PalletBox" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.pallet.SwatchButton">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.pallet.</span></span><span class="sig-name descname"><span class="pre">SwatchButton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/pallet.html#SwatchButton"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.pallet.SwatchButton" title="Permalink to this definition">¶</a></dt>
-<dd><p>Toggle button containing a texture and its name, which, when
-toggled, will report the fact to the <a class="reference internal" href="#ELiDE.pallet.Pallet" title="ELiDE.pallet.Pallet"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pallet</span></code></a> it’s in.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.pallet.SwatchButton.tex">
-<span class="sig-name descname"><span class="pre">tex</span></span><a class="headerlink" href="#ELiDE.pallet.SwatchButton.tex" title="Permalink to this definition">¶</a></dt>
-<dd><p>Texture to display here</p>
-</dd></dl>
-
-</dd></dl>
-
+<section id="menu">
+<h2>menu<a class="headerlink" href="#menu" title="Permalink to this heading">¶</a></h2>
+<p>The menu along the left side of the screen, containing time controls and the stat editor
+.. automodule:: ELiDE.menu</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">members<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+</div></blockquote>
 </section>
 <section id="rulesview">
-<h3>rulesview<a class="headerlink" href="#rulesview" title="Permalink to this heading">¶</a></h3>
+<h2>rulesview<a class="headerlink" href="#rulesview" title="Permalink to this heading">¶</a></h2>
 <p>Here you can assemble rules out of prewritten functions. First pick
 which rule to edit from the menu on the left, using the box at the
 bottom to add one if needed.  Then go through the trigger, prereq, and
@@ -2012,9 +1838,10 @@ as taken by my <code class="docutils literal notranslate"><span class="pre">get_
 </dd></dl>
 
 </section>
-<section id="module-ELiDE.spritebuilder">
-<span id="spritebuilder"></span><h3>spritebuilder<a class="headerlink" href="#module-ELiDE.spritebuilder" title="Permalink to this heading">¶</a></h3>
-<dl class="py class">
+<section id="spritebuilder">
+<h2>spritebuilder<a class="headerlink" href="#spritebuilder" title="Permalink to this heading">¶</a></h2>
+<p>A screen to put together a graphic from premade parts for a Place or Thing.</p>
+<span class="target" id="module-ELiDE.spritebuilder"></span><dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.spritebuilder.PawnConfigDialog">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.spritebuilder.</span></span><span class="sig-name descname"><span class="pre">PawnConfigDialog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/spritebuilder.html#PawnConfigDialog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.spritebuilder.PawnConfigDialog" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -2049,73 +1876,136 @@ as taken by my <code class="docutils literal notranslate"><span class="pre">get_
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.spritebuilder.</span></span><span class="sig-name descname"><span class="pre">SpriteSelector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/spritebuilder.html#SpriteSelector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.spritebuilder.SpriteSelector" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<section id="dummy">
+<h3>dummy<a class="headerlink" href="#dummy" title="Permalink to this heading">¶</a></h3>
+<p>The pawn and spot that you can drag to place into the world.</p>
+<span class="target" id="module-ELiDE.dummy"></span><dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.dummy.Dummy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.dummy.</span></span><span class="sig-name descname"><span class="pre">Dummy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy" title="Permalink to this definition">¶</a></dt>
+<dd><p>A widget that looks like the ones on the graph, which, when dragged
+onto the graph, creates one of them.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.dummy.Dummy.on_paths">
+<span class="sig-name descname"><span class="pre">on_paths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy.on_paths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy.on_paths" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make textures from the images in <code class="docutils literal notranslate"><span class="pre">paths</span></code>, and assign them at the
+same index in my <code class="docutils literal notranslate"><span class="pre">texs</span></code> as in my <code class="docutils literal notranslate"><span class="pre">paths</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.dummy.Dummy.on_touch_down">
+<span class="sig-name descname"><span class="pre">on_touch_down</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy.on_touch_down"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy.on_touch_down" title="Permalink to this definition">¶</a></dt>
+<dd><p>If hit, record my starting position, that I may return to it in
+<code class="docutils literal notranslate"><span class="pre">on_touch_up</span></code> after creating a real <code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Spot</span></code> or
+<code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Pawn</span></code> instance.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.dummy.Dummy.on_touch_move">
+<span class="sig-name descname"><span class="pre">on_touch_move</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy.on_touch_move"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy.on_touch_move" title="Permalink to this definition">¶</a></dt>
+<dd><p>Follow the touch</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.dummy.Dummy.on_touch_up">
+<span class="sig-name descname"><span class="pre">on_touch_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy.on_touch_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy.on_touch_up" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return to <code class="docutils literal notranslate"><span class="pre">pos_start</span></code>, but first, save my current <code class="docutils literal notranslate"><span class="pre">pos</span></code> into
+<code class="docutils literal notranslate"><span class="pre">pos_up</span></code>, so that the layout knows where to put the real
+<code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Spot</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Pawn</span></code> instance.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
-<section id="module-ELiDE.statcfg">
-<span id="statcfg"></span><h3>statcfg<a class="headerlink" href="#module-ELiDE.statcfg" title="Permalink to this heading">¶</a></h3>
+<section id="pallet">
+<h3>pallet<a class="headerlink" href="#pallet" title="Permalink to this heading">¶</a></h3>
+<p>Individual menus of parts for the sprites.</p>
+<span class="target" id="module-ELiDE.pallet"></span><p>Widget to display the contents of a <code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.atlas.Atlas</span></code> in
+one <code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.uix.togglebutton.ToggleButton</span></code> apiece, arranged in a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.uix.stacklayout.StackLayout</span></code>. The user selects graphics
+from the <a class="reference internal" href="#ELiDE.pallet.Pallet" title="ELiDE.pallet.Pallet"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pallet</span></code></a>, and the <a class="reference internal" href="#ELiDE.pallet.Pallet" title="ELiDE.pallet.Pallet"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pallet</span></code></a> updates its
+<code class="docutils literal notranslate"><span class="pre">selection</span></code> list to show what the user selected.</p>
 <dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statcfg.ConfigListItem">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">ConfigListItem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#ConfigListItem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.ConfigListItem" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="ELiDE.pallet.Pallet">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.pallet.</span></span><span class="sig-name descname"><span class="pre">Pallet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/pallet.html#Pallet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.pallet.Pallet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Many <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a>, gathered from an <code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.atlas.Atlas</span></code>.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.atlas">
+<span class="sig-name descname"><span class="pre">atlas</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.atlas" title="Permalink to this definition">¶</a></dt>
+<dd><p><code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.atlas.Atlas</span></code> object I’ll make <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> from.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.filename">
+<span class="sig-name descname"><span class="pre">filename</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Path to an atlas; will construct <code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.atlas.Atlas</span></code> when set</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.selection">
+<span class="sig-name descname"><span class="pre">selection</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.selection" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of :class:<a href="#id1"><span class="problematic" id="id2">`</span></a>SwatchButton`s that are selected</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.selection_mode">
+<span class="sig-name descname"><span class="pre">selection_mode</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.selection_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether to allow only a ‘single’ selected <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> (default), or ‘multiple’</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.swatch_height">
+<span class="sig-name descname"><span class="pre">swatch_height</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.swatch_height" title="Permalink to this definition">¶</a></dt>
+<dd><p>Height of each and every <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> here</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.swatch_size">
+<span class="sig-name descname"><span class="pre">swatch_size</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.swatch_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Size of each and every <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> here</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.swatch_width">
+<span class="sig-name descname"><span class="pre">swatch_width</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.swatch_width" title="Permalink to this definition">¶</a></dt>
+<dd><p>Width of each and every <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> here</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.swatches">
+<span class="sig-name descname"><span class="pre">swatches</span></span><a class="headerlink" href="#ELiDE.pallet.Pallet.swatches" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> widgets here, keyed by name of their graphic</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.pallet.Pallet.upd_textures">
+<span class="sig-name descname"><span class="pre">upd_textures</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/pallet.html#Pallet.upd_textures"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.pallet.Pallet.upd_textures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create one <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> for each texture</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.pallet.PalletBox">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.pallet.</span></span><span class="sig-name descname"><span class="pre">PalletBox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/pallet.html#PalletBox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.pallet.PalletBox" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statcfg.ConfigListItemCustomizer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">ConfigListItemCustomizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#ConfigListItemCustomizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.ConfigListItemCustomizer" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statcfg.ConfigListItemSlider">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">ConfigListItemSlider</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#ConfigListItemSlider"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.ConfigListItemSlider" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statcfg.ConfigListItemToggleButton">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">ConfigListItemToggleButton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#ConfigListItemToggleButton"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.ConfigListItemToggleButton" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statcfg.ControlTypePicker">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">ControlTypePicker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#ControlTypePicker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.ControlTypePicker" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statcfg.FloatInput">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">FloatInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#FloatInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.FloatInput" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.statcfg.FloatInput.insert_text">
-<span class="sig-name descname"><span class="pre">insert_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_undo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#FloatInput.insert_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.FloatInput.insert_text" title="Permalink to this definition">¶</a></dt>
-<dd><p>Insert new text at the current cursor position. Override this
-function in order to pre-process text for input validation.</p>
+<dt class="sig sig-object py" id="ELiDE.pallet.SwatchButton">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.pallet.</span></span><span class="sig-name descname"><span class="pre">SwatchButton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/pallet.html#SwatchButton"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.pallet.SwatchButton" title="Permalink to this definition">¶</a></dt>
+<dd><p>Toggle button containing a texture and its name, which, when
+toggled, will report the fact to the <a class="reference internal" href="#ELiDE.pallet.Pallet" title="ELiDE.pallet.Pallet"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pallet</span></code></a> it’s in.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ELiDE.pallet.SwatchButton.tex">
+<span class="sig-name descname"><span class="pre">tex</span></span><a class="headerlink" href="#ELiDE.pallet.SwatchButton.tex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Texture to display here</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statcfg.StatListViewConfigurator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">StatListViewConfigurator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#StatListViewConfigurator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.StatListViewConfigurator" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.statcfg.StatListViewConfigurator.munge">
-<span class="sig-name descname"><span class="pre">munge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#StatListViewConfigurator.munge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.StatListViewConfigurator.munge" title="Permalink to this definition">¶</a></dt>
-<dd><p>Turn a key and value into a dictionary describing a widget to show</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statcfg.StatScreen">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">StatScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#StatScreen"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.StatScreen" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.statcfg.StatScreen.new_stat">
-<span class="sig-name descname"><span class="pre">new_stat</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#StatScreen.new_stat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.StatScreen.new_stat" title="Permalink to this definition">¶</a></dt>
-<dd><p>Look at the key and value that the user has entered into the stat
-configurator, and set them on the currently selected
-entity.</p>
-</dd></dl>
-
-</dd></dl>
-
+</section>
 </section>
 <section id="statlist">
-<h3>statlist<a class="headerlink" href="#statlist" title="Permalink to this heading">¶</a></h3>
+<h2>statlist<a class="headerlink" href="#statlist" title="Permalink to this heading">¶</a></h2>
 <p>A two-column table of an entity’s stats and their values. You can use this to build a primitive interface to your
 game, or just monitor the state of the world. By default, they are all shown as Readouts, which is to say, plain text.</p>
 <p>By default, stats’ values are displayed as read-only text, but an entity
@@ -2400,10 +2290,76 @@ so that you can use this in kvlang</p>
 
 </dd></dl>
 
+<section id="statcfg">
+<h3>statcfg<a class="headerlink" href="#statcfg" title="Permalink to this heading">¶</a></h3>
+<p>Configurator to change stat display modes within ELiDE.</p>
+<span class="target" id="module-ELiDE.statcfg"></span><dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.statcfg.ConfigListItem">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">ConfigListItem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#ConfigListItem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.ConfigListItem" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.statcfg.ConfigListItemCustomizer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">ConfigListItemCustomizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#ConfigListItemCustomizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.ConfigListItemCustomizer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.statcfg.ConfigListItemSlider">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">ConfigListItemSlider</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#ConfigListItemSlider"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.ConfigListItemSlider" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.statcfg.ConfigListItemToggleButton">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">ConfigListItemToggleButton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#ConfigListItemToggleButton"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.ConfigListItemToggleButton" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.statcfg.ControlTypePicker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">ControlTypePicker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#ControlTypePicker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.ControlTypePicker" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.statcfg.FloatInput">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">FloatInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#FloatInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.FloatInput" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.statcfg.FloatInput.insert_text">
+<span class="sig-name descname"><span class="pre">insert_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_undo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#FloatInput.insert_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.FloatInput.insert_text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Insert new text at the current cursor position. Override this
+function in order to pre-process text for input validation.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.statcfg.StatListViewConfigurator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">StatListViewConfigurator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#StatListViewConfigurator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.StatListViewConfigurator" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.statcfg.StatListViewConfigurator.munge">
+<span class="sig-name descname"><span class="pre">munge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#StatListViewConfigurator.munge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.StatListViewConfigurator.munge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turn a key and value into a dictionary describing a widget to show</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.statcfg.StatScreen">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statcfg.</span></span><span class="sig-name descname"><span class="pre">StatScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#StatScreen"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.StatScreen" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.statcfg.StatScreen.new_stat">
+<span class="sig-name descname"><span class="pre">new_stat</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#StatScreen.new_stat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statcfg.StatScreen.new_stat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Look at the key and value that the user has entered into the stat
+configurator, and set them on the currently selected
+entity.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
-<section id="module-ELiDE.stores">
-<span id="stores"></span><h3>stores<a class="headerlink" href="#module-ELiDE.stores" title="Permalink to this heading">¶</a></h3>
-<p>Editors for textual data in the database.</p>
+</section>
+<section id="stores">
+<h2>stores<a class="headerlink" href="#stores" title="Permalink to this heading">¶</a></h2>
+<p>Editor widgets for strings and Python code.</p>
+<span class="target" id="module-ELiDE.stores"></span><p>Editors for textual data in the database.</p>
 <p>The data is accessed via a “store” – a mapping onto the table, used
 like a dictionary. Each of the widgets defined here,
 <code class="xref py py-class docutils literal notranslate"><span class="pre">StringsEditor</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">FuncsEditor</span></code>, displays a list of
@@ -2703,10 +2659,27 @@ with that <code class="docutils literal notranslate"><span class="pre">language<
 <dd><p>Take Python source code, return a pair of its parameters and the rest of it dedented</p>
 </dd></dl>
 
+<section id="python-editor">
+<h3>Python Editor<a class="headerlink" href="#python-editor" title="Permalink to this heading">¶</a></h3>
+<p>Click the Python button to edit your game code in the IDE if you like.
+In this case, you can’t use any of the decorators. Choose the
+appropriate tab from Trigger, Prereq, or Action at the top, and the
+function you write will show up in the appropriate part of the rules
+editor.</p>
 </section>
-<section id="module-ELiDE.util">
-<span id="util"></span><h3>util<a class="headerlink" href="#module-ELiDE.util" title="Permalink to this heading">¶</a></h3>
-<dl class="py class">
+<section id="strings-editor">
+<h3>Strings Editor<a class="headerlink" href="#strings-editor" title="Permalink to this heading">¶</a></h3>
+<p>The LiSE engine has an attribute <code class="docutils literal notranslate"><span class="pre">string</span></code> that is accessed like a
+dictionary and used to store arbitrary strings, such as might be shown
+in a menu. You can edit those here. You can store strings for multiple
+languages, and switch between them programmatically by setting
+<code class="docutils literal notranslate"><span class="pre">engine.string.language</span></code>.</p>
+</section>
+</section>
+<section id="util">
+<h2>util<a class="headerlink" href="#util" title="Permalink to this heading">¶</a></h2>
+<p>Miscellaneous helpful things</p>
+<span class="target" id="module-ELiDE.util"></span><dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.util.SelectableRecycleBoxLayout">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.util.</span></span><span class="sig-name descname"><span class="pre">SelectableRecycleBoxLayout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/util.html#SelectableRecycleBoxLayout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.util.SelectableRecycleBoxLayout" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -2757,9 +2730,10 @@ object otherwise.</p>
 </dd></dl>
 
 </section>
-<section id="module-ELiDE.app">
-<span id="app"></span><h3>app<a class="headerlink" href="#module-ELiDE.app" title="Permalink to this heading">¶</a></h3>
-<p>Object to configure, start, and stop ELiDE.</p>
+<section id="app">
+<h2>app<a class="headerlink" href="#app" title="Permalink to this heading">¶</a></h2>
+<p>Entry point to ELiDE</p>
+<span class="target" id="module-ELiDE.app"></span><p>Object to configure, start, and stop ELiDE.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.app.ELiDEApp">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.app.</span></span><span class="sig-name descname"><span class="pre">ELiDEApp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/app.html#ELiDEApp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.app.ELiDEApp" title="Permalink to this definition">¶</a></dt>
@@ -2882,7 +2856,6 @@ set the title in the class as previously stated in the documentation.</p>
 
 </section>
 </section>
-</section>
 
 
           </div>
@@ -2906,27 +2879,37 @@ set the title in the class as previously stated in the documentation.</p>
 <li class="toctree-l1"><a class="reference internal" href="../manual.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">ELiDE</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#python-editor">Python Editor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#strings-editor">Strings Editor</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.game">game</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#game">game</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#graph">graph</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.graph.board">board</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.screen">screen</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.card">card</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.charmenu">charmenu</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.charsview">charsview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.dialog">dialog</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.dummy">dummy</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.menu">menu</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.pallet">pallet</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#rulesview">rulesview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.spritebuilder">spritebuilder</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.statcfg">statcfg</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#statlist">statlist</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.stores">stores</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.util">util</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.app">app</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pawn">pawn</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#spot">spot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#arrow">arrow</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.screen">screen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#card">card</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#charmenu">charmenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#charsview">charsview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dialog">dialog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#menu">menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rulesview">rulesview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#spritebuilder">spritebuilder</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dummy">dummy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pallet">pallet</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#statlist">statlist</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#statcfg">statcfg</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#stores">stores</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#python-editor">Python Editor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#strings-editor">Strings Editor</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#util">util</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#app">app</a></li>
 </ul>
 </li>
 </ul>
