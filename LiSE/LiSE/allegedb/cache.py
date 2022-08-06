@@ -14,6 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Classes for in-memory storage and retrieval of historical graph data.
 """
+from typing import Tuple, Hashable, Optional
+
 from .window import WindowDict, HistoricKeyError, FuturistWindowDict, \
  TurnDict, SettingsTurnDict
 from collections import OrderedDict, defaultdict, deque
@@ -46,9 +48,9 @@ class PickyDefaultDict(dict):
 	__slots__ = ['type', 'args_munger', 'kwargs_munger', 'parent', 'key']
 
 	def __init__(self,
-					type,
-					args_munger=_default_args_munger,
-					kwargs_munger=_default_kwargs_munger):
+					type: type,
+					args_munger: callable = _default_args_munger,
+					kwargs_munger: callable = _default_kwargs_munger):
 		self.type = type
 		self.args_munger = args_munger
 		self.kwargs_munger = kwargs_munger
@@ -85,10 +87,10 @@ class StructuredDefaultDict(dict):
 					'key', '_stuff', 'gettest', 'settest')
 
 	def __init__(self,
-					layers,
-					type=None,
-					args_munger=_default_args_munger,
-					kwargs_munger=_default_kwargs_munger,
+					layers: int,
+					type: type = None,
+					args_munger: callable = _default_args_munger,
+					kwargs_munger: callable = _default_kwargs_munger,
 					gettest=lambda k: None,
 					settest=lambda k, v: None):
 		if layers < 1:
@@ -262,7 +264,7 @@ class Cache:
 			if branch in childbranch:
 				branch2do.extend(childbranch[branch])
 
-	def _valcache_lookup(self, cache, branch, turn, tick):
+	def _valcache_lookup(self, cache: dict, branch: str, turn: int, tick: int):
 		"""Return the value at the given time in ``cache``"""
 		if branch in cache:
 			branc = cache[branch]
@@ -294,8 +296,10 @@ class Cache:
 						if ex.deleted:
 							raise
 
-	def _get_keycachelike(self, keycache, keys, get_adds_dels, parentity,
-							branch, turn, tick, *, forward):
+	def _get_keycachelike(self, keycache: dict, keys: dict,
+							get_adds_dels: callable, parentity: tuple,
+							branch: str, turn: int, tick: int, *,
+							forward: bool):
 		"""Try to retrieve a frozenset representing extant keys.
 
 		If I can't, generate one, store it, and return it.
@@ -385,7 +389,8 @@ class Cache:
 			keycache[keycache_key] = kcc
 		return ret
 
-	def _get_keycache(self, parentity, branch, turn, tick, *, forward):
+	def _get_keycache(self, parentity: tuple, branch: str, turn: int,
+						tick: int, *, forward: bool):
 		"""Get a frozenset of keys that exist in the entity at the moment.
 
 		With ``forward=True``, enable an optimization that copies old key sets
@@ -403,8 +408,13 @@ class Cache:
 										tick,
 										forward=forward)
 
-	def _update_keycache(self, *args, forward):
+	def _update_keycache(self, *args, forward: bool):
 		"""Add or remove a key in the set describing the keys that exist."""
+		entity: Hashable
+		key: Hashable
+		branch: str
+		turn: int
+		tick: int
 		entity, key, branch, turn, tick, value = args[-6:]
 		parent = args[:-6]
 		kc = self._get_keycache(parent + (entity, ),
@@ -419,13 +429,13 @@ class Cache:
 		self.keycache[parent + (entity, branch)][turn][tick] = kc
 
 	def _get_adds_dels(self,
-						entity,
-						branch,
-						turn,
-						tick,
+						entity: Hashable,
+						branch: str,
+						turn: int,
+						tick: int,
 						*,
-						stoptime=None,
-						cache=None):
+						stoptime: Tuple[str, int, int] = None,
+						cache: dict = None):
 		"""Return a pair of sets describing changes to the entity's keys
 
 		Returns a pair of sets: ``(added, deleted)``. These are the changes
@@ -486,8 +496,8 @@ class Cache:
 
 	def store(self,
 				*args,
-				planning=None,
-				forward=None,
+				planning: bool = None,
+				forward: bool = None,
 				loading=False,
 				contra=True):
 		"""Put a value in various dictionaries for later .retrieve(...).
@@ -518,6 +528,11 @@ class Cache:
 			planning = db._planning
 		if forward is None:
 			forward = db._forward
+		entity: Hashable
+		key: Hashable
+		branch: str
+		turn: int
+		tick: int
 		entity, key, branch, turn, tick, value = args[-6:]
 		parent = args[:-6]
 		entikey = (entity, key)
@@ -589,7 +604,7 @@ class Cache:
 		if not db._no_kc:
 			update_keycache(*args, forward=forward)
 
-	def remove_branch(self, branch):
+	def remove_branch(self, branch: str):
 		time_entity, parents, branches, keys, settings, presettings, remove_keycache, keycache = self._remove_stuff
 		parentikeys = set()
 		for (branc, turn, tick), parentikey in list(time_entity.items()):
@@ -634,7 +649,7 @@ class Cache:
 		del presettings[branch]
 		self.shallowest = OrderedDict()
 
-	def remove(self, branch, turn, tick):
+	def remove(self, branch: str, turn: int, tick: int):
 		"""Delete all data from a specific tick"""
 		time_entity, parents, branches, keys, settings, presettings, remove_keycache, keycache = self._remove_stuff
 		parent, entity, key = time_entity[branch, turn, tick]
@@ -710,7 +725,7 @@ class Cache:
 		self.shallowest = OrderedDict()
 		remove_keycache(parent + (entity, branch), turn, tick)
 
-	def _remove_keycache(self, entity_branch, turn, tick):
+	def _remove_keycache(self, entity_branch: tuple, turn: int, tick: int):
 		"""Remove the future of a given entity from a branch in the keycache"""
 		keycache = self.keycache
 		if entity_branch in keycache:
@@ -726,7 +741,7 @@ class Cache:
 			if not kc:
 				del keycache[entity_branch]
 
-	def truncate(self, branch, turn, tick, direction='forward'):
+	def truncate(self, branch: str, turn: int, tick: int, direction='forward'):
 		if direction not in {'forward', 'backward'}:
 			raise ValueError("Illegal direction")
 		parents, branches, keys, settings, presettings, keycache = self._truncate_stuff
@@ -764,8 +779,9 @@ class Cache:
 				truncate_branhc(keycache[entity_branch])
 
 	@staticmethod
-	def _iter_future_contradictions(entity, key, turns, branch, turn, tick,
-									value):
+	def _iter_future_contradictions(entity: Hashable, key: Hashable,
+									turns: dict, branch: str, turn: int,
+									tick: int, value):
 		"""Iterate over contradicted ``(turn, tick)`` if applicable"""
 		# assumes that all future entries are in the plan
 		if not turns:
@@ -789,6 +805,11 @@ class Cache:
 
 	def _store_journal(self, *args):
 		# overridden in LiSE.cache.InitializedCache
+		entity: Hashable
+		key: Hashable
+		branch: str
+		turn: int
+		tick: int
 		entity, key, branch, turn, tick, value = args[-6:]
 		parent = args[:-6]
 		settings_turns = self.settings[branch]
@@ -816,7 +837,11 @@ class Cache:
 		shallowest = self.shallowest
 		if args in shallowest:
 			return shallowest[args]
-		entity = args[:-4]
+		entity: tuple = args[:-4]
+		key: Hashable
+		branch: str
+		turn: int
+		tick: int
 		key, branch, turn, tick = args[-4:]
 		keyframes = self.keyframe.get(entity, {})
 		branches = self.branches
@@ -964,7 +989,7 @@ class Cache:
 			raise ret
 		return ret
 
-	def iter_entities_or_keys(self, *args, forward=None):
+	def iter_entities_or_keys(self, *args, forward: bool = None):
 		"""Iterate over the keys an entity has, if you specify an entity.
 
 		Otherwise iterate over the entities themselves, or at any rate the
@@ -973,7 +998,10 @@ class Cache:
 		"""
 		if forward is None:
 			forward = self.db._forward
-		entity = args[:-3]
+		entity: tuple = args[:-3]
+		branch: str
+		turn: int
+		tick: int
 		branch, turn, tick = args[-3:]
 		if self.db._no_kc:
 			yield from self._get_adds_dels(entity, branch, turn, tick)[0]
@@ -986,7 +1014,7 @@ class Cache:
 
 	iter_entities = iter_keys = iter_entity_keys = iter_entities_or_keys
 
-	def count_entities_or_keys(self, *args, forward=None):
+	def count_entities_or_keys(self, *args, forward: bool = None):
 		"""Return the number of keys an entity has, if you specify an entity.
 
 		Otherwise return the number of entities.
@@ -994,7 +1022,10 @@ class Cache:
 		"""
 		if forward is None:
 			forward = self.db._forward
-		entity = args[:-3]
+		entity: tuple = args[:-3]
+		branch: str
+		turn: int
+		tick: int
 		branch, turn, tick = args[-3:]
 		if self.db._no_kc:
 			return len(self._get_adds_dels(entity, branch, turn, tick)[0])
@@ -1020,15 +1051,15 @@ class NodesCache(Cache):
 	__slots__ = ()
 
 	def store(self,
-				graph,
-				node,
-				branch,
-				turn,
-				tick,
-				ex,
+				graph: Hashable,
+				node: Hashable,
+				branch: str,
+				turn: int,
+				tick: int,
+				ex: bool,
 				*,
-				planning=None,
-				forward=None,
+				planning: bool = None,
+				forward: bool = None,
 				loading=False,
 				contra=True):
 		if not ex:
@@ -1045,6 +1076,12 @@ class NodesCache(Cache):
 								contra=contra)
 
 	def _update_keycache(self, *args, forward):
+		graph: Hashable
+		node: Hashable
+		branch: str
+		turn: int
+		tick: int
+		ex: Optional[bool]
 		graph, node, branch, turn, tick, ex = args
 		if not ex:
 			ex = None
@@ -1056,8 +1093,9 @@ class NodesCache(Cache):
 									ex,
 									forward=forward)
 
-	def _iter_future_contradictions(self, entity, key, turns, branch, turn,
-									tick, value):
+	def _iter_future_contradictions(self, entity: Hashable, key: Hashable,
+									turns: dict, branch: str, turn: int,
+									tick: int, value):
 		yield from super()._iter_future_contradictions(entity, key, turns,
 														branch, turn, tick,
 														value)
@@ -1094,19 +1132,32 @@ class EdgesCache(Cache):
 		self.predecessors = StructuredDefaultDict(3, TurnDict)
 		self._origcache_lru = OrderedDict()
 		self._destcache_lru = OrderedDict()
-		self._get_destcache_stuff = (self.destcache, self._destcache_lru,
-										self._get_keycachelike,
-										self.successors,
-										self._adds_dels_successors)
-		self._get_origcache_stuff = (self.origcache, self._origcache_lru,
-										self._get_keycachelike,
-										self.predecessors,
-										self._adds_dels_predecessors)
+		self._get_destcache_stuff: Tuple[PickyDefaultDict, OrderedDict,
+											callable, StructuredDefaultDict,
+											callable] = (
+												self.destcache,
+												self._destcache_lru,
+												self._get_keycachelike,
+												self.successors,
+												self._adds_dels_successors)
+		self._get_origcache_stuff: Tuple[PickyDefaultDict, OrderedDict,
+											callable, StructuredDefaultDict,
+											callable] = (
+												self.origcache,
+												self._origcache_lru,
+												self._get_keycachelike,
+												self.predecessors,
+												self._adds_dels_predecessors)
 		self._additional_store_stuff = (self.db, self.predecessors,
 										self.successors)
 
-	def _update_keycache(self, *args, forward):
+	def _update_keycache(self, *args, forward: bool):
 		super()._update_keycache(*args, forward=forward)
+		dest: Hashable
+		key: Hashable
+		branch: str
+		turn: int
+		tick: int
 		dest, key, branch, turn, tick, value = args[-6:]
 		graph, orig = args[:-6]
 		# it's possible either of these might cause unnecessary iteration
@@ -1131,8 +1182,9 @@ class EdgesCache(Cache):
 		self.destcache[graph, orig, branch][turn][tick] = dests
 		self.origcache[graph, dest, branch][turn][tick] = origs
 
-	def _slow_iter_node_contradicted_times(self, branch, turn, tick, graph,
-											node):
+	def _slow_iter_node_contradicted_times(self, branch: str, turn: int,
+											tick: int, graph: Hashable,
+											node: Hashable):
 		# slow and bad.
 		retrieve = self._base_retrieve
 		for items in (self.successors[graph, node].items(),
@@ -1153,13 +1205,13 @@ class EdgesCache(Cache):
 								yield trn, tck
 
 	def _adds_dels_successors(self,
-								parentity,
-								branch,
-								turn,
-								tick,
+								parentity: tuple,
+								branch: str,
+								turn: int,
+								tick: int,
 								*,
-								stoptime=None,
-								cache=None):
+								stoptime: Tuple[str, int, int] = None,
+								cache: dict = None):
 		graph, orig = parentity
 		added = set()
 		deleted = set()
@@ -1203,13 +1255,13 @@ class EdgesCache(Cache):
 		return added, deleted
 
 	def _adds_dels_predecessors(self,
-								parentity,
-								branch,
-								turn,
-								tick,
+								parentity: tuple,
+								branch: str,
+								turn: int,
+								tick: int,
 								*,
-								stoptime=None,
-								cache=None):
+								stoptime: Tuple[str, int, int] = None,
+								cache: dict = None):
 		graph, dest = parentity
 		added = set()
 		deleted = set()
@@ -1248,7 +1300,8 @@ class EdgesCache(Cache):
 							added.add(orig)
 		return added, deleted
 
-	def _get_destcache(self, graph, orig, branch, turn, tick, *, forward):
+	def _get_destcache(self, graph: Hashable, orig: Hashable, branch: str,
+						turn: int, tick: int, *, forward: bool):
 		"""Return a set of destination nodes succeeding ``orig``"""
 		(destcache, destcache_lru, get_keycachelike, successors,
 			adds_dels_sucpred) = self._get_destcache_stuff
@@ -1262,7 +1315,8 @@ class EdgesCache(Cache):
 								tick,
 								forward=forward)
 
-	def _get_origcache(self, graph, dest, branch, turn, tick, *, forward):
+	def _get_origcache(self, graph: Hashable, dest: Hashable, branch: str,
+						turn: int, tick: int, *, forward: bool):
 		"""Return a set of origin nodes leading to ``dest``"""
 		(origcache, origcache_lru, get_keycachelike, predecessors,
 			adds_dels_sucpred) = self._get_origcache_stuff
@@ -1299,13 +1353,13 @@ class EdgesCache(Cache):
 										forward=forward)
 
 	def iter_predecessors(self,
-							graph,
-							dest,
-							branch,
-							turn,
-							tick,
+							graph: Hashable,
+							dest: Hashable,
+							branch: str,
+							turn: int,
+							tick: int,
 							*,
-							forward=None):
+							forward: bool = None):
 		"""Iterate over predecessors to a destination node at a given time."""
 		if self.db._no_kc:
 			yield from self._adds_dels_predecessors((graph, dest), branch,
@@ -1321,13 +1375,13 @@ class EdgesCache(Cache):
 										forward=forward)
 
 	def count_successors(self,
-							graph,
-							orig,
-							branch,
-							turn,
-							tick,
+							graph: Hashable,
+							orig: Hashable,
+							branch: str,
+							turn: int,
+							tick: int,
 							*,
-							forward=None):
+							forward: str = None):
 		"""Return the number of successors to an origin node at a given time.
 
 		"""
@@ -1346,13 +1400,13 @@ class EdgesCache(Cache):
 								forward=forward))
 
 	def count_predecessors(self,
-							graph,
-							dest,
-							branch,
-							turn,
-							tick,
+							graph: Hashable,
+							dest: Hashable,
+							branch: str,
+							turn: int,
+							tick: int,
 							*,
-							forward=None):
+							forward: bool = None):
 		"""Return the number of predecessors from a destination node at a time.
 
 		"""
@@ -1371,14 +1425,14 @@ class EdgesCache(Cache):
 								forward=forward))
 
 	def has_successor(self,
-						graph,
-						orig,
-						dest,
-						branch,
-						turn,
-						tick,
+						graph: Hashable,
+						orig: Hashable,
+						dest: Hashable,
+						branch: str,
+						turn: int,
+						tick: int,
 						*,
-						forward=None):
+						forward: bool = None):
 		"""Return whether an edge connects the origin to the destination now
 
 		Doesn't require the edge's index, which makes it slower than retrieving
@@ -1395,14 +1449,14 @@ class EdgesCache(Cache):
 											forward=forward)
 
 	def has_predecessor(self,
-						graph,
-						dest,
-						orig,
-						branch,
-						turn,
-						tick,
+						graph: Hashable,
+						dest: Hashable,
+						orig: Hashable,
+						branch: str,
+						turn: int,
+						tick: int,
 						*,
-						forward=None):
+						forward: bool = None):
 		"""Return whether an edge connects the destination to the origin now
 
 		Doesn't require the edge's index, which makes it slower than retrieving
