@@ -12,7 +12,12 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Wrapper classes to let you store mutable data types in the allegedb ORM"""
+"""Wrapper classes to let you store mutable data types in the allegedb ORM
+
+The wrapper objects act like regular mutable objects, but write a new copy
+of themselves to allegedb every time they are changed.
+
+"""
 from functools import partial
 from itertools import zip_longest
 from abc import ABC, abstractmethod
@@ -116,7 +121,7 @@ class MutableMappingUnwrapper(MutableMapping, ABC):
 			return True
 
 	def unwrap(self):
-		"""Return a deep copy of myself as a dict, and unwrap any wrapper objects in me."""
+		"""Deep copy myself as a dict, all contents unwrapped"""
 		return {
 			k: v.unwrap()
 			if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
@@ -171,7 +176,7 @@ class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence, ABC):
 			return True
 
 	def unwrap(self):
-		"""Return a deep copy of myself as a list, and unwrap any wrapper objects in me."""
+		"""Deep copy myself as a list, all contents unwrapped"""
 		return [v.unwrap() if hasattr(v, 'unwrap') else v for v in self]
 
 
@@ -229,7 +234,7 @@ class MutableWrapperSet(MutableWrapper, MutableSet):
 		self._set(me)
 
 	def unwrap(self):
-		"""Return a deep copy of myself as a set, and unwrap any wrapper objects in me."""
+		"""Deep copy myself as a set, all contents unwrapped"""
 		return {
 			v.unwrap()
 			if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
@@ -325,7 +330,7 @@ class ListWrapper(MutableWrapperDictList, MutableSequence, list):
 		self._set(new)
 
 	def unwrap(self):
-		"""Return a deep copy of myself as a list, and unwrap any wrapper objects in me."""
+		"""Deep copy myself as a list, with all contents unwrapped"""
 		return [
 			v.unwrap()
 			if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
@@ -356,7 +361,11 @@ class SetWrapper(MutableWrapperSet, set):
 
 
 class UnwrappingDict(dict):
-	"""Dict that stores the data from the wrapper classes but won't store those objects themselves."""
+	"""Dict that stores the data from the wrapper classes
+
+	Won't store those objects themselves.
+
+	"""
 
 	def __setitem__(self, key, value):
 		if isinstance(value, MutableWrapper):
