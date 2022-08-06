@@ -37,15 +37,12 @@ class Direction(Enum):
 	BACKWARD = 'backward'
 
 
-# TODO: cancel changes that would put something back to where it was at the start
-# This will complicate the update_window functions though, and I don't think it'll
-# improve much apart from a bit of efficiency in that the deltas are smaller
-# sometimes.
 def update_window(turn_from: int, tick_from: int, turn_to: int, tick_to: int,
 					updfun: Callable, branchd: Dict[int, List[tuple]]):
-	"""Iterate over a window of time in ``branchd`` and call ``updfun`` on the values"""
+	"""Iterate over some time in ``branchd``, call ``updfun`` on the values"""
 	if turn_from in branchd:
-		# Not including the exact tick you started from because deltas are *changes*
+		# Not including the exact tick you started from,
+		# because deltas are *changes*
 		for past_state in branchd[turn_from][tick_from + 1:]:
 			updfun(*past_state)
 	for midturn in range(turn_from + 1, turn_to):
@@ -60,7 +57,9 @@ def update_window(turn_from: int, tick_from: int, turn_to: int, tick_to: int,
 def update_backward_window(turn_from: int, tick_from: int, turn_to: int,
 							tick_to: int, updfun: Callable,
 							branchd: Dict[int, List[tuple]]):
-	"""Iterate backward over a window of time in ``branchd`` and call ``updfun`` on the values"""
+	"""Iterate backward over time in ``branchd``, call ``updfun`` on the values
+
+	"""
 	if turn_from in branchd:
 		for future_state in reversed(branchd[turn_from][:tick_from]):
 			updfun(*future_state)
@@ -74,7 +73,7 @@ def update_backward_window(turn_from: int, tick_from: int, turn_to: int,
 
 
 class HistoricKeyError(KeyError):
-	"""KeyError subclass that distinguishes deleted keys from those that were never set"""
+	"""Distinguishes deleted keys from those that were never set"""
 
 	def __init__(self, *args, deleted=False):
 		super().__init__(*args)
@@ -434,7 +433,7 @@ class WindowDictReverseSlice:
 class WindowDict(MutableMapping):
 	"""A dict that keeps every value that a variable has had over time.
 
-	Look up a revision number in this dict and it will give you the
+	Look up a revision number in this dict, and it will give you the
 	effective value as of that revision. Keys should always be
 	revision numbers.
 
@@ -483,8 +482,6 @@ class WindowDict(MutableMapping):
 
 	def seek(self, rev: int) -> None:
 		"""Arrange the caches to help look up the given revision."""
-		# TODO: binary search? Perhaps only when one or the other
-		#	   stack is very large?
 		if rev == self._last:
 			return
 		past = self._past
