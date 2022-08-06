@@ -789,7 +789,7 @@ class Cache:
 
 	@staticmethod
 	def _iter_future_contradictions(entity: Hashable, key: Hashable,
-									turns: dict, branch: str, turn: int,
+									turns: WindowDict, branch: str, turn: int,
 									tick: int, value):
 		"""Iterate over contradicted ``(turn, tick)`` if applicable"""
 		# assumes that all future entries are in the plan
