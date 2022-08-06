@@ -10,8 +10,7 @@ The graphical interface, ELiDE, lets the developer change whatever
 they want about the world. A game made with ELiDE will be more
 restrictive about what the player is allowed to change, but all of the
 player's input will be turned into changes to the world, which the
-rules may respond to however they need. Thus you never have to write
-any input handling code to make a functional game in ELiDE.
+rules may respond to however they need.
 
 ELiDE has three columns. On the right are a lot of buttons to access
 the parts of ELiDE that aren't visible right now, plus a couple of
