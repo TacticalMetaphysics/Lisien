@@ -132,7 +132,6 @@ call, then return a menu description like this one.::
 
 Only methods defined with the ``@engine.method`` decorator may be used in a menu.
 
-.. py:currentmodule:: LiSE
 engine
 ------
 .. automodule:: LiSE.engine
