@@ -1415,7 +1415,7 @@ class EdgesCache(Cache):
 		"""
 		if self.db._no_kc:
 			return len(
-				self._adds_dels_predecessors(graph, dest, branch, turn,
+				self._adds_dels_predecessors((graph, dest), branch, turn,
 												tick)[0])
 		if forward is None:
 			forward = self.db._forward
