@@ -5,12 +5,6 @@
 
 LiSE
 ====
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-
 The only LiSE class that you should ever instantiate yourself is
 ``Engine``. All the other simulation objects should be
 created and accessed through it. By default, it keeps the simulation
@@ -182,11 +176,6 @@ query
 
 allegedb
 --------
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
 State container and object-relational mapper for versioned graphs.
 
 allegedb serves its own special variant on the networkx
@@ -198,6 +187,7 @@ switch between them without the need to save, load, or run git-checkout.
 Just point the ORM at the correct branch and turn, and all of the
 graphs in the program will change. All the different branches and
 revisions remain in the database to be brought back when needed.
+
 
 usage
 _____
