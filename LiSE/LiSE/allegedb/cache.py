@@ -605,7 +605,8 @@ class Cache:
 			update_keycache(*args, forward=forward)
 
 	def remove_branch(self, branch: str):
-		time_entity, parents, branches, keys, settings, presettings, remove_keycache, keycache = self._remove_stuff
+		(time_entity, parents, branches, keys, settings, presettings,
+			remove_keycache, keycache) = self._remove_stuff
 		parentikeys = set()
 		for (branc, turn, tick), parentikey in list(time_entity.items()):
 			if branc != branch:
@@ -651,7 +652,8 @@ class Cache:
 
 	def remove(self, branch: str, turn: int, tick: int):
 		"""Delete all data from a specific tick"""
-		time_entity, parents, branches, keys, settings, presettings, remove_keycache, keycache = self._remove_stuff
+		(time_entity, parents, branches, keys, settings, presettings,
+			remove_keycache, keycache) = self._remove_stuff
 		parent, entity, key = time_entity[branch, turn, tick]
 		branchkey = parent + (entity, key)
 		keykey = parent + (entity, )
@@ -744,7 +746,8 @@ class Cache:
 	def truncate(self, branch: str, turn: int, tick: int, direction='forward'):
 		if direction not in {'forward', 'backward'}:
 			raise ValueError("Illegal direction")
-		parents, branches, keys, settings, presettings, keycache = self._truncate_stuff
+		(parents, branches, keys, settings, presettings,
+			keycache) = self._truncate_stuff
 
 		def truncate_branhc(branhc):
 			if turn in branhc:
