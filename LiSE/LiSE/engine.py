@@ -173,7 +173,8 @@ class Engine(AbstractEngine, gORM):
 
 	- ``branch``: The fork of the timestream that we're on.
 	- ``turn``: Units of time that have passed since the sim started.
-	- ``time``: ``(branch, turn)``
+	- ``time``: ``(branch, turn)``, and you can register functions to be called
+	when the time changes, as ``eng.time.connect(func)``
 	- ``tick``: A counter of how many changes have occurred this turn.
 	  Can be set manually, but is more often set to the last tick in a turn
 	  as a side effect of setting ``turn``.
@@ -520,15 +521,15 @@ class Engine(AbstractEngine, gORM):
 		self._characters_things_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_things_rulebooks_cache.name \
-                                                               = 'characters_things_rulebooks_cache'
+                                                                     = 'characters_things_rulebooks_cache'
 		self._characters_places_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_places_rulebooks_cache.name \
-                                                               = 'characters_places_rulebooks_cache'
+                                                                     = 'characters_places_rulebooks_cache'
 		self._characters_portals_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_portals_rulebooks_cache.name \
-                                                               = 'characters_portals_rulebooks_cache'
+                                                                     = 'characters_portals_rulebooks_cache'
 		self._nodes_rulebooks_cache = InitializedCache(self)
 		self._nodes_rulebooks_cache.name = 'nodes_rulebooks_cache'
 		self._portals_rulebooks_cache = InitializedCache(self)
@@ -548,18 +549,18 @@ class Engine(AbstractEngine, gORM):
 		self._unit_rules_handled_cache = UnitRulesHandledCache(self)
 		self._unit_rules_handled_cache.name = 'unit_rules_handled_cache'
 		self._character_thing_rules_handled_cache \
-                                                               = CharacterThingRulesHandledCache(
+                                                                     = CharacterThingRulesHandledCache(
 			self)
 		self._character_thing_rules_handled_cache.name \
-                                                               = 'character_thing_rules_handled_cache'
+                                                                     = 'character_thing_rules_handled_cache'
 		self._character_place_rules_handled_cache = CharacterPlaceRulesHandledCache(
 			self)
 		self._character_place_rules_handled_cache.name \
-                                                               = 'character_place_rules_handled_cache'
+                                                                     = 'character_place_rules_handled_cache'
 		self._character_portal_rules_handled_cache = CharacterPortalRulesHandledCache(
 			self)
 		self._character_portal_rules_handled_cache.name \
-                                                               = 'character_portal_rules_handled_cache'
+                                                                     = 'character_portal_rules_handled_cache'
 		self._unitness_cache = UnitnessCache(self)
 		self._unitness_cache.name = 'unitness_cache'
 		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
