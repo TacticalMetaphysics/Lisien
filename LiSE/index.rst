@@ -10,7 +10,7 @@ The only LiSE class that you should ever instantiate yourself is
 created and accessed through it. By default, it keeps the simulation
 code and world state in the working directory, but you can pass in another
 directory if you prefer. Either use it with a context manager
-(``with Engine():``) or call its ``.close()`` method when you're done
+(``with Engine() as eng:``) or call its ``.close()`` method when you're done
 changing things.
 
 World Modelling
