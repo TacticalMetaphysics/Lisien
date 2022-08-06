@@ -182,7 +182,8 @@ class Cache:
 	__slots__ = ('db', 'parents', 'keys', 'keycache', 'branches', 'shallowest',
 					'settings', 'presettings', 'time_entity', '_kc_lru',
 					'_store_stuff', '_remove_stuff', '_truncate_stuff',
-					'setdb', 'deldb', 'keyframe', 'name')
+					'setdb', 'deldb', 'keyframe', 'name',
+					'_store_journal_stuff')
 
 	def __init__(self, db, kfkvs=None):
 		super().__init__()
@@ -239,6 +240,11 @@ class Cache:
 								self._remove_keycache, self.keycache)
 		self._truncate_stuff = (self.parents, self.branches, self.keys,
 								self.settings, self.presettings, self.keycache)
+		self._store_journal_stuff: Tuple[PickyDefaultDict, PickyDefaultDict,
+											callable] = (
+												self.settings,
+												self.presettings,
+												self._base_retrieve)
 
 	def load(self, data):
 		"""Add a bunch of data. Must be in chronological order.
@@ -808,6 +814,7 @@ class Cache:
 
 	def _store_journal(self, *args):
 		# overridden in LiSE.cache.InitializedCache
+		(settings, presettings, base_retrieve) = self._store_journal_stuff
 		entity: Hashable
 		key: Hashable
 		branch: str
@@ -815,12 +822,12 @@ class Cache:
 		tick: int
 		entity, key, branch, turn, tick, value = args[-6:]
 		parent = args[:-6]
-		settings_turns = self.settings[branch]
-		presettings_turns = self.presettings[branch]
-		prev = self._base_retrieve(args[:-1])
+		settings_turns = settings[branch]
+		presettings_turns = presettings[branch]
+		prev = base_retrieve(args[:-1])
 		if isinstance(prev, KeyError):
 			prev = None
-		if turn in settings_turns or turn in settings_turns.future():
+		if turn in settings_turns:
 			# These assertions hold for most caches but not for the contents
 			# caches, and are therefore commented out.
 			# assert turn in presettings_turns \
