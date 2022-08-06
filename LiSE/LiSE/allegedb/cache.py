@@ -817,9 +817,8 @@ class Cache:
 		parent = args[:-6]
 		settings_turns = self.settings[branch]
 		presettings_turns = self.presettings[branch]
-		try:
-			prev = self.retrieve(*args[:-1])
-		except KeyError:
+		prev = self._base_retrieve(args[:-1])
+		if isinstance(prev, KeyError):
 			prev = None
 		if turn in settings_turns or turn in settings_turns.future():
 			# These assertions hold for most caches but not for the contents
@@ -923,7 +922,7 @@ class Cache:
 				elif b in keyframes:
 					kfb = keyframes[branch]
 					if r in kfb:
-						kfbr = kfb[turn]
+						kfbr = kfb[r]
 						if kfbr.rev_gettable(tick):
 							kf = kfbr[tick]
 							if key in kf:
