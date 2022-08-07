@@ -1042,7 +1042,8 @@ class ORM:
 			if branch == branch_now:
 				if turn < turn_now:
 					if latest_past_keyframe:
-						late_branch, late_turn, late_tick = latest_past_keyframe
+						(late_branch, late_turn,
+							late_tick) = latest_past_keyframe
 						if late_branch != branch or late_turn < turn or (
 							late_turn == turn and late_tick < tick):
 							latest_past_keyframe = (branch, turn, tick)
@@ -1050,7 +1051,8 @@ class ORM:
 						latest_past_keyframe = (branch, turn, tick)
 				elif turn > turn_now:
 					if earliest_future_keyframe:
-						early_branch, early_turn, early_tick = earliest_future_keyframe
+						(early_branch, early_turn,
+							early_tick) = earliest_future_keyframe
 						if early_branch != branch or early_turn > turn or (
 							early_turn == turn and early_tick > tick):
 							earliest_future_keyframe = (branch, turn, tick)
@@ -1058,7 +1060,8 @@ class ORM:
 						earliest_future_keyframe = (branch, turn, tick)
 				elif tick < tick_now:
 					if latest_past_keyframe:
-						late_branch, late_turn, late_tick = latest_past_keyframe
+						(late_branch, late_turn,
+							late_tick) = latest_past_keyframe
 						if late_branch != branch or late_turn < turn or (
 							late_turn == turn and late_tick < tick):
 							latest_past_keyframe = (branch, turn, tick)
@@ -1066,7 +1069,8 @@ class ORM:
 						latest_past_keyframe = (branch, turn, tick)
 				elif tick > tick_now:
 					if earliest_future_keyframe:
-						early_branch, early_turn, early_tick = earliest_future_keyframe
+						(early_branch, early_turn,
+							early_tick) = earliest_future_keyframe
 						if early_branch != branch or early_turn > turn or (
 							early_turn == turn and early_tick > tick):
 							earliest_future_keyframe = (branch, turn, tick)
@@ -1076,7 +1080,7 @@ class ORM:
 					latest_past_keyframe = (branch, turn, tick)
 			elif branch in branch_parents[branch_now]:
 				if latest_past_keyframe:
-					late_branch, late_turn, late_tick = latest_past_keyframe
+					(late_branch, late_turn, late_tick) = latest_past_keyframe
 					if branch == late_branch:
 						if turn > late_turn or (turn == late_turn
 												and tick > late_tick):
@@ -1615,8 +1619,8 @@ class ORM:
 		if not self._planning:
 			if v > self._turn_end[time]:
 				self._turn_end[time] = v
-			parent, turn_start, tick_start, turn_end, tick_end = self._branches[
-				branch]
+			(parent, turn_start, tick_start, turn_end,
+				tick_end) = self._branches[branch]
 			if turn == turn_end and v > tick_end:
 				self._branches[
 					branch] = parent, turn_start, tick_start, turn, v
@@ -1861,8 +1865,9 @@ class ORM:
 		return DiGraph(self, name)
 
 	def new_multigraph(self, name, data=None, **attr):
-		"""Return a new instance of type MultiGraph, initialized with the given
-		data if provided.
+		"""Return a new instance of type MultiGraph
+
+		Initialized with the given data if provided.
 
 		:arg name: a name for the graph
 		:arg data: dictionary or NetworkX graph object providing initial state
@@ -1871,8 +1876,9 @@ class ORM:
 		raise NotImplementedError("Only DiGraph for now")
 
 	def new_multidigraph(self, name, data=None, **attr):
-		"""Return a new instance of type MultiDiGraph, initialized with the given
-		data if provided.
+		"""Return a new instance of type MultiDiGraph
+
+		Initialized with the givendata if provided.
 
 		:arg name: a name for the graph
 		:arg data: dictionary or NetworkX graph object providing initial state
