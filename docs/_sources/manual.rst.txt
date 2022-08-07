@@ -16,8 +16,8 @@ lifelike.
 
 This causes trouble for developers when even *they* don't really
 understand why sims hate each other, and even if they do, failures of
-bookkeeping can cause technical issues like how damn long it takes to
-save or load your game in The Sims 3.
+bookkeeping can cause technical issues like how long it takes to
+save or load your game in Dwarf Fortress.
 
 To address all those problems, LiSE provides a state container.
 Everything that ever happens in a game gets recorded, so that you can
