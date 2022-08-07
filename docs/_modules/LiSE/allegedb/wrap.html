@@ -46,7 +46,12 @@
 <span class="c1">#</span>
 <span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
 <span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
-<span class="sd">&quot;&quot;&quot;Wrapper classes to let you store mutable data types in the allegedb ORM&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;Wrapper classes to let you store mutable data types in the allegedb ORM</span>
+
+<span class="sd">The wrapper objects act like regular mutable objects, but write a new copy</span>
+<span class="sd">of themselves to allegedb every time they are changed.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">zip_longest</span>
 <span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
@@ -150,7 +155,7 @@
 			<span class="k">return</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="MutableMappingUnwrapper.unwrap"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.wrap.MutableMappingUnwrapper.unwrap">[docs]</a>	<span class="k">def</span> <span class="nf">unwrap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;Return a deep copy of myself as a dict, and unwrap any wrapper objects in me.&quot;&quot;&quot;</span>
+		<span class="sd">&quot;&quot;&quot;Deep copy myself as a dict, all contents unwrapped&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="p">{</span>
 			<span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">unwrap</span><span class="p">()</span>
 			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;unwrap&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;no_unwrap&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span>
@@ -205,7 +210,7 @@
 			<span class="k">return</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="MutableSequenceWrapper.unwrap"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.wrap.MutableSequenceWrapper.unwrap">[docs]</a>	<span class="k">def</span> <span class="nf">unwrap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;Return a deep copy of myself as a list, and unwrap any wrapper objects in me.&quot;&quot;&quot;</span>
+		<span class="sd">&quot;&quot;&quot;Deep copy myself as a list, all contents unwrapped&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">unwrap</span><span class="p">()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;unwrap&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">]</span></div></div>
 
 
@@ -263,7 +268,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="n">me</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MutableWrapperSet.unwrap"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.wrap.MutableWrapperSet.unwrap">[docs]</a>	<span class="k">def</span> <span class="nf">unwrap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;Return a deep copy of myself as a set, and unwrap any wrapper objects in me.&quot;&quot;&quot;</span>
+		<span class="sd">&quot;&quot;&quot;Deep copy myself as a set, all contents unwrapped&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="p">{</span>
 			<span class="n">v</span><span class="o">.</span><span class="n">unwrap</span><span class="p">()</span>
 			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;unwrap&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;no_unwrap&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span>
@@ -359,7 +364,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="n">new</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ListWrapper.unwrap"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.wrap.ListWrapper.unwrap">[docs]</a>	<span class="k">def</span> <span class="nf">unwrap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;Return a deep copy of myself as a list, and unwrap any wrapper objects in me.&quot;&quot;&quot;</span>
+		<span class="sd">&quot;&quot;&quot;Deep copy myself as a list, with all contents unwrapped&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="p">[</span>
 			<span class="n">v</span><span class="o">.</span><span class="n">unwrap</span><span class="p">()</span>
 			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;unwrap&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;no_unwrap&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span>
@@ -390,7 +395,11 @@
 
 
 <div class="viewcode-block" id="UnwrappingDict"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.wrap.UnwrappingDict">[docs]</a><span class="k">class</span> <span class="nc">UnwrappingDict</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
-	<span class="sd">&quot;&quot;&quot;Dict that stores the data from the wrapper classes but won&#39;t store those objects themselves.&quot;&quot;&quot;</span>
+	<span class="sd">&quot;&quot;&quot;Dict that stores the data from the wrapper classes</span>
+
+<span class="sd">	Won&#39;t store those objects themselves.</span>
+
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">MutableWrapper</span><span class="p">):</span>

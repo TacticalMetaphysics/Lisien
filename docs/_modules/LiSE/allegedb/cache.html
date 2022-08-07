@@ -48,6 +48,8 @@
 <span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
 <span class="sd">&quot;&quot;&quot;Classes for in-memory storage and retrieval of historical graph data.</span>
 <span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">Optional</span>
+
 <span class="kn">from</span> <span class="nn">.window</span> <span class="kn">import</span> <span class="n">WindowDict</span><span class="p">,</span> <span class="n">HistoricKeyError</span><span class="p">,</span> <span class="n">FuturistWindowDict</span><span class="p">,</span> \
  <span class="n">TurnDict</span><span class="p">,</span> <span class="n">SettingsTurnDict</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">deque</span>
@@ -80,9 +82,9 @@
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;args_munger&#39;</span><span class="p">,</span> <span class="s1">&#39;kwargs_munger&#39;</span><span class="p">,</span> <span class="s1">&#39;parent&#39;</span><span class="p">,</span> <span class="s1">&#39;key&#39;</span><span class="p">]</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-					<span class="nb">type</span><span class="p">,</span>
-					<span class="n">args_munger</span><span class="o">=</span><span class="n">_default_args_munger</span><span class="p">,</span>
-					<span class="n">kwargs_munger</span><span class="o">=</span><span class="n">_default_kwargs_munger</span><span class="p">):</span>
+					<span class="nb">type</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span>
+					<span class="n">args_munger</span><span class="p">:</span> <span class="n">callable</span> <span class="o">=</span> <span class="n">_default_args_munger</span><span class="p">,</span>
+					<span class="n">kwargs_munger</span><span class="p">:</span> <span class="n">callable</span> <span class="o">=</span> <span class="n">_default_kwargs_munger</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="nb">type</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">args_munger</span> <span class="o">=</span> <span class="n">args_munger</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">kwargs_munger</span> <span class="o">=</span> <span class="n">kwargs_munger</span>
@@ -119,10 +121,10 @@
 					<span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="s1">&#39;_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;gettest&#39;</span><span class="p">,</span> <span class="s1">&#39;settest&#39;</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-					<span class="n">layers</span><span class="p">,</span>
-					<span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-					<span class="n">args_munger</span><span class="o">=</span><span class="n">_default_args_munger</span><span class="p">,</span>
-					<span class="n">kwargs_munger</span><span class="o">=</span><span class="n">_default_kwargs_munger</span><span class="p">,</span>
+					<span class="n">layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+					<span class="nb">type</span><span class="p">:</span> <span class="nb">type</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+					<span class="n">args_munger</span><span class="p">:</span> <span class="n">callable</span> <span class="o">=</span> <span class="n">_default_args_munger</span><span class="p">,</span>
+					<span class="n">kwargs_munger</span><span class="p">:</span> <span class="n">callable</span> <span class="o">=</span> <span class="n">_default_kwargs_munger</span><span class="p">,</span>
 					<span class="n">gettest</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
 					<span class="n">settest</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="kc">None</span><span class="p">):</span>
 		<span class="k">if</span> <span class="n">layers</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -214,7 +216,8 @@
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;db&#39;</span><span class="p">,</span> <span class="s1">&#39;parents&#39;</span><span class="p">,</span> <span class="s1">&#39;keys&#39;</span><span class="p">,</span> <span class="s1">&#39;keycache&#39;</span><span class="p">,</span> <span class="s1">&#39;branches&#39;</span><span class="p">,</span> <span class="s1">&#39;shallowest&#39;</span><span class="p">,</span>
 					<span class="s1">&#39;settings&#39;</span><span class="p">,</span> <span class="s1">&#39;presettings&#39;</span><span class="p">,</span> <span class="s1">&#39;time_entity&#39;</span><span class="p">,</span> <span class="s1">&#39;_kc_lru&#39;</span><span class="p">,</span>
 					<span class="s1">&#39;_store_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_remove_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_truncate_stuff&#39;</span><span class="p">,</span>
-					<span class="s1">&#39;setdb&#39;</span><span class="p">,</span> <span class="s1">&#39;deldb&#39;</span><span class="p">,</span> <span class="s1">&#39;keyframe&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">)</span>
+					<span class="s1">&#39;setdb&#39;</span><span class="p">,</span> <span class="s1">&#39;deldb&#39;</span><span class="p">,</span> <span class="s1">&#39;keyframe&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span>
+					<span class="s1">&#39;_store_journal_stuff&#39;</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db</span><span class="p">,</span> <span class="n">kfkvs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -271,6 +274,11 @@
 								<span class="bp">self</span><span class="o">.</span><span class="n">_remove_keycache</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">keycache</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_truncate_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parents</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">branches</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">,</span>
 								<span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">presettings</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">keycache</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_store_journal_stuff</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">PickyDefaultDict</span><span class="p">,</span> <span class="n">PickyDefaultDict</span><span class="p">,</span>
+											<span class="n">callable</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+												<span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="p">,</span>
+												<span class="bp">self</span><span class="o">.</span><span class="n">presettings</span><span class="p">,</span>
+												<span class="bp">self</span><span class="o">.</span><span class="n">_base_retrieve</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Cache.load"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.cache.Cache.load">[docs]</a>	<span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Add a bunch of data. Must be in chronological order.</span>
@@ -296,7 +304,7 @@
 			<span class="k">if</span> <span class="n">branch</span> <span class="ow">in</span> <span class="n">childbranch</span><span class="p">:</span>
 				<span class="n">branch2do</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">childbranch</span><span class="p">[</span><span class="n">branch</span><span class="p">])</span></div>
 
-	<span class="k">def</span> <span class="nf">_valcache_lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_valcache_lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cache</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return the value at the given time in ``cache``&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">branch</span> <span class="ow">in</span> <span class="n">cache</span><span class="p">:</span>
 			<span class="n">branc</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
@@ -328,8 +336,10 @@
 						<span class="k">if</span> <span class="n">ex</span><span class="o">.</span><span class="n">deleted</span><span class="p">:</span>
 							<span class="k">raise</span>
 
-	<span class="k">def</span> <span class="nf">_get_keycachelike</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keycache</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">get_adds_dels</span><span class="p">,</span> <span class="n">parentity</span><span class="p">,</span>
-							<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">forward</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_get_keycachelike</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keycache</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+							<span class="n">get_adds_dels</span><span class="p">:</span> <span class="n">callable</span><span class="p">,</span> <span class="n">parentity</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span>
+							<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+							<span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Try to retrieve a frozenset representing extant keys.</span>
 
 <span class="sd">		If I can&#39;t, generate one, store it, and return it.</span>
@@ -419,7 +429,8 @@
 			<span class="n">keycache</span><span class="p">[</span><span class="n">keycache_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">kcc</span>
 		<span class="k">return</span> <span class="n">ret</span>
 
-	<span class="k">def</span> <span class="nf">_get_keycache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parentity</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">forward</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_get_keycache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parentity</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+						<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Get a frozenset of keys that exist in the entity at the moment.</span>
 
 <span class="sd">		With ``forward=True``, enable an optimization that copies old key sets</span>
@@ -437,8 +448,13 @@
 										<span class="n">tick</span><span class="p">,</span>
 										<span class="n">forward</span><span class="o">=</span><span class="n">forward</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">_update_keycache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">forward</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_update_keycache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Add or remove a key in the set describing the keys that exist.&quot;&quot;&quot;</span>
+		<span class="n">entity</span><span class="p">:</span> <span class="n">Hashable</span>
+		<span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span>
+		<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span>
+		<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span>
+		<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span>
 		<span class="n">entity</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span><span class="p">:]</span>
 		<span class="n">parent</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">6</span><span class="p">]</span>
 		<span class="n">kc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_keycache</span><span class="p">(</span><span class="n">parent</span> <span class="o">+</span> <span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="p">),</span>
@@ -453,13 +469,13 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">keycache</span><span class="p">[</span><span class="n">parent</span> <span class="o">+</span> <span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">branch</span><span class="p">)][</span><span class="n">turn</span><span class="p">][</span><span class="n">tick</span><span class="p">]</span> <span class="o">=</span> <span class="n">kc</span>
 
 	<span class="k">def</span> <span class="nf">_get_adds_dels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-						<span class="n">entity</span><span class="p">,</span>
-						<span class="n">branch</span><span class="p">,</span>
-						<span class="n">turn</span><span class="p">,</span>
-						<span class="n">tick</span><span class="p">,</span>
+						<span class="n">entity</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+						<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+						<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+						<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 						<span class="o">*</span><span class="p">,</span>
-						<span class="n">stoptime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-						<span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+						<span class="n">stoptime</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+						<span class="n">cache</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return a pair of sets describing changes to the entity&#39;s keys</span>
 
 <span class="sd">		Returns a pair of sets: ``(added, deleted)``. These are the changes</span>
@@ -520,8 +536,8 @@
 
 <div class="viewcode-block" id="Cache.store"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.cache.Cache.store">[docs]</a>	<span class="k">def</span> <span class="nf">store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
 				<span class="o">*</span><span class="n">args</span><span class="p">,</span>
-				<span class="n">planning</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-				<span class="n">forward</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+				<span class="n">planning</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+				<span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 				<span class="n">loading</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 				<span class="n">contra</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Put a value in various dictionaries for later .retrieve(...).</span>
@@ -552,6 +568,11 @@
 			<span class="n">planning</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">_planning</span>
 		<span class="k">if</span> <span class="n">forward</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">forward</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">_forward</span>
+		<span class="n">entity</span><span class="p">:</span> <span class="n">Hashable</span>
+		<span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span>
+		<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span>
+		<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span>
+		<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span>
 		<span class="n">entity</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span><span class="p">:]</span>
 		<span class="n">parent</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">6</span><span class="p">]</span>
 		<span class="n">entikey</span> <span class="o">=</span> <span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
@@ -623,8 +644,9 @@
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">db</span><span class="o">.</span><span class="n">_no_kc</span><span class="p">:</span>
 			<span class="n">update_keycache</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">forward</span><span class="o">=</span><span class="n">forward</span><span class="p">)</span></div>
 
-	<span class="k">def</span> <span class="nf">remove_branch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">):</span>
-		<span class="n">time_entity</span><span class="p">,</span> <span class="n">parents</span><span class="p">,</span> <span class="n">branches</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">presettings</span><span class="p">,</span> <span class="n">remove_keycache</span><span class="p">,</span> <span class="n">keycache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remove_stuff</span>
+	<span class="k">def</span> <span class="nf">remove_branch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+		<span class="p">(</span><span class="n">time_entity</span><span class="p">,</span> <span class="n">parents</span><span class="p">,</span> <span class="n">branches</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">presettings</span><span class="p">,</span>
+			<span class="n">remove_keycache</span><span class="p">,</span> <span class="n">keycache</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remove_stuff</span>
 		<span class="n">parentikeys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 		<span class="k">for</span> <span class="p">(</span><span class="n">branc</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">),</span> <span class="n">parentikey</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">time_entity</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
 			<span class="k">if</span> <span class="n">branc</span> <span class="o">!=</span> <span class="n">branch</span><span class="p">:</span>
@@ -668,9 +690,10 @@
 		<span class="k">del</span> <span class="n">presettings</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">shallowest</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
 
-<div class="viewcode-block" id="Cache.remove"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.cache.Cache.remove">[docs]</a>	<span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+<div class="viewcode-block" id="Cache.remove"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.cache.Cache.remove">[docs]</a>	<span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Delete all data from a specific tick&quot;&quot;&quot;</span>
-		<span class="n">time_entity</span><span class="p">,</span> <span class="n">parents</span><span class="p">,</span> <span class="n">branches</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">presettings</span><span class="p">,</span> <span class="n">remove_keycache</span><span class="p">,</span> <span class="n">keycache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remove_stuff</span>
+		<span class="p">(</span><span class="n">time_entity</span><span class="p">,</span> <span class="n">parents</span><span class="p">,</span> <span class="n">branches</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">presettings</span><span class="p">,</span>
+			<span class="n">remove_keycache</span><span class="p">,</span> <span class="n">keycache</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remove_stuff</span>
 		<span class="n">parent</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="n">time_entity</span><span class="p">[</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">]</span>
 		<span class="n">branchkey</span> <span class="o">=</span> <span class="n">parent</span> <span class="o">+</span> <span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
 		<span class="n">keykey</span> <span class="o">=</span> <span class="n">parent</span> <span class="o">+</span> <span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="p">)</span>
@@ -744,7 +767,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">shallowest</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
 		<span class="n">remove_keycache</span><span class="p">(</span><span class="n">parent</span> <span class="o">+</span> <span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">branch</span><span class="p">),</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span></div>
 
-	<span class="k">def</span> <span class="nf">_remove_keycache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity_branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_remove_keycache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity_branch</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Remove the future of a given entity from a branch in the keycache&quot;&quot;&quot;</span>
 		<span class="n">keycache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">keycache</span>
 		<span class="k">if</span> <span class="n">entity_branch</span> <span class="ow">in</span> <span class="n">keycache</span><span class="p">:</span>
@@ -760,10 +783,11 @@
 			<span class="k">if</span> <span class="ow">not</span> <span class="n">kc</span><span class="p">:</span>
 				<span class="k">del</span> <span class="n">keycache</span><span class="p">[</span><span class="n">entity_branch</span><span class="p">]</span>
 
-	<span class="k">def</span> <span class="nf">truncate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s1">&#39;forward&#39;</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">truncate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s1">&#39;forward&#39;</span><span class="p">):</span>
 		<span class="k">if</span> <span class="n">direction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;forward&#39;</span><span class="p">,</span> <span class="s1">&#39;backward&#39;</span><span class="p">}:</span>
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Illegal direction&quot;</span><span class="p">)</span>
-		<span class="n">parents</span><span class="p">,</span> <span class="n">branches</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">presettings</span><span class="p">,</span> <span class="n">keycache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_truncate_stuff</span>
+		<span class="p">(</span><span class="n">parents</span><span class="p">,</span> <span class="n">branches</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">presettings</span><span class="p">,</span>
+			<span class="n">keycache</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_truncate_stuff</span>
 
 		<span class="k">def</span> <span class="nf">truncate_branhc</span><span class="p">(</span><span class="n">branhc</span><span class="p">):</span>
 			<span class="k">if</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">branhc</span><span class="p">:</span>
@@ -798,8 +822,9 @@
 				<span class="n">truncate_branhc</span><span class="p">(</span><span class="n">keycache</span><span class="p">[</span><span class="n">entity_branch</span><span class="p">])</span>
 
 	<span class="nd">@staticmethod</span>
-	<span class="k">def</span> <span class="nf">_iter_future_contradictions</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
-									<span class="n">value</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_iter_future_contradictions</span><span class="p">(</span><span class="n">entity</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+									<span class="n">turns</span><span class="p">:</span> <span class="n">WindowDict</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+									<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Iterate over contradicted ``(turn, tick)`` if applicable&quot;&quot;&quot;</span>
 		<span class="c1"># assumes that all future entries are in the plan</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">turns</span><span class="p">:</span>
@@ -823,15 +848,20 @@
 
 	<span class="k">def</span> <span class="nf">_store_journal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="c1"># overridden in LiSE.cache.InitializedCache</span>
+		<span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">presettings</span><span class="p">,</span> <span class="n">base_retrieve</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_store_journal_stuff</span>
+		<span class="n">entity</span><span class="p">:</span> <span class="n">Hashable</span>
+		<span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span>
+		<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span>
+		<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span>
+		<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span>
 		<span class="n">entity</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span><span class="p">:]</span>
 		<span class="n">parent</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">6</span><span class="p">]</span>
-		<span class="n">settings_turns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
-		<span class="n">presettings_turns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">presettings</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
-		<span class="k">try</span><span class="p">:</span>
-			<span class="n">prev</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+		<span class="n">settings_turns</span> <span class="o">=</span> <span class="n">settings</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
+		<span class="n">presettings_turns</span> <span class="o">=</span> <span class="n">presettings</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
+		<span class="n">prev</span> <span class="o">=</span> <span class="n">base_retrieve</span><span class="p">(</span><span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
 			<span class="n">prev</span> <span class="o">=</span> <span class="kc">None</span>
-		<span class="k">if</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">settings_turns</span> <span class="ow">or</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">settings_turns</span><span class="o">.</span><span class="n">future</span><span class="p">():</span>
+		<span class="k">if</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">settings_turns</span><span class="p">:</span>
 			<span class="c1"># These assertions hold for most caches but not for the contents</span>
 			<span class="c1"># caches, and are therefore commented out.</span>
 			<span class="c1"># assert turn in presettings_turns \</span>
@@ -850,7 +880,11 @@
 		<span class="n">shallowest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shallowest</span>
 		<span class="k">if</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">shallowest</span><span class="p">:</span>
 			<span class="k">return</span> <span class="n">shallowest</span><span class="p">[</span><span class="n">args</span><span class="p">]</span>
-		<span class="n">entity</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
+		<span class="n">entity</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
+		<span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span>
+		<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span>
+		<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span>
+		<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span>
 		<span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span>
 		<span class="n">keyframes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">keyframe</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="p">{})</span>
 		<span class="n">branches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">branches</span>
@@ -929,7 +963,7 @@
 				<span class="k">elif</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">keyframes</span><span class="p">:</span>
 					<span class="n">kfb</span> <span class="o">=</span> <span class="n">keyframes</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
 					<span class="k">if</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">kfb</span><span class="p">:</span>
-						<span class="n">kfbr</span> <span class="o">=</span> <span class="n">kfb</span><span class="p">[</span><span class="n">turn</span><span class="p">]</span>
+						<span class="n">kfbr</span> <span class="o">=</span> <span class="n">kfb</span><span class="p">[</span><span class="n">r</span><span class="p">]</span>
 						<span class="k">if</span> <span class="n">kfbr</span><span class="o">.</span><span class="n">rev_gettable</span><span class="p">(</span><span class="n">tick</span><span class="p">):</span>
 							<span class="n">kf</span> <span class="o">=</span> <span class="n">kfbr</span><span class="p">[</span><span class="n">tick</span><span class="p">]</span>
 							<span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">:</span>
@@ -998,7 +1032,7 @@
 			<span class="k">raise</span> <span class="n">ret</span>
 		<span class="k">return</span> <span class="n">ret</span></div>
 
-<div class="viewcode-block" id="Cache.iter_entities_or_keys"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.cache.Cache.iter_entities_or_keys">[docs]</a>	<span class="k">def</span> <span class="nf">iter_entities_or_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">forward</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Cache.iter_entities_or_keys"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.cache.Cache.iter_entities_or_keys">[docs]</a>	<span class="k">def</span> <span class="nf">iter_entities_or_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Iterate over the keys an entity has, if you specify an entity.</span>
 
 <span class="sd">		Otherwise iterate over the entities themselves, or at any rate the</span>
@@ -1007,7 +1041,10 @@
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">forward</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">forward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_forward</span>
-		<span class="n">entity</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+		<span class="n">entity</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+		<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span>
+		<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span>
+		<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_no_kc</span><span class="p">:</span>
 			<span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_adds_dels</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -1020,7 +1057,7 @@
 
 	<span class="n">iter_entities</span> <span class="o">=</span> <span class="n">iter_keys</span> <span class="o">=</span> <span class="n">iter_entity_keys</span> <span class="o">=</span> <span class="n">iter_entities_or_keys</span>
 
-<div class="viewcode-block" id="Cache.count_entities_or_keys"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.cache.Cache.count_entities_or_keys">[docs]</a>	<span class="k">def</span> <span class="nf">count_entities_or_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">forward</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Cache.count_entities_or_keys"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.cache.Cache.count_entities_or_keys">[docs]</a>	<span class="k">def</span> <span class="nf">count_entities_or_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return the number of keys an entity has, if you specify an entity.</span>
 
 <span class="sd">		Otherwise return the number of entities.</span>
@@ -1028,7 +1065,10 @@
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">forward</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">forward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_forward</span>
-		<span class="n">entity</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+		<span class="n">entity</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+		<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span>
+		<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span>
+		<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_no_kc</span><span class="p">:</span>
 			<span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_adds_dels</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
@@ -1054,15 +1094,15 @@
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
 
 <div class="viewcode-block" id="NodesCache.store"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.cache.NodesCache.store">[docs]</a>	<span class="k">def</span> <span class="nf">store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-				<span class="n">graph</span><span class="p">,</span>
-				<span class="n">node</span><span class="p">,</span>
-				<span class="n">branch</span><span class="p">,</span>
-				<span class="n">turn</span><span class="p">,</span>
-				<span class="n">tick</span><span class="p">,</span>
-				<span class="n">ex</span><span class="p">,</span>
+				<span class="n">graph</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+				<span class="n">node</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+				<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+				<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+				<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+				<span class="n">ex</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 				<span class="o">*</span><span class="p">,</span>
-				<span class="n">planning</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-				<span class="n">forward</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+				<span class="n">planning</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+				<span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 				<span class="n">loading</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 				<span class="n">contra</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">ex</span><span class="p">:</span>
@@ -1079,6 +1119,12 @@
 								<span class="n">contra</span><span class="o">=</span><span class="n">contra</span><span class="p">)</span></div>
 
 	<span class="k">def</span> <span class="nf">_update_keycache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">forward</span><span class="p">):</span>
+		<span class="n">graph</span><span class="p">:</span> <span class="n">Hashable</span>
+		<span class="n">node</span><span class="p">:</span> <span class="n">Hashable</span>
+		<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span>
+		<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span>
+		<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span>
+		<span class="n">ex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span>
 		<span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">ex</span> <span class="o">=</span> <span class="n">args</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">ex</span><span class="p">:</span>
 			<span class="n">ex</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1090,8 +1136,9 @@
 									<span class="n">ex</span><span class="p">,</span>
 									<span class="n">forward</span><span class="o">=</span><span class="n">forward</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">_iter_future_contradictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span>
-									<span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_iter_future_contradictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+									<span class="n">turns</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+									<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
 		<span class="k">yield from</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_iter_future_contradictions</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span>
 														<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
 														<span class="n">value</span><span class="p">)</span>
@@ -1128,19 +1175,32 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">predecessors</span> <span class="o">=</span> <span class="n">StructuredDefaultDict</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">TurnDict</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_origcache_lru</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_destcache_lru</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_get_destcache_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">destcache</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_destcache_lru</span><span class="p">,</span>
-										<span class="bp">self</span><span class="o">.</span><span class="n">_get_keycachelike</span><span class="p">,</span>
-										<span class="bp">self</span><span class="o">.</span><span class="n">successors</span><span class="p">,</span>
-										<span class="bp">self</span><span class="o">.</span><span class="n">_adds_dels_successors</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_get_origcache_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">origcache</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origcache_lru</span><span class="p">,</span>
-										<span class="bp">self</span><span class="o">.</span><span class="n">_get_keycachelike</span><span class="p">,</span>
-										<span class="bp">self</span><span class="o">.</span><span class="n">predecessors</span><span class="p">,</span>
-										<span class="bp">self</span><span class="o">.</span><span class="n">_adds_dels_predecessors</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_get_destcache_stuff</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">PickyDefaultDict</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">,</span>
+											<span class="n">callable</span><span class="p">,</span> <span class="n">StructuredDefaultDict</span><span class="p">,</span>
+											<span class="n">callable</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+												<span class="bp">self</span><span class="o">.</span><span class="n">destcache</span><span class="p">,</span>
+												<span class="bp">self</span><span class="o">.</span><span class="n">_destcache_lru</span><span class="p">,</span>
+												<span class="bp">self</span><span class="o">.</span><span class="n">_get_keycachelike</span><span class="p">,</span>
+												<span class="bp">self</span><span class="o">.</span><span class="n">successors</span><span class="p">,</span>
+												<span class="bp">self</span><span class="o">.</span><span class="n">_adds_dels_successors</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_get_origcache_stuff</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">PickyDefaultDict</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">,</span>
+											<span class="n">callable</span><span class="p">,</span> <span class="n">StructuredDefaultDict</span><span class="p">,</span>
+											<span class="n">callable</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+												<span class="bp">self</span><span class="o">.</span><span class="n">origcache</span><span class="p">,</span>
+												<span class="bp">self</span><span class="o">.</span><span class="n">_origcache_lru</span><span class="p">,</span>
+												<span class="bp">self</span><span class="o">.</span><span class="n">_get_keycachelike</span><span class="p">,</span>
+												<span class="bp">self</span><span class="o">.</span><span class="n">predecessors</span><span class="p">,</span>
+												<span class="bp">self</span><span class="o">.</span><span class="n">_adds_dels_predecessors</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_additional_store_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">predecessors</span><span class="p">,</span>
 										<span class="bp">self</span><span class="o">.</span><span class="n">successors</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">_update_keycache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">forward</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_update_keycache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_update_keycache</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">forward</span><span class="o">=</span><span class="n">forward</span><span class="p">)</span>
+		<span class="n">dest</span><span class="p">:</span> <span class="n">Hashable</span>
+		<span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span>
+		<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span>
+		<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span>
+		<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span>
 		<span class="n">dest</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span><span class="p">:]</span>
 		<span class="n">graph</span><span class="p">,</span> <span class="n">orig</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">6</span><span class="p">]</span>
 		<span class="c1"># it&#39;s possible either of these might cause unnecessary iteration</span>
@@ -1165,8 +1225,9 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">destcache</span><span class="p">[</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">branch</span><span class="p">][</span><span class="n">turn</span><span class="p">][</span><span class="n">tick</span><span class="p">]</span> <span class="o">=</span> <span class="n">dests</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">origcache</span><span class="p">[</span><span class="n">graph</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">branch</span><span class="p">][</span><span class="n">turn</span><span class="p">][</span><span class="n">tick</span><span class="p">]</span> <span class="o">=</span> <span class="n">origs</span>
 
-	<span class="k">def</span> <span class="nf">_slow_iter_node_contradicted_times</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span>
-											<span class="n">node</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_slow_iter_node_contradicted_times</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+											<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+											<span class="n">node</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">):</span>
 		<span class="c1"># slow and bad.</span>
 		<span class="n">retrieve</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_retrieve</span>
 		<span class="k">for</span> <span class="n">items</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">successors</span><span class="p">[</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
@@ -1187,13 +1248,13 @@
 								<span class="k">yield</span> <span class="n">trn</span><span class="p">,</span> <span class="n">tck</span>
 
 	<span class="k">def</span> <span class="nf">_adds_dels_successors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-								<span class="n">parentity</span><span class="p">,</span>
-								<span class="n">branch</span><span class="p">,</span>
-								<span class="n">turn</span><span class="p">,</span>
-								<span class="n">tick</span><span class="p">,</span>
+								<span class="n">parentity</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span>
+								<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+								<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+								<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 								<span class="o">*</span><span class="p">,</span>
-								<span class="n">stoptime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-								<span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+								<span class="n">stoptime</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+								<span class="n">cache</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 		<span class="n">graph</span><span class="p">,</span> <span class="n">orig</span> <span class="o">=</span> <span class="n">parentity</span>
 		<span class="n">added</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 		<span class="n">deleted</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
@@ -1237,13 +1298,13 @@
 		<span class="k">return</span> <span class="n">added</span><span class="p">,</span> <span class="n">deleted</span>
 
 	<span class="k">def</span> <span class="nf">_adds_dels_predecessors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-								<span class="n">parentity</span><span class="p">,</span>
-								<span class="n">branch</span><span class="p">,</span>
-								<span class="n">turn</span><span class="p">,</span>
-								<span class="n">tick</span><span class="p">,</span>
+								<span class="n">parentity</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span>
+								<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+								<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+								<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 								<span class="o">*</span><span class="p">,</span>
-								<span class="n">stoptime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-								<span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+								<span class="n">stoptime</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+								<span class="n">cache</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 		<span class="n">graph</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="n">parentity</span>
 		<span class="n">added</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 		<span class="n">deleted</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
@@ -1282,7 +1343,8 @@
 							<span class="n">added</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">orig</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">added</span><span class="p">,</span> <span class="n">deleted</span>
 
-	<span class="k">def</span> <span class="nf">_get_destcache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">forward</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_get_destcache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">orig</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+						<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return a set of destination nodes succeeding ``orig``&quot;&quot;&quot;</span>
 		<span class="p">(</span><span class="n">destcache</span><span class="p">,</span> <span class="n">destcache_lru</span><span class="p">,</span> <span class="n">get_keycachelike</span><span class="p">,</span> <span class="n">successors</span><span class="p">,</span>
 			<span class="n">adds_dels_sucpred</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_destcache_stuff</span>
@@ -1296,7 +1358,8 @@
 								<span class="n">tick</span><span class="p">,</span>
 								<span class="n">forward</span><span class="o">=</span><span class="n">forward</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">_get_origcache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">forward</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_get_origcache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">dest</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+						<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return a set of origin nodes leading to ``dest``&quot;&quot;&quot;</span>
 		<span class="p">(</span><span class="n">origcache</span><span class="p">,</span> <span class="n">origcache_lru</span><span class="p">,</span> <span class="n">get_keycachelike</span><span class="p">,</span> <span class="n">predecessors</span><span class="p">,</span>
 			<span class="n">adds_dels_sucpred</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_origcache_stuff</span>
@@ -1333,13 +1396,13 @@
 										<span class="n">forward</span><span class="o">=</span><span class="n">forward</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="EdgesCache.iter_predecessors"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.cache.EdgesCache.iter_predecessors">[docs]</a>	<span class="k">def</span> <span class="nf">iter_predecessors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-							<span class="n">graph</span><span class="p">,</span>
-							<span class="n">dest</span><span class="p">,</span>
-							<span class="n">branch</span><span class="p">,</span>
-							<span class="n">turn</span><span class="p">,</span>
-							<span class="n">tick</span><span class="p">,</span>
+							<span class="n">graph</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+							<span class="n">dest</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+							<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+							<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+							<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 							<span class="o">*</span><span class="p">,</span>
-							<span class="n">forward</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+							<span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Iterate over predecessors to a destination node at a given time.&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_no_kc</span><span class="p">:</span>
 			<span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adds_dels_predecessors</span><span class="p">((</span><span class="n">graph</span><span class="p">,</span> <span class="n">dest</span><span class="p">),</span> <span class="n">branch</span><span class="p">,</span>
@@ -1355,13 +1418,13 @@
 										<span class="n">forward</span><span class="o">=</span><span class="n">forward</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="EdgesCache.count_successors"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.cache.EdgesCache.count_successors">[docs]</a>	<span class="k">def</span> <span class="nf">count_successors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-							<span class="n">graph</span><span class="p">,</span>
-							<span class="n">orig</span><span class="p">,</span>
-							<span class="n">branch</span><span class="p">,</span>
-							<span class="n">turn</span><span class="p">,</span>
-							<span class="n">tick</span><span class="p">,</span>
+							<span class="n">graph</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+							<span class="n">orig</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+							<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+							<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+							<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 							<span class="o">*</span><span class="p">,</span>
-							<span class="n">forward</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+							<span class="n">forward</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return the number of successors to an origin node at a given time.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
@@ -1380,19 +1443,19 @@
 								<span class="n">forward</span><span class="o">=</span><span class="n">forward</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="EdgesCache.count_predecessors"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.cache.EdgesCache.count_predecessors">[docs]</a>	<span class="k">def</span> <span class="nf">count_predecessors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-							<span class="n">graph</span><span class="p">,</span>
-							<span class="n">dest</span><span class="p">,</span>
-							<span class="n">branch</span><span class="p">,</span>
-							<span class="n">turn</span><span class="p">,</span>
-							<span class="n">tick</span><span class="p">,</span>
+							<span class="n">graph</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+							<span class="n">dest</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+							<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+							<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+							<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 							<span class="o">*</span><span class="p">,</span>
-							<span class="n">forward</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+							<span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return the number of predecessors from a destination node at a time.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_no_kc</span><span class="p">:</span>
 			<span class="k">return</span> <span class="nb">len</span><span class="p">(</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">_adds_dels_predecessors</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">_adds_dels_predecessors</span><span class="p">((</span><span class="n">graph</span><span class="p">,</span> <span class="n">dest</span><span class="p">),</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span>
 												<span class="n">tick</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
 		<span class="k">if</span> <span class="n">forward</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">forward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_forward</span>
@@ -1405,14 +1468,14 @@
 								<span class="n">forward</span><span class="o">=</span><span class="n">forward</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="EdgesCache.has_successor"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.cache.EdgesCache.has_successor">[docs]</a>	<span class="k">def</span> <span class="nf">has_successor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-						<span class="n">graph</span><span class="p">,</span>
-						<span class="n">orig</span><span class="p">,</span>
-						<span class="n">dest</span><span class="p">,</span>
-						<span class="n">branch</span><span class="p">,</span>
-						<span class="n">turn</span><span class="p">,</span>
-						<span class="n">tick</span><span class="p">,</span>
+						<span class="n">graph</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+						<span class="n">orig</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+						<span class="n">dest</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+						<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+						<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+						<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 						<span class="o">*</span><span class="p">,</span>
-						<span class="n">forward</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+						<span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return whether an edge connects the origin to the destination now</span>
 
 <span class="sd">		Doesn&#39;t require the edge&#39;s index, which makes it slower than retrieving</span>
@@ -1429,14 +1492,14 @@
 											<span class="n">forward</span><span class="o">=</span><span class="n">forward</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="EdgesCache.has_predecessor"><a class="viewcode-back" href="../../../LiSE/index.html#LiSE.allegedb.cache.EdgesCache.has_predecessor">[docs]</a>	<span class="k">def</span> <span class="nf">has_predecessor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-						<span class="n">graph</span><span class="p">,</span>
-						<span class="n">dest</span><span class="p">,</span>
-						<span class="n">orig</span><span class="p">,</span>
-						<span class="n">branch</span><span class="p">,</span>
-						<span class="n">turn</span><span class="p">,</span>
-						<span class="n">tick</span><span class="p">,</span>
+						<span class="n">graph</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+						<span class="n">dest</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+						<span class="n">orig</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+						<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+						<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+						<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 						<span class="o">*</span><span class="p">,</span>
-						<span class="n">forward</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+						<span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Return whether an edge connects the destination to the origin now</span>
 
 <span class="sd">		Doesn&#39;t require the edge&#39;s index, which makes it slower than retrieving</span>

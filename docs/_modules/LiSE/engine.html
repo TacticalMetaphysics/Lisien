@@ -207,7 +207,8 @@
 
 <span class="sd">	- ``branch``: The fork of the timestream that we&#39;re on.</span>
 <span class="sd">	- ``turn``: Units of time that have passed since the sim started.</span>
-<span class="sd">	- ``time``: ``(branch, turn)``</span>
+<span class="sd">	- ``time``: ``(branch, turn)``, and you can register functions to be called</span>
+<span class="sd">	  when the time changes, as ``eng.time.connect(func)``</span>
 <span class="sd">	- ``tick``: A counter of how many changes have occurred this turn.</span>
 <span class="sd">	  Can be set manually, but is more often set to the last tick in a turn</span>
 <span class="sd">	  as a side effect of setting ``turn``.</span>
@@ -554,15 +555,15 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_characters_things_rulebooks_cache</span> <span class="o">=</span> <span class="n">InitializedEntitylessCache</span><span class="p">(</span>
 			<span class="bp">self</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_characters_things_rulebooks_cache</span><span class="o">.</span><span class="n">name</span> \
-                                                               <span class="o">=</span> <span class="s1">&#39;characters_things_rulebooks_cache&#39;</span>
+                                                                                       <span class="o">=</span> <span class="s1">&#39;characters_things_rulebooks_cache&#39;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_characters_places_rulebooks_cache</span> <span class="o">=</span> <span class="n">InitializedEntitylessCache</span><span class="p">(</span>
 			<span class="bp">self</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_characters_places_rulebooks_cache</span><span class="o">.</span><span class="n">name</span> \
-                                                               <span class="o">=</span> <span class="s1">&#39;characters_places_rulebooks_cache&#39;</span>
+                                                                                       <span class="o">=</span> <span class="s1">&#39;characters_places_rulebooks_cache&#39;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_characters_portals_rulebooks_cache</span> <span class="o">=</span> <span class="n">InitializedEntitylessCache</span><span class="p">(</span>
 			<span class="bp">self</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_characters_portals_rulebooks_cache</span><span class="o">.</span><span class="n">name</span> \
-                                                               <span class="o">=</span> <span class="s1">&#39;characters_portals_rulebooks_cache&#39;</span>
+                                                                                       <span class="o">=</span> <span class="s1">&#39;characters_portals_rulebooks_cache&#39;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_nodes_rulebooks_cache</span> <span class="o">=</span> <span class="n">InitializedCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_nodes_rulebooks_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;nodes_rulebooks_cache&#39;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_portals_rulebooks_cache</span> <span class="o">=</span> <span class="n">InitializedCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
@@ -582,18 +583,18 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_unit_rules_handled_cache</span> <span class="o">=</span> <span class="n">UnitRulesHandledCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_unit_rules_handled_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;unit_rules_handled_cache&#39;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_character_thing_rules_handled_cache</span> \
-                                                               <span class="o">=</span> <span class="n">CharacterThingRulesHandledCache</span><span class="p">(</span>
+                                                                                       <span class="o">=</span> <span class="n">CharacterThingRulesHandledCache</span><span class="p">(</span>
 			<span class="bp">self</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_character_thing_rules_handled_cache</span><span class="o">.</span><span class="n">name</span> \
-                                                               <span class="o">=</span> <span class="s1">&#39;character_thing_rules_handled_cache&#39;</span>
+                                                                                       <span class="o">=</span> <span class="s1">&#39;character_thing_rules_handled_cache&#39;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_character_place_rules_handled_cache</span> <span class="o">=</span> <span class="n">CharacterPlaceRulesHandledCache</span><span class="p">(</span>
 			<span class="bp">self</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_character_place_rules_handled_cache</span><span class="o">.</span><span class="n">name</span> \
-                                                               <span class="o">=</span> <span class="s1">&#39;character_place_rules_handled_cache&#39;</span>
+                                                                                       <span class="o">=</span> <span class="s1">&#39;character_place_rules_handled_cache&#39;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_character_portal_rules_handled_cache</span> <span class="o">=</span> <span class="n">CharacterPortalRulesHandledCache</span><span class="p">(</span>
 			<span class="bp">self</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_character_portal_rules_handled_cache</span><span class="o">.</span><span class="n">name</span> \
-                                                               <span class="o">=</span> <span class="s1">&#39;character_portal_rules_handled_cache&#39;</span>
+                                                                                       <span class="o">=</span> <span class="s1">&#39;character_portal_rules_handled_cache&#39;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span> <span class="o">=</span> <span class="n">UnitnessCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;unitness_cache&#39;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_turns_completed</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="nb">max</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
