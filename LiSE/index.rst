@@ -137,11 +137,6 @@ engine
 .. automodule:: LiSE.engine
    :members:
 
-character
----------
-.. automodule:: LiSE.character
-   :members:
-
 node
 ----
 .. automodule:: LiSE.node
