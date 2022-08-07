@@ -23,7 +23,7 @@ To address all those problems, LiSE provides a state container.
 Everything that ever happens in a game gets recorded, so that you can
 pick through the whole history and find out exactly when the butterfly
 flapped its wings to cause the cyclone. All of that history gets saved
-in a database, too, which is used in place of traditional save files.
+in a database, which is used in place of traditional save files.
 This means that if your testers discover something strange and want
 you to know about it, they can send you their database, and you'll
 know everything they did and everything that happened in their game.
