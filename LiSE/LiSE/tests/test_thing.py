@@ -42,6 +42,7 @@ def test_future_contents(something):
 		somebody = somewhere.new_thing('somebody')
 		engine.turn = 0
 		someone = somewhere.new_thing('someone')
+	engine.turn = 0
 	assert len(somewhere.contents()) == 2
 	assert something in somewhere.contents()
 	assert somebody not in somewhere.contents()

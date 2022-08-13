@@ -105,11 +105,18 @@ class PlanningContext(ContextDecorator):
 	optimization is disabled within a ``with orm.plan():`` block, so
 	consider another approach instead of making a very large plan.
 
-	"""
-	__slots__ = ['orm', 'id', 'forward']
+	With ``reset=True`` (the default), when the plan block closes,
+	the time will reset to when it began.
 
-	def __init__(self, orm: 'ORM'):
+	"""
+	__slots__ = ['orm', 'id', 'forward', 'reset']
+
+	def __init__(self, orm: 'ORM', reset=True):
 		self.orm = orm
+		if reset:
+			self.reset = orm._btt()
+		else:
+			self.reset = None
 
 	def __enter__(self):
 		orm = self.orm
@@ -128,6 +135,8 @@ class PlanningContext(ContextDecorator):
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		self.orm._planning = False
+		if self.reset is not None:
+			self.orm._set_btt(*self.reset)
 		if self.forward:
 			self.orm._forward = True
 
@@ -378,8 +387,8 @@ class ORM:
 		edge_objs[key] = ret
 		return ret
 
-	def plan(self) -> PlanningContext:
-		return PlanningContext(self)
+	def plan(self, reset=True) -> PlanningContext:
+		return PlanningContext(self, reset)
 
 	plan.__doc__ = PlanningContext.__doc__
 
