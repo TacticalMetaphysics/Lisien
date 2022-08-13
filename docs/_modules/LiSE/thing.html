@@ -236,7 +236,6 @@
 		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Paths need at least 2 nodes&quot;</span><span class="p">)</span>
 		<span class="n">eng</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">engine</span>
-		<span class="n">turn_now</span><span class="p">,</span> <span class="n">tick_now</span> <span class="o">=</span> <span class="n">eng</span><span class="o">.</span><span class="n">time</span>
 		<span class="k">with</span> <span class="n">eng</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
 			<span class="n">prevplace</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 			<span class="k">if</span> <span class="n">prevplace</span> <span class="o">!=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]:</span>
@@ -264,7 +263,6 @@
 				<span class="n">subsubpath</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">subplace</span><span class="p">)</span>
 				<span class="n">prevsubplace</span> <span class="o">=</span> <span class="n">subplace</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">location</span> <span class="o">=</span> <span class="n">subplace</span>
-			<span class="n">eng</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">turn_now</span><span class="p">,</span> <span class="n">tick_now</span>
 		<span class="k">return</span> <span class="n">turns_total</span></div>
 
 <div class="viewcode-block" id="Thing.travel_to"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Thing.travel_to">[docs]</a>	<span class="k">def</span> <span class="nf">travel_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>

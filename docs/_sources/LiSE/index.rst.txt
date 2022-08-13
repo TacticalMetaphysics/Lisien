@@ -105,10 +105,7 @@ then wakes her up after eight turns (presumably hour-long).::
         with character.engine.plan():
             character.engine.turn += 8
             character.stat['awake'] = True
-        character.engine.turn = start_turn
 
-Remember to set the time back to when you started when you're done
-making all your plans.
 
 Input Prompts
 -------------

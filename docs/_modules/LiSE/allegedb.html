@@ -139,11 +139,18 @@
 <span class="sd">	optimization is disabled within a ``with orm.plan():`` block, so</span>
 <span class="sd">	consider another approach instead of making a very large plan.</span>
 
-<span class="sd">	&quot;&quot;&quot;</span>
-	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;orm&#39;</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;forward&#39;</span><span class="p">]</span>
+<span class="sd">	With ``reset=True`` (the default), when the plan block closes,</span>
+<span class="sd">	the time will reset to when it began.</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orm</span><span class="p">:</span> <span class="s1">&#39;ORM&#39;</span><span class="p">):</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;orm&#39;</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;forward&#39;</span><span class="p">,</span> <span class="s1">&#39;reset&#39;</span><span class="p">]</span>
+
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orm</span><span class="p">:</span> <span class="s1">&#39;ORM&#39;</span><span class="p">,</span> <span class="n">reset</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">orm</span> <span class="o">=</span> <span class="n">orm</span>
+		<span class="k">if</span> <span class="n">reset</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">reset</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">reset</span> <span class="o">=</span> <span class="kc">None</span>
 
 	<span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="n">orm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">orm</span>
@@ -162,6 +169,8 @@
 
 	<span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">orm</span><span class="o">.</span><span class="n">_planning</span> <span class="o">=</span> <span class="kc">False</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">orm</span><span class="o">.</span><span class="n">_set_btt</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">)</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">orm</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="kc">True</span></div>
 
@@ -412,8 +421,8 @@
 		<span class="n">edge_objs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span>
 		<span class="k">return</span> <span class="n">ret</span>
 
-<div class="viewcode-block" id="ORM.plan"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.allegedb.ORM.plan">[docs]</a>	<span class="k">def</span> <span class="nf">plan</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PlanningContext</span><span class="p">:</span>
-		<span class="k">return</span> <span class="n">PlanningContext</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+<div class="viewcode-block" id="ORM.plan"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.allegedb.ORM.plan">[docs]</a>	<span class="k">def</span> <span class="nf">plan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reset</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PlanningContext</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">PlanningContext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reset</span><span class="p">)</span></div>
 
 	<span class="n">plan</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">PlanningContext</span><span class="o">.</span><span class="vm">__doc__</span>
 

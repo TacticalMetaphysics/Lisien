@@ -125,11 +125,8 @@ then wakes her up after eight turns (presumably hour-long).:</p>
     <span class="k">with</span> <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
         <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">turn</span> <span class="o">+=</span> <span class="mi">8</span>
         <span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;awake&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">turn</span> <span class="o">=</span> <span class="n">start_turn</span>
 </pre></div>
 </div>
-<p>Remember to set the time back to when you started when you’re done
-making all your plans.</p>
 </section>
 <section id="input-prompts">
 <h2>Input Prompts<a class="headerlink" href="#input-prompts" title="Permalink to this heading">¶</a></h2>
@@ -2008,7 +2005,7 @@ data if provided.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="LiSE.allegedb.ORM.plan">
-<span class="sig-name descname"><span class="pre">plan</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#LiSE.allegedb.PlanningContext" title="LiSE.allegedb.PlanningContext"><span class="pre">PlanningContext</span></a></span></span><a class="reference internal" href="../_modules/LiSE/allegedb.html#ORM.plan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.allegedb.ORM.plan" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#LiSE.allegedb.PlanningContext" title="LiSE.allegedb.PlanningContext"><span class="pre">PlanningContext</span></a></span></span><a class="reference internal" href="../_modules/LiSE/allegedb.html#ORM.plan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.allegedb.ORM.plan" title="Permalink to this definition">¶</a></dt>
 <dd><p>A context manager for ‘hypothetical’ edits.</p>
 <p>Start a block of code like:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">orm</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
@@ -2023,6 +2020,8 @@ future plan.</p>
 <p>New branches cannot be started within plans. The <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">orm.forward():</span></code>
 optimization is disabled within a <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">orm.plan():</span></code> block, so
 consider another approach instead of making a very large plan.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">reset=True</span></code> (the default), when the plan block closes,
+the time will reset to when it began.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -2047,7 +2046,7 @@ consider another approach instead of making a very large plan.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="LiSE.allegedb.PlanningContext">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.allegedb.</span></span><span class="sig-name descname"><span class="pre">PlanningContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#LiSE.allegedb.ORM" title="LiSE.allegedb.ORM"><span class="pre">ORM</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/allegedb.html#PlanningContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.allegedb.PlanningContext" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.allegedb.</span></span><span class="sig-name descname"><span class="pre">PlanningContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#LiSE.allegedb.ORM" title="LiSE.allegedb.ORM"><span class="pre">ORM</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/allegedb.html#PlanningContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.allegedb.PlanningContext" title="Permalink to this definition">¶</a></dt>
 <dd><p>A context manager for ‘hypothetical’ edits.</p>
 <p>Start a block of code like:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">orm</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
@@ -2062,6 +2061,8 @@ future plan.</p>
 <p>New branches cannot be started within plans. The <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">orm.forward():</span></code>
 optimization is disabled within a <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">orm.plan():</span></code> block, so
 consider another approach instead of making a very large plan.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">reset=True</span></code> (the default), when the plan block closes,
+the time will reset to when it began.</p>
 </dd></dl>
 
 <dl class="py class">
