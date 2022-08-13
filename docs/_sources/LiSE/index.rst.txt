@@ -106,6 +106,8 @@ then wakes her up after eight turns (presumably hour-long).::
             character.engine.turn += 8
             character.stat['awake'] = True
 
+At the end of a ``plan():`` block, the game-time will be reset to its
+position at the start of that block.
 
 Input Prompts
 -------------
