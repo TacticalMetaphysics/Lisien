@@ -31,7 +31,7 @@ from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
 						DeltaType, world_locked)
 from .util import sort_set, EntityStatAccessor, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
-from .query import Query, StatusAlias, ComparisonQuery
+from .query import Query, StatusAlias, ComparisonQuery, windows_intersection
 from .place import Place
 from .thing import Thing
 from .portal import Portal
@@ -523,15 +523,15 @@ class Engine(AbstractEngine, gORM):
 		self._units_rulebooks_cache.name = 'units_rulebooks_cache'
 		ctrc = InitializedEntitylessCache(self)
 		ctrc.name
-                                                                                                                                                                                                                           = 'characters_things_rulebooks_cache'
+                                                                                                                                                                                                                                                                                                                                       = 'characters_things_rulebooks_cache'
 		self._characters_things_rulebooks_cache = ctrc
 		cprc = InitializedEntitylessCache(self)
 		cprc.name
-                                                                                                                                                                                                                           = 'characters_places_rulebooks_cache'
+                                                                                                                                                                                                                                                                                                                                       = 'characters_places_rulebooks_cache'
 		self._characters_places_rulebooks_cache = cprc
 		cporc = InitializedEntitylessCache(self)
 		cporc.name = 'characters_portals_rulebooks_cache'
-		self._characters_portals_rulebooks_cache = cporc
+                                                                                                                                                                                                                                                                                                                                       self._characters_portals_rulebooks_cache = cporc
 		self._nodes_rulebooks_cache = InitializedCache(self)
 		self._nodes_rulebooks_cache.name = 'nodes_rulebooks_cache'
 		self._portals_rulebooks_cache = InitializedCache(self)
@@ -552,18 +552,18 @@ class Engine(AbstractEngine, gORM):
 		self._unit_rules_handled_cache = UnitRulesHandledCache(self)
 		self._unit_rules_handled_cache.name = 'unit_rules_handled_cache'
 		ctrhc
-                                                                                                                                                                                                                           = CharacterThingRulesHandledCache(
+                                                                                                                                                                                                                                                                                                                                       = CharacterThingRulesHandledCache(
 			self)
 		ctrhc.name
-                                                                                                                                                                                                                           = 'character_thing_rules_handled_cache'
+                                                                                                                                                                                                                                                                                                                                       = 'character_thing_rules_handled_cache'
 		self._character_thing_rules_handled_cache = ctrhc
 		cprhc = CharacterPlaceRulesHandledCache(self)
 		cprhc.name
-                                                                                                                                                                                                                           = 'character_place_rules_handled_cache'
+                                                                                                                                                                                                                                                                                                                                       = 'character_place_rules_handled_cache'
 		self._character_place_rules_handled_cache = cprhc
 		cporhc = CharacterPortalRulesHandledCache(self)
 		cporhc.name
-                                                                                                                                                                                                                           = 'character_portal_rules_handled_cache'self._character_portal_rules_handled_cache = cporhc
+                                                                                                                                                                                                                                                                                                                                       = 'character_portal_rules_handled_cache'self._character_portal_rules_handled_cache = cporhc
 		self._unitness_cache = UnitnessCache(self)
 		self._unitness_cache.name = 'unitness_cache'
 		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
@@ -1495,14 +1495,22 @@ class Engine(AbstractEngine, gORM):
 							tab.c.branch.in_(branches))).group_by(
 								tab.c.graph, tab.c.stat, tab.c.branch,
 								tab.c.turn)
-			return select(tab.c.turn, tab.c.value).select_from(
-				tab.join(
-					ticksel,
-					and_(tab.c.graph == ticksel.c.graph,
-							tab.c.stat == ticksel.c.stat,
-							tab.c.branch == ticksel.c.branch,
-							tab.c.turn == ticksel.c.turn,
-							tab.c.tick == ticksel.c.tick)))
+			return select(
+				tab.c.turn.label('turn_from'), tab.c.tick.label('tick_from'),
+				func.lead(
+					tab.c.turn).over(order_by=(tab.c.turn,
+												tab.c.tick)).label('turn_to'),
+				func.lead(
+					tab.c.tick).over(order_by=(tab.c.turn,
+												tab.c.tick)).label('tick_to'),
+				tab.c.value).select_from(
+					tab.join(
+						ticksel,
+						and_(tab.c.graph == ticksel.c.graph,
+								tab.c.stat == ticksel.c.stat,
+								tab.c.branch == ticksel.c.branch,
+								tab.c.turn == ticksel.c.turn,
+								tab.c.tick == ticksel.c.tick)))
 
 		def make_node_val_select(graph: bytes, node: bytes, stat: bytes,
 									branches: List[str]):
@@ -1515,15 +1523,23 @@ class Engine(AbstractEngine, gORM):
 							tab.c.branch.in_(branches))).group_by(
 								tab.c.graph, tab.c.node, tab.c.stat,
 								tab.c.branch, tab.c.turn)
-			return select(tab.c.turn, tab.c.value).select_from(
-				tab.join(
-					ticksel,
-					and_(tab.c.graph == ticksel.c.graph,
-							tab.c.node == ticksel.c.node,
-							tab.c.stat == ticksel.c.stat,
-							tab.c.branch == ticksel.c.branch,
-							tab.c.turn == ticksel.c.turn,
-							tab.c.tick == ticksel.c.tick)))
+			return select(
+				tab.c.turn.label('turn_from'), tab.c.tick.label('tick_from'),
+				func.lead(
+					tab.c.turn).over(order_by=(tab.c.turn,
+												tab.c.tick)).label('turn_to'),
+				func.lead(
+					tab.c.tick).over(order_by=(tab.c.turn,
+												tab.c.tick)).label('tick_to'),
+				tab.c.value).select_from(
+					tab.join(
+						ticksel,
+						and_(tab.c.graph == ticksel.c.graph,
+								tab.c.node == ticksel.c.node,
+								tab.c.stat == ticksel.c.stat,
+								tab.c.branch == ticksel.c.branch,
+								tab.c.turn == ticksel.c.turn,
+								tab.c.tick == ticksel.c.tick)))
 
 		def make_location_select(graph: bytes, thing: bytes,
 									branches: List[str]):
@@ -1535,16 +1551,22 @@ class Engine(AbstractEngine, gORM):
 							tab.c.branch.in_(branches))).group_by(
 								tab.c.character, tab.c.thing, tab.c.branch,
 								tab.c.turn)
-			return select(tab.c.turn,
-							tab.c.location.label('value')).select_from(
-								tab.join(
-									ticksel,
-									and_(
-										tab.c.character == ticksel.c.character,
-										tab.c.thing == ticksel.c.thing,
-										tab.c.branch == ticksel.c.branch,
-										tab.c.turn == ticksel.c.turn,
-										tab.c.tick == ticksel.c.tick)))
+			return select(
+				tab.c.turn.label('turn_from'), tab.c.tick.label('tick_from'),
+				func.lead(
+					tab.c.turn).over(order_by=(tab.c.turn,
+												tab.c.tick)).label('turn_to'),
+				func.lead(
+					tab.c.tick).over(order_by=(tab.c.turn,
+												tab.c.tick)).label('tick_to'),
+				tab.c.location.label('value')).select_from(
+					tab.join(
+						ticksel,
+						and_(tab.c.character == ticksel.c.character,
+								tab.c.thing == ticksel.c.thing,
+								tab.c.branch == ticksel.c.branch,
+								tab.c.turn == ticksel.c.turn,
+								tab.c.tick == ticksel.c.tick)))
 
 		def make_edge_val_select(graph: bytes, orig: bytes, dest: bytes,
 									idx: int, stat: bytes,
@@ -1560,17 +1582,25 @@ class Engine(AbstractEngine, gORM):
 							tab.c.branch.in_(branches))).group_by(
 								tab.c.graph, tab.c.orig, tab.c.dest, tab.c.idx,
 								tab.c.stat, tab.c.branch, tab.c.turn)
-			return select(tab.c.turn, tab.c.value).select_from(
-				tab.join(
-					ticksel,
-					and_(tab.c.graph == ticksel.c.graph,
-							tab.c.orig == ticksel.c.orig,
-							tab.c.dest == ticksel.c.dest,
-							tab.c.idx == ticksel.c.idx,
-							tab.c.stat == ticksel.c.stat,
-							tab.c.branch == ticksel.c.branch,
-							tab.c.turn == ticksel.c.turn,
-							tab.c.tick == ticksel.c.tick)))
+			return select(
+				tab.c.turn.label('turn_from'), tab.c.tick.label('tick_from'),
+				func.lead(
+					tab.c.turn).over(order_by=(tab.c.turn,
+												tab.c.tick)).label('turn_to'),
+				func.lead(
+					tab.c.tick).over(order_by=(tab.c.turn,
+												tab.c.tick)).label('tick_to'),
+				tab.c.value).select_from(
+					tab.join(
+						ticksel,
+						and_(tab.c.graph == ticksel.c.graph,
+								tab.c.orig == ticksel.c.orig,
+								tab.c.dest == ticksel.c.dest,
+								tab.c.idx == ticksel.c.idx,
+								tab.c.stat == ticksel.c.stat,
+								tab.c.branch == ticksel.c.branch,
+								tab.c.turn == ticksel.c.turn,
+								tab.c.tick == ticksel.c.tick)))
 
 		def make_side_sel(entity, stat, branches):
 			if isinstance(entity, Graph):
@@ -1597,7 +1627,7 @@ class Engine(AbstractEngine, gORM):
 				raise TypeError(f"Can't do queries on {type(entity)}")
 
 		try:
-			from sqlalchemy import select, alias, and_, Table
+			from sqlalchemy import select, alias, and_, or_, Table
 			from sqlalchemy.sql.functions import func
 			from .alchemy import meta
 		except ImportError:
@@ -1616,10 +1646,53 @@ class Engine(AbstractEngine, gORM):
 			branches = list(branches)
 			left_sel = make_side_sel(left.entity, left.stat, branches)
 			right_sel = make_side_sel(right.entity, right.stat, branches)
-			for row in self.query.execute(
-				select(left_sel.c.turn).where(
-					qry.oper(left_sel.c.value, right_sel.c.value))):
-				yield row[0]
+			# figure whether there is overlap between the time ranges
+			left_time_from_lte_right_time_from = or_(
+				left_sel.c.turn_from < right_sel.c.turn_from,
+				and_(left_sel.c.turn_from == right_sel.c.turn_from,
+						left_sel.c.tick_from <= right_sel.c.tick_from))
+			right_time_to_lte_left_time_to = or_(
+				left_sel.c.turn_to == None,
+				right_sel.c.turn_to < left_sel.c.turn_to,
+				and_(right_sel.c.turn_to == left_sel.c.turn_to,
+						right_sel.c.tick_to <= left_sel.c.tick_to))
+			right_time_from_lte_left_time_from = or_(
+				right_sel.c.turn_from < left_sel.c.turn_from,
+				and_(right_sel.c.turn_from == left_sel.c.turn_from,
+						right_sel.c.tick_from <= left_sel.c.tick_from))
+			left_time_to_lte_right_time_to = or_(
+				right_sel.c.turn_to == None,
+				left_sel.c.turn_to < right_sel.c.turn_to,
+				and_(left_sel.c.turn_to == right_sel.c.turn_to,
+						left_sel.c.tick_to <= right_sel.c.tick_to))
+			join_cond = or_(
+				# left contains right
+				and_(left_time_from_lte_right_time_from,
+						right_time_to_lte_left_time_to),
+				# right contains left
+				and_(right_time_from_lte_left_time_from,
+						left_time_to_lte_right_time_to),
+				# left overlaps right on the beginning
+				and_(left_time_from_lte_right_time_from,
+						left_time_to_lte_right_time_to),
+				# left overlaps right on the ending
+				and_(right_time_from_lte_left_time_from,
+						right_time_to_lte_left_time_to))
+			results = self.query.execute(
+				select(left_sel.c.turn_from, left_sel.c.tick_from,
+						left_sel.c.turn_to, left_sel.c.tick_to,
+						right_sel.c.turn_from, right_sel.c.tick_from,
+						right_sel.c.turn_to, right_sel.c.tick_to).where(
+							and_(qry.oper(left_sel.c.value, right_sel.c.value),
+									join_cond)))
+			for (left_turn_from, left_tick_from, left_turn_to, left_tick_to,
+					right_turn_from, right_tick_from, right_turn_to,
+					right_tick_to) in results:
+				for turn_from, turn_to in windows_intersection([
+					(left_turn_from, left_turn_to),
+					(right_turn_from, right_turn_to)
+				]):
+					yield from range(turn_from, turn_to + 1)
 			return
 		else:
 			for branch, turn in qry.iter_turns():
