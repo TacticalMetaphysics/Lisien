@@ -31,6 +31,10 @@ from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
 						DeltaType, world_locked)
 from .util import sort_set, EntityStatAccessor, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
+from .query import Query, StatusAlias, ComparisonQuery
+from .place import Place
+from .thing import Thing
+from .portal import Portal
 from . import exc
 
 
@@ -230,7 +234,7 @@ class Engine(AbstractEngine, gORM):
 					connect_string: str = None,
 					connect_args: dict = None,
 					schema_cls: Type[AbstractSchema] = NullSchema,
-					alchemy=False,
+					alchemy=True,
 					flush_interval=1,
 					keyframe_interval=10,
 					commit_interval: int = None,
@@ -518,10 +522,12 @@ class Engine(AbstractEngine, gORM):
 		self._units_rulebooks_cache = InitializedEntitylessCache(self)
 		self._units_rulebooks_cache.name = 'units_rulebooks_cache'
 		ctrc = InitializedEntitylessCache(self)
-		ctrc.name = 'characters_things_rulebooks_cache'
+		ctrc.name
+                                                                                                                                                                                                                           = 'characters_things_rulebooks_cache'
 		self._characters_things_rulebooks_cache = ctrc
 		cprc = InitializedEntitylessCache(self)
-		cprc.name = 'characters_places_rulebooks_cache'
+		cprc.name
+                                                                                                                                                                                                                           = 'characters_places_rulebooks_cache'
 		self._characters_places_rulebooks_cache = cprc
 		cporc = InitializedEntitylessCache(self)
 		cporc.name = 'characters_portals_rulebooks_cache'
@@ -545,15 +551,19 @@ class Engine(AbstractEngine, gORM):
 		self._character_rules_handled_cache = crhc
 		self._unit_rules_handled_cache = UnitRulesHandledCache(self)
 		self._unit_rules_handled_cache.name = 'unit_rules_handled_cache'
-		ctrhc = CharacterThingRulesHandledCache(self)
-		ctrhc.name = 'character_thing_rules_handled_cache'
+		ctrhc
+                                                                                                                                                                                                                           = CharacterThingRulesHandledCache(
+			self)
+		ctrhc.name
+                                                                                                                                                                                                                           = 'character_thing_rules_handled_cache'
 		self._character_thing_rules_handled_cache = ctrhc
 		cprhc = CharacterPlaceRulesHandledCache(self)
-		cprhc.name = 'character_place_rules_handled_cache'
+		cprhc.name
+                                                                                                                                                                                                                           = 'character_place_rules_handled_cache'
 		self._character_place_rules_handled_cache = cprhc
 		cporhc = CharacterPortalRulesHandledCache(self)
-		cporhc.name = 'character_portal_rules_handled_cache'
-		self._character_portal_rules_handled_cache = cporhc
+		cporhc.name
+                                                                                                                                                                                                                           = 'character_portal_rules_handled_cache'self._character_portal_rules_handled_cache = cporhc
 		self._unitness_cache = UnitnessCache(self)
 		self._unitness_cache.name = 'unitness_cache'
 		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
@@ -1464,7 +1474,7 @@ class Engine(AbstractEngine, gORM):
 		else:
 			kfs[turn][tick] = newkf
 
-	def turns_when(self, qry):
+	def turns_when(self, qry: Query):
 		"""Yield the turns in this branch when the query held true
 
 		:arg qry: a Query, likely constructed by comparing the result
@@ -1473,11 +1483,147 @@ class Engine(AbstractEngine, gORM):
 				  ``historical(..)``
 
 		"""
-		# yeah, it's just a loop over the query's method...I'm planning
-		# on moving some iter_turns logic in here when I figure out what
-		# of it is truly independent of any given type of query
-		for branch, turn in qry.iter_turns():
-			yield turn
+
+		def make_graph_val_select(graph: bytes, stat: bytes,
+									branches: List[str]):
+			tab: Table = meta.tables['graph_val']
+			ticksel = select(
+				tab.c.graph, tab.c.stat, tab.c.branch, tab.c.turn,
+				func.max(tab.c.tick).label('tick')).where(
+					and_(tab.c.graph == graph, tab.c.stat == stat,
+							tab.c.branch.in_(branches))).group_by(
+								tab.c.graph, tab.c.stat, tab.c.branch,
+								tab.c.turn)
+			return select(tab.c.turn, tab.c.value).select_from(
+				tab.join(
+					ticksel,
+					and_(tab.c.graph == ticksel.c.graph,
+							tab.c.stat == ticksel.c.stat,
+							tab.c.branch == ticksel.c.branch,
+							tab.c.turn == ticksel.c.turn,
+							tab.c.tick == ticksel.c.tick)))
+
+		def make_node_val_select(graph: bytes, node: bytes, stat: bytes,
+									branches: List[str]):
+			tab: Table = meta.tables['node_val']
+			ticksel = select(
+				tab.c.graph, tab.c.node, tab.c.stat, tab.c.branch, tab.c.turn,
+				func.max(tab.c.tick).label('tick')).where(
+					and_(tab.c.graph == graph,
+							tab.c.node == node, tab.c.stat == stat,
+							tab.c.branch.in_(branches))).group_by(
+								tab.c.graph, tab.c.node, tab.c.stat,
+								tab.c.branch, tab.c.turn)
+			return select(tab.c.turn, tab.c.value).select_from(
+				tab.join(
+					ticksel,
+					and_(tab.c.graph == ticksel.c.graph,
+							tab.c.node == ticksel.c.node,
+							tab.c.stat == ticksel.c.stat,
+							tab.c.branch == ticksel.c.branch,
+							tab.c.turn == ticksel.c.turn,
+							tab.c.tick == ticksel.c.tick)))
+
+		def make_location_select(graph: bytes, thing: bytes,
+									branches: List[str]):
+			tab: Table = meta.tables['things']
+			ticksel = select(
+				tab.c.character, tab.c.thing, tab.c.branch, tab.c.turn,
+				func.max(tab.c.tick).label('tick')).where(
+					and_(tab.c.character == graph, tab.c.thing == thing,
+							tab.c.branch.in_(branches))).group_by(
+								tab.c.character, tab.c.thing, tab.c.branch,
+								tab.c.turn)
+			return select(tab.c.turn,
+							tab.c.location.label('value')).select_from(
+								tab.join(
+									ticksel,
+									and_(
+										tab.c.character == ticksel.c.character,
+										tab.c.thing == ticksel.c.thing,
+										tab.c.branch == ticksel.c.branch,
+										tab.c.turn == ticksel.c.turn,
+										tab.c.tick == ticksel.c.tick)))
+
+		def make_edge_val_select(graph: bytes, orig: bytes, dest: bytes,
+									idx: int, stat: bytes,
+									branches: List[str]):
+			tab: Table = meta.tables['edge_val']
+			ticksel = select(
+				tab.c.graph, tab.c.orig, tab.c.dest, tab.c.idx, tab.c.stat,
+				tab.c.branch, tab.c.turn,
+				func.max(tab.c.tick).label('tick')).where(
+					and_(tab.c.graph == graph, tab.c.orig == orig,
+							tab.c.dest == dest,
+							tab.c.idx == idx, tab.c.stat == stat,
+							tab.c.branch.in_(branches))).group_by(
+								tab.c.graph, tab.c.orig, tab.c.dest, tab.c.idx,
+								tab.c.stat, tab.c.branch, tab.c.turn)
+			return select(tab.c.turn, tab.c.value).select_from(
+				tab.join(
+					ticksel,
+					and_(tab.c.graph == ticksel.c.graph,
+							tab.c.orig == ticksel.c.orig,
+							tab.c.dest == ticksel.c.dest,
+							tab.c.idx == ticksel.c.idx,
+							tab.c.stat == ticksel.c.stat,
+							tab.c.branch == ticksel.c.branch,
+							tab.c.turn == ticksel.c.turn,
+							tab.c.tick == ticksel.c.tick)))
+
+		def make_side_sel(entity, stat, branches):
+			if isinstance(entity, Graph):
+				return make_graph_val_select(pack(entity.name), pack(stat),
+												branches)
+			elif isinstance(entity, Place):
+				return make_node_val_select(pack(entity.character.name),
+											pack(entity.name), pack(stat),
+											branches)
+			elif isinstance(entity, Thing):
+				if stat == 'location':
+					return make_location_select(pack(entity.character.name),
+												pack(entity.name), branches)
+				else:
+					return make_node_val_select(pack(entity.character.name),
+												pack(entity.name), pack(stat),
+												branches)
+			elif isinstance(entity, Portal):
+				return make_edge_val_select(pack(entity.character.name),
+											pack(entity.origin.name),
+											pack(entity.destination.name), 0,
+											pack(stat), branches)
+			else:
+				raise TypeError(f"Can't do queries on {type(entity)}")
+
+		try:
+			from sqlalchemy import select, alias, and_, Table
+			from sqlalchemy.sql.functions import func
+			from .alchemy import meta
+		except ImportError:
+			for branch, turn in qry.iter_turns():
+				yield turn
+			return
+		# Make a select statement that gets the turns when the predicate held true
+		left = qry.leftside
+		right = qry.rightside
+		pack = self.pack
+		if isinstance(left, StatusAlias) and isinstance(
+			right, StatusAlias) and isinstance(qry, ComparisonQuery):
+			branches = set()
+			for branch, _, _ in self._iter_parent_btt():
+				branches.add(branch)
+			branches = list(branches)
+			left_sel = make_side_sel(left.entity, left.stat, branches)
+			right_sel = make_side_sel(right.entity, right.stat, branches)
+			for row in self.query.execute(
+				select(left_sel.c.turn).where(
+					qry.oper(left_sel.c.value, right_sel.c.value))):
+				yield row[0]
+			return
+		else:
+			for branch, turn in qry.iter_turns():
+				yield turn
+			return
 
 	def _node_contents(self, character: Hashable, node: Hashable) -> Set:
 		return self._node_contents_cache.retrieve(character, node,
