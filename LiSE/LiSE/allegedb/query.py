@@ -81,8 +81,18 @@ class GlobalKeyValueStore(MutableMapping):
 
 
 class ConnectionHolder:
+	connection: sqlite3.Connection
+	strings: dict
 
-	def __init__(self, dbstring, connect_args, alchemy, inq, outq, fn, tables):
+	def __init__(self,
+					dbstring,
+					connect_args,
+					alchemy,
+					inq,
+					outq,
+					fn,
+					tables,
+					gather=None):
 		self.lock = Lock()
 		self.existence_lock = Lock()
 		self.existence_lock.acquire()
@@ -93,6 +103,8 @@ class ConnectionHolder:
 		self.inq = inq
 		self.outq = outq
 		self.tables = tables
+		if gather is not None:
+			self.gather = gather
 
 	def commit(self):
 		if hasattr(self, 'transaction') and self.transaction.is_active:
@@ -149,11 +161,16 @@ class ConnectionHolder:
 
 		if alchemy:
 			try:
+				from sqlalchemy.sql.expression import Select
 				from sqlalchemy import create_engine
 				from sqlalchemy.engine.base import Engine
 				from sqlalchemy.exc import ArgumentError
 				from sqlalchemy.pool import NullPool
 				from .alchemy import Alchemist
+				if hasattr(self, 'gather'):
+					gather_sql = self.gather
+				else:
+					from .alchemy import gather_sql
 				if isinstance(dbstring, Engine):
 					self.engine = dbstring
 				else:
@@ -165,12 +182,15 @@ class ConnectionHolder:
 						self.engine = create_engine('sqlite:///' + dbstring,
 													connect_args=connect_args,
 													poolclass=NullPool)
-				self.alchemist = Alchemist(self.engine)
+				self.alchemist = Alchemist(self.engine, gather_sql)
 				self.transaction = self.alchemist.conn.begin()
+				self._alchemy = True
 			except ImportError:
 				self._alchemy = False
+				Select = None
 				lite_init(dbstring)
 		else:
+			Select = None
 			lite_init(dbstring)
 		while True:
 			inst = self.inq.get()
@@ -188,6 +208,9 @@ class ConnectionHolder:
 				continue
 			if inst == 'initdb':
 				self.outq.put(self.initdb())
+				continue
+			if self._alchemy and isinstance(inst, Select):
+				self.outq.put(self.engine.execute(inst).fetchall())
 				continue
 			silent = False
 			if inst[0] == 'silent':
@@ -258,7 +281,8 @@ class QueryEngine(object):
 					alchemy,
 					strings_filename: str = None,
 					pack=None,
-					unpack=None):
+					unpack=None,
+					gather=None):
 		"""If ``alchemy`` is True and ``dbstring`` is a legit database URI,
 		instantiate an Alchemist and start a transaction with
 		it. Otherwise use sqlite3.
@@ -280,7 +304,7 @@ class QueryEngine(object):
 									strings_filename)
 		self._holder = self.holder_cls(dbstring, connect_args, alchemy,
 										self._inq, self._outq,
-										strings_filename, self.tables)
+										strings_filename, self.tables, gather)
 
 		if unpack is None:
 			from ast import literal_eval as unpack
@@ -313,6 +337,15 @@ class QueryEngine(object):
 		if isinstance(ret, Exception):
 			raise ret
 		return ret
+
+	def execute(self, stmt):
+		from sqlalchemy.sql.expression import Select
+		if not isinstance(stmt, Select):
+			raise TypeError("Only select statements should be executed")
+		with self._holder.lock:
+			self.flush()
+			self._inq.put(stmt)
+			return self._outq.get()
 
 	def have_graph(self, graph):
 		"""Return whether I have a graph by this name."""
@@ -803,18 +836,16 @@ class QueryEngine(object):
 					list(map(self._pack_edge2set, self._edges2set))))
 			self._edges2set = []
 		if self._graphvals2set:
-			put(('silent', 'many', 'graph_val_insert', [
-				(pack(graph), pack(key), branch, turn, tick, pack(value))
-				for (graph, key, branch, turn, tick,
-						value) in self._graphvals2set
-			]))
+			put(('silent', 'many', 'graph_val_insert',
+					[(pack(graph), pack(key), branch, turn, tick, pack(value))
+						for (graph, key, branch, turn, tick,
+								value) in self._graphvals2set]))
 			self._graphvals2set = []
 		if self._nodevals2set:
-			put(('silent', 'many', 'node_val_insert', [
-				(pack(graph), pack(node), pack(key), branch, turn, tick,
-					pack(value)) for (graph, node, key, branch, turn, tick,
-										value) in self._nodevals2set
-			]))
+			put(('silent', 'many', 'node_val_insert',
+					[(pack(graph), pack(node), pack(key), branch, turn, tick,
+						pack(value)) for (graph, node, key, branch, turn, tick,
+											value) in self._nodevals2set]))
 			self._nodes2set = []
 		if self._edgevals2set:
 			put(('silent', 'many', 'edge_val_insert',

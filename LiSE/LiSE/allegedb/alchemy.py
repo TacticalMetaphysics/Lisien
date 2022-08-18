@@ -417,6 +417,7 @@ def gather_sql(meta):
 
 	for t in table.values():
 		r['create_' + t.name] = CreateTable(t)
+		r['truncate_' + t.name] = t.delete()
 	for (tab, idx) in index.items():
 		r['index_' + tab] = CreateIndex(idx)
 	r.update(query)
@@ -436,11 +437,11 @@ class Alchemist(object):
 
 	"""
 
-	def __init__(self, engine):
+	def __init__(self, engine, gather=gather_sql):
 		self.engine = engine
 		self.conn = self.engine.connect()
 		self.meta = MetaData()
-		self.sql = gather_sql(self.meta)
+		self.sql = gather(self.meta)
 
 		def caller(k, *largs):
 			statement = self.sql[k].compile(dialect=self.conn.engine.dialect)

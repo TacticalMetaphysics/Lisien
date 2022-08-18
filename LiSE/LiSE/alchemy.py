@@ -29,9 +29,10 @@ from json import dumps
 
 from sqlalchemy import (Table, Column, ForeignKeyConstraint, select, bindparam,
 						func, and_, or_, INT, TEXT, BOOLEAN)
+from sqlalchemy import MetaData
 from sqlalchemy.sql.ddl import CreateTable, CreateIndex
 
-from allegedb import alchemy
+from .allegedb import alchemy
 
 BaseColumn = Column
 Column = partial(BaseColumn, nullable=False)
@@ -440,13 +441,30 @@ def queries(table):
 	return r
 
 
-if __name__ == '__main__':
-	from sqlalchemy import MetaData
-	from sqlalchemy.dialects.sqlite.pysqlite import SQLiteDialect_pysqlite
-
-	meta = MetaData()
+def gather_sql(meta):
+	from sqlalchemy.sql.ddl import CreateTable, CreateIndex
 	r = {}
 	table = tables_for_meta(meta)
+	index = indices_for_table_dict(table)
+	query = queries(table)
+
+	for t in table.values():
+		r['create_' + t.name] = CreateTable(t)
+		r['truncate_' + t.name] = t.delete()
+	for (tab, idx) in index.items():
+		r['index_' + tab] = CreateIndex(idx)
+	r.update(query)
+
+	return r
+
+
+meta = MetaData()
+table = tables_for_meta(meta)
+
+if __name__ == '__main__':
+	from sqlalchemy.dialects.sqlite.pysqlite import SQLiteDialect_pysqlite
+
+	r = {}
 	dia = SQLiteDialect_pysqlite()
 	for (n, t) in table.items():
 		r["create_" + n] = str(CreateTable(t).compile(dialect=dia))
