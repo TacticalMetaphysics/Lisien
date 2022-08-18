@@ -523,15 +523,15 @@ class Engine(AbstractEngine, gORM):
 		self._units_rulebooks_cache.name = 'units_rulebooks_cache'
 		ctrc = InitializedEntitylessCache(self)
 		ctrc.name
-                                                                                                                                                                                                                                                                                                                                             = 'characters_things_rulebooks_cache'
+                                                                                                                                                                                                                                                                                                                                                         = 'characters_things_rulebooks_cache'
 		self._characters_things_rulebooks_cache = ctrc
 		cprc = InitializedEntitylessCache(self)
 		cprc.name
-                                                                                                                                                                                                                                                                                                                                             = 'characters_places_rulebooks_cache'
+                                                                                                                                                                                                                                                                                                                                                         = 'characters_places_rulebooks_cache'
 		self._characters_places_rulebooks_cache = cprc
 		cporc = InitializedEntitylessCache(self)
 		cporc.name = 'characters_portals_rulebooks_cache'
-                                                                                                                                                                                                                                                                                                                                             self._characters_portals_rulebooks_cache = cporc
+                                                                                                                                                                                                                                                                                                                                                         self._characters_portals_rulebooks_cache = cporc
 		self._nodes_rulebooks_cache = InitializedCache(self)
 		self._nodes_rulebooks_cache.name = 'nodes_rulebooks_cache'
 		self._portals_rulebooks_cache = InitializedCache(self)
@@ -552,18 +552,18 @@ class Engine(AbstractEngine, gORM):
 		self._unit_rules_handled_cache = UnitRulesHandledCache(self)
 		self._unit_rules_handled_cache.name = 'unit_rules_handled_cache'
 		ctrhc
-                                                                                                                                                                                                                                                                                                                                             = CharacterThingRulesHandledCache(
+                                                                                                                                                                                                                                                                                                                                                         = CharacterThingRulesHandledCache(
 			self)
 		ctrhc.name
-                                                                                                                                                                                                                                                                                                                                             = 'character_thing_rules_handled_cache'
+                                                                                                                                                                                                                                                                                                                                                         = 'character_thing_rules_handled_cache'
 		self._character_thing_rules_handled_cache = ctrhc
 		cprhc = CharacterPlaceRulesHandledCache(self)
 		cprhc.name
-                                                                                                                                                                                                                                                                                                                                             = 'character_place_rules_handled_cache'
+                                                                                                                                                                                                                                                                                                                                                         = 'character_place_rules_handled_cache'
 		self._character_place_rules_handled_cache = cprhc
 		cporhc = CharacterPortalRulesHandledCache(self)
 		cporhc.name
-                                                                                                                                                                                                                                                                                                                                             = 'character_portal_rules_handled_cache'self._character_portal_rules_handled_cache = cporhc
+                                                                                                                                                                                                                                                                                                                                                         = 'character_portal_rules_handled_cache'self._character_portal_rules_handled_cache = cporhc
 		self._unitness_cache = UnitnessCache(self)
 		self._unitness_cache.name = 'unitness_cache'
 		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
@@ -1640,6 +1640,7 @@ class Engine(AbstractEngine, gORM):
 						right_sel.c.turn_to, right_sel.c.tick_to).where(
 							and_(qry.oper(left_sel.c.value, right_sel.c.value),
 									join_cond)))
+			seen = set()
 			for (left_turn_from, left_tick_from, left_turn_to, left_tick_to,
 					right_turn_from, right_tick_from, right_turn_to,
 					right_tick_to) in results:
@@ -1647,7 +1648,10 @@ class Engine(AbstractEngine, gORM):
 					(left_turn_from, left_turn_to),
 					(right_turn_from, right_turn_to)
 				]):
-					yield from range(turn_from, turn_to + 1)
+					for turn in range(turn_from, turn_to + 1):
+						if turn not in seen:
+							yield turn
+							seen.add(turn)
 			return
 		else:
 			for branch, turn in qry.iter_turns():
