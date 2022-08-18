@@ -337,6 +337,7 @@ def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
 	leftside = mungeside(qry.leftside)
 	rightside = mungeside(qry.rightside)
 	engine = engine or leftside.engine or rightside.engine
+	last_turn = engine._branches[engine.branch][-1]
 
 	for (branch, _, _) in engine._iter_parent_btt(start_branch
 													or engine.branch):
@@ -344,7 +345,7 @@ def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
 			return
 		parent, turn_start, tick_start, turn_end, tick_end = engine._branches[
 			branch]
-		for turn in range(turn_start, engine.turn + 1):
+		for turn in range(turn_start, last_turn + 1):
 			if oper(leftside(branch, turn), rightside(branch, turn)):
 				yield branch, turn
 
