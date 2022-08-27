@@ -42,6 +42,8 @@ from typing import Type
 from blinker import Signal
 
 import networkx as nx
+from functools import partial
+
 from .allegedb.cache import FuturistWindowDict, PickyDefaultDict
 from .allegedb.graph import (DiGraph, GraphNodeMapping,
 								DiGraphSuccessorsMapping,
@@ -152,14 +154,22 @@ class RuleFollower(BaseRuleFollower):
 class OpinionEntity(MutableMapping, Signal, ABC):
 	exists = True
 
-	def __init__(self, mapping, _=None, **kwargs):
+	def __init__(self,
+					mapping,
+					_=None,
+					*,
+					filter=lambda obj, x: True,
+					munger=lambda obj, k, v: v,
+					**kwargs):
 		super().__init__()
-		self.facade = self.character = mapping.facade
+		self.character = mapping.character
 		self._real = mapping
 		self._patch = {
 			k: v.unwrap() if hasattr(v, 'unwrap') else v
 			for (k, v) in kwargs.items()
 		}
+		self._filter = partial(filter, self)
+		self._munger = partial(munger, self)
 
 	def __contains__(self, item):
 		patch = self._patch
@@ -168,8 +178,12 @@ class OpinionEntity(MutableMapping, Signal, ABC):
 
 	def __iter__(self):
 		seen = set()
+		patch = self._patch
+		filter = self._filter
 		for k in self._real:
-			if k not in self._patch:
+			if not filter(k):
+				continue
+			if k not in patch:
 				yield k
 				seen.add(k)
 		for k in self._patch:
@@ -187,12 +201,14 @@ class OpinionEntity(MutableMapping, Signal, ABC):
 			if self._patch[k] is None:
 				raise KeyError("{} has been masked.".format(k))
 			return self._patch[k]
+		if not self._filter(k):
+			raise KeyError(f"{k} has been filtered")
 		ret = self._real[k]
 		if hasattr(ret, 'unwrap'):  # a wrapped mutable object from the
 			# allegedb.wrap module
 			ret = ret.unwrap()
 			self._patch[k] = ret  # changes will be reflected in the
-		# facade but not the original
+		# opinion but not the original
 		return ret
 
 	def __setitem__(self, k, v):
@@ -216,10 +232,10 @@ class OpinionNode(OpinionEntity, ABC):
 
 	@property
 	def portal(self):
-		return self.facade.portal[self['name']]
+		return self.character.portal[self['name']]
 
 	def contents(self):
-		for thing in self.facade.thing.values():
+		for thing in self.character.thing.values():
 			# it seems like redundant FacadeNode are being created sometimes
 			if thing['location'] == self.name:
 				yield thing
@@ -237,10 +253,10 @@ class OpinionPlace(OpinionNode):
 			self._real = {'name': real_or_name}
 
 	def add_thing(self, name):
-		self.facade.add_thing(name, self.name)
+		self.character.add_thing(name, self.name)
 
 	def new_thing(self, name):
-		return self.facade.new_thing(name, self.name)
+		return self.character.new_thing(name, self.name)
 
 
 class OpinionThing(OpinionNode):
@@ -253,21 +269,21 @@ class OpinionThing(OpinionNode):
 			raise TypeError(
 				"FacadeThing needs to wrap a real Thing or another "
 				"FacadeThing, or have a location of its own.")
-		self._real = {
-			'name': real_or_name.name
-			if hasattr(real_or_name, 'name') else real_or_name,
-			'location': location
-		}
+		if isinstance(real_or_name, Thing) or isinstance(
+			real_or_name, OpinionThing):
+			self._real = real_or_name
+		else:
+			self._real = {'name': real_or_name, 'location': location}
 
 	@property
 	def location(self):
-		return self.facade.node[self['location']]
+		return self.character.node[self['location']]
 
 	@location.setter
 	def location(self, v):
 		if isinstance(v, (OpinionPlace, OpinionThing)):
 			v = v.name
-		if v not in self.facade.node:
+		if v not in self.character.node:
 			raise KeyError("Location {} not present".format(v))
 		self['location'] = v
 
@@ -284,7 +300,7 @@ class OpinionPortal(OpinionEntity):
 			self.dest = mapping.dest
 			self.orig = other
 		try:
-			self._real = self.facade.character.portal[self.orig][self.dest]
+			self._real = self.character.character.portal[self.orig][self.dest]
 		except (KeyError, AttributeError):
 			self._real = {}
 
@@ -302,11 +318,11 @@ class OpinionPortal(OpinionEntity):
 
 	@property
 	def origin(self):
-		return self.facade.node[self.orig]
+		return self.character.node[self.orig]
 
 	@property
 	def destination(self):
-		return self.facade.node[self.dest]
+		return self.character.node[self.dest]
 
 
 class OpinionEntityMapping(MutableMappingUnwrapper, Signal, ABC):
@@ -316,7 +332,10 @@ class OpinionEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 	being distorted views of entities of the type ``innercls``.
 
 	"""
-	facadecls: Type[OpinionEntity]
+	opinion_cls: Type[OpinionEntity]
+	_filter_name: str
+	_subfilter_name: str
+	_submunger_name: str
 
 	@abstractmethod
 	def _get_inner_map(self):
@@ -327,20 +346,40 @@ class OpinionEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 		for badkey in ('character', 'engine', 'name'):
 			if badkey in kwargs:
 				del kwargs[badkey]
-		return self.facadecls(self, k, **kwargs)
+		return self.opinion_cls(self,
+								k,
+								filter=self._subfilter,
+								munger=self._submunger,
+								**kwargs)
 
-	engine = getatt('facade.engine')
+	engine = getatt('character.engine')
 
-	def __init__(self, facade, _=None):
-		"""Store the facade."""
+	def __init__(
+		self,
+		opinion,
+		_=None,
+	):
 		super().__init__()
-		self.facade = facade
+		self.character = opinion
 		self._patch = {}
+
+	@property
+	def _filter(self):
+		return partial(getattr(self.character, self._filter_name),
+						self.character)
+
+	@property
+	def _subfilter(self):
+		return getattr(self.character, self._subfilter_name)
+
+	@property
+	def _submunger(self):
+		return getattr(self.character, self._submunger_name)
 
 	def __contains__(self, k):
 		if k in self._patch:
 			return self._patch[k] is not None
-		return k in self._get_inner_map()
+		return self._filter(k) and k in self._get_inner_map()
 
 	def __iter__(self):
 		seen = set()
@@ -349,7 +388,7 @@ class OpinionEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 				yield k
 			seen.add(k)
 		for k in self._get_inner_map():
-			if k not in seen:
+			if self._filter(k) and k not in seen:
 				yield k
 
 	def __len__(self):
@@ -359,19 +398,19 @@ class OpinionEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 		return n
 
 	def __getitem__(self, k):
-		if k not in self:
+		if k not in self or not self._filter(k):
 			raise KeyError
 		if k not in self._patch:
 			self._patch[k] = self._make(k, self._get_inner_map()[k])
 		ret = self._patch[k]
 		if ret is None:
 			raise KeyError
-		if type(ret) is not self.facadecls:
+		if type(ret) is not self.opinion_cls:
 			ret = self._patch[k] = self._make(k, ret)
 		return ret
 
 	def __setitem__(self, k, v):
-		if not isinstance(v, self.facadecls):
+		if not isinstance(v, self.opinion_cls):
 			v = self._make(k, v)
 		self._patch[k] = v
 		self.send(self, key=k, val=v)
@@ -384,37 +423,37 @@ class OpinionEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 
 
 class OpinionPortalSuccessors(OpinionEntityMapping):
-	facadecls = OpinionPortal
+	opinion_cls = OpinionPortal
 	innercls = Portal
 
-	def __init__(self, facade, origname):
-		super().__init__(facade, origname)
+	def __init__(self, opinion, origname):
+		super().__init__(opinion, origname)
 		self.orig = origname
 
 	def _make(self, k, v):
-		return self.facadecls(self, k, **v)
+		return self.opinion_cls(self, k, **v)
 
 	def _get_inner_map(self):
 		try:
-			return self.facade.character.portal[self.orig]
+			return self.character.character.portal[self.orig]
 		except AttributeError:
 			return {}
 
 
 class OpinionPortalPredecessors(OpinionEntityMapping):
-	facadecls = OpinionPortal
+	opinion_cls = OpinionPortal
 	innercls = Portal
 
-	def __init__(self, facade, destname):
-		super().__init__(facade, destname)
+	def __init__(self, opinion, destname):
+		super().__init__(opinion, destname)
 		self.dest = destname
 
 	def _make(self, k, v):
-		return self.facadecls(self.facade.portal[k], v)
+		return self.opinion_cls(self.character.portal[k], v)
 
 	def _get_inner_map(self):
 		try:
-			return self.facade.character.preportal[self.dest]
+			return self.character.character.preportal[self.dest]
 		except AttributeError:
 			return {}
 
@@ -426,12 +465,12 @@ class OpinionPortalMapping(OpinionEntityMapping, ABC):
 		if node not in self:
 			raise KeyError("No such node: {}".format(node))
 		if node not in self._patch:
-			self._patch[node] = self.cls(self.facade, node)
+			self._patch[node] = self.cls(self.character, node)
 		ret = self._patch[node]
 		if ret is None:
 			raise KeyError("masked")
 		if type(ret) is not self.cls:
-			nuret = self.cls(self.facade, node)
+			nuret = self.cls(self.character, node)
 			if type(ret) is dict:
 				nuret._patch = ret
 			else:
@@ -444,26 +483,33 @@ class Opinion(AbstractCharacter, nx.DiGraph):
 	engine = getatt('character.engine')
 	db = getatt('character.engine')
 
-	def __getstate__(self):
-		ports = {}
-		for o in self.portal:
-			if o not in ports:
-				ports[o] = {}
-			for d in self.portal[o]:
-				ports[o][d] = dict(self.portal[o][d])
-		things = {k: dict(v) for (k, v) in self.thing.items()}
-		places = {k: dict(v) for (k, v) in self.place.items()}
-		stats = {
-			k: v.unwrap() if hasattr(v, 'unwrap') else v
-			for (k, v) in self.graph.items()
-		}
-		return things, places, ports, stats
-
-	def __setstate__(self, state):
-		self.character = None
+	def __init__(self,
+					character=None,
+					*,
+					stat_filter=lambda character, key: True,
+					stat_munger=lambda character, key, value: value,
+					thing_filter=lambda character, thing_name: True,
+					thing_val_filter=lambda thing, key: True,
+					thing_val_munger=lambda thing, key, value: value,
+					place_filter=lambda character, place_name: True,
+					place_val_filter=lambda place, key: True,
+					place_val_munger=lambda place, key, value: value,
+					portal_filter=lambda character, orig, dest: True,
+					portal_val_filter=lambda portal, key: True,
+					portal_val_munger=lambda portal, key, value: value):
+		self.character = character
 		self.graph = self.StatMapping(self)
-		(self.thing._patch, self.place._patch, self.portal._patch,
-			self.graph._patch) = state
+		self._stat_filter = stat_filter
+		self._stat_munger = stat_munger
+		self._thing_filter = thing_filter
+		self._thing_val_filter = thing_val_filter
+		self._thing_val_munger = thing_val_munger
+		self._place_filter = place_filter
+		self._place_val_filter = place_val_filter
+		self._place_val_munger = place_val_munger
+		self._portal_filter = portal_filter
+		self._portal_val_filter = portal_val_filter
+		self._portal_val_munger = portal_val_munger
 
 	def add_places_from(self, seq, **attrs):
 		for place in seq:
@@ -474,7 +520,9 @@ class Opinion(AbstractCharacter, nx.DiGraph):
 			self.add_thing(thing, **attrs)
 
 	def thing2place(self, name):
-		self.place[name] = self.thing.pop(name)
+		pl = self.thing.pop(name)
+		del pl['location']
+		self.place[name] = pl
 
 	def place2thing(self, name, location):
 		it = self.place.pop(name)
@@ -529,88 +577,103 @@ class Opinion(AbstractCharacter, nx.DiGraph):
 	def add_unit(self, a, b=None):
 		raise NotImplementedError("Facades don't have units")
 
-	def __init__(self, character=None):
-		"""Store the character."""
-		super().__init__()
-		self.character = character
-		self.graph = self.StatMapping(self)
-
 	class ThingMapping(OpinionEntityMapping):
-		facadecls = OpinionThing
+		opinion_cls = OpinionThing
 		innercls = Thing
+		_filter_name = '_thing_filter'
+		_subfilter_name = '_thing_val_filter'
+		_submunger_name = '_thing_val_munger'
 
 		def _get_inner_map(self):
 			try:
-				return self.facade.character.thing
+				return self.character.character.thing
 			except AttributeError:
 				return {}
 
 		def patch(self, d: dict):
-			places = d.keys() & self.facade.place.keys()
+			places = d.keys() & self.character.place.keys()
 			if places:
 				raise KeyError(
 					f"Tried to patch places on thing mapping: {places}")
-			self.facade.node.patch(d)
+			self.character.node.patch(d)
 
 	class PlaceMapping(OpinionEntityMapping):
-		facadecls = OpinionPlace
+		opinion_cls = OpinionPlace
 		innercls = Place
+		_filter_name = '_place_filter'
+		_subfilter_name = '_place_val_filter'
+		_submunger_name = '_place_val_munger'
 
 		def _get_inner_map(self):
 			try:
-				return self.facade.character._node
+				return self.character.character._node
 			except AttributeError:
 				return {}
 
 		def patch(self, d: dict):
-			things = d.keys() & self.facade.thing.keys()
+			things = d.keys() & self.character.thing.keys()
 			if things:
 				raise KeyError(
 					f"Tried to patch things on place mapping: {things}")
-			self.facade.node.patch(d)
+			self.character.node.patch(d)
 
 	def ThingPlaceMapping(self, *args):
 		return CompositeDict(self.place, self.thing)
 
 	class PortalSuccessorsMapping(OpinionPortalMapping):
 		cls = OpinionPortalSuccessors
+		_filter_name = '_portal_filter'
+		_subfilter_name = '_portal_val_filter'
+		_submunger_name = '_portal_val_munger'
 
 		def __contains__(self, item):
-			return item in self.facade.node
+			return item in self.character.node
 
 		def _get_inner_map(self):
 			try:
-				return self.facade.character._adj
+				return self.character.character._adj
 			except AttributeError:
 				return {}
 
 	class PortalPredecessorsMapping(OpinionPortalMapping):
 		cls = OpinionPortalPredecessors
+		_filter_name = '_portal_filter'
+		_subfilter_name = '_portal_val_filter'
+		_submunger_name = '_portal_val_munger'
+
+		@property
+		def _filter(self):
+			return lambda dest, orig: self.character._portal_filter(
+				self.character, orig, dest)
 
 		def __contains__(self, item):
-			return item in self.facade._node
+			return item in self.character._node
 
 		def _get_inner_map(self):
 			try:
-				return self.facade.character.pred
+				return self.character.character.pred
 			except AttributeError:
 				return {}
 
 	class StatMapping(MutableMappingUnwrapper, Signal):
 
-		def __init__(self, facade):
+		def __init__(self, opinion):
 			super().__init__()
-			self.facade = facade
+			self.character = opinion
 			self._patch = {}
+			self._filter = partial(opinion._stat_filter, opinion)
+			self._munger = partial(opinion._stat_munger, opinion)
 
 		def __iter__(self):
 			seen = set()
-			if hasattr(self.facade.character, 'graph'):
-				for k in self.facade.character.graph:
-					if k not in self._patch:
+			filtr = self._filter
+			patch = self._patch
+			if hasattr(self.character.character, 'graph'):
+				for k in self.character.character.graph:
+					if k not in patch and filtr(k):
 						yield k
 						seen.add(k)
-			for (k, v) in self._patch.items():
+			for (k, v) in patch.items():
 				if k not in seen and v is not None:
 					yield k
 
@@ -621,20 +684,23 @@ class Opinion(AbstractCharacter, nx.DiGraph):
 			return n
 
 		def __contains__(self, k):
-			if hasattr(self.facade.character,
-						'graph') and k in self.facade.character.graph:
+			if hasattr(
+				self.character.character, 'graph'
+			) and k in self.character.character.graph and self._filter(k):
 				return True
 			return k in self._patch and self._patch[k] is not None
 
 		def __getitem__(self, k):
-			if k not in self._patch and hasattr(self.facade.character,
+			if not self._filter(k):
+				raise KeyError(f"{k} has been filtered")
+			if k not in self._patch and hasattr(self.character.character,
 												'graph'):
-				ret = self.facade.character.graph[k]
+				ret = self.character.character.graph[k]
 				if not hasattr(ret, 'unwrap'):
 					return ret
 				self._patch[k] = ret.unwrap()
 			if self._patch[k] is None:
-				return KeyError
+				return KeyError(f"{k} has been masked")
 			return self._patch[k]
 
 		def __setitem__(self, k, v):

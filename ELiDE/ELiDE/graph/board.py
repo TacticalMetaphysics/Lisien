@@ -813,7 +813,7 @@ class GraphBoard(RelativeLayout):
 			if not (spot.name and spot.proxy):
 				Clock.schedule_once(self.nx_layout, 0)
 				return
-		spots_only = self.character.facade()
+		spots_only = self.character.character()
 		for thing in list(spots_only.thing.keys()):
 			del spots_only.thing[thing]
 		self._apply_node_layout(self.graph_layout(spots_only))
