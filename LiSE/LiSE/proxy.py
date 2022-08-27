@@ -39,7 +39,7 @@ from cached_property import cached_property
 from .allegedb import HistoricKeyError
 from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
-from .character import Facade
+from .character import Opinion
 from .util import getatt, AbstractEngine, MsgpackExtensionType, AbstractCharacter
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
@@ -1565,7 +1565,7 @@ class CharacterProxy(AbstractCharacter):
 										char=self.name)
 
 	def facade(self):
-		return Facade(self)
+		return Opinion(self)
 
 	def grid_2d_8graph(self, m, n):
 		self.engine.handle('grid_2d_8graph',

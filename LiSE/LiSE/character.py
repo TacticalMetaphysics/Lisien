@@ -149,7 +149,7 @@ class RuleFollower(BaseRuleFollower):
 			self._get_rulebook_name(), *self.engine._btt())
 
 
-class FacadeEntity(MutableMapping, Signal, ABC):
+class OpinionEntity(MutableMapping, Signal, ABC):
 	exists = True
 
 	def __init__(self, mapping, _=None, **kwargs):
@@ -208,7 +208,7 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 		self.send(self, key=k, val=None)
 
 
-class FacadeNode(FacadeEntity, ABC):
+class OpinionNode(OpinionEntity, ABC):
 
 	@property
 	def name(self):
@@ -225,13 +225,13 @@ class FacadeNode(FacadeEntity, ABC):
 				yield thing
 
 
-class FacadePlace(FacadeNode):
+class OpinionPlace(OpinionNode):
 	"""Lightweight analogue of Place for Facade use."""
 
 	def __init__(self, mapping, real_or_name, **kwargs):
 		super().__init__(mapping, real_or_name, **kwargs)
 		if isinstance(real_or_name, Place) or isinstance(
-			real_or_name, FacadePlace):
+			real_or_name, OpinionPlace):
 			self._real = real_or_name
 		else:
 			self._real = {'name': real_or_name}
@@ -243,13 +243,13 @@ class FacadePlace(FacadeNode):
 		return self.facade.new_thing(name, self.name)
 
 
-class FacadeThing(FacadeNode):
+class OpinionThing(OpinionNode):
 
 	def __init__(self, mapping, real_or_name, **kwargs):
 		location = kwargs.pop('location', None)
 		super().__init__(mapping, real_or_name, **kwargs)
-		if location is None and not (isinstance(real_or_name, Thing) or
-										isinstance(real_or_name, FacadeThing)):
+		if location is None and not (isinstance(
+			real_or_name, Thing) or isinstance(real_or_name, OpinionThing)):
 			raise TypeError(
 				"FacadeThing needs to wrap a real Thing or another "
 				"FacadeThing, or have a location of its own.")
@@ -265,14 +265,14 @@ class FacadeThing(FacadeNode):
 
 	@location.setter
 	def location(self, v):
-		if isinstance(v, (FacadePlace, FacadeThing)):
+		if isinstance(v, (OpinionPlace, OpinionThing)):
 			v = v.name
 		if v not in self.facade.node:
 			raise KeyError("Location {} not present".format(v))
 		self['location'] = v
 
 
-class FacadePortal(FacadeEntity):
+class OpinionPortal(OpinionEntity):
 	"""Lightweight analogue of Portal for Facade use."""
 
 	def __init__(self, mapping, other, **kwargs):
@@ -309,14 +309,14 @@ class FacadePortal(FacadeEntity):
 		return self.facade.node[self.dest]
 
 
-class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
+class OpinionEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 	"""Mapping that contains entities in a Facade.
 
 	All the entities are of the same type, ``facadecls``, possibly
 	being distorted views of entities of the type ``innercls``.
 
 	"""
-	facadecls: Type[FacadeEntity]
+	facadecls: Type[OpinionEntity]
 
 	@abstractmethod
 	def _get_inner_map(self):
@@ -383,8 +383,8 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 		self.send(self, key=k, val=None)
 
 
-class FacadePortalSuccessors(FacadeEntityMapping):
-	facadecls = FacadePortal
+class OpinionPortalSuccessors(OpinionEntityMapping):
+	facadecls = OpinionPortal
 	innercls = Portal
 
 	def __init__(self, facade, origname):
@@ -401,8 +401,8 @@ class FacadePortalSuccessors(FacadeEntityMapping):
 			return {}
 
 
-class FacadePortalPredecessors(FacadeEntityMapping):
-	facadecls = FacadePortal
+class OpinionPortalPredecessors(OpinionEntityMapping):
+	facadecls = OpinionPortal
 	innercls = Portal
 
 	def __init__(self, facade, destname):
@@ -419,8 +419,8 @@ class FacadePortalPredecessors(FacadeEntityMapping):
 			return {}
 
 
-class FacadePortalMapping(FacadeEntityMapping, ABC):
-	cls: Type[FacadeEntityMapping]
+class OpinionPortalMapping(OpinionEntityMapping, ABC):
+	cls: Type[OpinionEntityMapping]
 
 	def __getitem__(self, node):
 		if node not in self:
@@ -440,7 +440,7 @@ class FacadePortalMapping(FacadeEntityMapping, ABC):
 		return ret
 
 
-class Facade(AbstractCharacter, nx.DiGraph):
+class Opinion(AbstractCharacter, nx.DiGraph):
 	engine = getatt('character.engine')
 	db = getatt('character.engine')
 
@@ -535,8 +535,8 @@ class Facade(AbstractCharacter, nx.DiGraph):
 		self.character = character
 		self.graph = self.StatMapping(self)
 
-	class ThingMapping(FacadeEntityMapping):
-		facadecls = FacadeThing
+	class ThingMapping(OpinionEntityMapping):
+		facadecls = OpinionThing
 		innercls = Thing
 
 		def _get_inner_map(self):
@@ -552,8 +552,8 @@ class Facade(AbstractCharacter, nx.DiGraph):
 					f"Tried to patch places on thing mapping: {places}")
 			self.facade.node.patch(d)
 
-	class PlaceMapping(FacadeEntityMapping):
-		facadecls = FacadePlace
+	class PlaceMapping(OpinionEntityMapping):
+		facadecls = OpinionPlace
 		innercls = Place
 
 		def _get_inner_map(self):
@@ -572,8 +572,8 @@ class Facade(AbstractCharacter, nx.DiGraph):
 	def ThingPlaceMapping(self, *args):
 		return CompositeDict(self.place, self.thing)
 
-	class PortalSuccessorsMapping(FacadePortalMapping):
-		cls = FacadePortalSuccessors
+	class PortalSuccessorsMapping(OpinionPortalMapping):
+		cls = OpinionPortalSuccessors
 
 		def __contains__(self, item):
 			return item in self.facade.node
@@ -584,8 +584,8 @@ class Facade(AbstractCharacter, nx.DiGraph):
 			except AttributeError:
 				return {}
 
-	class PortalPredecessorsMapping(FacadePortalMapping):
-		cls = FacadePortalPredecessors
+	class PortalPredecessorsMapping(OpinionPortalMapping):
+		cls = OpinionPortalPredecessors
 
 		def __contains__(self, item):
 			return item in self.facade._node
@@ -1414,7 +1414,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 														repr(self.name))
 
 	def facade(self):
-		return Facade(self)
+		return Opinion(self)
 
 	def add_place(self, node_for_adding, **attr):
 		self.add_node(node_for_adding, **attr)
