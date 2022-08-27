@@ -1413,9 +1413,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				return "{}.character[{}].unit".format(repr(self.engine),
 														repr(self.name))
 
-	def facade(self):
-		return Opinion(self)
-
 	def add_place(self, node_for_adding, **attr):
 		self.add_node(node_for_adding, **attr)
 

@@ -219,22 +219,6 @@ def test_char_creation(tmpdir, name, data, stat, nodestat, statup, nodeup,
 		assert char.stat == stat
 
 
-@pytest.mark.parametrize(
-	['name', 'data', 'stat', 'nodestat', 'statup', 'nodeup', 'edgeup'],
-	CHAR_DATA)
-def test_facade_creation(tmpdir, name, data, stat, nodestat, statup, nodeup,
-							edgeup):
-	with Engine(tmpdir) as eng:
-		char = eng.new_character(name, data, **stat)
-		fac = char.facade()
-		assert dict(fac.node) == dict(char.node)
-		assert fac.node == char.node
-		assert fac.edges == char.edges
-		assert set(fac.edges) == set(char.edges)
-		assert fac.stat == char.stat
-		assert dict(fac.stat) == dict(char.stat)
-
-
 # TODO parametrize bunch of characters
 @pytest.fixture(scope="function", params=CHAR_DATA)
 def character_updates(request, engy):
@@ -242,30 +226,3 @@ def character_updates(request, engy):
 	char = engy.new_character(name, data, **stat)
 	update_char(char, node=nodestat)
 	yield char, statup, nodeup, edgeup
-
-
-def test_facade(character_updates):
-	"""Make sure you can alter a facade independent of the character it's from"""
-	character, statup, nodeup, edgeup = character_updates
-	start_stat = character.stat.unwrap()
-	start_place = character.place.unwrap()
-	start_thing = character.thing.unwrap()
-	start_edge = {}
-	for o in character.edge:
-		for d in character.edge[o]:
-			start_edge.setdefault(o, {})[d] = character.edge[o][d].unwrap()
-	facade = character.facade()
-	updated = update_char(facade, stat=statup, node=nodeup, portal=edgeup)
-	assert facade.stat == updated['stat']
-	assert facade.place == updated['place']
-	assert facade.thing == updated['thing']
-	assert facade.portal == updated['portal']
-	# changes to a facade should not impact the underlying character
-	assert start_stat == character.stat.unwrap()
-	assert start_place == character.place.unwrap()
-	assert start_thing == character.thing.unwrap()
-	end_edge = {}
-	for o in character.edge:
-		for d in character.edge[o]:
-			end_edge.setdefault(o, {})[d] = dict(character.edge[o][d])
-	assert start_edge == end_edge
