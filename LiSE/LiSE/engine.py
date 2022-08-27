@@ -233,7 +233,7 @@ class Engine(AbstractEngine, gORM):
 					alchemy=False,
 					flush_interval=1,
 					keyframe_interval=10,
-					commit_interval=None,
+					commit_interval: int = None,
 					random_seed: int = None,
 					logfun: FunctionType = None,
 					clear=False,
