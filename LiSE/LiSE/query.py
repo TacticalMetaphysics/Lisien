@@ -402,8 +402,20 @@ class QueryEngine(query.QueryEngine):
 					strings_filename: str = None,
 					pack=None,
 					unpack=None):
-		super().__init__(dbstring, connect_args, alchemy, strings_filename,
-							pack, unpack)
+		if alchemy:
+			try:
+				from .alchemy import gather_sql
+			except ImportError:
+				gather_sql = None
+		else:
+			gather_sql = None
+		super().__init__(dbstring,
+							connect_args,
+							alchemy,
+							strings_filename,
+							pack,
+							unpack,
+							gather=gather_sql)
 		self._char_rules_handled = []
 		self._unit_rules_handled = []
 		self._char_thing_rules_handled = []
