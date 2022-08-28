@@ -524,15 +524,15 @@ class Engine(AbstractEngine, gORM):
 		self._characters_things_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_things_rulebooks_cache.name \
-                                                                                                                                                                                                                                                                                                                                                                                 = 'characters_things_rulebooks_cache'
+                                                                                                                                                                                                                                                                                                                                                                                       = 'characters_things_rulebooks_cache'
 		self._characters_places_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_places_rulebooks_cache.name \
-                                                                                                                                                                                                                                                                                                                                                                                 = 'characters_places_rulebooks_cache'
+                                                                                                                                                                                                                                                                                                                                                                                       = 'characters_places_rulebooks_cache'
 		self._characters_portals_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_portals_rulebooks_cache.name \
-                                                                                                                                                                                                                                                                                                                                                                                 = 'characters_portals_rulebooks_cache'
+                                                                                                                                                                                                                                                                                                                                                                                       = 'characters_portals_rulebooks_cache'
 		self._nodes_rulebooks_cache = InitializedCache(self)
 		self._nodes_rulebooks_cache.name = 'nodes_rulebooks_cache'
 		self._portals_rulebooks_cache = InitializedCache(self)
@@ -552,18 +552,18 @@ class Engine(AbstractEngine, gORM):
 		self._unit_rules_handled_cache = UnitRulesHandledCache(self)
 		self._unit_rules_handled_cache.name = 'unit_rules_handled_cache'
 		self._character_thing_rules_handled_cache \
-                                                                                                                                                                                                                                                                                                                                                                                 = CharacterThingRulesHandledCache(
+                                                                                                                                                                                                                                                                                                                                                                                       = CharacterThingRulesHandledCache(
 			self)
 		self._character_thing_rules_handled_cache.name \
-                                                                                                                                                                                                                                                                                                                                                                                 = 'character_thing_rules_handled_cache'
+                                                                                                                                                                                                                                                                                                                                                                                       = 'character_thing_rules_handled_cache'
 		self._character_place_rules_handled_cache = CharacterPlaceRulesHandledCache(
 			self)
 		self._character_place_rules_handled_cache.name \
-                                                                                                                                                                                                                                                                                                                                                                                 = 'character_place_rules_handled_cache'
+                                                                                                                                                                                                                                                                                                                                                                                       = 'character_place_rules_handled_cache'
 		self._character_portal_rules_handled_cache = CharacterPortalRulesHandledCache(
 			self)
 		self._character_portal_rules_handled_cache.name \
-                                                                                                                                                                                                                                                                                                                                                                                 = 'character_portal_rules_handled_cache'
+                                                                                                                                                                                                                                                                                                                                                                                       = 'character_portal_rules_handled_cache'
 		self._unitness_cache = UnitnessCache(self)
 		self._unitness_cache.name = 'unitness_cache'
 		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
@@ -1695,7 +1695,7 @@ class Engine(AbstractEngine, gORM):
 							yield turn
 							seen.add(turn)
 			return
-		elif isinstance(left, StatusAlias) and isinstance(
+		elif isinstance(right, StatusAlias) and isinstance(
 			qry, ComparisonQuery):
 			right_sel = make_side_sel(right.entity, right.stat,
 										make_branches_list())
@@ -1710,7 +1710,7 @@ class Engine(AbstractEngine, gORM):
 						yield turn
 						seen.add(turn)
 			return
-		elif isinstance(right, StatusAlias) and isinstance(
+		elif isinstance(left, StatusAlias) and isinstance(
 			qry, ComparisonQuery):
 			left_sel = make_side_sel(left.entity, left.stat,
 										make_branches_list())
