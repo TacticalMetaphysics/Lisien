@@ -523,15 +523,15 @@ class Engine(AbstractEngine, gORM):
 		self._units_rulebooks_cache.name = 'units_rulebooks_cache'
 		ctrc = InitializedEntitylessCache(self)
 		ctrc.name
-                                                                                                                                                                                                                                                                                                                                                                           = 'characters_things_rulebooks_cache'
+                                                                                                                                                                                                                                                                                                                                                                                 = 'characters_things_rulebooks_cache'
 		self._characters_things_rulebooks_cache = ctrc
 		cprc = InitializedEntitylessCache(self)
 		cprc.name
-                                                                                                                                                                                                                                                                                                                                                                           = 'characters_places_rulebooks_cache'
+                                                                                                                                                                                                                                                                                                                                                                                 = 'characters_places_rulebooks_cache'
 		self._characters_places_rulebooks_cache = cprc
 		cporc = InitializedEntitylessCache(self)
 		cporc.name = 'characters_portals_rulebooks_cache'
-                                                                                                                                                                                                                                                                                                                                                                           self._characters_portals_rulebooks_cache = cporc
+                                                                                                                                                                                                                                                                                                                                                                                 self._characters_portals_rulebooks_cache = cporc
 		self._nodes_rulebooks_cache = InitializedCache(self)
 		self._nodes_rulebooks_cache.name = 'nodes_rulebooks_cache'
 		self._portals_rulebooks_cache = InitializedCache(self)
@@ -552,18 +552,18 @@ class Engine(AbstractEngine, gORM):
 		self._unit_rules_handled_cache = UnitRulesHandledCache(self)
 		self._unit_rules_handled_cache.name = 'unit_rules_handled_cache'
 		ctrhc
-                                                                                                                                                                                                                                                                                                                                                                           = CharacterThingRulesHandledCache(
+                                                                                                                                                                                                                                                                                                                                                                                 = CharacterThingRulesHandledCache(
 			self)
 		ctrhc.name
-                                                                                                                                                                                                                                                                                                                                                                           = 'character_thing_rules_handled_cache'
+                                                                                                                                                                                                                                                                                                                                                                                 = 'character_thing_rules_handled_cache'
 		self._character_thing_rules_handled_cache = ctrhc
 		cprhc = CharacterPlaceRulesHandledCache(self)
 		cprhc.name
-                                                                                                                                                                                                                                                                                                                                                                           = 'character_place_rules_handled_cache'
+                                                                                                                                                                                                                                                                                                                                                                                 = 'character_place_rules_handled_cache'
 		self._character_place_rules_handled_cache = cprhc
 		cporhc = CharacterPortalRulesHandledCache(self)
 		cporhc.name
-                                                                                                                                                                                                                                                                                                                                                                           = 'character_portal_rules_handled_cache'self._character_portal_rules_handled_cache = cporhc
+                                                                                                                                                                                                                                                                                                                                                                                 = 'character_portal_rules_handled_cache'self._character_portal_rules_handled_cache = cporhc
 		self._unitness_cache = UnitnessCache(self)
 		self._unitness_cache.name = 'unitness_cache'
 		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
@@ -1627,6 +1627,12 @@ class Engine(AbstractEngine, gORM):
 			else:
 				raise TypeError(f"Can't do queries on {type(entity)}")
 
+		def make_branches_list():
+			branches = set()
+			for branch, _, _ in self._iter_parent_btt():
+				branches.add(branch)
+			return list(branches)
+
 		try:
 			from sqlalchemy import select, alias, and_, or_, Table
 			from sqlalchemy.sql.functions import func
@@ -1641,10 +1647,7 @@ class Engine(AbstractEngine, gORM):
 		pack = self.pack
 		if isinstance(left, StatusAlias) and isinstance(
 			right, StatusAlias) and isinstance(qry, ComparisonQuery):
-			branches = set()
-			for branch, _, _ in self._iter_parent_btt():
-				branches.add(branch)
-			branches = list(branches)
+			branches = make_branches_list()
 			left_sel = make_side_sel(left.entity, left.stat, branches)
 			right_sel = make_side_sel(right.entity, right.stat, branches)
 			# figure whether there is overlap between the time ranges
@@ -1698,6 +1701,36 @@ class Engine(AbstractEngine, gORM):
 						if turn not in seen:
 							yield turn
 							seen.add(turn)
+			return
+		elif isinstance(left, StatusAlias) and isinstance(
+			qry, ComparisonQuery):
+			right_sel = make_side_sel(right.entity, right.stat,
+										make_branches_list())
+			results = self.query.execute(
+				select(right_sel.c.turn_from, right_sel.c.tick_from,
+						right_sel.c.turn_to, right_sel.c.tick_to).where(
+							qry.oper(left, right_sel.c.value)))
+			seen = set()
+			for (turn_from, tick_from, turn_to, tick_to) in results:
+				for turn in range(turn_from, turn_to + 1):
+					if turn not in seen:
+						yield turn
+						seen.add(turn)
+			return
+		elif isinstance(right, StatusAlias) and isinstance(
+			qry, ComparisonQuery):
+			left_sel = make_side_sel(left.entity, left.stat,
+										make_branches_list())
+			results = self.query.execute(
+				select(left_sel.c.turn_from, left_sel.c.tick_from,
+						left_sel.c.turn_to, left_sel.c.tick_to).where(
+							qry.oper(left_sel.c.value, right)))
+			seen = set()
+			for (turn_from, tick_from, turn_to, tick_to) in results:
+				for turn in range(turn_from, turn_to + 1):
+					if turn not in seen:
+						yield turn
+						seen.add(turn)
 			return
 		else:
 			for branch, turn in qry.iter_turns():
