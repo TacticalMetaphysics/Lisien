@@ -32,9 +32,6 @@ from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
 from .util import sort_set, EntityStatAccessor, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
 from .query import Query
-from .place import Place
-from .thing import Thing
-from .portal import Portal
 from . import exc
 
 
@@ -523,15 +520,15 @@ class Engine(AbstractEngine, gORM):
 		self._units_rulebooks_cache.name = 'units_rulebooks_cache'
 		ctrc = InitializedEntitylessCache(self)
 		ctrc.name
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       = 'characters_things_rulebooks_cache'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         = 'characters_things_rulebooks_cache'
 		self._characters_things_rulebooks_cache = ctrc
 		cprc = InitializedEntitylessCache(self)
 		cprc.name
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       = 'characters_places_rulebooks_cache'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         = 'characters_places_rulebooks_cache'
 		self._characters_places_rulebooks_cache = cprc
 		cporc = InitializedEntitylessCache(self)
 		cporc.name = 'characters_portals_rulebooks_cache'
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       self._characters_portals_rulebooks_cache = cporc
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         self._characters_portals_rulebooks_cache = cporc
 		self._nodes_rulebooks_cache = InitializedCache(self)
 		self._nodes_rulebooks_cache.name = 'nodes_rulebooks_cache'
 		self._portals_rulebooks_cache = InitializedCache(self)
@@ -552,18 +549,18 @@ class Engine(AbstractEngine, gORM):
 		self._unit_rules_handled_cache = UnitRulesHandledCache(self)
 		self._unit_rules_handled_cache.name = 'unit_rules_handled_cache'
 		ctrhc
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       = CharacterThingRulesHandledCache(
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         = CharacterThingRulesHandledCache(
 			self)
 		ctrhc.name
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       = 'character_thing_rules_handled_cache'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         = 'character_thing_rules_handled_cache'
 		self._character_thing_rules_handled_cache = ctrhc
 		cprhc = CharacterPlaceRulesHandledCache(self)
 		cprhc.name
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       = 'character_place_rules_handled_cache'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         = 'character_place_rules_handled_cache'
 		self._character_place_rules_handled_cache = cprhc
 		cporhc = CharacterPortalRulesHandledCache(self)
 		cporhc.name
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       = 'character_portal_rules_handled_cache'self._character_portal_rules_handled_cache = cporhc
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         = 'character_portal_rules_handled_cache'self._character_portal_rules_handled_cache = cporhc
 		self._unitness_cache = UnitnessCache(self)
 		self._unitness_cache.name = 'unitness_cache'
 		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
@@ -1489,45 +1486,9 @@ class Engine(AbstractEngine, gORM):
 
 		"""
 
-		pack = self.pack
-
-		def make_side_sel(entity, stat, branches):
-			if isinstance(entity, Graph):
-				return make_graph_val_select(pack(entity.name), pack(stat),
-												branches, mid_turn)
-			elif isinstance(entity, Place):
-				return make_node_val_select(pack(entity.character.name),
-											pack(entity.name), pack(stat),
-											branches, mid_turn)
-			elif isinstance(entity, Thing):
-				if stat == 'location':
-					return make_location_select(pack(entity.character.name),
-												pack(entity.name), branches,
-												mid_turn)
-				else:
-					return make_node_val_select(pack(entity.character.name),
-												pack(entity.name), pack(stat),
-												branches, mid_turn)
-			elif isinstance(entity, Portal):
-				return make_edge_val_select(pack(entity.character.name),
-											pack(entity.origin.name),
-											pack(entity.destination.name), 0,
-											pack(stat), branches, mid_turn)
-			else:
-				raise TypeError(f"Can't do queries on {type(entity)}")
-
-		def make_branches_list():
-			branches = set()
-			for branch, _, _ in self._iter_parent_btt():
-				branches.add(branch)
-			return list(branches)
-
 		try:
-			from sqlalchemy import select, and_, or_
-			from .query import (StatusAlias, ComparisonQuery,
-								windows_intersection, make_graph_val_select,
-								make_node_val_select, make_location_select,
-								make_edge_val_select)
+			import sqlalchemy
+			from .query import (windows_intersection, make_select_from_query)
 		except ImportError:
 			if mid_turn:
 				raise NotImplementedError("Need SQLAlchemy to do mid_turn")
@@ -1535,96 +1496,37 @@ class Engine(AbstractEngine, gORM):
 				yield turn
 			return
 		# Make a select statement that gets the turns when the predicate held true
-		left = qry.leftside
-		right = qry.rightside
-		if isinstance(left, StatusAlias) and isinstance(
-			right, StatusAlias) and isinstance(qry, ComparisonQuery):
-			branches = make_branches_list()
-			left_sel = make_side_sel(left.entity, left.stat, branches)
-			right_sel = make_side_sel(right.entity, right.stat, branches)
-			# figure whether there is overlap between the time ranges
-			left_time_from_lte_right_time_from = or_(
-				left_sel.c.turn_from < right_sel.c.turn_from,
-				and_(left_sel.c.turn_from == right_sel.c.turn_from,
-						left_sel.c.tick_from <= right_sel.c.tick_from))
-			right_time_to_lte_left_time_to = or_(
-				left_sel.c.turn_to == None,
-				right_sel.c.turn_to < left_sel.c.turn_to,
-				and_(right_sel.c.turn_to == left_sel.c.turn_to,
-						right_sel.c.tick_to <= left_sel.c.tick_to))
-			right_time_from_lte_left_time_from = or_(
-				right_sel.c.turn_from < left_sel.c.turn_from,
-				and_(right_sel.c.turn_from == left_sel.c.turn_from,
-						right_sel.c.tick_from <= left_sel.c.tick_from))
-			left_time_to_lte_right_time_to = or_(
-				right_sel.c.turn_to == None,
-				left_sel.c.turn_to < right_sel.c.turn_to,
-				and_(left_sel.c.turn_to == right_sel.c.turn_to,
-						left_sel.c.tick_to <= right_sel.c.tick_to))
-			join_cond = or_(
-				# left contains right
-				and_(left_time_from_lte_right_time_from,
-						right_time_to_lte_left_time_to),
-				# right contains left
-				and_(right_time_from_lte_left_time_from,
-						left_time_to_lte_right_time_to),
-				# left overlaps right on the beginning
-				and_(left_time_from_lte_right_time_from,
-						left_time_to_lte_right_time_to),
-				# left overlaps right on the ending
-				and_(right_time_from_lte_left_time_from,
-						right_time_to_lte_left_time_to))
-			results = self.query.execute(
-				select(left_sel.c.turn_from, left_sel.c.tick_from,
-						left_sel.c.turn_to, left_sel.c.tick_to,
-						right_sel.c.turn_from, right_sel.c.tick_from,
-						right_sel.c.turn_to, right_sel.c.tick_to).where(
-							and_(qry.oper(left_sel.c.value, right_sel.c.value),
-									join_cond)))
-			seen = set()
-			for (left_turn_from, left_tick_from, left_turn_to, left_tick_to,
-					right_turn_from, right_tick_from, right_turn_to,
-					right_tick_to) in results:
-				for turn_from, turn_to in windows_intersection([
-					(left_turn_from, left_turn_to),
-					(right_turn_from, right_turn_to)
-				]):
+		try:
+			branches = set()
+			for branch, _, _ in self._iter_parent_btt():
+				branches.add(branch)
+			sel, intersect = make_select_from_query(qry, list(branches),
+													self.pack, mid_turn)
+			if intersect:
+				seen = set()
+				for (left_turn_from, left_tick_from, left_turn_to,
+						left_tick_to, right_turn_from, right_tick_from,
+						right_turn_to,
+						right_tick_to) in self.query.execute(sel):
+					for turn_from, turn_to in windows_intersection([
+						(left_turn_from, left_turn_to),
+						(right_turn_from, right_turn_to)
+					]):
+						for turn in range(turn_from, turn_to + 1):
+							if turn not in seen:
+								yield turn
+								seen.add(turn)
+				return
+			else:
+				seen = set()
+				for (turn_from, tick_from, turn_to,
+						tick_to) in self.query.execute(sel):
 					for turn in range(turn_from, turn_to + 1):
 						if turn not in seen:
 							yield turn
 							seen.add(turn)
-			return
-		elif isinstance(right, StatusAlias) and isinstance(
-			qry, ComparisonQuery):
-			right_sel = make_side_sel(right.entity, right.stat,
-										make_branches_list())
-			results = self.query.execute(
-				select(right_sel.c.turn_from, right_sel.c.tick_from,
-						right_sel.c.turn_to, right_sel.c.tick_to).where(
-							qry.oper(pack(left), right_sel.c.value)))
-			seen = set()
-			for (turn_from, tick_from, turn_to, tick_to) in results:
-				for turn in range(turn_from, turn_to + 1):
-					if turn not in seen:
-						yield turn
-						seen.add(turn)
-			return
-		elif isinstance(left, StatusAlias) and isinstance(
-			qry, ComparisonQuery):
-			left_sel = make_side_sel(left.entity, left.stat,
-										make_branches_list())
-			results = self.query.execute(
-				select(left_sel.c.turn_from, left_sel.c.tick_from,
-						left_sel.c.turn_to, left_sel.c.tick_to).where(
-							qry.oper(left_sel.c.value, pack(right))))
-			seen = set()
-			for (turn_from, tick_from, turn_to, tick_to) in results:
-				for turn in range(turn_from, turn_to + 1):
-					if turn not in seen:
-						yield turn
-						seen.add(turn)
-			return
-		else:
+				return
+		except NotImplementedError:
 			if mid_turn:
 				raise NotImplementedError("Can't do mid_turn this way yet")
 			for branch, turn in qry.iter_turns():
