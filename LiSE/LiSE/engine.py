@@ -1619,6 +1619,8 @@ class Engine(AbstractEngine, gORM):
 			from sqlalchemy.sql.functions import func
 			from .alchemy import meta
 		except ImportError:
+			if mid_turn:
+				raise NotImplementedError("Need SQLAlchemy to do mid_turn")
 			for branch, turn in qry.iter_turns():
 				yield turn
 			return
@@ -1713,6 +1715,8 @@ class Engine(AbstractEngine, gORM):
 						seen.add(turn)
 			return
 		else:
+			if mid_turn:
+				raise NotImplementedError("Can't do mid_turn this way yet")
 			for branch, turn in qry.iter_turns():
 				yield turn
 			return
