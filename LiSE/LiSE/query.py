@@ -27,7 +27,7 @@ from functools import partialmethod
 from time import monotonic
 from queue import Queue
 from threading import Thread
-from typing import List
+from typing import Any, List, Callable
 
 from .allegedb import query
 from .exc import (IntegrityError, OperationalError)
@@ -271,6 +271,101 @@ def make_edge_val_select(graph: bytes, orig: bytes, dest: bytes, idx: int,
 					tab.c.tick == ticksel.c.tick)))
 
 
+def make_side_sel(entity, stat, branches: List[str], pack: callable,
+					mid_turn: bool):
+	from .character import AbstractCharacter
+	from .place import Place
+	from .thing import Thing
+	from .portal import Portal
+	if isinstance(entity, AbstractCharacter):
+		return make_graph_val_select(pack(entity.name), pack(stat), branches,
+										mid_turn)
+	elif isinstance(entity, Place):
+		return make_node_val_select(pack(entity.character.name),
+									pack(entity.name), pack(stat), branches,
+									mid_turn)
+	elif isinstance(entity, Thing):
+		if stat == 'location':
+			return make_location_select(pack(entity.character.name),
+										pack(entity.name), branches, mid_turn)
+		else:
+			return make_node_val_select(pack(entity.character.name),
+										pack(entity.name), pack(stat),
+										branches, mid_turn)
+	elif isinstance(entity, Portal):
+		return make_edge_val_select(pack(entity.character.name),
+									pack(entity.origin.name),
+									pack(entity.destination.name), 0,
+									pack(stat), branches, mid_turn)
+
+
+def make_select_from_query(qry: "Query", branches: List[str], pack: callable,
+							mid_turn: bool):
+	from sqlalchemy import select, and_, or_
+	left = qry.leftside
+	right = qry.rightside
+	if isinstance(left, StatusAlias) and isinstance(
+		right, StatusAlias) and isinstance(qry, ComparisonQuery):
+		left_sel = make_side_sel(left.entity, left.stat, branches, pack,
+									mid_turn)
+		right_sel = make_side_sel(right.entity, right.stat, branches, pack,
+									mid_turn)
+		# figure whether there is overlap between the time ranges
+		left_time_from_lte_right_time_from = or_(
+			left_sel.c.turn_from < right_sel.c.turn_from,
+			and_(left_sel.c.turn_from == right_sel.c.turn_from,
+					left_sel.c.tick_from <= right_sel.c.tick_from))
+		right_time_to_lte_left_time_to = or_(
+			left_sel.c.turn_to == None,
+			right_sel.c.turn_to < left_sel.c.turn_to,
+			and_(right_sel.c.turn_to == left_sel.c.turn_to,
+					right_sel.c.tick_to <= left_sel.c.tick_to))
+		right_time_from_lte_left_time_from = or_(
+			right_sel.c.turn_from < left_sel.c.turn_from,
+			and_(right_sel.c.turn_from == left_sel.c.turn_from,
+					right_sel.c.tick_from <= left_sel.c.tick_from))
+		left_time_to_lte_right_time_to = or_(
+			right_sel.c.turn_to == None,
+			left_sel.c.turn_to < right_sel.c.turn_to,
+			and_(left_sel.c.turn_to == right_sel.c.turn_to,
+					left_sel.c.tick_to <= right_sel.c.tick_to))
+		join_cond = or_(
+			# left contains right
+			and_(left_time_from_lte_right_time_from,
+					right_time_to_lte_left_time_to),
+			# right contains left
+			and_(right_time_from_lte_left_time_from,
+					left_time_to_lte_right_time_to),
+			# left overlaps right on the beginning
+			and_(left_time_from_lte_right_time_from,
+					left_time_to_lte_right_time_to),
+			# left overlaps right on the ending
+			and_(right_time_from_lte_left_time_from,
+					right_time_to_lte_left_time_to))
+		return select(left_sel.c.turn_from, left_sel.c.tick_from,
+						left_sel.c.turn_to, left_sel.c.tick_to,
+						right_sel.c.turn_from, right_sel.c.tick_from,
+						right_sel.c.turn_to, right_sel.c.tick_to).where(
+							and_(qry.oper(left_sel.c.value, right_sel.c.value),
+									join_cond)), True
+
+	elif isinstance(right, StatusAlias) and isinstance(qry, ComparisonQuery):
+		right_sel = make_side_sel(right.entity, right.stat, branches, pack,
+									mid_turn)
+		return select(right_sel.c.turn_from, right_sel.c.tick_from,
+						right_sel.c.turn_to, right_sel.c.tick_to).where(
+							qry.oper(pack(left), right_sel.c.value)), True
+
+	elif isinstance(left, StatusAlias) and isinstance(qry, ComparisonQuery):
+		left_sel = make_side_sel(left.entity, left.stat, branches, pack,
+									mid_turn)
+		return select(left_sel.c.turn_from, left_sel.c.tick_from,
+						left_sel.c.turn_to, left_sel.c.tick_to).where(
+							qry.oper(left_sel.c.value, pack(right))), True
+	else:
+		raise NotImplementedError("oh no, can't do that")
+
+
 class Query(object):
 
 	def __new__(cls, engine, leftside, rightside=None, **kwargs):
@@ -366,7 +461,7 @@ class Union(Query):
 
 
 class ComparisonQuery(Query):
-	oper = lambda x, y: NotImplemented
+	oper: Callable[[Any, Any], bool] = lambda x, y: NotImplemented
 
 	def iter_turns(self):
 		return slow_iter_turns_eval_cmp(self, self.oper, engine=self.engine)
