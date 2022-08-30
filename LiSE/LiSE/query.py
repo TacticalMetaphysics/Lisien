@@ -373,12 +373,14 @@ class Query(object):
 			if not isinstance(leftside, cls):
 				raise TypeError("You can't make a query with only one side")
 			me = leftside
+			windows = me.windows
 		else:
 			me = super().__new__(cls)
 			me.leftside = leftside
 			me.rightside = rightside
+			windows = leftside.windows + rightside.windows
 		me.engine = engine
-		me.windows = kwargs.get('windows', [])
+		me.windows = windows_intersection(kwargs.get('windows', []) + windows)
 		return me
 
 	def iter_turns(self):
