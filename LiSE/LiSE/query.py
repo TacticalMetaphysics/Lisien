@@ -373,14 +373,11 @@ class Query(object):
 			if not isinstance(leftside, cls):
 				raise TypeError("You can't make a query with only one side")
 			me = leftside
-			windows = me.windows
 		else:
 			me = super().__new__(cls)
 			me.leftside = leftside
 			me.rightside = rightside
-			windows = leftside.windows + rightside.windows
 		me.engine = engine
-		me.windows = windows_intersection(kwargs.get('windows', []) + windows)
 		return me
 
 	def iter_turns(self):
@@ -406,56 +403,6 @@ class Query(object):
 
 	def __ne__(self, other):
 		return NeQuery(self.engine, self, self.engine._entityfy(other))
-
-	def and_before(self, end):
-		if self.windows:
-			new_windows = windows_intersection(
-				sorted(self.windows + [(None, end)]))
-		else:
-			new_windows = [(0, end)]
-		return type(self)(self.leftside, self.rightside, windows=new_windows)
-
-	before = and_before
-
-	def or_before(self, end):
-		if self.windows:
-			new_windows = windows_union(self.windows + [(None, end)])
-		else:
-			new_windows = [(None, end)]
-		return type(self)(self.leftside, self.rightside, windows=new_windows)
-
-	def and_after(self, start):
-		if self.windows:
-			new_windows = windows_intersection(self.windows + [(start, None)])
-		else:
-			new_windows = [(start, None)]
-		return type(self)(self.leftside, self.rightside, windows=new_windows)
-
-	after = and_after
-
-	def or_between(self, start, end):
-		if self.windows:
-			new_windows = windows_union(self.windows + [(start, end)])
-		else:
-			new_windows = [(start, end)]
-		return type(self)(self.leftside, self.rightside, windows=new_windows)
-
-	def and_between(self, start, end):
-		if self.windows:
-			new_windows = windows_intersection(self.windows + [(start, end)])
-		else:
-			new_windows = [(start, end)]
-		return type(self)(self.leftside, self.rightside, windows=new_windows)
-
-	between = and_between
-
-	def or_during(self, tick):
-		return self.or_between(tick, tick)
-
-	def and_during(self, tick):
-		return self.and_between(tick, tick)
-
-	during = and_during
 
 
 class Union(Query):
