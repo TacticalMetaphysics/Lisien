@@ -27,9 +27,9 @@ from functools import partialmethod
 from time import monotonic
 from queue import Queue
 from threading import Thread
+from typing import List
 
 from .allegedb import query
-
 from .exc import (IntegrityError, OperationalError)
 from .util import EntityStatAccessor
 import LiSE
@@ -157,6 +157,118 @@ def windows_intersection(windows):
 		if res:
 			done.append(res)
 	return done
+
+
+def the_select(tab):
+	from sqlalchemy import select, Table
+	from sqlalchemy.sql.functions import func
+	tab: Table
+	return select(
+		tab.c.turn.label('turn_from'), tab.c.tick.label('tick_from'),
+		func.lead(tab.c.turn).over(order_by=(tab.c.turn,
+												tab.c.tick)).label('turn_to'),
+		func.lead(tab.c.tick).over(order_by=(tab.c.turn,
+												tab.c.tick)).label('tick_to'),
+		tab.c.value)
+
+
+def make_graph_val_select(graph: bytes, stat: bytes, branches: List[str],
+							mid_turn: bool):
+	from sqlalchemy import select, and_, Table
+	from sqlalchemy.sql.functions import func
+	from .alchemy import meta
+	tab: Table = meta.tables['graph_val']
+	ticksel = select(
+		tab.c.graph, tab.c.stat, tab.c.branch, tab.c.turn,
+		tab.c.tick if mid_turn else func.max(tab.c.tick).label('tick')).where(
+			and_(tab.c.graph == graph, tab.c.stat == stat,
+					tab.c.branch.in_(branches)))
+	if not mid_turn:
+		ticksel = ticksel.group_by(tab.c.graph, tab.c.stat, tab.c.branch,
+									tab.c.turn)
+	return the_select(tab).select_from(
+		tab.join(
+			ticksel,
+			and_(tab.c.graph == ticksel.c.graph, tab.c.stat == ticksel.c.stat,
+					tab.c.branch == ticksel.c.branch,
+					tab.c.turn == ticksel.c.turn,
+					tab.c.tick == ticksel.c.tick)))
+
+
+def make_node_val_select(graph: bytes, node: bytes, stat: bytes,
+							branches: List[str], mid_turn: bool):
+	from sqlalchemy import select, and_, Table
+	from sqlalchemy.sql.functions import func
+	from .alchemy import meta
+	tab: Table = meta.tables['node_val']
+	ticksel = select(
+		tab.c.graph, tab.c.node, tab.c.stat, tab.c.branch, tab.c.turn,
+		tab.c.tick if mid_turn else func.max(tab.c.tick).label('tick')).where(
+			and_(tab.c.graph == graph, tab.c.node == node, tab.c.stat == stat,
+					tab.c.branch.in_(branches)))
+	if not mid_turn:
+		ticksel = ticksel.group_by(tab.c.graph, tab.c.node, tab.c.stat,
+									tab.c.branch, tab.c.turn)
+	return the_select(tab).select_from(
+		tab.join(
+			ticksel,
+			and_(tab.c.graph == ticksel.c.graph, tab.c.node == ticksel.c.node,
+					tab.c.stat == ticksel.c.stat,
+					tab.c.branch == ticksel.c.branch,
+					tab.c.turn == ticksel.c.turn,
+					tab.c.tick == ticksel.c.tick)))
+
+
+def make_location_select(graph: bytes, thing: bytes, branches: List[str],
+							mid_turn: bool):
+	from sqlalchemy import select, and_, Table
+	from sqlalchemy.sql.functions import func
+	from .alchemy import meta
+	tab: Table = meta.tables['things']
+	ticksel = select(
+		tab.c.character, tab.c.thing, tab.c.branch, tab.c.turn,
+		tab.c.tick if mid_turn else func.max(tab.c.tick).label('tick')).where(
+			and_(tab.c.character == graph, tab.c.thing == thing,
+					tab.c.branch.in_(branches)))
+	if not mid_turn:
+		ticksel = ticksel.group_by(tab.c.character, tab.c.thing, tab.c.branch,
+									tab.c.turn)
+	return the_select(tab).select_from(
+		tab.join(
+			ticksel,
+			and_(tab.c.character == ticksel.c.character,
+					tab.c.thing == ticksel.c.thing,
+					tab.c.branch == ticksel.c.branch,
+					tab.c.turn == ticksel.c.turn,
+					tab.c.tick == ticksel.c.tick)))
+
+
+def make_edge_val_select(graph: bytes, orig: bytes, dest: bytes, idx: int,
+							stat: bytes, branches: List[str], mid_turn: bool):
+	from sqlalchemy import select, and_, Table
+	from sqlalchemy.sql.functions import func
+	from .alchemy import meta
+	tab: Table = meta.tables['edge_val']
+	ticksel = select(
+		tab.c.graph, tab.c.orig, tab.c.dest, tab.c.idx, tab.c.stat,
+		tab.c.branch, tab.c.turn,
+		tab.c.tick if mid_turn else func.max(tab.c.tick).label('tick')).where(
+			and_(tab.c.graph == graph, tab.c.orig == orig, tab.c.dest == dest,
+					tab.c.idx == idx, tab.c.stat == stat,
+					tab.c.branch.in_(branches)))
+	if not mid_turn:
+		ticksel = ticksel.group_by(tab.c.graph, tab.c.orig, tab.c.dest,
+									tab.c.idx, tab.c.stat, tab.c.branch,
+									tab.c.turn)
+	return the_select(tab).select_from(
+		tab.join(
+			ticksel,
+			and_(tab.c.graph == ticksel.c.graph, tab.c.orig == ticksel.c.orig,
+					tab.c.dest == ticksel.c.dest, tab.c.idx == ticksel.c.idx,
+					tab.c.stat == ticksel.c.stat,
+					tab.c.branch == ticksel.c.branch,
+					tab.c.turn == ticksel.c.turn,
+					tab.c.tick == ticksel.c.tick)))
 
 
 class Query(object):
