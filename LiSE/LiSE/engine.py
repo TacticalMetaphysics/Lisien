@@ -524,15 +524,15 @@ class Engine(AbstractEngine, gORM):
 		self._characters_things_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_things_rulebooks_cache.name \
-                                                                                                                                                                                                                                                                                                                                                                                                                     = 'characters_things_rulebooks_cache'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                         = 'characters_things_rulebooks_cache'
 		self._characters_places_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_places_rulebooks_cache.name \
-                                                                                                                                                                                                                                                                                                                                                                                                                     = 'characters_places_rulebooks_cache'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                         = 'characters_places_rulebooks_cache'
 		self._characters_portals_rulebooks_cache = InitializedEntitylessCache(
 			self)
 		self._characters_portals_rulebooks_cache.name \
-                                                                                                                                                                                                                                                                                                                                                                                                                     = 'characters_portals_rulebooks_cache'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                         = 'characters_portals_rulebooks_cache'
 		self._nodes_rulebooks_cache = InitializedCache(self)
 		self._nodes_rulebooks_cache.name = 'nodes_rulebooks_cache'
 		self._portals_rulebooks_cache = InitializedCache(self)
@@ -552,18 +552,18 @@ class Engine(AbstractEngine, gORM):
 		self._unit_rules_handled_cache = UnitRulesHandledCache(self)
 		self._unit_rules_handled_cache.name = 'unit_rules_handled_cache'
 		self._character_thing_rules_handled_cache \
-                                                                                                                                                                                                                                                                                                                                                                                                                     = CharacterThingRulesHandledCache(
+                                                                                                                                                                                                                                                                                                                                                                                                                                                         = CharacterThingRulesHandledCache(
 			self)
 		self._character_thing_rules_handled_cache.name \
-                                                                                                                                                                                                                                                                                                                                                                                                                     = 'character_thing_rules_handled_cache'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                         = 'character_thing_rules_handled_cache'
 		self._character_place_rules_handled_cache = CharacterPlaceRulesHandledCache(
 			self)
 		self._character_place_rules_handled_cache.name \
-                                                                                                                                                                                                                                                                                                                                                                                                                     = 'character_place_rules_handled_cache'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                         = 'character_place_rules_handled_cache'
 		self._character_portal_rules_handled_cache = CharacterPortalRulesHandledCache(
 			self)
 		self._character_portal_rules_handled_cache.name \
-                                                                                                                                                                                                                                                                                                                                                                                                                     = 'character_portal_rules_handled_cache'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                         = 'character_portal_rules_handled_cache'
 		self._unitness_cache = UnitnessCache(self)
 		self._unitness_cache.name = 'unitness_cache'
 		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
@@ -1495,20 +1495,14 @@ class Engine(AbstractEngine, gORM):
 		def make_graph_val_select(graph: bytes, stat: bytes,
 									branches: List[str]):
 			tab: Table = meta.tables['graph_val']
-			if mid_turn:
-				ticksel = select(tab.c.graph, tab.c.stat, tab.c.branch,
-									tab.c.turn, tab.c.tick).where(
-										and_(tab.c.graph == graph,
-												tab.c.stat == stat,
-												tab.c.branch.in_(branches)))
-			else:
-				ticksel = select(
-					tab.c.graph, tab.c.stat, tab.c.branch, tab.c.turn,
-					func.max(tab.c.tick).label('tick')).where(
-						and_(tab.c.graph == graph, tab.c.stat == stat,
-								tab.c.branch.in_(branches))).group_by(
-									tab.c.graph, tab.c.stat, tab.c.branch,
-									tab.c.turn)
+			ticksel = select(
+				tab.c.graph, tab.c.stat, tab.c.branch, tab.c.turn, tab.c.tick
+				if mid_turn else func.max(tab.c.tick).label('tick')).where(
+					and_(tab.c.graph == graph, tab.c.stat == stat,
+							tab.c.branch.in_(branches)))
+			if not mid_turn:
+				ticksel = ticksel.group_by(tab.c.graph, tab.c.stat,
+											tab.c.branch, tab.c.turn)
 			return the_select(tab).select_from(
 				tab.join(
 					ticksel,
@@ -1521,24 +1515,15 @@ class Engine(AbstractEngine, gORM):
 		def make_node_val_select(graph: bytes, node: bytes, stat: bytes,
 									branches: List[str]):
 			tab: Table = meta.tables['node_val']
-			if mid_turn:
-				ticksel = select(tab.c.graph, tab.c.node, tab.c.stat,
-									tab.c.branch, tab.c.turn,
-									tab.c.tick).where(
-										and_(tab.c.graph == graph,
-												tab.c.node == node,
-												tab.c.stat == stat,
-												tab.c.branch.in_(branches)))
-			else:
-				ticksel = select(
-					tab.c.graph, tab.c.node, tab.c.stat, tab.c.branch,
-					tab.c.turn,
-					func.max(tab.c.tick).label('tick')).where(
-						and_(tab.c.graph == graph,
-								tab.c.node == node, tab.c.stat == stat,
-								tab.c.branch.in_(branches))).group_by(
-									tab.c.graph, tab.c.node, tab.c.stat,
-									tab.c.branch, tab.c.turn)
+			ticksel = select(
+				tab.c.graph, tab.c.node, tab.c.stat, tab.c.branch, tab.c.turn,
+				tab.c.tick
+				if mid_turn else func.max(tab.c.tick).label('tick')).where(
+					and_(tab.c.graph == graph, tab.c.node == node,
+							tab.c.stat == stat, tab.c.branch.in_(branches)))
+			if not mid_turn:
+				ticksel = ticksel.group_by(tab.c.graph, tab.c.node, tab.c.stat,
+											tab.c.branch, tab.c.turn)
 			return the_select(tab).select_from(
 				tab.join(
 					ticksel,
@@ -1552,20 +1537,15 @@ class Engine(AbstractEngine, gORM):
 		def make_location_select(graph: bytes, thing: bytes,
 									branches: List[str]):
 			tab: Table = meta.tables['things']
-			if mid_turn:
-				ticksel = select(tab.c.character, tab.c.thing, tab.c.branch,
-									tab.c.turn, tab.c.tick).where(
-										and_(tab.c.character == graph,
-												tab.c.thing == thing,
-												tab.c.branch.in_(branches)))
-			else:
-				ticksel = select(
-					tab.c.character, tab.c.thing, tab.c.branch, tab.c.turn,
-					func.max(tab.c.tick).label('tick')).where(
-						and_(tab.c.character == graph, tab.c.thing == thing,
-								tab.c.branch.in_(branches))).group_by(
-									tab.c.character, tab.c.thing, tab.c.branch,
-									tab.c.turn)
+			ticksel = select(
+				tab.c.character, tab.c.thing, tab.c.branch, tab.c.turn,
+				tab.c.tick
+				if mid_turn else func.max(tab.c.tick).label('tick')).where(
+					and_(tab.c.character == graph, tab.c.thing == thing,
+							tab.c.branch.in_(branches)))
+			if not mid_turn:
+				ticksel = ticksel.group_by(tab.c.character, tab.c.thing,
+											tab.c.branch, tab.c.turn)
 			return the_select(tab).select_from(
 				tab.join(
 					ticksel,
@@ -1579,28 +1559,17 @@ class Engine(AbstractEngine, gORM):
 									idx: int, stat: bytes,
 									branches: List[str]):
 			tab: Table = meta.tables['edge_val']
-			if mid_turn:
-				ticksel = select(tab.c.graph, tab.c.orig, tab.c.dest,
-									tab.c.idx, tab.c.stat, tab.c.branch,
-									tab.c.turn, tab.c.tick).where(
-										and_(tab.c.graph == graph,
-												tab.c.orig == orig,
-												tab.c.dest == dest,
-												tab.c.idx == idx,
-												tab.c.stat == stat,
-												tab.c.branch.in_(branches)))
-			else:
-				ticksel = select(
-					tab.c.graph, tab.c.orig, tab.c.dest, tab.c.idx, tab.c.stat,
-					tab.c.branch, tab.c.turn,
-					func.max(tab.c.tick).label('tick')).where(
-						and_(tab.c.graph == graph, tab.c.orig == orig,
-								tab.c.dest == dest,
-								tab.c.idx == idx, tab.c.stat == stat,
-								tab.c.branch.in_(branches))).group_by(
-									tab.c.graph, tab.c.orig, tab.c.dest,
-									tab.c.idx, tab.c.stat, tab.c.branch,
-									tab.c.turn)
+			ticksel = select(
+				tab.c.graph, tab.c.orig, tab.c.dest, tab.c.idx, tab.c.stat,
+				tab.c.branch, tab.c.turn, tab.c.tick
+				if mid_turn else func.max(tab.c.tick).label('tick')).where(
+					and_(tab.c.graph == graph, tab.c.orig == orig,
+							tab.c.dest == dest, tab.c.idx == idx,
+							tab.c.stat == stat, tab.c.branch.in_(branches)))
+			if not mid_turn:
+				ticksel = ticksel.group_by(tab.c.graph, tab.c.orig, tab.c.dest,
+											tab.c.idx, tab.c.stat,
+											tab.c.branch, tab.c.turn)
 			return the_select(tab).select_from(
 				tab.join(
 					ticksel,
