@@ -297,6 +297,8 @@ def make_side_sel(entity, stat, branches: List[str], pack: callable,
 									pack(entity.origin.name),
 									pack(entity.destination.name), 0,
 									pack(stat), branches, mid_turn)
+	else:
+		raise TypeError(f"Unknown entity type {type(entity)}")
 
 
 def make_select_from_query(qry: "Query", branches: List[str], pack: callable,
