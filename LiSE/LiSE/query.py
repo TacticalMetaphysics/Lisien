@@ -354,9 +354,9 @@ def make_select_from_query(qry: "Query", branches: List[str], pack: callable,
 		right_sel = make_side_sel(right.entity, right.stat, branches, pack,
 									mid_turn)
 		if mid_turn:
-			return _msfq_mid_turn(qry, left_sel, right_sel), True
+			return _msfq_mid_turn(qry, left_sel, right_sel)
 		else:
-			return _msfq_end_turn(qry, left_sel, right_sel), True
+			return _msfq_end_turn(qry, left_sel, right_sel)
 
 	elif isinstance(right, StatusAlias) and isinstance(qry, ComparisonQuery):
 		right_sel = make_side_sel(right.entity, right.stat, branches, pack,
@@ -364,10 +364,10 @@ def make_select_from_query(qry: "Query", branches: List[str], pack: callable,
 		if mid_turn:
 			return select(right_sel.c.turn_from, right_sel.c.tick_from,
 							right_sel.c.turn_to, right_sel.c.tick_to).where(
-								qry.oper(pack(left), right_sel.c.value)), True
+								qry.oper(pack(left), right_sel.c.value))
 		else:
 			return select(right_sel.c.turn_from, right_sel.c.turn_to).where(
-				qry.oper(pack(left), right_sel.c.value)), True
+				qry.oper(pack(left), right_sel.c.value))
 
 	elif isinstance(left, StatusAlias) and isinstance(qry, ComparisonQuery):
 		left_sel = make_side_sel(left.entity, left.stat, branches, pack,
@@ -375,10 +375,10 @@ def make_select_from_query(qry: "Query", branches: List[str], pack: callable,
 		if mid_turn:
 			return select(left_sel.c.turn_from, left_sel.c.tick_from,
 							left_sel.c.turn_to, left_sel.c.tick_to).where(
-								qry.oper(left_sel.c.value, pack(right))), True
+								qry.oper(left_sel.c.value, pack(right)))
 		else:
 			return select(left_sel.c.turn_from, left_sel.c.turn_to).where(
-				qry.oper(left_sel.c.value, pack(right))), True
+				qry.oper(left_sel.c.value, pack(right)))
 	else:
 		raise NotImplementedError("oh no, can't do that")
 
