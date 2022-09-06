@@ -29,6 +29,10 @@ from queue import Queue
 from threading import Thread
 from typing import Any, List, Callable
 
+from sqlalchemy import select, and_, or_, Table
+from sqlalchemy.sql.functions import func
+from .alchemy import meta
+
 from .allegedb import query
 from .exc import (IntegrityError, OperationalError)
 from .util import EntityStatAccessor
@@ -160,8 +164,6 @@ def windows_intersection(windows):
 
 
 def the_select(tab):
-	from sqlalchemy import select, Table
-	from sqlalchemy.sql.functions import func
 	tab: Table
 	return select(
 		tab.c.turn.label('turn_from'), tab.c.tick.label('tick_from'),
@@ -174,9 +176,6 @@ def the_select(tab):
 
 def make_graph_val_select(graph: bytes, stat: bytes, branches: List[str],
 							mid_turn: bool):
-	from sqlalchemy import select, and_, Table
-	from sqlalchemy.sql.functions import func
-	from .alchemy import meta
 	tab: Table = meta.tables['graph_val']
 	ticksel = select(
 		tab.c.graph, tab.c.key, tab.c.branch, tab.c.turn,
@@ -197,9 +196,6 @@ def make_graph_val_select(graph: bytes, stat: bytes, branches: List[str],
 
 def make_node_val_select(graph: bytes, node: bytes, stat: bytes,
 							branches: List[str], mid_turn: bool):
-	from sqlalchemy import select, and_, Table
-	from sqlalchemy.sql.functions import func
-	from .alchemy import meta
 	tab: Table = meta.tables['node_val']
 	ticksel = select(
 		tab.c.graph, tab.c.node, tab.c.stat, tab.c.branch, tab.c.turn,
@@ -221,9 +217,6 @@ def make_node_val_select(graph: bytes, node: bytes, stat: bytes,
 
 def make_location_select(graph: bytes, thing: bytes, branches: List[str],
 							mid_turn: bool):
-	from sqlalchemy import select, and_, Table
-	from sqlalchemy.sql.functions import func
-	from .alchemy import meta
 	tab: Table = meta.tables['things']
 	ticksel = select(
 		tab.c.character, tab.c.thing, tab.c.branch, tab.c.turn,
@@ -245,9 +238,6 @@ def make_location_select(graph: bytes, thing: bytes, branches: List[str],
 
 def make_edge_val_select(graph: bytes, orig: bytes, dest: bytes, idx: int,
 							stat: bytes, branches: List[str], mid_turn: bool):
-	from sqlalchemy import select, and_, Table
-	from sqlalchemy.sql.functions import func
-	from .alchemy import meta
 	tab: Table = meta.tables['edge_val']
 	ticksel = select(
 		tab.c.graph, tab.c.orig, tab.c.dest, tab.c.idx, tab.c.stat,
@@ -303,7 +293,6 @@ def make_side_sel(entity, stat, branches: List[str], pack: callable,
 
 def make_select_from_query(qry: "Query", branches: List[str], pack: callable,
 							mid_turn: bool):
-	from sqlalchemy import select, and_, or_
 	left = qry.leftside
 	right = qry.rightside
 	if isinstance(left, StatusAlias) and isinstance(
