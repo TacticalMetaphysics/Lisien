@@ -546,19 +546,15 @@ class Engine(AbstractEngine, gORM):
 		self._character_rules_handled_cache = crhc
 		self._unit_rules_handled_cache = UnitRulesHandledCache(self)
 		self._unit_rules_handled_cache.name = 'unit_rules_handled_cache'
-		ctrhc
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           = CharacterThingRulesHandledCache(
-			self)
-		ctrhc.name
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           = 'character_thing_rules_handled_cache'
+		ctrhc = CharacterThingRulesHandledCache(self)
+		ctrhc.name = 'character_thing_rules_handled_cache'
 		self._character_thing_rules_handled_cache = ctrhc
 		cprhc = CharacterPlaceRulesHandledCache(self)
-		cprhc.name
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           = 'character_place_rules_handled_cache'
+		cprhc.name = 'character_place_rules_handled_cache'
 		self._character_place_rules_handled_cache = cprhc
 		cporhc = CharacterPortalRulesHandledCache(self)
-		cporhc.name
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           = 'character_portal_rules_handled_cache'self._character_portal_rules_handled_cache = cporhc
+		cporhc.name = 'character_portal_rules_handled_cache'
+		self._character_portal_rules_handled_cache = cporhc
 		self._unitness_cache = UnitnessCache(self)
 		self._unitness_cache.name = 'unitness_cache'
 		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
