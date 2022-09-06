@@ -29,7 +29,7 @@ from queue import Queue
 from threading import Thread
 from typing import Any, List, Callable
 
-from sqlalchemy import select, and_, or_, Table
+from sqlalchemy import select, and_, or_, case, Table
 from sqlalchemy.sql.functions import func
 from .alchemy import meta
 
@@ -291,6 +291,58 @@ def make_side_sel(entity, stat, branches: List[str], pack: callable,
 		raise TypeError(f"Unknown entity type {type(entity)}")
 
 
+def _msfq_mid_turn(qry, left_sel, right_sel):
+	# figure whether there is overlap between the time ranges
+	left_time_from_lte_right_time_from = or_(
+		left_sel.c.turn_from < right_sel.c.turn_from,
+		and_(left_sel.c.turn_from == right_sel.c.turn_from,
+				left_sel.c.tick_from <= right_sel.c.tick_from))
+	left_time_to_lte_right_time_to = or_(
+		right_sel.c.turn_to == None, left_sel.c.turn_to < right_sel.c.turn_to,
+		and_(left_sel.c.turn_to == right_sel.c.turn_to,
+				left_sel.c.tick_to <= right_sel.c.tick_to))
+	minimum_end_turn = case(
+		[(left_time_to_lte_right_time_to, left_sel.c.turn_to)],
+		else_=right_sel.c.turn_to)
+	minimum_end_tick = case(
+		[(left_time_to_lte_right_time_to, left_sel.c.tick_to)],
+		else_=right_sel.c.tick_to)
+	maximum_start_turn = case(
+		[(left_time_from_lte_right_time_from, right_sel.c.turn_from)],
+		else_=left_sel.c.turn_from)
+	maximum_start_tick = case(
+		[(left_time_from_lte_right_time_from, right_sel.c.tick_from)],
+		else_=left_sel.c.tick_from)
+	join = left_sel.alias().join(
+		right_sel.alias(),
+		or_(
+			minimum_end_turn - maximum_start_turn < 0,
+			and_(minimum_end_turn - maximum_start_turn == 0,
+					minimum_end_tick - maximum_start_tick <= 0)))
+	return select(left_sel.c.turn_from, left_sel.c.tick_from,
+					left_sel.c.turn_to, left_sel.c.tick_to,
+					right_sel.c.turn_from, right_sel.c.tick_from,
+					right_sel.c.turn_to,
+					right_sel.c.tick_to).select_from(join).where(
+						qry.oper(left_sel.c.value, right_sel.c.value))
+
+
+def _msfq_end_turn(qry, left_sel, right_sel):
+	minimum_end = case(
+		[(left_sel.c.turn_to <= right_sel.c.turn_to, left_sel.c.turn_to)],
+		else_=right_sel.c.turn_to)
+	maximum_start = case([
+		(left_sel.c.turn_from <= right_sel.c.turn_from, right_sel.c.turn_from)
+	],
+							else_=left_sel.c.turn_from)
+	join = left_sel.alias().join(right_sel.alias(),
+									minimum_end - maximum_start <= 0)
+	return select(left_sel.c.turn_from, left_sel.c.turn_to,
+					right_sel.c.turn_from,
+					right_sel.c.turn_to).select_from(join).where(
+						qry.oper(left_sel.c.value, right_sel.c.value))
+
+
 def make_select_from_query(qry: "Query", branches: List[str], pack: callable,
 							mid_turn: bool):
 	left = qry.leftside
@@ -301,58 +353,32 @@ def make_select_from_query(qry: "Query", branches: List[str], pack: callable,
 									mid_turn)
 		right_sel = make_side_sel(right.entity, right.stat, branches, pack,
 									mid_turn)
-		# figure whether there is overlap between the time ranges
-		left_time_from_lte_right_time_from = or_(
-			left_sel.c.turn_from < right_sel.c.turn_from,
-			and_(left_sel.c.turn_from == right_sel.c.turn_from,
-					left_sel.c.tick_from <= right_sel.c.tick_from))
-		right_time_to_lte_left_time_to = or_(
-			left_sel.c.turn_to == None,
-			right_sel.c.turn_to < left_sel.c.turn_to,
-			and_(right_sel.c.turn_to == left_sel.c.turn_to,
-					right_sel.c.tick_to <= left_sel.c.tick_to))
-		right_time_from_lte_left_time_from = or_(
-			right_sel.c.turn_from < left_sel.c.turn_from,
-			and_(right_sel.c.turn_from == left_sel.c.turn_from,
-					right_sel.c.tick_from <= left_sel.c.tick_from))
-		left_time_to_lte_right_time_to = or_(
-			right_sel.c.turn_to == None,
-			left_sel.c.turn_to < right_sel.c.turn_to,
-			and_(left_sel.c.turn_to == right_sel.c.turn_to,
-					left_sel.c.tick_to <= right_sel.c.tick_to))
-		join_cond = or_(
-			# left contains right
-			and_(left_time_from_lte_right_time_from,
-					right_time_to_lte_left_time_to),
-			# right contains left
-			and_(right_time_from_lte_left_time_from,
-					left_time_to_lte_right_time_to),
-			# left overlaps right on the beginning
-			and_(left_time_from_lte_right_time_from,
-					left_time_to_lte_right_time_to),
-			# left overlaps right on the ending
-			and_(right_time_from_lte_left_time_from,
-					right_time_to_lte_left_time_to))
-		return select(left_sel.c.turn_from, left_sel.c.tick_from,
-						left_sel.c.turn_to, left_sel.c.tick_to,
-						right_sel.c.turn_from, right_sel.c.tick_from,
-						right_sel.c.turn_to, right_sel.c.tick_to).where(
-							and_(qry.oper(left_sel.c.value, right_sel.c.value),
-									join_cond)), True
+		if mid_turn:
+			return _msfq_mid_turn(qry, left_sel, right_sel), True
+		else:
+			return _msfq_end_turn(qry, left_sel, right_sel), True
 
 	elif isinstance(right, StatusAlias) and isinstance(qry, ComparisonQuery):
 		right_sel = make_side_sel(right.entity, right.stat, branches, pack,
 									mid_turn)
-		return select(right_sel.c.turn_from, right_sel.c.tick_from,
-						right_sel.c.turn_to, right_sel.c.tick_to).where(
-							qry.oper(pack(left), right_sel.c.value)), True
+		if mid_turn:
+			return select(right_sel.c.turn_from, right_sel.c.tick_from,
+							right_sel.c.turn_to, right_sel.c.tick_to).where(
+								qry.oper(pack(left), right_sel.c.value)), True
+		else:
+			return select(right_sel.c.turn_from, right_sel.c.turn_to).where(
+				qry.oper(pack(left), right_sel.c.value)), True
 
 	elif isinstance(left, StatusAlias) and isinstance(qry, ComparisonQuery):
 		left_sel = make_side_sel(left.entity, left.stat, branches, pack,
 									mid_turn)
-		return select(left_sel.c.turn_from, left_sel.c.tick_from,
-						left_sel.c.turn_to, left_sel.c.tick_to).where(
-							qry.oper(left_sel.c.value, pack(right))), True
+		if mid_turn:
+			return select(left_sel.c.turn_from, left_sel.c.tick_from,
+							left_sel.c.turn_to, left_sel.c.tick_to).where(
+								qry.oper(left_sel.c.value, pack(right))), True
+		else:
+			return select(left_sel.c.turn_from, left_sel.c.turn_to).where(
+				qry.oper(left_sel.c.value, pack(right))), True
 	else:
 		raise NotImplementedError("oh no, can't do that")
 
