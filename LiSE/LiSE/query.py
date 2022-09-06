@@ -179,17 +179,17 @@ def make_graph_val_select(graph: bytes, stat: bytes, branches: List[str],
 	from .alchemy import meta
 	tab: Table = meta.tables['graph_val']
 	ticksel = select(
-		tab.c.graph, tab.c.stat, tab.c.branch, tab.c.turn,
+		tab.c.graph, tab.c.key, tab.c.branch, tab.c.turn,
 		tab.c.tick if mid_turn else func.max(tab.c.tick).label('tick')).where(
-			and_(tab.c.graph == graph, tab.c.stat == stat,
+			and_(tab.c.graph == graph, tab.c.key == stat,
 					tab.c.branch.in_(branches)))
 	if not mid_turn:
-		ticksel = ticksel.group_by(tab.c.graph, tab.c.stat, tab.c.branch,
+		ticksel = ticksel.group_by(tab.c.graph, tab.c.key, tab.c.branch,
 									tab.c.turn)
 	return the_select(tab).select_from(
 		tab.join(
 			ticksel,
-			and_(tab.c.graph == ticksel.c.graph, tab.c.stat == ticksel.c.stat,
+			and_(tab.c.graph == ticksel.c.graph, tab.c.key == ticksel.c.key,
 					tab.c.branch == ticksel.c.branch,
 					tab.c.turn == ticksel.c.turn,
 					tab.c.tick == ticksel.c.tick)))
