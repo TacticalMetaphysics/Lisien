@@ -519,12 +519,10 @@ class Engine(AbstractEngine, gORM):
 		self._units_rulebooks_cache = InitializedEntitylessCache(self)
 		self._units_rulebooks_cache.name = 'units_rulebooks_cache'
 		ctrc = InitializedEntitylessCache(self)
-		ctrc.name
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           = 'characters_things_rulebooks_cache'
+		ctrc.name = 'characters_things_rulebooks_cache'
 		self._characters_things_rulebooks_cache = ctrc
 		cprc = InitializedEntitylessCache(self)
-		cprc.name
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           = 'characters_places_rulebooks_cache'
+		cprc.name = 'characters_places_rulebooks_cache'
 		self._characters_places_rulebooks_cache = cprc
 		cporc = InitializedEntitylessCache(self)
 		cporc.name = 'characters_portals_rulebooks_cache'
