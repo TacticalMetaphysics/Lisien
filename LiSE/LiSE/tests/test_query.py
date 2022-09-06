@@ -153,3 +153,23 @@ def noncollision(college24_premade):
 
 def test_noncollision_premade(college24_premade):
 	noncollision(college24_premade)
+
+
+def test_graph_val_select_eq(engy):
+	me = engy.new_character('me')
+	me.stat['foo'] = 'bar'
+	me.stat['qux'] = 'bas'
+	engy.next_turn()
+	me.stat['foo'] = 'bas'
+	me.stat['qux'] = 'bar'
+	engy.next_turn()
+	engy.branch = 'leaf'
+	me.stat['foo'] = 'bar'
+	engy.next_turn()
+	me.stat['foo'] = 'bas'
+	me.stat['qux'] = 'bas'
+	foo_alias = me.historical('foo')
+	qux_alias = me.historical('qux')
+	qry = foo_alias == qux_alias
+	assert list(engy.turns_when(qry)) == [1]
+	assert list(engy.turns_when(qry, mid_turn=True)) == [1, 2]
