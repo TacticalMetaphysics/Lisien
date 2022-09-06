@@ -1493,51 +1493,41 @@ class Engine(AbstractEngine, gORM):
 			branches = set()
 			for branch, _, _ in self._iter_parent_btt():
 				branches.add(branch)
-			sel, intersect = make_select_from_query(qry, list(branches),
-													self.pack, mid_turn)
-			if intersect:
-				seen = set()
-				for tup in self.query.execute(sel):
-					if len(tup) == 8:
-						(left_turn_from, left_tick_from, left_turn_to,
-							left_tick_to, right_turn_from, right_tick_from,
-							right_turn_to, right_tick_to) = tup
-						for turn_from, turn_to in windows_intersection([
-							(left_turn_from, left_turn_to),
-							(right_turn_from, right_turn_to)
-						]):
-							for turn in range(turn_from, turn_to + 1):
-								if turn not in seen:
-									yield turn
-									seen.add(turn)
-					elif len(tup) == 4:
-						(left_turn_from, left_turn_to, right_turn_from,
-							right_turn_to) = tup
-						for turn_from, turn_to in windows_intersection([
-							(left_turn_from, left_turn_to),
-							(right_turn_from, right_turn_to)
-						]):
-							for turn in range(turn_from, turn_to + 1):
-								if turn not in seen:
-									yield turn
-									seen.add(turn)
-					elif len(tup) == 2:
-						for turn in range(tup[0], tup[1] + 1):
+			sel = make_select_from_query(qry, list(branches), self.pack,
+											mid_turn)
+			seen = set()
+			for tup in self.query.execute(sel):
+				if len(tup) == 8:
+					(left_turn_from, left_tick_from, left_turn_to,
+						left_tick_to, right_turn_from, right_tick_from,
+						right_turn_to, right_tick_to) = tup
+					for turn_from, turn_to in windows_intersection([
+						(left_turn_from, left_turn_to),
+						(right_turn_from, right_turn_to)
+					]):
+						for turn in range(turn_from, turn_to + 1):
 							if turn not in seen:
 								yield turn
 								seen.add(turn)
-					else:
-						raise RuntimeError("make_select_from_query went bad")
-				return
-			else:
-				seen = set()
-				for (turn_from, tick_from, turn_to,
-						tick_to) in self.query.execute(sel):
-					for turn in range(turn_from, turn_to + 1):
+				elif len(tup) == 4:
+					(left_turn_from, left_turn_to, right_turn_from,
+						right_turn_to) = tup
+					for turn_from, turn_to in windows_intersection([
+						(left_turn_from, left_turn_to),
+						(right_turn_from, right_turn_to)
+					]):
+						for turn in range(turn_from, turn_to + 1):
+							if turn not in seen:
+								yield turn
+								seen.add(turn)
+				elif len(tup) == 2:
+					for turn in range(tup[0], tup[1] + 1):
 						if turn not in seen:
 							yield turn
 							seen.add(turn)
-				return
+				else:
+					raise RuntimeError("make_select_from_query went bad")
+			return
 		except NotImplementedError:
 			if mid_turn:
 				raise NotImplementedError("Can't do mid_turn this way yet")
