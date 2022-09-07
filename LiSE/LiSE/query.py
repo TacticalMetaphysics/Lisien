@@ -27,7 +27,7 @@ from functools import partialmethod
 from time import monotonic
 from queue import Queue
 from threading import Thread
-from typing import Any, List, Callable
+from typing import Any, List, Callable, Tuple
 
 from sqlalchemy import select, and_, or_, case, Table
 from sqlalchemy.sql.functions import func
@@ -39,7 +39,7 @@ from .util import EntityStatAccessor
 import LiSE
 
 
-def windows_union(windows):
+def windows_union(windows: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
 	"""Given a list of (beginning, ending), return a minimal version that contains the same ranges.
 
 	:rtype: list
@@ -91,7 +91,8 @@ def windows_union(windows):
 	return res
 
 
-def windows_intersection(windows):
+def windows_intersection(
+		windows: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
 	"""Given a list of (beginning, ending), return another describing where they overlap.
 
 	:rtype: list
@@ -157,8 +158,7 @@ def windows_intersection(windows):
 	return done
 
 
-def the_select(tab):
-	tab: Table
+def the_select(tab: Table):
 	return select(
 		tab.c.turn.label('turn_from'), tab.c.tick.label('tick_from'),
 		func.lead(tab.c.turn).over(order_by=(tab.c.turn,
