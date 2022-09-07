@@ -15,7 +15,8 @@
 import re
 from functools import reduce
 from collections import defaultdict
-from LiSE.engine import Engine
+from ..engine import Engine
+from ..query import windows_intersection
 import pytest
 import os
 import shutil
@@ -153,6 +154,10 @@ def noncollision(college24_premade):
 
 def test_noncollision_premade(college24_premade):
 	noncollision(college24_premade)
+
+
+def test_windows_intersection():
+	assert windows_intersection([(2, None), (0, 1)]) == []
 
 
 def test_graph_val_select_eq(engy):
