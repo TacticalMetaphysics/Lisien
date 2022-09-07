@@ -119,8 +119,12 @@ def windows_intersection(windows):
 		elif left[1] is None:
 			if right[0] is None:
 				return left[0], right[1]
+			elif left[0] <= right[0]:
+				return right
+			elif left[0] <= right[1]:
+				return left[0], right[1]
 			else:
-				return right  # assumes left[0] <= right[0]
+				return None
 		# None not in left
 		elif right[0] is None:
 			return left[0], min((left[1], right[1]))
@@ -137,23 +141,13 @@ def windows_intersection(windows):
 				return right
 		return None
 
-	if len(windows) == 1:
+	if len(windows) == 0:
+		return []
+	elif len(windows) == 1:
 		return windows
-	left_none = []
-	right_none = []
-	otherwise = []
-	for window in windows:
-		assert window is not None, None
-		if window[0] is None:
-			left_none.append(window)
-		elif window[1] is None:
-			right_none.append(window)
-		else:
-			otherwise.append(window)
 
 	done = []
-	todo = left_none + sorted(otherwise)
-	for window in todo:
+	for window in windows:
 		if not done:
 			done.append(window)
 			continue
