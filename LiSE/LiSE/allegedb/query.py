@@ -213,10 +213,6 @@ class ConnectionHolder:
 
 
 class QueryEngine(object):
-	"""Wrapper around either a DBAPI2.0 connection or an
-	Alchemist. Provides methods to run queries using either.
-
-	"""
 	flush_edges_t = 0
 	holder_cls = ConnectionHolder
 	tables = ('global', 'branches', 'turns', 'graphs', 'keyframes',
@@ -229,15 +225,6 @@ class QueryEngine(object):
 					pack=None,
 					unpack=None,
 					gather=None):
-		"""If ``alchemy`` is True and ``dbstring`` is a legit database URI,
-		instantiate an Alchemist and start a transaction with
-		it. Otherwise use sqlite3.
-
-		You may pass an already created sqlalchemy :class:`Engine`
-		object in place of ``dbstring`` if you wish. I'll still create
-		my own transaction though.
-
-		"""
 		dbstring = dbstring or 'sqlite:///:memory:'
 		self._inq = Queue()
 		self._outq = Queue()
