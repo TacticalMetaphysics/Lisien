@@ -158,6 +158,7 @@ def test_noncollision_premade(college24_premade):
 
 def test_windows_intersection():
 	assert windows_intersection([(2, None), (0, 1)]) == []
+	assert windows_intersection([(1, 2), (0, 1)]) == [(1, 1)]
 
 
 def test_graph_val_select_eq(engy):
