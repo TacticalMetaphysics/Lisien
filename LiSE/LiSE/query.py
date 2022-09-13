@@ -292,14 +292,18 @@ def _msfq_mid_turn(qry,
 					left_col='value',
 					right_col='value'):
 	# figure whether there is *no* overlap between the time ranges
-	left_time_to_lt_right_time_from = or_(
-		left_sel.c.turn_to < right_sel.c.turn_from,
-		and_(left_sel.c.turn_to == right_sel.c.turn_from,
-				left_sel.c.tick_to < right_sel.c.tick_from))
-	right_time_to_lt_left_time_from = or_(
-		right_sel.c.turn_to < left_sel.c.turn_from,
-		and_(right_sel.c.turn_to == right_sel.c.turn_from,
-				right_sel.c.tick_to < left_sel.c.tick_from))
+	left_time_to_lt_right_time_from = and_(
+		left_sel.c.turn_to != None, right_sel.c.turn_from != None,
+		or_(
+			left_sel.c.turn_to < right_sel.c.turn_from,
+			and_(left_sel.c.turn_to == right_sel.c.turn_from,
+					left_sel.c.tick_to < right_sel.c.tick_from)))
+	right_time_to_lt_left_time_from = and_(
+		right_sel.c.turn_to != None, left_sel.c.turn_from != None,
+		or_(
+			right_sel.c.turn_to < left_sel.c.turn_from,
+			and_(right_sel.c.turn_to == right_sel.c.turn_from,
+					right_sel.c.tick_to < left_sel.c.tick_from)))
 	# then invert it
 	join = left_sel.alias().join(
 		right_sel.alias(),
@@ -319,11 +323,20 @@ def _msfq_end_turn(qry,
 					right_sel,
 					left_col='value',
 					right_col='value'):
+	# intervals in LiSE that are open on the left are always also open on the
+	# right; therefore, when either interval is open on the left, there is an
+	# overlap
+	left_time_to_lt_right_time_from = and_(
+		left_sel.c.turn_to != None, right_sel.c.turn_from != None,
+		left_sel.c.turn_to < right_sel.c.turn_from)
+	right_time_to_lt_left_time_from = and_(
+		right_sel.c.turn_to != None, left_sel.c.turn_from != None,
+		right_sel.c.turn_to < left_sel.c.turn_from)
 	join = left_sel.alias().join(
 		right_sel.alias(),
 		not_(
-			or_(left_sel.c.turn_to < right_sel.c.turn_from,
-				right_sel.c.turn_to < left_sel.c.turn_from)))
+			or_(left_time_to_lt_right_time_from,
+				right_time_to_lt_left_time_from)))
 	return select(left_sel.c.turn_from, left_sel.c.turn_to,
 					right_sel.c.turn_from,
 					right_sel.c.turn_to).distinct().select_from(join).where(
