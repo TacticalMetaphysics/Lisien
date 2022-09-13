@@ -1454,8 +1454,8 @@ class Engine(AbstractEngine, gORM):
 		else:
 			kfs[turn][tick] = newkf
 
-	def turns_when(self, qry: Query, mid_turn=False):
-		"""Yield the turns when the query held true
+	def turns_when(self, qry: Query, mid_turn=False) -> Set[int]:
+		"""Return the turns when the query held true
 
 		Only the state of the world at the end of the turn is considered.
 		To include turns where the query held true at some tick, but
@@ -1474,9 +1474,7 @@ class Engine(AbstractEngine, gORM):
 		except ImportError:
 			if mid_turn:
 				raise NotImplementedError("Need SQLAlchemy to do mid_turn")
-			for branch, turn in qry.iter_turns():
-				yield turn
-			return
+			return {turn for (branch, turn) in qry.iter_turns()}
 		# Make a select statement that gets the turns when the predicate held true
 		try:
 			branches = set()
@@ -1484,7 +1482,7 @@ class Engine(AbstractEngine, gORM):
 				branches.add(branch)
 			sel = make_select_from_query(qry, list(branches), self.pack,
 											mid_turn)
-			seen = set()
+			res = set()
 			for tup in self.query.execute(sel):
 				if len(tup) == 8:
 					(left_turn_from, left_tick_from, left_turn_to,
@@ -1494,10 +1492,7 @@ class Engine(AbstractEngine, gORM):
 						(left_turn_from, left_turn_to),
 						(right_turn_from, right_turn_to)
 					]):
-						for turn in range(turn_from, turn_to + 1):
-							if turn not in seen:
-								yield turn
-								seen.add(turn)
+						res.update(range(turn_from, turn_to + 1))
 				elif len(tup) == 4:
 					(left_turn_from, left_turn_to, right_turn_from,
 						right_turn_to) = tup
@@ -1505,24 +1500,16 @@ class Engine(AbstractEngine, gORM):
 						(left_turn_from, left_turn_to),
 						(right_turn_from, right_turn_to)
 					]):
-						for turn in range(turn_from, turn_to + 1):
-							if turn not in seen:
-								yield turn
-								seen.add(turn)
+						res.update(range(turn_from, turn_to + 1))
 				elif len(tup) == 2:
-					for turn in range(tup[0], tup[1] + 1):
-						if turn not in seen:
-							yield turn
-							seen.add(turn)
+					res.update(range(tup[0], tup[1] + 1))
 				else:
 					raise RuntimeError("make_select_from_query went bad")
-			return
+			return res
 		except NotImplementedError:
 			if mid_turn:
 				raise NotImplementedError("Can't do mid_turn this way yet")
-			for branch, turn in qry.iter_turns():
-				yield turn
-			return
+			return {turn for (branch, turn) in qry.iter_turns()}
 
 	def _node_contents(self, character: Hashable, node: Hashable) -> Set:
 		return self._node_contents_cache.retrieve(character, node,

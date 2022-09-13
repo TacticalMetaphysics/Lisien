@@ -136,7 +136,6 @@ def windows_intersection(
 				return right[0], left[1]
 			else:
 				return None
-		assert None not in left and None not in right and left[0] < right[1]
 		if left[1] >= right[0]:
 			if right[1] > left[1]:
 				return right[0], left[1]
