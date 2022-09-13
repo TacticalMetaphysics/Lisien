@@ -231,7 +231,6 @@ class Engine(AbstractEngine, gORM):
 					connect_string: str = None,
 					connect_args: dict = None,
 					schema_cls: Type[AbstractSchema] = NullSchema,
-					alchemy=True,
 					flush_interval=1,
 					keyframe_interval=10,
 					commit_interval: int = None,
@@ -256,19 +255,12 @@ class Engine(AbstractEngine, gORM):
 		returning a boolean for whether to permit a rule to run
 		:arg action: module containing action functions, taking a LiSE entity and
 		mutating it (and possibly the rest of the world)
-		:arg connect_string: a rfc1738 URI for a database to connect to;
-		if absent, we'll use a SQLite database in the prefix directory.
-		With ``alchemy=False`` we can only open SQLite databases,
-		in which case ``connect_string`` is just a path to the database--
-		unless it's ``":memory:"``, which is an in-memory database that
-		won't be saved
+		:arg connect_string: a rfc1738 URI for a database to connect to
 		:arg connect_args: dictionary of keyword arguments for the
 		database connection
 		:arg schema: a Schema class that determines which changes to allow to
 		the world; used when a player should not be able to change just anything.
 		Defaults to `NullSchema`
-		:arg alchemy: whether to use SQLAlchemy to connect to the
-		database. If False, LiSE can only use SQLite
 		:arg flush_interval: LiSE will put pending changes into the database
 		transaction every ``flush_interval`` turns. If ``None``), only flush
 		on commit. Default ``1``.
@@ -352,7 +344,7 @@ class Engine(AbstractEngine, gORM):
 			if clear and os.path.exists(self._action_file):
 				os.remove(self._action_file)
 		self.schema = schema_cls(self)
-		if connect_string and not alchemy:
+		if connect_string:
 			connect_string = connect_string.split('sqlite:///')[-1]
 		super().__init__(connect_string or os.path.join(prefix, 'world.db'),
 							clear=clear,
