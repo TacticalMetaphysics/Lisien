@@ -355,12 +355,8 @@ class Engine(AbstractEngine, gORM):
 		if connect_string and not alchemy:
 			connect_string = connect_string.split('sqlite:///')[-1]
 		super().__init__(connect_string or os.path.join(prefix, 'world.db'),
-							sqlfilename=os.path.join(
-								os.path.dirname(os.path.abspath(__file__)),
-								'sqlite.json'),
 							clear=clear,
 							connect_args=connect_args,
-							alchemy=alchemy,
 							cache_arranger=cache_arranger)
 		self._things_cache.setdb = self.query.set_thing_loc
 		self._universal_cache.setdb = self.query.universal_set
