@@ -29,7 +29,7 @@ from queue import Queue
 from threading import Thread
 from typing import Any, List, Callable, Tuple
 
-from sqlalchemy import select, and_, or_, case, Table
+from sqlalchemy import select, and_, or_, not_, case, Table
 from sqlalchemy.sql.functions import func
 from .alchemy import meta, gather_sql
 
@@ -331,15 +331,11 @@ def _msfq_end_turn(qry,
 					right_sel,
 					left_col='value',
 					right_col='value'):
-	minimum_end = case(
-		[(left_sel.c.turn_to <= right_sel.c.turn_to, left_sel.c.turn_to)],
-		else_=right_sel.c.turn_to)
-	maximum_start = case([
-		(left_sel.c.turn_from <= right_sel.c.turn_from, right_sel.c.turn_from)
-	],
-							else_=left_sel.c.turn_from)
-	join = left_sel.alias().join(right_sel.alias(),
-									minimum_end - maximum_start <= 0)
+	join = left_sel.alias().join(
+		right_sel.alias(),
+		not_(
+			or_(left_sel.c.turn_to < right_sel.c.turn_from,
+				right_sel.c.turn_to < left_sel.c.turn_from)))
 	return select(left_sel.c.turn_from, left_sel.c.turn_to,
 					right_sel.c.turn_from,
 					right_sel.c.turn_to).select_from(join).where(
