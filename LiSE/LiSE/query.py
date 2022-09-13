@@ -159,14 +159,14 @@ def windows_intersection(
 	return done
 
 
-def the_select(tab: Table):
+def the_select(tab: Table, val_col='value'):
 	return select(
 		tab.c.turn.label('turn_from'), tab.c.tick.label('tick_from'),
 		func.lead(tab.c.turn).over(order_by=(tab.c.turn,
 												tab.c.tick)).label('turn_to'),
 		func.lead(tab.c.tick).over(order_by=(tab.c.turn,
 												tab.c.tick)).label('tick_to'),
-		tab.c.value)
+		tab.c[val_col])
 
 
 def make_graph_val_select(graph: bytes, stat: bytes, branches: List[str],
@@ -221,7 +221,7 @@ def make_location_select(graph: bytes, thing: bytes, branches: List[str],
 	if not mid_turn:
 		ticksel = ticksel.group_by(tab.c.character, tab.c.thing, tab.c.branch,
 									tab.c.turn)
-	return the_select(tab).select_from(
+	return the_select(tab, val_col='location').select_from(
 		tab.join(
 			ticksel,
 			and_(tab.c.character == ticksel.c.character,
@@ -286,7 +286,11 @@ def make_side_sel(entity, stat, branches: List[str], pack: callable,
 		raise TypeError(f"Unknown entity type {type(entity)}")
 
 
-def _msfq_mid_turn(qry, left_sel, right_sel):
+def _msfq_mid_turn(qry,
+					left_sel,
+					right_sel,
+					left_col='value',
+					right_col='value'):
 	# figure whether there is overlap between the time ranges
 	left_time_from_lte_right_time_from = or_(
 		left_sel.c.turn_from < right_sel.c.turn_from,
@@ -319,10 +323,14 @@ def _msfq_mid_turn(qry, left_sel, right_sel):
 					right_sel.c.turn_from, right_sel.c.tick_from,
 					right_sel.c.turn_to,
 					right_sel.c.tick_to).select_from(join).where(
-						qry.oper(left_sel.c.value, right_sel.c.value))
+						qry.oper(left_sel.c[left_col], right_sel.c[right_col]))
 
 
-def _msfq_end_turn(qry, left_sel, right_sel):
+def _msfq_end_turn(qry,
+					left_sel,
+					right_sel,
+					left_col='value',
+					right_col='value'):
 	minimum_end = case(
 		[(left_sel.c.turn_to <= right_sel.c.turn_to, left_sel.c.turn_to)],
 		else_=right_sel.c.turn_to)
@@ -335,13 +343,20 @@ def _msfq_end_turn(qry, left_sel, right_sel):
 	return select(left_sel.c.turn_from, left_sel.c.turn_to,
 					right_sel.c.turn_from,
 					right_sel.c.turn_to).select_from(join).where(
-						qry.oper(left_sel.c.value, right_sel.c.value))
+						qry.oper(left_sel.c[left_col], right_sel.c[right_col]))
 
 
 def make_select_from_query(qry: "Query", branches: List[str], pack: callable,
 							mid_turn: bool):
+	from .thing import Thing
 	left = qry.leftside
 	right = qry.rightside
+
+	def getcol(queary):
+		if isinstance(queary.entity, Thing) and queary.stat == 'location':
+			return 'location'
+		return 'value'
+
 	if isinstance(left, StatusAlias) and isinstance(
 		right, StatusAlias) and isinstance(qry, ComparisonQuery):
 		left_sel = make_side_sel(left.entity, left.stat, branches, pack,
@@ -349,9 +364,11 @@ def make_select_from_query(qry: "Query", branches: List[str], pack: callable,
 		right_sel = make_side_sel(right.entity, right.stat, branches, pack,
 									mid_turn)
 		if mid_turn:
-			return _msfq_mid_turn(qry, left_sel, right_sel)
+			return _msfq_mid_turn(qry, left_sel, right_sel, getcol(left),
+									getcol(right))
 		else:
-			return _msfq_end_turn(qry, left_sel, right_sel)
+			return _msfq_end_turn(qry, left_sel, right_sel, getcol(left),
+									getcol(right))
 
 	elif isinstance(right, StatusAlias) and isinstance(qry, ComparisonQuery):
 		right_sel = make_side_sel(right.entity, right.stat, branches, pack,
@@ -359,10 +376,11 @@ def make_select_from_query(qry: "Query", branches: List[str], pack: callable,
 		if mid_turn:
 			return select(right_sel.c.turn_from, right_sel.c.tick_from,
 							right_sel.c.turn_to, right_sel.c.tick_to).where(
-								qry.oper(pack(left), right_sel.c.value))
+								qry.oper(pack(left),
+											right_sel.c[getcol(right)]))
 		else:
 			return select(right_sel.c.turn_from, right_sel.c.turn_to).where(
-				qry.oper(pack(left), right_sel.c.value))
+				qry.oper(pack(left), right_sel.c[getcol(right)]))
 
 	elif isinstance(left, StatusAlias) and isinstance(qry, ComparisonQuery):
 		left_sel = make_side_sel(left.entity, left.stat, branches, pack,
@@ -370,10 +388,11 @@ def make_select_from_query(qry: "Query", branches: List[str], pack: callable,
 		if mid_turn:
 			return select(left_sel.c.turn_from, left_sel.c.tick_from,
 							left_sel.c.turn_to, left_sel.c.tick_to).where(
-								qry.oper(left_sel.c.value, pack(right)))
+								qry.oper(left_sel.c[getcol(left)],
+											pack(right)))
 		else:
 			return select(left_sel.c.turn_from, left_sel.c.turn_to).where(
-				qry.oper(left_sel.c.value, pack(right)))
+				qry.oper(left_sel.c[getcol(left)], pack(right)))
 	else:
 		raise NotImplementedError("oh no, can't do that")
 
