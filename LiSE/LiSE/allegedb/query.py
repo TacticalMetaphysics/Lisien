@@ -23,22 +23,17 @@ from typing import Tuple, Any, Iterator, Hashable
 from queue import Queue
 import os
 from collections.abc import MutableMapping
-import sqlite3
 
+from sqlalchemy.sql import Select
+from sqlalchemy import create_engine
+from sqlalchemy.engine.base import Engine
+from sqlalchemy.exc import ArgumentError, IntegrityError, OperationalError
+from sqlalchemy.pool import NullPool
+
+from .alchemy import Alchemist
 from . import wrap
 
 wrappath = os.path.dirname(wrap.__file__)
-alchemyIntegError = None
-alchemyOperationalError = None
-try:
-	import sqlalchemy.exc
-
-	IntegrityError = (sqlalchemy.exc.IntegrityError, sqlite3.IntegrityError)
-	OperationalError = (sqlalchemy.exc.OperationalError,
-						sqlite3.OperationalError)
-except ImportError:
-	IntegrityError = sqlite3.IntegrityError
-	OperationalError = sqlite3.OperationalError
 
 NodeRowType = Tuple[Hashable, Hashable, str, int, int, bool]
 EdgeRowType = Tuple[Hashable, Hashable, Hashable, int, str, int, int, bool]
@@ -81,13 +76,12 @@ class GlobalKeyValueStore(MutableMapping):
 
 
 class ConnectionHolder:
-	connection: sqlite3.Connection
+	alchemist: Alchemist
 	strings: dict
 
 	def __init__(self,
 					dbstring,
 					connect_args,
-					alchemy,
 					inq,
 					outq,
 					fn,
@@ -98,7 +92,6 @@ class ConnectionHolder:
 		self.existence_lock.acquire()
 		self._dbstring = dbstring
 		self._connect_args = connect_args
-		self._alchemy = alchemy
 		self._fn = fn
 		self.inq = inq
 		self.outq = outq
@@ -107,10 +100,8 @@ class ConnectionHolder:
 			self.gather = gather
 
 	def commit(self):
-		if hasattr(self, 'transaction') and self.transaction.is_active:
+		if self.transaction.is_active:
 			self.transaction.commit()
-		elif hasattr(self, 'connection'):
-			self.connection.commit()
 
 	def init_table(self, tbl):
 		return self.sql('create_{}'.format(tbl))
@@ -118,89 +109,49 @@ class ConnectionHolder:
 	def sql(self, stringname, *args, **kwargs):
 		"""Wrapper for the various prewritten or compiled SQL calls.
 
-		First argument is the name of the query, either a key in
-		``sqlite.json`` or a method name in
+		First argument is the name of the query, a method name in
 		``allegedb.alchemy.Alchemist``. The rest of the arguments are
 		parameters to the query.
 
 		"""
-		if hasattr(self, 'alchemist'):
-			return getattr(self.alchemist, stringname)(*args, **kwargs)
-		else:
-			s = self.strings[stringname]
-			return self.connection.cursor().execute(
-				s.format(**kwargs) if kwargs else s, args)
+		return getattr(self.alchemist, stringname)(*args, **kwargs)
 
 	def sqlmany(self, stringname, args):
 		"""Wrapper for executing many SQL calls on my connection.
 
-		First arg is the name of a query, either a key in the
-		precompiled JSON or a method name in
+		First arg is the name of a query, a method name in
 		``allegedb.alchemy.Alchemist``. Remaining arguments should be
 		tuples of argument sequences to be passed to the query.
 
 		"""
-		if hasattr(self, 'alchemist'):
-			return getattr(self.alchemist.many, stringname)(*args)
-		s = self.strings[stringname]
-		return self.connection.cursor().executemany(s, args)
+		return getattr(self.alchemist.many, stringname)(*args)
 
 	def run(self):
-		alchemy = self._alchemy
 		dbstring = self._dbstring
 		connect_args = self._connect_args
-
-		def lite_init(dbstring):
-			from json import load
-			with open(self._fn, "rb") as strf:
-				self.strings = load(strf)
-			assert not isinstance(dbstring, sqlite3.Connection)
-			if dbstring.startswith('sqlite:///'):
-				dbstring = dbstring[10:]
-			self.connection = sqlite3.connect(dbstring)
-
-		if alchemy:
-			try:
-				from sqlalchemy.sql.expression import Select
-				from sqlalchemy import create_engine
-				from sqlalchemy.engine.base import Engine
-				from sqlalchemy.exc import ArgumentError
-				from sqlalchemy.pool import NullPool
-				from .alchemy import Alchemist
-				if hasattr(self, 'gather'):
-					gather_sql = self.gather
-				else:
-					from .alchemy import gather_sql
-				if isinstance(dbstring, Engine):
-					self.engine = dbstring
-				else:
-					try:
-						self.engine = create_engine(dbstring,
-													connect_args=connect_args,
-													poolclass=NullPool)
-					except ArgumentError:
-						self.engine = create_engine('sqlite:///' + dbstring,
-													connect_args=connect_args,
-													poolclass=NullPool)
-				self.alchemist = Alchemist(self.engine, gather_sql)
-				self.transaction = self.alchemist.conn.begin()
-				self._alchemy = True
-			except ImportError:
-				self._alchemy = False
-				Select = None
-				lite_init(dbstring)
+		if hasattr(self, 'gather'):
+			gather_sql = self.gather
 		else:
-			Select = None
-			lite_init(dbstring)
+			from .alchemy import gather_sql
+		if isinstance(dbstring, Engine):
+			self.engine = dbstring
+		else:
+			try:
+				self.engine = create_engine(dbstring,
+											connect_args=connect_args,
+											poolclass=NullPool)
+			except ArgumentError:
+				self.engine = create_engine('sqlite:///' + dbstring,
+											connect_args=connect_args,
+											poolclass=NullPool)
+		self.alchemist = Alchemist(self.engine, gather_sql)
+		self.transaction = self.alchemist.conn.begin()
 		while True:
 			inst = self.inq.get()
 			if inst == 'shutdown':
 				self.commit()
-				if hasattr(self, 'alchemist'):
-					self.alchemist.conn.close()
-					self.engine.dispose()
-				else:
-					self.connection.close()
+				self.alchemist.conn.close()
+				self.engine.dispose()
 				self.existence_lock.release()
 				return
 			if inst == 'commit':
@@ -209,7 +160,7 @@ class ConnectionHolder:
 			if inst == 'initdb':
 				self.outq.put(self.initdb())
 				continue
-			if self._alchemy and isinstance(inst, Select):
+			if isinstance(inst, Select):
 				self.outq.put(self.engine.execute(inst).fetchall())
 				continue
 			silent = False
@@ -278,8 +229,6 @@ class QueryEngine(object):
 	def __init__(self,
 					dbstring,
 					connect_args,
-					alchemy,
-					strings_filename: str = None,
 					pack=None,
 					unpack=None,
 					gather=None):
@@ -295,16 +244,8 @@ class QueryEngine(object):
 		dbstring = dbstring or 'sqlite:///:memory:'
 		self._inq = Queue()
 		self._outq = Queue()
-		if strings_filename is None:
-			strings_filename = os.path.join(
-				os.path.dirname(os.path.abspath(__file__)), "sqlite.json")
-		if not os.path.exists(strings_filename) or os.path.isdir(
-			strings_filename):
-			raise FileNotFoundError("No SQL in JSON found at " +
-									strings_filename)
-		self._holder = self.holder_cls(dbstring, connect_args, alchemy,
-										self._inq, self._outq,
-										strings_filename, self.tables, gather)
+		self._holder = self.holder_cls(dbstring, connect_args, self._inq,
+										self._outq, self.tables, gather)
 
 		if unpack is None:
 			from ast import literal_eval as unpack

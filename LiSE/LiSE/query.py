@@ -31,7 +31,7 @@ from typing import Any, List, Callable, Tuple
 
 from sqlalchemy import select, and_, or_, case, Table
 from sqlalchemy.sql.functions import func
-from .alchemy import meta
+from .alchemy import meta, gather_sql
 
 from .allegedb import query
 from .exc import (IntegrityError, OperationalError)
@@ -519,6 +519,9 @@ def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
 
 class ConnectionHolder(query.ConnectionHolder):
 
+	def gather(self, meta):
+		return gather_sql(meta)
+
 	def initdb(self):
 		"""Set up the database schema, both for allegedb and the special
 		extensions for LiSE
@@ -563,24 +566,9 @@ class QueryEngine(query.QueryEngine):
 				'character_place_rules_handled',
 				'character_portal_rules_handled', 'turns_completed')
 
-	def __init__(self,
-					dbstring,
-					connect_args,
-					alchemy,
-					strings_filename: str = None,
-					pack=None,
-					unpack=None):
-		if alchemy:
-			try:
-				from .alchemy import gather_sql
-			except ImportError:
-				gather_sql = None
-		else:
-			gather_sql = None
+	def __init__(self, dbstring, connect_args, pack=None, unpack=None):
 		super().__init__(dbstring,
 							connect_args,
-							alchemy,
-							strings_filename,
 							pack,
 							unpack,
 							gather=gather_sql)

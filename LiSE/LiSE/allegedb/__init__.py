@@ -782,9 +782,7 @@ class ORM:
 
 	def __init__(self,
 					dbstring,
-					sqlfilename: str = None,
 					clear=False,
-					alchemy=True,
 					connect_args: dict = None,
 					cache_arranger=False):
 		"""Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
@@ -812,8 +810,7 @@ class ORM:
 		if hasattr(self, '_post_init_cache_hook'):
 			self._post_init_cache_hook()
 		if not hasattr(self, 'query'):
-			self.query = self.query_engine_cls(dbstring, connect_args, alchemy,
-												sqlfilename,
+			self.query = self.query_engine_cls(dbstring, connect_args,
 												getattr(self, 'pack', None),
 												getattr(self, 'unpack', None))
 		if clear:
