@@ -310,7 +310,7 @@ def _msfq_mid_turn(qry,
 					left_sel.c.turn_to, left_sel.c.tick_to,
 					right_sel.c.turn_from, right_sel.c.tick_from,
 					right_sel.c.turn_to,
-					right_sel.c.tick_to).select_from(join).where(
+					right_sel.c.tick_to).distinct().select_from(join).where(
 						qry.oper(left_sel.c[left_col], right_sel.c[right_col]))
 
 
@@ -326,7 +326,7 @@ def _msfq_end_turn(qry,
 				right_sel.c.turn_to < left_sel.c.turn_from)))
 	return select(left_sel.c.turn_from, left_sel.c.turn_to,
 					right_sel.c.turn_from,
-					right_sel.c.turn_to).select_from(join).where(
+					right_sel.c.turn_to).distinct().select_from(join).where(
 						qry.oper(left_sel.c[left_col], right_sel.c[right_col]))
 
 
