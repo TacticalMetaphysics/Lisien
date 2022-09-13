@@ -99,6 +99,8 @@ def windows_intersection(
 	"""
 
 	def intersect2(left, right):
+		if left > right:
+			(left, right) = (right, left)
 		if left == right:
 			return left
 		elif left == (None, None):
