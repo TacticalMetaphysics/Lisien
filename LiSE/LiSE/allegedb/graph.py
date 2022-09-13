@@ -944,7 +944,7 @@ class DiGraph(networkx.DiGraph):
 		"""
 		branch = self.db.branch
 		rev = self.db.rev
-		(parent, parent_rev) = self.db.sql('parparrev', branch).fetchone()
+		(parent, parent_rev) = self.db.call_one('parparrev', branch).fetchone()
 		before_branch = parent if parent_rev == rev else branch
 		return before_branch, rev - 1, branch, rev
 

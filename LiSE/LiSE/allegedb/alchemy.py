@@ -432,41 +432,6 @@ def compile_sql(dialect, meta):
 	}
 
 
-class Alchemist(object):
-	"""Holds an engine and runs queries on it.
-
-	"""
-
-	def __init__(self, engine, gather=gather_sql):
-		self.engine = engine
-		self.conn = self.engine.connect()
-		self.meta = MetaData()
-		self.sql = gather(self.meta)
-
-		def caller(k, *largs):
-			statement = self.sql[k].compile(dialect=self.conn.engine.dialect)
-			if hasattr(statement, 'positiontup'):
-				return self.conn.execute(
-					statement, **dict(zip(statement.positiontup, largs)))
-			elif largs:
-				raise TypeError("{} is a DDL query, I think".format(k))
-			return self.conn.execute(self.sql[k])
-
-		def manycaller(k, *largs):
-			statement = self.sql[k].compile(dialect=self.conn.engine.dialect)
-			return self.conn.execute(
-				statement,
-				*(dict(zip(statement.positiontup, larg)) for larg in largs))
-
-		class Many(object):
-			pass
-
-		self.many = Many()
-		for (key, query) in self.sql.items():
-			setattr(self, key, partial(caller, key))
-			setattr(self.many, key, partial(manycaller, key))
-
-
 if __name__ == '__main__':
 	from sqlalchemy.dialects.sqlite.pysqlite import SQLiteDialect_pysqlite
 
