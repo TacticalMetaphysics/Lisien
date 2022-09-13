@@ -408,25 +408,5 @@ class SetStorageTest(AllegedTest):
 			self.engine.del_graph('testgraph')
 
 
-@unittest.skip
-class CompiledQueriesTest(AllegedTest):
-
-	def runTest(self):
-		"""Make sure that the queries generated in SQLAlchemy are the same as
-        those precompiled into SQLite.
-
-        """
-		from ..alchemy import Alchemist
-		self.assertTrue(hasattr(self.engine.query, 'alchemist'))
-		self.assertTrue(isinstance(self.engine.query.alchemist, Alchemist))
-		from json import load
-		with open(self.engine.query.path + '/sqlite.json', 'r') as jsonfile:
-			precompiled = load(jsonfile)
-		self.assertEqual(precompiled.keys(),
-							self.engine.query.alchemist.sql.keys())
-		for (k, query) in precompiled.items():
-			self.assertEqual(query, str(self.engine.query.alchemist.sql[k]))
-
-
 if __name__ == '__main__':
 	unittest.main()
