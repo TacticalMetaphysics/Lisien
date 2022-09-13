@@ -291,33 +291,21 @@ def _msfq_mid_turn(qry,
 					right_sel,
 					left_col='value',
 					right_col='value'):
-	# figure whether there is overlap between the time ranges
-	left_time_from_lte_right_time_from = or_(
-		left_sel.c.turn_from < right_sel.c.turn_from,
-		and_(left_sel.c.turn_from == right_sel.c.turn_from,
-				left_sel.c.tick_from <= right_sel.c.tick_from))
-	left_time_to_lte_right_time_to = or_(
-		right_sel.c.turn_to == None, left_sel.c.turn_to < right_sel.c.turn_to,
-		and_(left_sel.c.turn_to == right_sel.c.turn_to,
-				left_sel.c.tick_to <= right_sel.c.tick_to))
-	minimum_end_turn = case(
-		[(left_time_to_lte_right_time_to, left_sel.c.turn_to)],
-		else_=right_sel.c.turn_to)
-	minimum_end_tick = case(
-		[(left_time_to_lte_right_time_to, left_sel.c.tick_to)],
-		else_=right_sel.c.tick_to)
-	maximum_start_turn = case(
-		[(left_time_from_lte_right_time_from, right_sel.c.turn_from)],
-		else_=left_sel.c.turn_from)
-	maximum_start_tick = case(
-		[(left_time_from_lte_right_time_from, right_sel.c.tick_from)],
-		else_=left_sel.c.tick_from)
+	# figure whether there is *no* overlap between the time ranges
+	left_time_to_lt_right_time_from = or_(
+		left_sel.c.turn_to < right_sel.c.turn_from,
+		and_(left_sel.c.turn_to == right_sel.c.turn_from,
+				left_sel.c.tick_to < right_sel.c.tick_from))
+	right_time_to_lt_left_time_from = or_(
+		right_sel.c.turn_to < left_sel.c.turn_from,
+		and_(right_sel.c.turn_to == right_sel.c.turn_from,
+				right_sel.c.tick_to < left_sel.c.tick_from))
+	# then invert it
 	join = left_sel.alias().join(
 		right_sel.alias(),
-		or_(
-			minimum_end_turn - maximum_start_turn < 0,
-			and_(minimum_end_turn - maximum_start_turn == 0,
-					minimum_end_tick - maximum_start_tick <= 0)))
+		not_(
+			or_(left_time_to_lt_right_time_from,
+				right_time_to_lt_left_time_from)))
 	return select(left_sel.c.turn_from, left_sel.c.tick_from,
 					left_sel.c.turn_to, left_sel.c.tick_to,
 					right_sel.c.turn_from, right_sel.c.tick_from,
