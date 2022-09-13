@@ -177,5 +177,5 @@ def test_graph_val_select_eq(engy):
 	foo_alias = me.historical('foo')
 	qux_alias = me.historical('qux')
 	qry = foo_alias == qux_alias
-	assert list(engy.turns_when(qry)) == [1]
-	assert list(engy.turns_when(qry, mid_turn=True)) == [1, 2]
+	assert engy.turns_when(qry) == {1}
+	assert engy.turns_when(qry, mid_turn=True) == {1, 2}
