@@ -25,12 +25,11 @@ import os
 from collections.abc import MutableMapping
 
 from sqlalchemy.sql import Select
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, MetaData
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.exc import ArgumentError, IntegrityError, OperationalError
 from sqlalchemy.pool import NullPool
 
-from .alchemy import Alchemist
 from . import wrap
 
 wrappath = os.path.dirname(wrap.__file__)
@@ -76,7 +75,6 @@ class GlobalKeyValueStore(MutableMapping):
 
 
 class ConnectionHolder:
-	alchemist: Alchemist
 	strings: dict
 
 	def __init__(self,
@@ -100,31 +98,11 @@ class ConnectionHolder:
 			self.gather = gather
 
 	def commit(self):
-		if self.transaction.is_active:
-			self.transaction.commit()
+		self.transaction.commit()
+		self.transaction = self.connection.begin()
 
 	def init_table(self, tbl):
-		return self.sql('create_{}'.format(tbl))
-
-	def sql(self, stringname, *args, **kwargs):
-		"""Wrapper for the various prewritten or compiled SQL calls.
-
-		First argument is the name of the query, a method name in
-		``allegedb.alchemy.Alchemist``. The rest of the arguments are
-		parameters to the query.
-
-		"""
-		return getattr(self.alchemist, stringname)(*args, **kwargs)
-
-	def sqlmany(self, stringname, args):
-		"""Wrapper for executing many SQL calls on my connection.
-
-		First arg is the name of a query, a method name in
-		``allegedb.alchemy.Alchemist``. Remaining arguments should be
-		tuples of argument sequences to be passed to the query.
-
-		"""
-		return getattr(self.alchemist.many, stringname)(*args)
+		return self.call_one('create_{}'.format(tbl))
 
 	def run(self):
 		dbstring = self._dbstring
@@ -144,13 +122,16 @@ class ConnectionHolder:
 				self.engine = create_engine('sqlite:///' + dbstring,
 											connect_args=connect_args,
 											poolclass=NullPool)
-		self.alchemist = Alchemist(self.engine, gather_sql)
-		self.transaction = self.alchemist.conn.begin()
+		self.meta = MetaData()
+		self.sql = gather_sql(self.meta)
+		self.connection = self.engine.connect()
+		self.transaction = self.connection.begin()
 		while True:
 			inst = self.inq.get()
 			if inst == 'shutdown':
 				self.commit()
-				self.alchemist.conn.close()
+				self.transaction.close()
+				self.connection.close()
 				self.engine.dispose()
 				self.existence_lock.release()
 				return
@@ -161,7 +142,8 @@ class ConnectionHolder:
 				self.outq.put(self.initdb())
 				continue
 			if isinstance(inst, Select):
-				self.outq.put(self.engine.execute(inst).fetchall())
+				res = self.connection.execute(inst).fetchall()
+				self.outq.put(res)
 				continue
 			silent = False
 			if inst[0] == 'silent':
@@ -169,7 +151,7 @@ class ConnectionHolder:
 				silent = True
 			if inst[0] == 'one':
 				try:
-					res = self.sql(inst[1], *inst[2], **inst[3])
+					res = self.call_one(inst[1], *inst[2])
 					if not silent:
 						if hasattr(res, 'returns_rows'):
 							if res.returns_rows:
@@ -187,7 +169,7 @@ class ConnectionHolder:
 				raise ValueError(f"Invalid instruction: {inst[0]}")
 			else:
 				try:
-					res = self.sqlmany(inst[1], inst[2])
+					res = self.call_many(inst[1], inst[2])
 					if not silent:
 						if hasattr(res, 'returns_rows'):
 							if res.returns_rows:
@@ -200,6 +182,21 @@ class ConnectionHolder:
 				except Exception as ex:
 					if not silent:
 						self.outq.put(ex)
+
+	def call_one(self, k, *largs):
+		statement = self.sql[k].compile(dialect=self.engine.dialect)
+		if hasattr(statement, 'positiontup'):
+			return self.connection.execute(
+				statement, **dict(zip(statement.positiontup, largs)))
+		elif largs:
+			raise TypeError("{} is a DDL query, I think".format(k))
+		return self.connection.execute(self.sql[k])
+
+	def call_many(self, k, largs):
+		statement = self.sql[k].compile(dialect=self.engine.dialect)
+		return self.connection.execute(
+			statement,
+			*(dict(zip(statement.positiontup, larg)) for larg in largs))
 
 	def initdb(self):
 		"""Create tables and indices as needed."""
@@ -261,8 +258,8 @@ class QueryEngine(object):
 		self._t = Thread(target=self._holder.run, daemon=True)
 		self._t.start()
 
-	def sql(self, string, *args, **kwargs):
-		__doc__ = ConnectionHolder.sql.__doc__
+	def call_one(self, string, *args, **kwargs):
+		__doc__ = ConnectionHolder.call_one.__doc__
 		with self._holder.lock:
 			self._inq.put(('one', string, args, kwargs))
 			ret = self._outq.get()
@@ -270,8 +267,8 @@ class QueryEngine(object):
 			raise ret
 		return ret
 
-	def sqlmany(self, string, args):
-		__doc__ = ConnectionHolder.sqlmany.__doc__
+	def call_many(self, string, args):
+		__doc__ = ConnectionHolder.call_many.__doc__
 		with self._holder.lock:
 			self._inq.put(('many', string, args))
 			ret = self._outq.get()
@@ -280,7 +277,6 @@ class QueryEngine(object):
 		return ret
 
 	def execute(self, stmt):
-		from sqlalchemy.sql.expression import Select
 		if not isinstance(stmt, Select):
 			raise TypeError("Only select statements should be executed")
 		with self._holder.lock:
@@ -291,23 +287,23 @@ class QueryEngine(object):
 	def have_graph(self, graph):
 		"""Return whether I have a graph by this name."""
 		graph = self.pack(graph)
-		return bool(self.sql('graphs_named', graph)[0][0])
+		return bool(self.call_one('graphs_named', graph)[0][0])
 
 	def new_graph(self, graph, typ):
 		"""Declare a new graph by this name of this type."""
 		graph = self.pack(graph)
-		return self.sql('graphs_insert', graph, typ)
+		return self.call_one('graphs_insert', graph, typ)
 
 	def keyframes_insert(self, graph, branch, turn, tick, nodes, edges,
 							graph_val):
 		graph, nodes, edges, graph_val = map(
 			self.pack, (graph, nodes, edges, graph_val))
-		return self.sql('keyframes_insert', graph, branch, turn, tick, nodes,
-						edges, graph_val)
+		return self.call_one('keyframes_insert', graph, branch, turn, tick,
+								nodes, edges, graph_val)
 
 	def keyframes_insert_many(self, many):
 		pack = self.pack
-		return self.sqlmany('keyframes_insert', [
+		return self.call_many('keyframes_insert', [
 			(pack(graph), branch, turn, tick, pack(nodes), pack(edges),
 				pack(graph_val))
 			for (graph, branch, turn, tick, nodes, edges, graph_val) in many
@@ -316,18 +312,19 @@ class QueryEngine(object):
 	def keyframes_dump(self):
 		unpack = self.unpack
 		for (graph, branch, turn, tick, nodes, edges,
-				graph_val) in self.sql('keyframes_dump'):
+				graph_val) in self.call_one('keyframes_dump'):
 			yield unpack(graph), branch, turn, tick, unpack(nodes), unpack(
 				edges), unpack(graph_val)
 
 	def keyframes_list(self):
 		unpack = self.unpack
-		for (graph, branch, turn, tick) in self.sql('keyframes_list'):
+		for (graph, branch, turn, tick) in self.call_one('keyframes_list'):
 			yield unpack(graph), branch, turn, tick
 
 	def get_keyframe(self, graph, branch, turn, tick):
 		unpack = self.unpack
-		stuff = self.sql('get_keyframe', self.pack(graph), branch, turn, tick)
+		stuff = self.call_one('get_keyframe', self.pack(graph), branch, turn,
+								tick)
 		if not stuff:
 			return
 		nodes, edges, graph_val = stuff[0]
@@ -336,33 +333,33 @@ class QueryEngine(object):
 	def del_graph(self, graph):
 		"""Delete all records to do with the graph"""
 		g = self.pack(graph)
-		self.sql('del_edge_val_graph', g)
-		self.sql('del_node_val_graph', g)
-		self.sql('del_edge_val_graph', g)
-		self.sql('del_edges_graph', g)
-		self.sql('del_nodes_graph', g)
-		self.sql('del_graph', g)
+		self.call_one('del_edge_val_graph', g)
+		self.call_one('del_node_val_graph', g)
+		self.call_one('del_edge_val_graph', g)
+		self.call_one('del_edges_graph', g)
+		self.call_one('del_nodes_graph', g)
+		self.call_one('del_graph', g)
 
 	def graph_type(self, graph):
 		"""What type of graph is this?"""
 		graph = self.pack(graph)
-		return self.sql('graph_type', graph)[0][0]
+		return self.call_one('graph_type', graph)[0][0]
 
 	def have_branch(self, branch):
 		"""Return whether the branch thus named exists in the database."""
-		return bool(self.sql('ctbranch', branch)[0][0])
+		return bool(self.call_one('ctbranch', branch)[0][0])
 
 	def all_branches(self):
 		"""Return all the branch data in tuples of (branch, parent,
 		parent_turn).
 
 		"""
-		return self.sql('branches_dump')
+		return self.call_one('branches_dump')
 
 	def global_get(self, key):
 		"""Return the value for the given key in the ``globals`` table."""
 		key = self.pack(key)
-		r = self.sql('global_get', key)[0]
+		r = self.call_one('global_get', key)[0]
 		if r is None:
 			raise KeyError("Not set")
 		return self.unpack(r[0])
@@ -370,24 +367,24 @@ class QueryEngine(object):
 	def global_items(self):
 		"""Iterate over (key, value) pairs in the ``globals`` table."""
 		unpack = self.unpack
-		dumped = self.sql('global_dump')
+		dumped = self.call_one('global_dump')
 		for (k, v) in dumped:
 			yield (unpack(k), unpack(v))
 
 	def get_branch(self):
-		v = self.sql('global_get', self.pack('branch'))[0]
+		v = self.call_one('global_get', self.pack('branch'))[0]
 		if v is None:
 			return 'trunk'
 		return self.unpack(v[0])
 
 	def get_turn(self):
-		v = self.sql('global_get', self.pack('turn'))[0]
+		v = self.call_one('global_get', self.pack('turn'))[0]
 		if v is None:
 			return 0
 		return self.unpack(v[0])
 
 	def get_tick(self):
-		v = self.sql('global_get', self.pack('tick'))[0]
+		v = self.call_one('global_get', self.pack('tick'))[0]
 		if v is None:
 			return 0
 		return self.unpack(v[0])
@@ -399,66 +396,68 @@ class QueryEngine(object):
 		"""
 		(key, value) = map(self.pack, (key, value))
 		try:
-			return self.sql('global_insert', key, value)
+			return self.call_one('global_insert', key, value)
 		except IntegrityError:
-			return self.sql('global_update', value, key)
+			return self.call_one('global_update', value, key)
 
 	def global_del(self, key):
 		"""Delete the global record for the key."""
 		key = self.pack(key)
-		return self.sql('global_del', key)
+		return self.call_one('global_del', key)
 
 	def new_branch(self, branch, parent, parent_turn, parent_tick):
 		"""Declare that the ``branch`` is descended from ``parent`` at
 		``parent_turn``, ``parent_tick``
 
 		"""
-		return self.sql('branches_insert', branch, parent, parent_turn,
-						parent_tick, parent_turn, parent_tick)
+		return self.call_one('branches_insert', branch, parent, parent_turn,
+								parent_tick, parent_turn, parent_tick)
 
 	def update_branch(self, branch, parent, parent_turn, parent_tick, end_turn,
 						end_tick):
-		return self.sql('update_branches', parent, parent_turn, parent_tick,
-						end_turn, end_tick, branch)
+		return self.call_one('update_branches', parent, parent_turn,
+								parent_tick, end_turn, end_tick, branch)
 
 	def set_branch(self, branch, parent, parent_turn, parent_tick, end_turn,
 					end_tick):
 		try:
-			self.sql('branches_insert', branch, parent, parent_turn,
-						parent_tick, end_turn, end_tick)
+			self.call_one('branches_insert', branch, parent, parent_turn,
+							parent_tick, end_turn, end_tick)
 		except IntegrityError:
 			self.update_branch(branch, parent, parent_turn, parent_tick,
 								end_turn, end_tick)
 
 	def new_turn(self, branch, turn, end_tick=0, plan_end_tick=0):
-		return self.sql('turns_insert', branch, turn, end_tick, plan_end_tick)
+		return self.call_one('turns_insert', branch, turn, end_tick,
+								plan_end_tick)
 
 	def update_turn(self, branch, turn, end_tick, plan_end_tick):
-		return self.sql('update_turns', end_tick, plan_end_tick, branch, turn)
+		return self.call_one('update_turns', end_tick, plan_end_tick, branch,
+								turn)
 
 	def set_turn(self, branch, turn, end_tick, plan_end_tick):
 		try:
-			return self.sql('turns_insert', branch, turn, end_tick,
-							plan_end_tick)
+			return self.call_one('turns_insert', branch, turn, end_tick,
+									plan_end_tick)
 		except IntegrityError:
-			return self.sql('update_turns', end_tick, plan_end_tick, branch,
-							turn)
+			return self.call_one('update_turns', end_tick, plan_end_tick,
+									branch, turn)
 
 	def set_turn_completed(self, branch, turn):
 		try:
-			return self.sql('turns_completed_insert', branch, turn)
+			return self.call_one('turns_completed_insert', branch, turn)
 		except IntegrityError:
-			return self.sql('turns_completed_update', turn, branch)
+			return self.call_one('turns_completed_update', turn, branch)
 
 	def turns_dump(self):
-		return self.sql('turns_dump')
+		return self.call_one('turns_dump')
 
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
 		"""Yield the entire contents of the graph_val table."""
 		self._flush_graph_val()
 		unpack = self.unpack
 		for (graph, key, branch, turn, tick,
-				value) in self.sql('graph_val_dump'):
+				value) in self.call_one('graph_val_dump'):
 			yield (unpack(graph), unpack(key), branch, turn, tick,
 					unpack(value))
 
@@ -475,12 +474,12 @@ class QueryEngine(object):
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
-			it = self.sql('load_graph_val_tick_to_end', pack(graph), branch,
-							turn_from, turn_from, tick_from)
+			it = self.call_one('load_graph_val_tick_to_end', pack(graph),
+								branch, turn_from, turn_from, tick_from)
 		else:
-			it = self.sql('load_graph_val_tick_to_tick', pack(graph), branch,
-							turn_from, turn_from, tick_from, turn_to, turn_to,
-							tick_to)
+			it = self.call_one('load_graph_val_tick_to_tick', pack(graph),
+								branch, turn_from, turn_from, tick_from,
+								turn_to, turn_to, tick_to)
 		for (key, turn, tick, value) in it:
 			yield graph, unpack(key), branch, turn, tick, unpack(value)
 
@@ -489,7 +488,7 @@ class QueryEngine(object):
 		if not self._graphvals2set:
 			return
 		pack = self.pack
-		self.sqlmany(
+		self.call_many(
 			'graph_val_insert',
 			((pack(graph), pack(key), branch, turn, tick, pack(value))
 				for (graph, key, branch, turn, tick,
@@ -504,18 +503,18 @@ class QueryEngine(object):
 
 	def graph_val_del_time(self, branch, turn, tick):
 		self._flush_graph_val()
-		self.sql('graph_val_del_time', branch, turn, tick)
+		self.call_one('graph_val_del_time', branch, turn, tick)
 		self._btts.discard((branch, turn, tick))
 
 	def graphs_types(self):
-		for (graph, typ) in self.sql('graphs_types'):
+		for (graph, typ) in self.call_one('graphs_types'):
 			yield (self.unpack(graph), typ)
 
 	def _flush_nodes(self):
 		if not self._nodes2set:
 			return
 		pack = self.pack
-		self.sqlmany(
+		self.call_many(
 			'nodes_insert',
 			((pack(graph), pack(node), branch, turn, tick, bool(extant))
 				for (graph, node, branch, turn, tick,
@@ -535,7 +534,7 @@ class QueryEngine(object):
 
 	def nodes_del_time(self, branch, turn, tick):
 		self._flush_nodes()
-		self.sql('nodes_del_time', branch, turn, tick)
+		self.call_one('nodes_del_time', branch, turn, tick)
 		self._btts.discard((branch, turn, tick))
 
 	def nodes_dump(self) -> Iterator[NodeRowType]:
@@ -543,7 +542,7 @@ class QueryEngine(object):
 		self._flush_nodes()
 		unpack = self.unpack
 		for (graph, node, branch, turn, tick,
-				extant) in self.sql('nodes_dump'):
+				extant) in self.call_one('nodes_dump'):
 			yield (unpack(graph), unpack(node), branch, turn, tick,
 					bool(extant))
 
@@ -560,12 +559,12 @@ class QueryEngine(object):
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
-			it = self.sql('load_nodes_tick_to_end', pack(graph), branch,
-							turn_from, turn_from, tick_from)
+			it = self.call_one('load_nodes_tick_to_end', pack(graph), branch,
+								turn_from, turn_from, tick_from)
 		else:
-			it = self.sql('load_nodes_tick_to_tick', pack(graph), branch,
-							turn_from, turn_from, tick_from, turn_to, turn_to,
-							tick_to)
+			it = self.call_one('load_nodes_tick_to_tick', pack(graph), branch,
+								turn_from, turn_from, tick_from, turn_to,
+								turn_to, tick_to)
 		for (node, turn, tick, extant) in it:
 			yield graph, unpack(node), branch, turn, tick, extant
 
@@ -574,7 +573,7 @@ class QueryEngine(object):
 		self._flush_node_val()
 		unpack = self.unpack
 		for (graph, node, key, branch, turn, tick,
-				value) in self.sql('node_val_dump'):
+				value) in self.call_one('node_val_dump'):
 			yield (unpack(graph), unpack(node), unpack(key), branch, turn,
 					tick, unpack(value))
 
@@ -591,12 +590,12 @@ class QueryEngine(object):
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
-			it = self.sql('load_node_val_tick_to_end', pack(graph), branch,
-							turn_from, turn_from, tick_from)
+			it = self.call_one('load_node_val_tick_to_end', pack(graph),
+								branch, turn_from, turn_from, tick_from)
 		else:
-			it = self.sql('load_node_val_tick_to_tick', pack(graph), branch,
-							turn_from, turn_from, tick_from, turn_to, turn_to,
-							tick_to)
+			it = self.call_one('load_node_val_tick_to_tick', pack(graph),
+								branch, turn_from, turn_from, tick_from,
+								turn_to, turn_to, tick_to)
 		for (node, key, turn, tick, value) in it:
 			yield graph, unpack(node), unpack(key), branch, turn, tick, unpack(
 				value)
@@ -605,7 +604,7 @@ class QueryEngine(object):
 		if not self._nodevals2set:
 			return
 		pack = self.pack
-		self.sqlmany('node_val_insert',
+		self.call_many('node_val_insert',
 						((pack(graph), pack(node), pack(key), branch, turn,
 							tick, pack(value))
 							for (graph, node, key, branch, turn, tick,
@@ -622,7 +621,7 @@ class QueryEngine(object):
 
 	def node_val_del_time(self, branch, turn, tick):
 		self._flush_node_val()
-		self.sql('node_val_del_time', branch, turn, tick)
+		self.call_one('node_val_del_time', branch, turn, tick)
 		self._btts.discard((branch, turn, tick))
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
@@ -630,7 +629,7 @@ class QueryEngine(object):
 		self._flush_edges()
 		unpack = self.unpack
 		for (graph, orig, dest, idx, branch, turn, tick,
-				extant) in self.sql('edges_dump'):
+				extant) in self.call_one('edges_dump'):
 			yield (unpack(graph), unpack(orig), unpack(dest), idx, branch,
 					turn, tick, bool(extant))
 
@@ -647,12 +646,12 @@ class QueryEngine(object):
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
-			it = self.sql('load_edges_tick_to_end', pack(graph), branch,
-							turn_from, turn_from, tick_from)
+			it = self.call_one('load_edges_tick_to_end', pack(graph), branch,
+								turn_from, turn_from, tick_from)
 		else:
-			it = self.sql('load_edges_tick_to_tick', pack(graph), branch,
-							turn_from, turn_from, tick_from, turn_to, turn_to,
-							tick_to)
+			it = self.call_one('load_edges_tick_to_tick', pack(graph), branch,
+								turn_from, turn_from, tick_from, turn_to,
+								turn_to, tick_to)
 		for (orig, dest, idx, turn, tick, extant) in it:
 			yield graph, unpack(orig), unpack(
 				dest), idx, branch, turn, tick, extant
@@ -667,7 +666,8 @@ class QueryEngine(object):
 		start = monotonic()
 		if not self._edges2set:
 			return
-		self.sqlmany('edges_insert', map(self._pack_edge2set, self._edges2set))
+		self.call_many('edges_insert', map(self._pack_edge2set,
+											self._edges2set))
 		self._edges2set = []
 		QueryEngine.flush_edges_t += monotonic() - start
 
@@ -681,7 +681,7 @@ class QueryEngine(object):
 
 	def edges_del_time(self, branch, turn, tick):
 		self._flush_edges()
-		self.sql('edges_del_time', branch, turn, tick)
+		self.call_one('edges_del_time', branch, turn, tick)
 		self._btts.discard((branch, turn, tick))
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
@@ -689,7 +689,7 @@ class QueryEngine(object):
 		self._flush_edge_val()
 		unpack = self.unpack
 		for (graph, orig, dest, idx, key, branch, turn, tick,
-				value) in self.sql('edge_val_dump'):
+				value) in self.call_one('edge_val_dump'):
 			yield (unpack(graph), unpack(orig), unpack(dest), idx, unpack(key),
 					branch, turn, tick, unpack(value))
 
@@ -706,12 +706,12 @@ class QueryEngine(object):
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
-			it = self.sql('load_edge_val_tick_to_end', pack(graph), branch,
-							turn_from, turn_from, tick_from)
+			it = self.call_one('load_edge_val_tick_to_end', pack(graph),
+								branch, turn_from, turn_from, tick_from)
 		else:
-			it = self.sql('load_edge_val_tick_to_tick', pack(graph), branch,
-							turn_from, turn_from, tick_from, turn_to, turn_to,
-							tick_to)
+			it = self.call_one('load_edge_val_tick_to_tick', pack(graph),
+								branch, turn_from, turn_from, tick_from,
+								turn_to, turn_to, tick_to)
 		for (orig, dest, idx, key, turn, tick, value) in it:
 			yield graph, unpack(orig), unpack(dest), idx, unpack(
 				key), branch, turn, tick, unpack(value)
@@ -725,7 +725,7 @@ class QueryEngine(object):
 	def _flush_edge_val(self):
 		if not self._edgevals2set:
 			return
-		self.sqlmany('edge_val_insert',
+		self.call_many('edge_val_insert',
 						map(self._pack_edgeval2set, self._edgevals2set))
 		self._edgevals2set = []
 
@@ -740,26 +740,26 @@ class QueryEngine(object):
 
 	def edge_val_del_time(self, branch, turn, tick):
 		self._flush_edge_val()
-		self.sql('edge_val_del_time', branch, turn, tick)
+		self.call_one('edge_val_del_time', branch, turn, tick)
 		self._btts.discard((branch, turn, tick))
 
 	def plans_dump(self):
-		return self.sql('plans_dump')
+		return self.call_one('plans_dump')
 
 	def plans_insert(self, plan_id, branch, turn, tick):
-		return self.sql('plans_insert', plan_id, branch, turn, tick)
+		return self.call_one('plans_insert', plan_id, branch, turn, tick)
 
 	def plans_insert_many(self, many):
-		return self.sqlmany('plans_insert', many)
+		return self.call_many('plans_insert', many)
 
 	def plan_ticks_insert(self, plan_id, turn, tick):
-		return self.sql('plan_ticks_insert', plan_id, turn, tick)
+		return self.call_one('plan_ticks_insert', plan_id, turn, tick)
 
 	def plan_ticks_insert_many(self, many):
-		return self.sqlmany('plan_ticks_insert', many)
+		return self.call_many('plan_ticks_insert', many)
 
 	def plan_ticks_dump(self):
-		return self.sql('plan_ticks_dump')
+		return self.call_one('plan_ticks_dump')
 
 	def flush(self):
 		"""Put all pending changes into the SQL transaction."""
@@ -823,7 +823,7 @@ class QueryEngine(object):
 		"""Delete all data from every table"""
 		for table in self.tables:
 			try:
-				self.sql('truncate_' + table)
+				self.call_one('truncate_' + table)
 			except OperationalError:
 				pass  # table wasn't created yet
 		self.commit()
