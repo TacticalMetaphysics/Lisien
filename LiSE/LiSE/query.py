@@ -99,8 +99,6 @@ def windows_intersection(
 	"""
 
 	def intersect2(left, right):
-		if left > right:
-			(left, right) = (right, left)
 		if left == right:
 			return left
 		elif left == (None, None):
@@ -124,6 +122,8 @@ def windows_intersection(
 				return left[0], right[1]
 			elif left[0] <= right[0]:
 				return right
+			elif right[1] is None:
+				return max((left[0], right[0])), None
 			elif left[0] <= right[1]:
 				return left[0], right[1]
 			else:
@@ -136,6 +136,8 @@ def windows_intersection(
 				return right[0], left[1]
 			else:
 				return None
+		if left > right:
+			(left, right) = (right, left)
 		if left[1] >= right[0]:
 			if right[1] > left[1]:
 				return right[0], left[1]
