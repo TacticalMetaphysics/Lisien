@@ -1482,7 +1482,18 @@ class Engine(AbstractEngine, gORM):
 			sel = make_select_from_query(qry, list(branches), self.pack,
 											mid_turn)
 			res = set()
-			for tup in self.query.execute(sel):
+			# this passes for the end of time, currently
+			end = self._branches[self.branch][-2] + 1
+
+			def upd(turn_from, turn_to):
+				assert turn_from is not None
+				if turn_to is None:
+					res.update(range(turn_from, end))
+				else:
+					res.update(range(turn_from, turn_to))
+
+			tups = self.query.execute(sel)
+			for tup in tups:
 				if len(tup) == 8:
 					(left_turn_from, left_tick_from, left_turn_to,
 						left_tick_to, right_turn_from, right_tick_from,
@@ -1491,7 +1502,7 @@ class Engine(AbstractEngine, gORM):
 						(left_turn_from, left_turn_to),
 						(right_turn_from, right_turn_to)
 					]):
-						res.update(range(turn_from, turn_to + 1))
+						upd(turn_from, turn_to)
 				elif len(tup) == 4:
 					(left_turn_from, left_turn_to, right_turn_from,
 						right_turn_to) = tup
@@ -1499,9 +1510,9 @@ class Engine(AbstractEngine, gORM):
 						(left_turn_from, left_turn_to),
 						(right_turn_from, right_turn_to)
 					]):
-						res.update(range(turn_from, turn_to + 1))
+						upd(turn_from, turn_to)
 				elif len(tup) == 2:
-					res.update(range(tup[0], tup[1] + 1))
+					upd(*tup)
 				else:
 					raise RuntimeError("make_select_from_query went bad")
 			return res
