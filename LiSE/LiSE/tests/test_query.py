@@ -54,17 +54,17 @@ def roommate_collisions(college24_premade):
 		student = chara
 		other_student = engine.character['dorm{}room{}student{}'.format(
 			dorm, room, other_student)]
-
-		same_loc_turns = list(
-			engine.turns_when(
-				student.unit.only.historical('location') ==
-				other_student.unit.only.historical('location')))
+		cond = student.unit.only.historical(
+			'location') == other_student.unit.only.historical('location')
+		same_loc_turns = {turn for (branch, turn) in cond.iter_turns()}
 		assert same_loc_turns, "{} and {} don't seem to share a room".format(
 			student.name, other_student.name)
 		assert len(
 			same_loc_turns
 		) >= 6, "{} and {} did not share their room for at least 6 turns".format(
 			student.name, other_student.name)
+
+		assert same_loc_turns == engine.turns_when(cond)
 
 		done.add(student.name)
 		done.add(other_student.name)
