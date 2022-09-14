@@ -95,6 +95,9 @@ def windows_intersection(
 		windows: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
 	"""Given a list of (beginning, ending), return another describing where they overlap.
 
+	Only ever returns one item, but puts it in a list anyway, to be like
+	``windows_union``.
+
 	:rtype: list
 	"""
 
