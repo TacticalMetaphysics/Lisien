@@ -785,14 +785,9 @@ class ORM:
 					clear=False,
 					connect_args: dict = None,
 					cache_arranger=False):
-		"""Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
-		either case, begin a transaction.
+		"""Make a SQLAlchemy engine and begin a transaction
 
-		:arg dbstring: rfc1738 URL for a database connection. Unless it
-		begins with "sqlite:///", SQLAlchemy will be required.
-
-		:arg alchemy: Set to ``False`` to use the precompiled SQLite queries
-		even if SQLAlchemy is available.
+		:arg dbstring: rfc1738 URL for a database connection.
 		
 		:arg connect_args: Dictionary of
 		keyword arguments to be used for the database connection.
