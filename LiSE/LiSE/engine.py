@@ -31,7 +31,7 @@ from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
 						DeltaType, world_locked)
 from .util import sort_set, EntityStatAccessor, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
-from .query import Query
+from .query import Query, windows_intersection, make_select_from_query
 from . import exc
 
 
@@ -1467,14 +1467,6 @@ class Engine(AbstractEngine, gORM):
 				  ``historical(..)``
 
 		"""
-
-		try:
-			import sqlalchemy
-			from .query import (windows_intersection, make_select_from_query)
-		except ImportError:
-			if mid_turn:
-				raise NotImplementedError("Need SQLAlchemy to do mid_turn")
-			return {turn for (branch, turn) in qry.iter_times()}
 		# Make a select statement that gets the turns when the predicate held true
 		try:
 			branches = set()
