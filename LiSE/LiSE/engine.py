@@ -1473,7 +1473,7 @@ class Engine(AbstractEngine, gORM):
 		except ImportError:
 			if mid_turn:
 				raise NotImplementedError("Need SQLAlchemy to do mid_turn")
-			return {turn for (branch, turn) in qry.iter_turns()}
+			return {turn for (branch, turn) in qry.iter_times()}
 		# Make a select statement that gets the turns when the predicate held true
 		try:
 			branches = set()
@@ -1519,7 +1519,7 @@ class Engine(AbstractEngine, gORM):
 		except NotImplementedError:
 			if mid_turn:
 				raise NotImplementedError("Can't do mid_turn this way yet")
-			return {turn for (branch, turn) in qry.iter_turns()}
+			return {turn for (branch, turn) in qry.iter_times()}
 
 	def _node_contents(self, character: Hashable, node: Hashable) -> Set:
 		return self._node_contents_cache.retrieve(character, node,

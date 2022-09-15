@@ -56,7 +56,7 @@ def roommate_collisions(college24_premade):
 			dorm, room, other_student)]
 		cond = student.unit.only.historical(
 			'location') == other_student.unit.only.historical('location')
-		same_loc_turns = {turn for (branch, turn) in cond.iter_turns()}
+		same_loc_turns = {turn for (branch, turn) in cond.iter_times()}
 		assert same_loc_turns, "{} and {} don't seem to share a room".format(
 			student.name, other_student.name)
 		assert len(
