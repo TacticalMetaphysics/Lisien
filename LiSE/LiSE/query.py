@@ -413,7 +413,7 @@ class Query(object):
 		me.engine = engine
 		return me
 
-	def iter_turns(self):
+	def iter_times(self):
 		raise NotImplementedError
 
 	def iter_ticks(self, turn):
@@ -445,7 +445,7 @@ class Union(Query):
 class ComparisonQuery(Query):
 	oper: Callable[[Any, Any], bool] = lambda x, y: NotImplemented
 
-	def iter_turns(self):
+	def iter_times(self):
 		return slow_iter_turns_eval_cmp(self, self.oper, engine=self.engine)
 
 
@@ -513,7 +513,7 @@ def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
 
 	def mungeside(side):
 		if isinstance(side, Query):
-			return side.iter_turns
+			return side.iter_times
 		elif isinstance(side, StatusAlias):
 			return EntityStatAccessor(side.entity, side.stat, side.engine,
 										side.branch, side.turn, side.tick,
