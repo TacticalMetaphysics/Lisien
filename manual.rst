@@ -11,8 +11,7 @@ not graphics or physics or anything -- is very large. Like how The
 Sims tracks sims' opinions of one another, their likes and dislikes
 and so forth, even for the ones you never talk to and have shown no
 interest in. If you streamline a life sim to where it doesn't have
-extraneous detail complexity you lose a huge part of what makes it
-lifelike.
+extraneous detail, you lose a huge part of what makes it lifelike.
 
 This causes trouble for developers when even *they* don't really
 understand why sims hate each other, and even if they do, failures of
