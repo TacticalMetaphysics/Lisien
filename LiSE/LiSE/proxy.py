@@ -2198,8 +2198,6 @@ class EngineProxy(AbstractEngine):
 			self.send_bytes(self.pack(kwargs))
 			received = self.recv_bytes()
 			command, branch, turn, tick, r = self.unpack(received)
-			assert cmd == command, "Sent command {} but received results for {}".format(
-				cmd, command)
 			self.debug('EngineProxy: received {}'.format(
 				(command, branch, turn, tick, r)))
 			if (branch, turn, tick) != self._btt():
@@ -2210,6 +2208,9 @@ class EngineProxy(AbstractEngine):
 			if isinstance(r, Exception):
 				self._handle_lock.release()
 				raise r
+			if cmd != command:
+				raise RuntimeError(
+					f"Sent command {cmd}, but received results for {command}")
 			if cb:
 				cb(command=command,
 					branch=branch,
