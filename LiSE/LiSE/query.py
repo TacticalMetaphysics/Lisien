@@ -348,53 +348,59 @@ def _msfq_end_turn(qry,
 						qry.oper(left_sel.c[left_col], right_sel.c[right_col]))
 
 
+def _getcol(qry: "Query"):
+	from .thing import Thing
+	if isinstance(qry.entity, Thing) and qry.stat == 'location':
+		return 'location'
+	return 'value'
+
+
 def make_select_from_query(qry: "Query", branches: List[str], pack: callable,
 							mid_turn: bool):
-	from .thing import Thing
+	if isinstance(qry, EqQuery):
+		return _make_select_from_eq_query(qry, branches, pack, mid_turn)
+	raise NotImplementedError("Only EqQuery for now")
+
+
+def _make_select_from_eq_query(qry: "EqQuery", branches: List[str],
+								pack: callable, mid_turn: bool):
 	left = qry.leftside
 	right = qry.rightside
-
-	def getcol(queary):
-		if isinstance(queary.entity, Thing) and queary.stat == 'location':
-			return 'location'
-		return 'value'
-
-	if isinstance(left, StatusAlias) and isinstance(
-		right, StatusAlias) and isinstance(qry, ComparisonQuery):
+	if isinstance(left, StatusAlias) and isinstance(right, StatusAlias):
 		left_sel = make_side_sel(left.entity, left.stat, branches, pack,
 									mid_turn)
 		right_sel = make_side_sel(right.entity, right.stat, branches, pack,
 									mid_turn)
 		if mid_turn:
-			return _msfq_mid_turn(qry, left_sel, right_sel, getcol(left),
-									getcol(right))
+			return _msfq_mid_turn(qry, left_sel, right_sel, _getcol(left),
+									_getcol(right))
 		else:
-			return _msfq_end_turn(qry, left_sel, right_sel, getcol(left),
-									getcol(right))
+			return _msfq_end_turn(qry, left_sel, right_sel, _getcol(left),
+									_getcol(right))
 
-	elif isinstance(right, StatusAlias) and isinstance(qry, ComparisonQuery):
+	elif isinstance(right, StatusAlias):
 		right_sel = make_side_sel(right.entity, right.stat, branches, pack,
 									mid_turn)
 		if mid_turn:
 			return select(right_sel.c.turn_from, right_sel.c.tick_from,
 							right_sel.c.turn_to, right_sel.c.tick_to).where(
 								qry.oper(pack(left),
-											right_sel.c[getcol(right)]))
+											right_sel.c[_getcol(right)]))
 		else:
 			return select(right_sel.c.turn_from, right_sel.c.turn_to).where(
-				qry.oper(pack(left), right_sel.c[getcol(right)]))
+				qry.oper(pack(left), right_sel.c[_getcol(right)]))
 
-	elif isinstance(left, StatusAlias) and isinstance(qry, ComparisonQuery):
+	elif isinstance(left, StatusAlias):
 		left_sel = make_side_sel(left.entity, left.stat, branches, pack,
 									mid_turn)
 		if mid_turn:
 			return select(left_sel.c.turn_from, left_sel.c.tick_from,
 							left_sel.c.turn_to, left_sel.c.tick_to).where(
-								qry.oper(left_sel.c[getcol(left)],
+								qry.oper(left_sel.c[_getcol(left)],
 											pack(right)))
 		else:
 			return select(left_sel.c.turn_from, left_sel.c.turn_to).where(
-				qry.oper(left_sel.c[getcol(left)], pack(right)))
+				qry.oper(left_sel.c[_getcol(left)], pack(right)))
 	else:
 		raise NotImplementedError("oh no, can't do that")
 
