@@ -179,3 +179,31 @@ def test_graph_val_select_eq(engy):
 	qry = foo_alias == qux_alias
 	assert engy.turns_when(qry) == {1}
 	assert engy.turns_when(qry, mid_turn=True) == {1, 2}
+
+
+def test_graph_val_select_lt_gt(engy):
+	me = engy.new_character('me')
+	me.stat['foo'] = 10
+	me.stat['bar'] = 1
+	engy.next_turn()
+	me.stat['foo'] = 2
+	me.stat['bar'] = 8
+	engy.next_turn()
+	me.stat['foo'] = 3
+	engy.next_turn()
+	me.stat['foo'] = 9
+	engy.next_turn()
+	engy.branch = 'leaf'
+	me.stat['bar'] = 5
+	engy.next_turn()
+	me.stat['bar'] = 2
+	engy.next_turn()
+	me.stat['bar'] = 10
+	engy.next_turn()
+	me.stat['bar'] = 1
+	engy.next_turn()
+	me.stat['bar'] = 10
+	foo_hist = me.historical('foo')
+	bar_hist = me.historical('bar')
+	assert engy.turns_when(foo_hist < bar_hist) == {1, 2, 5, 7}
+	assert engy.turns_when(foo_hist > bar_hist) == {0, 3, 4, 6}
