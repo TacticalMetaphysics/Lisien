@@ -1417,11 +1417,11 @@ class ORM:
 			parturn = self._branches[v][1]
 			if curturn < parturn:
 				raise OutOfTimelineError(
-					"Tried to jump to branch {br}, "
-					"which starts at turn {rv}. "
+					"Tried to jump to branch {br} at turn {tr}, "
+					"but {br} starts at turn {rv}. "
 					"Go to turn {rv} or later to use this branch.".format(
-						br=v, rv=parturn), self.branch, self.turn, self.tick,
-					v, self.turn, self.tick)
+						br=v, tr=self.turn, rv=parturn), self.branch,
+					self.turn, self.tick, v, self.turn, self.tick)
 		branch_is_new = v not in self._branches
 		if branch_is_new:
 			# assumes the present turn in the parent branch has
