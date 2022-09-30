@@ -29,7 +29,7 @@ from queue import Queue
 from threading import Thread
 from typing import Any, List, Callable, Tuple
 
-from sqlalchemy import select, and_, or_, not_, case, Table
+from sqlalchemy import select, and_, or_, not_, literal, Table
 from sqlalchemy.sql.functions import func
 from .alchemy import meta, gather_sql
 
@@ -402,7 +402,7 @@ def _make_select_from_eq_query(qry: "EqQuery", branches: List[str],
 			return select(left_sel.c.turn_from, left_sel.c.turn_to).where(
 				qry.oper(left_sel.c[_getcol(left)], pack(right)))
 	else:
-		raise NotImplementedError("oh no, can't do that")
+		return select(literal(left) == literal(right))
 
 
 class Query(object):
