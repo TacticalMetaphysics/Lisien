@@ -349,9 +349,9 @@ def _msfq_end_turn(qry,
 						qry.oper(left_sel.c[left_col], right_sel.c[right_col]))
 
 
-def _getcol(qry: "Query"):
+def _getcol(alias: "StatusAlias"):
 	from .thing import Thing
-	if isinstance(qry.entity, Thing) and qry.stat == 'location':
+	if isinstance(alias.entity, Thing) and alias.stat == 'location':
 		return 'location'
 	return 'value'
 
