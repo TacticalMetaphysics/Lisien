@@ -1508,7 +1508,7 @@ class Engine(AbstractEngine, gORM):
 						left_data, [(0, self.turn, right)])
 			elif isinstance(right, StatusAlias):
 				right_sel = make_side_sel(right.entity, right.stat, branches,
-											mid_turn)
+											self.pack, mid_turn)
 				right_data = self.query.execute(right_sel)
 				if mid_turn:
 					_, turn, tick = self._btt()
