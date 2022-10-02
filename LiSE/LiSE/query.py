@@ -21,6 +21,7 @@ result you'll get a callable object that will return an iterator over
 turn numbers in which the comparison evaluated to ``True``.
 
 """
+import operator
 from collections.abc import MutableMapping
 from operator import gt, lt, eq, ne, le, ge
 from functools import partialmethod
@@ -355,14 +356,7 @@ def _getcol(qry: "Query"):
 	return 'value'
 
 
-def make_select_from_query(qry: "Query", branches: List[str], pack: callable,
-							mid_turn: bool):
-	if isinstance(qry, EqQuery):
-		return _make_select_from_eq_query(qry, branches, pack, mid_turn)
-	raise NotImplementedError("Only EqQuery for now")
-
-
-def _make_select_from_eq_query(qry: "EqQuery", branches: List[str],
+def make_select_from_eq_query(qry: "EqQuery", branches: List[str],
 								pack: callable, mid_turn: bool):
 	left = qry.leftside
 	right = qry.rightside
@@ -405,7 +399,16 @@ def _make_select_from_eq_query(qry: "EqQuery", branches: List[str],
 		return select(literal(left) == literal(right))
 
 
+def combine_chronological_data_end_turn(left: list, right: list) -> list:
+	raise NotImplementedError("not yet")
+
+
+def combine_chronological_data_mid_turn(left: list, right: list) -> list:
+	raise NotImplementedError("not yet")
+
+
 class Query(object):
+	oper: Callable[[Any, Any], Any] = lambda x, y: NotImplemented
 
 	def __new__(cls, engine, leftside, rightside=None, **kwargs):
 		if rightside is None:
@@ -444,10 +447,6 @@ class Query(object):
 		return NeQuery(self.engine, self, self.engine._entityfy(other))
 
 
-class Union(Query):
-	pass
-
-
 class ComparisonQuery(Query):
 	oper: Callable[[Any, Any], bool] = lambda x, y: NotImplemented
 
@@ -477,6 +476,22 @@ class GeQuery(ComparisonQuery):
 
 class LeQuery(ComparisonQuery):
 	oper = le
+
+
+class CompoundQuery(Query):
+	oper: Callable[[Any, Any], set] = lambda x, y: NotImplemented
+
+
+class UnionQuery(CompoundQuery):
+	oper = operator.or_
+
+
+class IntersectionQuery(CompoundQuery):
+	oper = operator.and_
+
+
+class MinusQuery(CompoundQuery):
+	oper = operator.sub
 
 
 comparisons = {
