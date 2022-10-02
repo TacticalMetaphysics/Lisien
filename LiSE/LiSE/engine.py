@@ -32,9 +32,10 @@ from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
 						DeltaType, world_locked)
 from .util import sort_set, EntityStatAccessor, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
-from .query import (Query, EqQuery, make_side_sel, windows_intersection,
-					make_select_from_eq_query, StatusAlias, ComparisonQuery,
-					CompoundQuery, combine_chronological_data_end_turn,
+from .query import (Query, EqQuery, NeQuery, make_side_sel,
+					windows_intersection, make_select_from_eq_query,
+					StatusAlias, ComparisonQuery, CompoundQuery,
+					combine_chronological_data_end_turn,
 					combine_chronological_data_mid_turn)
 from . import exc
 
@@ -1477,7 +1478,7 @@ class Engine(AbstractEngine, gORM):
 							self.turns_when(qry.rightside, mid_turn))
 		self.query.flush()
 		branches = list({branch for branch, _, _ in self._iter_parent_btt()})
-		if not isinstance(qry, EqQuery):
+		if not isinstance(qry, EqQuery) and not isinstance(qry, NeQuery):
 			left = qry.leftside
 			right = qry.rightside
 			if isinstance(left, StatusAlias) and isinstance(
