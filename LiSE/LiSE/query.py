@@ -28,7 +28,7 @@ from functools import partialmethod
 from time import monotonic
 from queue import Queue
 from threading import Thread
-from typing import Any, List, Callable, Tuple
+from typing import Any, List, Callable, Tuple, Union
 
 from sqlalchemy import select, and_, or_, not_, literal, Table
 from sqlalchemy.sql.functions import func
@@ -356,7 +356,8 @@ def _getcol(qry: "Query"):
 	return 'value'
 
 
-def make_select_from_eq_query(qry: "EqQuery", branches: List[str],
+def make_select_from_eq_query(qry: Union["EqQuery",
+											"NeQuery"], branches: List[str],
 								pack: callable, mid_turn: bool):
 	left = qry.leftside
 	right = qry.rightside
