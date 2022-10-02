@@ -24,6 +24,7 @@ from typing import Union, Tuple, Any, Set, List, Type, Hashable
 from os import PathLike
 from abc import ABC, abstractmethod
 
+import numpy as np
 from networkx import Graph
 from blinker import Signal
 from .allegedb import ORM as gORM
@@ -31,7 +32,10 @@ from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
 						DeltaType, world_locked)
 from .util import sort_set, EntityStatAccessor, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
-from .query import Query, windows_intersection, make_select_from_query
+from .query import (Query, EqQuery, make_side_sel, windows_intersection,
+					make_select_from_eq_query, StatusAlias, ComparisonQuery,
+					CompoundQuery, combine_chronological_data_end_turn,
+					combine_chronological_data_mid_turn)
 from . import exc
 
 
@@ -1467,12 +1471,64 @@ class Engine(AbstractEngine, gORM):
 				  ``historical(..)``
 
 		"""
+		if not isinstance(qry, ComparisonQuery):
+			if not isinstance(qry, CompoundQuery):
+				raise TypeError("Unsupported query type: " + repr(type(qry)))
+			return qry.oper(self.turns_when(qry.leftside, mid_turn),
+							self.turns_when(qry.rightside, mid_turn))
+		self.query.flush()
+		branches = list({branch for branch, _, _ in self._iter_parent_btt()})
+		if not isinstance(qry, EqQuery):
+			left = qry.leftside
+			right = qry.rightside
+			if isinstance(left, StatusAlias) and isinstance(
+				right, StatusAlias):
+				left_sel = make_side_sel(left.entity, left.stat, branches,
+											self.pack, mid_turn)
+				right_sel = make_side_sel(left.entity, left.stat, branches,
+											self.pack, mid_turn)
+				left_data = self.query.execute(left_sel)
+				right_data = self.query.execute(right_sel)
+				if mid_turn:
+					data = combine_chronological_data_mid_turn(
+						left_data, right_data)
+				else:
+					data = combine_chronological_data_end_turn(
+						left_data, right_data)
+			elif isinstance(left, StatusAlias):
+				left_sel = make_side_sel(left.entity, left.stat, branches,
+											self.pack, mid_turn)
+				left_data = self.query.execute(left_sel)
+				if mid_turn:
+					_, turn, tick = self._btt()
+					data = combine_chronological_data_mid_turn(
+						left_data, [(0, 0, turn, tick, right)])
+				else:
+					data = combine_chronological_data_end_turn(
+						left_data, [(0, self.turn, right)])
+			elif isinstance(right, StatusAlias):
+				right_sel = make_side_sel(right.entity, right.stat, branches,
+											mid_turn)
+				right_data = self.query.execute(right_sel)
+				if mid_turn:
+					_, turn, tick = self._btt()
+					data = combine_chronological_data_mid_turn(
+						[(0, 0, turn, tick, left)], right_data)
+				else:
+					data = combine_chronological_data_end_turn(
+						[(0, self.turn, left)], right_data)
+			else:
+				if qry.oper(left, right):
+					return set(range(0, self.turn))
+				else:
+					return set()
+			if mid_turn:
+				raise NotImplementedError("oops")
+			else:
+				raise NotImplementedError("oops")
 		# Make a select statement that gets the turns when the predicate held true
 		try:
-			branches = set()
-			for branch, _, _ in self._iter_parent_btt():
-				branches.add(branch)
-			sel = make_select_from_query(qry, list(branches), self.pack,
+			sel = make_select_from_eq_query(qry, list(branches), self.pack,
 											mid_turn)
 			res = set()
 			# this passes for the end of time, currently
