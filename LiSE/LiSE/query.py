@@ -401,7 +401,80 @@ def make_select_from_eq_query(qry: Union["EqQuery",
 
 
 def combine_chronological_data_end_turn(left: list, right: list) -> list:
-	raise NotImplementedError("not yet")
+	if not (left and right):
+		raise ValueError("Not enough data")
+	output = []
+
+	def prev_lhs2():
+		if output:
+			return output[-1][-2]
+
+	def prev_rhs2():
+		if output:
+			return output[-1][-1]
+
+	left = list(reversed(left))
+	right = list(reversed(right))
+	lhs = left.pop()
+	rhs = right.pop()
+	while left or right:
+		if (lhs[0], lhs[1]) == (rhs[0], rhs[1]):
+			output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
+			lhs = left.pop()
+			rhs = right.pop()
+			continue
+		elif None not in (lhs[1], rhs[1]):
+			# should always overlap a little
+			assert not (lhs[1] < rhs[0] or lhs[0] > rhs[1])
+
+			# rhs contained in lhs
+			if lhs[0] <= rhs[0] <= rhs[1] <= lhs[1]:
+				output.extend(((lhs[0], rhs[0], lhs[2], prev_rhs2()),
+								(rhs[0], rhs[1], lhs[2], rhs[2])))
+				prev_rhs1 = rhs[1]
+				rhs = right.pop()
+				output.append((prev_rhs1, lhs[1], lhs[2], rhs[2]))
+				lhs = left.pop()
+			# lhs contained in rhs
+			elif rhs[0] <= lhs[0] <= lhs[1] <= rhs[1]:
+				output.extend(((rhs[0], lhs[0], prev_lhs2(), rhs[2]),
+								(lhs[0], lhs[1], lhs[2], rhs[2])))
+				prev_lhs1 = lhs[1]
+				lhs = left.pop()
+				output.append((prev_lhs1, rhs[1], lhs[2], rhs[2]))
+				rhs = right.pop()
+			# lhs really is on the left side of rhs, overlapping
+			elif lhs[0] <= rhs[0] <= lhs[1] <= rhs[1]:
+				output.extend(((lhs[0], rhs[0], lhs[2], prev_rhs2()),
+								(rhs[0], lhs[1], lhs[2], rhs[2])))
+				prev_lhs1 = lhs[1]
+				lhs = left.pop()
+				output.append((prev_lhs1, rhs[1], lhs[2], rhs[2]))
+				rhs = right.pop()
+			# lhs is actually on the right side of rhs, overlapping
+			elif rhs[0] <= lhs[0] <= rhs[1] <= lhs[1]:
+				output.extend(((rhs[0], lhs[0], prev_lhs2(), rhs[2]),
+								(lhs[0], rhs[1], lhs[2], rhs[2])))
+				prev_rhs1 = rhs[1]
+				rhs = right.pop()
+				output.append((prev_rhs1, lhs[1], rhs[2], lhs[2]))
+				lhs = left.pop()
+			else:
+				assert False, "Can't happen"
+			continue
+		elif lhs[1] is None and rhs[1] is None:
+			if lhs[0] < rhs[0]:
+				output.append((lhs[0], None, lhs[2], rhs[2]))
+			else:
+				output.append((rhs[0], None, lhs[2], rhs[2]))
+			return output
+		elif lhs[1] is None:
+			NotImplementedError
+		elif rhs[1] is None:
+			raise NotImplementedError
+		else:
+			assert False, "Can't happen"
+	return output
 
 
 def combine_chronological_data_mid_turn(left: list, right: list) -> list:
