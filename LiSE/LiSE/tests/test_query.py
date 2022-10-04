@@ -16,7 +16,7 @@ import re
 from functools import reduce
 from collections import defaultdict
 from ..engine import Engine
-from ..query import windows_intersection
+from ..query import windows_intersection, combine_chronological_data_end_turn
 import pytest
 import os
 import shutil
@@ -207,3 +207,13 @@ def test_graph_val_select_lt_gt(engy):
 	bar_hist = me.historical('bar')
 	assert engy.turns_when(foo_hist < bar_hist) == {1, 2, 5, 7}
 	assert engy.turns_when(foo_hist > bar_hist) == {0, 3, 4, 6}
+
+
+def test_combine_chronological_data_end_turn():
+	left = [(0, 1, 'foo'), (1, 5, 'boo'), (5, 9, 'gru'), (9, 10, None),
+			(10, None, 'foo')]
+	right = [(0, 1, 'bar'), (1, 3, 'baz'), (3, None, 'bau')]
+	correct = [(0, 1, 'foo', 'bar'), (1, 3, 'boo', 'baz'),
+				(3, 5, 'boo', 'bau'), (5, 9, 'gru', 'bau'),
+				(9, 10, None, 'bau'), (10, None, 'foo', 'bau')]
+	assert combine_chronological_data_end_turn(left, right) == correct
