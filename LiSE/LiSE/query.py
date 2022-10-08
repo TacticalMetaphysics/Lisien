@@ -469,7 +469,7 @@ def combine_chronological_data_end_turn(left: list, right: list) -> list:
 				output.append((rhs[0], None, lhs[2], rhs[2]))
 			return output
 		elif lhs[1] is None:
-			NotImplementedError
+			raise NotImplementedError
 		elif rhs[1] is None:
 			raise NotImplementedError
 		else:
