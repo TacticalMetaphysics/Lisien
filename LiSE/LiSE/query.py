@@ -429,16 +429,20 @@ def combine_chronological_data_end_turn(left: list, right: list) -> list:
 
 			# rhs contained in lhs
 			if lhs[0] <= rhs[0] <= rhs[1] <= lhs[1]:
-				output.extend(((lhs[0], rhs[0], lhs[2], prev_rhs2()),
-								(rhs[0], rhs[1], lhs[2], rhs[2])))
+				if lhs[0] != rhs[0]:
+					assert rhs[0] > lhs[0]
+					output.append((lhs[0], rhs[0], lhs[2], prev_rhs2()))
+				output.append((rhs[0], rhs[1], lhs[2], rhs[2]))
 				prev_rhs1 = rhs[1]
 				rhs = right.pop()
 				output.append((prev_rhs1, lhs[1], lhs[2], rhs[2]))
 				lhs = left.pop()
 			# lhs contained in rhs
 			elif rhs[0] <= lhs[0] <= lhs[1] <= rhs[1]:
-				output.extend(((rhs[0], lhs[0], prev_lhs2(), rhs[2]),
-								(lhs[0], lhs[1], lhs[2], rhs[2])))
+				if rhs[0] != lhs[0]:
+					assert lhs[0] > rhs[0]
+					output.append((rhs[0], lhs[0], prev_lhs2(), rhs[2]))
+				output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
 				prev_lhs1 = lhs[1]
 				lhs = left.pop()
 				output.append((prev_lhs1, rhs[1], lhs[2], rhs[2]))
