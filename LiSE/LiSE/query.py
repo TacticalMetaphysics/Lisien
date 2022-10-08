@@ -417,7 +417,7 @@ def combine_chronological_data_end_turn(left: list, right: list) -> list:
 	right = list(reversed(right))
 	lhs = left.pop()
 	rhs = right.pop()
-	while left or right:
+	while (left and right) or lhs[1] is None or rhs[1] is None:
 		if (lhs[0], lhs[1]) == (rhs[0], rhs[1]):
 			output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
 			lhs = left.pop()
@@ -469,7 +469,7 @@ def combine_chronological_data_end_turn(left: list, right: list) -> list:
 		elif lhs[1] is None and rhs[1] is None:
 			if left or right:
 				raise ValueError("Invalid left and right side")
-			if lhs[0] < rhs[0]:
+			if lhs[0] > rhs[0]:
 				output.append((lhs[0], None, lhs[2], rhs[2]))
 			else:
 				output.append((rhs[0], None, lhs[2], rhs[2]))
@@ -482,6 +482,9 @@ def combine_chronological_data_end_turn(left: list, right: list) -> list:
 			else:
 				output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
 			rhs = right.pop()
+			if not right:
+				return output
+			continue
 		elif rhs[1] is None:
 			if right:
 				raise ValueError("Invalid right side")
@@ -490,6 +493,9 @@ def combine_chronological_data_end_turn(left: list, right: list) -> list:
 			else:
 				output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
 			lhs = left.pop()
+			if not left:
+				return output
+			continue
 		else:
 			assert False, "Can't happen"
 	return output
