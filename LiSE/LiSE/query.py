@@ -401,8 +401,12 @@ def make_select_from_eq_query(qry: Union["EqQuery",
 
 
 def combine_chronological_data_end_turn(left: list, right: list) -> list:
-	if not (left and right):
+	if not (left or right):
 		raise ValueError("Not enough data")
+	if not left:
+		return [(rhs[0], rhs[1], None, rhs[2]) for rhs in right]
+	if not right:
+		return [(lhs[0], lhs[1], lhs[2], None) for lhs in left]
 	output = []
 
 	def prev_lhs2():
