@@ -483,6 +483,10 @@ def combine_chronological_data_end_turn(left: list, right: list) -> list:
 				output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
 			rhs = right.pop()
 			if not right:
+				if rhs[0] >= lhs[0]:
+					output.append((rhs[0], rhs[1], lhs[2], rhs[2]))
+				else:
+					output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
 				return output
 			continue
 		elif rhs[1] is None:
@@ -494,6 +498,10 @@ def combine_chronological_data_end_turn(left: list, right: list) -> list:
 				output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
 			lhs = left.pop()
 			if not left:
+				if lhs[0] >= rhs[0]:
+					output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
+				else:
+					output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
 				return output
 			continue
 		else:
