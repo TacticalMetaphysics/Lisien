@@ -231,3 +231,10 @@ def test_combine_chronological_data_end_turn():
 	correct = [(0, 1, 'foo', None), (1, 2, 'foo', 'bas'), (2, 3, 'bar', 'bas'),
 				(3, 4, 'bar', 'qux'), (4, 5, 'bar', None)]
 	assert combine_chronological_data_end_turn(left, right) == correct
+	with pytest.raises(ValueError):
+		combine_chronological_data_end_turn([], [])
+	assert combine_chronological_data_end_turn([(0, 1, 'foo')],
+												[]) == [(0, 1, 'foo', None)]
+	assert combine_chronological_data_end_turn([], [(0, 1, 'foo')]) == [
+		(0, 1, None, 'foo')
+	]
