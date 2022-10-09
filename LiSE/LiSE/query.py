@@ -400,14 +400,7 @@ def make_select_from_eq_query(qry: Union["EqQuery",
 		return select(literal(left) == literal(right))
 
 
-def combine_chronological_data_end_turn(left: list, right: list) -> list:
-	if not (left or right):
-		raise ValueError("Not enough data")
-	if not left:
-		return [(rhs[0], rhs[1], None, rhs[2]) for rhs in right]
-	if not right:
-		return [(lhs[0], lhs[1], lhs[2], None) for lhs in left]
-	output = []
+def _do_combine_end_turn(left, right, lhs, rhs, output):
 
 	def prev_lhs2():
 		if output:
@@ -417,118 +410,128 @@ def combine_chronological_data_end_turn(left: list, right: list) -> list:
 		if output:
 			return output[-1][-1]
 
+	if (lhs[0], lhs[1]) == (rhs[0], rhs[1]):
+		output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
+		lhs = left.pop()
+		rhs = right.pop()
+		return lhs, rhs
+	elif None not in (lhs[1], rhs[1]):
+		# should always overlap a little
+		assert not (lhs[1] < rhs[0] or lhs[0] > rhs[1])
+
+		# rhs contained in lhs
+		if lhs[0] <= rhs[0] <= rhs[1] <= lhs[1]:
+			if lhs[0] != rhs[0]:
+				assert rhs[0] > lhs[0]
+				output.append((lhs[0], rhs[0], lhs[2], prev_rhs2()))
+			output.append((rhs[0], rhs[1], lhs[2], rhs[2]))
+			prev_rhs1 = rhs[1]
+			try:
+				rhs = right.pop()
+				output.append((prev_rhs1, lhs[1], lhs[2], rhs[2]))
+			except IndexError:
+				if rhs[1] < lhs[1]:
+					output.append((rhs[1], lhs[1], lhs[2], None))
+				while left:
+					lhs = left.pop()
+					output.append((lhs[0], lhs[1], lhs[2], None))
+				return
+			lhs = left.pop()
+		# lhs contained in rhs
+		elif rhs[0] <= lhs[0] <= lhs[1] <= rhs[1]:
+			if rhs[0] != lhs[0]:
+				assert lhs[0] > rhs[0]
+				output.append((rhs[0], lhs[0], prev_lhs2(), rhs[2]))
+			output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
+			prev_lhs1 = lhs[1]
+			try:
+				lhs = left.pop()
+				output.append((prev_lhs1, rhs[1], lhs[2], rhs[2]))
+			except IndexError:
+				if lhs[1] < rhs[1]:
+					output.append((lhs[1], rhs[1], None, rhs[2]))
+				while right:
+					rhs = right.pop()
+					output.append((rhs[0], rhs[1], None, rhs[2]))
+				return
+			rhs = right.pop()
+		# lhs really is on the left side of rhs, overlapping
+		elif lhs[0] <= rhs[0] <= lhs[1] <= rhs[1]:
+			output.extend(((lhs[0], rhs[0], lhs[2], prev_rhs2()),
+							(rhs[0], lhs[1], lhs[2], rhs[2])))
+			lhs = left.pop()
+			rhs = right.pop()
+		# lhs is actually on the right side of rhs, overlapping
+		elif rhs[0] <= lhs[0] <= rhs[1] <= lhs[1]:
+			output.extend(((rhs[0], lhs[0], prev_lhs2(), rhs[2]),
+							(lhs[0], rhs[1], lhs[2], rhs[2])))
+			rhs = right.pop()
+			lhs = left.pop()
+		else:
+			assert False, "Can't happen"
+		return lhs, rhs
+	elif lhs[1] is None and rhs[1] is None:
+		if left or right:
+			raise ValueError("Invalid left and right side")
+		if lhs[0] > rhs[0]:
+			output.append((lhs[0], None, lhs[2], rhs[2]))
+		else:
+			output.append((rhs[0], None, lhs[2], rhs[2]))
+		return lhs, rhs
+	elif lhs[1] is None:
+		if left:
+			raise ValueError("Invalid left side")
+		if rhs[0] >= lhs[0]:
+			output.append((rhs[0], rhs[1], lhs[2], rhs[2]))
+		else:
+			output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
+		rhs = right.pop()
+		if not right:
+			if rhs[0] >= lhs[0]:
+				output.append((rhs[0], rhs[1], lhs[2], rhs[2]))
+			else:
+				output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
+			return
+		return lhs, rhs
+	elif rhs[1] is None:
+		if right:
+			raise ValueError("Invalid right side")
+		if lhs[0] >= rhs[0]:
+			output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
+		else:
+			output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
+		lhs = left.pop()
+		if not left:
+			if lhs[0] >= rhs[0]:
+				output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
+			else:
+				output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
+			return
+		return lhs, rhs
+	else:
+		assert False, "Can't happen"
+
+
+def combine_chronological_data_end_turn(left: list, right: list) -> list:
+	if not (left or right):
+		raise ValueError("Not enough data")
+	if not left:
+		return [(rhs[0], rhs[1], None, rhs[2]) for rhs in right]
+	if not right:
+		return [(lhs[0], lhs[1], lhs[2], None) for lhs in left]
+	output = []
+
 	left = list(reversed(left))
 	right = list(reversed(right))
 	lhs = left.pop()
 	rhs = right.pop()
 
-	def do():
-		nonlocal lhs, rhs
-		if (lhs[0], lhs[1]) == (rhs[0], rhs[1]):
-			output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
-			lhs = left.pop()
-			rhs = right.pop()
-			return 'continue'
-		elif None not in (lhs[1], rhs[1]):
-			# should always overlap a little
-			assert not (lhs[1] < rhs[0] or lhs[0] > rhs[1])
-
-			# rhs contained in lhs
-			if lhs[0] <= rhs[0] <= rhs[1] <= lhs[1]:
-				if lhs[0] != rhs[0]:
-					assert rhs[0] > lhs[0]
-					output.append((lhs[0], rhs[0], lhs[2], prev_rhs2()))
-				output.append((rhs[0], rhs[1], lhs[2], rhs[2]))
-				prev_rhs1 = rhs[1]
-				try:
-					rhs = right.pop()
-					output.append((prev_rhs1, lhs[1], lhs[2], rhs[2]))
-				except IndexError:
-					if rhs[1] < lhs[1]:
-						output.append((rhs[1], lhs[1], lhs[2], None))
-					while left:
-						lhs = left.pop()
-						output.append((lhs[0], lhs[1], lhs[2], None))
-					return 'end'
-				lhs = left.pop()
-			# lhs contained in rhs
-			elif rhs[0] <= lhs[0] <= lhs[1] <= rhs[1]:
-				if rhs[0] != lhs[0]:
-					assert lhs[0] > rhs[0]
-					output.append((rhs[0], lhs[0], prev_lhs2(), rhs[2]))
-				output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
-				prev_lhs1 = lhs[1]
-				try:
-					lhs = left.pop()
-					output.append((prev_lhs1, rhs[1], lhs[2], rhs[2]))
-				except IndexError:
-					if lhs[1] < rhs[1]:
-						output.append((lhs[1], rhs[1], None, rhs[2]))
-					while right:
-						rhs = right.pop()
-						output.append((rhs[0], rhs[1], None, rhs[2]))
-					return 'end'
-				rhs = right.pop()
-			# lhs really is on the left side of rhs, overlapping
-			elif lhs[0] <= rhs[0] <= lhs[1] <= rhs[1]:
-				output.extend(((lhs[0], rhs[0], lhs[2], prev_rhs2()),
-								(rhs[0], lhs[1], lhs[2], rhs[2])))
-				lhs = left.pop()
-				rhs = right.pop()
-			# lhs is actually on the right side of rhs, overlapping
-			elif rhs[0] <= lhs[0] <= rhs[1] <= lhs[1]:
-				output.extend(((rhs[0], lhs[0], prev_lhs2(), rhs[2]),
-								(lhs[0], rhs[1], lhs[2], rhs[2])))
-				rhs = right.pop()
-				lhs = left.pop()
-			else:
-				assert False, "Can't happen"
-			return 'continue'
-		elif lhs[1] is None and rhs[1] is None:
-			if left or right:
-				raise ValueError("Invalid left and right side")
-			if lhs[0] > rhs[0]:
-				output.append((lhs[0], None, lhs[2], rhs[2]))
-			else:
-				output.append((rhs[0], None, lhs[2], rhs[2]))
-			return 'end'
-		elif lhs[1] is None:
-			if left:
-				raise ValueError("Invalid left side")
-			if rhs[0] >= lhs[0]:
-				output.append((rhs[0], rhs[1], lhs[2], rhs[2]))
-			else:
-				output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
-			rhs = right.pop()
-			if not right:
-				if rhs[0] >= lhs[0]:
-					output.append((rhs[0], rhs[1], lhs[2], rhs[2]))
-				else:
-					output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
-				return 'end'
-			return 'continue'
-		elif rhs[1] is None:
-			if right:
-				raise ValueError("Invalid right side")
-			if lhs[0] >= rhs[0]:
-				output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
-			else:
-				output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
-			lhs = left.pop()
-			if not left:
-				if lhs[0] >= rhs[0]:
-					output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
-				else:
-					output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
-				return 'end'
-			return 'continue'
-		else:
-			assert False, "Can't happen"
-
 	while True:
 		try:
-			if do() != 'continue':
+			done = _do_combine_end_turn(left, right, lhs, rhs, output)
+			if done is None:
 				break
+			lhs, rhs = done
 		except IndexError:
 			break
 	return output
