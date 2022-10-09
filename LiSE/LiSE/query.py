@@ -457,16 +457,83 @@ def _do_combine_end_turn(left, right, lhs, rhs, output):
 			rhs = right.pop()
 		# lhs really is on the left side of rhs, overlapping
 		elif lhs[0] <= rhs[0] <= lhs[1] <= rhs[1]:
-			output.extend(((lhs[0], rhs[0], lhs[2], prev_rhs2()),
-							(rhs[0], lhs[1], lhs[2], rhs[2])))
-			lhs = left.pop()
-			rhs = right.pop()
+			if not output or lhs[0] > output[-1][0]:
+				output.append((lhs[0], rhs[0], lhs[2], prev_rhs2()))
+			output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
+			if right:
+				rhs = right.pop()
+			else:
+				if left:
+					lhs = left.pop()
+					if lhs[1] < rhs[1]:
+						output.append((lhs[1], rhs[1], lhs[2], rhs[2]))
+					else:
+						return lhs, rhs
+				else:
+					return
+				while left:
+					lhs = left.pop()
+					output.append(
+						(lhs[0], lhs[1], lhs[2], None
+							if lhs[1] < rhs[0] or lhs[0] > rhs[1] else rhs[2]))
+				return
+			if left:
+				lhs = left.pop()
+			else:
+				if right:
+					rhs = right.pop()
+					if rhs[1] < lhs[1]:
+						output.append((rhs[1], lhs[1], lhs[2], rhs[2]))
+					else:
+						return lhs, rhs
+				else:
+					return
+				while right:
+					rhs = right.pop()
+					output.append((rhs[0], rhs[1], None if lhs[1] < rhs[0]
+									or lhs[0] > rhs[1] else lhs[2], rhs[2]))
+				return
+			return lhs, rhs
 		# lhs is actually on the right side of rhs, overlapping
 		elif rhs[0] <= lhs[0] <= rhs[1] <= lhs[1]:
-			output.extend(((rhs[0], lhs[0], prev_lhs2(), rhs[2]),
-							(lhs[0], rhs[1], lhs[2], rhs[2])))
-			rhs = right.pop()
-			lhs = left.pop()
+			if not output or rhs[0] > output[-1][0]:
+				output.append((rhs[0], lhs[0], prev_lhs2(), rhs[2]))
+			output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
+			if left:
+				lhs = left.pop()
+			else:
+				if right:
+					rhs = right.pop()
+					if rhs[1] < lhs[1]:
+						output.append((rhs[1], lhs[1], lhs[2], rhs[2]))
+					else:
+						return lhs, rhs
+				else:
+					if lhs[1] > output[-1][1]:
+						output.append((output[-1][1], lhs[1], lhs[2], None))
+					return
+				while right:
+					rhs = right.pop()
+					output.append((rhs[0], rhs[1], None if lhs[1] < rhs[0]
+									or lhs[0] > rhs[1] else lhs[2], rhs[2]))
+				return
+			if right:
+				rhs = right.pop()
+			else:
+				if left:
+					lhs = left.pop()
+					if lhs[1] < rhs[1]:
+						output.append((lhs[1], rhs[1], lhs[2], rhs[2]))
+					else:
+						return lhs, rhs
+				else:
+					return
+				while left:
+					lhs = left.pop()
+					output.append(
+						(lhs[0], lhs[1], lhs[2], None
+							if lhs[1] < rhs[0] or lhs[0] > rhs[1] else rhs[2]))
+				return
 		else:
 			assert False, "Can't happen"
 		return lhs, rhs
@@ -527,13 +594,10 @@ def combine_chronological_data_end_turn(left: list, right: list) -> list:
 	rhs = right.pop()
 
 	while True:
-		try:
-			done = _do_combine_end_turn(left, right, lhs, rhs, output)
-			if done is None:
-				break
-			lhs, rhs = done
-		except IndexError:
+		done = _do_combine_end_turn(left, right, lhs, rhs, output)
+		if done is None:
 			break
+		lhs, rhs = done
 	return output
 
 
