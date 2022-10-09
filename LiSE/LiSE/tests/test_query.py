@@ -217,3 +217,10 @@ def test_combine_chronological_data_end_turn():
 				(3, 5, 'boo', 'bau'), (5, 9, 'gru', 'bau'),
 				(9, 10, None, 'bau'), (10, None, 'foo', 'bau')]
 	assert combine_chronological_data_end_turn(left, right) == correct
+	left = [(1, 2, 'foo')]
+	right = [(0, 5, 'bar')]
+	correct = [(0, 1, None, 'bar'), (1, 2, 'foo', 'bar'), (2, 5, None, 'bar')]
+	assert combine_chronological_data_end_turn(left, right) == correct
+	(left, right) = (right, left)
+	correct = [(0, 1, 'bar', None), (1, 2, 'bar', 'foo'), (2, 5, 'bar', None)]
+	assert combine_chronological_data_end_turn(left, right) == correct
