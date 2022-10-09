@@ -436,8 +436,16 @@ def combine_chronological_data_end_turn(left: list, right: list) -> list:
 					output.append((lhs[0], rhs[0], lhs[2], prev_rhs2()))
 				output.append((rhs[0], rhs[1], lhs[2], rhs[2]))
 				prev_rhs1 = rhs[1]
-				rhs = right.pop()
-				output.append((prev_rhs1, lhs[1], lhs[2], rhs[2]))
+				try:
+					rhs = right.pop()
+					output.append((prev_rhs1, lhs[1], lhs[2], rhs[2]))
+				except IndexError:
+					if rhs[1] < lhs[1]:
+						output.append((rhs[1], lhs[1], lhs[2], None))
+					while left:
+						lhs = left.pop()
+						output.append((lhs[0], lhs[1], lhs[2], None))
+					return 'end'
 				lhs = left.pop()
 			# lhs contained in rhs
 			elif rhs[0] <= lhs[0] <= lhs[1] <= rhs[1]:
@@ -446,8 +454,16 @@ def combine_chronological_data_end_turn(left: list, right: list) -> list:
 					output.append((rhs[0], lhs[0], prev_lhs2(), rhs[2]))
 				output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
 				prev_lhs1 = lhs[1]
-				lhs = left.pop()
-				output.append((prev_lhs1, rhs[1], lhs[2], rhs[2]))
+				try:
+					lhs = left.pop()
+					output.append((prev_lhs1, rhs[1], lhs[2], rhs[2]))
+				except IndexError:
+					if lhs[1] < rhs[1]:
+						output.append((lhs[1], rhs[1], None, rhs[2]))
+					while right:
+						rhs = right.pop()
+						output.append((rhs[0], rhs[1], None, rhs[2]))
+					return 'end'
 				rhs = right.pop()
 			# lhs really is on the left side of rhs, overlapping
 			elif lhs[0] <= rhs[0] <= lhs[1] <= rhs[1]:
