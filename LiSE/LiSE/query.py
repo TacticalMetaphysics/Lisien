@@ -463,35 +463,30 @@ def _do_combine_end_turn(left, right, lhs, rhs, output):
 			if right:
 				rhs = right.pop()
 			else:
-				if left:
+				while left:
 					lhs = left.pop()
 					if lhs[1] < rhs[1]:
 						output.append((lhs[1], rhs[1], lhs[2], rhs[2]))
-					else:
-						return lhs, rhs
-				else:
-					return
-				while left:
-					lhs = left.pop()
-					output.append(
-						(lhs[0], lhs[1], lhs[2], None
-							if lhs[1] < rhs[0] or lhs[0] > rhs[1] else rhs[2]))
+					elif lhs[0] < rhs[1]:
+						output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
+				if rhs[1] > output[-1][1]:
+					output.append((output[-1][1], rhs[1], None, rhs[2]))
+				elif lhs[1] > output[-1][1]:
+					output.append((output[-1][1], lhs[1], lhs[2], None))
 				return
 			if left:
 				lhs = left.pop()
 			else:
-				if right:
+				while right:
 					rhs = right.pop()
 					if rhs[1] < lhs[1]:
 						output.append((rhs[1], lhs[1], lhs[2], rhs[2]))
-					else:
-						return lhs, rhs
-				else:
-					return
-				while right:
-					rhs = right.pop()
-					output.append((rhs[0], rhs[1], None if lhs[1] < rhs[0]
-									or lhs[0] > rhs[1] else lhs[2], rhs[2]))
+					elif rhs[0] < lhs[1]:
+						output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
+				if lhs[1] > output[-1][1]:
+					output.append((output[-1][1], lhs[1], lhs[2], None))
+				elif rhs[1] > output[-1][1]:
+					output.append((output[-1][1], rhs[1], None, rhs[2]))
 				return
 			return lhs, rhs
 		# lhs is actually on the right side of rhs, overlapping
@@ -502,37 +497,30 @@ def _do_combine_end_turn(left, right, lhs, rhs, output):
 			if left:
 				lhs = left.pop()
 			else:
-				if right:
+				while right:
 					rhs = right.pop()
 					if rhs[1] < lhs[1]:
 						output.append((rhs[1], lhs[1], lhs[2], rhs[2]))
-					else:
-						return lhs, rhs
-				else:
-					if lhs[1] > output[-1][1]:
-						output.append((output[-1][1], lhs[1], lhs[2], None))
-					return
-				while right:
-					rhs = right.pop()
-					output.append((rhs[0], rhs[1], None if lhs[1] < rhs[0]
-									or lhs[0] > rhs[1] else lhs[2], rhs[2]))
+					elif rhs[0] < lhs[1]:
+						output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
+				if lhs[1] > output[-1][1]:
+					output.append((output[-1][1], lhs[1], lhs[2], None))
+				elif rhs[1] > output[-1][1]:
+					output.append((output[-1][1], rhs[1], None, rhs[2]))
 				return
 			if right:
 				rhs = right.pop()
 			else:
-				if left:
+				while left:
 					lhs = left.pop()
 					if lhs[1] < rhs[1]:
 						output.append((lhs[1], rhs[1], lhs[2], rhs[2]))
-					else:
-						return lhs, rhs
-				else:
-					return
-				while left:
-					lhs = left.pop()
-					output.append(
-						(lhs[0], lhs[1], lhs[2], None
-							if lhs[1] < rhs[0] or lhs[0] > rhs[1] else rhs[2]))
+					elif lhs[0] < rhs[1]:
+						output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
+				if rhs[1] > output[-1][1]:
+					output.append((output[-1][1], rhs[1], None, rhs[2]))
+				elif lhs[1] > output[-1][1]:
+					output.append((output[-1][1], lhs[1], lhs[2], None))
 				return
 		else:
 			assert False, "Can't happen"

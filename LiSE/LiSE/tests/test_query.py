@@ -223,13 +223,15 @@ def test_combine_chronological_data_end_turn():
 				(5, 7, None, 'bas')]
 	assert combine_chronological_data_end_turn(left, right) == correct
 	(left, right) = (right, left)
-	correct = [(0, 1, 'bar', None), (1, 2, 'bar', 'foo'), (2, 5, 'bar', None),
-				(5, 7, 'bas', None)]
+	correct = [(t[0], t[1], t[3], t[2]) for t in correct]
 	assert combine_chronological_data_end_turn(left, right) == correct
 	left = [(0, 2, 'foo'), (2, 5, 'bar')]
 	right = [(1, 3, 'bas'), (3, 4, 'qux')]
 	correct = [(0, 1, 'foo', None), (1, 2, 'foo', 'bas'), (2, 3, 'bar', 'bas'),
 				(3, 4, 'bar', 'qux'), (4, 5, 'bar', None)]
+	assert combine_chronological_data_end_turn(left, right) == correct
+	(left, right) = (right, left)
+	correct = [(t[0], t[1], t[3], t[2]) for t in correct]
 	assert combine_chronological_data_end_turn(left, right) == correct
 	with pytest.raises(ValueError):
 		combine_chronological_data_end_turn([], [])
@@ -242,4 +244,7 @@ def test_combine_chronological_data_end_turn():
 	right = [(1, 3, 'bar')]
 	correct = [(0, 1, 'foo', None), (1, 2, 'foo', 'bar'), (2, 3, 'bas', 'bar'),
 				(3, 4, 'bas', None)]
+	assert combine_chronological_data_end_turn(left, right) == correct
+	(left, right) = (right, left)
+	correct = [(t[0], t[1], t[3], t[2]) for t in correct]
 	assert combine_chronological_data_end_turn(left, right) == correct
