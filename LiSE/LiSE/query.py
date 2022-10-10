@@ -612,8 +612,10 @@ def combine_chronological_data_mid_turn(left: list, right: list) -> list:
 		if done is None:
 			break
 		lhs, rhs = done
-	return [(time_from[0], time_from[1], time_to[0], time_to[1], l_v, r_v)
-			for (time_from, time_to, l_v, r_v) in output]
+	return [
+		time_from + time_to + (l_v, r_v)
+		for (time_from, time_to, l_v, r_v) in output
+	]
 
 
 class Query(object):
