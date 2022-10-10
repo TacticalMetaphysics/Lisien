@@ -400,7 +400,7 @@ def make_select_from_eq_query(qry: Union["EqQuery",
 		return select(literal(left) == literal(right))
 
 
-def _do_combine_end_turn(left, right, lhs, rhs, output):
+def _do_combine_chrono(left, right, lhs, rhs, output):
 
 	def prev_lhs2():
 		if output:
@@ -582,7 +582,7 @@ def combine_chronological_data_end_turn(left: list, right: list) -> list:
 	rhs = right.pop()
 
 	while True:
-		done = _do_combine_end_turn(left, right, lhs, rhs, output)
+		done = _do_combine_chrono(left, right, lhs, rhs, output)
 		if done is None:
 			break
 		lhs, rhs = done
@@ -590,7 +590,30 @@ def combine_chronological_data_end_turn(left: list, right: list) -> list:
 
 
 def combine_chronological_data_mid_turn(left: list, right: list) -> list:
-	raise NotImplementedError("not yet")
+	if not (left or right):
+		return []
+	if not left:
+		return [(rhs[0], rhs[1], rhs[2], rhs[3], None, rhs[4])
+				for rhs in right]
+	if not right:
+		return [(lhs[0], lhs[1], lhs[2], lhs[3], lhs[4], None) for lhs in left]
+	output = []
+	left = [((turn_from, tick_from), (turn_to, tick_to), value)
+			for (turn_from, tick_from, turn_to, tick_to,
+					value) in reversed(left)]
+	right = [((turn_from, tick_from), (turn_to, tick_to), value)
+				for (turn_from, tick_from, turn_to, tick_to,
+						value) in reversed(right)]
+	lhs = left.pop()
+	rhs = right.pop()
+
+	while True:
+		done = _do_combine_chrono(left, right, lhs, rhs, output)
+		if done is None:
+			break
+		lhs, rhs = done
+	return [(time_from[0], time_from[1], time_to[0], time_to[1], l_v, r_v)
+			for (time_from, time_to, l_v, r_v) in output]
 
 
 class Query(object):
