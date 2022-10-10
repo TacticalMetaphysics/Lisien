@@ -243,3 +243,19 @@ def test_combine_chronological_data_end_turn():
 	correct = [(0, 1, 'foo', None), (1, 2, 'foo', 'bar'), (2, 3, 'bas', 'bar'),
 				(3, 4, 'bas', None)]
 	test(left, right, correct)
+	left = [(0, 1, b'\n'), (1, 2, b'\x02'), (2, 3, b'\x03'), (3, None, b'\t')]
+	right = [(0, 1, b'\x01'), (1, 4, b'\x08'), (4, 5, b'\x02'), (5, 6, b'\n'),
+				(6, 7, b'\x01'), (7, None, b'\n')]
+	correct = [(0, 1, b'\n', b'\x01'), (1, 2, b'\x02', b'\x08'),
+				(2, 3, b'\x03', b'\x08'), (3, 4, b'\t', b'\x08'),
+				(4, 5, b'\t', b'\x02'), (5, 6, b'\t', b'\n'),
+				(6, 7, b'\t', b'\x01'), (7, None, b'\t', b'\n')]
+	test(left, right, correct)
+	left = [(0, 1, b'\n'), (1, 2, b'\x02'), (2, 3, b'\x03'), (3, None, b'\t')]
+	right = [(0, 1, b'\x01'), (1, 4, b'\x08'), (4, 5, b'\x02'), (5, 6, b'\n'),
+				(6, 7, b'\x01'), (7, None, b'\n')]
+	correct = [(0, 1, b'\n', b'\x01'), (1, 2, b'\x02', b'\x08'),
+				(2, 3, b'\x03', b'\x08'), (3, 4, b'\t', b'\x08'),
+				(4, 5, b'\t', b'\x02'), (5, 6, b'\t', b'\n'),
+				(6, 7, b'\t', b'\x01'), (7, None, b'\t', b'\n')]
+	test(left, right, correct)
