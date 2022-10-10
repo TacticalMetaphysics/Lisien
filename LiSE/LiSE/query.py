@@ -410,8 +410,12 @@ def _do_combine_chrono(left, right, lhs, rhs, output):
 		if output:
 			return output[-1][-1]
 
+	def append_new(new):
+		if not output or new != output[-1]:
+			output.append(new)
+
 	if (lhs[0], lhs[1]) == (rhs[0], rhs[1]):
-		output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
+		append_new((lhs[0], lhs[1], lhs[2], rhs[2]))
 		lhs = left.pop()
 		rhs = right.pop()
 		return lhs, rhs
@@ -421,106 +425,92 @@ def _do_combine_chrono(left, right, lhs, rhs, output):
 
 		# rhs contained in lhs
 		if lhs[0] <= rhs[0] <= rhs[1] <= lhs[1]:
-			if lhs[0] != rhs[0]:
+			if lhs[0] != rhs[0] and (not output or output[-1][1] < lhs[0]):
 				assert rhs[0] > lhs[0]
-				output.append((lhs[0], rhs[0], lhs[2], prev_rhs2()))
-			output.append((rhs[0], rhs[1], lhs[2], rhs[2]))
+				append_new((lhs[0], rhs[0], lhs[2], prev_rhs2()))
+			append_new((rhs[0], rhs[1], lhs[2], rhs[2]))
 			prev_rhs1 = rhs[1]
-			try:
-				rhs = right.pop()
-				output.append((prev_rhs1, lhs[1], lhs[2], rhs[2]))
-			except IndexError:
-				if rhs[1] < lhs[1]:
-					output.append((rhs[1], lhs[1], lhs[2], None))
-				while left:
-					lhs = left.pop()
-					output.append((lhs[0], lhs[1], lhs[2], None))
-				return
-			lhs = left.pop()
-		# lhs contained in rhs
-		elif rhs[0] <= lhs[0] <= lhs[1] <= rhs[1]:
-			if rhs[0] != lhs[0]:
-				assert lhs[0] > rhs[0]
-				output.append((rhs[0], lhs[0], prev_lhs2(), rhs[2]))
-			output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
-			prev_lhs1 = lhs[1]
-			try:
-				lhs = left.pop()
-				output.append((prev_lhs1, rhs[1], lhs[2], rhs[2]))
-			except IndexError:
-				if lhs[1] < rhs[1]:
-					output.append((lhs[1], rhs[1], None, rhs[2]))
-				while right:
-					rhs = right.pop()
-					output.append((rhs[0], rhs[1], None, rhs[2]))
-				return
-			rhs = right.pop()
-		# lhs really is on the left side of rhs, overlapping
-		elif lhs[0] <= rhs[0] <= lhs[1] <= rhs[1]:
-			if not output or lhs[0] > output[-1][0]:
-				output.append((lhs[0], rhs[0], lhs[2], prev_rhs2()))
-			output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
 			if right:
 				rhs = right.pop()
+				output.append((prev_rhs1, lhs[1], lhs[2], rhs[2]))
 			else:
+				append_new((rhs[1], lhs[1], lhs[2], None))
 				while left:
 					lhs = left.pop()
 					if lhs[1] < rhs[1]:
-						output.append((lhs[1], rhs[1], lhs[2], rhs[2]))
+						append_new((lhs[1], rhs[1], lhs[2], rhs[2]))
 					elif lhs[0] < rhs[1]:
-						output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
+						append_new((lhs[0], rhs[1], lhs[2], rhs[2]))
+					else:
+						append_new((lhs[0], lhs[1], lhs[2], None))
 				if rhs[1] > output[-1][1]:
-					output.append((output[-1][1], rhs[1], None, rhs[2]))
+					append_new((output[-1][1], rhs[1], None, rhs[2]))
 				elif lhs[1] > output[-1][1]:
-					output.append((output[-1][1], lhs[1], lhs[2], None))
+					append_new((output[-1][1], lhs[1], lhs[2], None))
 				return
+		# lhs contained in rhs
+		elif rhs[0] <= lhs[0] <= lhs[1] <= rhs[1]:
+			if rhs[0] != lhs[0] and (not output or output[-1][1] < rhs[0]):
+				assert lhs[0] > rhs[0]
+				append_new((rhs[0], lhs[0], prev_lhs2(), rhs[2]))
+			append_new((lhs[0], lhs[1], lhs[2], rhs[2]))
+			prev_lhs1 = lhs[1]
+			if left:
+				lhs = left.pop()
+				append_new((prev_lhs1, rhs[1], lhs[2], rhs[2]))
+			else:
+				append_new((lhs[1], rhs[1], None, rhs[2]))
+				while right:
+					rhs = right.pop()
+					if rhs[1] < lhs[1]:
+						append_new((rhs[1], lhs[1], lhs[2], rhs[2]))
+					elif rhs[0] < lhs[1]:
+						append_new((rhs[0], lhs[1], lhs[2], rhs[2]))
+					else:
+						append_new((rhs[0], rhs[1], None, rhs[2]))
+				if lhs[1] > output[-1][1]:
+					append_new((output[-1][1], lhs[1], lhs[2], None))
+				elif rhs[1] > output[-1][1]:
+					append_new((output[-1][1], rhs[1], None, rhs[2]))
+				return
+		# lhs really is on the left side of rhs, overlapping
+		elif lhs[0] <= rhs[0] <= lhs[1] <= rhs[1]:
+			if not output or lhs[0] > output[-1][0]:
+				append_new((lhs[0], rhs[0], lhs[2], prev_rhs2()))
+			append_new((rhs[0], lhs[1], lhs[2], rhs[2]))
 			if left:
 				lhs = left.pop()
 			else:
 				while right:
 					rhs = right.pop()
 					if rhs[1] < lhs[1]:
-						output.append((rhs[1], lhs[1], lhs[2], rhs[2]))
+						append_new((rhs[1], lhs[1], lhs[2], rhs[2]))
 					elif rhs[0] < lhs[1]:
-						output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
+						append_new((rhs[0], lhs[1], lhs[2], rhs[2]))
 				if lhs[1] > output[-1][1]:
-					output.append((output[-1][1], lhs[1], lhs[2], None))
+					append_new((output[-1][1], lhs[1], lhs[2], None))
 				elif rhs[1] > output[-1][1]:
-					output.append((output[-1][1], rhs[1], None, rhs[2]))
+					append_new((output[-1][1], rhs[1], None, rhs[2]))
 				return
 			return lhs, rhs
 		# lhs is actually on the right side of rhs, overlapping
 		elif rhs[0] <= lhs[0] <= rhs[1] <= lhs[1]:
 			if not output or rhs[0] > output[-1][0]:
-				output.append((rhs[0], lhs[0], prev_lhs2(), rhs[2]))
-			output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
-			if left:
-				lhs = left.pop()
-			else:
-				while right:
-					rhs = right.pop()
-					if rhs[1] < lhs[1]:
-						output.append((rhs[1], lhs[1], lhs[2], rhs[2]))
-					elif rhs[0] < lhs[1]:
-						output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
-				if lhs[1] > output[-1][1]:
-					output.append((output[-1][1], lhs[1], lhs[2], None))
-				elif rhs[1] > output[-1][1]:
-					output.append((output[-1][1], rhs[1], None, rhs[2]))
-				return
+				append_new((rhs[0], lhs[0], prev_lhs2(), rhs[2]))
+			append_new((lhs[0], rhs[1], lhs[2], rhs[2]))
 			if right:
 				rhs = right.pop()
 			else:
 				while left:
 					lhs = left.pop()
 					if lhs[1] < rhs[1]:
-						output.append((lhs[1], rhs[1], lhs[2], rhs[2]))
+						append_new((lhs[1], rhs[1], lhs[2], rhs[2]))
 					elif lhs[0] < rhs[1]:
-						output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
+						append_new((lhs[0], rhs[1], lhs[2], rhs[2]))
 				if rhs[1] > output[-1][1]:
-					output.append((output[-1][1], rhs[1], None, rhs[2]))
+					append_new((output[-1][1], rhs[1], None, rhs[2]))
 				elif lhs[1] > output[-1][1]:
-					output.append((output[-1][1], lhs[1], lhs[2], None))
+					append_new((output[-1][1], lhs[1], lhs[2], None))
 				return
 		else:
 			assert False, "Can't happen"
@@ -529,38 +519,38 @@ def _do_combine_chrono(left, right, lhs, rhs, output):
 		if left or right:
 			raise ValueError("Invalid left and right side")
 		if lhs[0] > rhs[0]:
-			output.append((lhs[0], None, lhs[2], rhs[2]))
+			append_new((lhs[0], None, lhs[2], rhs[2]))
 		else:
-			output.append((rhs[0], None, lhs[2], rhs[2]))
+			append_new((rhs[0], None, lhs[2], rhs[2]))
 		return lhs, rhs
 	elif lhs[1] is None:
 		if left:
 			raise ValueError("Invalid left side")
 		if rhs[0] >= lhs[0]:
-			output.append((rhs[0], rhs[1], lhs[2], rhs[2]))
+			append_new((rhs[0], rhs[1], lhs[2], rhs[2]))
 		else:
-			output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
+			append_new((lhs[0], rhs[1], lhs[2], rhs[2]))
 		rhs = right.pop()
 		if not right:
 			if rhs[0] >= lhs[0]:
-				output.append((rhs[0], rhs[1], lhs[2], rhs[2]))
+				append_new((rhs[0], rhs[1], lhs[2], rhs[2]))
 			else:
-				output.append((lhs[0], rhs[1], lhs[2], rhs[2]))
+				append_new((lhs[0], rhs[1], lhs[2], rhs[2]))
 			return
 		return lhs, rhs
 	elif rhs[1] is None:
 		if right:
 			raise ValueError("Invalid right side")
 		if lhs[0] >= rhs[0]:
-			output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
+			append_new((lhs[0], lhs[1], lhs[2], rhs[2]))
 		else:
-			output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
+			append_new((rhs[0], lhs[1], lhs[2], rhs[2]))
 		lhs = left.pop()
 		if not left:
 			if lhs[0] >= rhs[0]:
-				output.append((lhs[0], lhs[1], lhs[2], rhs[2]))
+				append_new((lhs[0], lhs[1], lhs[2], rhs[2]))
 			else:
-				output.append((rhs[0], lhs[1], lhs[2], rhs[2]))
+				append_new((rhs[0], lhs[1], lhs[2], rhs[2]))
 			return
 		return lhs, rhs
 	else:

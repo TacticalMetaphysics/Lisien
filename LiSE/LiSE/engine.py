@@ -1447,11 +1447,13 @@ class Engine(AbstractEngine, gORM):
 		if not isinstance(qry, EqQuery) and not isinstance(qry, NeQuery):
 			left = qry.leftside
 			right = qry.rightside
+			unpack_left = unpack_right = False
 			if isinstance(left, StatusAlias) and isinstance(
 				right, StatusAlias):
+				unpack_left = unpack_right = True
 				left_sel = make_side_sel(left.entity, left.stat, branches,
 											self.pack, mid_turn)
-				right_sel = make_side_sel(left.entity, left.stat, branches,
+				right_sel = make_side_sel(right.entity, right.stat, branches,
 											self.pack, mid_turn)
 				left_data = self.query.execute(left_sel)
 				right_data = self.query.execute(right_sel)
@@ -1460,29 +1462,41 @@ class Engine(AbstractEngine, gORM):
 						left_data, right_data)
 				else:
 					data = combine_chronological_data_end_turn(
-						left_data, right_data)
+						[(turn_from, turn_to, value)
+							for (turn_from, _, turn_to, _, value) in left_data
+							],
+						[(turn_from, turn_to, value)
+							for (turn_from, _, turn_to, _, value) in right_data
+							],
+					)
 			elif isinstance(left, StatusAlias):
+				unpack_left = True
 				left_sel = make_side_sel(left.entity, left.stat, branches,
 											self.pack, mid_turn)
 				left_data = self.query.execute(left_sel)
+				_, turn, tick = self._btt()
 				if mid_turn:
-					_, turn, tick = self._btt()
 					data = combine_chronological_data_mid_turn(
 						left_data, [(0, 0, turn, tick, right)])
 				else:
-					data = combine_chronological_data_end_turn(
-						left_data, [(0, self.turn, right)])
+					data = combine_chronological_data_mid_turn([
+						(turn_from, turn_to, value)
+						for (turn_from, _, turn_to, _, value) in left_data
+					], [(0, 0, right)])
 			elif isinstance(right, StatusAlias):
+				unpack_right = True
 				right_sel = make_side_sel(right.entity, right.stat, branches,
 											self.pack, mid_turn)
 				right_data = self.query.execute(right_sel)
+				_, turn, tick = self._btt()
 				if mid_turn:
-					_, turn, tick = self._btt()
 					data = combine_chronological_data_mid_turn(
 						[(0, 0, turn, tick, left)], right_data)
 				else:
-					data = combine_chronological_data_end_turn(
-						[(0, self.turn, left)], right_data)
+					data = combine_chronological_data_end_turn([
+						(0, 0, left)
+					], [(turn_from, turn_to, value)
+						for (turn_from, _, turn_to, _, value) in right_data])
 			else:
 				if qry.oper(left, right):
 					return set(range(0, self.turn))
@@ -1494,60 +1508,38 @@ class Engine(AbstractEngine, gORM):
 			use_numpy = True
 			typ = None
 			output = set()
-			if mid_turn:
-				for turn_from, tick_from, turn_to, tick_to, v_l, v_r in data:
-					t_l = type(v_l)
-					t_r = type(v_r)
-					if typ is None:
+			unpack = self.unpack
+			for turn_from, tick_from, turn_to, tick_to, v_l, v_r in data:
+				if unpack_left and v_l is not None:
+					v_l = unpack(v_l)
+				if unpack_right and v_r is not None:
+					v_r = unpack(v_r)
+				t_l = type(v_l)
+				t_r = type(v_r)
+				if typ is None:
+					if None not in (v_l, v_r):
 						if t_l is t_r:
 							typ = t_l
 						else:
 							use_numpy = False
 							break
-					if not (typ is t_l is t_r):
-						use_numpy = False
-						break
-					keys.append((turn_from, tick_from, turn_to, tick_to))
-					left.append(v_l)
-					right.append(v_r)
-				if use_numpy:
-					result_arr = qry.oper(np.array(left, dtype=typ),
-											np.array(right, dtype=typ))
-					for (turn_from, _, turn_to,
-							_), result in zip(keys, result_arr):
-						if result:
-							output.update(range(turn_from, turn_to))
-				else:
-					for (turn_from, _, turn_to, _, v_l, v_r) in data:
-						if qry.oper(v_l, v_r):
-							output.update(range(turn_from, turn_to))
-
+				elif None not in (v_l, v_r) and not (typ is t_l is t_r):
+					use_numpy = False
+					break
+				keys.append((turn_from, tick_from, turn_to, tick_to))
+				left.append(v_l)
+				right.append(v_r)
+			if use_numpy:
+				result_arr = qry.oper(np.array(left, dtype=typ),
+										np.array(right, dtype=typ))
+				for (turn_from, _, turn_to,
+						_), result in zip(keys, result_arr):
+					if result:
+						output.update(range(turn_from, turn_to))
 			else:
-				for turn_from, turn_to, v_l, v_r in data:
-					t_l = type(v_l)
-					t_r = type(v_r)
-					if typ is None:
-						if t_l is t_r:
-							typ = t_l
-						else:
-							use_numpy = False
-							break
-					if not (typ is t_l is t_r):
-						use_numpy = False
-						break
-					keys.append((turn_from, turn_to))
-					left.append(v_l)
-					right.append(v_r)
-				if use_numpy:
-					result_arr = qry.oper(np.array(left, dtype=typ),
-											np.array(right, dtype=typ))
-					for (turn_from, turn_to), result in zip(keys, result_arr):
-						if result:
-							output.update(range(turn_from, turn_to))
-				else:
-					for turn_from, turn_to, v_l, v_r in data:
-						if qry.oper(v_l, v_r):
-							output.update(range(turn_from, turn_to))
+				for (turn_from, _, turn_to, _, v_l, v_r) in data:
+					if qry.oper(v_l, v_r):
+						output.update(range(turn_from, turn_to))
 			return output
 		# Make a select statement that gets the turns when the predicate held true
 		try:
