@@ -90,8 +90,8 @@ def sober_collisions(college24_premade):
 	def sameClasstime(stu0, stu1):
 		assert list(
 			engine.turns_when(
-				stu0.unit.only.historical('location') == stu1.unit.only.
-				historical('location') == engine.alias('classroom'))
+				stu0.unit.only.historical('location') ==
+				stu1.unit.only.historical('location') == 'classroom')
 		), """{stu0} seems not to have been in the classroom 
 				at the same time as {stu1}.
 				{stu0} was there at turns {turns0}
@@ -100,12 +100,10 @@ def sober_collisions(college24_premade):
 			stu1=stu1.name,
 			turns0=list(
 				engine.turns_when(
-					stu0.unit.only.historical('location') == engine.alias(
-						'classroom'))),
+					stu0.unit.only.historical('location') == 'classroom')),
 			turns1=list(
 				engine.turns_when(
-					stu1.unit.only.historical('location') == engine.alias(
-						'classroom'))))
+					stu1.unit.only.historical('location') == 'classroom')))
 		return stu1
 
 	reduce(sameClasstime, students)

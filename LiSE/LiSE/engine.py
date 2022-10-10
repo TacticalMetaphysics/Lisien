@@ -30,7 +30,7 @@ from blinker import Signal
 from .allegedb import ORM as gORM
 from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
 						DeltaType, world_locked)
-from .util import sort_set, EntityStatAccessor, AbstractEngine, final_rule
+from .util import sort_set, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
 from .query import (Query, EqQuery, NeQuery, make_side_sel,
 					windows_intersection, make_select_from_eq_query,
@@ -1394,33 +1394,6 @@ class Engine(AbstractEngine, gORM):
 		branch, turn, tick = self._nbtt()
 		self._things_cache.store(character, node, branch, turn, tick, loc)
 		self.query.set_thing_loc(character, node, branch, turn, tick, loc)
-
-	def alias(self, v: Any, stat: Hashable = 'dummy') -> EntityStatAccessor:
-		"""Return a pointer to a value for use in historical queries.
-
-		It will behave much as if you assigned the value to some entity
-		and then used its ``historical`` method to get a reference to
-		the set of its past values, which happens to contain only the
-		value you've provided here, ``v``.
-
-		:arg v: the value to represent
-		:arg stat: what name to pretend its stat has; usually irrelevant
-
-		"""
-		from .util import EntityStatAccessor
-		r = DummyEntity(self)
-		r[stat] = v
-		return EntityStatAccessor(r, stat, engine=self)
-
-	def _entityfy(self,
-					v: Any,
-					stat: Hashable = 'dummy') -> EntityStatAccessor:
-		from .query import Query
-		if (isinstance(v, self.thing_cls) or isinstance(v, self.place_cls)
-			or isinstance(v, self.portal_cls) or isinstance(v, Query)
-			or isinstance(v, EntityStatAccessor)):
-			return v
-		return self.alias(v, stat)
 
 	def _snap_keyframe_de_novo_graph(self,
 										graph: Hashable,
