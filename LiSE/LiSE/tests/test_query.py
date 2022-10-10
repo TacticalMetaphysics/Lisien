@@ -210,29 +210,30 @@ def test_graph_val_select_lt_gt(engy):
 
 
 def test_combine_chronological_data_end_turn():
+
+	def test(left, right, correct):
+		assert combine_chronological_data_end_turn(left, right) == correct
+		(left, right) = (right, left)
+		correct = [(t[0], t[1], t[3], t[2]) for t in correct]
+		assert combine_chronological_data_end_turn(left, right) == correct
+
 	left = [(0, 1, 'foo'), (1, 5, 'boo'), (5, 9, 'gru'), (9, 10, None),
 			(10, None, 'foo')]
 	right = [(0, 1, 'bar'), (1, 3, 'baz'), (3, None, 'bau')]
 	correct = [(0, 1, 'foo', 'bar'), (1, 3, 'boo', 'baz'),
 				(3, 5, 'boo', 'bau'), (5, 9, 'gru', 'bau'),
 				(9, 10, None, 'bau'), (10, None, 'foo', 'bau')]
-	assert combine_chronological_data_end_turn(left, right) == correct
+	test(left, right, correct)
 	left = [(1, 2, 'foo')]
 	right = [(0, 5, 'bar'), (5, 7, 'bas')]
 	correct = [(0, 1, None, 'bar'), (1, 2, 'foo', 'bar'), (2, 5, None, 'bar'),
 				(5, 7, None, 'bas')]
-	assert combine_chronological_data_end_turn(left, right) == correct
-	(left, right) = (right, left)
-	correct = [(t[0], t[1], t[3], t[2]) for t in correct]
-	assert combine_chronological_data_end_turn(left, right) == correct
+	test(left, right, correct)
 	left = [(0, 2, 'foo'), (2, 5, 'bar')]
 	right = [(1, 3, 'bas'), (3, 4, 'qux')]
 	correct = [(0, 1, 'foo', None), (1, 2, 'foo', 'bas'), (2, 3, 'bar', 'bas'),
 				(3, 4, 'bar', 'qux'), (4, 5, 'bar', None)]
-	assert combine_chronological_data_end_turn(left, right) == correct
-	(left, right) = (right, left)
-	correct = [(t[0], t[1], t[3], t[2]) for t in correct]
-	assert combine_chronological_data_end_turn(left, right) == correct
+	test(left, right, correct)
 	with pytest.raises(ValueError):
 		combine_chronological_data_end_turn([], [])
 	assert combine_chronological_data_end_turn([(0, 1, 'foo')],
@@ -244,7 +245,4 @@ def test_combine_chronological_data_end_turn():
 	right = [(1, 3, 'bar')]
 	correct = [(0, 1, 'foo', None), (1, 2, 'foo', 'bar'), (2, 3, 'bas', 'bar'),
 				(3, 4, 'bas', None)]
-	assert combine_chronological_data_end_turn(left, right) == correct
-	(left, right) = (right, left)
-	correct = [(t[0], t[1], t[3], t[2]) for t in correct]
-	assert combine_chronological_data_end_turn(left, right) == correct
+	test(left, right, correct)
