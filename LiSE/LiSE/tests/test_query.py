@@ -133,8 +133,8 @@ def noncollision(college24_premade):
 						assert not list(
 							engine.turns_when(
 								stu0.unit.only.historical('location') ==
-								stu1.unit.only.historical('location') ==
-								engine.alias('dorm{}room{}'.format(d, r)))
+								stu1.unit.only.historical(
+									'location') == 'dorm{}room{}'.format(d, r))
 						), "{} seems to share a room with {}".format(
 							stu0.name, stu1.name)
 				common = 'common{}'.format(d)
@@ -145,7 +145,7 @@ def noncollision(college24_premade):
 								engine.turns_when(
 									stu0.unit.only.historical('location') ==
 									stu1.unit.only.historical(
-										'location') == engine.alias(common))
+										'location') == common)
 							), "{} seems to have been in the same common room  as {}".format(
 								stu0.name, stu1.name)
 
