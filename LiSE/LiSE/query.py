@@ -569,7 +569,7 @@ def _do_combine_end_turn(left, right, lhs, rhs, output):
 
 def combine_chronological_data_end_turn(left: list, right: list) -> list:
 	if not (left or right):
-		raise ValueError("Not enough data")
+		return []
 	if not left:
 		return [(rhs[0], rhs[1], None, rhs[2]) for rhs in right]
 	if not right:
