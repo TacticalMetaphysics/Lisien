@@ -1522,10 +1522,67 @@ class Engine(AbstractEngine, gORM):
 					return set(range(0, self.turn))
 				else:
 					return set()
+			keys = []
+			left = []
+			right = []
+			use_numpy = True
+			typ = None
+			output = set()
 			if mid_turn:
-				raise NotImplementedError("oops")
+				for turn_from, tick_from, turn_to, tick_to, v_l, v_r in data:
+					t_l = type(v_l)
+					t_r = type(v_r)
+					if typ is None:
+						if t_l is t_r:
+							typ = t_l
+						else:
+							use_numpy = False
+							break
+					if not (typ is t_l is t_r):
+						use_numpy = False
+						break
+					keys.append((turn_from, tick_from, turn_to, tick_to))
+					left.append(v_l)
+					right.append(v_r)
+				if use_numpy:
+					result_arr = qry.oper(np.array(left, dtype=typ),
+											np.array(right, dtype=typ))
+					for (turn_from, _, turn_to,
+							_), result in zip(keys, result_arr):
+						if result:
+							output.update(range(turn_from, turn_to))
+				else:
+					for (turn_from, _, turn_to, _, v_l, v_r) in data:
+						if qry.oper(v_l, v_r):
+							output.update(range(turn_from, turn_to))
+
 			else:
-				raise NotImplementedError("oops")
+				for turn_from, turn_to, v_l, v_r in data:
+					t_l = type(v_l)
+					t_r = type(v_r)
+					if typ is None:
+						if t_l is t_r:
+							typ = t_l
+						else:
+							use_numpy = False
+							break
+					if not (typ is t_l is t_r):
+						use_numpy = False
+						break
+					keys.append((turn_from, turn_to))
+					left.append(v_l)
+					right.append(v_r)
+				if use_numpy:
+					result_arr = qry.oper(np.array(left, dtype=typ),
+											np.array(right, dtype=typ))
+					for (turn_from, turn_to), result in zip(keys, result_arr):
+						if result:
+							output.update(range(turn_from, turn_to))
+				else:
+					for turn_from, turn_to, v_l, v_r in data:
+						if qry.oper(v_l, v_r):
+							output.update(range(turn_from, turn_to))
+			return output
 		# Make a select statement that gets the turns when the predicate held true
 		try:
 			sel = make_select_from_eq_query(qry, list(branches), self.pack,
