@@ -22,7 +22,8 @@ turn numbers in which the comparison evaluated to ``True``.
 
 """
 import operator
-from collections.abc import MutableMapping
+from collections.abc import MutableMapping, Set
+from itertools import chain
 from operator import gt, lt, eq, ne, le, ge
 from functools import partialmethod
 from time import monotonic
@@ -400,212 +401,358 @@ def make_select_from_eq_query(qry: Union["EqQuery",
 		return select(literal(left) == literal(right))
 
 
-def _do_combine_chrono(left, right, lhs, rhs, output):
+class QueryResult(Set):
+	pass
 
-	def prev_lhs2():
-		if output:
-			return output[-1][-2]
 
-	def prev_rhs2():
-		if output:
-			return output[-1][-1]
+class EqNeQueryResultEndTurn(QueryResult):
 
-	def append_new(new):
-		if not output or new != output[-1]:
-			output.append(new)
+	def __init__(self, windows):
+		self._past = windows
+		self._future = []
+		self._trues = set()
+		self._falses = set()
+		self._iterated = False
 
-	if (lhs[0], lhs[1]) == (rhs[0], rhs[1]):
-		append_new((lhs[0], lhs[1], lhs[2], rhs[2]))
-		lhs = left.pop()
-		rhs = right.pop()
-		return lhs, rhs
-	elif None not in (lhs[1], rhs[1]):
-		# should always overlap a little
-		assert not (lhs[1] < rhs[0] or lhs[0] > rhs[1])
+	def __iter__(self):
+		if self._iterated:
+			return iter(self._trues)
+		add = self._trues.add
+		for turn_from, turn_to in self._past:
+			for turn in range(turn_from, turn_to):
+				add(turn)
+				yield turn
+		for turn_from, turn_to in reversed(self._future):
+			for turn in range(turn_from, turn_to):
+				add(turn)
+				yield turn
+		self._iterated = True
+		del self._falses
 
-		# rhs contained in lhs
-		if lhs[0] <= rhs[0] <= rhs[1] <= lhs[1]:
-			if lhs[0] != rhs[0] and (not output or output[-1][1] < lhs[0]):
-				assert rhs[0] > lhs[0]
-				append_new((lhs[0], rhs[0], lhs[2], prev_rhs2()))
-			append_new((rhs[0], rhs[1], lhs[2], rhs[2]))
-			prev_rhs1 = rhs[1]
-			if right:
-				rhs = right.pop()
-				output.append((prev_rhs1, lhs[1], lhs[2], rhs[2]))
-			else:
-				append_new((rhs[1], lhs[1], lhs[2], None))
-				while left:
-					lhs = left.pop()
-					if lhs[1] < rhs[1]:
-						append_new((lhs[1], rhs[1], lhs[2], rhs[2]))
-					elif lhs[0] < rhs[1]:
-						append_new((lhs[0], rhs[1], lhs[2], rhs[2]))
-					else:
-						append_new((lhs[0], lhs[1], lhs[2], None))
-				if rhs[1] > output[-1][1]:
-					append_new((output[-1][1], rhs[1], None, rhs[2]))
-				elif lhs[1] > output[-1][1]:
-					append_new((output[-1][1], lhs[1], lhs[2], None))
-				return
-		# lhs contained in rhs
-		elif rhs[0] <= lhs[0] <= lhs[1] <= rhs[1]:
-			if rhs[0] != lhs[0] and (not output or output[-1][1] < rhs[0]):
-				assert lhs[0] > rhs[0]
-				append_new((rhs[0], lhs[0], prev_lhs2(), rhs[2]))
-			append_new((lhs[0], lhs[1], lhs[2], rhs[2]))
-			prev_lhs1 = lhs[1]
-			if left:
-				lhs = left.pop()
-				append_new((prev_lhs1, rhs[1], lhs[2], rhs[2]))
-			else:
-				append_new((lhs[1], rhs[1], None, rhs[2]))
-				while right:
-					rhs = right.pop()
-					if rhs[1] < lhs[1]:
-						append_new((rhs[1], lhs[1], lhs[2], rhs[2]))
-					elif rhs[0] < lhs[1]:
-						append_new((rhs[0], lhs[1], lhs[2], rhs[2]))
-					else:
-						append_new((rhs[0], rhs[1], None, rhs[2]))
-				if lhs[1] > output[-1][1]:
-					append_new((output[-1][1], lhs[1], lhs[2], None))
-				elif rhs[1] > output[-1][1]:
-					append_new((output[-1][1], rhs[1], None, rhs[2]))
-				return
-		# lhs really is on the left side of rhs, overlapping
-		elif lhs[0] <= rhs[0] <= lhs[1] <= rhs[1]:
-			if not output or lhs[0] > output[-1][0]:
-				append_new((lhs[0], rhs[0], lhs[2], prev_rhs2()))
-			append_new((rhs[0], lhs[1], lhs[2], rhs[2]))
-			if left:
-				lhs = left.pop()
-			else:
-				while right:
-					rhs = right.pop()
-					if rhs[1] < lhs[1]:
-						append_new((rhs[1], lhs[1], lhs[2], rhs[2]))
-					elif rhs[0] < lhs[1]:
-						append_new((rhs[0], lhs[1], lhs[2], rhs[2]))
-				if lhs[1] > output[-1][1]:
-					append_new((output[-1][1], lhs[1], lhs[2], None))
-				elif rhs[1] > output[-1][1]:
-					append_new((output[-1][1], rhs[1], None, rhs[2]))
-				return
-			return lhs, rhs
-		# lhs is actually on the right side of rhs, overlapping
-		elif rhs[0] <= lhs[0] <= rhs[1] <= lhs[1]:
-			if not output or rhs[0] > output[-1][0]:
-				append_new((rhs[0], lhs[0], prev_lhs2(), rhs[2]))
-			append_new((lhs[0], rhs[1], lhs[2], rhs[2]))
-			if right:
-				rhs = right.pop()
-			else:
-				while left:
-					lhs = left.pop()
-					if lhs[1] < rhs[1]:
-						append_new((lhs[1], rhs[1], lhs[2], rhs[2]))
-					elif lhs[0] < rhs[1]:
-						append_new((lhs[0], rhs[1], lhs[2], rhs[2]))
-				if rhs[1] > output[-1][1]:
-					append_new((output[-1][1], rhs[1], None, rhs[2]))
-				elif lhs[1] > output[-1][1]:
-					append_new((output[-1][1], lhs[1], lhs[2], None))
-				return
+	def __len__(self):
+		if self._iterated:
+			return len(self._trues)
+		n = 0
+		for _ in self:
+			n += 1
+		return n
+
+	def __contains__(self, item):
+		if self._iterated:
+			return item in self._trues
+		elif item in self._trues:
+			return True
+		elif item in self._falses:
+			return False
+		past = self._past
+		future = self._future
+		if not past:
+			if not future:
+				return False
+			past.append(future.pop())
+		while past and item < past[0][0]:
+			future.append(past.pop())
+		while future and item >= past[0][1]:
+			past.append(future.pop())
+		if not past:
+			return False
+		ret = past[0][0] <= item < past[0][1]
+		if ret:
+			self._trues.add(item)
 		else:
-			assert False, "Can't happen"
-		return lhs, rhs
-	elif lhs[1] is None and rhs[1] is None:
-		if left or right:
-			raise ValueError("Invalid left and right side")
-		if lhs[0] > rhs[0]:
-			append_new((lhs[0], None, lhs[2], rhs[2]))
+			self._falses.add(item)
+		return ret
+
+	def __repr__(self):
+		return f"{self.__class__}({self._past + list(reversed(self._future))})"
+
+
+class EqNeQueryResultMidTurn(QueryResult):
+
+	def __init__(self, windows):
+		self._past = windows
+		self._future = []
+		self._trues = set()
+		self._falses = set()
+		self._iterated = False
+
+	def __iter__(self):
+		seen = set()
+		add = self._trues.add
+		for seq in (self._past, reversed(self._future)):
+			for (turn_from, tick_from), (turn_to, tick_to) in seq:
+				if turn_from == turn_to:
+					if turn_from not in seen:
+						add(turn_from)
+						yield turn_from
+						seen.add(turn_from)
+				else:
+					for turn in range(turn_from, turn_to):
+						if turn not in seen:
+							add(turn)
+							yield turn
+							seen.add(turn)
+		self._iterated = True
+		del self._falses
+
+	def __len__(self):
+		if self._iterated:
+			return len(self._trues)
+		n = 0
+		for _ in self:
+			n += 1
+		return n
+
+	def __contains__(self, item):
+		if self._iterated:
+			return item in self._trues
+		elif item in self._trues:
+			return True
+		elif item in self._falses:
+			return False
+		past = self._past
+		future = self._future
+		if not past:
+			if not future:
+				return False
+			future.append(past.pop())
+		while item < past[0][0][0]:
+			if not past:
+				return False
+			future.append(past.pop())
+		while item >= past[0][1][0]:
+			if not future:
+				return False
+			past.append(future.pop())
+		ret = past[0][0][0] <= item < past[0][1][0]
+		if ret:
+			self._trues.add(item)
 		else:
-			append_new((rhs[0], None, lhs[2], rhs[2]))
-		return lhs, rhs
-	elif lhs[1] is None:
-		if left:
-			raise ValueError("Invalid left side")
-		if rhs[0] >= lhs[0]:
-			append_new((rhs[0], rhs[1], lhs[2], rhs[2]))
-		else:
-			append_new((lhs[0], rhs[1], lhs[2], rhs[2]))
-		rhs = right.pop()
-		if not right:
-			if rhs[0] >= lhs[0]:
-				append_new((rhs[0], rhs[1], lhs[2], rhs[2]))
-			else:
-				append_new((lhs[0], rhs[1], lhs[2], rhs[2]))
+			self._falses.add(item)
+		return ret
+
+
+class GtLtQueryResultEndTurn(QueryResult):
+
+	def __init__(self, windows_l, windows_r, oper):
+		self._past_l = windows_l
+		self._future_l = []
+		self._past_r = windows_r
+		self._future_r = []
+		self._oper = oper
+		self._iterated = False
+		self._trues = set()
+		self._falses = set()
+
+	def __iter__(self):
+		if self._iterated:
+			return iter(self._trues)
+		if not ((self._past_l or self._future_l) and
+				(self._past_r or self._future_r)):
 			return
-		return lhs, rhs
-	elif rhs[1] is None:
-		if right:
-			raise ValueError("Invalid right side")
-		if lhs[0] >= rhs[0]:
-			append_new((lhs[0], lhs[1], lhs[2], rhs[2]))
+		if self._future_l:
+			end_l = self._future_l[0][1]
+			if end_l in (None, (None, None)):
+				end_l = self._future_l[0][0]
 		else:
-			append_new((rhs[0], lhs[1], lhs[2], rhs[2]))
-		lhs = left.pop()
-		if not left:
-			if lhs[0] >= rhs[0]:
-				append_new((lhs[0], lhs[1], lhs[2], rhs[2]))
-			else:
-				append_new((rhs[0], lhs[1], lhs[2], rhs[2]))
+			end_l = self._past_l[-1][1]
+			if end_l in (None, (None, None)):
+				end_l = self._past_l[-1][0]
+		if self._future_r:
+			end_r = self._future_r[0][1]
+			if end_r in (None, (None, None)):
+				end_r = self._future_r[0][0]
+		else:
+			end_r = self._past_r[-1][1]
+			if end_r in (None, (None, None)):
+				end_r = self._past_r[-1][0]
+		end = max((end_l, end_r))
+		if isinstance(end, tuple):
+			end = end[0]
+		oper = self._oper
+		trues = self._trues
+		left = chain(iter(self._past_l), reversed(self._future_l))
+		right = chain(iter(self._past_r), reversed(self._future_r))
+		(l_from, _), (l_to, _), l_v = next(left)
+		(r_from, _), (r_to, _), r_v = next(right)
+		for turn in range(0, end + 1):
+			while not (l_from <= turn and (l_to is None or turn < l_to)):
+				try:
+					(l_from, _), (l_to, _), l_v = next(left)
+				except StopIteration:
+					return
+			while not (r_from <= turn and (r_to is None or turn < r_to)):
+				try:
+					(r_from, _), (r_to, _), r_v = next(right)
+				except StopIteration:
+					return
+			if oper(l_v, r_v):
+				trues.add(turn)
+				yield turn
+		self._iterated = True
+		del self._falses
+
+	def __len__(self):
+		if self._iterated:
+			return len(self._trues)
+		n = 0
+		for _ in self:
+			n += 1
+		return n
+
+	def __contains__(self, item):
+		if self._iterated:
+			return item in self._trues
+		elif item in self._trues:
+			return True
+		elif item in self._falses:
+			return False
+		future_l = self._future_l
+		past_l = self._past_l
+		future_r = self._future_r
+		past_r = self._past_r
+		if not past_l:
+			if not future_l:
+				return False
+			past_l.append((future_l.pop()))
+		if not past_r:
+			if not future_r:
+				return False
+			past_r.append((future_r.pop()))
+		while past_l and past_l[-1][0] >= item:
+			future_l.append(past_l.pop())
+		while future_l and future_l[-1][0] < item:
+			past_l.append(future_l.pop())
+		while past_r and past_r[-1][0] >= item:
+			future_r.append(past_r.pop())
+		while future_r and future_r[-1][0] < item:
+			past_r.append(future_r.pop())
+		ret = self._oper(past_l[-1][2], past_r[-1][2])
+		if ret:
+			self._trues.add(item)
+		else:
+			self._falses.add(item)
+		return ret
+
+
+class GtLtQueryResultMidTurn(QueryResult):
+
+	def __init__(self, windows_l, windows_r, oper):
+		self._past_l = windows_l
+		self._future_l = []
+		self._past_r = windows_r
+		self._future_r = []
+		self._oper = oper
+		self._iterated = False
+		self._trues = set()
+		self._falses = set()
+
+	def __iter__(self):
+		if self._iterated:
+			return iter(self._trues)
+		if not ((self._past_l or self._future_l) and
+				(self._past_r or self._future_r)):
 			return
-		return lhs, rhs
-	else:
-		assert False, "Can't happen"
+		add = self._trues.add
+		future_l = self._future_l
+		future_l.extend(reversed(self._past_l))
+		self._past_l = past_l = []
+		future_r = self._future_r
+		future_r.extend(reversed(self._past_r))
+		self._past_r = past_r = []
+		oper = self._oper
+		end = max((future_r[0][1][0], future_l[0][1][0]))
+		past_l.append(future_l.pop())
+		past_r.append(future_r.pop())
+		for i in range(0, end):
+			while not (past_l[-1][0][0] <= i < past_l[-1][1][0]
+						or past_l[-1][0][0] == i == past_l[-1][1][0]):
+				past_l.append(future_l.pop())
+			while not (past_r[-1][0][0] <= i < past_r[-1][1][0]
+						or past_r[-1][0][0] == i == past_r[-1][1][0]):
+				past_r.append(future_r.pop())
+			v_l = past_l[-1][-1]
+			v_r = past_r[-1][-1]
+			if oper(v_l, v_r):
+				add(i)
+				yield i
+		self._iterated = True
+		del self._falses
+
+	def __len__(self):
+		if self._iterated:
+			return len(self._trues)
+		n = 0
+		for _ in self:
+			n += 1
+		self._len = n
+		return n
+
+	def __contains__(self, item):
+		future_l = self._future_l
+		past_l = self._past_l
+		future_r = self._future_r
+		past_r = self._past_r
+		if not past_l:
+			if not future_l:
+				return False
+			past_l.append(future_l.pop())
+		if not past_r:
+			if not future_r:
+				return False
+			past_r.append(future_r.pop())
+		oper = self._oper
+		while past_l and past_l[-1][0][0] >= item:
+			future_l.append(past_l.pop())
+		while future_l and not (past_l[-1][0][0] <= item < past_l[-1][1][0] or
+								past_l[-1][0][0] == item == past_l[-1][1][0]):
+			past_l.append(future_l.pop())
+		left_candidates = [past_l[-1]]
+		while future_l and (past_l[-1][0][0] <= item < past_l[-1][1][0]
+							or past_l[-1][0][0] == item == past_l[-1][1][0]):
+			past_l.append(future_l.pop())
+			left_candidates.append(past_l[-1])
+		while past_r and past_r[-1][0][0] >= item:
+			future_r.append(past_r.pop())
+		while future_r and not (past_r[-1][0][0] <= item < past_r[-1][1][0] or
+								past_r[-1][0][0] == item == past_r[-1][1][0]):
+			past_r.append(future_r.pop())
+		right_candidates = [past_r[-1]]
+		while future_r and (past_r[-1][0][0] <= item < past_r[-1][1][0]
+							or past_r[-1][0][0] == item == past_r[-1][1][0]):
+			past_r.append(future_r.pop())
+			right_candidates.append(past_r[-1])
+		for l_time_from, l_time_to, l_v in left_candidates:
+			for r_time_from, r_time_to, r_v in right_candidates:
+				if not (r_time_to < l_time_from or r_time_from > l_time_to):
+					if oper(l_v, r_v):
+						return True
+		return False
 
 
-def combine_chronological_data_end_turn(left: list, right: list) -> list:
-	if not (left or right):
-		return []
-	if not left:
-		return [(rhs[0], rhs[1], None, rhs[2]) for rhs in right]
-	if not right:
-		return [(lhs[0], lhs[1], lhs[2], None) for lhs in left]
-	output = []
+class CombinedQueryResult(QueryResult):
 
-	left = list(reversed(left))
-	right = list(reversed(right))
-	lhs = left.pop()
-	rhs = right.pop()
+	def __init__(self, left: QueryResult, right: QueryResult, oper):
+		self._left = left
+		self._right = right
+		self._oper = oper
 
-	while True:
-		done = _do_combine_chrono(left, right, lhs, rhs, output)
-		if done is None:
-			break
-		lhs, rhs = done
-	return output
+	def _genset(self):
+		if not hasattr(self, '_set'):
+			self._set = self._oper(set(self._left), set(self._right))
 
+	def __iter__(self):
+		self._genset()
+		return iter(self._set)
 
-def combine_chronological_data_mid_turn(left: list, right: list) -> list:
-	if not (left or right):
-		return []
-	if not left:
-		return [(rhs[0], rhs[1], rhs[2], rhs[3], None, rhs[4])
-				for rhs in right]
-	if not right:
-		return [(lhs[0], lhs[1], lhs[2], lhs[3], lhs[4], None) for lhs in left]
-	output = []
-	left = [((turn_from, tick_from), (turn_to, tick_to), value)
-			for (turn_from, tick_from, turn_to, tick_to,
-					value) in reversed(left)]
-	right = [((turn_from, tick_from), (turn_to, tick_to), value)
-				for (turn_from, tick_from, turn_to, tick_to,
-						value) in reversed(right)]
-	lhs = left.pop()
-	rhs = right.pop()
+	def __len__(self):
+		self._genset()
+		return len(self._set)
 
-	while True:
-		done = _do_combine_chrono(left, right, lhs, rhs, output)
-		if done is None:
-			break
-		lhs, rhs = done
-	return [
-		time_from + time_to + (l_v, r_v)
-		for (time_from, time_to, l_v, r_v) in output
-	]
+	def __contains__(self, item):
+		if hasattr(self, '_set'):
+			return item in self._set
+		return self._oper(item in self._left, item in self._right)
 
 
 class Query(object):
