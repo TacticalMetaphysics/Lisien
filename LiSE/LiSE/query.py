@@ -416,7 +416,8 @@ class EqNeQueryResultEndTurn(QueryResult):
 
 	def __iter__(self):
 		if self._iterated:
-			return iter(self._trues)
+			yield from self._trues
+			return
 		add = self._trues.add
 		for turn_from, turn_to in self._past:
 			for turn in range(turn_from, turn_to):
@@ -477,6 +478,9 @@ class EqNeQueryResultMidTurn(QueryResult):
 		self._iterated = False
 
 	def __iter__(self):
+		if self._iterated:
+			yield from self._trues
+			return
 		seen = set()
 		add = self._trues.add
 		for seq in (self._past, reversed(self._future)):
@@ -546,7 +550,8 @@ class GtLtQueryResultEndTurn(QueryResult):
 
 	def __iter__(self):
 		if self._iterated:
-			return iter(self._trues)
+			yield from self._trues
+			return
 		if not ((self._past_l or self._future_l) and
 				(self._past_r or self._future_r)):
 			return
@@ -649,7 +654,8 @@ class GtLtQueryResultMidTurn(QueryResult):
 
 	def __iter__(self):
 		if self._iterated:
-			return iter(self._trues)
+			yield from self._trues
+			return
 		if not ((self._past_l or self._future_l) and
 				(self._past_r or self._future_r)):
 			return
