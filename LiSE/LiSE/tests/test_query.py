@@ -16,7 +16,7 @@ import re
 from functools import reduce
 from collections import defaultdict
 from ..engine import Engine
-from ..query import windows_intersection, combine_chronological_data_end_turn
+from ..query import windows_intersection
 import pytest
 import os
 import shutil
@@ -205,57 +205,3 @@ def test_graph_val_select_lt_gt(engy):
 	bar_hist = me.historical('bar')
 	assert engy.turns_when(foo_hist < bar_hist) == {1, 2, 5, 7}
 	assert engy.turns_when(foo_hist > bar_hist) == {0, 3, 4, 6}
-
-
-def test_combine_chronological_data_end_turn():
-
-	def test(left, right, correct):
-		assert combine_chronological_data_end_turn(left, right) == correct
-		(left, right) = (right, left)
-		correct = [(t[0], t[1], t[3], t[2]) for t in correct]
-		assert combine_chronological_data_end_turn(left, right) == correct
-
-	left = [(0, 1, 'foo'), (1, 5, 'boo'), (5, 9, 'gru'), (9, 10, None),
-			(10, None, 'foo')]
-	right = [(0, 1, 'bar'), (1, 3, 'baz'), (3, None, 'bau')]
-	correct = [(0, 1, 'foo', 'bar'), (1, 3, 'boo', 'baz'),
-				(3, 5, 'boo', 'bau'), (5, 9, 'gru', 'bau'),
-				(9, 10, None, 'bau'), (10, None, 'foo', 'bau')]
-	test(left, right, correct)
-	left = [(1, 2, 'foo')]
-	right = [(0, 5, 'bar'), (5, 7, 'bas')]
-	correct = [(0, 1, None, 'bar'), (1, 2, 'foo', 'bar'), (2, 5, None, 'bar'),
-				(5, 7, None, 'bas')]
-	test(left, right, correct)
-	left = [(0, 2, 'foo'), (2, 5, 'bar')]
-	right = [(1, 3, 'bas'), (3, 4, 'qux')]
-	correct = [(0, 1, 'foo', None), (1, 2, 'foo', 'bas'), (2, 3, 'bar', 'bas'),
-				(3, 4, 'bar', 'qux'), (4, 5, 'bar', None)]
-	test(left, right, correct)
-	assert combine_chronological_data_end_turn([], []) == []
-	assert combine_chronological_data_end_turn([(0, 1, 'foo')],
-												[]) == [(0, 1, 'foo', None)]
-	assert combine_chronological_data_end_turn([], [(0, 1, 'foo')]) == [
-		(0, 1, None, 'foo')
-	]
-	left = [(0, 2, 'foo'), (2, 4, 'bas')]
-	right = [(1, 3, 'bar')]
-	correct = [(0, 1, 'foo', None), (1, 2, 'foo', 'bar'), (2, 3, 'bas', 'bar'),
-				(3, 4, 'bas', None)]
-	test(left, right, correct)
-	left = [(0, 1, b'\n'), (1, 2, b'\x02'), (2, 3, b'\x03'), (3, None, b'\t')]
-	right = [(0, 1, b'\x01'), (1, 4, b'\x08'), (4, 5, b'\x02'), (5, 6, b'\n'),
-				(6, 7, b'\x01'), (7, None, b'\n')]
-	correct = [(0, 1, b'\n', b'\x01'), (1, 2, b'\x02', b'\x08'),
-				(2, 3, b'\x03', b'\x08'), (3, 4, b'\t', b'\x08'),
-				(4, 5, b'\t', b'\x02'), (5, 6, b'\t', b'\n'),
-				(6, 7, b'\t', b'\x01'), (7, None, b'\t', b'\n')]
-	test(left, right, correct)
-	left = [(0, 1, b'\n'), (1, 2, b'\x02'), (2, 3, b'\x03'), (3, None, b'\t')]
-	right = [(0, 1, b'\x01'), (1, 4, b'\x08'), (4, 5, b'\x02'), (5, 6, b'\n'),
-				(6, 7, b'\x01'), (7, None, b'\n')]
-	correct = [(0, 1, b'\n', b'\x01'), (1, 2, b'\x02', b'\x08'),
-				(2, 3, b'\x03', b'\x08'), (3, 4, b'\t', b'\x08'),
-				(4, 5, b'\t', b'\x02'), (5, 6, b'\t', b'\n'),
-				(6, 7, b'\t', b'\x01'), (7, None, b'\t', b'\n')]
-	test(left, right, correct)
