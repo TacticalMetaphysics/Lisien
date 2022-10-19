@@ -938,7 +938,7 @@ def slow_iter_btts_eval_cmp(qry, oper, start_branch=None, engine=None):
 				local_turn_end = fork_tick
 			else:
 				local_turn_end = engine._turn_end_plan[branch, turn]
-			for tick in range(0, local_turn_end):
+			for tick in range(0, local_turn_end + 1):
 				try:
 					val = oper(leftside(branch, turn, tick),
 								rightside(branch, turn, tick))
