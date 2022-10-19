@@ -782,6 +782,9 @@ class Query(object):
 	def iter_ticks(self, turn):
 		raise NotImplementedError
 
+	def iter_btts(self):
+		raise NotImplementedError
+
 	def __eq__(self, other):
 		return EqQuery(self.engine, self, other)
 
@@ -806,6 +809,9 @@ class ComparisonQuery(Query):
 
 	def iter_times(self):
 		return slow_iter_turns_eval_cmp(self, self.oper, engine=self.engine)
+
+	def iter_btts(self):
+		return slow_iter_btts_eval_cmp(self, self.oper, engine=self.engine)
 
 
 class EqQuery(ComparisonQuery):
@@ -879,27 +885,27 @@ class StatusAlias(EntityStatAccessor):
 		return LeQuery(self.engine, self, other)
 
 
+def _mungeside(side):
+	if isinstance(side, Query):
+		return side.iter_times
+	elif isinstance(side, StatusAlias):
+		return EntityStatAccessor(side.entity, side.stat, side.engine,
+									side.branch, side.turn, side.tick,
+									side.current, side.mungers)
+	elif isinstance(side, EntityStatAccessor):
+		return side
+	else:
+		return lambda: side
+
+
 def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
 	"""Iterate over all turns on which a comparison holds.
 
 	This is expensive. It evaluates the query for every turn in history.
 
 	"""
-
-	def mungeside(side):
-		if isinstance(side, Query):
-			return side.iter_times
-		elif isinstance(side, StatusAlias):
-			return EntityStatAccessor(side.entity, side.stat, side.engine,
-										side.branch, side.turn, side.tick,
-										side.current, side.mungers)
-		elif isinstance(side, EntityStatAccessor):
-			return side
-		else:
-			return lambda: side
-
-	leftside = mungeside(qry.leftside)
-	rightside = mungeside(qry.rightside)
+	leftside = _mungeside(qry.leftside)
+	rightside = _mungeside(qry.rightside)
 	engine = engine or leftside.engine or rightside.engine
 
 	for (branch, fork_turn,
@@ -912,6 +918,34 @@ def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
 		for turn in range(turn_start, fork_turn + 1):
 			if oper(leftside(branch, turn), rightside(branch, turn)):
 				yield branch, turn
+
+
+def slow_iter_btts_eval_cmp(qry, oper, start_branch=None, engine=None):
+	leftside = _mungeside(qry.leftside)
+	rightside = _mungeside(qry.rightside)
+	engine = engine or leftside.engine or rightside.engine
+	assert engine is not None
+
+	for (branch, fork_turn,
+			fork_tick) in engine._iter_parent_btt(start_branch
+													or engine.branch):
+		if branch is None:
+			return
+		parent, turn_start, tick_start, turn_end, tick_end = engine._branches[
+			branch]
+		for turn in range(turn_start, fork_turn + 1):
+			if turn == fork_turn:
+				local_turn_end = fork_tick
+			else:
+				local_turn_end = engine._turn_end_plan[branch, turn]
+			for tick in range(0, local_turn_end):
+				try:
+					val = oper(leftside(branch, turn, tick),
+								rightside(branch, turn, tick))
+				except KeyError:
+					continue
+				if val:
+					yield branch, turn, tick
 
 
 class ConnectionHolder(query.ConnectionHolder):
