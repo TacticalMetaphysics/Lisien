@@ -1519,7 +1519,7 @@ class Engine(AbstractEngine, gORM):
 			def upd(turn_from, turn_to):
 				assert turn_from is not None
 				if turn_to is None:
-					res.append((turn_from, end))
+					res.append((turn_from, end + 1))
 				else:
 					res.append((turn_from, turn_to))
 
