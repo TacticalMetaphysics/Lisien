@@ -1509,12 +1509,12 @@ class Engine(AbstractEngine, gORM):
 											mid_turn)
 			res = []
 			# this passes for the end of time, currently
-			end = self._branches[self.branch][-2] + 1
+			end = self._branch_end_plan[self.branch] + 1
 
 			def upd(turn_from, turn_to):
 				assert turn_from is not None
 				if turn_to is None:
-					res.append((turn_from, end + 1))
+					res.append((turn_from, end))
 				else:
 					res.append((turn_from, turn_to))
 
