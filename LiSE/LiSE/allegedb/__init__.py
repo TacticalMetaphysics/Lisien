@@ -1682,8 +1682,9 @@ class ORM:
 			# but I couldn't come up with a situation where that would actually
 			# happen
 			raise OutOfTimelineError(
-				"You're in the past. Go to turn {}, tick {} to change things".
-				format(turn_end, tick_end), *btt(), branch, turn, tick)
+				"You're in the past. Go to turn {}, tick {} to change things"
+				" -- or start a new branch".format(turn_end, tick_end), *btt(),
+				branch, turn, tick)
 		if self._planning:
 			last_plan = self._last_plan
 			if (turn, tick) in plan_ticks[last_plan]:
