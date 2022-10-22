@@ -538,7 +538,7 @@ class EqNeQueryResultMidTurn(QueryResult):
 
 class GtLtQueryResultEndTurn(QueryResult):
 
-	def __init__(self, windows_l, windows_r, oper):
+	def __init__(self, windows_l, windows_r, oper, end_of_time):
 		self._past_l = windows_l
 		self._future_l = []
 		self._past_r = windows_r
@@ -547,6 +547,7 @@ class GtLtQueryResultEndTurn(QueryResult):
 		self._iterated = False
 		self._trues = set()
 		self._falses = set()
+		self._end_of_time = end_of_time
 
 	def __iter__(self):
 		if self._iterated:
@@ -571,9 +572,7 @@ class GtLtQueryResultEndTurn(QueryResult):
 			end_r = self._past_r[-1][1]
 			if end_r in (None, (None, None)):
 				end_r = self._past_r[-1][0]
-		end = max((end_l, end_r))
-		if isinstance(end, tuple):
-			end = end[0]
+		end = self._end_of_time
 		oper = self._oper
 		trues = self._trues
 		left = chain(iter(self._past_l), reversed(self._future_l))
@@ -642,7 +641,7 @@ class GtLtQueryResultEndTurn(QueryResult):
 
 class GtLtQueryResultMidTurn(QueryResult):
 
-	def __init__(self, windows_l, windows_r, oper):
+	def __init__(self, windows_l, windows_r, oper, end_of_time):
 		self._past_l = windows_l
 		self._future_l = []
 		self._past_r = windows_r
@@ -651,6 +650,7 @@ class GtLtQueryResultMidTurn(QueryResult):
 		self._iterated = False
 		self._trues = set()
 		self._falses = set()
+		self._end_of_time = end_of_time
 
 	def __iter__(self):
 		if self._iterated:
@@ -667,7 +667,7 @@ class GtLtQueryResultMidTurn(QueryResult):
 		future_r.extend(reversed(self._past_r))
 		self._past_r = past_r = []
 		oper = self._oper
-		end = max((future_r[0][1][0], future_l[0][1][0]))
+		end = self._end_of_time
 		past_l.append(future_l.pop())
 		past_r.append(future_r.pop())
 		for i in range(0, end):
