@@ -36,7 +36,8 @@ from .query import (Query, EqQuery, NeQuery, make_side_sel,
 					windows_intersection, make_select_from_eq_query,
 					StatusAlias, ComparisonQuery, CompoundQuery,
 					EqNeQueryResultEndTurn, GtLtQueryResultMidTurn,
-					QueryResult, GtLtQueryResultEndTurn, CombinedQueryResult)
+					QueryResult, GtLtQueryResultEndTurn, CombinedQueryResult,
+					_msfq_mid_turn, _getcol, _msfq_end_turn)
 from . import exc
 
 
@@ -1448,6 +1449,7 @@ class Engine(AbstractEngine, gORM):
 
 		"""
 		unpack = self.unpack
+		end = self._branch_end_plan[self.branch] + 1
 
 		def unpack_gt_lt_data(data):
 			return [((lfrom, lto), (rfrom, rto), unpack(v))
@@ -1475,11 +1477,11 @@ class Engine(AbstractEngine, gORM):
 				if mid_turn:
 					return GtLtQueryResultMidTurn(
 						unpack_gt_lt_data(left_data),
-						unpack_gt_lt_data(right_data), qry.oper)
+						unpack_gt_lt_data(right_data), qry.oper, end)
 				else:
 					return GtLtQueryResultEndTurn(
 						unpack_gt_lt_data(left_data),
-						unpack_gt_lt_data(right_data), qry.oper)
+						unpack_gt_lt_data(right_data), qry.oper, end)
 			elif isinstance(left, StatusAlias):
 				left_sel = make_side_sel(left.entity, left.stat, branches,
 											self.pack, mid_turn)
@@ -1487,10 +1489,10 @@ class Engine(AbstractEngine, gORM):
 				_, turn, tick = self._btt()
 				if mid_turn:
 					return GtLtQueryResultMidTurn(
-						left_data, [(0, 0, turn, tick, right)], qry.oper)
+						left_data, [(0, 0, turn, tick, right)], qry.oper, end)
 				else:
 					return GtLtQueryResultEndTurn(left_data, [(0, 0, right)],
-													qry.oper)
+													qry.oper, end)
 			elif isinstance(right, StatusAlias):
 				right_sel = make_side_sel(right.entity, right.stat, branches,
 											self.pack, mid_turn)
@@ -1498,12 +1500,12 @@ class Engine(AbstractEngine, gORM):
 				_, turn, tick = self._btt()
 				if mid_turn:
 					return GtLtQueryResultMidTurn([(0, 0, turn, tick, left)],
-													right_data, qry.oper)
+													right_data, qry.oper, end)
 				else:
 					return GtLtQueryResultEndTurn([(0, 0, left)], [
 						(turn_from, turn_to, value)
 						for (turn_from, _, turn_to, _, value) in right_data
-					], qry.oper)
+					], qry.oper, end)
 			else:
 				if qry.oper(left, right):
 					return set(range(0, self.turn))
@@ -1514,8 +1516,6 @@ class Engine(AbstractEngine, gORM):
 			sel = make_select_from_eq_query(qry, list(branches), self.pack,
 											mid_turn)
 			res = []
-			# this passes for the end of time, currently
-			end = self._branch_end_plan[self.branch] + 1
 
 			def upd(turn_from, turn_to):
 				assert turn_from is not None
