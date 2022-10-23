@@ -24,7 +24,6 @@ from typing import Union, Tuple, Any, Set, List, Type, Hashable
 from os import PathLike
 from abc import ABC, abstractmethod
 
-import numpy as np
 from networkx import Graph
 from blinker import Signal
 from .allegedb import ORM as gORM
@@ -36,8 +35,7 @@ from .query import (Query, EqQuery, NeQuery, make_side_sel,
 					windows_intersection, make_select_from_eq_query,
 					StatusAlias, ComparisonQuery, CompoundQuery,
 					EqNeQueryResultEndTurn, GtLtQueryResultMidTurn,
-					QueryResult, GtLtQueryResultEndTurn, CombinedQueryResult,
-					_msfq_mid_turn, _getcol, _msfq_end_turn)
+					QueryResult, GtLtQueryResultEndTurn, CombinedQueryResult)
 from . import exc
 
 
