@@ -312,15 +312,15 @@ def _msfq_mid_turn(qry,
 					right_col='value'):
 	# figure whether there is *no* overlap between the time ranges
 	left_time_to_lt_right_time_from = and_(
-		left_sel.c.turn_to != None, right_sel.c.turn_from != None,
+		left_sel.c.turn_to != None,
 		or_(
-			left_sel.c.turn_to - 1 < right_sel.c.turn_from,
+			left_sel.c.turn_to < right_sel.c.turn_from,
 			and_(left_sel.c.turn_to == right_sel.c.turn_from,
 					left_sel.c.tick_to - 1 < right_sel.c.tick_from)))
 	right_time_to_lt_left_time_from = and_(
-		right_sel.c.turn_to != None, left_sel.c.turn_from != None,
+		right_sel.c.turn_to != None,
 		or_(
-			right_sel.c.turn_to - 1 < left_sel.c.turn_from,
+			right_sel.c.turn_to < left_sel.c.turn_from,
 			and_(right_sel.c.turn_to == left_sel.c.turn_from,
 					right_sel.c.tick_to - 1 < left_sel.c.tick_from)))
 	# then invert it
