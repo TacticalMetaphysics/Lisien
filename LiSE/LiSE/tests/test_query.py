@@ -197,6 +197,22 @@ def test_graph_val_select_eq(engy):
 	assert mid_turn_result == set(mid_turn_result) == {1, 2, 3, 5, 6, 7}
 
 
+def test_stress_graph_val_select_eq(engy):
+	import random
+	from time import monotonic
+	me = engy.new_character('me')
+	me.stat['qux'] = random.choice(['foo', 'bar', 'bas'])
+	me.stat['quux'] = random.choice(['foo', 'bar', 'bas'])
+	for i in range(10000):
+		engy.next_turn()
+		me.stat['qux'] = random.choice(['foo', 'bar', 'bas'])
+		me.stat['quux'] = random.choice(['foo', 'bar', 'bas'])
+	qry = me.historical('qux') == me.historical('quux')
+	start_ts = monotonic()
+	print(engy.turns_when(qry))
+	print(monotonic() - start_ts)
+
+
 def test_graph_val_select_lt_gt(engy):
 	me = engy.new_character('me')
 	me.stat['foo'] = 10
@@ -223,3 +239,19 @@ def test_graph_val_select_lt_gt(engy):
 	bar_hist = me.historical('bar')
 	assert engy.turns_when(foo_hist < bar_hist) == {1, 2, 5, 7}
 	assert engy.turns_when(foo_hist > bar_hist) == {0, 3, 4, 6}
+
+
+def test_stress_graph_val_select_lt(engy):
+	import random
+	from time import monotonic
+	me = engy.new_character('me')
+	me.stat['foo'] = random.randrange(0, 10)
+	me.stat['bar'] = random.randrange(0, 10)
+	for i in range(10000):
+		engy.next_turn()
+		me.stat['foo'] = random.randrange(0, 10)
+		me.stat['bar'] = random.randrange(0, 10)
+	qry = me.historical('foo') < me.historical('bar')
+	start_ts = monotonic()
+	print(list(engy.turns_when(qry)))
+	print(monotonic() - start_ts)
