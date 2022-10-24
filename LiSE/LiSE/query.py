@@ -788,13 +788,13 @@ class Query(object):
 		me.engine = engine
 		return me
 
-	def iter_times(self):
+	def _iter_times(self):
 		raise NotImplementedError
 
-	def iter_ticks(self, turn):
+	def _iter_ticks(self, turn):
 		raise NotImplementedError
 
-	def iter_btts(self):
+	def _iter_btts(self):
 		raise NotImplementedError
 
 	def __eq__(self, other):
@@ -819,10 +819,10 @@ class Query(object):
 class ComparisonQuery(Query):
 	oper: Callable[[Any, Any], bool] = lambda x, y: NotImplemented
 
-	def iter_times(self):
+	def _iter_times(self):
 		return slow_iter_turns_eval_cmp(self, self.oper, engine=self.engine)
 
-	def iter_btts(self):
+	def _iter_btts(self):
 		return slow_iter_btts_eval_cmp(self, self.oper, engine=self.engine)
 
 
@@ -899,7 +899,7 @@ class StatusAlias(EntityStatAccessor):
 
 def _mungeside(side):
 	if isinstance(side, Query):
-		return side.iter_times
+		return side._iter_times
 	elif isinstance(side, StatusAlias):
 		return EntityStatAccessor(side.entity, side.stat, side.engine,
 									side.branch, side.turn, side.tick,
