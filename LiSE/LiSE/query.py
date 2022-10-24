@@ -201,19 +201,23 @@ def make_graph_val_select(graph: bytes, stat: bytes, branches: List[str],
 def make_node_val_select(graph: bytes, node: bytes, stat: bytes,
 							branches: List[str], mid_turn: bool):
 	tab: Table = meta.tables['node_val']
-	ticksel = select(
-		tab.c.graph, tab.c.node, tab.c.stat, tab.c.branch, tab.c.turn,
-		tab.c.tick if mid_turn else func.max(tab.c.tick).label('tick')).where(
+	if mid_turn:
+		return the_select(tab).where(
 			and_(tab.c.graph == graph, tab.c.node == node, tab.c.stat == stat,
 					tab.c.branch.in_(branches)))
-	if not mid_turn:
-		ticksel = ticksel.group_by(tab.c.graph, tab.c.node, tab.c.stat,
-									tab.c.branch, tab.c.turn)
+	ticksel = select(tab.c.graph, tab.c.node, tab.c.stat, tab.c.branch,
+						tab.c.turn,
+						func.max(tab.c.tick).label('tick')).where(
+							and_(tab.c.graph == graph, tab.c.node == node,
+									tab.c.key == stat,
+									tab.c.branch.in_(branches))).group_by(
+										tab.c.graph, tab.c.node, tab.c.stat,
+										tab.c.branch, tab.c.turn)
 	return the_select(tab).select_from(
 		tab.join(
 			ticksel,
 			and_(tab.c.graph == ticksel.c.graph, tab.c.node == ticksel.c.node,
-					tab.c.stat == ticksel.c.stat,
+					tab.c.key == ticksel.c.stat,
 					tab.c.branch == ticksel.c.branch,
 					tab.c.turn == ticksel.c.turn,
 					tab.c.tick == ticksel.c.tick)))
@@ -222,14 +226,17 @@ def make_node_val_select(graph: bytes, node: bytes, stat: bytes,
 def make_location_select(graph: bytes, thing: bytes, branches: List[str],
 							mid_turn: bool):
 	tab: Table = meta.tables['things']
-	ticksel = select(
-		tab.c.character, tab.c.thing, tab.c.branch, tab.c.turn,
-		tab.c.tick if mid_turn else func.max(tab.c.tick).label('tick')).where(
-			and_(tab.c.character == graph, tab.c.thing == thing,
-					tab.c.branch.in_(branches)))
-	if not mid_turn:
-		ticksel = ticksel.group_by(tab.c.character, tab.c.thing, tab.c.branch,
-									tab.c.turn)
+	if mid_turn:
+		return the_select(tab).where(
+			and_(tab.c.graph == graph, tab.c.thing == thing,
+					tab.c.branches.in_(branches)))
+	ticksel = select(tab.c.character, tab.c.thing, tab.c.branch, tab.c.turn,
+						func.max(tab.c.tick).label('tick')).where(
+							and_(tab.c.character == graph,
+									tab.c.thing == thing,
+									tab.c.branch.in_(branches))).group_by(
+										tab.c.character, tab.c.thing,
+										tab.c.branch, tab.c.turn)
 	return the_select(tab, val_col='location').select_from(
 		tab.join(
 			ticksel,
@@ -243,23 +250,26 @@ def make_location_select(graph: bytes, thing: bytes, branches: List[str],
 def make_edge_val_select(graph: bytes, orig: bytes, dest: bytes, idx: int,
 							stat: bytes, branches: List[str], mid_turn: bool):
 	tab: Table = meta.tables['edge_val']
+	if mid_turn:
+		return the_select(tab).where(
+			and_(tab.c.graph == graph, tab.c.orig == orig, tab.c.dest == dest,
+					tab.c.idx == idx, tab.c.key == stat,
+					tab.c.branches.in_(branches)))
 	ticksel = select(
 		tab.c.graph, tab.c.orig, tab.c.dest, tab.c.idx, tab.c.stat,
 		tab.c.branch, tab.c.turn,
 		tab.c.tick if mid_turn else func.max(tab.c.tick).label('tick')).where(
 			and_(tab.c.graph == graph, tab.c.orig == orig, tab.c.dest == dest,
-					tab.c.idx == idx, tab.c.stat == stat,
-					tab.c.branch.in_(branches)))
-	if not mid_turn:
-		ticksel = ticksel.group_by(tab.c.graph, tab.c.orig, tab.c.dest,
-									tab.c.idx, tab.c.stat, tab.c.branch,
-									tab.c.turn)
+					tab.c.idx == idx, tab.c.key == stat,
+					tab.c.branch.in_(branches))).group_by(
+						tab.c.graph, tab.c.orig, tab.c.dest, tab.c.idx,
+						tab.c.key, tab.c.branch, tab.c.turn)
 	return the_select(tab).select_from(
 		tab.join(
 			ticksel,
 			and_(tab.c.graph == ticksel.c.graph, tab.c.orig == ticksel.c.orig,
 					tab.c.dest == ticksel.c.dest, tab.c.idx == ticksel.c.idx,
-					tab.c.stat == ticksel.c.stat,
+					tab.c.key == ticksel.c.stat,
 					tab.c.branch == ticksel.c.branch,
 					tab.c.turn == ticksel.c.turn,
 					tab.c.tick == ticksel.c.tick)))
