@@ -179,14 +179,16 @@ def the_select(tab: Table, val_col='value'):
 def make_graph_val_select(graph: bytes, stat: bytes, branches: List[str],
 							mid_turn: bool):
 	tab: Table = meta.tables['graph_val']
-	ticksel = select(
-		tab.c.graph, tab.c.key, tab.c.branch, tab.c.turn,
-		tab.c.tick if mid_turn else func.max(tab.c.tick).label('tick')).where(
+	if mid_turn:
+		return the_select(tab).where(
 			and_(tab.c.graph == graph, tab.c.key == stat,
 					tab.c.branch.in_(branches)))
-	if not mid_turn:
-		ticksel = ticksel.group_by(tab.c.graph, tab.c.key, tab.c.branch,
-									tab.c.turn)
+	ticksel = select(tab.c.graph, tab.c.key, tab.c.branch, tab.c.turn,
+						func.max(tab.c.tick).label('tick')).group_by(
+							tab.c.graph, tab.c.key, tab.c.branch,
+							tab.c.turn).where(
+								and_(tab.c.graph == graph, tab.c.key == stat,
+										tab.c.branch.in_(branches)))
 	return the_select(tab).select_from(
 		tab.join(
 			ticksel,
