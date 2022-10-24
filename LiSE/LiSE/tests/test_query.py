@@ -89,9 +89,9 @@ def sober_collisions(college24_premade):
 
 	def sameClasstime(stu0, stu1):
 		assert list(
-			engine.turns_when(
-				stu0.unit.only.historical('location') ==
-				stu1.unit.only.historical('location') == 'classroom')
+			engine.turns_when((stu0.unit.only.historical(
+				'location') == stu1.unit.only.historical('location')) & (
+					stu1.unit.only.historical('location') == 'classroom'))
 		), """{stu0} seems not to have been in the classroom 
 				at the same time as {stu1}.
 				{stu0} was there at turns {turns0}
@@ -160,23 +160,41 @@ def test_windows_intersection():
 
 
 def test_graph_val_select_eq(engy):
+	assert engy.turn == 0
 	me = engy.new_character('me')
 	me.stat['foo'] = 'bar'
 	me.stat['qux'] = 'bas'
 	engy.next_turn()
+	assert engy.turn == 1
+	me.stat['foo'] = ''
 	me.stat['foo'] = 'bas'
 	me.stat['qux'] = 'bar'
 	engy.next_turn()
+	assert engy.turn == 2
+	me.stat['qux'] = 'bas'
+	engy.next_turn()
+	assert engy.turn == 3
+	me.stat['qux'] = 'bar'
+	engy.next_turn()
+	assert engy.turn == 4
 	engy.branch = 'leaf'
+	assert engy.turn == 4
+	engy.next_turn()
+	assert engy.turn == 5
 	me.stat['foo'] = 'bar'
 	engy.next_turn()
+	assert engy.turn == 6
 	me.stat['foo'] = 'bas'
 	me.stat['qux'] = 'bas'
+	engy.next_turn()
+	assert engy.turn == 7
 	foo_alias = me.historical('foo')
 	qux_alias = me.historical('qux')
 	qry = foo_alias == qux_alias
-	assert engy.turns_when(qry) == {1}
-	assert engy.turns_when(qry, mid_turn=True) == {1, 2}
+	turn_end_result = engy.turns_when(qry)
+	assert turn_end_result == set(turn_end_result) == {2, 5, 6, 7}
+	mid_turn_result = engy.turns_when(qry, mid_turn=True)
+	assert mid_turn_result == set(mid_turn_result) == {1, 2, 3, 5, 6, 7}
 
 
 def test_graph_val_select_lt_gt(engy):
