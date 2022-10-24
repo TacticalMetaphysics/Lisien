@@ -309,7 +309,7 @@ def _msfq_mid_turn(qry,
 		right_sel.c.turn_to != None, left_sel.c.turn_from != None,
 		or_(
 			right_sel.c.turn_to - 1 < left_sel.c.turn_from,
-			and_(right_sel.c.turn_to == right_sel.c.turn_from,
+			and_(right_sel.c.turn_to == left_sel.c.turn_from,
 					right_sel.c.tick_to - 1 < left_sel.c.tick_from)))
 	# then invert it
 	join = left_sel.alias().join(
