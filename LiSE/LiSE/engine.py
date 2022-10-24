@@ -1531,7 +1531,10 @@ class Engine(AbstractEngine, gORM):
 						(left_turn_from, left_turn_to),
 						(right_turn_from, right_turn_to)
 					]):
-						upd(turn_from, turn_to)
+						if turn_to is None:
+							upd(turn_from, turn_to)
+						else:
+							upd(turn_from, turn_to + 1)
 				elif len(tup) == 4:
 					(left_turn_from, left_turn_to, right_turn_from,
 						right_turn_to) = tup
