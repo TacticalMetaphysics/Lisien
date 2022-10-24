@@ -1552,7 +1552,7 @@ class Engine(AbstractEngine, gORM):
 		except NotImplementedError:
 			if mid_turn:
 				raise NotImplementedError("Can't do mid_turn this way yet")
-			return {turn for (branch, turn) in qry.iter_times()}
+			return {turn for (branch, turn) in qry._iter_times()}
 
 	def _node_contents(self, character: Hashable, node: Hashable) -> Set:
 		return self._node_contents_cache.retrieve(character, node,
