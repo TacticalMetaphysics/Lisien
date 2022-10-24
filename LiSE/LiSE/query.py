@@ -336,22 +336,6 @@ class QueryResultEndTurn(QueryResult):
 		if not ((self._past_l or self._future_l) and
 				(self._past_r or self._future_r)):
 			return
-		if self._future_l:
-			end_l = self._future_l[0][1]
-			if end_l in (None, (None, None)):
-				end_l = self._future_l[0][0]
-		else:
-			end_l = self._past_l[-1][1]
-			if end_l in (None, (None, None)):
-				end_l = self._past_l[-1][0]
-		if self._future_r:
-			end_r = self._future_r[0][1]
-			if end_r in (None, (None, None)):
-				end_r = self._future_r[0][0]
-		else:
-			end_r = self._past_r[-1][1]
-			if end_r in (None, (None, None)):
-				end_r = self._past_r[-1][0]
 		end = self._end_of_time
 		oper = self._oper
 		trues = self._trues
@@ -359,7 +343,7 @@ class QueryResultEndTurn(QueryResult):
 		right = chain(iter(self._past_r), reversed(self._future_r))
 		(l_from, _), (l_to, _), l_v = next(left)
 		(r_from, _), (r_to, _), r_v = next(right)
-		for turn in range(0, end + 1):
+		for turn in range(0, end):
 			while not (l_from <= turn and (l_to is None or turn < l_to)):
 				try:
 					(l_from, _), (l_to, _), l_v = next(left)
@@ -451,10 +435,12 @@ class QueryResultMidTurn(QueryResult):
 		past_l.append(future_l.pop())
 		past_r.append(future_r.pop())
 		for i in range(0, end):
-			while not (past_l[-1][0][0] <= i < past_l[-1][1][0]
+			while not (past_l[-1][1][0] is None
+						or past_l[-1][0][0] <= i < past_l[-1][1][0]
 						or past_l[-1][0][0] == i == past_l[-1][1][0]):
 				past_l.append(future_l.pop())
-			while not (past_r[-1][0][0] <= i < past_r[-1][1][0]
+			while not (past_r[-1][1][0] is None
+						or past_r[-1][0][0] <= i < past_r[-1][1][0]
 						or past_r[-1][0][0] == i == past_r[-1][1][0]):
 				past_r.append(future_r.pop())
 			v_l = past_l[-1][-1]
