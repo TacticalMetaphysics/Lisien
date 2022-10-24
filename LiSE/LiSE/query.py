@@ -305,63 +305,6 @@ def make_side_sel(entity, stat, branches: List[str], pack: callable,
 		raise TypeError(f"Unknown entity type {type(entity)}")
 
 
-def _msfq_mid_turn(qry,
-					left_sel,
-					right_sel,
-					left_col='value',
-					right_col='value'):
-	# figure whether there is *no* overlap between the time ranges
-	left_time_to_lt_right_time_from = and_(
-		left_sel.c.turn_to != None,
-		or_(
-			left_sel.c.turn_to < right_sel.c.turn_from,
-			and_(left_sel.c.turn_to == right_sel.c.turn_from,
-					left_sel.c.tick_to - 1 < right_sel.c.tick_from)))
-	right_time_to_lt_left_time_from = and_(
-		right_sel.c.turn_to != None,
-		or_(
-			right_sel.c.turn_to < left_sel.c.turn_from,
-			and_(right_sel.c.turn_to == left_sel.c.turn_from,
-					right_sel.c.tick_to - 1 < left_sel.c.tick_from)))
-	# then invert it
-	join = left_sel.alias().join(
-		right_sel.alias(),
-		not_(
-			or_(left_time_to_lt_right_time_from,
-				right_time_to_lt_left_time_from)))
-	return select(left_sel.c.turn_from, left_sel.c.tick_from,
-					left_sel.c.turn_to, left_sel.c.tick_to,
-					right_sel.c.turn_from, right_sel.c.tick_from,
-					right_sel.c.turn_to,
-					right_sel.c.tick_to).distinct().select_from(join).where(
-						qry.oper(left_sel.c[left_col], right_sel.c[right_col]))
-
-
-def _msfq_end_turn(qry,
-					left_sel,
-					right_sel,
-					left_col='value',
-					right_col='value'):
-	# intervals in LiSE that are open on the left are always also open on the
-	# right; therefore, when either interval is open on the left, there is an
-	# overlap
-	left_time_to_lt_right_time_from = and_(
-		left_sel.c.turn_to != None, right_sel.c.turn_from != None,
-		left_sel.c.turn_to - 1 < right_sel.c.turn_from)
-	right_time_to_lt_left_time_from = and_(
-		right_sel.c.turn_to != None, left_sel.c.turn_from != None,
-		right_sel.c.turn_to - 1 < left_sel.c.turn_from)
-	join = left_sel.alias().join(
-		right_sel.alias(),
-		not_(
-			or_(left_time_to_lt_right_time_from,
-				right_time_to_lt_left_time_from)))
-	return select(left_sel.c.turn_from, left_sel.c.turn_to,
-					right_sel.c.turn_from,
-					right_sel.c.turn_to).distinct().select_from(join).where(
-						qry.oper(left_sel.c[left_col], right_sel.c[right_col]))
-
-
 def _getcol(alias: "StatusAlias"):
 	from .thing import Thing
 	if isinstance(alias.entity, Thing) and alias.stat == 'location':
@@ -369,186 +312,11 @@ def _getcol(alias: "StatusAlias"):
 	return 'value'
 
 
-def make_select_from_eq_query(qry: Union["EqQuery",
-											"NeQuery"], branches: List[str],
-								pack: callable, mid_turn: bool):
-	left = qry.leftside
-	right = qry.rightside
-	if isinstance(left, StatusAlias) and isinstance(right, StatusAlias):
-		left_sel = make_side_sel(left.entity, left.stat, branches, pack,
-									mid_turn)
-		right_sel = make_side_sel(right.entity, right.stat, branches, pack,
-									mid_turn)
-		if mid_turn:
-			return _msfq_mid_turn(qry, left_sel, right_sel, _getcol(left),
-									_getcol(right))
-		else:
-			return _msfq_end_turn(qry, left_sel, right_sel, _getcol(left),
-									_getcol(right))
-
-	elif isinstance(right, StatusAlias):
-		right_sel = make_side_sel(right.entity, right.stat, branches, pack,
-									mid_turn)
-		if mid_turn:
-			return select(right_sel.c.turn_from, right_sel.c.tick_from,
-							right_sel.c.turn_to, right_sel.c.tick_to).where(
-								qry.oper(pack(left),
-											right_sel.c[_getcol(right)]))
-		else:
-			return select(right_sel.c.turn_from, right_sel.c.turn_to).where(
-				qry.oper(pack(left), right_sel.c[_getcol(right)]))
-
-	elif isinstance(left, StatusAlias):
-		left_sel = make_side_sel(left.entity, left.stat, branches, pack,
-									mid_turn)
-		if mid_turn:
-			return select(left_sel.c.turn_from, left_sel.c.tick_from,
-							left_sel.c.turn_to, left_sel.c.tick_to).where(
-								qry.oper(left_sel.c[_getcol(left)],
-											pack(right)))
-		else:
-			return select(left_sel.c.turn_from, left_sel.c.turn_to).where(
-				qry.oper(left_sel.c[_getcol(left)], pack(right)))
-	else:
-		return select(literal(left) == literal(right))
-
-
 class QueryResult(Set):
 	pass
 
 
-class EqNeQueryResultEndTurn(QueryResult):
-
-	def __init__(self, windows):
-		self._past = windows
-		self._future = []
-		self._trues = set()
-		self._falses = set()
-		self._iterated = False
-
-	def __iter__(self):
-		if self._iterated:
-			yield from self._trues
-			return
-		add = self._trues.add
-		for turn_from, turn_to in self._past:
-			for turn in range(turn_from, turn_to):
-				add(turn)
-				yield turn
-		for turn_from, turn_to in reversed(self._future):
-			for turn in range(turn_from, turn_to):
-				add(turn)
-				yield turn
-		self._iterated = True
-		del self._falses
-
-	def __len__(self):
-		if self._iterated:
-			return len(self._trues)
-		n = 0
-		for _ in self:
-			n += 1
-		return n
-
-	def __contains__(self, item):
-		if self._iterated:
-			return item in self._trues
-		elif item in self._trues:
-			return True
-		elif item in self._falses:
-			return False
-		past = self._past
-		future = self._future
-		if not past:
-			if not future:
-				return False
-			past.append(future.pop())
-		while past and item < past[0][0]:
-			future.append(past.pop())
-		while future and item >= past[0][1]:
-			past.append(future.pop())
-		if not past:
-			return False
-		ret = past[0][0] <= item < past[0][1]
-		if ret:
-			self._trues.add(item)
-		else:
-			self._falses.add(item)
-		return ret
-
-	def __repr__(self):
-		return f"{self.__class__}({self._past + list(reversed(self._future))})"
-
-
-class EqNeQueryResultMidTurn(QueryResult):
-
-	def __init__(self, windows):
-		self._past = windows
-		self._future = []
-		self._trues = set()
-		self._falses = set()
-		self._iterated = False
-
-	def __iter__(self):
-		if self._iterated:
-			yield from self._trues
-			return
-		seen = set()
-		add = self._trues.add
-		for seq in (self._past, reversed(self._future)):
-			for (turn_from, tick_from), (turn_to, tick_to) in seq:
-				if turn_from == turn_to:
-					if turn_from not in seen:
-						add(turn_from)
-						yield turn_from
-						seen.add(turn_from)
-				else:
-					for turn in range(turn_from, turn_to):
-						if turn not in seen:
-							add(turn)
-							yield turn
-							seen.add(turn)
-		self._iterated = True
-		del self._falses
-
-	def __len__(self):
-		if self._iterated:
-			return len(self._trues)
-		n = 0
-		for _ in self:
-			n += 1
-		return n
-
-	def __contains__(self, item):
-		if self._iterated:
-			return item in self._trues
-		elif item in self._trues:
-			return True
-		elif item in self._falses:
-			return False
-		past = self._past
-		future = self._future
-		if not past:
-			if not future:
-				return False
-			future.append(past.pop())
-		while item < past[0][0][0]:
-			if not past:
-				return False
-			future.append(past.pop())
-		while item >= past[0][1][0]:
-			if not future:
-				return False
-			past.append(future.pop())
-		ret = past[0][0][0] <= item < past[0][1][0]
-		if ret:
-			self._trues.add(item)
-		else:
-			self._falses.add(item)
-		return ret
-
-
-class GtLtQueryResultEndTurn(QueryResult):
+class QueryResultEndTurn(QueryResult):
 
 	def __init__(self, windows_l, windows_r, oper, end_of_time):
 		self._past_l = windows_l
@@ -651,7 +419,7 @@ class GtLtQueryResultEndTurn(QueryResult):
 		return ret
 
 
-class GtLtQueryResultMidTurn(QueryResult):
+class QueryResultMidTurn(QueryResult):
 
 	def __init__(self, windows_l, windows_r, oper, end_of_time):
 		self._past_l = windows_l

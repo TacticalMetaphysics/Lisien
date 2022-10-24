@@ -31,11 +31,9 @@ from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
 						DeltaType, world_locked)
 from .util import sort_set, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
-from .query import (Query, EqQuery, NeQuery, make_side_sel,
-					windows_intersection, make_select_from_eq_query,
-					StatusAlias, ComparisonQuery, CompoundQuery,
-					EqNeQueryResultEndTurn, GtLtQueryResultMidTurn,
-					QueryResult, GtLtQueryResultEndTurn, CombinedQueryResult)
+from .query import (Query, make_side_sel, StatusAlias, ComparisonQuery,
+					CompoundQuery, QueryResultMidTurn, QueryResult,
+					QueryResultEndTurn, CombinedQueryResult)
 from . import exc
 
 
@@ -1455,98 +1453,54 @@ class Engine(AbstractEngine, gORM):
 				self.turns_when(qry.rightside, mid_turn), qry.oper)
 		self.query.flush()
 		branches = list({branch for branch, _, _ in self._iter_parent_btt()})
-		if not isinstance(qry, EqQuery) and not isinstance(qry, NeQuery):
-			left = qry.leftside
-			right = qry.rightside
-			if isinstance(left, StatusAlias) and isinstance(
-				right, StatusAlias):
-				left_sel = make_side_sel(left.entity, left.stat, branches,
-											self.pack, mid_turn)
-				right_sel = make_side_sel(right.entity, right.stat, branches,
-											self.pack, mid_turn)
-				left_data = self.query.execute(left_sel)
-				right_data = self.query.execute(right_sel)
-				if mid_turn:
-					return GtLtQueryResultMidTurn(
-						unpack_gt_lt_data(left_data),
-						unpack_gt_lt_data(right_data), qry.oper, end)
-				else:
-					return GtLtQueryResultEndTurn(
-						unpack_gt_lt_data(left_data),
-						unpack_gt_lt_data(right_data), qry.oper, end)
-			elif isinstance(left, StatusAlias):
-				left_sel = make_side_sel(left.entity, left.stat, branches,
-											self.pack, mid_turn)
-				left_data = self.query.execute(left_sel)
-				_, turn, tick = self._btt()
-				if mid_turn:
-					return GtLtQueryResultMidTurn(
-						left_data, [(0, 0, turn, tick, right)], qry.oper, end)
-				else:
-					return GtLtQueryResultEndTurn(left_data, [(0, 0, right)],
-													qry.oper, end)
-			elif isinstance(right, StatusAlias):
-				right_sel = make_side_sel(right.entity, right.stat, branches,
-											self.pack, mid_turn)
-				right_data = self.query.execute(right_sel)
-				_, turn, tick = self._btt()
-				if mid_turn:
-					return GtLtQueryResultMidTurn([(0, 0, turn, tick, left)],
-													right_data, qry.oper, end)
-				else:
-					return GtLtQueryResultEndTurn([(0, 0, left)], [
-						(turn_from, turn_to, value)
-						for (turn_from, _, turn_to, _, value) in right_data
-					], qry.oper, end)
-			else:
-				if qry.oper(left, right):
-					return set(range(0, self.turn))
-				else:
-					return set()
-		# Make a select statement that gets the turns when the predicate held true
-		try:
-			sel = make_select_from_eq_query(qry, list(branches), self.pack,
-											mid_turn)
-			res = []
-
-			def upd(turn_from, turn_to):
-				assert turn_from is not None
-				if turn_to is None:
-					res.append((turn_from, end))
-				else:
-					res.append((turn_from, turn_to))
-
-			tups = self.query.execute(sel)
-			for tup in tups:
-				if len(tup) == 8:
-					(left_turn_from, left_tick_from, left_turn_to,
-						left_tick_to, right_turn_from, right_tick_from,
-						right_turn_to, right_tick_to) = tup
-					for turn_from, turn_to in windows_intersection([
-						(left_turn_from, left_turn_to),
-						(right_turn_from, right_turn_to)
-					]):
-						if turn_to is None:
-							upd(turn_from, turn_to)
-						else:
-							upd(turn_from, turn_to + 1)
-				elif len(tup) == 4:
-					(left_turn_from, left_turn_to, right_turn_from,
-						right_turn_to) = tup
-					for turn_from, turn_to in windows_intersection([
-						(left_turn_from, left_turn_to),
-						(right_turn_from, right_turn_to)
-					]):
-						upd(turn_from, turn_to)
-				elif len(tup) == 2:
-					upd(*tup)
-				else:
-					raise RuntimeError("make_select_from_query went bad")
-			return EqNeQueryResultEndTurn(res)
-		except NotImplementedError:
+		left = qry.leftside
+		right = qry.rightside
+		if isinstance(left, StatusAlias) and isinstance(right, StatusAlias):
+			left_sel = make_side_sel(left.entity, left.stat, branches,
+										self.pack, mid_turn)
+			right_sel = make_side_sel(right.entity, right.stat, branches,
+										self.pack, mid_turn)
+			left_data = self.query.execute(left_sel)
+			right_data = self.query.execute(right_sel)
 			if mid_turn:
-				raise NotImplementedError("Can't do mid_turn this way yet")
-			return {turn for (branch, turn) in qry._iter_times()}
+				return QueryResultMidTurn(unpack_gt_lt_data(left_data),
+											unpack_gt_lt_data(right_data),
+											qry.oper, end)
+			else:
+				return QueryResultEndTurn(unpack_gt_lt_data(left_data),
+											unpack_gt_lt_data(right_data),
+											qry.oper, end)
+		elif isinstance(left, StatusAlias):
+			left_sel = make_side_sel(left.entity, left.stat, branches,
+										self.pack, mid_turn)
+			left_data = self.query.execute(left_sel)
+			_, turn, tick = self._btt()
+			if mid_turn:
+				return QueryResultMidTurn(left_data,
+											[(0, 0, turn, tick, right)],
+											qry.oper, end)
+			else:
+				return QueryResultEndTurn(left_data, [(0, 0, right)], qry.oper,
+											end)
+		elif isinstance(right, StatusAlias):
+			right_sel = make_side_sel(right.entity, right.stat, branches,
+										self.pack, mid_turn)
+			right_data = self.query.execute(right_sel)
+			_, turn, tick = self._btt()
+			if mid_turn:
+				return QueryResultMidTurn([(0, 0, turn, tick, left)],
+											right_data, qry.oper, end)
+			else:
+				return QueryResultEndTurn(
+					[(0, 0, left)],
+					[(turn_from, turn_to, value)
+						for (turn_from, _, turn_to, _, value) in right_data],
+					qry.oper, end)
+		else:
+			if qry.oper(left, right):
+				return set(range(0, self.turn))
+			else:
+				return set()
 
 	def _node_contents(self, character: Hashable, node: Hashable) -> Set:
 		return self._node_contents_cache.retrieve(character, node,
