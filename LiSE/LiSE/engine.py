@@ -1447,9 +1447,13 @@ class Engine(AbstractEngine, gORM):
 		unpack = self.unpack
 		end = self._branch_end_plan[self.branch] + 1
 
-		def unpack_gt_lt_data(data):
-			return [((lfrom, lto), (rfrom, rto), unpack(v))
-					for (lfrom, lto, rfrom, rto, v) in data]
+		def unpack_data_mid(data):
+			return [((turn_from, tick_from), (turn_to, tick_to), unpack(v))
+					for (turn_from, tick_from, turn_to, tick_to, v) in data]
+
+		def unpack_data_end(data):
+			return [(turn_from, turn_to, unpack(v))
+					for (turn_from, _, turn_to, _, v) in data]
 
 		if not isinstance(qry, ComparisonQuery):
 			if not isinstance(qry, CompoundQuery):
@@ -1469,12 +1473,12 @@ class Engine(AbstractEngine, gORM):
 			left_data = self.query.execute(left_sel)
 			right_data = self.query.execute(right_sel)
 			if mid_turn:
-				return QueryResultMidTurn(unpack_gt_lt_data(left_data),
-											unpack_gt_lt_data(right_data),
+				return QueryResultMidTurn(unpack_data_mid(left_data),
+											unpack_data_mid(right_data),
 											qry.oper, end)
 			else:
-				return QueryResultEndTurn(unpack_gt_lt_data(left_data),
-											unpack_gt_lt_data(right_data),
+				return QueryResultEndTurn(unpack_data_end(left_data),
+											unpack_data_end(right_data),
 											qry.oper, end)
 		elif isinstance(left, StatusAlias):
 			left_sel = make_side_sel(left.entity, left.stat, branches,
@@ -1482,11 +1486,11 @@ class Engine(AbstractEngine, gORM):
 			left_data = self.query.execute(left_sel)
 			_, turn, tick = self._btt()
 			if mid_turn:
-				return QueryResultMidTurn(unpack_gt_lt_data(left_data),
+				return QueryResultMidTurn(unpack_data_mid(left_data),
 											[(0, 0, turn, tick, right)],
 											qry.oper, end)
 			else:
-				return QueryResultEndTurn(unpack_gt_lt_data(left_data),
+				return QueryResultEndTurn(unpack_data_end(left_data),
 											[(0, 0, right)], qry.oper, end)
 		elif isinstance(right, StatusAlias):
 			right_sel = make_side_sel(right.entity, right.stat, branches,
@@ -1495,14 +1499,12 @@ class Engine(AbstractEngine, gORM):
 			_, turn, tick = self._btt()
 			if mid_turn:
 				return QueryResultMidTurn([(0, 0, turn, tick, left)],
-											unpack_gt_lt_data(right_data),
+											unpack_data_mid(right_data),
 											qry.oper, end)
 			else:
-				return QueryResultEndTurn(
-					[(0, 0, left)],
-					[(turn_from, turn_to, value)
-						for (turn_from, _, turn_to, _, value) in right_data],
-					qry.oper, end)
+				return QueryResultEndTurn([(0, 0, left)],
+											unpack_data_end(right_data),
+											qry.oper, end)
 		else:
 			if qry.oper(left, right):
 				return set(range(0, self.turn))
