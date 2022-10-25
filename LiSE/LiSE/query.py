@@ -451,6 +451,7 @@ class QueryResultMidTurn(QueryResult):
 					yield turn
 
 		def core():
+
 			intersection = intersect2((past_l[-1][0], past_l[-1][1]),
 										(past_r[-1][0], past_r[-1][1]))
 			if intersection:
