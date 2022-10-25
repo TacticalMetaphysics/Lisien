@@ -193,7 +193,7 @@ def test_graph_val_select_eq(engy):
 	qry = foo_alias == qux_alias
 	turn_end_result = engy.turns_when(qry)
 	assert 5 in turn_end_result
-	assert 4 not in turn_end_result
+	assert 3 not in turn_end_result
 	assert turn_end_result == set(turn_end_result) == {2, 5, 6, 7}
 	mid_turn_result = engy.turns_when(qry, mid_turn=True)
 	assert 3 in mid_turn_result
