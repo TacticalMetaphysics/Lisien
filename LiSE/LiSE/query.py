@@ -436,7 +436,11 @@ class QueryResultMidTurn(QueryResult):
 		past_l.append(future_l.pop())
 		past_r.append(future_r.pop())
 
-		def yield_intersection(intersection):
+		def yield_intersection():
+			intersection = intersect2((past_l[-1][0], past_l[-1][1]),
+										(past_r[-1][0], past_r[-1][1]))
+			if intersection is None:
+				return
 			(turn_from, tick_from), (turn_to, tick_to) = intersection
 			if oper(past_l[-1][-1], past_r[-1][-1]):
 				if turn_to is None:
@@ -450,36 +454,23 @@ class QueryResultMidTurn(QueryResult):
 					add(turn)
 					yield turn
 
-		def core():
-
-			intersection = intersect2((past_l[-1][0], past_l[-1][1]),
-										(past_r[-1][0], past_r[-1][1]))
-			if intersection:
-				return yield_intersection(intersection)
-
-		yield from core()
+		yield from yield_intersection()
 		while future_l and future_r:
 			if past_l[-1][1] < past_r[-1][1]:
 				past_l.append(future_l.pop())
 			else:
 				past_r.append(future_r.pop())
-			yield from core()
+			yield from yield_intersection()
 		while future_l:
 			past_l.append(future_l.pop())
-			intersection = intersect2((past_l[-1][0], past_l[-1][1]),
-										(past_r[-1][0], past_r[-1][1]))
-			if intersection:
-				yield from yield_intersection(intersection)
-				if self._iterated:
-					return
+			yield from yield_intersection()
+			if self._iterated:
+				return
 		while future_r:
 			past_r.append(future_r.pop())
-			intersection = intersect2((past_l[-1][0], past_l[-1][1]),
-										(past_r[-1][0], past_r[-1][1]))
-			if intersection:
-				yield from yield_intersection(intersection)
-				if self._iterated:
-					return
+			yield from yield_intersection()
+			if self._iterated:
+				return
 		self._iterated = True
 		del self._falses
 
