@@ -456,28 +456,6 @@ class QueryResultMidTurn(QueryResult):
 										(past_r[-1][0], past_r[-1][1]))
 			if intersection:
 				return yield_intersection(intersection)
-			elif None in past_l[-1][1] + past_r[-1][1]:
-				if None in past_l[-1][1]:
-					assert not future_l
-					while future_r:
-						past_r.append(future_r.pop())
-						intersection = intersect2(
-							(past_l[-1][0], past_l[-1][1]),
-							(past_r[-1][0], past_r[-1][1]))
-						if intersection:
-							return yield_intersection(intersection)
-				elif None in past_r[-1][1]:
-					assert not future_r
-					while future_l:
-						past_l.append(future_l.pop())
-					intersection = intersect2((past_l[-1][0], past_l[-1][1]),
-												(past_r[-1][0], past_r[-1][1]))
-					if intersection:
-						return yield_intersection(intersection)
-				else:
-					raise RuntimeError("??!")
-				self._iterated = True
-				del self._falses
 
 		yield from core()
 		while future_l and future_r:
