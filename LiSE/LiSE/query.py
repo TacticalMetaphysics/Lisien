@@ -389,13 +389,13 @@ class QueryResultEndTurn(QueryResult):
 			if not future_r:
 				return False
 			past_r.append((future_r.pop()))
-		while past_l and past_l[-1][0] >= item:
+		while past_l and past_l[-1][0][0] >= item:
 			future_l.append(past_l.pop())
-		while future_l and future_l[-1][0] < item:
+		while future_l and future_l[-1][0][0] < item:
 			past_l.append(future_l.pop())
-		while past_r and past_r[-1][0] >= item:
+		while past_r and past_r[-1][0][0] >= item:
 			future_r.append(past_r.pop())
-		while future_r and future_r[-1][0] < item:
+		while future_r and future_r[-1][0][0] < item:
 			past_r.append(future_r.pop())
 		ret = self._oper(past_l[-1][2], past_r[-1][2])
 		if ret:
