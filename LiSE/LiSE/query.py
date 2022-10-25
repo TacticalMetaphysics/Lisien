@@ -435,10 +435,8 @@ class QueryResultMidTurn(QueryResult):
 		oper = self._oper
 		past_l.append(future_l.pop())
 		past_r.append(future_r.pop())
-		latest_turn = latest_tick = 0
 
 		def yield_intersection(intersection):
-			nonlocal latest_turn, latest_tick
 			(turn_from, tick_from), (turn_to, tick_to) = intersection
 			if oper(past_l[-1][-1], past_r[-1][-1]):
 				if turn_to is None:
@@ -451,10 +449,8 @@ class QueryResultMidTurn(QueryResult):
 				for turn in range(turn_from, turn_to + (1 if tick_to else 0)):
 					add(turn)
 					yield turn
-			latest_turn, latest_tick = turn_to, tick_to + 1
 
 		def core():
-			nonlocal latest_turn, latest_tick
 
 			intersection = intersect2((past_l[-1][0], past_l[-1][1]),
 										(past_r[-1][0], past_r[-1][1]))
@@ -482,9 +478,6 @@ class QueryResultMidTurn(QueryResult):
 					raise RuntimeError("??!")
 				self._iterated = True
 				del self._falses
-			else:
-				latest_turn, latest_tick = max((past_l[-1][1], past_r[-1][1]))
-				latest_tick += 1
 
 		yield from core()
 		while future_l and future_r:
