@@ -315,50 +315,7 @@ def _getcol(alias: "StatusAlias"):
 
 
 class QueryResult(Set):
-
-	def __contains__(self, item):
-		if self._iterated:
-			return item in self._trues
-		if item in self._trues:
-			return True
-		if item in self._falses:
-			return False
-		future_l = self._future_l
-		past_l = self._past_l
-		future_r = self._future_r
-		past_r = self._past_r
-		if not past_l:
-			if not future_l:
-				return False
-			past_l.append(future_l.pop())
-		if not past_r:
-			if not future_r:
-				return False
-			past_r.append(future_r.pop())
-		while past_l and past_l[-1][0][0] >= item:
-			future_l.append(past_l.pop())
-		while future_l and not past_l[-1][0][0] <= item <= past_l[-1][1][0]:
-			past_l.append(future_l.pop())
-		left_candidates = [past_l[-1]]
-		while future_l and future_l[-1][0][0] <= item <= future_l[-1][1][0]:
-			past_l.append(future_l.pop())
-			left_candidates.append(past_l[-1])
-		while past_r and past_r[-1][0][0] >= item:
-			future_r.append(past_r.pop())
-		while future_r and not past_r[-1][0][0] <= item <= past_r[-1][1][0]:
-			past_r.append(future_r.pop())
-		right_candidates = [past_r[-1]]
-		while future_r and future_r[-1][0][0] <= item <= future_r[-1][1][0]:
-			past_r.append(future_r.pop())
-			right_candidates.append(past_r[-1])
-		oper = self._oper
-		for l_time_from, l_time_to, l_v in left_candidates:
-			for r_time_from, r_time_to, r_v in right_candidates:
-				if oper(l_v, r_v) and not (
-					(None not in l_time_to and l_time_to < r_time_from) or
-					(None not in r_time_to and r_time_to < l_time_from)):
-					return True
-		return False
+	pass
 
 
 class QueryResultEndTurn(QueryResult):
@@ -386,17 +343,17 @@ class QueryResultEndTurn(QueryResult):
 		trues = self._trues
 		left = chain(iter(self._past_l), reversed(self._future_l))
 		right = chain(iter(self._past_r), reversed(self._future_r))
-		(l_from, _), (l_to, _), l_v = next(left)
-		(r_from, _), (r_to, _), r_v = next(right)
+		l_from, l_to, l_v = next(left)
+		r_from, r_to, r_v = next(right)
 		for turn in range(0, end):
 			while not (l_from <= turn and (l_to is None or turn < l_to)):
 				try:
-					(l_from, _), (l_to, _), l_v = next(left)
+					l_from, l_to, l_v = next(left)
 				except StopIteration:
 					return
 			while not (r_from <= turn and (r_to is None or turn < r_to)):
 				try:
-					(r_from, _), (r_to, _), r_v = next(right)
+					r_from, r_to, r_v = next(right)
 				except StopIteration:
 					return
 			if oper(l_v, r_v):
@@ -412,6 +369,40 @@ class QueryResultEndTurn(QueryResult):
 		for _ in self:
 			n += 1
 		return n
+
+	def __contains__(self, item):
+		if self._iterated:
+			return item in self._trues
+		elif item in self._trues:
+			return True
+		elif item in self._falses:
+			return False
+		future_l = self._future_l
+		past_l = self._past_l
+		future_r = self._future_r
+		past_r = self._past_r
+		if not past_l:
+			if not future_l:
+				return False
+			past_l.append((future_l.pop()))
+		if not past_r:
+			if not future_r:
+				return False
+			past_r.append((future_r.pop()))
+		while past_l and past_l[-1][0] > item:
+			future_l.append(past_l.pop())
+		while future_l and future_l[-1][0] < item:
+			past_l.append(future_l.pop())
+		while past_r and past_r[-1][0] > item:
+			future_r.append(past_r.pop())
+		while future_r and future_r[-1][0] < item:
+			past_r.append(future_r.pop())
+		ret = self._oper(past_l[-1][2], past_r[-1][2])
+		if ret:
+			self._trues.add(item)
+		else:
+			self._falses.add(item)
+		return ret
 
 
 class QueryResultMidTurn(QueryResult):
@@ -488,6 +479,50 @@ class QueryResultMidTurn(QueryResult):
 			for _ in self:
 				pass
 		return len(self._trues)
+
+	def __contains__(self, item):
+		if self._iterated:
+			return item in self._trues
+		if item in self._trues:
+			return True
+		if item in self._falses:
+			return False
+		future_l = self._future_l
+		past_l = self._past_l
+		future_r = self._future_r
+		past_r = self._past_r
+		if not past_l:
+			if not future_l:
+				return False
+			past_l.append(future_l.pop())
+		if not past_r:
+			if not future_r:
+				return False
+			past_r.append(future_r.pop())
+		while past_l and past_l[-1][0][0] >= item:
+			future_l.append(past_l.pop())
+		while future_l and not past_l[-1][0][0] <= item <= past_l[-1][1][0]:
+			past_l.append(future_l.pop())
+		left_candidates = [past_l[-1]]
+		while future_l and future_l[-1][0][0] <= item <= future_l[-1][1][0]:
+			past_l.append(future_l.pop())
+			left_candidates.append(past_l[-1])
+		while past_r and past_r[-1][0][0] >= item:
+			future_r.append(past_r.pop())
+		while future_r and not past_r[-1][0][0] <= item <= past_r[-1][1][0]:
+			past_r.append(future_r.pop())
+		right_candidates = [past_r[-1]]
+		while future_r and future_r[-1][0][0] <= item <= future_r[-1][1][0]:
+			past_r.append(future_r.pop())
+			right_candidates.append(past_r[-1])
+		oper = self._oper
+		for l_time_from, l_time_to, l_v in left_candidates:
+			for r_time_from, r_time_to, r_v in right_candidates:
+				if oper(l_v, r_v) and not (
+					(None not in l_time_to and l_time_to < r_time_from) or
+					(None not in r_time_to and r_time_to < l_time_from)):
+					return True
+		return False
 
 
 class CombinedQueryResult(QueryResult):
