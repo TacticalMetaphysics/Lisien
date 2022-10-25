@@ -1482,12 +1482,12 @@ class Engine(AbstractEngine, gORM):
 			left_data = self.query.execute(left_sel)
 			_, turn, tick = self._btt()
 			if mid_turn:
-				return QueryResultMidTurn(left_data,
+				return QueryResultMidTurn(unpack_gt_lt_data(left_data),
 											[(0, 0, turn, tick, right)],
 											qry.oper, end)
 			else:
-				return QueryResultEndTurn(left_data, [(0, 0, right)], qry.oper,
-											end)
+				return QueryResultEndTurn(unpack_gt_lt_data(left_data),
+											[(0, 0, right)], qry.oper, end)
 		elif isinstance(right, StatusAlias):
 			right_sel = make_side_sel(right.entity, right.stat, branches,
 										self.pack, mid_turn)
@@ -1495,7 +1495,8 @@ class Engine(AbstractEngine, gORM):
 			_, turn, tick = self._btt()
 			if mid_turn:
 				return QueryResultMidTurn([(0, 0, turn, tick, left)],
-											right_data, qry.oper, end)
+											unpack_gt_lt_data(right_data),
+											qry.oper, end)
 			else:
 				return QueryResultEndTurn(
 					[(0, 0, left)],
