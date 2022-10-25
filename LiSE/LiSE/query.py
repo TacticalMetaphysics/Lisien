@@ -505,13 +505,10 @@ class QueryResultMidTurn(QueryResult):
 		del self._falses
 
 	def __len__(self):
-		if self._iterated:
-			return len(self._trues)
-		n = 0
-		for _ in self:
-			n += 1
-		self._len = n
-		return n
+		if not self._iterated:
+			for _ in self:
+				pass
+		return len(self._trues)
 
 	def __contains__(self, item):
 		future_l = self._future_l
