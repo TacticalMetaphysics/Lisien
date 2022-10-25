@@ -140,8 +140,6 @@ def intersect2(left, right):
 			return right[0], left[1]
 		else:
 			return right
-	if isinstance(left[0], tuple):
-		return None, None
 	return None
 
 
@@ -435,23 +433,89 @@ class QueryResultMidTurn(QueryResult):
 		future_r.extend(reversed(self._past_r))
 		self._past_r = past_r = []
 		oper = self._oper
-		end = self._end_of_time
 		past_l.append(future_l.pop())
 		past_r.append(future_r.pop())
-		for i in range(0, end):
-			while not (past_l[-1][1][0] is None
-						or past_l[-1][0][0] <= i < past_l[-1][1][0]
-						or past_l[-1][0][0] == i == past_l[-1][1][0]):
+		latest_turn = latest_tick = 0
+
+		def yield_intersection(intersection):
+			nonlocal latest_turn, latest_tick
+			(turn_from, tick_from), (turn_to, tick_to) = intersection
+			if oper(past_l[-1][-1], past_r[-1][-1]):
+				if turn_to is None:
+					for turn in range(turn_from, self._end_of_time):
+						add(turn)
+						yield turn
+					self._iterated = True
+					del self._falses
+					return
+				for turn in range(turn_from, turn_to + (1 if tick_to else 0)):
+					add(turn)
+					yield turn
+			latest_turn, latest_tick = turn_to, tick_to + 1
+
+		def core():
+			nonlocal latest_turn, latest_tick
+
+			intersection = intersect2((past_l[-1][0], past_l[-1][1]),
+										(past_r[-1][0], past_r[-1][1]))
+			if intersection:
+				yield from yield_intersection(intersection)
+				if self._iterated:
+					return
+			elif None in past_l[-1][1] + past_r[-1][1]:
+				if None in past_l[-1][1]:
+					assert not future_l
+					while future_r:
+						past_r.append(future_r.pop())
+						intersection = intersect2(
+							(past_l[-1][0], past_l[-1][1]),
+							(past_r[-1][0], past_r[-1][1]))
+						if intersection:
+							yield from yield_intersection(intersection)
+							if self._iterated:
+								return
+				elif None in past_r[-1][1]:
+					assert not future_r
+					while future_l:
+						past_l.append(future_l.pop())
+					intersection = intersect2((past_l[-1][0], past_l[-1][1]),
+												(past_r[-1][0], past_r[-1][1]))
+					if intersection:
+						yield from yield_intersection(intersection)
+						if self._iterated:
+							return
+				else:
+					raise RuntimeError("??!")
+				self._iterated = True
+				del self._falses
+				return
+			else:
+				latest_turn, latest_tick = max((past_l[-1][1], past_r[-1][1]))
+				latest_tick += 1
+
+		core()
+		while future_l and future_r:
+			if past_l[-1][1] < past_r[-1][1]:
 				past_l.append(future_l.pop())
-			while not (past_r[-1][1][0] is None
-						or past_r[-1][0][0] <= i < past_r[-1][1][0]
-						or past_r[-1][0][0] == i == past_r[-1][1][0]):
+			else:
 				past_r.append(future_r.pop())
-			v_l = past_l[-1][-1]
-			v_r = past_r[-1][-1]
-			if oper(v_l, v_r):
-				add(i)
-				yield i
+			core()
+		while future_l:
+			past_l.append(future_l.pop())
+			intersection = intersect2((past_l[-1][0], past_l[-1][1]),
+										(past_r[-1][0], past_r[-1][1]))
+			if intersection:
+				yield from yield_intersection(intersection)
+				if self._iterated:
+					return
+		while future_r:
+			past_r.append(future_r.pop())
+			intersection = intersect2((past_l[-1][0], past_l[-1][1]),
+										(past_r[-1][0], past_r[-1][1]))
+			if intersection:
+				yield from yield_intersection(intersection)
+				if self._iterated:
+					return
 		self._iterated = True
 		del self._falses
 
