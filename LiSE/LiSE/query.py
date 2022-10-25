@@ -93,6 +93,58 @@ def windows_union(windows: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
 	return res
 
 
+def intersect2(left, right):
+	"""Return intersection of 2 windows of time"""
+	if left == right:
+		return left
+	elif left == (None, None) or left == ((None, None), (None, None)):
+		return right
+	elif right == (None, None) or right == ((None, None), (None, None)):
+		return left
+	elif left[0] is None or left[0] == (None, None):
+		if right[0] is None or right[0] == (None, None):
+			return None, min((left[1], right[1]))
+		elif right[1] is None or right[1] == (None, None):
+			if left[1] <= right[0]:
+				return left[1], right[0]
+			else:
+				return None
+		elif right[0] <= left[1]:
+			return right[0], left[1]
+		else:
+			return None
+	elif left[1] is None or left[1] == (None, None):
+		if right[0] is None or right[0] == (None, None):
+			return left[0], right[1]
+		elif left[0] <= right[0]:
+			return right
+		elif right[1] is None or right[1] == (None, None):
+			return max((left[0], right[0])), (None, None) if isinstance(
+				left[0], tuple) else None
+		elif left[0] <= right[1]:
+			return left[0], right[1]
+		else:
+			return None
+	# None not in left
+	elif right[0] is None or right[0] == (None, None):
+		return left[0], min((left[1], right[1]))
+	elif right[1] is None or right[1] == (None, None):
+		if left[1] >= right[0]:
+			return right[0], left[1]
+		else:
+			return None
+	if left > right:
+		(left, right) = (right, left)
+	if left[1] >= right[0]:
+		if right[1] > left[1]:
+			return right[0], left[1]
+		else:
+			return right
+	if isinstance(left[0], tuple):
+		return None, None
+	return None
+
+
 def windows_intersection(
 		windows: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
 	"""Given a list of (beginning, ending), return another describing where they overlap.
@@ -102,54 +154,6 @@ def windows_intersection(
 
 	:rtype: list
 	"""
-
-	def intersect2(left, right):
-		if left == right:
-			return left
-		elif left == (None, None):
-			return right
-		elif right == (None, None):
-			return left
-		elif left[0] is None:
-			if right[0] is None:
-				return None, min((left[1], right[1]))
-			elif right[1] is None:
-				if left[1] <= right[0]:
-					return left[1], right[0]
-				else:
-					return None
-			elif right[0] <= left[1]:
-				return right[0], left[1]
-			else:
-				return None
-		elif left[1] is None:
-			if right[0] is None:
-				return left[0], right[1]
-			elif left[0] <= right[0]:
-				return right
-			elif right[1] is None:
-				return max((left[0], right[0])), None
-			elif left[0] <= right[1]:
-				return left[0], right[1]
-			else:
-				return None
-		# None not in left
-		elif right[0] is None:
-			return left[0], min((left[1], right[1]))
-		elif right[1] is None:
-			if left[1] >= right[0]:
-				return right[0], left[1]
-			else:
-				return None
-		if left > right:
-			(left, right) = (right, left)
-		if left[1] >= right[0]:
-			if right[1] > left[1]:
-				return right[0], left[1]
-			else:
-				return right
-		return None
-
 	if len(windows) == 0:
 		return []
 	elif len(windows) == 1:
