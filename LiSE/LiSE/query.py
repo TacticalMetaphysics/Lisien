@@ -459,9 +459,7 @@ class QueryResultMidTurn(QueryResult):
 			intersection = intersect2((past_l[-1][0], past_l[-1][1]),
 										(past_r[-1][0], past_r[-1][1]))
 			if intersection:
-				yield from yield_intersection(intersection)
-				if self._iterated:
-					return
+				return yield_intersection(intersection)
 			elif None in past_l[-1][1] + past_r[-1][1]:
 				if None in past_l[-1][1]:
 					assert not future_l
@@ -471,9 +469,7 @@ class QueryResultMidTurn(QueryResult):
 							(past_l[-1][0], past_l[-1][1]),
 							(past_r[-1][0], past_r[-1][1]))
 						if intersection:
-							yield from yield_intersection(intersection)
-							if self._iterated:
-								return
+							return yield_intersection(intersection)
 				elif None in past_r[-1][1]:
 					assert not future_r
 					while future_l:
@@ -481,25 +477,22 @@ class QueryResultMidTurn(QueryResult):
 					intersection = intersect2((past_l[-1][0], past_l[-1][1]),
 												(past_r[-1][0], past_r[-1][1]))
 					if intersection:
-						yield from yield_intersection(intersection)
-						if self._iterated:
-							return
+						return yield_intersection(intersection)
 				else:
 					raise RuntimeError("??!")
 				self._iterated = True
 				del self._falses
-				return
 			else:
 				latest_turn, latest_tick = max((past_l[-1][1], past_r[-1][1]))
 				latest_tick += 1
 
-		core()
+		yield from core()
 		while future_l and future_r:
 			if past_l[-1][1] < past_r[-1][1]:
 				past_l.append(future_l.pop())
 			else:
 				past_r.append(future_r.pop())
-			core()
+			yield from core()
 		while future_l:
 			past_l.append(future_l.pop())
 			intersection = intersect2((past_l[-1][0], past_l[-1][1]),
