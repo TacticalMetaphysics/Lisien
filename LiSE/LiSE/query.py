@@ -339,50 +339,15 @@ class QueryResultEndTurn(QueryResult):
 				(self._past_r or self._future_r)):
 			return
 		oper = self._oper
-		add_true = self._trues.add
-		left = chain(iter(self._past_l), reversed(self._future_l))
-		right = chain(iter(self._past_r), reversed(self._future_r))
-		l_from, l_to, l_v = next(left)
-		r_from, r_to, r_v = next(right)
-		l_exhausted = r_exhausted = False
-		while True:
-			overlap = intersect2((l_from, l_to), (r_from, r_to))
-			if overlap and oper(l_v, r_v):
-				if overlap[1] is None:
-					overlap = (overlap[0], self._end_of_time)
-				for turn in range(*overlap):
-					add_true(turn)
+		add = self._trues.add
+		for turn_from, turn_to, l_v, r_v in _yield_intersections(
+			chain(iter(self._past_l), reversed(self._future_l)),
+			chain(iter(self._past_r), reversed(self._future_r)),
+			until=self._end_of_time):
+			if oper(l_v, r_v):
+				for turn in range(turn_from, turn_to):
+					add(turn)
 					yield turn
-			if None not in (l_to, r_to) and l_to <= r_to:
-				try:
-					l_from, l_to, l_v = next(left)
-				except StopIteration:
-					l_exhausted = True
-					break
-			else:
-				try:
-					r_from, r_to, r_v = next(right)
-				except StopIteration:
-					r_exhausted = True
-					break
-		if l_exhausted:
-			for r_from, r_to, r_v in right:
-				overlap = intersect2((l_from, l_to), (r_from, r_to))
-				if overlap and oper(l_v, r_v):
-					if overlap[1] is None:
-						overlap = (overlap[0], self._end_of_time)
-					for turn in range(*overlap):
-						add_true(turn)
-						yield turn
-		elif r_exhausted:
-			for l_from, l_to, l_v in left:
-				overlap = intersect2((l_from, l_to), (r_from, r_to))
-				if overlap[1] is None:
-					overlap = (overlap[0], self._end_of_time)
-				if overlap and oper(l_v, r_v):
-					for turn in range(*overlap):
-						add_true(turn)
-						yield turn
 		self._iterated = True
 		del self._falses
 
@@ -429,6 +394,62 @@ class QueryResultEndTurn(QueryResult):
 		return ret
 
 
+def _yield_intersections(iter_l, iter_r, until=None):
+	try:
+		l_from, l_to, l_v = next(iter_l)
+	except StopIteration:
+		return
+	try:
+		r_from, r_to, r_v = next(iter_r)
+	except StopIteration:
+		return
+	while True:
+		if l_to in (None, (None, None)):
+			l_to = until
+		if r_to in (None, (None, None)):
+			r_to = until
+		intersection = intersect2((l_from, l_to), (r_from, r_to))
+		if intersection:
+			yield intersection + (l_v, r_v)
+			if intersection[1] is None or (isinstance(intersection[1], tuple)
+											and intersection[1] is None):
+				return
+		if l_to is None or r_to is None or (isinstance(
+			l_to, tuple) and l_to[1] is None) or (isinstance(r_to, tuple)
+													and r_to[1] is None):
+			break
+		elif l_to <= r_to:
+			try:
+				l_from, l_to, l_v = next(iter_l)
+			except StopIteration:
+				break
+		else:
+			try:
+				r_from, r_to, r_v = next(iter_r)
+			except StopIteration:
+				break
+	if l_to is None:
+		while True:
+			try:
+				r_from, r_to, r_v = next(iter_r)
+			except StopIteration:
+				if until:
+					yield intersect2((l_from, l_to),
+										(r_to, until)) + (l_v, r_v)
+				return
+			yield intersect2((l_from, l_to), (r_from, r_to)) + (l_v, r_v)
+	if r_to is None:
+		while True:
+			try:
+				l_from, l_to, l_v = next(iter_l)
+			except StopIteration:
+				if until:
+					yield intersect2((l_to, until),
+										(r_from, r_to)) + (l_v, r_v)
+				return
+			yield intersect2((l_from, l_to), (r_from, r_to)) + (l_v, r_v)
+
+
 class QueryResultMidTurn(QueryResult):
 
 	def __init__(self, windows_l, windows_r, oper, end_of_time):
@@ -450,51 +471,24 @@ class QueryResultMidTurn(QueryResult):
 				(self._past_r or self._future_r)):
 			return
 		add = self._trues.add
-		future_l = self._future_l
-		future_l.extend(reversed(self._past_l))
-		self._past_l = past_l = []
-		future_r = self._future_r
-		future_r.extend(reversed(self._past_r))
-		self._past_r = past_r = []
 		oper = self._oper
-		past_l.append(future_l.pop())
-		past_r.append(future_r.pop())
 
-		def yield_intersection():
-			intersection = intersect2((past_l[-1][0], past_l[-1][1]),
-										(past_r[-1][0], past_r[-1][1]))
-			if intersection is None:
-				return
-			(turn_from, tick_from), (turn_to, tick_to) = intersection
-			if oper(past_l[-1][-1], past_r[-1][-1]):
-				if turn_to is None:
-					for turn in range(turn_from, self._end_of_time):
+		for time_from, time_to, l_v, r_v in _yield_intersections(
+			chain(iter(self._past_l), reversed(self._future_l)),
+			chain(iter(self._past_r), reversed(self._future_r)),
+			until=(self._end_of_time, 0)):
+			if oper(l_v, r_v):
+				(turn_from, tick_from) = time_from
+				(turn_to, tick_to) = time_to
+				if turn_from == turn_to:
+					if tick_to > tick_from:
+						add(turn_from)
+						yield turn_from
+				else:
+					for turn in range(turn_from,
+										turn_to + (1 if tick_to else 0)):
 						add(turn)
 						yield turn
-					self._iterated = True
-					del self._falses
-					return
-				for turn in range(turn_from, turn_to + (1 if tick_to else 0)):
-					add(turn)
-					yield turn
-
-		yield from yield_intersection()
-		while future_l and future_r:
-			if past_l[-1][1] < past_r[-1][1]:
-				past_l.append(future_l.pop())
-			else:
-				past_r.append(future_r.pop())
-			yield from yield_intersection()
-		while future_l:
-			past_l.append(future_l.pop())
-			yield from yield_intersection()
-			if self._iterated:
-				return
-		while future_r:
-			past_r.append(future_r.pop())
-			yield from yield_intersection()
-			if self._iterated:
-				return
 		self._iterated = True
 		del self._falses
 
