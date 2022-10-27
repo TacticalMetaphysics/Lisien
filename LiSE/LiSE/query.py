@@ -338,27 +338,51 @@ class QueryResultEndTurn(QueryResult):
 		if not ((self._past_l or self._future_l) and
 				(self._past_r or self._future_r)):
 			return
-		end = self._end_of_time
 		oper = self._oper
-		trues = self._trues
+		add_true = self._trues.add
 		left = chain(iter(self._past_l), reversed(self._future_l))
 		right = chain(iter(self._past_r), reversed(self._future_r))
 		l_from, l_to, l_v = next(left)
 		r_from, r_to, r_v = next(right)
-		for turn in range(0, end):
-			while not (l_from <= turn and (l_to is None or turn < l_to)):
+		l_exhausted = r_exhausted = False
+		while True:
+			overlap = intersect2((l_from, l_to), (r_from, r_to))
+			if overlap and oper(l_v, r_v):
+				if overlap[1] is None:
+					overlap = (overlap[0], self._end_of_time)
+				for turn in range(*overlap):
+					add_true(turn)
+					yield turn
+			if None not in (l_to, r_to) and l_to <= r_to:
 				try:
 					l_from, l_to, l_v = next(left)
 				except StopIteration:
-					return
-			while not (r_from <= turn and (r_to is None or turn < r_to)):
+					l_exhausted = True
+					break
+			else:
 				try:
 					r_from, r_to, r_v = next(right)
 				except StopIteration:
-					return
-			if oper(l_v, r_v):
-				trues.add(turn)
-				yield turn
+					r_exhausted = True
+					break
+		if l_exhausted:
+			for r_from, r_to, r_v in right:
+				overlap = intersect2((l_from, l_to), (r_from, r_to))
+				if overlap and oper(l_v, r_v):
+					if overlap[1] is None:
+						overlap = (overlap[0], self._end_of_time)
+					for turn in range(*overlap):
+						add_true(turn)
+						yield turn
+		elif r_exhausted:
+			for l_from, l_to, l_v in left:
+				overlap = intersect2((l_from, l_to), (r_from, r_to))
+				if overlap[1] is None:
+					overlap = (overlap[0], self._end_of_time)
+				if overlap and oper(l_v, r_v):
+					for turn in range(*overlap):
+						add_true(turn)
+						yield turn
 		self._iterated = True
 		del self._falses
 
