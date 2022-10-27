@@ -56,7 +56,7 @@ def roommate_collisions(college24_premade):
 			dorm, room, other_student)]
 		cond = student.unit.only.historical(
 			'location') == other_student.unit.only.historical('location')
-		same_loc_turns = {turn for (branch, turn) in cond.iter_times()}
+		same_loc_turns = {turn for (branch, turn) in cond._iter_times()}
 		assert same_loc_turns, "{} and {} don't seem to share a room".format(
 			student.name, other_student.name)
 		assert len(
@@ -241,8 +241,10 @@ def test_graph_val_select_lt_gt(engy):
 	me.stat['bar'] = 10
 	foo_hist = me.historical('foo')
 	bar_hist = me.historical('bar')
-	assert engy.turns_when(foo_hist < bar_hist) == {1, 2, 5, 7}
-	assert engy.turns_when(foo_hist > bar_hist) == {0, 3, 4, 6}
+	res = engy.turns_when(foo_hist < bar_hist)
+	assert set(res) == {1, 2, 6, 8}
+	res = engy.turns_when(foo_hist > bar_hist)
+	assert set(res) == {0, 3, 4, 5, 7}
 
 
 def test_stress_graph_val_select_lt(engy):
