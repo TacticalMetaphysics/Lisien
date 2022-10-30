@@ -1,3 +1,0 @@
-title=LiSE pre-alpha
-author=Zachary Spector
-orientation=landscape
