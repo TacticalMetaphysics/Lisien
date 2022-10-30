@@ -261,3 +261,58 @@ def test_stress_graph_val_select_lt(engy):
 	start_ts = monotonic()
 	engy.turns_when(qry)
 	assert monotonic() - start_ts < 1
+
+
+def test_graph_val_compound(engy):
+	you = engy.new_character('you')
+	assert engy.turn == 0
+	me = engy.new_character('me')
+	me.stat['foo'] = 'bar'
+	me.stat['qux'] = 'bas'
+	you.stat['foo'] = 10
+	you.stat['bar'] = 1
+	engy.next_turn()
+	assert engy.turn == 1
+	me.stat['foo'] = ''
+	me.stat['foo'] = 'bas'
+	me.stat['qux'] = 'bar'
+	you.stat['foo'] = 2
+	you.stat['bar'] = 8
+	engy.next_turn()
+	assert engy.turn == 2
+	me.stat['qux'] = 'bas'
+	you.stat['foo'] = 3
+	engy.next_turn()
+	assert engy.turn == 3
+	me.stat['qux'] = 'bar'
+	you.stat['foo'] = 9
+	engy.next_turn()
+	assert engy.turn == 4
+	engy.branch = 'leaf'
+	assert engy.turn == 4
+	you.stat['bar'] = 5
+	engy.next_turn()
+	assert engy.turn == 5
+	me.stat['foo'] = 'bar'
+	you.stat['bar'] = 2
+	engy.next_turn()
+	assert engy.turn == 6
+	me.stat['foo'] = 'bas'
+	me.stat['qux'] = 'bas'
+	you.stat['bar'] = 10
+	engy.next_turn()
+	you.stat['bar'] = 1
+	assert engy.turn == 7
+	engy.next_turn()
+	assert engy.turn == 8
+	you.stat['bar'] = 10
+	eq_qry = me.historical('foo') == me.historical('qux')
+	correct_eq = {2, 5, 6, 7, 8}
+	assert set(engy.turns_when(eq_qry)) == correct_eq
+	lt_qry = you.historical('foo') < you.historical('bar')
+	correct_lt = {1, 2, 6, 8}
+	assert set(engy.turns_when(lt_qry)) == correct_lt
+	assert engy.turns_when(lt_qry & eq_qry) == correct_eq & correct_lt
+	assert engy.turns_when(lt_qry | eq_qry) == correct_eq | correct_lt
+	assert engy.turns_when(lt_qry - eq_qry) == correct_lt - correct_eq
+	assert engy.turns_when(eq_qry - lt_qry) == correct_eq - correct_lt
