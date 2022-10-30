@@ -1487,11 +1487,11 @@ class Engine(AbstractEngine, gORM):
 			_, turn, tick = self._btt()
 			if mid_turn:
 				return QueryResultMidTurn(unpack_data_mid(left_data),
-											[(0, 0, turn, tick, right)],
+											[(0, 0, None, None, right)],
 											qry.oper, end)
 			else:
 				return QueryResultEndTurn(unpack_data_end(left_data),
-											[(0, 0, right)], qry.oper, end)
+											[(0, None, right)], qry.oper, end)
 		elif isinstance(right, StatusAlias):
 			right_sel = make_side_sel(right.entity, right.stat, branches,
 										self.pack, mid_turn)
