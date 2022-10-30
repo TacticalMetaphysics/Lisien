@@ -620,6 +620,15 @@ class ComparisonQuery(Query):
 	def _iter_btts(self):
 		return slow_iter_btts_eval_cmp(self, self.oper, engine=self.engine)
 
+	def __and__(self, other):
+		return IntersectionQuery(self.engine, self, other)
+
+	def __or__(self, other):
+		return UnionQuery(self.engine, self, other)
+
+	def __sub__(self, other):
+		return MinusQuery(self.engine, self, other)
+
 
 class EqQuery(ComparisonQuery):
 	oper = eq
