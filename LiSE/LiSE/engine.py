@@ -1484,7 +1484,6 @@ class Engine(AbstractEngine, gORM):
 			left_sel = make_side_sel(left.entity, left.stat, branches,
 										self.pack, mid_turn)
 			left_data = self.query.execute(left_sel)
-			_, turn, tick = self._btt()
 			if mid_turn:
 				return QueryResultMidTurn(unpack_data_mid(left_data),
 											[(0, 0, None, None, right)],
@@ -1496,7 +1495,6 @@ class Engine(AbstractEngine, gORM):
 			right_sel = make_side_sel(right.entity, right.stat, branches,
 										self.pack, mid_turn)
 			right_data = self.query.execute(right_sel)
-			_, turn, tick = self._btt()
 			if mid_turn:
 				return QueryResultMidTurn([(0, 0, None, None, left)],
 											unpack_data_mid(right_data),
