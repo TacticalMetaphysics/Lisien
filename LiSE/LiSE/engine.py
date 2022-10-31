@@ -1497,11 +1497,11 @@ class Engine(AbstractEngine, gORM):
 			right_data = self.query.execute(right_sel)
 			_, turn, tick = self._btt()
 			if mid_turn:
-				return QueryResultMidTurn([(0, 0, turn, tick, left)],
+				return QueryResultMidTurn([(0, 0, None, None, left)],
 											unpack_data_mid(right_data),
 											qry.oper, end)
 			else:
-				return QueryResultEndTurn([(0, 0, left)],
+				return QueryResultEndTurn([(0, None, left)],
 											unpack_data_end(right_data),
 											qry.oper, end)
 		else:
