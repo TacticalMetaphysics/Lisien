@@ -360,6 +360,11 @@ class QueryResultEndTurn(QueryResult):
 			self._generate()
 		return reversed(self._list)
 
+	def list(self):
+		if self._list is None:
+			self._generate()
+		return self._list
+
 	def _generate(self):
 		try:
 			import numpy as np
@@ -491,20 +496,22 @@ class QueryResultMidTurn(QueryResult):
 		self._past_r = windows_r
 		self._future_r = []
 		self._oper = oper
-		self._iterated = False
+		self._list = None
 		self._trues = set()
 		self._falses = set()
 		self._end_of_time = end_of_time
 
 	def __iter__(self):
-		if self._iterated:
-			yield from self._trues
+		if self._list is not None:
+			yield from self._list
 			return
 		if not ((self._past_l or self._future_l) and
 				(self._past_r or self._future_r)):
 			return
 		add = self._trues.add
 		oper = self._oper
+		_list = []
+		append = _list.append
 
 		for time_from, time_to, l_v, r_v in _yield_intersections(
 			chain(iter(self._past_l), reversed(self._future_l)),
@@ -521,18 +528,51 @@ class QueryResultMidTurn(QueryResult):
 					for turn in range(turn_from,
 										turn_to + (1 if tick_to else 0)):
 						add(turn)
+						append(turn)
 						yield turn
-		self._iterated = True
+		self._list = _list
 		del self._falses
 
-	def __len__(self):
-		if not self._iterated:
+	def __reversed__(self):
+		if self._list is None:
+			self._generate()
+		return reversed(self._list)
+
+	def _generate(self):
+		try:
+			import numpy as np
+		except ImportError:
 			for _ in self:
 				pass
+			return
+		spans = []
+		left = []
+		right = []
+		for time_from, time_to, l_v, r_v in _yield_intersections(
+			chain(iter(self._past_l), reversed(self._future_l)),
+			chain(iter(self._past_r), reversed(self._future_r)),
+			until=(self._end_of_time, 0)):
+			spans.append((time_from, time_to))
+			left.append(l_v)
+			right.append(r_v)
+		bools = self._oper(np.array(left), np.array(right))
+		trues = self._trues
+		_list = self._list = []
+		for span, buul in zip(spans, bools):
+			if buul:
+				for turn in range(span[0][0], span[1][0]):
+					if turn in trues:
+						continue
+					trues.add(turn)
+					_list.append(turn)
+
+	def __len__(self):
+		if self._list is None:
+			self._generate()
 		return len(self._trues)
 
 	def __contains__(self, item):
-		if self._iterated:
+		if self._list is not None:
 			return item in self._trues
 		if item in self._trues:
 			return True
