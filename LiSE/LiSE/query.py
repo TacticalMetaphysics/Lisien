@@ -620,12 +620,14 @@ class QueryResultMidTurn(QueryResult):
 			past_r.append(future_r.pop())
 			right_candidates.append(past_r[-1])
 		oper = self._oper
-		for l_time_from, l_time_to, l_v in left_candidates:
-			for r_time_from, r_time_to, r_v in right_candidates:
-				if oper(l_v, r_v) and not (
-					(None not in l_time_to and l_time_to < r_time_from) or
-					(None not in r_time_to and r_time_to < l_time_from)):
+		while left_candidates and right_candidates:
+			if intersect2(left_candidates[-1][:2], right_candidates[-1][:2]):
+				if oper(left_candidates[-1][2], right_candidates[-1][2]):
 					return True
+			if left_candidates[-1][0] < right_candidates[-1][0]:
+				right_candidates.pop()
+			else:
+				left_candidates.pop()
 		return False
 
 	def last(self):
