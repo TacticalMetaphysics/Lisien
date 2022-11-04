@@ -433,6 +433,31 @@ class QueryResultEndTurn(QueryResult):
 			self._falses.add(item)
 		return ret
 
+	def last(self):
+		"""Get the last turn on which the predicate held true"""
+		past_l = self._past_l
+		future_l = self._future_l
+		while future_l:
+			past_l.append(future_l.pop())
+		past_r = self._past_r
+		future_r = self._future_r
+		while future_r:
+			past_r.append(future_r)
+		oper = self._oper
+		while past_l and past_r:
+			l_from, l_to, l_v = past_l[-1]
+			r_from, r_to, r_v = past_r[-1]
+			inter = intersect2((l_from, l_to), (r_from, r_to))
+			if not inter:
+				if l_from < r_from:
+					future_r.append(past_r.pop())
+				else:
+					future_l.append(past_l.pop())
+				continue
+			if oper(l_v, r_v):
+				# SQL results are exclusive on the right
+				return inter[1] - 1
+
 
 def _yield_intersections(iter_l, iter_r, until=None):
 	try:
@@ -595,6 +620,30 @@ class QueryResultMidTurn(QueryResult):
 					(None not in r_time_to and r_time_to < l_time_from)):
 					return True
 		return False
+
+	def last(self):
+		"""Get the last turn on which the predicate held true"""
+		past_l = self._past_l
+		future_l = self._future_l
+		while future_l:
+			past_l.append(future_l.pop())
+		past_r = self._past_r
+		future_r = self._future_r
+		while future_r:
+			past_r.append(future_r)
+		oper = self._oper
+		while past_l and past_r:
+			l_from, l_to, l_v = past_l[-1]
+			r_from, r_to, r_v = past_r[-1]
+			inter = intersect2((l_from, l_to), (r_from, r_to))
+			if not inter:
+				if l_from < r_from:
+					future_r.append(past_r.pop())
+				else:
+					future_l.append(past_l.pop())
+				continue
+			if oper(l_v, r_v):
+				return inter[1][0] - (0 if inter[1][1] else 1)
 
 
 class CombinedQueryResult(QueryResult):
