@@ -199,6 +199,9 @@ def test_graph_val_select_eq(engy):
 	assert 3 in mid_turn_result
 	assert 4 not in mid_turn_result
 	assert mid_turn_result == set(mid_turn_result) == {1, 2, 3, 5, 6, 7}
+	assert list(engy.turns_when(qry)) == list(turn_end_result) == [2, 5, 6, 7]
+	assert list(reversed(engy.turns_when(qry))) == list(
+		reversed(turn_end_result)) == [7, 6, 5, 2]
 
 
 def test_stress_graph_val_select_eq(engy):
