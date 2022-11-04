@@ -435,6 +435,10 @@ class QueryResultEndTurn(QueryResult):
 
 	def last(self):
 		"""Get the last turn on which the predicate held true"""
+		if self._list is not None:
+			if not self._list:
+				return
+			return self._list[-1]
 		past_l = self._past_l
 		future_l = self._future_l
 		while future_l:
@@ -623,6 +627,10 @@ class QueryResultMidTurn(QueryResult):
 
 	def last(self):
 		"""Get the last turn on which the predicate held true"""
+		if self._list is not None:
+			if not self._list:
+				return
+			return self._list[-1]
 		past_l = self._past_l
 		future_l = self._future_l
 		while future_l:
