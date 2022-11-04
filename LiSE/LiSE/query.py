@@ -461,7 +461,7 @@ class QueryResultEndTurn(QueryResult):
 			if oper(l_v, r_v):
 				# SQL results are exclusive on the right
 				if inter[1] is None:
-					return self._end_of_time
+					return self._end_of_time - 1
 				return inter[1] - 1
 
 
@@ -654,7 +654,7 @@ class QueryResultMidTurn(QueryResult):
 				continue
 			if oper(l_v, r_v):
 				if inter[1] == (None, None):
-					return self._end_of_time
+					return self._end_of_time - 1
 				return inter[1][0] - (0 if inter[1][1] else 1)
 
 
