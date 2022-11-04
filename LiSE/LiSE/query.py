@@ -577,7 +577,8 @@ class QueryResultMidTurn(QueryResult):
 		_list = self._list = []
 		for span, buul in zip(spans, bools):
 			if buul:
-				for turn in range(span[0][0], span[1][0]):
+				for turn in range(span[0][0],
+									span[1][0] + (1 if span[1][1] else 0)):
 					if turn in trues:
 						continue
 					trues.add(turn)
