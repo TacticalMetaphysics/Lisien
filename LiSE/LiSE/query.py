@@ -315,10 +315,6 @@ def _getcol(alias: "StatusAlias"):
 
 
 class QueryResult(Set):
-	pass
-
-
-class QueryResultEndTurn(QueryResult):
 
 	def __init__(self, windows_l, windows_r, oper, end_of_time):
 		self._past_l = windows_l
@@ -332,6 +328,27 @@ class QueryResultEndTurn(QueryResult):
 		self._end_of_time = end_of_time
 
 	def __iter__(self):
+		if self._list is None:
+			self._generate()
+		return iter(self._list)
+
+	def __reversed__(self):
+		if self._list is None:
+			self._generate()
+		return reversed(self._list)
+
+	def __len__(self):
+		if not self._list:
+			self._generate()
+		return len(self._list)
+
+	def _generate(self):
+		raise NotImplementedError("_generate")
+
+
+class QueryResultEndTurn(QueryResult):
+
+	def _slow_iter(self):
 		if self._list is not None:
 			yield from self._list
 			return
@@ -355,21 +372,11 @@ class QueryResultEndTurn(QueryResult):
 		self._list = _list
 		del self._falses
 
-	def __reversed__(self):
-		if self._list is None:
-			self._generate()
-		return reversed(self._list)
-
-	def list(self):
-		if self._list is None:
-			self._generate()
-		return self._list
-
 	def _generate(self):
 		try:
 			import numpy as np
 		except ImportError:
-			for _ in self:
+			for _ in self._slow_iter():
 				pass
 			return
 		spans = []
@@ -391,11 +398,6 @@ class QueryResultEndTurn(QueryResult):
 				for turn in range(*span):
 					append(turn)
 					add(turn)
-
-	def __len__(self):
-		if not self._list:
-			self._generate()
-		return len(self._list)
 
 	def __contains__(self, item):
 		if self._list:
@@ -490,18 +492,7 @@ def _yield_intersections(iter_l, iter_r, until=None):
 
 class QueryResultMidTurn(QueryResult):
 
-	def __init__(self, windows_l, windows_r, oper, end_of_time):
-		self._past_l = windows_l
-		self._future_l = []
-		self._past_r = windows_r
-		self._future_r = []
-		self._oper = oper
-		self._list = None
-		self._trues = set()
-		self._falses = set()
-		self._end_of_time = end_of_time
-
-	def __iter__(self):
+	def _slow_iter(self):
 		if self._list is not None:
 			yield from self._list
 			return
@@ -533,16 +524,11 @@ class QueryResultMidTurn(QueryResult):
 		self._list = _list
 		del self._falses
 
-	def __reversed__(self):
-		if self._list is None:
-			self._generate()
-		return reversed(self._list)
-
 	def _generate(self):
 		try:
 			import numpy as np
 		except ImportError:
-			for _ in self:
+			for _ in self._slow_iter():
 				pass
 			return
 		spans = []
@@ -565,11 +551,6 @@ class QueryResultMidTurn(QueryResult):
 						continue
 					trues.add(turn)
 					_list.append(turn)
-
-	def __len__(self):
-		if self._list is None:
-			self._generate()
-		return len(self._trues)
 
 	def __contains__(self, item):
 		if self._list is not None:
