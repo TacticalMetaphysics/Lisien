@@ -168,7 +168,7 @@ def windows_intersection(
 	return done
 
 
-def the_select(tab: Table, val_col='value'):
+def _the_select(tab: Table, val_col='value'):
 	return select(
 		tab.c.turn.label('turn_from'), tab.c.tick.label('tick_from'),
 		func.lead(tab.c.turn).over(order_by=(tab.c.turn,
@@ -178,11 +178,11 @@ def the_select(tab: Table, val_col='value'):
 		tab.c[val_col])
 
 
-def make_graph_val_select(graph: bytes, stat: bytes, branches: List[str],
+def _make_graph_val_select(graph: bytes, stat: bytes, branches: List[str],
 							mid_turn: bool):
 	tab: Table = meta.tables['graph_val']
 	if mid_turn:
-		return the_select(tab).where(
+		return _the_select(tab).where(
 			and_(tab.c.graph == graph, tab.c.key == stat,
 					tab.c.branch.in_(branches)))
 	ticksel = select(tab.c.graph, tab.c.key, tab.c.branch, tab.c.turn,
@@ -191,7 +191,7 @@ def make_graph_val_select(graph: bytes, stat: bytes, branches: List[str],
 							tab.c.turn).where(
 								and_(tab.c.graph == graph, tab.c.key == stat,
 										tab.c.branch.in_(branches)))
-	return the_select(tab).select_from(
+	return _the_select(tab).select_from(
 		tab.join(
 			ticksel,
 			and_(tab.c.graph == ticksel.c.graph, tab.c.key == ticksel.c.key,
@@ -200,11 +200,11 @@ def make_graph_val_select(graph: bytes, stat: bytes, branches: List[str],
 					tab.c.tick == ticksel.c.tick)))
 
 
-def make_node_val_select(graph: bytes, node: bytes, stat: bytes,
+def _make_node_val_select(graph: bytes, node: bytes, stat: bytes,
 							branches: List[str], mid_turn: bool):
 	tab: Table = meta.tables['node_val']
 	if mid_turn:
-		return the_select(tab).where(
+		return _the_select(tab).where(
 			and_(tab.c.graph == graph, tab.c.node == node, tab.c.stat == stat,
 					tab.c.branch.in_(branches)))
 	ticksel = select(tab.c.graph, tab.c.node, tab.c.stat, tab.c.branch,
@@ -215,7 +215,7 @@ def make_node_val_select(graph: bytes, node: bytes, stat: bytes,
 									tab.c.branch.in_(branches))).group_by(
 										tab.c.graph, tab.c.node, tab.c.stat,
 										tab.c.branch, tab.c.turn)
-	return the_select(tab).select_from(
+	return _the_select(tab).select_from(
 		tab.join(
 			ticksel,
 			and_(tab.c.graph == ticksel.c.graph, tab.c.node == ticksel.c.node,
@@ -225,11 +225,11 @@ def make_node_val_select(graph: bytes, node: bytes, stat: bytes,
 					tab.c.tick == ticksel.c.tick)))
 
 
-def make_location_select(graph: bytes, thing: bytes, branches: List[str],
+def _make_location_select(graph: bytes, thing: bytes, branches: List[str],
 							mid_turn: bool):
 	tab: Table = meta.tables['things']
 	if mid_turn:
-		return the_select(tab).where(
+		return _the_select(tab).where(
 			and_(tab.c.graph == graph, tab.c.thing == thing,
 					tab.c.branches.in_(branches)))
 	ticksel = select(tab.c.character, tab.c.thing, tab.c.branch, tab.c.turn,
@@ -239,7 +239,7 @@ def make_location_select(graph: bytes, thing: bytes, branches: List[str],
 									tab.c.branch.in_(branches))).group_by(
 										tab.c.character, tab.c.thing,
 										tab.c.branch, tab.c.turn)
-	return the_select(tab, val_col='location').select_from(
+	return _the_select(tab, val_col='location').select_from(
 		tab.join(
 			ticksel,
 			and_(tab.c.character == ticksel.c.character,
@@ -249,11 +249,11 @@ def make_location_select(graph: bytes, thing: bytes, branches: List[str],
 					tab.c.tick == ticksel.c.tick)))
 
 
-def make_edge_val_select(graph: bytes, orig: bytes, dest: bytes, idx: int,
+def _make_edge_val_select(graph: bytes, orig: bytes, dest: bytes, idx: int,
 							stat: bytes, branches: List[str], mid_turn: bool):
 	tab: Table = meta.tables['edge_val']
 	if mid_turn:
-		return the_select(tab).where(
+		return _the_select(tab).where(
 			and_(tab.c.graph == graph, tab.c.orig == orig, tab.c.dest == dest,
 					tab.c.idx == idx, tab.c.key == stat,
 					tab.c.branches.in_(branches)))
@@ -266,7 +266,7 @@ def make_edge_val_select(graph: bytes, orig: bytes, dest: bytes, idx: int,
 					tab.c.branch.in_(branches))).group_by(
 						tab.c.graph, tab.c.orig, tab.c.dest, tab.c.idx,
 						tab.c.key, tab.c.branch, tab.c.turn)
-	return the_select(tab).select_from(
+	return _the_select(tab).select_from(
 		tab.join(
 			ticksel,
 			and_(tab.c.graph == ticksel.c.graph, tab.c.orig == ticksel.c.orig,
@@ -284,25 +284,26 @@ def make_side_sel(entity, stat, branches: List[str], pack: callable,
 	from .thing import Thing
 	from .portal import Portal
 	if isinstance(entity, AbstractCharacter):
-		return make_graph_val_select(pack(entity.name), pack(stat), branches,
+		return _make_graph_val_select(pack(entity.name), pack(stat), branches,
 										mid_turn)
 	elif isinstance(entity, Place):
-		return make_node_val_select(pack(entity.character.name),
-									pack(entity.name), pack(stat), branches,
-									mid_turn)
-	elif isinstance(entity, Thing):
-		if stat == 'location':
-			return make_location_select(pack(entity.character.name),
-										pack(entity.name), branches, mid_turn)
-		else:
-			return make_node_val_select(pack(entity.character.name),
+		return _make_node_val_select(pack(entity.character.name),
 										pack(entity.name), pack(stat),
 										branches, mid_turn)
+	elif isinstance(entity, Thing):
+		if stat == 'location':
+			return _make_location_select(pack(entity.character.name),
+											pack(entity.name), branches,
+											mid_turn)
+		else:
+			return _make_node_val_select(pack(entity.character.name),
+											pack(entity.name), pack(stat),
+											branches, mid_turn)
 	elif isinstance(entity, Portal):
-		return make_edge_val_select(pack(entity.character.name),
-									pack(entity.origin.name),
-									pack(entity.destination.name), 0,
-									pack(stat), branches, mid_turn)
+		return _make_edge_val_select(pack(entity.character.name),
+										pack(entity.origin.name),
+										pack(entity.destination.name), 0,
+										pack(stat), branches, mid_turn)
 	else:
 		raise TypeError(f"Unknown entity type {type(entity)}")
 
