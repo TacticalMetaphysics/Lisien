@@ -465,6 +465,20 @@ class QueryResultEndTurn(QueryResult):
 					return self._end_of_time - 1
 				return inter[1] - 1
 
+	def first(self):
+		"""Get the first turn on which the predicate held true"""
+		if self._list is not None:
+			if not self._list:
+				return
+			return self._list[0]
+		oper = self._oper
+		for turn_from, turn_to, l_v, r_v in _yield_intersections(
+			chain(iter(self._past_l), reversed(self._future_l)),
+			chain(iter(self._past_r), reversed(self._future_r)),
+			until=self._end_of_time):
+			if oper(l_v, r_v):
+				return turn_from
+
 
 def _yield_intersections(iter_l, iter_r, until=None):
 	try:
@@ -660,6 +674,20 @@ class QueryResultMidTurn(QueryResult):
 				if inter[1] == (None, None):
 					return self._end_of_time - 1
 				return inter[1][0] - (0 if inter[1][1] else 1)
+
+	def first(self):
+		"""Get the first turn on which the predicate held true"""
+		if self._list is not None:
+			if not self._list:
+				return
+			return self._list[0]
+		oper = self._oper
+		for time_from, time_to, l_v, r_v in _yield_intersections(
+			chain(iter(self._past_l), reversed(self._future_l)),
+			chain(iter(self._past_r), reversed(self._future_r)),
+			until=(self._end_of_time, 0)):
+			if oper(l_v, r_v):
+				return time_from[0]
 
 
 class CombinedQueryResult(QueryResult):
