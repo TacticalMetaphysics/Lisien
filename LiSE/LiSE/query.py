@@ -22,7 +22,7 @@ turn numbers in which the comparison evaluated to ``True``.
 
 """
 import operator
-from collections.abc import MutableMapping, Set
+from collections.abc import MutableMapping, Sequence, Set
 from itertools import chain
 from operator import gt, lt, eq, ne, le, ge
 from functools import partialmethod
@@ -315,7 +315,7 @@ def _getcol(alias: "StatusAlias"):
 	return 'value'
 
 
-class QueryResult(Set):
+class QueryResult(Sequence, Set):
 
 	def __init__(self, windows_l, windows_r, oper, end_of_time):
 		self._past_l = windows_l
@@ -343,8 +343,23 @@ class QueryResult(Set):
 			self._generate()
 		return len(self._list)
 
+	def __getitem__(self, item):
+		if not self._list:
+			if item == 0:
+				return self._first()
+			elif item == -1:
+				return self._last()
+			self._generate()
+		return self._list[item]
+
 	def _generate(self):
 		raise NotImplementedError("_generate")
+
+	def _first(self):
+		raise NotImplementedError("_first")
+
+	def _last(self):
+		raise NotImplementedError("_last")
 
 
 class QueryResultEndTurn(QueryResult):
@@ -434,12 +449,8 @@ class QueryResultEndTurn(QueryResult):
 			self._falses.add(item)
 		return ret
 
-	def last(self):
+	def _last(self):
 		"""Get the last turn on which the predicate held true"""
-		if self._list is not None:
-			if not self._list:
-				return
-			return self._list[-1]
 		past_l = self._past_l
 		future_l = self._future_l
 		while future_l:
@@ -465,7 +476,7 @@ class QueryResultEndTurn(QueryResult):
 					return self._end_of_time - 1
 				return inter[1] - 1
 
-	def first(self):
+	def _first(self):
 		"""Get the first turn on which the predicate held true"""
 		if self._list is not None:
 			if not self._list:
@@ -645,12 +656,8 @@ class QueryResultMidTurn(QueryResult):
 				left_candidates.pop()
 		return False
 
-	def last(self):
+	def _last(self):
 		"""Get the last turn on which the predicate held true"""
-		if self._list is not None:
-			if not self._list:
-				return
-			return self._list[-1]
 		past_l = self._past_l
 		future_l = self._future_l
 		while future_l:
@@ -675,12 +682,8 @@ class QueryResultMidTurn(QueryResult):
 					return self._end_of_time - 1
 				return inter[1][0] - (0 if inter[1][1] else 1)
 
-	def first(self):
+	def _first(self):
 		"""Get the first turn on which the predicate held true"""
-		if self._list is not None:
-			if not self._list:
-				return
-			return self._list[0]
 		oper = self._oper
 		for time_from, time_to, l_v, r_v in _yield_intersections(
 			chain(iter(self._past_l), reversed(self._future_l)),
