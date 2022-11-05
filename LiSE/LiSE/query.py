@@ -495,7 +495,7 @@ def _yield_intersections(iter_l, iter_r, until=None):
 		if r_to in (None, (None, None)):
 			r_to = until
 		intersection = intersect2((l_from, l_to), (r_from, r_to))
-		if intersection:
+		if intersection and intersection[0] != intersection[1]:
 			yield intersection + (l_v, r_v)
 			if intersection[1] is None or (isinstance(intersection[1], tuple)
 											and intersection[1] is None):
