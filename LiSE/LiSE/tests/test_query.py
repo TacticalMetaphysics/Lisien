@@ -195,8 +195,8 @@ def test_graph_val_select_eq(engy):
 	assert 5 in turn_end_result
 	assert 3 not in turn_end_result
 	assert turn_end_result == set(turn_end_result) == {2, 5, 6, 7}
-	assert engy.turns_when(qry).last() == 7
-	assert engy.turns_when(qry).first() == 2
+	assert engy.turns_when(qry)[-1] == 7
+	assert engy.turns_when(qry)[0] == 2
 	mid_turn_result = engy.turns_when(qry, mid_turn=True)
 	assert 3 in mid_turn_result
 	assert 4 not in mid_turn_result
@@ -204,8 +204,8 @@ def test_graph_val_select_eq(engy):
 	assert list(engy.turns_when(qry)) == list(turn_end_result) == [2, 5, 6, 7]
 	assert list(reversed(engy.turns_when(qry))) == list(
 		reversed(turn_end_result)) == [7, 6, 5, 2]
-	assert engy.turns_when(qry, mid_turn=True).last() == 7
-	assert engy.turns_when(qry, mid_turn=True).first() == 1
+	assert engy.turns_when(qry, mid_turn=True)[-1] == 7
+	assert engy.turns_when(qry, mid_turn=True)[0] == 1
 
 
 def test_stress_graph_val_select_eq(engy):
