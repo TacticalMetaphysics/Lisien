@@ -29,9 +29,9 @@ from functools import partialmethod
 from time import monotonic
 from queue import Queue
 from threading import Thread
-from typing import Any, List, Callable, Tuple, Union
+from typing import Any, List, Callable, Tuple
 
-from sqlalchemy import select, and_, or_, not_, literal, Table
+from sqlalchemy import select, and_, Table
 from sqlalchemy.sql.functions import func
 from .alchemy import meta, gather_sql
 
