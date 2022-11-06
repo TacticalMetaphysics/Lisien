@@ -258,6 +258,31 @@ def test_graph_nodeval_select_eq(engy):
 	assert engy.turns_when(qry, mid_turn=True)[0] == 1
 
 
+def test_location_qry(engy):
+	phys = engy.new_character("physical")
+	place1 = phys.new_place(1)
+	place2 = phys.new_place(2)
+	place3 = phys.new_place(3)
+	thing1 = place3.new_thing('t1')
+	thing2 = place1.new_thing('t2')
+	engy.next_turn()
+	thing1.location = place2
+	thing2.location = place2
+	thing2.location = place1
+	engy.next_turn()
+	thing2.location = place2
+	qry = thing1.historical('location') == thing2.historical('location')
+	res0 = engy.turns_when(qry)
+	assert 2 in res0
+	assert 1 not in res0
+	assert list(res0) == [2]
+	res1 = engy.turns_when(qry, mid_turn=True)
+	assert 0 not in res1
+	assert 1 in res1
+	assert 2 in res1
+	assert list(res1) == [1, 2]
+
+
 def test_stress_graph_val_select_eq(engy):
 	import random
 	from time import monotonic
