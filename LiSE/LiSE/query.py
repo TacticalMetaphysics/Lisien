@@ -229,9 +229,9 @@ def _make_location_select(graph: bytes, thing: bytes, branches: List[str],
 							mid_turn: bool):
 	tab: Table = meta.tables['things']
 	if mid_turn:
-		return _the_select(tab).where(
-			and_(tab.c.graph == graph, tab.c.thing == thing,
-					tab.c.branches.in_(branches)))
+		return _the_select(tab, val_col='location').where(
+			and_(tab.c.character == graph, tab.c.thing == thing,
+					tab.c.branch.in_(branches)))
 	ticksel = select(tab.c.character, tab.c.thing, tab.c.branch, tab.c.turn,
 						func.max(tab.c.tick).label('tick')).where(
 							and_(tab.c.character == graph,
