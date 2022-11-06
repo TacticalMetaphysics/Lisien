@@ -283,6 +283,7 @@ def test_location_qry(engy):
 	assert list(res1) == [1, 2]
 
 
+@pytest.mark.slow
 def test_stress_graph_val_select_eq(engy):
 	import random
 	from time import monotonic
@@ -295,7 +296,11 @@ def test_stress_graph_val_select_eq(engy):
 		me.stat['quux'] = random.choice(['foo', 'bar', 'bas'])
 	qry = me.historical('qux') == me.historical('quux')
 	start_ts = monotonic()
-	engy.turns_when(qry)
+	res = engy.turns_when(qry)
+	assert monotonic() - start_ts < 1
+	start_ts = monotonic()
+	rez = list(res)
+	print(len(rez))
 	assert monotonic() - start_ts < 1
 
 
@@ -329,6 +334,7 @@ def test_graph_val_select_lt_gt(engy):
 	assert set(res) == {0, 3, 4, 5, 7}
 
 
+@pytest.mark.slow
 def test_stress_graph_val_select_lt(engy):
 	import random
 	from time import monotonic
@@ -341,7 +347,11 @@ def test_stress_graph_val_select_lt(engy):
 		me.stat['bar'] = random.randrange(0, 10)
 	qry = me.historical('foo') < me.historical('bar')
 	start_ts = monotonic()
-	engy.turns_when(qry)
+	res = engy.turns_when(qry)
+	assert monotonic() - start_ts < 1
+	start_ts = monotonic()
+	rez = list(res)
+	print(len(rez))
 	assert monotonic() - start_ts < 1
 
 
