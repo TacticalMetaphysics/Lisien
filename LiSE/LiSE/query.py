@@ -631,18 +631,23 @@ class QueryResultMidTurn(QueryResult):
 			past_r.append(future_r.pop())
 		while past_l and past_l[-1][0][0] >= item:
 			future_l.append(past_l.pop())
-		while future_l and not past_l[-1][0][0] <= item <= past_l[-1][1][0]:
+		while future_l and not (past_l and past_l[-1][0][0] <= item and
+								(past_l[-1][1][0] is None
+									or item <= past_l[-1][1][0])):
 			past_l.append(future_l.pop())
 		left_candidates = [past_l[-1]]
-		while future_l and future_l[-1][0][0] <= item <= future_l[-1][1][0]:
+		while future_l and future_l[-1][0][0] <= item and (
+			future_l[-1][1][0] is None or item <= future_l[-1][1][0]):
 			past_l.append(future_l.pop())
 			left_candidates.append(past_l[-1])
 		while past_r and past_r[-1][0][0] >= item:
 			future_r.append(past_r.pop())
-		while future_r and not past_r[-1][0][0] <= item <= past_r[-1][1][0]:
+		while future_r and not (past_r and
+								past_r[-1][0][0] <= item <= past_r[-1][1][0]):
 			past_r.append(future_r.pop())
 		right_candidates = [past_r[-1]]
-		while future_r and future_r[-1][0][0] <= item <= future_r[-1][1][0]:
+		while future_r and future_r[-1][0][0] <= item and (
+			future_r[-1][1][0] is None or item <= future_r[-1][1][0]):
 			past_r.append(future_r.pop())
 			right_candidates.append(past_r[-1])
 		oper = self._oper
