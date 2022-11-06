@@ -208,6 +208,56 @@ def test_graph_val_select_eq(engy):
 	assert engy.turns_when(qry, mid_turn=True)[0] == 1
 
 
+def test_graph_nodeval_select_eq(engy):
+	assert engy.turn == 0
+	me = engy.new_character('me')
+	me.stat['foo'] = 'bar'
+	qux = me.new_place('qux')
+	qux['quux'] = 'bas'
+	engy.next_turn()
+	assert engy.turn == 1
+	me.stat['foo'] = ''
+	me.stat['foo'] = 'bas'
+	qux['quux'] = 'bar'
+	engy.next_turn()
+	assert engy.turn == 2
+	qux['quux'] = 'bas'
+	engy.next_turn()
+	assert engy.turn == 3
+	qux['quux'] = 'bar'
+	engy.next_turn()
+	assert engy.turn == 4
+	engy.branch = 'leaf'
+	assert engy.turn == 4
+	engy.next_turn()
+	assert engy.turn == 5
+	me.stat['foo'] = 'bar'
+	engy.next_turn()
+	assert engy.turn == 6
+	me.stat['foo'] = 'bas'
+	qux['quux'] = 'bas'
+	engy.next_turn()
+	assert engy.turn == 7
+	foo_alias = me.historical('foo')
+	qux_alias = qux.historical('quux')
+	qry = foo_alias == qux_alias
+	turn_end_result = engy.turns_when(qry)
+	assert 5 in turn_end_result
+	assert 3 not in turn_end_result
+	assert turn_end_result == set(turn_end_result) == {2, 5, 6, 7}
+	assert engy.turns_when(qry)[-1] == 7
+	assert engy.turns_when(qry)[0] == 2
+	mid_turn_result = engy.turns_when(qry, mid_turn=True)
+	assert 3 in mid_turn_result
+	assert 4 not in mid_turn_result
+	assert mid_turn_result == set(mid_turn_result) == {1, 2, 3, 5, 6, 7}
+	assert list(engy.turns_when(qry)) == list(turn_end_result) == [2, 5, 6, 7]
+	assert list(reversed(engy.turns_when(qry))) == list(
+		reversed(turn_end_result)) == [7, 6, 5, 2]
+	assert engy.turns_when(qry, mid_turn=True)[-1] == 7
+	assert engy.turns_when(qry, mid_turn=True)[0] == 1
+
+
 def test_stress_graph_val_select_eq(engy):
 	import random
 	from time import monotonic
