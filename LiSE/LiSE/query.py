@@ -205,21 +205,21 @@ def _make_node_val_select(graph: bytes, node: bytes, stat: bytes,
 	tab: Table = meta.tables['node_val']
 	if mid_turn:
 		return _the_select(tab).where(
-			and_(tab.c.graph == graph, tab.c.node == node, tab.c.stat == stat,
+			and_(tab.c.graph == graph, tab.c.node == node, tab.c.key == stat,
 					tab.c.branch.in_(branches)))
-	ticksel = select(tab.c.graph, tab.c.node, tab.c.stat, tab.c.branch,
+	ticksel = select(tab.c.graph, tab.c.node, tab.c.key, tab.c.branch,
 						tab.c.turn,
 						func.max(tab.c.tick).label('tick')).where(
 							and_(tab.c.graph == graph, tab.c.node == node,
 									tab.c.key == stat,
 									tab.c.branch.in_(branches))).group_by(
-										tab.c.graph, tab.c.node, tab.c.stat,
+										tab.c.graph, tab.c.node, tab.c.key,
 										tab.c.branch, tab.c.turn)
 	return _the_select(tab).select_from(
 		tab.join(
 			ticksel,
 			and_(tab.c.graph == ticksel.c.graph, tab.c.node == ticksel.c.node,
-					tab.c.key == ticksel.c.stat,
+					tab.c.key == ticksel.c.key,
 					tab.c.branch == ticksel.c.branch,
 					tab.c.turn == ticksel.c.turn,
 					tab.c.tick == ticksel.c.tick)))
@@ -258,7 +258,7 @@ def _make_edge_val_select(graph: bytes, orig: bytes, dest: bytes, idx: int,
 					tab.c.idx == idx, tab.c.key == stat,
 					tab.c.branches.in_(branches)))
 	ticksel = select(
-		tab.c.graph, tab.c.orig, tab.c.dest, tab.c.idx, tab.c.stat,
+		tab.c.graph, tab.c.orig, tab.c.dest, tab.c.idx, tab.c.key,
 		tab.c.branch, tab.c.turn,
 		tab.c.tick if mid_turn else func.max(tab.c.tick).label('tick')).where(
 			and_(tab.c.graph == graph, tab.c.orig == orig, tab.c.dest == dest,
@@ -271,7 +271,7 @@ def _make_edge_val_select(graph: bytes, orig: bytes, dest: bytes, idx: int,
 			ticksel,
 			and_(tab.c.graph == ticksel.c.graph, tab.c.orig == ticksel.c.orig,
 					tab.c.dest == ticksel.c.dest, tab.c.idx == ticksel.c.idx,
-					tab.c.key == ticksel.c.stat,
+					tab.c.key == ticksel.c.key,
 					tab.c.branch == ticksel.c.branch,
 					tab.c.turn == ticksel.c.turn,
 					tab.c.tick == ticksel.c.tick)))
