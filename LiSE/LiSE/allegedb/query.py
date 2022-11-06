@@ -774,7 +774,7 @@ class QueryEngine(object):
 					[(pack(graph), pack(node), pack(key), branch, turn, tick,
 						pack(value)) for (graph, node, key, branch, turn, tick,
 											value) in self._nodevals2set]))
-			self._nodes2set = []
+			self._nodevals2set = []
 		if self._edgevals2set:
 			put(('silent', 'many', 'edge_val_insert',
 					list(map(self._pack_edgeval2set, self._edgevals2set))))
