@@ -416,7 +416,7 @@ class QueryResultEndTurn(QueryResult):
 					add(turn)
 
 	def __contains__(self, item):
-		if self._list:
+		if self._list is not None:
 			return item in self._trues
 		elif item in self._trues:
 			return True
