@@ -1428,12 +1428,17 @@ class Engine(AbstractEngine, gORM):
 			return v
 		return self.alias(v, stat)
 
-	def _snap_keyframe(self, graph: Hashable, branch: str, turn: int,
-						tick: int, nodes: NodeValDictType,
-						edges: EdgeValDictType,
-						graph_val: StatDictType) -> None:
-		super()._snap_keyframe(graph, branch, turn, tick, nodes, edges,
-								graph_val)
+	def _snap_keyframe_de_novo_graph(self,
+										graph: Hashable,
+										branch: str,
+										turn: int,
+										tick: int,
+										nodes: NodeValDictType,
+										edges: EdgeValDictType,
+										graph_val: StatDictType,
+										copy_to_branch: str = None) -> None:
+		super()._snap_keyframe_de_novo_graph(graph, branch, turn, tick, nodes,
+												edges, graph_val)
 		newkf = {}
 		contkf = {}
 		for (name, node) in nodes.items():
