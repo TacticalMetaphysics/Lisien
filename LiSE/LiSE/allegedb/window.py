@@ -577,6 +577,16 @@ class WindowDict(MutableMapping):
 	def __bool__(self) -> bool:
 		return bool(self._past) or bool(self._future)
 
+	def copy(self):
+		empty = WindowDict.__new__(WindowDict)
+		empty._past = self._past.copy()
+		empty._future = self._future.copy()
+		empty._keys = self._keys.copy()
+		empty.beginning = self.beginning
+		empty.end = self.end
+		empty._last = self._last
+		return empty
+
 	def __init__(
 			self,
 			data: Union[List[Tuple[int, Any]], Dict[int, Any]] = None) -> None:
