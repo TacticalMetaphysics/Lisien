@@ -1092,7 +1092,7 @@ class ORM:
 					edge_val_keyframe[graph][orig] = {dest: val}
 			else:
 				edge_val_keyframe[graph] = {orig: {dest: val}}
-		for graph in ['phys']:
+		for graph in self.graph.keys() & delta.keys():
 			try:
 				nodes_keyframe[graph] = self._nodes_cache.keyframe[graph, ][
 					then[0]][then[1]][then[2]].copy()
