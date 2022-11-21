@@ -1291,8 +1291,7 @@ class ORM:
 			the_kf = self._recurse_delta_keyframes((branch, turn, tick))
 			return self._snap_keyframe_from_delta(the_kf, (branch, turn, tick),
 													self.get_delta(
-														the_kf,
-														(branch, turn, tick)),
+														*the_kf, turn, tick),
 													copy_to_branch=branch)
 		self._snap_keyframe_from_delta(the_kf, (branch, turn, tick),
 										self.get_delta(*the_kf, turn, tick))
