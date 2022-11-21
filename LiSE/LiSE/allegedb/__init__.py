@@ -928,53 +928,39 @@ class ORM:
 			parent, _, _, _, _ = self._branches[parent]
 			self._branch_parents[child].add(parent)
 
-	def _snap_keyframe_de_novo(self,
-								branch: str,
-								turn: int,
-								tick: int,
-								copy_to_branch: str = None) -> None:
+	def _snap_keyframe_de_novo(self, branch: str, turn: int,
+								tick: int) -> None:
 		kfl = self._keyframes_list
 		kfd = self._keyframes_dict
 		kfs = self._keyframes_times
 		nkfs = self._new_keyframes
-		whens = [(branch, turn, tick)]
-		if copy_to_branch is not None:
-			assert copy_to_branch != branch
-			whens.append((copy_to_branch, turn, tick))
 		for graphn, graph in self.graph.items():
 			nodes = graph._nodes_state()
 			edges = graph._edges_state()
 			val = graph._val_state()
 			self._snap_keyframe_de_novo_graph(graphn, branch, turn, tick,
-												nodes, edges, val,
-												copy_to_branch)
-			for when in whens:
-				branch, turn, tick = when
-				nkfs.append((graphn, branch, turn, tick, nodes, edges, val))
-				kfl.append((graphn, branch, turn, tick))
-				kfs.add((branch, turn, tick))
-				if branch not in kfd:
-					kfd[branch] = {
-						turn: {
-							tick,
-						}
-					}
-				elif turn not in kfd[branch]:
-					kfd[branch][turn] = {
+												nodes, edges, val)
+			nkfs.append((graphn, branch, turn, tick, nodes, edges, val))
+			kfl.append((graphn, branch, turn, tick))
+			kfs.add((branch, turn, tick))
+			if branch not in kfd:
+				kfd[branch] = {
+					turn: {
 						tick,
 					}
-				else:
-					kfd[branch][turn].add(tick)
+				}
+			elif turn not in kfd[branch]:
+				kfd[branch][turn] = {
+					tick,
+				}
+			else:
+				kfd[branch][turn].add(tick)
 
-	def _snap_keyframe_de_novo_graph(self,
-										graph: Hashable,
-										branch: str,
-										turn: int,
-										tick: int,
+	def _snap_keyframe_de_novo_graph(self, graph: Hashable, branch: str,
+										turn: int, tick: int,
 										nodes: NodeValDictType,
 										edges: EdgeValDictType,
-										graph_val: StatDictType,
-										copy_to_branch: str = None) -> None:
+										graph_val: StatDictType) -> None:
 		nodes_keyframes_branch_d = self._nodes_cache.keyframe[graph, ][branch]
 		if turn in nodes_keyframes_branch_d:
 			nodes_keyframes_branch_d[turn][tick] = {
@@ -986,15 +972,6 @@ class ORM:
 				tick: {node: True
 						for node in nodes}
 			}
-		if copy_to_branch is not None and copy_to_branch != branch:
-			nodes_keyframe_branch_d2 = self._nodes_cache.keyframe[
-				graph, ][copy_to_branch]
-			if turn in nodes_keyframe_branch_d2:
-				nodes_keyframe_branch_d2[turn][
-					tick] = nodes_keyframes_branch_d[turn][tick]
-			else:
-				nodes_keyframe_branch_d2[turn] = nodes_keyframes_branch_d[
-					turn].copy()
 		nvck = self._node_val_cache.keyframe
 		for node, vals in nodes.items():
 			node_val_keyframe_branch_d = nvck[graph, node][branch]
@@ -1002,14 +979,6 @@ class ORM:
 				node_val_keyframe_branch_d[turn][tick] = vals
 			else:
 				node_val_keyframe_branch_d[turn] = {tick: vals}
-			if copy_to_branch is not None and copy_to_branch != branch:
-				node_val_keyframe_branch_d2 = nvck[graph, node][copy_to_branch]
-				if turn in node_val_keyframe_branch_d2:
-					node_val_keyframe_branch_d2[turn][
-						tick] = node_val_keyframe_branch_d[turn][tick]
-				else:
-					node_val_keyframe_branch_d2[
-						turn] = node_val_keyframe_branch_d[turn].copy()
 		eck = self._edges_cache.keyframe
 		evck = self._edge_val_cache.keyframe
 		for orig, dests in edges.items():
@@ -1027,34 +996,11 @@ class ORM:
 					edge_val_keyframe_branch_d[turn][tick] = vals
 				else:
 					edge_val_keyframe_branch_d[turn] = {tick: vals}
-				if copy_to_branch != branch:
-					edges_keyframe_branch_d2 = eck[graph, orig,
-													dest][copy_to_branch]
-					edge_val_keyframe_branch_d2 = evck[graph, orig, dest,
-														0][copy_to_branch]
-					if turn in edges_keyframe_branch_d2:
-						edges_keyframe_branch_d2[turn][
-							tick] = edges_keyframe_branch_d[turn][tick]
-					else:
-						edges_keyframe_branch_d2[
-							turn] = edges_keyframe_branch_d[turn]
-					if turn in edge_val_keyframe_branch_d2:
-						edge_val_keyframe_branch_d2[turn][
-							tick] = edge_val_keyframe_branch_d[turn][tick]
-					else:
-						edge_val_keyframe_branch_d2[
-							turn] = edge_val_keyframe_branch_d[turn].copy()
 		gvkb = self._graph_val_cache.keyframe[graph, ][branch]
 		if turn in gvkb:
 			gvkb[turn][tick] = graph_val
 		else:
 			gvkb[turn] = {tick: graph_val}
-		if copy_to_branch is not None and copy_to_branch != branch:
-			gvkb2 = self._graph_val_cache.keyframe[graph, ][copy_to_branch]
-			if turn in gvkb2:
-				gvkb2[turn][tick] = graph_val
-			else:
-				gvkb2[turn] = {tick: graph_val}
 
 	def _snap_keyframe_from_delta(self,
 									then: Tuple[str, int, int],
