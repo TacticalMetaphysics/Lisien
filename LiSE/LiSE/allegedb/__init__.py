@@ -1125,21 +1125,12 @@ class ORM:
 			# apply the delta to the keyframes, then save the keyframes back
 			# into the caches, and possibly copy them to another branch as well
 			deltg = delta[graph]
-			if 'graph_val' in deltg:
-				if graph in graph_val_keyframe:
-					graph_val_keyframe[graph].update(deltg['graph_val'])
-				else:
-					graph_val_keyframe[graph] = deltg['graph_val']
-				self._graph_val_cache.keyframe[graph, ][now[0]][now[1]][
-					now[2]] = graph_val_keyframe[graph]
-				if copy_to_branch is not None:
-					self._graph_val_cache.keyframe[graph, ][copy_to_branch][
-						now[1]][now[2]] = graph_val_keyframe[graph]
 			if 'nodes' in deltg:
+				dn = deltg.pop('nodes')
 				if graph in nodes_keyframe:
 					nkg = nodes_keyframe[graph]
 					nvkg = node_val_keyframe.setdefault(graph, {})
-					for node, exists in deltg['nodes'].items():
+					for node, exists in dn.items():
 						if node in nkg:
 							if not exists:
 								del nkg[node]
@@ -1150,7 +1141,7 @@ class ORM:
 				else:
 					nodes_keyframe[graph] = {
 						node: exists
-						for node, exists in deltg['nodes'].items() if exists
+						for node, exists in dn.items() if exists
 					}
 				nckg = self._nodes_cache.keyframe[graph, ]
 				if now[1] in nckg[now[0]]:
@@ -1166,9 +1157,10 @@ class ORM:
 							now[2]: nodes_keyframe[graph]
 						}
 			if 'node_val' in deltg:
+				dnv = deltg.pop('node_val')
 				if graph in node_val_keyframe:
 					nvg = node_val_keyframe[graph]
-					for node, value in deltg['node_val'].items():
+					for node, value in dnv.items():
 						if node in nvg:
 							nvgn = nvg[node]
 							for k, v in value.items():
@@ -1179,7 +1171,7 @@ class ORM:
 						else:
 							nvg[node] = value
 				else:
-					node_val_keyframe[graph] = deltg['node_val']
+					node_val_keyframe[graph] = dnv
 				nvck = self._node_val_cache.keyframe
 				for node, val in node_val_keyframe[graph].items():
 					if now[1] in nvck[graph, node][now[0]]:
@@ -1195,9 +1187,10 @@ class ORM:
 								now[2]: val
 							}
 			if 'edges' in deltg:
+				dge = deltg.pop('edges')
 				ekg = edges_keyframe.setdefault(graph, {})
 				evkg = edge_val_keyframe.setdefault(graph, {})
-				for (orig, dest), exists in deltg['edges'].items():
+				for (orig, dest), exists in dge.items():
 					if orig in ekg:
 						if exists:
 							ekg[orig][dest] = exists
@@ -1235,9 +1228,10 @@ class ORM:
 										}
 									}
 			if 'edge_val' in deltg:
+				dgev = deltg.pop('edge_val')
 				if graph in edge_val_keyframe:
 					evkg = edge_val_keyframe[graph]
-					for orig, dests in deltg['edge_val'].items():
+					for orig, dests in dgev.items():
 						if orig in evkg:
 							evkgo = evkg[orig]
 							for dest, vals in dests.items():
@@ -1248,7 +1242,7 @@ class ORM:
 						else:
 							evkg[orig] = dests
 				else:
-					edge_val_keyframe[graph] = deltg['edge_val']
+					edge_val_keyframe[graph] = dgev
 				for orig, dests in edge_val_keyframe[graph].items():
 					for dest, val in dests.items():
 						if now[1] in evck[graph, orig, dest, 0][now[0]]:
@@ -1268,6 +1262,24 @@ class ORM:
 										0][copy_to_branch][now[1]] = {
 											now[2]: val
 										}
+			if deltg:
+				if graph in graph_val_keyframe:
+					graph_val_keyframe[graph].update(deltg)
+				else:
+					graph_val_keyframe[graph] = deltg
+				gvckg = self._graph_val_cache.keyframe[graph, ]
+				if now[1] in gvckg[now[0]]:
+					gvckg[now[0]][now[1]][now[2]] = graph_val_keyframe[graph]
+				else:
+					gvckg[now[0]][now[1]] = {now[2]: graph_val_keyframe[graph]}
+				if copy_to_branch is not None:
+					if now[1] in gvckg[now[0]]:
+						gvckg[copy_to_branch][now[1]][
+							now[2]] = graph_val_keyframe[graph]
+					else:
+						gvckg[copy_to_branch][now[1]] = {
+							now[2]: graph_val_keyframe[graph]
+						}
 			whens = [now]
 			if copy_to_branch is not None:
 				assert copy_to_branch != now[0]
