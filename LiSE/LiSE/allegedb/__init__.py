@@ -1245,8 +1245,9 @@ class ORM:
 							return time_from[0], turn, tick
 		parent, turn_from, tick_from, turn_to, tick_to = self._branches[
 			time_from[0]]
-		(parent, turn_from, tick_from) = self._recurse_delta_keyframes(
-			(parent, turn_from, tick_from))
+		if parent is not None:
+			(parent, turn_from, tick_from) = self._recurse_delta_keyframes(
+				(parent, turn_from, tick_from))
 		self._snap_keyframe_from_delta(
 			(parent, turn_from, tick_from),
 			(parent, time_from[1], time_from[2]),
