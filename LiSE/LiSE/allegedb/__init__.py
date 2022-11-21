@@ -1164,20 +1164,14 @@ class ORM:
 								now[2]: val
 							}
 			if 'edges' in deltg:
-				if graph in edges_keyframe:
-					ekg = edges_keyframe[graph]
-					for orig, dests in deltg['edges'].items():
-						if orig in ekg:
-							ekg[orig].update(dests)
-						else:
-							ekg[orig] = dests
-				else:
-					ekg = edges_keyframe[graph] = {}
-					for (orig, dest), exists in deltg['edges'].items():
-						if orig in ekg:
-							ekg[orig][dest] = exists
-						else:
-							ekg[orig] = {dest: exists}
+				if graph not in edges_keyframe:
+					edges_keyframe[graph] = {}
+				ekg = edges_keyframe[graph]
+				for (orig, dest), exists in deltg['edges'].items():
+					if orig in ekg:
+						ekg[orig][dest] = exists
+					else:
+						ekg[orig] = {dest: exists}
 				for orig, dests in edges_keyframe[graph].items():
 					for dest, ex in dests.items():
 						if now[1] in eck[graph, orig, dest][now[0]]:
