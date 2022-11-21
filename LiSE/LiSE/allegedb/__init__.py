@@ -939,6 +939,7 @@ class ORM:
 		nkfs = self._new_keyframes
 		whens = [(branch, turn, tick)]
 		if copy_to_branch is not None:
+			assert copy_to_branch != branch
 			whens.append((copy_to_branch, turn, tick))
 		for graphn, graph in self.graph.items():
 			nodes = graph._nodes_state()
@@ -1316,10 +1317,7 @@ class ORM:
 		if the_kf is None:
 			parent, _, _, turn_to, tick_to = self._branches[branch]
 			if parent is None:
-				return self._snap_keyframe_de_novo(branch,
-													turn,
-													tick,
-													copy_to_branch=branch)
+				return self._snap_keyframe_de_novo(branch, turn, tick)
 			the_kf = self._recurse_delta_keyframes((branch, turn, tick))
 			return self._snap_keyframe_from_delta(the_kf, (branch, turn, tick),
 													self.get_delta(
