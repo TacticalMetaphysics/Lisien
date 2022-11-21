@@ -1068,11 +1068,17 @@ class ORM:
 		for graph, node in nvck:
 			if graph not in node_val_keyframe:
 				node_val_keyframe[graph] = {}
-			node_val_keyframe[graph][node] = nvck[graph, node][then[0]][
-				then[1]][then[2]].copy()
+			try:
+				node_val_keyframe[graph][node] = nvck[graph, node][then[0]][
+					then[1]][then[2]].copy()
+			except KeyError:
+				continue
 		eck = self._edges_cache.keyframe
 		for graph, orig, dest in eck:
-			exists = eck[graph, orig, dest][then[0]][then[1]][then[2]][0]
+			try:
+				exists = eck[graph, orig, dest][then[0]][then[1]][then[2]][0]
+			except KeyError:
+				continue
 			if graph in edges_keyframe:
 				if orig in edges_keyframe[graph]:
 					edges_keyframe[graph][orig][dest] = exists
@@ -1083,8 +1089,11 @@ class ORM:
 		evck = self._edge_val_cache.keyframe
 		for graph, orig, dest, idx in evck:
 			assert idx == 0  # until I get to multigraphs
-			val = evck[graph, orig, dest,
-						idx][then[0]][then[1]][then[2]].copy()
+			try:
+				val = evck[graph, orig, dest,
+							idx][then[0]][then[1]][then[2]].copy()
+			except KeyError:
+				continue
 			if graph in edge_val_keyframe:
 				if orig in edge_val_keyframe:
 					edge_val_keyframe[graph][orig][dest] = val
