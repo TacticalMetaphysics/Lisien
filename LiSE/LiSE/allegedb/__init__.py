@@ -1065,9 +1065,28 @@ class ORM:
 		assert then[0] == now[0]
 		if then == now:
 			return
+		whens = [now]
+		if copy_to_branch is not None:
+			assert copy_to_branch != now[0]
+			whens.append((copy_to_branch, now[1], now[2]))
 		kfl = self._keyframes_list
 		kfd = self._keyframes_dict
 		kfs = self._keyframes_times
+		for when in whens:
+			kfs.add(when)
+			branch, turn, tick = when
+			if branch not in kfd:
+				kfd[branch] = {
+					turn: {
+						tick,
+					}
+				}
+			elif turn not in kfd[branch]:
+				kfd[branch][turn] = {
+					tick,
+				}
+			else:
+				kfd[branch][turn].add(tick)
 		nkfs = self._new_keyframes
 		nodes_keyframe = {}
 		node_val_keyframe = {}
@@ -1280,29 +1299,11 @@ class ORM:
 						gvckg[copy_to_branch][now[1]] = {
 							now[2]: graph_val_keyframe[graph]
 						}
-			whens = [now]
-			if copy_to_branch is not None:
-				assert copy_to_branch != now[0]
-				whens.append((copy_to_branch, now[1], now[2]))
 			for when in whens:
 				nkfs.append((graph, *when, node_val_keyframe.get(graph, {}),
 								edge_val_keyframe.get(graph, {}),
 								graph_val_keyframe.get(graph, {})))
 				kfl.append((graph, *when))
-				kfs.add(when)
-				branch, turn, tick = when
-				if branch not in kfd:
-					kfd[branch] = {
-						turn: {
-							tick,
-						}
-					}
-				elif turn not in kfd[branch]:
-					kfd[branch][turn] = {
-						tick,
-					}
-				else:
-					kfd[branch][turn].add(tick)
 
 	def _recurse_delta_keyframes(self, time_from):
 		"""Make keyframes until we have one in the current branch"""
