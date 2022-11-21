@@ -1248,11 +1248,11 @@ class ORM:
 		if parent is not None:
 			(parent, turn_from, tick_from) = self._recurse_delta_keyframes(
 				(parent, turn_from, tick_from))
-		self._snap_keyframe_from_delta(
-			(parent, turn_from, tick_from),
-			(parent, time_from[1], time_from[2]),
-			self.get_delta(parent, turn_from, tick_from, time_from[1],
-							time_from[2]), time_from[0])
+			self._snap_keyframe_from_delta(
+				(parent, turn_from, tick_from),
+				(parent, time_from[1], time_from[2]),
+				self.get_delta(parent, turn_from, tick_from, time_from[1],
+								time_from[2]), time_from[0])
 		return time_from
 
 	@world_locked
