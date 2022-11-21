@@ -1307,7 +1307,10 @@ class ORM:
 		if branch in kfd:
 			# I could probably avoid sorting these by using windowdicts
 			for trn in sorted(kfd[branch].keys(), reverse=True):
-				if trn <= turn:
+				if trn < turn:
+					the_kf = (branch, trn, max(kfd[branch][trn]))
+					break
+				elif trn == turn:
 					for tck in sorted(kfd[branch][trn], reverse=True):
 						if tck <= tick:
 							the_kf = (branch, trn, tck)
