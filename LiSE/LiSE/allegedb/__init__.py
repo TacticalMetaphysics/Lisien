@@ -1137,9 +1137,18 @@ class ORM:
 						now[1]][now[2]] = graph_val_keyframe[graph]
 			if 'nodes' in deltg:
 				if graph in nodes_keyframe:
-					nodes_keyframe[graph].update(deltg['nodes'])
+					nkg = nodes_keyframe[graph]
+					for node, exists in deltg['nodes'].items():
+						if node in nkg:
+							if not exists:
+								del nkg[node]
+						elif exists:
+							nkg[node] = True
 				else:
-					nodes_keyframe[graph] = deltg['nodes']
+					nodes_keyframe[graph] = {
+						node: exists
+						for node, exists in deltg['nodes'].items() if exists
+					}
 				nckg = self._nodes_cache.keyframe[graph, ]
 				if now[1] in nckg[now[0]]:
 					nckg[now[0]][now[1]][now[2]] = nodes_keyframe[graph]
@@ -1188,8 +1197,9 @@ class ORM:
 				ekg = edges_keyframe[graph]
 				for (orig, dest), exists in deltg['edges'].items():
 					if orig in ekg:
-						ekg[orig][dest] = exists
-					else:
+						if exists:
+							ekg[orig][dest] = exists
+					elif exists:
 						ekg[orig] = {dest: exists}
 				for orig, dests in edges_keyframe[graph].items():
 					for dest, ex in dests.items():
