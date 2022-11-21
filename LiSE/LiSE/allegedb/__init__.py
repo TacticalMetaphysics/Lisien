@@ -1138,10 +1138,13 @@ class ORM:
 			if 'nodes' in deltg:
 				if graph in nodes_keyframe:
 					nkg = nodes_keyframe[graph]
+					nvkg = node_val_keyframe.setdefault(graph, {})
 					for node, exists in deltg['nodes'].items():
 						if node in nkg:
 							if not exists:
 								del nkg[node]
+								if node in nvkg:
+									del nvkg[node]
 						elif exists:
 							nkg[node] = True
 				else:
@@ -1192,13 +1195,17 @@ class ORM:
 								now[2]: val
 							}
 			if 'edges' in deltg:
-				if graph not in edges_keyframe:
-					edges_keyframe[graph] = {}
-				ekg = edges_keyframe[graph]
+				ekg = edges_keyframe.setdefault(graph, {})
+				evkg = edge_val_keyframe.setdefault(graph, {})
 				for (orig, dest), exists in deltg['edges'].items():
 					if orig in ekg:
 						if exists:
 							ekg[orig][dest] = exists
+						else:
+							if dest in ekg[orig]:
+								del ekg[orig][dest]
+							if orig in evkg and dest in evkg[orig]:
+								del evkg[orig][dest]
 					elif exists:
 						ekg[orig] = {dest: exists}
 				for orig, dests in edges_keyframe[graph].items():
