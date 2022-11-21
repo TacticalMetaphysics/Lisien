@@ -1172,7 +1172,12 @@ class ORM:
 						else:
 							ekg[orig] = dests
 				else:
-					edges_keyframe[graph] = deltg['edges']
+					ekg = edges_keyframe[graph] = {}
+					for (orig, dest), exists in deltg['edges'].items():
+						if orig in ekg:
+							ekg[orig][dest] = exists
+						else:
+							ekg[orig] = {dest: exists}
 				for orig, dests in edges_keyframe[graph].items():
 					for dest, ex in dests.items():
 						if now[1] in eck[graph, orig, dest][now[0]]:
