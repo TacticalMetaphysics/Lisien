@@ -1273,9 +1273,9 @@ class ORM:
 				assert copy_to_branch != now[0]
 				whens.append((copy_to_branch, now[1], now[2]))
 			for when in whens:
-				nkfs.append(
-					(graph, *when, node_val_keyframe[graph],
-						edge_val_keyframe[graph], graph_val_keyframe[graph]))
+				nkfs.append((graph, *when, node_val_keyframe.get(graph, {}),
+								edge_val_keyframe.get(graph, {}),
+								graph_val_keyframe.get(graph, {})))
 				kfl.append((graph, *when))
 				kfs.add(when)
 				branch, turn, tick = when
