@@ -937,6 +937,9 @@ class ORM:
 		kfd = self._keyframes_dict
 		kfs = self._keyframes_times
 		nkfs = self._new_keyframes
+		whens = [(branch, turn, tick)]
+		if copy_to_branch is not None:
+			whens.append((copy_to_branch, turn, tick))
 		for graphn, graph in self.graph.items():
 			nodes = graph._nodes_state()
 			edges = graph._edges_state()
@@ -944,21 +947,23 @@ class ORM:
 			self._snap_keyframe_de_novo_graph(graphn, branch, turn, tick,
 												nodes, edges, val,
 												copy_to_branch)
-			nkfs.append((graphn, branch, turn, tick, nodes, edges, val))
-			kfl.append((graphn, branch, turn, tick))
-			kfs.add((branch, turn, tick))
-			if branch not in kfd:
-				kfd[branch] = {
-					turn: {
+			for when in whens:
+				branch, turn, tick = when
+				nkfs.append((graphn, branch, turn, tick, nodes, edges, val))
+				kfl.append((graphn, branch, turn, tick))
+				kfs.add((branch, turn, tick))
+				if branch not in kfd:
+					kfd[branch] = {
+						turn: {
+							tick,
+						}
+					}
+				elif turn not in kfd[branch]:
+					kfd[branch][turn] = {
 						tick,
 					}
-				}
-			elif turn not in kfd[branch]:
-				kfd[branch][turn] = {
-					tick,
-				}
-			else:
-				kfd[branch][turn].add(tick)
+				else:
+					kfd[branch][turn].add(tick)
 
 	def _snap_keyframe_de_novo_graph(self,
 										graph: Hashable,
@@ -1059,6 +1064,10 @@ class ORM:
 		assert then[0] == now[0]
 		if then == now:
 			return
+		kfl = self._keyframes_list
+		kfd = self._keyframes_dict
+		kfs = self._keyframes_times
+		nkfs = self._new_keyframes
 		nodes_keyframe = {}
 		node_val_keyframe = {}
 		edges_keyframe = {}
@@ -1241,6 +1250,29 @@ class ORM:
 										0][copy_to_branch][now[1]] = {
 											now[2]: val
 										}
+			whens = [now]
+			if copy_to_branch is not None:
+				assert copy_to_branch != now[0]
+				whens.append((copy_to_branch, now[1], now[2]))
+			for when in whens:
+				assert (graph, *when) not in kfl
+				nkfs.append((graph, *when, node_val_keyframe,
+								edge_val_keyframe, graph_val_keyframe))
+				kfl.append((graph, *when))
+				kfs.add(when)
+				branch, turn, tick = now
+				if branch not in kfd:
+					kfd[branch] = {
+						turn: {
+							tick,
+						}
+					}
+				elif turn not in kfd[branch]:
+					kfd[branch][turn] = {
+						tick,
+					}
+				else:
+					kfd[branch][turn].add(tick)
 
 	def _recurse_delta_keyframes(self, time_from):
 		"""Make keyframes until we have one in the current branch"""
