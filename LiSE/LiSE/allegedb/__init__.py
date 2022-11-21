@@ -1260,7 +1260,7 @@ class ORM:
 								edge_val_keyframe, graph_val_keyframe))
 				kfl.append((graph, *when))
 				kfs.add(when)
-				branch, turn, tick = now
+				branch, turn, tick = when
 				if branch not in kfd:
 					kfd[branch] = {
 						turn: {
