@@ -889,6 +889,51 @@ class ORM:
 		if cache_arranger:
 			self._cache_arrange_thread.start()
 
+	def _get_kf(self, branch, turn, tick):
+		ret = {
+			'graph_val': {},
+			'nodes': {},
+			'node_val': {},
+			'edges': {},
+			'edge_val': {}
+		}
+		gvck = self._graph_val_cache.keyframe
+		gv = ret['graph_val']
+		for k in gvck:
+			try:
+				gv[k] = gvck[k][branch][turn][tick]
+			except KeyError:
+				pass
+		nck = self._nodes_cache.keyframe
+		n = ret['nodes']
+		for k in nck:
+			try:
+				n[k] = nck[k][branch][turn][tick]
+			except KeyError:
+				pass
+		nvck = self._node_val_cache.keyframe
+		nv = ret['node_val']
+		for k in nvck:
+			try:
+				nv[k] = nvck[k][branch][turn][tick]
+			except KeyError:
+				pass
+		eck = self._edges_cache.keyframe
+		e = ret['edges']
+		for k in eck:
+			try:
+				e[k] = eck[k][branch][turn][tick]
+			except KeyError:
+				pass
+		evck = self._edge_val_cache.keyframe
+		ev = ret['edge_val']
+		for k in evck:
+			try:
+				ev[k] = evck[k][branch][turn][tick]
+			except KeyError:
+				pass
+		return ret
+
 	def _init_load(self) -> None:
 		keyframes_list = self._keyframes_list
 		keyframes_dict = self._keyframes_dict

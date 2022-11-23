@@ -2383,13 +2383,7 @@ class EngineProxy(AbstractEngine):
 							block=block,
 							cb=partial(self._upd_and_cb, cb))
 
-	def time_travel(self,
-					branch,
-					turn,
-					tick=None,
-					chars='all',
-					cb=None,
-					block=True):
+	def time_travel(self, branch, turn, tick=None, cb=None, block=True):
 		"""Move to a different point in the timestream
 
 		Needs ``branch`` and ``turn`` arguments. The ``tick`` is
@@ -2397,18 +2391,13 @@ class EngineProxy(AbstractEngine):
 		in the turn.
 
 		May take a callback function ``cb``, which will receive a
-		dictionary describing changes to the characters in ``chars``.
-		``chars`` defaults to 'all', indicating that every character
-		should be included, but may be a list of character names
-		to include.
+		dictionary describing changes to the characters.
 
 		With ``block=True`` (the default), wait until finished computing
 		differences before returning. Otherwise my ``branch``, ``turn``,
 		and ``tick`` will stay where they are until that's done.
 
 		"""
-		if cb and not chars:
-			raise TypeError("Callbacks require chars")
 		if cb is not None and not callable(cb):
 			raise TypeError("Uncallable callback")
 		return self.handle('time_travel',
@@ -2416,7 +2405,6 @@ class EngineProxy(AbstractEngine):
 							branch=branch,
 							turn=turn,
 							tick=tick,
-							chars=chars,
 							cb=partial(self._upd_and_cb, cb))
 
 	def add_character(self, char, data={}, block=False, **attr):
