@@ -1243,7 +1243,7 @@ class ORM:
 				else:
 					gvckg[now[0]][now[1]] = {now[2]: graph_val_keyframe[graph]}
 				if copy_to_branch is not None:
-					if now[1] in gvckg[now[0]]:
+					if now[1] in gvckg[copy_to_branch]:
 						gvckg[copy_to_branch][now[1]][
 							now[2]] = graph_val_keyframe[graph]
 					else:
