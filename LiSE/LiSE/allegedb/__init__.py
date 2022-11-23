@@ -1076,7 +1076,7 @@ class ORM:
 					edge_val_keyframe[graph][orig] = {dest: val}
 			else:
 				edge_val_keyframe[graph] = {orig: {dest: val}}
-		for graph in self.graph.keys() & delta.keys():
+		for graph in self.graph.keys():
 			try:
 				nodes_keyframe[graph] = self._nodes_cache.keyframe[graph, ][
 					then[0]][then[1]][then[2]].copy()
@@ -1089,7 +1089,7 @@ class ORM:
 				graph_val_keyframe[graph] = {}
 			# apply the delta to the keyframes, then save the keyframes back
 			# into the caches, and possibly copy them to another branch as well
-			deltg = delta[graph]
+			deltg = delta.get(graph, {})
 			if 'nodes' in deltg:
 				dn = deltg.pop('nodes')
 				if graph in nodes_keyframe:
@@ -1108,6 +1108,7 @@ class ORM:
 						node: exists
 						for node, exists in dn.items() if exists
 					}
+			if graph in nodes_keyframe:
 				nckg = self._nodes_cache.keyframe[graph, ]
 				if now[1] in nckg[now[0]]:
 					nckg[now[0]][now[1]][now[2]] = nodes_keyframe[graph]
@@ -1137,6 +1138,7 @@ class ORM:
 							nvg[node] = value
 				else:
 					node_val_keyframe[graph] = dnv
+			if graph in node_val_keyframe:
 				nvck = self._node_val_cache.keyframe
 				for node, val in node_val_keyframe[graph].items():
 					if now[1] in nvck[graph, node][now[0]]:
@@ -1166,6 +1168,7 @@ class ORM:
 								del evkg[orig][dest]
 					elif exists:
 						ekg[orig] = {dest: exists}
+			if graph in edges_keyframe:
 				for orig, dests in edges_keyframe[graph].items():
 					for dest, ex in dests.items():
 						if now[1] in eck[graph, orig, dest][now[0]]:
@@ -1208,6 +1211,7 @@ class ORM:
 							evkg[orig] = dests
 				else:
 					edge_val_keyframe[graph] = dgev
+			if graph in edge_val_keyframe:
 				for orig, dests in edge_val_keyframe[graph].items():
 					for dest, val in dests.items():
 						if now[1] in evck[graph, orig, dest, 0][now[0]]:
@@ -1232,6 +1236,7 @@ class ORM:
 					graph_val_keyframe[graph].update(deltg)
 				else:
 					graph_val_keyframe[graph] = deltg
+			if graph in graph_val_keyframe:
 				gvckg = self._graph_val_cache.keyframe[graph, ]
 				if now[1] in gvckg[now[0]]:
 					gvckg[now[0]][now[1]][now[2]] = graph_val_keyframe[graph]
