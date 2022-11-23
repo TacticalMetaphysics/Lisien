@@ -702,40 +702,43 @@ class EngineHandle(object):
 				_, graph, key = k
 				graph, key = map(pack, (graph, key))
 				delta[graph][key] = v
-		for graph, node in kf_from['nodes'].keys() - kf_to['nodes'].keys():
-			graph, node = map(pack, (graph, node))
+		for graph in kf_from['nodes'].keys() & kf_to['nodes'].keys():
+			for node in kf_from['nodes'][graph].keys(
+			) - kf_to['nodes'][graph].keys():
+				graph, node = map(pack, (graph, node))
+				if graph not in delta:
+					delta[graph] = {NODES: {node: FALSE}}
+				elif NODES not in delta[graph]:
+					delta[graph][NODES] = {node: FALSE}
+				else:
+					delta[graph][NODES][node] = FALSE
+			for node in kf_to['nodes'][graph].keys(
+			) - kf_from['nodes'][graph].keys():
+				graph, node = map(pack, (graph, node))
+				if graph not in delta:
+					delta[graph] = {NODES: {node: TRUE}}
+				elif NODE_VAL not in delta[graph]:
+					delta[graph][NODES] = {node: TRUE}
+				else:
+					delta[graph][NODES][node] = TRUE
+		for graph, orig, dest in kf_from['edges'].keys() - kf_to['edges'].keys(
+		):
+			graph = pack(graph)
 			if graph not in delta:
-				delta[graph] = {NODE_VAL: {node: NONE}}
-			elif NODE_VAL not in delta[graph]:
-				delta[graph][NODE_VAL] = {node: NONE}
+				delta[graph] = {EDGES: {pack((orig, dest)): FALSE}}
+			elif EDGES not in delta[graph]:
+				delta[graph][EDGES] = {pack((orig, dest)): FALSE}
 			else:
-				delta[graph][NODE_VAL][node] = NONE
-		for graph, node in kf_to['nodes'].keys() - kf_from['nodes'].keys():
-			graph, node = map(pack, (graph, node))
-			if graph not in delta:
-				delta[graph] = {NODE_VAL: {node: {}}}
-			elif NODE_VAL not in delta[graph]:
-				delta[graph][NODE_VAL] = {node: {}}
-		for graph, orig, dest, _ in kf_from['edges'].keys(
-		) - kf_to['edges'].keys():
-			graph, orig, dest = map(pack, (graph, orig, dest))
-			if graph not in delta:
-				delta[graph] = {EDGE_VAL: {orig: {dest: NONE}}}
-			elif EDGE_VAL not in delta[graph]:
-				delta[graph][EDGE_VAL] = {orig: {dest: NONE}}
-			elif orig not in delta[graph][EDGE_VAL]:
-				delta[graph][EDGE_VAL][orig] = {dest: NONE}
-			else:
-				delta[graph][EDGE_VAL][orig][dest] = None
+				delta[graph][EDGES][pack((orig, dest))] = FALSE
 		for graph, orig, dest, _ in kf_to['edges'].keys(
 		) - kf_from['edges'].keys():
-			graph, orig, dest = map(pack, (graph, orig, dest))
+			graph = pack(graph)
 			if graph not in delta:
-				delta[graph] = {EDGE_VAL: {orig: {dest: {}}}}
-			elif EDGE_VAL not in delta[graph]:
-				delta[graph][EDGE_VAL] = {orig: {dest: {}}}
-			elif orig not in delta[graph][EDGE_VAL]:
-				delta[graph][EDGE_VAL][orig] = {dest: {}}
+				delta[graph] = {EDGES: {pack((orig, dest)): TRUE}}
+			elif EDGES not in delta[graph]:
+				delta[graph][EDGES] = {pack((orig, dest)): TRUE}
+			else:
+				delta[graph][EDGES][pack((orig, dest))] = TRUE
 		unid = self.universal_delta(btt_from=btt_from, btt_to=btt_to)
 		if unid:
 			delta[UNIVERSAL] = unid
