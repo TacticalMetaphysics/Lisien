@@ -1313,7 +1313,9 @@ class ORM:
 							return time_from[0], turn, tick
 		parent, turn_from, tick_from, turn_to, tick_to = self._branches[
 			time_from[0]]
-		if parent is not None:
+		if parent is None:
+			self._snap_keyframe_de_novo(*time_from)
+		else:
 			(parent, turn_from, tick_from) = self._recurse_delta_keyframes(
 				(parent, turn_from, tick_from))
 			self._snap_keyframe_from_delta(

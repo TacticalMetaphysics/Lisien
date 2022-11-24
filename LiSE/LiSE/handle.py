@@ -634,16 +634,13 @@ class EngineHandle(object):
 		if btt_from == btt_to:
 			return delta
 		now = self._real._btt()
-		if btt_from not in self._real._keyframes_times:
-			self._real._set_btt(*btt_from)
-			self._real.snap_keyframe()
-			self._real._set_btt(*now)
-		if btt_to not in self._real._keyframes_times:
-			self._real._set_btt(*btt_to)
-			self._real.snap_keyframe()
-			self._real._set_btt(*now)
+		self._real._set_btt(*btt_from)
+		self._real.snap_keyframe()
 		kf_from = self._real._get_kf(*btt_from)
+		self._real._set_btt(*btt_to)
+		self._real.snap_keyframe()
 		kf_to = self._real._get_kf(*btt_to)
+		self._real._set_btt(*now)
 		keys = []
 		values_from = []
 		values_to = []
@@ -701,7 +698,10 @@ class EngineHandle(object):
 				assert k[0] == 'graph'
 				_, graph, key = k
 				graph, key = map(pack, (graph, key))
-				delta[graph][key] = v
+				if graph in delta:
+					delta[graph][key] = v
+				else:
+					delta[graph] = {key: v}
 		for graph in kf_from['nodes'].keys() & kf_to['nodes'].keys():
 			for node in kf_from['nodes'][graph].keys(
 			) - kf_to['nodes'][graph].keys():
