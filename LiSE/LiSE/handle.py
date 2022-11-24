@@ -651,7 +651,7 @@ class EngineHandle(object):
 			a = kf_from['graph_val'].get(graph, {})
 			b = kf_to['graph_val'].get(graph, {})
 			for k in a.keys() | b.keys():
-				keys.append(('graph', graph, k))
+				keys.append(('graph', graph[0], k))
 				values_from.append(pack(a.get(k)) + b'\xc0')
 				values_to.append(pack(b.get(k)) + b'\xc0')
 		for graph, node in kf_from['node_val'].keys() | kf_to['node_val'].keys(
@@ -706,22 +706,22 @@ class EngineHandle(object):
 		for graph in kf_from['nodes'].keys() & kf_to['nodes'].keys():
 			for node in kf_from['nodes'][graph].keys(
 			) - kf_to['nodes'][graph].keys():
-				graph, node = map(pack, (graph, node))
-				if graph not in delta:
-					delta[graph] = {NODES: {node: FALSE}}
-				elif NODES not in delta[graph]:
-					delta[graph][NODES] = {node: FALSE}
+				grap, node = map(pack, (graph[0], node))
+				if grap not in delta:
+					delta[grap] = {NODES: {node: FALSE}}
+				elif NODES not in delta[grap]:
+					delta[grap][NODES] = {node: FALSE}
 				else:
-					delta[graph][NODES][node] = FALSE
+					delta[grap][NODES][node] = FALSE
 			for node in kf_to['nodes'][graph].keys(
 			) - kf_from['nodes'][graph].keys():
-				graph, node = map(pack, (graph, node))
-				if graph not in delta:
-					delta[graph] = {NODES: {node: TRUE}}
-				elif NODE_VAL not in delta[graph]:
-					delta[graph][NODES] = {node: TRUE}
+				grap, node = map(pack, (graph[0], node))
+				if grap not in delta:
+					delta[grap] = {NODES: {node: TRUE}}
+				elif NODE_VAL not in delta[grap]:
+					delta[grap][NODES] = {node: TRUE}
 				else:
-					delta[graph][NODES][node] = TRUE
+					delta[grap][NODES][node] = TRUE
 		for graph, orig, dest in kf_from['edges'].keys() - kf_to['edges'].keys(
 		):
 			graph = pack(graph)
@@ -1626,7 +1626,7 @@ class EngineHandle(object):
 
 	def del_portal(self, char: Hashable, orig: Hashable,
 					dest: Hashable) -> None:
-		del self._real.character[char].portal[orig][dest]
+		self._real.character[char].remove_edge(orig, dest)
 
 	def set_portal_stat(self, char: Hashable, orig: Hashable, dest: Hashable,
 						k: Hashable, v) -> None:

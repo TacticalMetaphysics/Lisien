@@ -1047,37 +1047,66 @@ class ORM:
 		else:
 			gvkb[turn] = {tick: graph_val}
 
-	def _snap_keyframe_from_delta(self,
-									then: Tuple[str, int, int],
+	def _alias_kf(self, branch_from, branch_to, turn, tick):
+		gvck = self._graph_val_cache.keyframe
+		for gvckg in gvck.values():
+			vals = gvckg[branch_from][turn][tick]
+			if turn not in gvckg[branch_to]:
+				gvckg[branch_to][turn] = {tick: vals}
+			else:
+				gvckg[branch_to][turn][tick] = vals
+		nck = self._nodes_cache.keyframe
+		for nckg in nck.values():
+			nodes = nckg[branch_from][turn][tick]
+			if turn not in nckg[branch_to]:
+				nckg[branch_to][turn] = {tick: nodes}
+			else:
+				nckg[branch_to][turn][tick] = nodes
+		nvck = self._node_val_cache.keyframe
+		for gn in nvck.values():
+			vals = gn[branch_from][turn][tick]
+			if turn not in gn[branch_to]:
+				gn[branch_to][turn] = {tick: vals}
+			else:
+				gn[branch_to][turn][tick] = vals
+		eck = self._edges_cache.keyframe
+		for gorigdest in eck.values():
+			edge = gorigdest[branch_from][turn][tick]
+			if turn not in gorigdest[branch_to]:
+				gorigdest[branch_to][turn] = {tick: edge}
+			else:
+				gorigdest[branch_to][turn][tick] = edge
+		evck = self._edge_val_cache.keyframe
+		for godi in evck.values():
+			vals = godi[branch_from][turn][tick]
+			if turn not in godi[branch_to]:
+				godi[branch_to][turn] = {tick: vals}
+			else:
+				godi[branch_to][turn][tick] = vals
+
+	def _snap_keyframe_from_delta(self, then: Tuple[str, int, int],
 									now: Tuple[str, int, int],
-									delta: DeltaType,
-									copy_to_branch: str = None) -> None:
+									delta: DeltaType) -> None:
 		# may mutate delta
 		assert then[0] == now[0]
-		if then == now:
-			return
 		whens = [now]
-		if copy_to_branch is not None:
-			assert copy_to_branch != now[0]
-			whens.append((copy_to_branch, now[1], now[2]))
 		kfl = self._keyframes_list
 		kfd = self._keyframes_dict
 		kfs = self._keyframes_times
-		for when in whens:
-			kfs.add(when)
-			branch, turn, tick = when
-			if branch not in kfd:
-				kfd[branch] = {
-					turn: {
-						tick,
-					}
-				}
-			elif turn not in kfd[branch]:
-				kfd[branch][turn] = {
+		kfs.add(now)
+		branch, turn, tick = now
+		if branch not in kfd:
+			kfd[branch] = {
+				turn: {
 					tick,
 				}
-			else:
-				kfd[branch][turn].add(tick)
+			}
+		elif turn not in kfd[branch]:
+			kfd[branch][turn] = {
+				tick,
+			}
+		else:
+			kfd[branch][turn].add(tick)
 		nkfs = self._new_keyframes
 		nodes_keyframe = {}
 		node_val_keyframe = {}
@@ -1159,14 +1188,6 @@ class ORM:
 					nckg[now[0]][now[1]][now[2]] = nodes_keyframe[graph]
 				else:
 					nckg[now[0]][now[1]] = {now[2]: nodes_keyframe[graph]}
-				if copy_to_branch is not None:
-					if now[1] in nckg[copy_to_branch]:
-						nckg[copy_to_branch][now[1]][
-							now[2]] = nodes_keyframe[graph]
-					else:
-						nckg[copy_to_branch][now[1]] = {
-							now[2]: nodes_keyframe[graph]
-						}
 			if 'node_val' in deltg:
 				dnv = deltg.pop('node_val')
 				if graph in node_val_keyframe:
@@ -1190,14 +1211,6 @@ class ORM:
 						nvck[graph, node][now[0]][now[1]][now[2]] = val
 					else:
 						nvck[graph, node][now[0]][now[1]] = {now[2]: val}
-					if copy_to_branch is not None:
-						if now[1] in nvck[graph, node][copy_to_branch]:
-							nvck[graph,
-									node][copy_to_branch][now[1]][now[2]] = val
-						else:
-							nvck[graph, node][copy_to_branch][now[1]] = {
-								now[2]: val
-							}
 			if 'edges' in deltg:
 				dge = deltg.pop('edges')
 				ekg = edges_keyframe.setdefault(graph, {})
@@ -1226,20 +1239,6 @@ class ORM:
 									0: ex
 								}
 							}
-						if copy_to_branch is not None:
-							if now[1] in eck[graph, orig,
-												dest][copy_to_branch]:
-								eck[graph, orig,
-									dest][copy_to_branch][now[1]][now[2]] = {
-										0: ex
-									}
-							else:
-								eck[graph, orig,
-									dest][copy_to_branch][now[1]] = {
-										now[2]: {
-											0: ex
-										}
-									}
 			if 'edge_val' in deltg:
 				dgev = deltg.pop('edge_val')
 				if graph in edge_val_keyframe:
@@ -1266,16 +1265,6 @@ class ORM:
 							evck[graph, orig, dest, 0][now[0]][now[1]] = {
 								now[2]: val
 							}
-						if copy_to_branch is not None:
-							if now[1] in evck[graph, orig, dest,
-												0][copy_to_branch]:
-								evck[graph, orig, dest, 0][copy_to_branch][
-									now[1]][now[2]] = val
-							else:
-								evck[graph, orig, dest,
-										0][copy_to_branch][now[1]] = {
-											now[2]: val
-										}
 			if deltg:
 				if graph in graph_val_keyframe:
 					graph_val_keyframe[graph].update(deltg)
@@ -1287,14 +1276,6 @@ class ORM:
 					gvckg[now[0]][now[1]][now[2]] = graph_val_keyframe[graph]
 				else:
 					gvckg[now[0]][now[1]] = {now[2]: graph_val_keyframe[graph]}
-				if copy_to_branch is not None:
-					if now[1] in gvckg[copy_to_branch]:
-						gvckg[copy_to_branch][now[1]][
-							now[2]] = graph_val_keyframe[graph]
-					else:
-						gvckg[copy_to_branch][now[1]] = {
-							now[2]: graph_val_keyframe[graph]
-						}
 			for when in whens:
 				nkfs.append((graph, *when, node_val_keyframe.get(graph, {}),
 								edge_val_keyframe.get(graph, {}),
@@ -1318,11 +1299,17 @@ class ORM:
 		else:
 			(parent, turn_from, tick_from) = self._recurse_delta_keyframes(
 				(parent, turn_from, tick_from))
-			self._snap_keyframe_from_delta(
-				(parent, turn_from, tick_from),
-				(parent, time_from[1], time_from[2]),
-				self.get_delta(parent, turn_from, tick_from, time_from[1],
-								time_from[2]), time_from[0])
+			if (parent, turn_from, tick_from) == (parent, time_from[1],
+													time_from[2]):
+				self._alias_kf(parent, *time_from)
+			else:
+				self._snap_keyframe_from_delta(
+					(parent, turn_from, tick_from),
+					(parent, time_from[1], time_from[2]),
+					self.get_delta(parent, turn_from, tick_from, time_from[1],
+									time_from[2]))
+				self._alias_kf(parent, time_from[0], time_from[1],
+								time_from[2])
 		return time_from
 
 	@world_locked
@@ -1350,12 +1337,10 @@ class ORM:
 			if parent is None:
 				return self._snap_keyframe_de_novo(branch, turn, tick)
 			the_kf = self._recurse_delta_keyframes((branch, turn, tick))
-			return self._snap_keyframe_from_delta(the_kf, (branch, turn, tick),
-													self.get_delta(
-														*the_kf, turn, tick),
-													copy_to_branch=branch)
 		self._snap_keyframe_from_delta(the_kf, (branch, turn, tick),
 										self.get_delta(*the_kf, turn, tick))
+		if the_kf[0] != branch:
+			self._alias_kf(the_kf[0], branch, turn, tick)
 
 	def _build_loading_windows(
 			self, branch_from: str, turn_from: int, tick_from: int,
