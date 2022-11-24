@@ -652,28 +652,29 @@ class EngineHandle(object):
 			b = kf_to['graph_val'].get(graph, {})
 			for k in a.keys() | b.keys():
 				keys.append(('graph', graph, k))
-				values_from.append(pack(a.get(k)))
-				values_to.append(pack(b.get(k)))
+				values_from.append(pack(a.get(k)) + b'\xc0')
+				values_to.append(pack(b.get(k)) + b'\xc0')
 		for graph, node in kf_from['node_val'].keys() | kf_to['node_val'].keys(
 		):
 			a = kf_from['node_val'].get((graph, node), {})
 			b = kf_to['node_val'].get((graph, node), {})
 			for k in a.keys() | b.keys():
 				keys.append(('node', graph, node, k))
-				values_from.append(pack(a.get(k)))
-				values_to.append(pack(b.get(k)))
+				values_from.append(pack(a.get(k)) + b'\xc0')
+				values_to.append(pack(b.get(k)) + b'\xc0')
 		for graph, orig, dest, i in kf_from['edge_val'].keys(
 		) | kf_to['edge_val'].keys():
 			a = kf_from['edge_val'].get((graph, orig, dest, i), {})
 			b = kf_to['edge_val'].get((graph, orig, dest, i), {})
 			for k in a.keys() | b.keys():
 				keys.append(('edge', graph, orig, dest, k))
-				values_from.append(pack(a.get(k)))
-				values_to.append(pack(b.get(k)))
+				values_from.append(pack(a.get(k)) + b'\xc0')
+				values_to.append(pack(b.get(k)) + b'\xc0')
 		values_changed = np.array(values_from) != np.array(values_to)
 		delta = {}
 		for k, v, _ in filter(itemgetter(2),
 								zip(keys, values_to, values_changed)):
+			v = v[:-1]
 			if k[0] == 'node':
 				_, graph, node, key = k
 				graph, node, key = map(pack, (graph, node, key))
