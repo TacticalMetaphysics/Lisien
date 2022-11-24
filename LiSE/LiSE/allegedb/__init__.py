@@ -1299,8 +1299,8 @@ class ORM:
 		else:
 			(parent, turn_from, tick_from) = self._recurse_delta_keyframes(
 				(parent, turn_from, tick_from))
-			if (parent, turn_from, tick_from) != (parent, time_from[1],
-													time_from[2]):
+			if (parent, time_from[1],
+				time_from[2]) not in self._keyframes_times:
 				self._snap_keyframe_from_delta(
 					(parent, turn_from, tick_from),
 					(parent, time_from[1], time_from[2]),
