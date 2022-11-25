@@ -572,6 +572,7 @@ class Engine(AbstractEngine, gORM):
 			self.method = FunctionStore(self._method_file)
 		self.rule = AllRules(self)
 		self.rulebook = AllRuleBooks(self)
+		self._char_caches = self._caches + [self._things_cache]
 
 	def _load_graphs(self) -> None:
 		for charn in self.query.characters():
