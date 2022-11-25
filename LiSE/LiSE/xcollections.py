@@ -402,10 +402,10 @@ class CharacterMapping(MutableMapping, Signal):
 
 	def __delitem__(self, name):
 		"""Delete the named character from both the cache and the database."""
-		it = self[name]
-		it.clear()
 		del self.engine._graph_objs[name]
 		self.engine.query.del_graph(name)
+		for cache in self.engine._char_caches:
+			cache.remove_character(name)
 		self.send(self, key=name, val=None)
 
 
