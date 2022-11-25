@@ -392,7 +392,7 @@ ELiDE uses third-party graphics sets:
   [CC0](http://creativecommons.org/publicdomain/zero/1.0/), being in
   the public domain where it exists.
 * "Crypt" and "Island" from the [PROCJAM 2015 Art
-  Pack](http://www.procjam.com/2015/09/procjam-art-pack-now-available/),
+  Pack](https://www.procjam.com/art/marsh.html),
   by Marsh Davies, available under the terms of [Creative Commons
   BY-NC](http://creativecommons.org/licenses/by-nc/4.0/)
 * The default wallpaper, wallpape.jpg, is copyright [Fantastic
