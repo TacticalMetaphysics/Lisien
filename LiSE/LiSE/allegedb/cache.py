@@ -632,6 +632,9 @@ class Cache:
 					for ((branc, turn, tick), (parent, entity,
 												key)) in time_entity.items()
 					if branc == branch}
+		todel_shallow = {k for k in self.shallowest if k[-2] == branch}
+		for k in todel_shallow:
+			del self.shallowest[k]
 		for branc, turn, tick, parent, entity, key in todel:
 			self._remove_btt_parentikey(branc, turn, tick, parent, entity, key)
 			if (*parent, entity, key, branc, turn, tick) in self.shallowest:
