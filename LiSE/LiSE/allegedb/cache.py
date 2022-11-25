@@ -618,14 +618,12 @@ class Cache:
 												key)) in time_entity.items()
 					if (parent and parent[0] == character) or (
 						not parent and entity == character)}
-		todel_shallow = set()
+		todel_shallow = {k for k in self.shallowest if k[0] == character}
+		for k in todel_shallow:
+			del self.shallowest[k]
 		for (branch, turn, tick, parent, entity, key) in todel:
 			self._remove_btt_parentikey(branch, turn, tick, parent, entity,
 										key)
-			todel_shallow.update(k for k in self.shallowest
-									if k[:-3] == (*parent, entity, key))
-		for k in todel_shallow:
-			del self.shallowest[k]
 
 	def remove_branch(self, branch: str):
 		(time_entity, parents, branches, keys, settings, presettings,
