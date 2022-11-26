@@ -466,17 +466,15 @@ class EngineHandle(object):
 					'portal': chara.portal.rulebook.name
 				},
 			}
-			if char in kf['graph_val']:
-				char_d.update(kf['graph_val'][char])
-			if char in kf['nodes']:
+			if (char, ) in kf['graph_val']:
+				char_d.update(kf['graph_val'][char, ])
+			if (char, ) in kf['nodes']:
 				char_d['nodes'] = {
 					node: ex
-					for (node, ex) in kf['nodes'][char].items() if ex
+					for (node, ex) in kf['nodes'][char, ].items() if ex
 				}
-			if char in kf['node_val']:
-				n_v_d = char_d['node_val'] = {}
-				for node, val in kf['nodes'][char].items():
-					n_v_d[node] = val
+		for (char, node), val in kf['node_val'].items():
+			ret.setdefault(char, {}).setdefault('node_val', {})[node] = val
 		for (char, orig, dest), ex in kf['edges'].items():
 			ret.setdefault(char, {}).setdefault('edges', {})[orig, dest] = ex
 		for (char, orig, dest, key), value in kf['edge_val'].items():
