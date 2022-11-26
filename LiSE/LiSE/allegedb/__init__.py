@@ -1135,6 +1135,7 @@ class ORM:
 			try:
 				node_val_keyframe[graph][node] = nvck[graph, node][then[0]][
 					then[1]][then[2]].copy()
+				node_val_keyframe[graph][node]["name"] = node
 			except KeyError:
 				continue
 		eck = self._edges_cache.keyframe
@@ -1198,11 +1199,17 @@ class ORM:
 						for node, exists in dn.items() if exists
 					}
 			if graph in nodes_keyframe:
+				if graph not in node_val_keyframe:
+					node_val_keyframe[graph] = {}
+				nvkg = node_val_keyframe[graph]
 				nckg = self._nodes_cache.keyframe[graph, ]
 				if now[1] in nckg[now[0]]:
 					nckg[now[0]][now[1]][now[2]] = nodes_keyframe[graph]
 				else:
 					nckg[now[0]][now[1]] = {now[2]: nodes_keyframe[graph]}
+				for node, ex in nodes_keyframe[graph].items():
+					if ex and node not in nvkg:
+						nvkg[node] = {"name": node}
 			if 'node_val' in deltg:
 				dnv = deltg.pop('node_val')
 				if graph in node_val_keyframe:
@@ -1217,6 +1224,8 @@ class ORM:
 									nvgn[k] = v
 						else:
 							nvg[node] = value
+						if "name" not in nvg[node]:
+							nvg[node]["name"] = node
 				else:
 					node_val_keyframe[graph] = dnv
 			if graph in node_val_keyframe:
@@ -1241,8 +1250,22 @@ class ORM:
 								del evkg[orig][dest]
 					elif exists:
 						ekg[orig] = {dest: exists}
+			if graph in edge_val_keyframe:
+				for orig, dests in edge_val_keyframe[graph].items():
+					for dest, val in dests.items():
+						if now[1] in evck[graph, orig, dest, 0][now[0]]:
+							evck[graph, orig, dest,
+									0][now[0]][now[1]][now[2]] = val
+						else:
+							evck[graph, orig, dest, 0][now[0]][now[1]] = {
+								now[2]: val
+							}
 			if graph in edges_keyframe:
+				if graph not in edge_val_keyframe:
+					edge_val_keyframe[graph] = {}
 				for orig, dests in edges_keyframe[graph].items():
+					if orig not in edge_val_keyframe[graph]:
+						edge_val_keyframe[graph][orig] = {}
 					for dest, ex in dests.items():
 						if now[1] in eck[graph, orig, dest][now[0]]:
 							eck[graph, orig, dest][now[0]][now[1]][now[2]] = {
@@ -1254,6 +1277,8 @@ class ORM:
 									0: ex
 								}
 							}
+						if ex and dest not in edge_val_keyframe[graph][orig]:
+							edge_val_keyframe[graph][orig][dest] = {}
 			if 'edge_val' in deltg:
 				dgev = deltg.pop('edge_val')
 				if graph in edge_val_keyframe:
@@ -1270,16 +1295,6 @@ class ORM:
 							evkg[orig] = dests
 				else:
 					edge_val_keyframe[graph] = dgev
-			if graph in edge_val_keyframe:
-				for orig, dests in edge_val_keyframe[graph].items():
-					for dest, val in dests.items():
-						if now[1] in evck[graph, orig, dest, 0][now[0]]:
-							evck[graph, orig, dest,
-									0][now[0]][now[1]][now[2]] = val
-						else:
-							evck[graph, orig, dest, 0][now[0]][now[1]] = {
-								now[2]: val
-							}
 			if deltg:
 				if graph in graph_val_keyframe:
 					graph_val_keyframe[graph].update(deltg)
