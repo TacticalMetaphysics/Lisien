@@ -191,8 +191,13 @@ class ImageStack(TextureStack):
 					and self.texs.index(self.pathtexs[path]) == i):
 					continue
 			else:
-				self.pathimgs[path] = img = Image.load(resource_find(path),
-														keep_data=True)
+				try:
+					self.pathimgs[path] = img = Image.load(resource_find(path),
+															keep_data=True)
+				except Exception:
+					self.pathimgs[path] = img = Image.load(
+						resource_find("atlas://rltiles/misc/floppy"),
+						keep_data=True)
 				self.pathtexs[path] = img.texture
 			if i == len(self.texs):
 				self.texs.append(self.pathtexs[path])
