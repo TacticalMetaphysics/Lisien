@@ -431,7 +431,13 @@ class EngineHandle(object):
 			**self.character_stat_copy(char)
 		}
 
-	@prepacked
+	def get_keyframe(self, branch, turn, tick):
+		now = self._real._btt()
+		self._real._set_btt(branch, turn, tick)
+		self._real.snap_keyframe()
+		self._real._set_btt(*now)
+		return self._real._get_kf(branch, turn, tick)
+
 	def copy_chars(self, chars: Union[str, Iterable[Hashable]]):
 		"""Return a mapping describing several characters
 
@@ -445,10 +451,38 @@ class EngineHandle(object):
 			it = iter(self._real.character.keys())
 		else:
 			it = iter(chars)
-		return {
-			self.pack(char): concat_d(self.copy_character(char))
-			for char in it
-		}
+		self._real.snap_keyframe()
+		kf = self._real._get_kf(*self._get_btt())
+		ret = {}
+		for char in it:
+			chara = self._real.character[char]
+			char_d = ret[char] = {
+				'units': self._character_units_copy(char),
+				'rulebooks': {
+					'character': chara.rulebook.name,
+					'unit': chara.unit.rulebook.name,
+					'thing': chara.thing.rulebook.name,
+					'place': chara.place.rulebook.name,
+					'portal': chara.portal.rulebook.name
+				},
+			}
+			if char in kf['graph_val']:
+				char_d.update(kf['graph_val'][char])
+			if char in kf['nodes']:
+				char_d['nodes'] = {
+					node: ex
+					for (node, ex) in kf['nodes'][char].items() if ex
+				}
+			if char in kf['node_val']:
+				n_v_d = char_d['node_val'] = {}
+				for node, val in kf['nodes'][char].items():
+					n_v_d[node] = val
+		for (char, orig, dest), ex in kf['edges'].items():
+			ret.setdefault(char, {}).setdefault('edges', {})[orig, dest] = ex
+		for (char, orig, dest, key), value in kf['edge_val'].items():
+			ret.setdefault(char, {}).setdefault('edge_val', {}).setdefault(
+				orig, {}).setdefault(dest, {})[key] = value
+		return ret
 
 	@prepacked
 	def get_char_deltas(
