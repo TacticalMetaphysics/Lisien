@@ -33,7 +33,7 @@ Existing games that LiSE seeks to imitate include:
 
 # Why should I use LiSE for this purpose?
 
-LiSE is a game engine in the sense of RPG Maker or Ren'Py. It assumes
+LiSE assumes
 that there are certain problems any designer of life simulators will
 have, and provides powerful tools specialized to those
 problems. Though you will still need to write some Python code for
