@@ -1666,12 +1666,12 @@ class StringStoreProxy(Signal):
 			super().__setattr__(k, v)
 			return
 		self._cache[k] = v
-		self.engine.handle(command='set_string', k=k, v=v, block=False)
+		self.engine.handle(command='set_string', k=k, v=v)
 		self.send(self, key=k, string=v)
 
 	def __delattr__(self, k):
 		del self._cache[k]
-		self.engine.handle(command='del_string', k=k, block=False)
+		self.engine.handle(command='del_string', k=k)
 		self.send(self, key=k, string=None)
 
 	def lang_items(self, lang=None):
@@ -1705,14 +1705,11 @@ class EternalVarProxy(MutableMapping):
 
 	def __setitem__(self, k, v):
 		self._cache[k] = v
-		self.engine.handle('set_eternal', k=k, v=v, block=False, silent=True)
+		self.engine.handle('set_eternal', k=k, v=v)
 
 	def __delitem__(self, k):
 		del self._cache[k]
-		self.engine.handle(command='del_eternal',
-							k=k,
-							block=False,
-							silent=True)
+		self.engine.handle(command='del_eternal', k=k)
 
 	def _update_cache(self, data):
 		for k, v in data.items():
@@ -1787,7 +1784,7 @@ class AllRuleBooksProxy(Mapping):
 
 	def __getitem__(self, k):
 		if k not in self:
-			self.engine.handle('new_empty_rulebook', rulebook=k, block=False)
+			self.engine.handle('new_empty_rulebook', rulebook=k)
 			self._cache[k] = []
 		return self._cache[k]
 
@@ -1819,7 +1816,7 @@ class AllRulesProxy(Mapping):
 		return self._proxy_cache[k]
 
 	def new_empty(self, k):
-		self.engine.handle(command='new_empty_rule', rule=k, block=False)
+		self.engine.handle(command='new_empty_rule', rule=k)
 		self._cache[k] = {'triggers': [], 'prereqs': [], 'actions': []}
 		self._proxy_cache[k] = RuleProxy(self.engine, k)
 		return self._proxy_cache[k]
@@ -1832,13 +1829,12 @@ class FuncProxy(object):
 		self.store = store
 		self.func = func
 
-	def __call__(self, *args, block=True, cb=None, **kwargs):
+	def __call__(self, *args, cb=None, **kwargs):
 		return self.store.engine.handle('call_stored_function',
 										store=self.store._store,
 										func=self.func,
 										args=args,
 										kwargs=kwargs,
-										block=block,
 										cb=cb)
 
 	def __str__(self):
@@ -1870,15 +1866,13 @@ class FuncStoreProxy(Signal):
 		self.engine.handle(command='store_source',
 							store=self._store,
 							v=source,
-							name=func_name,
-							block=False)
+							name=func_name)
 		self._cache[func_name] = source
 
 	def __delattr__(self, func_name):
 		self.engine.handle(command='del_source',
 							store=self._store,
-							k=func_name,
-							block=False)
+							k=func_name)
 		del self._cache[func_name]
 
 	def get_source(self, func_name):
@@ -1973,8 +1967,7 @@ class RandoProxy(Random):
 		self._handle(cmd='call_randomizer',
 						method='seed',
 						a=a,
-						version=version,
-						block=False)
+						version=version)
 
 	def getstate(self):
 		return self._handle(cmd='call_randomizer', method='getstate')
