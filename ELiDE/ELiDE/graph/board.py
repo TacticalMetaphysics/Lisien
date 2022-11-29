@@ -28,7 +28,7 @@ from kivy.graphics.transformation import Matrix
 from kivy.vector import Vector
 
 from .spot import GraphSpot
-from .arrow import GraphArrow, GraphArrowWidget, ArrowLayout, get_points_multi
+from .arrow import GraphArrow, ArrowPlane, get_points_multi
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
@@ -124,8 +124,8 @@ class GraphBoard(RelativeLayout):
 	grabbed = ObjectProperty(None, allownone=True)
 	spot_cls = ObjectProperty(GraphSpot)
 	pawn_cls = ObjectProperty(Pawn)
-	arrow_cls = ObjectProperty(GraphArrow, allownone=True)
-	proto_arrow_cls = ObjectProperty(GraphArrowWidget)
+	arrow_cls = True
+	proto_arrow_cls = ObjectProperty(GraphArrow)
 	_scheduled_rm_spot = DictProperty()
 	_scheduled_rm_arrow = DictProperty()
 	_scheduled_discard_pawn = DictProperty()
@@ -175,18 +175,7 @@ class GraphBoard(RelativeLayout):
 					self.add_widget(self.protoportal2)
 			touch.pop()
 			return True
-		arrows = list(self.arrows_at(*touch.pos))
-		if arrows:
-			Logger.debug("Board: hit {} arrows".format(len(arrows)))
-			self.selection_candidates = arrows
-			if self.app.selection in self.selection_candidates:
-				self.selection_candidates.remove(self.app.selection)
-			if isinstance(
-				self.app.selection, GraphArrow
-			) and self.app.selection.reciprocal in self.selection_candidates:
-				self.selection_candidates.remove(self.app.selection.reciprocal)
-			touch.pop()
-			return True
+		# put arrow collision detection here
 		touch.pop()
 
 	def on_touch_move(self, touch):
@@ -226,18 +215,18 @@ class GraphBoard(RelativeLayout):
 				port = self.character.new_portal(orig.name,
 													dest.name,
 													symmetrical=symmetrical)
-				self.arrowlayout.add_widget(self.make_arrow(port))
+				self.arrowlayout.data.append(self.make_arrow(port))
 				if symmetrical:
-					self.arrowlayout.add_widget(
+					self.arrowlayout.data.append(
 						self.make_arrow(
 							self.character.portal[dest.name][orig.name]))
 		except StopIteration:
 			pass
-		self.remove_widget(self.protoportal)
+		self.canvas.remove(self.protoportal)
 		if hasattr(self, 'protoportal2'):
-			self.remove_widget(self.protoportal2)
+			self.canvas.remove(self.protoportal2)
 			del self.protoportal2
-		self.remove_widget(self.protodest)
+		self.canvas.remove(self.protodest)
 		del self.protoportal
 		del self.protodest
 
@@ -259,22 +248,11 @@ class GraphBoard(RelativeLayout):
 		for candidate in self.selection_candidates:
 			if candidate.collide_point(*touch.pos):
 				if hasattr(candidate, 'selected'):
-					if isinstance(candidate,
-									GraphArrow) and candidate.reciprocal:
-						# mirror arrows can't be selected directly, you have to work with the one they mirror
-						if candidate.portal.get('is_mirror', False):
-							candidate.selected = True
-							candidate = candidate.reciprocal
-						elif candidate.reciprocal and candidate.reciprocal.portal.get(
-							'is_mirror', False):
-							candidate.reciprocal.selected = True
+					# check reciprocal arrow selection here
 					candidate.selected = True
 				if hasattr(self.app.selection, 'selected'):
 					self.app.selection.selected = False
-					if isinstance(
-						self.app.selection, GraphArrow
-					) and self.app.selection.reciprocal and candidate is not self.app.selection.reciprocal:
-						self.app.selection.reciprocal.selected = False
+					# check reciprocal arrow selection here
 				self.app.selection = candidate
 				self.keep_selection = True
 				parent = candidate.parent
@@ -285,9 +263,7 @@ class GraphBoard(RelativeLayout):
 			Logger.debug("Board: deselecting " + repr(self.app.selection))
 			if hasattr(self.app.selection, 'selected'):
 				self.app.selection.selected = False
-				if isinstance(self.app.selection,
-								GraphArrow) and self.app.selection.reciprocal:
-					self.app.selection.reciprocal.selected = False
+				# handle reciprocal arrow deselection here
 			self.app.selection = None
 		self.keep_selection = False
 		touch.ungrab(self)
@@ -317,7 +293,7 @@ class GraphBoard(RelativeLayout):
 		self.bind(wallpaper_path=self._pull_image)
 		self._pull_size()
 		self.kvlayoutback = KvLayoutBack(**self.widkwargs)
-		self.arrowlayout = ArrowLayout(**self.widkwargs)
+		self.arrowlayout = ArrowPlane(**self.widkwargs)
 		self.spotlayout = FinalLayout(**self.widkwargs)
 		self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
 		for wid in self.wids:
@@ -397,10 +373,6 @@ class GraphBoard(RelativeLayout):
 		return r
 
 	def make_arrow(self, portal):
-		"""Make an :class:`Arrow` to represent a :class:`Portal`, store it,
-		and return it.
-
-		"""
 		if (portal["origin"] not in self.spot
 			or portal["destination"] not in self.spot):
 			raise ValueError("An :class:`Arrow` should only be made after "
@@ -418,20 +390,14 @@ class GraphBoard(RelativeLayout):
 							destspot,
 							arrowmap,
 							points=None):
-		if points is None:
-			r = self.arrow_cls(
-				board=self,
-				portal=portal,
-				origspot=origspot,
-				destspot=destspot,
-			)
-			r._trigger_repoint()
-		else:
-			r = self.arrow_cls(board=self,
-								portal=portal,
-								origspot=origspot,
-								destspot=destspot,
-								points=points)
+		r = {
+			"board": self,
+			"portal": portal,
+			"origspot": origspot,
+			"destspot": destspot
+		}
+		if points is not None:
+			r["points"] = points
 		orign = portal["origin"]
 		if orign not in arrowmap:
 			arrowmap[orign] = {}
@@ -606,9 +572,8 @@ class GraphBoard(RelativeLayout):
 				and destn in self.character.portal[orign]):
 			raise ValueError("No portal for arrow {}->{}".format(orign, destn))
 		if not (orign in self.arrow and destn in self.arrow[orign]):
-			self.arrowlayout.add_widget(
+			self.arrowlayout.data.append(
 				self.make_arrow(self.character.portal[orign][destn]))
-		assert self.arrow[orign][destn] in self.arrowlayout.children
 
 	def add_new_arrows(self, *args):
 		Logger.debug("Board: adding new arrows to {}".format(
@@ -616,8 +581,7 @@ class GraphBoard(RelativeLayout):
 		portmap = self.character.portal
 		arrowmap = self.arrow
 		spotmap = self.spot
-		arrowlayout = self.arrowlayout
-		add_widget_to_arrowlayout = arrowlayout.add_widget
+		append_to_arrowlayout = self.arrowlayout.data.append
 		core_make_arrow = self._core_make_arrow
 		todo = []
 		for arrow_orig, arrow_dests in portmap.items():
@@ -629,7 +593,7 @@ class GraphBoard(RelativeLayout):
 		points = get_points_multi(
 			(origspot, destspot, 10) for (portal, origspot, destspot) in todo)
 		for portal, origspot, destspot in todo:
-			add_widget_to_arrowlayout(
+			append_to_arrowlayout(
 				core_make_arrow(portal, origspot, destspot, arrowmap,
 								points[origspot, destspot]))
 
