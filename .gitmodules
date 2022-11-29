@@ -1,0 +1,6 @@
+[submodule "ELiDE/ELiDE/kivygarden/graphvy"]
+	path = ELiDE/ELiDE/kivygarden/graphvy
+	url = git@github.com:salt-die/graphvy.git
+[submodule "ELiDE/ELiDE/kivygarden/KivyMD"]
+	path = ELiDE/ELiDE/kivygarden/KivyMD
+	url = https://github.com/kivymd/KivyMD.git
