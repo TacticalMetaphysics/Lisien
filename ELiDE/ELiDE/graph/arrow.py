@@ -20,6 +20,8 @@ screen they are at the moment.
 
 """
 from math import cos, sin, atan, pi
+from operator import itemgetter
+
 import numpy as np
 from kivy.uix.widget import Widget
 from kivy.graphics.fbo import Fbo
@@ -478,6 +480,15 @@ class ArrowPlane(Widget):
 		self._trigger_redraw = Clock.create_trigger(self.redraw)
 		self.bind(data=self._trigger_redraw,
 					arrowhead_size=self._trigger_redraw)
+		self._rects_map = {}
+		self._points_map = {}
+		self._quads_map = {}
+		self._colliders_map = {}
+		self._port_l = []
+		self._bot_left_corner_ys = []
+		self._bot_left_corner_xs = []
+		self._top_right_corner_ys = []
+		self._top_right_corner_xs = []
 		super().__init__(**kwargs)
 
 	def on_parent(self, *args):
@@ -508,11 +519,18 @@ class ArrowPlane(Widget):
 		points_map = get_points_multi(
 			(datum['origspot'], datum['destspot'], taillen)
 			for datum in self.data)
-		for (ox, oy, dx, dy), (x1, y1, endx, endy, x2,
-								y2) in points_map.values():
+		quads_map = {}
+		port_l = []
+		bot_left_corner_xs = []
+		bot_left_corner_ys = []
+		top_right_corner_xs = []
+		top_right_corner_ys = []
+		for port, ((ox, oy, dx, dy), (x1, y1, endx, endy, x2,
+										y2)) in points_map.items():
 			bgr = r * bg_scale_selected  # change for selectedness pls
 			trunk_quad_vertices_bg = get_thin_rect_vertices(
 				ox, oy, dx, dy, bgr)
+			quads_map[port] = trunk_quad_vertices_bg
 			trunk_quad_vertices_fg = get_thin_rect_vertices(ox, oy, dx, dy, r)
 			left_head_quad_vertices_bg = get_thin_rect_vertices(
 				x1, y1, endx, endy, bgr)
@@ -530,8 +548,46 @@ class ArrowPlane(Widget):
 			add(Quad(points=trunk_quad_vertices_fg))
 			add(Quad(points=left_head_quad_vertices_fg))
 			add(Quad(points=right_head_quad_vertices_fg))
+			if ox < dx:
+				leftx = ox
+				rightx = dx
+			else:
+				rightx = ox
+				leftx = dx
+			if oy < dy:
+				boty = oy
+				topy = dy
+			else:
+				boty = dy
+				topy = oy
+			port_l.append(port)
+			bot_left_corner_xs.append(leftx)
+			bot_left_corner_ys.append(boty)
+			top_right_corner_xs.append(rightx)
+			top_right_corner_ys.append(topy)
 		fbo.release()
 		self.canvas.ask_update()
+		self._points_map = points_map
+		self._quads_map = quads_map
+		self._port_l = port_l
+		self._bot_left_corner_xs = np.array(bot_left_corner_xs)
+		self._bot_left_corner_ys = np.array(bot_left_corner_ys)
+		self._top_right_corner_xs = np.array(top_right_corner_xs)
+		self._top_right_corner_ys = np.array(top_right_corner_ys)
+
+	def iter_collided_edges(self, x, y):
+		collider_map = self._colliders_map
+		quads_map = self._quads_map
+		hits = (self._bot_left_corner_xs <= x) & (
+			self._bot_left_corner_ys <= y
+		) & (x <= self._top_right_corner_xs) & (y <= self._top_right_corner_ys)
+		for port in map(itemgetter(0),
+						filter(itemgetter(1), zip(self._port_l, hits))):
+			if port not in collider_map:
+				collider_map[port] = Collide2DPoly(points=quads_map[port],
+													cache=True)
+			if collider_map[port].collide_point(x, y):
+				yield port
 
 	def on_pos(self, *args):
 		if not hasattr(self, '_translate'):
