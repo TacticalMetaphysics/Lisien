@@ -584,8 +584,7 @@ class ArrowPlane(Widget):
 		for port in map(itemgetter(0),
 						filter(itemgetter(1), zip(self._port_l, hits))):
 			if port not in collider_map:
-				collider_map[port] = Collide2DPoly(points=quads_map[port],
-													cache=True)
+				collider_map[port] = Collide2DPoly(points=quads_map[port])
 			if collider_map[port].collide_point(x, y):
 				yield port
 
