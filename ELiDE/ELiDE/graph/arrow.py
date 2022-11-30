@@ -502,15 +502,16 @@ class ArrowPlane(Widget):
 		fbo.clear()
 		fbo.clear_buffer()
 		add = fbo.add
-		r = self.arrow_width / 2
+		r = self.arrow_width // 2
 		bg_scale_selected = self.bg_scale_selected
 		bg_color_unselected = self.bg_color_unselected
 		fg_color_unselected = self.fg_color_unselected
-		for datum in self.data:
-			(ox, oy, dx, dy), (x1, y1, endx, endy, x2,
-								y2) = get_points(datum['origspot'],
-													datum['destspot'],
-													self.arrowhead_size)
+		taillen = self.arrowhead_size
+		points_map = get_points_multi(
+			(datum['origspot'], datum['destspot'], taillen)
+			for datum in self.data)
+		for (ox, oy, dx, dy), (x1, y1, endx, endy, x2,
+								y2) in points_map.values():
 			bgr = r * bg_scale_selected  # change for selectedness pls
 			trunk_quad_vertices_bg = get_thin_rect_vertices(
 				ox, oy, dx, dy, bgr)
