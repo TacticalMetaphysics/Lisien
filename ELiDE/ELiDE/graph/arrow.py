@@ -22,15 +22,13 @@ screen they are at the moment.
 from math import cos, sin, atan, pi
 import numpy as np
 from kivy.uix.widget import Widget
-from kivy.uix.floatlayout import FloatLayout
 from kivy.graphics.fbo import Fbo
 from kivy.graphics import (Translate, Rectangle, Quad, Color, InstructionGroup)
-from kivy.properties import (ReferenceListProperty, AliasProperty,
-								ObjectProperty, NumericProperty, ListProperty,
-								BooleanProperty, StringProperty)
+from kivy.properties import (ReferenceListProperty, ObjectProperty,
+								NumericProperty, ListProperty, BooleanProperty,
+								StringProperty)
 from kivy.clock import Clock
 
-from ..dummy import Dummy
 from ..util import trigger
 
 try:
