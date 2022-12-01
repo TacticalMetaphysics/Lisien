@@ -480,8 +480,6 @@ class ArrowPlane(Widget):
 		self._trigger_redraw = Clock.create_trigger(self.redraw)
 		self.bind(data=self._trigger_redraw,
 					arrowhead_size=self._trigger_redraw)
-		self._rects_map = {}
-		self._points_map = {}
 		self._colliders_map = {}
 		self._instructions_map = {}
 		self._port_index = {}
@@ -520,7 +518,6 @@ class ArrowPlane(Widget):
 		points_map = get_points_multi(
 			(datum['origspot'], datum['destspot'], taillen)
 			for datum in self.data)
-		quads_map = {}
 		port_l = []
 		bot_left_corner_xs = []
 		bot_left_corner_ys = []
@@ -584,8 +581,6 @@ class ArrowPlane(Widget):
 			colliders_map[port] = Collide2DPoly(points=shaft_quad_vertices_bg)
 		fbo.release()
 		self.canvas.ask_update()
-		self._points_map = points_map
-		self._quads_map = quads_map
 		self._port_l = port_l
 		self._bot_left_corner_xs = np.array(bot_left_corner_xs)
 		self._bot_left_corner_ys = np.array(bot_left_corner_ys)
