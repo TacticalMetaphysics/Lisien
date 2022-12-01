@@ -64,7 +64,9 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 				try:
 					self.paths = self.proxy['_image_paths']
 				except Exception as ex:
-					if not ex.args[0].startswith('Unable to load image type'):
+					if not (
+						isinstance(ex.args[0], str) and
+						ex.args[0].startswith('Unable to load image type')):
 						raise ex
 					self.paths = self.default_image_paths
 			else:

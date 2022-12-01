@@ -147,10 +147,10 @@ def get_points_multi(args):
 		except ValueError:
 			p1 = 2, 2, 2, 2, 1, 0, 1, 1, 0, 1
 		if len(p1) == 2:
-			ret[orig, dest] = p1
+			ret[orig.name, dest.name] = p1
 			continue
 		ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty = p1
-		keys.append((orig, dest))
+		keys.append((orig.name, dest.name))
 		leftxs.append(leftx)
 		rightxs.append(rightx)
 		topys.append(topy)

@@ -595,12 +595,21 @@ class GraphBoard(RelativeLayout):
 					or arrow_dest not in arrowmap[arrow_orig]):
 					todo.append(
 						(portal, spotmap[arrow_orig], spotmap[arrow_dest]))
+					if arrow_orig not in arrowmap:
+						arrowmap[arrow_orig] = {}
+					if arrow_dest not in arrowmap[arrow_orig]:
+						arrowmap[arrow_orig][arrow_dest] = True
+					if arrow_dest not in pred_arrowmap:
+						pred_arrowmap[arrow_dest] = {}
+					if arrow_orig not in pred_arrowmap[arrow_dest]:
+						pred_arrowmap[arrow_dest][arrow_orig] = True
 		points = get_points_multi(
 			(origspot, destspot, 10) for (portal, origspot, destspot) in todo)
 		for portal, origspot, destspot in todo:
 			append_to_arrow_plane(
 				core_make_arrow(portal, origspot, destspot, arrowmap,
-								pred_arrowmap, points[origspot, destspot]))
+								pred_arrowmap, points[origspot.name,
+														destspot.name]))
 
 	def add_pawn(self, thingn, *args):
 		if thingn not in self.character.thing:

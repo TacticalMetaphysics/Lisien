@@ -18,7 +18,7 @@ top of these.
 """
 from kivy.clock import Clock
 
-from kivy.properties import (AliasProperty, ObjectProperty, NumericProperty)
+from .arrow import get_points, get_thin_rect_vertices
 from .pawnspot import GraphPawnSpot
 from ..util import trigger
 
@@ -51,6 +51,79 @@ class GraphSpot(GraphPawnSpot):
 	def on_board(self, *args):
 		super().on_board(*args)
 		self.board.bind(size=self._upd_pos)
+
+	def on_pos(self, *args):
+
+		def upd(orig, dest):
+			bgr = r * bg_scale_selected  # change for selectedness pls
+			if (orig, dest) not in port_index:
+				return
+			idx = port_index[orig, dest]
+			inst = instructions[orig, dest]
+			collider = colliders[orig, dest]
+			(ox, oy, dx, dy), (x1, y1, endx, endy, x2,
+								y2) = get_points(spot[orig], spot[dest],
+													arrowhead_size)
+			print((ox, oy, dx, dy))
+			if ox < dx:
+				bot_left_xs[idx] = ox
+				top_right_xs[idx] = dx
+			else:
+				bot_left_xs[idx] = dx
+				top_right_xs[idx] = ox
+			if oy < dy:
+				bot_left_ys[idx] = oy
+				top_right_ys[idx] = dy
+			else:
+				bot_left_ys[idx] = dy
+				top_right_ys[idx] = oy
+			shaft_quad_vertices_bg = get_thin_rect_vertices(
+				ox, oy, dx, dy, bgr)
+			shaft_quad_vertices_fg = get_thin_rect_vertices(ox, oy, dx, dy, r)
+			left_head_quad_vertices_bg = get_thin_rect_vertices(
+				x1, y1, endx, endy, bgr)
+			right_head_quad_vertices_bg = get_thin_rect_vertices(
+				x2, y2, endx, endy, bgr)
+			left_head_quad_vertices_fg = get_thin_rect_vertices(
+				x1, y1, endx, endy, r)
+			right_head_quad_vertices_fg = get_thin_rect_vertices(
+				x2, y2, endx, endy, r)
+			inst['shaft_bg'].points = collider.points = shaft_quad_vertices_bg
+			inst['left_head_bg'].points = left_head_quad_vertices_bg
+			inst['right_head_bg'].points = right_head_quad_vertices_bg
+			inst['shaft_fg'].points = shaft_quad_vertices_fg
+			inst['left_head_fg'].points = left_head_quad_vertices_fg
+			inst['right_head_fg'].points = right_head_quad_vertices_fg
+
+		if not self.board:
+			return
+		arrow_plane = self.board.arrow_plane
+		fbo = arrow_plane._fbo
+		arrowhead_size = arrow_plane.arrowhead_size
+		r = arrow_plane.arrow_width // 2
+		bg_scale_selected = arrow_plane.bg_scale_selected
+		spot = self.board.spot
+		succ = self.board.arrow
+		pred = self.board.pred_arrow
+		name = self.name
+		instructions = arrow_plane._instructions_map
+		colliders = arrow_plane._colliders_map
+		instructions = arrow_plane._instructions_map
+		port_index = arrow_plane._port_index
+		bot_left_xs = arrow_plane._bot_left_corner_xs
+		bot_left_ys = arrow_plane._bot_left_corner_ys
+		top_right_xs = arrow_plane._top_right_corner_xs
+		top_right_ys = arrow_plane._top_right_corner_ys
+		fbo.bind()
+		fbo.clear_buffer()
+		if name in succ:
+			for dest in succ[name]:
+				upd(name, dest)
+		if name in pred:
+			for orig in pred[name]:
+				upd(orig, name)
+		fbo.release()
+		return super().on_pos(*args)
 
 	def _upd_pos(self, *args):
 		if self.board is None:
