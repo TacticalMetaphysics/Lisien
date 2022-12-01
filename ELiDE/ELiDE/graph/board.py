@@ -105,6 +105,7 @@ class GraphBoard(RelativeLayout):
 	spot = DictProperty({})
 	pawn = DictProperty({})
 	arrow = DictProperty({})
+	pred_arrow = DictProperty({})
 	wallpaper = ObjectProperty()
 	kvlayoutback = ObjectProperty()
 	arrow_plane = ObjectProperty()
@@ -382,13 +383,14 @@ class GraphBoard(RelativeLayout):
 			raise KeyError("Already have an Arrow for this Portal")
 		return self._core_make_arrow(portal, self.spot[portal['origin']],
 										self.spot[portal['destination']],
-										self.arrow)
+										self.arrow, self.pred_arrow)
 
 	def _core_make_arrow(self,
 							portal,
 							origspot,
 							destspot,
 							arrowmap,
+							pred_arrowmap,
 							points=None):
 		r = {
 			"board": self,
@@ -399,9 +401,13 @@ class GraphBoard(RelativeLayout):
 		if points is not None:
 			r["points"] = points
 		orign = portal["origin"]
+		destn = portal["destination"]
 		if orign not in arrowmap:
 			arrowmap[orign] = {}
-		arrowmap[orign][portal["destination"]] = r
+		arrowmap[orign][destn] = r
+		if destn not in pred_arrowmap:
+			arrowmap[destn] = {}
+		arrowmap[destn][orign] = r
 		return r
 
 	def rm_arrows_to_and_from(self, name):
@@ -580,6 +586,7 @@ class GraphBoard(RelativeLayout):
 			self.character.name))
 		portmap = self.character.portal
 		arrowmap = self.arrow
+		pred_arrowmap = self.pred_arrow
 		spotmap = self.spot
 		append_to_arrow_plane = self.arrow_plane.data.append
 		core_make_arrow = self._core_make_arrow
@@ -595,7 +602,7 @@ class GraphBoard(RelativeLayout):
 		for portal, origspot, destspot in todo:
 			append_to_arrow_plane(
 				core_make_arrow(portal, origspot, destspot, arrowmap,
-								points[origspot, destspot]))
+								pred_arrowmap, points[origspot, destspot]))
 
 	def add_pawn(self, thingn, *args):
 		if thingn not in self.character.thing:
