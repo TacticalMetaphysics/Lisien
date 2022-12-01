@@ -107,7 +107,7 @@ class GraphBoard(RelativeLayout):
 	arrow = DictProperty({})
 	wallpaper = ObjectProperty()
 	kvlayoutback = ObjectProperty()
-	arrowlayout = ObjectProperty()
+	arrow_plane = ObjectProperty()
 	spotlayout = ObjectProperty()
 	kvlayoutfront = ObjectProperty()
 	wids = ReferenceListProperty(wallpaper, kvlayoutback, arrowlayout,
@@ -215,9 +215,9 @@ class GraphBoard(RelativeLayout):
 				port = self.character.new_portal(orig.name,
 													dest.name,
 													symmetrical=symmetrical)
-				self.arrowlayout.data.append(self.make_arrow(port))
+				self.arrow_plane.data.append(self.make_arrow(port))
 				if symmetrical:
-					self.arrowlayout.data.append(
+					self.arrow_plane.data.append(
 						self.make_arrow(
 							self.character.portal[dest.name][orig.name]))
 		except StopIteration:
@@ -293,7 +293,7 @@ class GraphBoard(RelativeLayout):
 		self.bind(wallpaper_path=self._pull_image)
 		self._pull_size()
 		self.kvlayoutback = KvLayoutBack(**self.widkwargs)
-		self.arrowlayout = ArrowPlane(**self.widkwargs)
+		self.arrow_plane = ArrowPlane(**self.widkwargs)
 		self.spotlayout = FinalLayout(**self.widkwargs)
 		self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
 		for wid in self.wids:
@@ -458,7 +458,7 @@ class GraphBoard(RelativeLayout):
 		arr = self.arrow[orig].pop(dest)
 		if arr in self.selection_candidates:
 			self.selection_candidates.remove(arr)
-		self.arrowlayout.remove_widget(arr)
+		self.arrow_plane.remove_widget(arr)
 		if (orig, dest) in self._scheduled_rm_arrow:
 			del self._scheduled_rm_arrow[orig, dest]
 
@@ -572,7 +572,7 @@ class GraphBoard(RelativeLayout):
 				and destn in self.character.portal[orign]):
 			raise ValueError("No portal for arrow {}->{}".format(orign, destn))
 		if not (orign in self.arrow and destn in self.arrow[orign]):
-			self.arrowlayout.data.append(
+			self.arrow_plane.data.append(
 				self.make_arrow(self.character.portal[orign][destn]))
 
 	def add_new_arrows(self, *args):
@@ -581,7 +581,7 @@ class GraphBoard(RelativeLayout):
 		portmap = self.character.portal
 		arrowmap = self.arrow
 		spotmap = self.spot
-		append_to_arrowlayout = self.arrowlayout.data.append
+		append_to_arrow_plane = self.arrow_plane.data.append
 		core_make_arrow = self._core_make_arrow
 		todo = []
 		for arrow_orig, arrow_dests in portmap.items():
@@ -593,7 +593,7 @@ class GraphBoard(RelativeLayout):
 		points = get_points_multi(
 			(origspot, destspot, 10) for (portal, origspot, destspot) in todo)
 		for portal, origspot, destspot in todo:
-			append_to_arrowlayout(
+			append_to_arrow_plane(
 				core_make_arrow(portal, origspot, destspot, arrowmap,
 								points[origspot, destspot]))
 
@@ -662,7 +662,7 @@ class GraphBoard(RelativeLayout):
 			Logger.warning(
 				"Board: tried to update without a connection to a LiSE core")
 			return
-		if not self.spotlayout or not self.arrowlayout:
+		if not self.spotlayout or not self.arrow_plane:
 			self.trigger_update()
 			return
 		# remove widgets that don't represent anything anymore

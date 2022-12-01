@@ -72,7 +72,7 @@ class GraphBoardTest(GraphicUnitTest):
 		boardview = GraphBoardView(board=board)
 		win = window_with_widget(boardview)
 		idle_until(lambda: 0 in board.arrow and 1 in board.arrow[0] and board.
-					arrow[0][1] in board.arrowlayout.children)
+					arrow[0][1] in board.arrow_plane.children)
 		ox, oy = board.spot[0].center
 		dx, dy = board.spot[1].center
 		motion = UnitTestTouch((ox + ((dx - ox) / 2)), dy)
