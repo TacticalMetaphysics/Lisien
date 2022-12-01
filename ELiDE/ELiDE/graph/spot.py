@@ -64,7 +64,6 @@ class GraphSpot(GraphPawnSpot):
 			(ox, oy, dx, dy), (x1, y1, endx, endy, x2,
 								y2) = get_points(spot[orig], spot[dest],
 													arrowhead_size)
-			print((ox, oy, dx, dy))
 			if ox < dx:
 				bot_left_xs[idx] = ox
 				top_right_xs[idx] = dx
