@@ -462,7 +462,7 @@ class GraphBoard(RelativeLayout):
 		arr = self.arrow[orig].pop(dest)
 		if arr in self.selection_candidates:
 			self.selection_candidates.remove(arr)
-		self.arrow_plane.data.remove((orig, dest))
+		self.arrow_plane.remove_edge(orig, dest)
 		if (orig, dest) in self._scheduled_rm_arrow:
 			del self._scheduled_rm_arrow[orig, dest]
 

@@ -482,9 +482,9 @@ class ArrowPlane(Widget):
 					arrowhead_size=self._trigger_redraw)
 		self._rects_map = {}
 		self._points_map = {}
-		self._quads_map = {}
 		self._colliders_map = {}
 		self._instructions_map = {}
+		self._port_index = {}
 		self._port_l = []
 		self._bot_left_corner_ys = []
 		self._bot_left_corner_xs = []
@@ -526,12 +526,13 @@ class ArrowPlane(Widget):
 		bot_left_corner_ys = []
 		top_right_corner_xs = []
 		top_right_corner_ys = []
+		port_index = self._port_index
+		colliders_map = self._colliders_map
 		for port, ((ox, oy, dx, dy), (x1, y1, endx, endy, x2,
 										y2)) in points_map.items():
 			bgr = r * bg_scale_selected  # change for selectedness pls
 			shaft_quad_vertices_bg = get_thin_rect_vertices(
 				ox, oy, dx, dy, bgr)
-			quads_map[port] = shaft_quad_vertices_bg
 			shaft_quad_vertices_fg = get_thin_rect_vertices(ox, oy, dx, dy, r)
 			left_head_quad_vertices_bg = get_thin_rect_vertices(
 				x1, y1, endx, endy, bgr)
@@ -551,14 +552,16 @@ class ArrowPlane(Widget):
 				'left_head_fg': Quad(points=left_head_quad_vertices_fg),
 				'right_head_fg': Quad(points=right_head_quad_vertices_fg),
 			}
-			add(instructions['color0'])
-			add(instructions['shaft_bg'])
-			add(instructions['left_head_bg'])
-			add(instructions['right_head_bg'])
-			add(instructions['color1'])
-			add(instructions['shaft_fg'])
-			add(instructions['left_head_fg'])
-			add(instructions['right_head_fg'])
+			instructions['group'] = grp = InstructionGroup()
+			grp.add(instructions['color0'])
+			grp.add(instructions['shaft_bg'])
+			grp.add(instructions['left_head_bg'])
+			grp.add(instructions['right_head_bg'])
+			grp.add(instructions['color1'])
+			grp.add(instructions['shaft_fg'])
+			grp.add(instructions['left_head_fg'])
+			grp.add(instructions['right_head_fg'])
+			add(grp)
 			self._instructions_map[port] = instructions
 			if ox < dx:
 				leftx = ox
@@ -572,11 +575,13 @@ class ArrowPlane(Widget):
 			else:
 				boty = dy
 				topy = oy
+			port_index[port] = len(port_l)
 			port_l.append(port)
 			bot_left_corner_xs.append(leftx)
 			bot_left_corner_ys.append(boty)
 			top_right_corner_xs.append(rightx)
 			top_right_corner_ys.append(topy)
+			colliders_map[port] = Collide2DPoly(points=shaft_quad_vertices_bg)
 		fbo.release()
 		self.canvas.ask_update()
 		self._points_map = points_map
@@ -587,16 +592,26 @@ class ArrowPlane(Widget):
 		self._top_right_corner_xs = np.array(top_right_corner_xs)
 		self._top_right_corner_ys = np.array(top_right_corner_ys)
 
+	def remove_edge(self, orig, dest):
+		self._fbo.remove(self._instructions_map[orig, dest]['group'])
+		index = self._port_index[orig, dest]
+		del self._port_index[orig, dest]
+		del self._instructions_map[orig, dest]
+		del self._colliders_map[orig, dest]
+		del self._port_l[index]
+		for arr in ('_bot_left_corner_ys', '_bot_left_corner_xs',
+					'_top_right_corner_ys', '_top_right_corner_xs'):
+			dat = list(getattr(self, arr))
+			del dat[index]
+			setattr(self, arr, np.array(dat))
+
 	def iter_collided_edges(self, x, y):
 		collider_map = self._colliders_map
-		quads_map = self._quads_map
 		hits = (self._bot_left_corner_xs <= x) & (
 			self._bot_left_corner_ys <= y
 		) & (x <= self._top_right_corner_xs) & (y <= self._top_right_corner_ys)
 		for port in map(itemgetter(0),
 						filter(itemgetter(1), zip(self._port_l, hits))):
-			if port not in collider_map:
-				collider_map[port] = Collide2DPoly(points=quads_map[port])
 			if collider_map[port].collide_point(x, y):
 				yield port
 
