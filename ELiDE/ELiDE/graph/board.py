@@ -411,13 +411,11 @@ class GraphBoard(RelativeLayout):
 		return r
 
 	def rm_arrows_to_and_from(self, name):
-		origs = list(self.arrow.keys())
-		if name in origs:
-			origs.remove(name)
+		if name in self.arrow.keys():
 			for dest in list(self.arrow[name].keys()):
 				self.rm_arrow(name, dest)
-		for orig in origs:
-			if name in self.arrow[orig]:
+		if name in self.pred_arrow.keys():
+			for orig in list(self.pred_arrow[name].keys()):
 				self.rm_arrow(orig, name)
 
 	def rm_pawn(self, name, *args):
@@ -464,7 +462,7 @@ class GraphBoard(RelativeLayout):
 		arr = self.arrow[orig].pop(dest)
 		if arr in self.selection_candidates:
 			self.selection_candidates.remove(arr)
-		self.arrow_plane.remove_widget(arr)
+		self.arrow_plane.data.remove((orig, dest))
 		if (orig, dest) in self._scheduled_rm_arrow:
 			del self._scheduled_rm_arrow[orig, dest]
 
