@@ -18,7 +18,7 @@ top of these.
 """
 from kivy.clock import Clock
 
-from .arrow import get_points, get_thin_rect_vertices
+from .arrow import get_points, get_quad_vertices
 from .pawnspot import GraphPawnSpot
 from ..util import trigger
 
@@ -76,23 +76,14 @@ class GraphSpot(GraphPawnSpot):
 			else:
 				bot_left_ys[idx] = dy
 				top_right_ys[idx] = oy
-			shaft_quad_vertices_bg = get_thin_rect_vertices(
-				ox, oy, dx, dy, bgr)
-			shaft_quad_vertices_fg = get_thin_rect_vertices(ox, oy, dx, dy, r)
-			left_head_quad_vertices_bg = get_thin_rect_vertices(
-				x1, y1, endx, endy, bgr)
-			right_head_quad_vertices_bg = get_thin_rect_vertices(
-				x2, y2, endx, endy, bgr)
-			left_head_quad_vertices_fg = get_thin_rect_vertices(
-				x1, y1, endx, endy, r)
-			right_head_quad_vertices_fg = get_thin_rect_vertices(
-				x2, y2, endx, endy, r)
-			inst['shaft_bg'].points = collider.points = shaft_quad_vertices_bg
-			inst['left_head_bg'].points = left_head_quad_vertices_bg
-			inst['right_head_bg'].points = right_head_quad_vertices_bg
-			inst['shaft_fg'].points = shaft_quad_vertices_fg
-			inst['left_head_fg'].points = left_head_quad_vertices_fg
-			inst['right_head_fg'].points = right_head_quad_vertices_fg
+			quadverts = get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy,
+											x2, y2, bgr, r)
+			inst['shaft_bg'].points = collider.points = quadverts['shaft_bg']
+			inst['left_head_bg'].points = quadverts['left_head_bg']
+			inst['right_head_bg'].points = quadverts['right_head_bg']
+			inst['shaft_fg'].points = quadverts['shaft_fg']
+			inst['left_head_fg'].points = quadverts['left_head_fg']
+			inst['right_head_fg'].points = quadverts['right_head_fg']
 
 		if not self.board:
 			return

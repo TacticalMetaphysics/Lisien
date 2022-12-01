@@ -234,6 +234,17 @@ def get_points(orig, dest, taillen):
 	return ([startx, starty, endx, endy], [x1, y1, endx, endy, x2, y2])
 
 
+def get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2, bgr, fgr):
+	return {
+		'shaft_bg': get_thin_rect_vertices(ox, oy, dx, dy, bgr),
+		'shaft_fg': get_thin_rect_vertices(ox, oy, dx, dy, fgr),
+		'left_head_bg': get_thin_rect_vertices(x1, y1, endx, endy, bgr),
+		'right_head_bg': get_thin_rect_vertices(x2, y2, endx, endy, bgr),
+		'left_head_fg': get_thin_rect_vertices(x1, y1, endx, endy, fgr),
+		'right_head_fg': get_thin_rect_vertices(x2, y2, endx, endy, fgr)
+	}
+
+
 eight0s = tuple([0] * 8)
 
 
@@ -528,26 +539,17 @@ class ArrowPlane(Widget):
 		for port, ((ox, oy, dx, dy), (x1, y1, endx, endy, x2,
 										y2)) in points_map.items():
 			bgr = r * bg_scale_selected  # change for selectedness pls
-			shaft_quad_vertices_bg = get_thin_rect_vertices(
-				ox, oy, dx, dy, bgr)
-			shaft_quad_vertices_fg = get_thin_rect_vertices(ox, oy, dx, dy, r)
-			left_head_quad_vertices_bg = get_thin_rect_vertices(
-				x1, y1, endx, endy, bgr)
-			right_head_quad_vertices_bg = get_thin_rect_vertices(
-				x2, y2, endx, endy, bgr)
-			left_head_quad_vertices_fg = get_thin_rect_vertices(
-				x1, y1, endx, endy, r)
-			right_head_quad_vertices_fg = get_thin_rect_vertices(
-				x2, y2, endx, endy, r)
+			quadverts = get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy,
+											x2, y2, bgr, r)
 			instructions = {
 				'color0': Color(rgba=bg_color_unselected),
-				'shaft_bg': Quad(points=shaft_quad_vertices_bg),
-				'left_head_bg': Quad(points=left_head_quad_vertices_bg),
-				'right_head_bg': Quad(points=right_head_quad_vertices_bg),
+				'shaft_bg': Quad(points=quadverts['shaft_bg']),
+				'left_head_bg': Quad(points=quadverts['left_head_bg']),
+				'right_head_bg': Quad(points=quadverts['right_head_bg']),
 				'color1': Color(rgba=fg_color_unselected),
-				'shaft_fg': Quad(points=shaft_quad_vertices_fg),
-				'left_head_fg': Quad(points=left_head_quad_vertices_fg),
-				'right_head_fg': Quad(points=right_head_quad_vertices_fg),
+				'shaft_fg': Quad(points=quadverts['shaft_fg']),
+				'left_head_fg': Quad(points=quadverts['left_head_fg']),
+				'right_head_fg': Quad(points=quadverts['right_head_fg']),
 			}
 			instructions['group'] = grp = InstructionGroup()
 			grp.add(instructions['color0'])
@@ -578,7 +580,7 @@ class ArrowPlane(Widget):
 			bot_left_corner_ys.append(boty)
 			top_right_corner_xs.append(rightx)
 			top_right_corner_ys.append(topy)
-			colliders_map[port] = Collide2DPoly(points=shaft_quad_vertices_bg)
+			colliders_map[port] = Collide2DPoly(points=quadverts['shaft_bg'])
 		fbo.release()
 		self.canvas.ask_update()
 		self._port_l = port_l
