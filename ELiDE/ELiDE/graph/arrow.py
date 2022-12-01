@@ -484,6 +484,7 @@ class ArrowPlane(Widget):
 		self._points_map = {}
 		self._quads_map = {}
 		self._colliders_map = {}
+		self._instructions_map = {}
 		self._port_l = []
 		self._bot_left_corner_ys = []
 		self._bot_left_corner_xs = []
@@ -528,10 +529,10 @@ class ArrowPlane(Widget):
 		for port, ((ox, oy, dx, dy), (x1, y1, endx, endy, x2,
 										y2)) in points_map.items():
 			bgr = r * bg_scale_selected  # change for selectedness pls
-			trunk_quad_vertices_bg = get_thin_rect_vertices(
+			shaft_quad_vertices_bg = get_thin_rect_vertices(
 				ox, oy, dx, dy, bgr)
-			quads_map[port] = trunk_quad_vertices_bg
-			trunk_quad_vertices_fg = get_thin_rect_vertices(ox, oy, dx, dy, r)
+			quads_map[port] = shaft_quad_vertices_bg
+			shaft_quad_vertices_fg = get_thin_rect_vertices(ox, oy, dx, dy, r)
 			left_head_quad_vertices_bg = get_thin_rect_vertices(
 				x1, y1, endx, endy, bgr)
 			right_head_quad_vertices_bg = get_thin_rect_vertices(
@@ -540,14 +541,25 @@ class ArrowPlane(Widget):
 				x1, y1, endx, endy, r)
 			right_head_quad_vertices_fg = get_thin_rect_vertices(
 				x2, y2, endx, endy, r)
-			add(Color(rgba=bg_color_unselected))
-			add(Quad(points=trunk_quad_vertices_bg))
-			add(Quad(points=left_head_quad_vertices_bg))
-			add(Quad(points=right_head_quad_vertices_bg))
-			add(Color(rgba=fg_color_unselected))
-			add(Quad(points=trunk_quad_vertices_fg))
-			add(Quad(points=left_head_quad_vertices_fg))
-			add(Quad(points=right_head_quad_vertices_fg))
+			instructions = {
+				'color0': Color(rgba=bg_color_unselected),
+				'shaft_bg': Quad(points=shaft_quad_vertices_bg),
+				'left_head_bg': Quad(points=left_head_quad_vertices_bg),
+				'right_head_bg': Quad(points=right_head_quad_vertices_bg),
+				'color1': Color(rgba=fg_color_unselected),
+				'shaft_fg': Quad(points=shaft_quad_vertices_fg),
+				'left_head_fg': Quad(points=left_head_quad_vertices_fg),
+				'right_head_fg': Quad(points=right_head_quad_vertices_fg),
+			}
+			add(instructions['color0'])
+			add(instructions['shaft_bg'])
+			add(instructions['left_head_bg'])
+			add(instructions['right_head_bg'])
+			add(instructions['color1'])
+			add(instructions['shaft_fg'])
+			add(instructions['left_head_fg'])
+			add(instructions['right_head_fg'])
+			self._instructions_map[port] = instructions
 			if ox < dx:
 				leftx = ox
 				rightx = dx
