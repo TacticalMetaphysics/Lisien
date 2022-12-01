@@ -604,6 +604,7 @@ class ArrowPlane(Widget):
 			dat = list(getattr(self, arr))
 			del dat[index]
 			setattr(self, arr, np.array(dat))
+		self.canvas.ask_update()
 
 	def iter_collided_edges(self, x, y):
 		collider_map = self._colliders_map
