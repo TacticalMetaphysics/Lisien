@@ -110,7 +110,7 @@ class GraphBoard(RelativeLayout):
 	arrow_plane = ObjectProperty()
 	spotlayout = ObjectProperty()
 	kvlayoutfront = ObjectProperty()
-	wids = ReferenceListProperty(wallpaper, kvlayoutback, arrowlayout,
+	wids = ReferenceListProperty(wallpaper, kvlayoutback, arrow_plane,
 									spotlayout, kvlayoutfront)
 	spots_unposd = ListProperty([])
 	layout_tries = NumericProperty(5)
