@@ -147,7 +147,8 @@ class GraphBoard(RelativeLayout):
 		touch.push()
 		touch.apply_transform_2d(self.to_local)
 		if self.app.selection:
-			if self.app.selection.collide_point(*touch.pos):
+			if self.app.selection.collide_point(*touch.pos) and hasattr(
+				self.app.selection, '__self__'):
 				Logger.debug("Board: hit selection")
 				touch.grab(self.app.selection)
 		pawns = list(self.pawns_at(*touch.pos))
@@ -248,6 +249,19 @@ class GraphBoard(RelativeLayout):
 
 	def on_touch_up(self, touch):
 		"""Delegate touch handling if possible, else select something."""
+
+		def unsel_graph_arrow():
+			port = self.app.selection.portal
+			insts = self.arrow_plane._instructions_map[port['origin'],
+														port['destination']]
+			fbo = self.arrow_plane._fbo
+			fbo.bind()
+			insts['color0'].rgba = self.arrow_plane.bg_color_unselected
+			insts['color1'].rgba = self.arrow_plane.fg_color_unselected
+			fbo.clear_buffer()
+			fbo.release()
+			self.arrow_plane.canvas.ask_update()
+
 		if hasattr(self, '_lasttouch') and self._lasttouch == touch:
 			return
 		self._lasttouch = touch
@@ -263,12 +277,28 @@ class GraphBoard(RelativeLayout):
 			self.app.selection.dispatch('on_touch_up', touch)
 		for candidate in self.selection_candidates:
 			if candidate.collide_point(*touch.pos):
+				if isinstance(candidate, GraphArrow):
+					if candidate.reciprocal and (candidate.portal.get(
+						'is_mirror', False) or candidate.reciprocal.portal.get(
+							'is_mirror', False)):
+						candidate = candidate.reciprocal
+					insts = self.arrow_plane._instructions_map[
+						candidate.portal['origin'],
+						candidate.portal['destination']]
+					fbo = self.arrow_plane._fbo
+					fbo.bind()
+					insts['color0'].rgba = self.arrow_plane.bg_color_selected
+					insts['color1'].rgba = self.arrow_plane.fg_color_selected
+					fbo.clear_buffer()
+					fbo.release()
+					self.arrow_plane.canvas.ask_update()
 				if hasattr(candidate, 'selected'):
-					# check reciprocal arrow selection here
 					candidate.selected = True
-				if hasattr(self.app.selection, 'selected'):
+				if hasattr(self.app.selection,
+							'selected') and self.app.selection != candidate:
 					self.app.selection.selected = False
-					# check reciprocal arrow selection here
+				if isinstance(self.app.selection, GraphArrow):
+					unsel_graph_arrow()
 				self.app.selection = candidate
 				self.keep_selection = True
 				if hasattr(candidate, 'parent'):
@@ -283,7 +313,8 @@ class GraphBoard(RelativeLayout):
 			Logger.debug("Board: deselecting " + repr(self.app.selection))
 			if hasattr(self.app.selection, 'selected'):
 				self.app.selection.selected = False
-				# handle reciprocal arrow deselection here
+			if isinstance(self.app.selection, GraphArrow):
+				unsel_graph_arrow()
 			self.app.selection = None
 		self.keep_selection = False
 		touch.ungrab(self)
