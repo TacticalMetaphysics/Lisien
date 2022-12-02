@@ -476,10 +476,12 @@ class EngineHandle(object):
 		for (char, node), val in kf['node_val'].items():
 			ret.setdefault(char, {}).setdefault('node_val', {})[node] = val
 		for (char, orig, dest), ex in kf['edges'].items():
-			ret.setdefault(char, {}).setdefault('edges', {})[orig, dest] = ex
-		for (char, orig, dest, key), value in kf['edge_val'].items():
-			ret.setdefault(char, {}).setdefault('edge_val', {}).setdefault(
-				orig, {}).setdefault(dest, {})[key] = value
+			ret.setdefault(char, {}).setdefault('edges', {})[orig,
+																dest] = ex[0]
+		for (char, orig, dest, idx), mapp in kf['edge_val'].items():
+			for key, value in mapp.items():
+				ret.setdefault(char, {}).setdefault('edge_val', {}).setdefault(
+					orig, {}).setdefault(dest, {})[key] = value
 		return ret
 
 	@prepacked
