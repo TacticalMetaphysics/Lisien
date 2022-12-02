@@ -65,17 +65,17 @@ class GraphSpot(GraphPawnSpot):
 								y2) = get_points(spot[orig], spot[dest],
 													arrowhead_size)
 			if ox < dx:
-				bot_left_xs[idx] = ox
-				top_right_xs[idx] = dx
+				bot_left_xs[idx] = ox - bgr
+				top_right_xs[idx] = dx + bgr
 			else:
-				bot_left_xs[idx] = dx
-				top_right_xs[idx] = ox
+				bot_left_xs[idx] = dx - bgr
+				top_right_xs[idx] = ox + bgr
 			if oy < dy:
-				bot_left_ys[idx] = oy
-				top_right_ys[idx] = dy
+				bot_left_ys[idx] = oy - bgr
+				top_right_ys[idx] = dy + bgr
 			else:
-				bot_left_ys[idx] = dy
-				top_right_ys[idx] = oy
+				bot_left_ys[idx] = dy - bgr
+				top_right_ys[idx] = oy + bgr
 			quadverts = get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy,
 											x2, y2, bgr, r)
 			inst['shaft_bg'].points = collider.points = quadverts['shaft_bg']
