@@ -248,85 +248,18 @@ def get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2, bgr, fgr):
 eight0s = tuple([0] * 8)
 
 
-class GraphArrow(InstructionGroup):
-	"""An arrow that points from one :class:`~LiSE.gui.graph.Spot` to another.
+class GraphArrow:
 
-	:class:`Arrow`s are the graphical representations of
-	:class:`~LiSE.model.Portal`s. They point from the :class:`Spot`
-	representing the :class:`Portal`'s origin, to the one representing
-	its destination.
+	@property
+	def origin(self):
+		return self.board.spot[self.portal['origin']]
 
-	"""
-	board = ObjectProperty()
-	name = StringProperty()
-	margin = NumericProperty(10)
-	"""When deciding whether a touch collides with me, how far away can
-	the touch get before I should consider it a miss?"""
-	w = NumericProperty(2)
-	"""The width of the inner, brighter portion of the :class:`Arrow`. The
-	whole :class:`Arrow` will end up thicker."""
-	pawns_here = ListProperty()
-	trunk_points = ListProperty()
-	head_points = ListProperty()
-	points = ReferenceListProperty(trunk_points, head_points)
-	trunk_quad_vertices_bg = ListProperty(eight0s)
-	trunk_quad_vertices_fg = ListProperty(eight0s)
-	left_head_quad_vertices_bg = ListProperty(eight0s)
-	right_head_quad_vertices_bg = ListProperty(eight0s)
-	left_head_quad_vertices_fg = ListProperty(eight0s)
-	right_head_quad_vertices_fg = ListProperty(eight0s)
-	slope = NumericProperty(0.0, allownone=True)
-	origin = ObjectProperty()
-	destination = ObjectProperty()
-	repointed = BooleanProperty(True)
-	selected = BooleanProperty(False)
-	bg_color_unselected_head = ListProperty()
-	bg_color_selected_head = ListProperty()
-	fg_color_unselected_head = ListProperty()
-	fg_color_selected_head = ListProperty()
-	collide_radius = NumericProperty(3)
-	collider = ObjectProperty()
-	portal = ObjectProperty()
+	@property
+	def destination(self):
+		return self.board.spot[self.portal['destination']]
 
-	def collide_point(self, x, y):
-		"""Delegate to my ``collider``, or return ``False`` if I don't have
-		one.
-
-		"""
-		if not self.collider:
-			return False
-		return (x, y) in self.collider
-
-	def __init__(self, **kwargs):
-		"""Create trigger for my _repoint method. Delegate to parent for
-		everything else.
-
-		"""
-		super().__init__(**kwargs)
-		self._repoint()
-
-	def pos_along(self, pct):
-		"""Return coordinates for where a Pawn should be if it has travelled
-		along ``pct`` of my length (between 0 and 1).
-
-		Might get complex when I switch over to using beziers for
-		arrows, but for now this is quite simple, using distance along
-		a line segment.
-
-		"""
-		if pct < 0 or pct > 1:
-			raise ValueError("Invalid portion")
-		(ox, oy) = self.origin.center
-		(dx, dy) = self.destination.center
-		xdist = (dx - ox) * pct
-		ydist = (dy - oy) * pct
-		return (ox + xdist, oy + ydist)
-
-	def _get_points(self):
-		"""Return the coordinates of the points that describe my shape."""
-		return get_points(self.origin, self.destination, self.arrowhead_size)
-
-	def _get_slope(self):
+	@property
+	def slope(self):
 		"""Return a float of the increase in y divided by the increase in x,
 		both from left to right."""
 		orig = self.origin
@@ -344,7 +277,8 @@ class GraphArrow(InstructionGroup):
 			run = dx - ox
 			return rise / run
 
-	def _get_b(self):
+	@property
+	def y_intercept(self):
 		"""Return my Y-intercept.
 
 		I probably don't really hit the left edge of the window, but
@@ -358,122 +292,43 @@ class GraphArrow(InstructionGroup):
 		denominator = dx - ox
 		x_numerator = (dy - oy) * ox
 		y_numerator = denominator * oy
-		return ((y_numerator - x_numerator), denominator)
+		return (y_numerator - x_numerator), denominator
 
-	def _repoint(self, *args):
-		"""Recalculate points, y-intercept, and slope"""
-		if self.origin is None:
-			print("No origin")
+	@property
+	def reciprocal(self):
+		if self.portal['destination'] not in self.board.pred_arrow:
 			return
-		if self.destination is None:
-			print("No destination")
+		if self.portal['origin'] not in self.board.pred_arrow[
+			self.portal['destination']]:
 			return
-		try:
-			(self.trunk_points, self.head_points) = self._get_points()
-		except ValueError:
-			self.trunk_points = self.head_points = []
-			return
-		(ox, oy, dx, dy) = self.trunk_points
-		r = self.w / 2
-		bgr = r * (self.bg_scale_selected
-					if self.selected else self.bg_scale_unselected)
-		self.trunk_quad_vertices_bg = get_thin_rect_vertices(
-			ox, oy, dx, dy, bgr)
-		self.collider = Collide2DPoly(self.trunk_quad_vertices_bg)
-		self.trunk_quad_vertices_fg = get_thin_rect_vertices(ox, oy, dx, dy, r)
-		(x1, y1, endx, endy, x2, y2) = self.head_points
-		self.left_head_quad_vertices_bg = get_thin_rect_vertices(
-			x1, y1, endx, endy, bgr)
-		self.right_head_quad_vertices_bg = get_thin_rect_vertices(
-			x2, y2, endx, endy, bgr)
-		self.left_head_quad_vertices_fg = get_thin_rect_vertices(
-			x1, y1, endx, endy, r)
-		self.right_head_quad_vertices_fg = get_thin_rect_vertices(
-			x2, y2, endx, endy, r)
-		self.slope = self._get_slope()
-		self.repointed = True
+		return self.board.pred_arrow[self.portal['destination']][
+			self.portal['origin']]
 
-	@trigger
-	def _pull_bg_color0(self, *args):
-		self._color0.rgba = self.bg_color_selected if self.selected else self.bg_color_unselected
+	def __init__(self, board, portal):
+		self.board = board
+		self.portal = portal
 
-	@trigger
-	def _pull_points_quad0(self, *args):
-		self._quad0.points = self.trunk_quad_vertices_bg
+	def collide_point(self, x, y):
+		return self.board.arrow_plane._colliders_map[
+			self.portal['origin'],
+			self.portal['destination']].collide_point(x, y)
 
-	@trigger
-	def _pull_head_bg_color1(self, *args):
-		if self.selected:
-			self._color1.rgba = self.bg_color_selected_head or self.bg_color_selected
-		else:
-			self._color1.rgba = self.bg_color_unselected_head or self.bg_color_unselected
+	def pos_along(self, pct):
+		"""Return coordinates for where a Pawn should be if it has travelled
+		along ``pct`` of my length (between 0 and 1).
 
-	@trigger
-	def _pull_bg_left_head_points_quad1_0(self, *args):
-		self._quad1_0.points = self.left_head_quad_vertices_bg
+		Might get complex when I switch over to using beziers for
+		arrows, but for now this is quite simple, using distance along
+		a line segment.
 
-	@trigger
-	def _pull_bg_right_head_points_quad1_1(self, *args):
-		self._quad1_1.points = self.right_head_quad_vertices_bg
-
-	@trigger
-	def _pull_color2(self, *args):
-		if self.selected:
-			self._color2.rgba = self.fg_color_selected
-		else:
-			self._color2.rgba = self.fg_color_unselected
-
-	@trigger
-	def _pull_color3(self, *args):
-		if self.selected:
-			self._color3.rgba = self.fg_color_selected_head or self.fg_color_selected
-		else:
-			self._color3.rgba = self.fg_color_unselected_head or self.fg_color_unselected
-
-	@trigger
-	def _pull_quad2_points(self, *args):
-		self._quad2.points = self.trunk_quad_vertices_fg
-
-	@trigger
-	def _pull_points_quad3_0(self, *args):
-		self._quad3_0.points = self.left_head_quad_vertices_fg
-
-	@trigger
-	def _pull_points_quad3_1(self, *args):
-		self._quad3_1.points = self.right_head_quad_vertices_fg
-
-	def draw(self, *args):
-		self.clear()
-		self._repoint()
-		self._color0 = color0 = Color(rgba=self.bg_color_selected if self.
-										selected else self.bg_color_unselected)
-		add = self.add
-		add(color0)
-		self._quad0 = quad0 = Quad(points=self.trunk_quad_vertices_bg)
-		add(quad0)
-		self._color1 = color1 = Color(rgba=(
-			self.bg_color_selected_head or self.bg_color_selected
-		) if self.selected else (
-			self.bg_color_unselected_head or self.bg_color_unselected))
-		add(color1)
-		self._quad1_0 = quad1_0 = Quad(points=self.left_head_quad_vertices_bg)
-		add(quad1_0)
-		self._quad1_1 = quad1_1 = Quad(points=self.right_head_quad_vertices_bg)
-		add(quad1_1)
-		self._color2 = color2 = Color(rgba=self.fg_color_selected if self.
-										selected else self.fg_color_unselected)
-		add(color2)
-		self._quad2 = quad2 = Quad(points=self.trunk_quad_vertices_fg)
-		add(quad2)
-		self._color3 = color3 = Color(rgba=(
-			self.fg_color_selected_head or self.fg_color_selected
-		) if self.selected else (
-			self.fg_color_unselected_head or self.fg_color_unselected))
-		add(color3)
-		self._quad3_0 = quad3_0 = Quad(points=self.left_head_quad_vertices_fg)
-		add(quad3_0)
-		self._quad3_1 = quad3_1 = Quad(points=self.right_head_quad_vertices_fg)
-		add(quad3_1)
+		"""
+		if pct < 0 or pct > 1:
+			raise ValueError("Invalid portion")
+		(ox, oy) = self.origin.center
+		(dx, dy) = self.destination.center
+		xdist = (dx - ox) * pct
+		ydist = (dy - oy) * pct
+		return (ox + xdist, oy + ydist)
 
 
 class ArrowPlane(Widget):
@@ -576,10 +431,10 @@ class ArrowPlane(Widget):
 				topy = oy
 			port_index[port] = len(port_l)
 			port_l.append(port)
-			bot_left_corner_xs.append(leftx)
-			bot_left_corner_ys.append(boty)
-			top_right_corner_xs.append(rightx)
-			top_right_corner_ys.append(topy)
+			bot_left_corner_xs.append(leftx - bgr)
+			bot_left_corner_ys.append(boty - bgr)
+			top_right_corner_xs.append(rightx + bgr)
+			top_right_corner_ys.append(topy + bgr)
 			colliders_map[port] = Collide2DPoly(points=quadverts['shaft_bg'])
 		fbo.release()
 		self.canvas.ask_update()

@@ -13,7 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The big widget that shows the graph of the selected Character."""
+from collections import defaultdict
 from functools import partial
+
 from kivy.properties import (BooleanProperty, ReferenceListProperty,
 								DictProperty, ObjectProperty, NumericProperty,
 								ListProperty, StringProperty)
@@ -125,7 +127,7 @@ class GraphBoard(RelativeLayout):
 	grabbed = ObjectProperty(None, allownone=True)
 	spot_cls = ObjectProperty(GraphSpot)
 	pawn_cls = ObjectProperty(Pawn)
-	arrow_cls = True
+	arrow_cls = GraphArrow
 	proto_arrow_cls = ObjectProperty(GraphArrow)
 	_scheduled_rm_spot = DictProperty()
 	_scheduled_rm_arrow = DictProperty()
@@ -176,7 +178,20 @@ class GraphBoard(RelativeLayout):
 					self.add_widget(self.protoportal2)
 			touch.pop()
 			return True
-		# put arrow collision detection here
+		edges = list(self.arrow_plane.iter_collided_edges(*touch.pos))
+		if edges:
+			Logger.debug("Board: hit {} arrows".format(len(edges)))
+			self.selection_candidates = [
+				self.arrow[orig][dest] for (orig, dest) in edges
+			]
+			if self.app.selection in self.selection_candidates:
+				self.selection_candidates.remove(self.app.selection)
+			if isinstance(
+				self.app.selection, GraphArrow
+			) and self.app.selection.reciprocal in self.selection_candidates:
+				self.selection_candidates.remove(self.app.selection.reciprocal)
+			touch.pop()
+			return True
 		touch.pop()
 
 	def on_touch_move(self, touch):
@@ -256,9 +271,13 @@ class GraphBoard(RelativeLayout):
 					# check reciprocal arrow selection here
 				self.app.selection = candidate
 				self.keep_selection = True
-				parent = candidate.parent
-				parent.remove_widget(candidate)
-				parent.add_widget(candidate)
+				if hasattr(candidate, 'parent'):
+					# Causes Pawns to reposition within their parent,
+					# and Spots to save their positions.
+					# Better way to do this?
+					parent = candidate.parent
+					parent.remove_widget(candidate)
+					parent.add_widget(candidate)
 				break
 		if not self.keep_selection:
 			Logger.debug("Board: deselecting " + repr(self.app.selection))
@@ -402,12 +421,6 @@ class GraphBoard(RelativeLayout):
 			r["points"] = points
 		orign = portal["origin"]
 		destn = portal["destination"]
-		if orign not in arrowmap:
-			arrowmap[orign] = {}
-		arrowmap[orign][destn] = r
-		if destn not in pred_arrowmap:
-			arrowmap[destn] = {}
-		arrowmap[destn][orign] = r
 		return r
 
 	def rm_arrows_to_and_from(self, name):
@@ -575,9 +588,16 @@ class GraphBoard(RelativeLayout):
 		if not (orign in self.character.portal
 				and destn in self.character.portal[orign]):
 			raise ValueError("No portal for arrow {}->{}".format(orign, destn))
+		portal = self.character.portal[orign][destn]
 		if not (orign in self.arrow and destn in self.arrow[orign]):
-			self.arrow_plane.data.append(
-				self.make_arrow(self.character.portal[orign][destn]))
+			self.arrow_plane.data.append(self.make_arrow(portal))
+			the_arrow = GraphArrow(self, portal)
+			if orign not in self.arrow:
+				self.arrow[orign] = {}
+			self.arrow[orign][destn] = the_arrow
+			if destn not in self.pred_arrow:
+				self.pred_arrow[destn] = {}
+			self.pred_arrow[destn][orign] = the_arrow
 
 	def add_new_arrows(self, *args):
 		Logger.debug("Board: adding new arrows to {}".format(
@@ -595,14 +615,15 @@ class GraphBoard(RelativeLayout):
 					or arrow_dest not in arrowmap[arrow_orig]):
 					todo.append(
 						(portal, spotmap[arrow_orig], spotmap[arrow_dest]))
+					the_arr = GraphArrow(self, portmap[arrow_orig][arrow_dest])
 					if arrow_orig not in arrowmap:
 						arrowmap[arrow_orig] = {}
 					if arrow_dest not in arrowmap[arrow_orig]:
-						arrowmap[arrow_orig][arrow_dest] = True
+						arrowmap[arrow_orig][arrow_dest] = the_arr
 					if arrow_dest not in pred_arrowmap:
 						pred_arrowmap[arrow_dest] = {}
 					if arrow_orig not in pred_arrowmap[arrow_dest]:
-						pred_arrowmap[arrow_dest][arrow_orig] = True
+						pred_arrowmap[arrow_dest][arrow_orig] = the_arr
 		points = get_points_multi(
 			(origspot, destspot, 10) for (portal, origspot, destspot) in todo)
 		for portal, origspot, destspot in todo:
