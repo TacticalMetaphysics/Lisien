@@ -765,8 +765,8 @@ class EngineHandle(object):
 				delta[graph][EDGES] = {pack((orig, dest)): FALSE}
 			else:
 				delta[graph][EDGES][pack((orig, dest))] = FALSE
-		for graph, orig, dest, _ in kf_to['edges'].keys(
-		) - kf_from['edges'].keys():
+		for graph, orig, dest in kf_to['edges'].keys() - kf_from['edges'].keys(
+		):
 			graph = pack(graph)
 			if graph not in delta:
 				delta[graph] = {EDGES: {pack((orig, dest)): TRUE}}
