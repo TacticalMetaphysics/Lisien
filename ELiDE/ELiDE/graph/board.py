@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The big widget that shows the graph of the selected Character."""
-from collections import defaultdict
 from functools import partial
 
 from kivy.properties import (BooleanProperty, ReferenceListProperty,
@@ -30,7 +29,7 @@ from kivy.graphics.transformation import Matrix
 from kivy.vector import Vector
 
 from .spot import GraphSpot
-from .arrow import GraphArrow, ArrowPlane, get_points_multi
+from .arrow import GraphArrow, GraphArrowWidget, ArrowPlane, get_points_multi
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
@@ -128,7 +127,7 @@ class GraphBoard(RelativeLayout):
 	spot_cls = ObjectProperty(GraphSpot)
 	pawn_cls = ObjectProperty(Pawn)
 	arrow_cls = GraphArrow
-	proto_arrow_cls = ObjectProperty(GraphArrow)
+	proto_arrow_cls = ObjectProperty(GraphArrowWidget)
 	_scheduled_rm_spot = DictProperty()
 	_scheduled_rm_arrow = DictProperty()
 	_scheduled_discard_pawn = DictProperty()
@@ -171,11 +170,15 @@ class GraphBoard(RelativeLayout):
 				self.add_widget(self.protodest)
 				self.protodest.on_touch_down(touch)
 				self.protoportal = self.proto_arrow_cls(
-					origin=self.origspot, destination=self.protodest)
+					board=self,
+					origin=self.origspot,
+					destination=self.protodest)
 				self.add_widget(self.protoportal)
 				if self.reciprocal_portal:
 					self.protoportal2 = self.proto_arrow_cls(
-						destination=self.origspot, origin=self.protodest)
+						board=self,
+						destination=self.origspot,
+						origin=self.protodest)
 					self.add_widget(self.protoportal2)
 			touch.pop()
 			return True
@@ -214,6 +217,11 @@ class GraphBoard(RelativeLayout):
 					touch.grab(cand)
 					ret = super().on_touch_move(touch)
 					return ret
+		if hasattr(self, 'protodest'):
+			self.protodest.pos = touch.pos
+			self.protoportal._trigger_repoint()
+			if hasattr(self, 'protoportal2'):
+				self.protoportal2._trigger_repoint()
 
 	def portal_touch_up(self, touch):
 		"""Try to create a portal between the spots the user chose."""
@@ -239,12 +247,11 @@ class GraphBoard(RelativeLayout):
 							self.character.portal[dest.name][orig.name]))
 		except StopIteration:
 			pass
-		self.canvas.remove(self.protoportal)
-		if hasattr(self, 'protoportal2'):
-			self.canvas.remove(self.protoportal2)
-			del self.protoportal2
-		self.canvas.remove(self.protodest)
+		self.remove_widget(self.protoportal)
 		del self.protoportal
+		if hasattr(self, 'protoportal2'):
+			self.remove_widget(self.protoportal2)
+			del self.protoportal2
 		del self.protodest
 
 	def on_touch_up(self, touch):
@@ -622,7 +629,9 @@ class GraphBoard(RelativeLayout):
 		portal = self.character.portal[orign][destn]
 		if not (orign in self.arrow and destn in self.arrow[orign]):
 			self.arrow_plane.data.append(self.make_arrow(portal))
-			the_arrow = GraphArrow(self, portal)
+			the_arrow = GraphArrow(board=self,
+									origin=self.spot[orign],
+									destination=self.spot[destn])
 			if orign not in self.arrow:
 				self.arrow[orign] = {}
 			self.arrow[orign][destn] = the_arrow
@@ -646,7 +655,9 @@ class GraphBoard(RelativeLayout):
 					or arrow_dest not in arrowmap[arrow_orig]):
 					todo.append(
 						(portal, spotmap[arrow_orig], spotmap[arrow_dest]))
-					the_arr = GraphArrow(self, portmap[arrow_orig][arrow_dest])
+					the_arr = GraphArrow(board=self,
+											origin=spotmap[arrow_orig],
+											destination=spotmap[arrow_dest])
 					if arrow_orig not in arrowmap:
 						arrowmap[arrow_orig] = {}
 					if arrow_dest not in arrowmap[arrow_orig]:

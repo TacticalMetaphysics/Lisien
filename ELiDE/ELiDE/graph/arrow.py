@@ -26,7 +26,7 @@ import numpy as np
 from kivy.uix.widget import Widget
 from kivy.graphics.fbo import Fbo
 from kivy.graphics import (Translate, Rectangle, Quad, Color, InstructionGroup)
-from kivy.properties import (NumericProperty, ListProperty)
+from kivy.properties import (NumericProperty, ListProperty, ObjectProperty)
 from kivy.clock import Clock
 
 try:
@@ -247,14 +247,6 @@ eight0s = tuple([0] * 8)
 class GraphArrow:
 
 	@property
-	def origin(self):
-		return self.board.spot[self.portal['origin']]
-
-	@property
-	def destination(self):
-		return self.board.spot[self.portal['destination']]
-
-	@property
 	def slope(self):
 		"""Return a float of the increase in y divided by the increase in x,
 		both from left to right.
@@ -296,22 +288,21 @@ class GraphArrow:
 
 	@property
 	def reciprocal(self):
-		if self.portal['destination'] not in self.board.pred_arrow:
+		if self.destination.name not in self.board.pred_arrow:
 			return
-		if self.portal['origin'] not in self.board.pred_arrow[
-			self.portal['destination']]:
+		if self.origin.name not in self.board.pred_arrow[
+			self.destination.name]:
 			return
-		return self.board.pred_arrow[self.portal['destination']][
-			self.portal['origin']]
+		return self.board.pred_arrow[self.destination.name][self.origin.name]
 
-	def __init__(self, board, portal):
+	def __init__(self, *, board, origin, destination):
 		self.board = board
-		self.portal = portal
+		self.origin = origin
+		self.destination = destination
 
 	def collide_point(self, x, y):
 		return self.board.arrow_plane._colliders_map[
-			self.portal['origin'],
-			self.portal['destination']].collide_point(x, y)
+			self.origin.name, self.destination.name].collide_point(x, y)
 
 	def pos_along(self, pct):
 		"""Return coordinates for where a Pawn should be if it has travelled
@@ -329,6 +320,84 @@ class GraphArrow:
 		xdist = (dx - ox) * pct
 		ydist = (dy - oy) * pct
 		return ox + xdist, oy + ydist
+
+
+def get_instructions(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2, bgr, r,
+						bg_color, fg_color):
+	quadverts = get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2,
+									bgr, r)
+	return {
+		'color0': Color(rgba=bg_color),
+		'shaft_bg': Quad(points=quadverts['shaft_bg']),
+		'left_head_bg': Quad(points=quadverts['left_head_bg']),
+		'right_head_bg': Quad(points=quadverts['right_head_bg']),
+		'color1': Color(rgba=fg_color),
+		'shaft_fg': Quad(points=quadverts['shaft_fg']),
+		'left_head_fg': Quad(points=quadverts['left_head_fg']),
+		'right_head_fg': Quad(points=quadverts['right_head_fg']),
+	}
+
+
+class GraphArrowWidget(Widget, GraphArrow):
+	arrowhead_size = NumericProperty(10)
+	arrow_width = NumericProperty(2)
+	bg_scale = NumericProperty(5)
+	bg_color = ListProperty([0.5, 0.5, 0.5, 0.5])
+	fg_color = ListProperty([1.0, 1.0, 1.0, 1.0])
+
+	def __init__(self, **kwargs):
+		self._trigger_repoint = Clock.create_trigger(self.repoint)
+		super().__init__(**kwargs)
+
+	def on_origin(self, *args):
+		if hasattr(self, '_origin_bind_uid'):
+			self.unbind_uid(self._origin_bind_uid)
+			del self._origin_bind_uid
+		if not self.origin:
+			return
+		self._origin_bind_uid = self.origin.fbind('pos', self._trigger_repoint)
+
+	def on_destination(self, *args):
+		if hasattr(self, '_destination_bind_uid'):
+			self.unbind_uid(self._destination_bind_uid)
+			del self._destination_bind_uid
+		if not self.destination:
+			return
+		self._destination_bind_uid = self.destination.fbind(
+			'pos', self._trigger_repoint)
+
+	def on_parent(self, *args):
+		if not self.origin or not self.destination or not self.canvas:
+			Clock.schedule_once(self.on_parent, 0)
+			return
+		self.canvas.clear()
+		if self.parent is None:
+			return
+		shaft_points, head_points = get_points(self.origin, self.destination,
+												self.arrowhead_size)
+		with self.canvas:
+			args = shaft_points + head_points + [
+				self.bg_scale * self.arrow_width, self.arrow_width,
+				self.bg_color, self.fg_color
+			]
+			print(args)
+			self._instructions = get_instructions(*args)
+
+	def repoint(self, *args):
+		shaft_points, head_points = get_points(self.origin, self.destination,
+												self.arrowhead_size)
+		verts = get_quad_vertices(*shaft_points, *head_points,
+									self.arrow_width * self.bg_scale,
+									self.arrow_width)
+		insts = self._instructions
+		insts['color0'].rgba = self.bg_color
+		insts['color1'].rgba = self.fg_color
+		insts['shaft_bg'].points = verts['shaft_bg']
+		insts['left_head_bg'].points = verts['left_head_bg']
+		insts['right_head_bg'].points = verts['right_head_bg']
+		insts['shaft_fg'].points = verts['shaft_fg']
+		insts['left_head_fg'].points = verts['left_head_fg']
+		insts['right_head_fg'].points = verts['right_head_fg']
 
 
 class ArrowPlane(Widget):
@@ -394,18 +463,10 @@ class ArrowPlane(Widget):
 		for port, ((ox, oy, dx, dy), (x1, y1, endx, endy, x2,
 										y2)) in points_map.items():
 			bgr = r * bg_scale_selected  # change for selectedness pls
-			quadverts = get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy,
-											x2, y2, bgr, r)
-			instructions = {
-				'color0': Color(rgba=bg_color_unselected),
-				'shaft_bg': Quad(points=quadverts['shaft_bg']),
-				'left_head_bg': Quad(points=quadverts['left_head_bg']),
-				'right_head_bg': Quad(points=quadverts['right_head_bg']),
-				'color1': Color(rgba=fg_color_unselected),
-				'shaft_fg': Quad(points=quadverts['shaft_fg']),
-				'left_head_fg': Quad(points=quadverts['left_head_fg']),
-				'right_head_fg': Quad(points=quadverts['right_head_fg']),
-			}
+			instructions = get_instructions(ox, oy, dx, dy, x1, y1, endx, endy,
+											x2, y2, bgr, r,
+											bg_color_unselected,
+											fg_color_unselected)
 			instructions['group'] = grp = InstructionGroup()
 			grp.add(instructions['color0'])
 			grp.add(instructions['shaft_bg'])
@@ -435,7 +496,8 @@ class ArrowPlane(Widget):
 			bot_left_corner_ys.append(boty - bgr)
 			top_right_corner_xs.append(rightx + bgr)
 			top_right_corner_ys.append(topy + bgr)
-			colliders_map[port] = Collide2DPoly(points=quadverts['shaft_bg'])
+			colliders_map[port] = Collide2DPoly(
+				points=instructions['shaft_bg'].points)
 		fbo.release()
 		self.canvas.ask_update()
 		self._port_l = port_l
