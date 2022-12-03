@@ -26,12 +26,8 @@ import numpy as np
 from kivy.uix.widget import Widget
 from kivy.graphics.fbo import Fbo
 from kivy.graphics import (Translate, Rectangle, Quad, Color, InstructionGroup)
-from kivy.properties import (ReferenceListProperty, ObjectProperty,
-								NumericProperty, ListProperty, BooleanProperty,
-								StringProperty)
+from kivy.properties import (NumericProperty, ListProperty)
 from kivy.clock import Clock
-
-from ..util import trigger
 
 try:
 	from kivy.garden.collider import Collide2DPoly
@@ -63,7 +59,7 @@ def up_and_down(orig, dest, taillen):
 	x1 = endx - off1
 	x2 = endx + off1
 	y1 = y2 = endy - off2 if oy < dy else endy + off2
-	return ([x0, y0, endx, endy], [x1, y1, endx, endy, x2, y2])
+	return [x0, y0, endx, endy], [x1, y1, endx, endy, x2, y2]
 
 
 def left_and_right(orig, dest, taillen):
@@ -86,7 +82,7 @@ def left_and_right(orig, dest, taillen):
 	y1 = endy - off1
 	y2 = endy + off1
 	x1 = x2 = endx - off2 if ox < dx else endx + off2
-	return ([x0, y0, endx, endy], [x1, y1, endx, endy, x2, y2])
+	return [x0, y0, endx, endy], [x1, y1, endx, endy, x2, y2]
 
 
 def _get_points_first_part(orig, dest, taillen):
@@ -231,7 +227,7 @@ def get_points(orig, dest, taillen):
 	starty = boty * yco
 	endx = rightx * xco
 	endy = topy * yco
-	return ([startx, starty, endx, endy], [x1, y1, endx, endy, x2, y2])
+	return [startx, starty, endx, endy], [x1, y1, endx, endy, x2, y2]
 
 
 def get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2, bgr, fgr):
@@ -261,7 +257,11 @@ class GraphArrow:
 	@property
 	def slope(self):
 		"""Return a float of the increase in y divided by the increase in x,
-		both from left to right."""
+		both from left to right.
+
+		Returns ``None`` when vertical.
+
+		"""
 		orig = self.origin
 		dest = self.destination
 		ox = orig.x
@@ -269,7 +269,7 @@ class GraphArrow:
 		dx = dest.x
 		dy = dest.y
 		if oy == dy:
-			return 0
+			return 0.
 		elif ox == dx:
 			return None
 		else:
@@ -328,7 +328,7 @@ class GraphArrow:
 		(dx, dy) = self.destination.center
 		xdist = (dx - ox) * pct
 		ydist = (dy - oy) * pct
-		return (ox + xdist, oy + ydist)
+		return ox + xdist, oy + ydist
 
 
 class ArrowPlane(Widget):
