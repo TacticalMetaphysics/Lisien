@@ -376,9 +376,9 @@ class GraphArrowWidget(Widget, GraphArrow):
 		shaft_points, head_points = get_points(self.origin, self.destination,
 												self.arrowhead_size)
 		with self.canvas:
+			r = self.arrow_width / 2
 			args = shaft_points + head_points + [
-				self.bg_scale * self.arrow_width, self.arrow_width,
-				self.bg_color, self.fg_color
+				self.bg_scale * r, r, self.bg_color, self.fg_color
 			]
 			print(args)
 			self._instructions = get_instructions(*args)
@@ -386,9 +386,9 @@ class GraphArrowWidget(Widget, GraphArrow):
 	def repoint(self, *args):
 		shaft_points, head_points = get_points(self.origin, self.destination,
 												self.arrowhead_size)
+		r = self.arrow_width / 2
 		verts = get_quad_vertices(*shaft_points, *head_points,
-									self.arrow_width * self.bg_scale,
-									self.arrow_width)
+									r * self.bg_scale, r)
 		insts = self._instructions
 		insts['color0'].rgba = self.bg_color
 		insts['color1'].rgba = self.fg_color
