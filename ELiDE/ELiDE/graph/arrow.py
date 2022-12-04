@@ -539,6 +539,7 @@ class ArrowPlane(Widget):
 		else:
 			bot_y = dy
 			top_y = oy
+		self._port_l.append((orig_spot.name, dest_spot.name))
 		self._bot_left_corner_xs = np.array(
 			list(self._bot_left_corner_xs) + [left_x - bgr])
 		self._bot_left_corner_ys = np.array(
@@ -547,6 +548,8 @@ class ArrowPlane(Widget):
 			list(self._top_right_corner_xs) + [right_x + bgr])
 		self._top_right_corner_ys = np.array(
 			list(self._top_right_corner_ys) + [top_y + bgr])
+		self._colliders_map[orig_spot.name, dest_spot.name] = Collide2DPoly(
+			points=instructions['shaft_bg'].points)
 		self.canvas.ask_update()
 
 	def remove_edge(self, orig, dest):
