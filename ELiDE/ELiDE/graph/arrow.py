@@ -506,12 +506,12 @@ class ArrowPlane(Widget):
 		self._top_right_corner_ys = np.array(top_right_corner_ys)
 
 	def add_new_portal(self, datum):
-		self.unbind_uid('data', self._redraw_bind_uid)
-		self.data.append(datum)
 		orig_spot = datum['origspot']
 		dest_spot = datum['destspot']
 		shaft_points, head_points = get_points(orig_spot, dest_spot,
 												self.arrowhead_size)
+		self.unbind_uid('data', self._redraw_bind_uid)
+		self.data.append(datum)
 		r = self.arrow_width / 2
 		bgr = r * self.bg_scale_unselected
 		instructions = self._instructions_map[
