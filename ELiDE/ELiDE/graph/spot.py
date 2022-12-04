@@ -20,6 +20,7 @@ from kivy.clock import Clock
 
 from .arrow import get_points, get_quad_vertices
 from .pawnspot import GraphPawnSpot
+from ..collide import Collide2DPoly
 from ..util import trigger
 
 
@@ -60,7 +61,6 @@ class GraphSpot(GraphPawnSpot):
 				return
 			idx = port_index[orig, dest]
 			inst = instructions[orig, dest]
-			collider = colliders[orig, dest]
 			(ox, oy, dx, dy), (x1, y1, endx, endy, x2,
 								y2) = get_points(spot[orig], spot[dest],
 													arrowhead_size)
@@ -78,7 +78,8 @@ class GraphSpot(GraphPawnSpot):
 				top_right_ys[idx] = oy + bgr
 			quadverts = get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy,
 											x2, y2, bgr, r)
-			inst['shaft_bg'].points = collider.points = quadverts['shaft_bg']
+			inst['shaft_bg'].points = quadverts['shaft_bg']
+			colliders[orig, dest] = Collide2DPoly(points=quadverts['shaft_bg'])
 			inst['left_head_bg'].points = quadverts['left_head_bg']
 			inst['right_head_bg'].points = quadverts['right_head_bg']
 			inst['shaft_fg'].points = quadverts['shaft_fg']

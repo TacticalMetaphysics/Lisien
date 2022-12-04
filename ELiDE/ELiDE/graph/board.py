@@ -258,9 +258,10 @@ class GraphBoard(RelativeLayout):
 		"""Delegate touch handling if possible, else select something."""
 
 		def unsel_graph_arrow():
-			port = self.app.selection.portal
-			insts = self.arrow_plane._instructions_map[port['origin'],
-														port['destination']]
+			origspot = self.app.selection.origin
+			destspot = self.app.selection.destination
+			insts = self.arrow_plane._instructions_map[origspot.name,
+														destspot.name]
 			fbo = self.arrow_plane._fbo
 			fbo.bind()
 			insts['color0'].rgba = self.arrow_plane.bg_color_unselected
@@ -285,13 +286,18 @@ class GraphBoard(RelativeLayout):
 		for candidate in self.selection_candidates:
 			if candidate.collide_point(*touch.pos):
 				if isinstance(candidate, GraphArrow):
-					if candidate.reciprocal and (candidate.portal.get(
-						'is_mirror', False) or candidate.reciprocal.portal.get(
-							'is_mirror', False)):
+					portal = self.character.portal[candidate.origin.name][
+						candidate.destination.name]
+					try:
+						reciprocal = self.character.portal[
+							candidate.destination.name][candidate.origin.name]
+					except KeyError:
+						reciprocal = None
+					if reciprocal is not None and (portal.get(
+						'is_mirror', False) or portal.get('is_mirror', False)):
 						candidate = candidate.reciprocal
 					insts = self.arrow_plane._instructions_map[
-						candidate.portal['origin'],
-						candidate.portal['destination']]
+						portal['origin'], portal['destination']]
 					fbo = self.arrow_plane._fbo
 					fbo.bind()
 					insts['color0'].rgba = self.arrow_plane.bg_color_selected

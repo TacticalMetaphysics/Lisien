@@ -373,9 +373,10 @@ class ELiDEApp(App):
 			return self.character.stat
 		elif hasattr(self.selection, 'proxy'):
 			return self.selection.proxy
-		elif (hasattr(self.selection, 'portal')
-				and self.selection.portal is not None):
-			return self.selection.portal
+		elif (hasattr(self.selection, 'origin')
+				and hasattr(self.selection, 'destination')):
+			return self.character.portal[self.selection.origin.name][
+				self.selection.destination.name]
 		else:
 			raise ValueError("Invalid selection: {}".format(self.selection))
 
