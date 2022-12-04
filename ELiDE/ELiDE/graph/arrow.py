@@ -412,8 +412,8 @@ class ArrowPlane(Widget):
 
 	def __init__(self, **kwargs):
 		self._trigger_redraw = Clock.create_trigger(self.redraw)
-		self.bind(data=self._trigger_redraw,
-					arrowhead_size=self._trigger_redraw)
+		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+		self.bind(arrowhead_size=self._trigger_redraw)
 		self._colliders_map = {}
 		self._instructions_map = {}
 		self._port_index = {}
@@ -505,7 +505,11 @@ class ArrowPlane(Widget):
 		self._top_right_corner_xs = np.array(top_right_corner_xs)
 		self._top_right_corner_ys = np.array(top_right_corner_ys)
 
-	def draw_new_portal(self, orig_spot, dest_spot):
+	def add_new_portal(self, datum):
+		self.unbind_uid('data', self._redraw_bind_uid)
+		self.data.append(datum)
+		orig_spot = datum['origspot']
+		dest_spot = datum['destspot']
 		shaft_points, head_points = get_points(orig_spot, dest_spot,
 												self.arrowhead_size)
 		r = self.arrow_width / 2
@@ -551,6 +555,7 @@ class ArrowPlane(Widget):
 		self._colliders_map[orig_spot.name, dest_spot.name] = Collide2DPoly(
 			points=instructions['shaft_bg'].points)
 		self.canvas.ask_update()
+		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
 
 	def remove_edge(self, orig, dest):
 		self._fbo.remove(self._instructions_map[orig, dest]['group'])
