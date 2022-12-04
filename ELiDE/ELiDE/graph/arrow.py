@@ -505,6 +505,50 @@ class ArrowPlane(Widget):
 		self._top_right_corner_xs = np.array(top_right_corner_xs)
 		self._top_right_corner_ys = np.array(top_right_corner_ys)
 
+	def draw_new_portal(self, orig_spot, dest_spot):
+		shaft_points, head_points = get_points(orig_spot, dest_spot,
+												self.arrowhead_size)
+		r = self.arrow_width / 2
+		bgr = r * self.bg_scale_unselected
+		instructions = self._instructions_map[
+			orig_spot.name,
+			dest_spot.name] = get_instructions(*shaft_points, *head_points,
+												bgr, r,
+												self.bg_color_unselected,
+												self.fg_color_unselected)
+		instructions['group'] = grp = InstructionGroup()
+		grp.add(instructions['color0'])
+		grp.add(instructions['shaft_bg'])
+		grp.add(instructions['left_head_bg'])
+		grp.add(instructions['right_head_bg'])
+		grp.add(instructions['color1'])
+		grp.add(instructions['shaft_fg'])
+		grp.add(instructions['left_head_fg'])
+		grp.add(instructions['right_head_fg'])
+		self._fbo.add(grp)
+		ox, oy, dx, dy = shaft_points
+		if ox < dx:
+			left_x = ox
+			right_x = dx
+		else:
+			right_x = ox
+			left_x = dx
+		if oy < dy:
+			bot_y = oy
+			top_y = dy
+		else:
+			bot_y = dy
+			top_y = oy
+		self._bot_left_corner_xs = np.array(
+			list(self._bot_left_corner_xs) + [left_x - bgr])
+		self._bot_left_corner_ys = np.array(
+			list(self._bot_left_corner_ys) + [bot_y - bgr])
+		self._top_right_corner_xs = np.array(
+			list(self._top_right_corner_xs) + [right_x + bgr])
+		self._top_right_corner_ys = np.array(
+			list(self._top_right_corner_ys) + [top_y + bgr])
+		self.canvas.ask_update()
+
 	def remove_edge(self, orig, dest):
 		self._fbo.remove(self._instructions_map[orig, dest]['group'])
 		index = self._port_index[orig, dest]

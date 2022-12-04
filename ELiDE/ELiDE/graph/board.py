@@ -240,11 +240,15 @@ class GraphBoard(RelativeLayout):
 				port = self.character.new_portal(orig.name,
 													dest.name,
 													symmetrical=symmetrical)
+				self.arrow_plane.unbind(data=self.arrow_plane._trigger_redraw)
 				self.arrow_plane.data.append(self.make_arrow(port))
+				self.arrow_plane.draw_new_portal(self.origspot, destspot)
 				if symmetrical:
 					self.arrow_plane.data.append(
 						self.make_arrow(
 							self.character.portal[dest.name][orig.name]))
+					self.arrow_plane.draw_new_portal(destspot, self.origspot)
+				self.arrow_plane.bind(data=self.arrow_plane._trigger_redraw)
 		except StopIteration:
 			pass
 		self.remove_widget(self.protoportal)
