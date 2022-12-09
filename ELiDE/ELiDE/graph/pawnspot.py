@@ -15,14 +15,216 @@
 """Code that draws the box around a Pawn or Spot when it's selected"""
 from collections import defaultdict
 from functools import partial
+from operator import itemgetter
 
+import numpy as np
+from kivy.core.image import Image
+from kivy.graphics.fbo import Fbo
 from kivy.properties import ObjectProperty, BooleanProperty, ListProperty
 from kivy.graphics import (InstructionGroup, Translate, PopMatrix, PushMatrix,
-							Color, Line)
+							Color, Line, Rectangle)
+from kivy.resources import resource_find
 from kivy.uix.layout import Layout
 from kivy.clock import Clock
+from kivy.uix.widget import Widget
+
 from ..util import trigger
 from ..imagestackproxy import ImageStackProxy
+
+
+class TextureStackPlane(Widget):
+	data = ListProperty()
+	selected = ObjectProperty(allownone=True)
+	color_selected = ListProperty([0.0, 1.0, 1.0, 1.0])
+
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+		self._keys = []
+		self._left_xs = np.array([])
+		self._right_xs = np.array([])
+		self._top_ys = np.array([])
+		self._bot_ys = np.array([])
+		self._instructions = {}
+		self._stack_index = {}
+		self._trigger_redraw = Clock.create_trigger(self.redraw)
+		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+
+	def on_parent(self, *args):
+		if not self.canvas:
+			Clock.schedule_once(self.on_parent, 0)
+			return
+		with self.canvas:
+			self._fbo = Fbo(size=self.size)
+			self._translate = Translate(x=self.x, y=self.y)
+			self._rectangle = Rectangle(size=self.size,
+										texture=self._fbo.texture)
+		self._trigger_redraw()
+
+	def on_pos(self, *args):
+		if not hasattr(self, '_translate'):
+			return
+		self._translate.x, self._translate.y = self.pos
+		self.canvas.ask_update()
+
+	def on_size(self, *args):
+		if not hasattr(self, '_rectangle') or not hasattr(self, '_fbo'):
+			return
+		self._rectangle.size = self._fbo.size = self.size
+		self.redraw()
+
+	def add_datum(self, datum):
+		name = datum["name"]
+		if "pos" in datum:
+			x, y = datum["pos"]
+		else:
+			x = datum["x"]
+			y = datum["y"]
+		texs = datum["textures"]
+		x *= self.width
+		y *= self.height
+		self.unbind_uid('data', self._redraw_bind_uid)
+		fbo = self._fbo
+		fbo.bind()
+		instructions = self._instructions
+		left_xs = list(self._left_xs)
+		right_xs = list(self._right_xs)
+		top_ys = list(self._top_ys)
+		bot_ys = list(self._bot_ys)
+		rects = []
+		wide = 0
+		tall = 0
+		for tex in texs:
+			if isinstance(tex, str):
+				tex = Image.load(resource_find(tex)).texture
+				w, h = tex.size
+				if w > wide:
+					wide = w
+				if h > tall:
+					tall = h
+			rects.append(Rectangle(texture=tex, pos=(x, y), size=(wide, tall)))
+		instructions[name] = {"rectangles": rects, "group": InstructionGroup()}
+		instructions[name]["group"].add(rects)
+		fbo.add(instructions[name]["group"])
+		left_xs.append(x)
+		bot_ys.append(y)
+		top_ys.append(y + tall)
+		right_xs.append(x + wide)
+		self._stack_index[name] = len(self._keys)
+		self._left_xs = np.array(left_xs)
+		self._bot_ys = np.array(bot_ys)
+		self._top_ys = np.array(top_ys)
+		self._right_xs = np.array(right_xs)
+		self._keys.append(name)
+		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+		fbo.release()
+
+	def redraw(self, *args):
+		if not hasattr(self, '_rectangle'):
+			self._trigger_redraw()
+			return
+		fbo = self._fbo
+		fbo.bind()
+		fbo.clear_buffer()
+		fbo_add = fbo.add
+		instructions = self._instructions
+		stack_index = self._stack_index
+		keys = list(self._keys)
+		left_xs = list(self._left_xs)
+		right_xs = list(self._right_xs)
+		top_ys = list(self._top_ys)
+		bot_ys = list(self._bot_ys)
+		self_width = self.width
+		self_height = self.height
+		selected = self.selected
+		color_selected = self.color_selected
+		for datum in self.data:
+			name = datum['name']
+			texs = datum['textures']
+			x = datum['x'] * self_width
+			y = datum['y'] * self_height
+			if name in stack_index:
+				inst = instructions[name]
+				grp = inst['group']
+				rects = inst['rectangles']
+				if len(rects) < len(texs):
+					for rect in rects[len(texs):]:
+						grp.remove(rect)
+					rects = rects[:len(texs)]
+				elif len(rects) > len(texs):
+					for texture in texs[len(rects):]:
+						rect = Rectangle(pos=(x, y),
+											size=texture.size,
+											texture=texture)
+						grp.add(rect)
+						rects.append(rect)
+				width = 0
+				height = 0
+				for texture, rect in zip(texs, rects):
+					if isinstance(texture, str):
+						texture = Image.load(resource_find(texture)).texture
+					w, h = texture.size
+					if w > width:
+						width = w
+					if h > height:
+						height = h
+					rect.texture = texture
+					rect.size = texture.size
+				idx = stack_index[name]
+				right = x + width
+				left_xs[idx] = x
+				right_xs[idx] = right
+				bot_ys[idx] = y
+				top = y + height
+				top_ys[idx] = top
+			else:
+				stack_index[name] = len(keys)
+				keys.append(name)
+				width = 0
+				height = 0
+				rects = []
+				for texture in datum['textures']:
+					if isinstance(texture, str):
+						texture = Image.load(resource_find(texture)).texture
+					w, h = texture.size
+					if w > width:
+						width = w
+					if h > height:
+						height = h
+					rects.append(
+						Rectangle(pos=(x, y), size=(w, h), texture=texture))
+				right = x + width
+				left_xs.append(x)
+				right_xs.append(right)
+				bot_ys.append(y)
+				top = y + height
+				top_ys.append(top)
+				grp = InstructionGroup()
+				for rect in rects:
+					grp.add(rect)
+				instructions[name] = {'rectangles': rects, 'group': grp}
+				if name == selected:
+					colr = Color(rgba=color_selected)
+					grp.add(colr)
+					instructions['color0'] = colr
+					line = Line(
+						points=[x, y, right, y, right, top, x, top, x, y])
+					instructions['line'] = line
+					grp.add(line)
+					coler = Color(rgba=[1, 1, 1, 1])
+					instructions['color1'] = coler
+					grp.add(coler)
+				fbo_add(grp)
+		self._left_xs = np.array(left_xs)
+		self._right_xs = np.array(right_xs)
+		self._top_ys = np.array(top_ys)
+		self._bot_ys = np.array(bot_ys)
+		self._keys = keys
+		fbo.release()
+
+	def iter_collided_keys(self, x, y):
+		hits = (self._left_xs <= x) & (self._bot_ys <= y) & (
+			y <= self._top_ys) & (x <= self._right_xs)
+		return map(itemgetter(0), filter(itemgetter(1), zip(self._keys, hits)))
 
 
 class GraphPawnSpot(ImageStackProxy, Layout):
@@ -115,10 +317,6 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 	@trigger
 	def _trigger_push_offys(self, *args):
 		self.proxy['_offys'] = list(self.offys)
-
-	@trigger
-	def _trigger_push_stackhs(self, *args):
-		self.proxy['_stackhs'] = list(self.stackhs)
 
 	def on_linecolor(self, *args):
 		"""If I don't yet have the instructions for drawing the selection box
@@ -244,3 +442,174 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 			self.linecolor = self.selected_outline_color
 		else:
 			self.linecolor = self.unselected_outline_color
+
+
+class Stack:
+	__slots__ = ['board', 'proxy']
+
+	def __init__(self, **kwargs):
+		self.board = kwargs['board']
+		self.proxy = kwargs['proxy']
+
+	@property
+	def selected(self):
+		return self.board.stack_plane.selected == self.proxy['name']
+
+	@selected.setter
+	def selected(self, v: bool):
+		stack_plane: TextureStackPlane = self.board.stack_plane
+		name = self.proxy['name']
+		insts = stack_plane._instructions[name]
+		if v:
+			stack_plane.selected = name
+			if 'color0' in insts:
+				insts['color0'].rgba = stack_plane.color_selected
+			else:
+				idx = stack_plane._stack_index[name]
+				left = stack_plane._left_xs[idx]
+				bot = stack_plane._bot_ys[idx]
+				right = stack_plane._right_xs[idx]
+				top = stack_plane._top_ys[idx]
+				grp = insts['group']
+				insts['color0'] = Color(rgba=stack_plane.color_selected)
+				grp.add(insts['color0'])
+				insts['line'] = Line(points=[
+					left, bot, right, bot, right, top, left, top, left, bot
+				])
+				grp.add(insts['line'])
+				insts['color1'] = Color(rgba=[1., 1., 1., 1.])
+				grp.add(insts['color1'])
+		elif stack_plane.selected == self.proxy['name']:
+			stack_plane.selected = None
+			if 'color0' in insts:
+				insts['color0'].rgba = [0., 0., 0., 0.]
+		stack_plane.canvas.ask_update()
+
+	@property
+	def pos(self):
+		stack_plane = self.board.stack_plane
+		idx = stack_plane._stack_index[self.proxy['name']]
+		return stack_plane._left_xs[idx], stack_plane._bot_ys[idx]
+
+	@pos.setter
+	def pos(self, xy):
+		x, y = xy
+		stack_plane = self.board.stack_plane
+		stack_plane.unbind_uid('data', stack_plane._redraw_bind_uid)
+		name = self.proxy['name']
+		insts = stack_plane._instructions[name]
+		idx = stack_plane._stack_index[name]
+		left = stack_plane._left_xs[idx]
+		bot = stack_plane._bot_ys[idx]
+		right = stack_plane._right_xs[idx]
+		top = stack_plane._top_ys[idx]
+		width = right - left
+		height = top - bot
+		r = x + width
+		t = y + height
+		stack_plane._left_xs[idx] = x
+		stack_plane._bot_ys[idx] = y
+		stack_plane._top_ys[idx] = t
+		stack_plane._right_xs[idx] = r
+		for rect in insts['rectangles']:
+			rect.pos = xy
+		if 'line' in insts:
+			insts['line'].points = [x, y, r, y, r, t, x, t, x, y]
+		stack_plane.data[idx]['pos'] = xy
+		stack_plane._redraw_bind_uid = stack_plane.fbind(
+			'data', stack_plane._trigger_redraw)
+		stack_plane.canvas.ask_update()
+
+	@property
+	def x(self):
+		stack_plane = self.board.stack_plane
+		idx = stack_plane._stack_index[self.proxy['name']]
+		return stack_plane._left_xs[idx]
+
+	@property
+	def y(self):
+		stack_plane = self.board.stack_plane
+		idx = stack_plane._stack_index[self.proxy['name']]
+		return stack_plane._bot_ys[idx]
+
+	@property
+	def size(self):
+		stack_plane = self.board.stack_plane
+		name = self.proxy['name']
+		idx = stack_plane._stack_index[name]
+		left = stack_plane._left_xs[idx]
+		bot = stack_plane._bot_ys[idx]
+		right = stack_plane._right_xs[idx]
+		top = stack_plane._top_ys[idx]
+		return right - left, top - bot
+
+	@size.setter
+	def size(self, wh):
+		w, h = wh
+		stack_plane = self.board.stack_plane
+		stack_plane.unbind_uid('data', stack_plane._redraw_bind_uid)
+		name = self.proxy['name']
+		insts = stack_plane._instructions[name]
+		idx = stack_plane._stack_index[name]
+		x = stack_plane._left_xs[idx]
+		y = stack_plane._bot_ys[idx]
+		r = stack_plane._right_xs[idx] = x + w
+		t = stack_plane._top_ys[idx] = y + h
+		for rect in insts['rectangles']:
+			rect.size = wh
+		if 'line' in insts:
+			insts['line'].points = [x, y, r, y, r, t, x, t, x, y]
+		stack_plane.data[idx]['size'] = wh
+		stack_plane._redraw_bind_uid = stack_plane.fbind(
+			'data', stack_plane._trigger_redraw)
+
+	@property
+	def center(self):
+		stack_plane = self.board.stack_plane
+		name = self.proxy['name']
+		idx = stack_plane._stack_index[name]
+		x = stack_plane._left_xs[idx]
+		y = stack_plane._bot_ys[idx]
+		r = stack_plane._right_xs[idx]
+		t = stack_plane._top_ys[idx]
+		w = r - x
+		h = t - y
+		return x + w / 2, y + h / 2
+
+	@property
+	def center_x(self):
+		stack_plane = self.board.stack_plane
+		name = self.proxy['name']
+		idx = stack_plane._stack_index[name]
+		x = stack_plane._left_xs[idx]
+		r = stack_plane._right_xs[idx]
+		w = r - x
+		return x + w / 2
+
+	@property
+	def center_y(self):
+		stack_plane = self.board.stack_plane
+		name = self.proxy['name']
+		idx = stack_plane._stack_index[name]
+		y = stack_plane._bot_ys[idx]
+		t = stack_plane._top_ys[idx]
+		h = t - y
+		return y + h / 2
+
+	@property
+	def top(self):
+		stack_plane = self.board.stack_plane
+		name = self.proxy['name']
+		idx = stack_plane._stack_index[name]
+		return stack_plane._top_ys[idx]
+
+	@property
+	def right(self):
+		stack_plane = self.board.stack_plane
+		name = self.proxy['name']
+		idx = stack_plane._stack_index[name]
+		return stack_plane._right_xs[idx]
+
+	@property
+	def name(self):
+		return self.proxy['name']
