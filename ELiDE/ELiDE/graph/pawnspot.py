@@ -526,11 +526,19 @@ class Stack:
 		idx = stack_plane._stack_index[self.proxy['name']]
 		return stack_plane._left_xs[idx]
 
+	@x.setter
+	def x(self, x):
+		self.pos = x, self.y
+
 	@property
 	def y(self):
 		stack_plane = self.board.stack_plane
 		idx = stack_plane._stack_index[self.proxy['name']]
 		return stack_plane._bot_ys[idx]
+
+	@y.setter
+	def y(self, y):
+		self.pos = self.x, y
 
 	@property
 	def size(self):
@@ -564,6 +572,32 @@ class Stack:
 			'data', stack_plane._trigger_redraw)
 
 	@property
+	def width(self):
+		stack_plane = self.board.stack_plane
+		name = self.proxy['name']
+		idx = stack_plane._stack_index[name]
+		left = stack_plane._left_xs[idx]
+		right = stack_plane._right_xs[idx]
+		return right - left
+
+	@width.setter
+	def width(self, w):
+		self.size = self.height, w
+
+	@property
+	def height(self):
+		stack_plane = self.board.stack_plane
+		name = self.proxy['name']
+		idx = stack_plane._stack_index[name]
+		top = stack_plane._top_ys[idx]
+		bot = stack_plane._bot_ys[idx]
+		return top - bot
+
+	@height.setter
+	def height(self, h):
+		self.size = self.width, h
+
+	@property
 	def center(self):
 		stack_plane = self.board.stack_plane
 		name = self.proxy['name']
@@ -576,6 +610,19 @@ class Stack:
 		h = t - y
 		return x + w / 2, y + h / 2
 
+	@center.setter
+	def center(self, c):
+		stack_plane = self.board.stack_plane
+		name = self.proxy['name']
+		idx = stack_plane._stack_index[name]
+		x = stack_plane._left_xs[idx]
+		y = stack_plane._bot_ys[idx]
+		r = stack_plane._right_xs[idx]
+		t = stack_plane._top_ys[idx]
+		w = r - x
+		h = t - y
+		self.pos = c[0] - w / 2, c[1] - h / 2
+
 	@property
 	def center_x(self):
 		stack_plane = self.board.stack_plane
@@ -585,6 +632,16 @@ class Stack:
 		r = stack_plane._right_xs[idx]
 		w = r - x
 		return x + w / 2
+
+	@center_x.setter
+	def center_x(self, cx):
+		stack_plane = self.board.stack_plane
+		name = self.proxy['name']
+		idx = stack_plane._stack_index[name]
+		x = stack_plane._left_xs[idx]
+		r = stack_plane._right_xs[idx]
+		w = r - x
+		self.pos = cx - w / 2, self.y
 
 	@property
 	def center_y(self):
@@ -596,6 +653,16 @@ class Stack:
 		h = t - y
 		return y + h / 2
 
+	@center_y.setter
+	def center_y(self, cy):
+		stack_plane = self.board.stack_plane
+		name = self.proxy['name']
+		idx = stack_plane._stack_index[name]
+		y = stack_plane._bot_ys[idx]
+		t = stack_plane._top_ys[idx]
+		h = t - y
+		self.pos = self.x, cy - h / 2
+
 	@property
 	def top(self):
 		stack_plane = self.board.stack_plane
@@ -603,12 +670,34 @@ class Stack:
 		idx = stack_plane._stack_index[name]
 		return stack_plane._top_ys[idx]
 
+	@top.setter
+	def top(self, t):
+		stack_plane = self.board.stack_plane
+		name = self.proxy['name']
+		idx = stack_plane._stack_index[name]
+		y = stack_plane._bot_ys[idx]
+		stack_plane._top_ys[idx] = t
+		h = t - y
+		stack_plane._bot_ys[idx] = t - h
+		self.pos = self.x, t - h
+
 	@property
 	def right(self):
 		stack_plane = self.board.stack_plane
 		name = self.proxy['name']
 		idx = stack_plane._stack_index[name]
 		return stack_plane._right_xs[idx]
+
+	@right.setter
+	def right(self, r):
+		stack_plane = self.board.stack_plane
+		name = self.proxy['name']
+		idx = stack_plane._stack_index[name]
+		x = stack_plane._left_xs[idx]
+		stack_plane._right_xs[idx] = r
+		w = r - x
+		x = stack_plane._left_xs[idx] = r - w
+		self.pos = x, self.y
 
 	@property
 	def name(self):
