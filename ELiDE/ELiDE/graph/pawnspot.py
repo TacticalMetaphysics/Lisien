@@ -702,3 +702,10 @@ class Stack:
 	@property
 	def name(self):
 		return self.proxy['name']
+
+	def collide_point(self, x, y):
+		pos = self.pos
+		if x < pos[0] or y < pos[1]:
+			return False
+		w, h = self.size
+		return x < pos[0] + w and y < pos[1] + h
