@@ -646,7 +646,12 @@ class GraphBoard(RelativeLayout):
 			except (TypeError, ValueError):
 				self.nx_layout(spots_unposd)
 		if spots_posd:
+			self.stack_plane.unbind_uid('data',
+										self.stack_plane._redraw_bind_uid)
 			self.stack_plane.data.extend(spots_posd)
+			self.stack_plane.redraw()
+			self.stack_plane._redraw_bind_uid = self.stack_plane.fbind(
+				'data', self.stack_plane._trigger_redraw)
 
 	def add_arrow(self, orign, destn, *args):
 		if not (orign in self.character.portal
