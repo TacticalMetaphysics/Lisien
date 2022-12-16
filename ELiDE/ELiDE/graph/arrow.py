@@ -295,6 +295,10 @@ class GraphArrow:
 			return
 		return self.board.pred_arrow[self.destination.name][self.origin.name]
 
+	@property
+	def selected(self):
+		return self is self.board.app.selection
+
 	def __init__(self, *, board, origin, destination):
 		self.board = board
 		self.origin = origin
@@ -320,6 +324,37 @@ class GraphArrow:
 		xdist = (dx - ox) * pct
 		ydist = (dy - oy) * pct
 		return ox + xdist, oy + ydist
+
+	def repoint(self):
+		arrow_plane = self.board.arrow_plane
+		fbo = arrow_plane._fbo
+		fbo.bind()
+		fbo.clear_buffer()
+		shaft_points, head_points = get_points(self.origin, self.destination,
+												arrow_plane.arrowhead_size)
+		r = arrow_plane.arrow_width / 2
+		if self.selected:
+			bg_scale = arrow_plane.bg_scale_selected
+			bg_color = arrow_plane.bg_color_selected
+			fg_color = arrow_plane.fg_color_selected
+		else:
+			bg_scale = arrow_plane.bg_scale_unselected
+			bg_color = arrow_plane.bg_color_unselected
+			fg_color = arrow_plane.fg_color_unselected
+		verts = get_quad_vertices(*shaft_points, *head_points, r * bg_scale, r)
+		insts = self.board.arrow_plane._instructions_map[
+			self.origin.name, self.destination.name]
+		insts['color0'].rgba = bg_color
+		insts['color1'].rgba = fg_color
+		insts['shaft_bg'].points = verts['shaft_bg']
+		insts['left_head_bg'].points = verts['left_head_bg']
+		insts['right_head_bg'].points = verts['right_head_bg']
+		insts['shaft_fg'].points = verts['shaft_fg']
+		insts['left_head_fg'].points = verts['left_head_fg']
+		insts['right_head_fg'].points = verts['right_head_fg']
+		fbo.release()
+		fbo.ask_update()
+		arrow_plane.canvas.ask_update()
 
 
 def get_instructions(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2, bgr, r,

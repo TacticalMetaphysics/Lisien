@@ -29,8 +29,10 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scatter import ScatterPlane
 from kivy.graphics.transformation import Matrix
+from kivy.uix.widget import Widget
 from kivy.vector import Vector
 
+from LiSE.proxy import ThingProxy
 from .pawnspot import TextureStackPlane, Stack
 from .spot import GraphSpot
 from .pawn import Pawn
@@ -213,13 +215,22 @@ class GraphBoard(RelativeLayout):
 			if not self.selection_candidates:
 				self.keep_selection = True
 			ret = super().on_touch_move(touch)
+			sel = self.app.selection
+			if isinstance(sel, Stack):
+				sel.center = touch.pos
+				name = sel.proxy['name']
+				for dest in self.arrow.get(name, ()):
+					self.arrow[name][dest].repoint()
+					if dest in self.arrow and name in self.arrow[dest]:
+						self.arrow[dest][name].repoint()
 			return ret
 		elif self.selection_candidates:
 			for cand in self.selection_candidates:
 				if cand.collide_point(*touch.pos):
 					self.app.selection = cand
 					cand.selected = True
-					touch.grab(cand)
+					if isinstance(cand, Widget):
+						touch.grab(cand)
 					ret = super().on_touch_move(touch)
 					return ret
 		if hasattr(self, 'protodest'):
@@ -286,8 +297,17 @@ class GraphBoard(RelativeLayout):
 			ret = self.portal_touch_up(touch)
 			touch.pop()
 			return ret
-		if self.app.selection and hasattr(self.app.selection, 'on_touch_up'):
-			self.app.selection.dispatch('on_touch_up', touch)
+		if self.app.selection:
+			sel = self.app.selection
+			if isinstance(sel, Widget):
+				sel.dispatch('on_touch_up', touch)
+			elif isinstance(sel,
+							Stack) and not isinstance(sel.proxy, ThingProxy):
+				prox = sel.proxy
+				x = float(sel.x) / self.width
+				y = float(sel.y) / self.height
+				prox['_x'] = x
+				prox['_y'] = y
 		for candidate in self.selection_candidates:
 			if candidate.collide_point(*touch.pos):
 				if isinstance(candidate, GraphArrow):
