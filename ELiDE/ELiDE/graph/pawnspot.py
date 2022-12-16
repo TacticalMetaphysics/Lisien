@@ -482,7 +482,10 @@ class Stack:
 		elif stack_plane.selected == self.proxy['name']:
 			stack_plane.selected = None
 			if 'color0' in insts:
+				stack_plane._fbo.bind()
+				stack_plane._fbo.clear_buffer()
 				insts['color0'].rgba = [0., 0., 0., 0.]
+				stack_plane._fbo.release()
 		stack_plane.canvas.ask_update()
 
 	@property
