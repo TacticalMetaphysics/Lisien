@@ -445,7 +445,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 
 
 class Stack:
-	__slots__ = ['board', 'proxy']
+	__slots__ = ['board', 'proxy', '__self__']
 
 	def __init__(self, **kwargs):
 		self.board = kwargs['board']
