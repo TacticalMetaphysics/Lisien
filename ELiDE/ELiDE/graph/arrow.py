@@ -299,6 +299,10 @@ class GraphArrow:
 	def selected(self):
 		return self is self.board.app.selection
 
+	@selected.setter
+	def selected(self, b):
+		self.repoint(b)
+
 	def __init__(self, *, board, origin, destination):
 		self.board = board
 		self.origin = origin
@@ -325,7 +329,7 @@ class GraphArrow:
 		ydist = (dy - oy) * pct
 		return ox + xdist, oy + ydist
 
-	def repoint(self):
+	def repoint(self, selected=None):
 		arrow_plane = self.board.arrow_plane
 		fbo = arrow_plane._fbo
 		fbo.bind()
@@ -333,7 +337,7 @@ class GraphArrow:
 		shaft_points, head_points = get_points(self.origin, self.destination,
 												arrow_plane.arrowhead_size)
 		r = arrow_plane.arrow_width / 2
-		if self.selected:
+		if selected or self.selected:
 			bg_scale = arrow_plane.bg_scale_selected
 			bg_color = arrow_plane.bg_color_selected
 			fg_color = arrow_plane.fg_color_selected
