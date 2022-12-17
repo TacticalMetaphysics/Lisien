@@ -492,7 +492,8 @@ class Stack:
 	def pos(self):
 		stack_plane = self.board.stack_plane
 		idx = stack_plane._stack_index[self.proxy['name']]
-		return stack_plane._left_xs[idx], stack_plane._bot_ys[idx]
+		return float(stack_plane._left_xs[idx]), float(
+			stack_plane._bot_ys[idx])
 
 	@pos.setter
 	def pos(self, xy):
@@ -530,7 +531,7 @@ class Stack:
 	def x(self):
 		stack_plane = self.board.stack_plane
 		idx = stack_plane._stack_index[self.proxy['name']]
-		return stack_plane._left_xs[idx]
+		return float(stack_plane._left_xs[idx])
 
 	@x.setter
 	def x(self, x):
@@ -540,7 +541,7 @@ class Stack:
 	def y(self):
 		stack_plane = self.board.stack_plane
 		idx = stack_plane._stack_index[self.proxy['name']]
-		return stack_plane._bot_ys[idx]
+		return float(stack_plane._bot_ys[idx])
 
 	@y.setter
 	def y(self, y):

@@ -317,10 +317,8 @@ class GraphBoard(RelativeLayout):
 					return
 				else:
 					prox = sel.proxy
-					x = float(sel.x) / self.width
-					y = float(sel.y) / self.height
-					prox['_x'] = x
-					prox['_y'] = y
+					prox['_x'] = sel.x / self.width
+					prox['_y'] = sel.y / self.height
 		for candidate in self.selection_candidates:
 			if candidate.collide_point(*touch.pos):
 				if isinstance(candidate, GraphArrow):
