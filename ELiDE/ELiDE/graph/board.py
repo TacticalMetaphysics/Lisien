@@ -301,13 +301,26 @@ class GraphBoard(RelativeLayout):
 			sel = self.app.selection
 			if isinstance(sel, Widget):
 				sel.dispatch('on_touch_up', touch)
-			elif isinstance(sel,
-							Stack) and not isinstance(sel.proxy, ThingProxy):
-				prox = sel.proxy
-				x = float(sel.x) / self.width
-				y = float(sel.y) / self.height
-				prox['_x'] = x
-				prox['_y'] = y
+			elif isinstance(sel, Stack):
+				if isinstance(sel.proxy, ThingProxy):
+					for candidate in self.stack_plane.iter_collided_keys(
+						*touch.pos):
+						if candidate in self.spot:
+							newloc = self.character.place[candidate]
+							sel.proxy.location = newloc
+							newspot = self.spot[candidate]
+							sel.pos = newspot.right, newspot.top
+							return
+					oldloc = sel.proxy.location
+					oldspot = self.spot[oldloc.name]
+					sel.pos = oldspot.right, oldspot.top
+					return
+				else:
+					prox = sel.proxy
+					x = float(sel.x) / self.width
+					y = float(sel.y) / self.height
+					prox['_x'] = x
+					prox['_y'] = y
 		for candidate in self.selection_candidates:
 			if candidate.collide_point(*touch.pos):
 				if isinstance(candidate, GraphArrow):
