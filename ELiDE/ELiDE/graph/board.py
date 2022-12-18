@@ -257,10 +257,27 @@ class GraphBoard(RelativeLayout):
 													dest.name,
 													symmetrical=symmetrical)
 				self.arrow_plane.add_new_portal(self.make_arrow(port))
+				if orig.name not in self.arrow:
+					self.arrow[orig.name] = {}
+				if dest.name not in self.pred_arrow:
+					self.pred_arrow[dest.name] = {}
+				self.arrow[orig.name][dest.name] = self.pred_arrow[dest.name][
+					orig.name] = GraphArrow(board=self,
+											origin=self.spot[orig.name],
+											destination=self.spot[dest.name])
 				if symmetrical:
 					self.arrow_plane.add_new_portal(
 						self.make_arrow(
 							self.character.portal[dest.name][orig.name]))
+					if dest.name not in self.arrow:
+						self.arrow[dest.name] = {}
+					if orig.name not in self.pred_arrow:
+						self.pred_arrow[orig.name] = {}
+					self.arrow[dest.name][orig.name] = self.pred_arrow[
+						orig.name][dest.name] = GraphArrow(
+							board=self,
+							origin=self.spot[dest.name],
+							destination=self.spot[orig.name])
 		except StopIteration:
 			pass
 		self.remove_widget(self.protoportal)
