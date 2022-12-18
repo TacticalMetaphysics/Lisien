@@ -972,7 +972,7 @@ class BoardScatterPlane(ScatterPlane):
 		dummy_center = self.to_local(*dummy.center)
 		dummy.pos = self.to_local(*dummy.pos)
 		for spot in self.board.spot.values():
-			if spot.collide_widget(dummy):
+			if spot.collide_point(*dummy.center):
 				candidates.append(spot)
 		if not candidates:
 			return
@@ -984,7 +984,7 @@ class BoardScatterPlane(ScatterPlane):
 				thereto = Vector(*thereat.center).distance(dummy_center)
 				if thereto < dist:
 					whereat, dist = thereat, thereto
-		whereat.add_widget(
+		self.board.stack_plane.add_datum(
 			self.board.make_pawn(
 				self.board.character.new_thing(dummy.name,
 												whereat.proxy.name,

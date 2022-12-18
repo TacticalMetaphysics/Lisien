@@ -103,7 +103,9 @@ class TextureStackPlane(Widget):
 					tall = h
 			rects.append(Rectangle(texture=tex, pos=(x, y), size=(wide, tall)))
 		instructions[name] = {"rectangles": rects, "group": InstructionGroup()}
-		instructions[name]["group"].add(rects)
+		grp = instructions[name]["group"]
+		for rect in rects:
+			grp.add(rect)
 		fbo.add(instructions[name]["group"])
 		left_xs.append(x)
 		bot_ys.append(y)
