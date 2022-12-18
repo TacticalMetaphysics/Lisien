@@ -17,6 +17,7 @@ ordinary method calls.
 
 """
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
+from operator import itemgetter
 from re import match
 from collections import defaultdict
 from functools import partial, wraps
@@ -430,7 +431,13 @@ class EngineHandle(object):
 			**self.character_stat_copy(char)
 		}
 
-	@prepacked
+	def get_keyframe(self, branch, turn, tick):
+		now = self._real._btt()
+		self._real._set_btt(branch, turn, tick)
+		self._real.snap_keyframe()
+		self._real._set_btt(*now)
+		return self._real._get_kf(branch, turn, tick)
+
 	def copy_chars(self, chars: Union[str, Iterable[Hashable]]):
 		"""Return a mapping describing several characters
 
@@ -444,10 +451,38 @@ class EngineHandle(object):
 			it = iter(self._real.character.keys())
 		else:
 			it = iter(chars)
-		return {
-			self.pack(char): concat_d(self.copy_character(char))
-			for char in it
-		}
+		self._real.snap_keyframe()
+		kf = self._real._get_kf(*self._get_btt())
+		ret = {}
+		for char in it:
+			chara = self._real.character[char]
+			char_d = ret[char] = {
+				'units': self._character_units_copy(char),
+				'rulebooks': {
+					'character': chara.rulebook.name,
+					'unit': chara.unit.rulebook.name,
+					'thing': chara.thing.rulebook.name,
+					'place': chara.place.rulebook.name,
+					'portal': chara.portal.rulebook.name
+				},
+			}
+			if (char, ) in kf['graph_val']:
+				char_d.update(kf['graph_val'][char, ])
+			if (char, ) in kf['nodes']:
+				char_d['nodes'] = {
+					node: ex
+					for (node, ex) in kf['nodes'][char, ].items() if ex
+				}
+		for (char, node), val in kf['node_val'].items():
+			ret.setdefault(char, {}).setdefault('node_val', {})[node] = val
+		for (char, orig, dest), ex in kf['edges'].items():
+			ret.setdefault(char, {}).setdefault('edges', {})[orig,
+																dest] = ex[0]
+		for (char, orig, dest, idx), mapp in kf['edge_val'].items():
+			for key, value in mapp.items():
+				ret.setdefault(char, {}).setdefault('edge_val', {}).setdefault(
+					orig, {}).setdefault(dest, {})[key] = value
+		return ret
 
 	@prepacked
 	def get_char_deltas(
@@ -624,7 +659,6 @@ class EngineHandle(object):
 
 	def _get_slow_delta(
 			self,
-			chars='all',
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> SlightlyPackedDeltaType:
 		pack = self._real.pack
@@ -633,10 +667,113 @@ class EngineHandle(object):
 		btt_to = self._get_btt(btt_to)
 		if btt_from == btt_to:
 			return delta
-		if chars:
-			delta = self._get_char_deltas(chars,
-											btt_from=btt_from,
-											btt_to=btt_to)
+		now = self._real._btt()
+		self._real._set_btt(*btt_from)
+		self._real.snap_keyframe()
+		kf_from = self._real._get_kf(*btt_from)
+		self._real._set_btt(*btt_to)
+		self._real.snap_keyframe()
+		kf_to = self._real._get_kf(*btt_to)
+		self._real._set_btt(*now)
+		keys = []
+		values_from = []
+		values_to = []
+		# assemble the whole world state into three big arrays,
+		# use numpy to compare keys and values,
+		# then turn it all back into a dictionary of the right form
+		for graph in kf_from['graph_val'].keys() | kf_to['graph_val'].keys():
+			a = kf_from['graph_val'].get(graph, {})
+			b = kf_to['graph_val'].get(graph, {})
+			for k in a.keys() | b.keys():
+				keys.append(('graph', graph[0], k))
+				values_from.append(pack(a.get(k)) + b'\xc0')
+				values_to.append(pack(b.get(k)) + b'\xc0')
+		for graph, node in kf_from['node_val'].keys() | kf_to['node_val'].keys(
+		):
+			a = kf_from['node_val'].get((graph, node), {})
+			b = kf_to['node_val'].get((graph, node), {})
+			for k in a.keys() | b.keys():
+				keys.append(('node', graph, node, k))
+				values_from.append(pack(a.get(k)) + b'\xc0')
+				values_to.append(pack(b.get(k)) + b'\xc0')
+		for graph, orig, dest, i in kf_from['edge_val'].keys(
+		) | kf_to['edge_val'].keys():
+			a = kf_from['edge_val'].get((graph, orig, dest, i), {})
+			b = kf_to['edge_val'].get((graph, orig, dest, i), {})
+			for k in a.keys() | b.keys():
+				keys.append(('edge', graph, orig, dest, k))
+				values_from.append(pack(a.get(k)) + b'\xc0')
+				values_to.append(pack(b.get(k)) + b'\xc0')
+		values_changed = np.array(values_from) != np.array(values_to)
+		delta = {}
+		for k, v, _ in filter(itemgetter(2),
+								zip(keys, values_to, values_changed)):
+			v = v[:-1]
+			if k[0] == 'node':
+				_, graph, node, key = k
+				graph, node, key = map(pack, (graph, node, key))
+				if graph not in delta:
+					delta[graph] = {NODE_VAL: {node: {key: v}}}
+				elif node not in delta[graph][NODE_VAL]:
+					delta[graph][NODE_VAL][node] = {key: v}
+				else:
+					delta[graph][NODE_VAL][node][key] = v
+			elif k[0] == 'edge':
+				_, graph, orig, dest, key = k
+				graph, orig, dest, key = map(pack, (graph, orig, dest, key))
+				if graph not in delta:
+					delta[graph] = {EDGE_VAL: {orig: {dest: {key: v}}}}
+				elif orig not in delta[graph][EDGE_VAL]:
+					delta[graph][EDGE_VAL][orig] = {dest: {key: v}}
+				elif dest not in delta[graph][EDGE_VAL][orig]:
+					delta[graph][EDGE_VAL][orig][dest] = {key: v}
+				else:
+					delta[graph][EDGE_VAL][orig][dest][key] = v
+			else:
+				assert k[0] == 'graph'
+				_, graph, key = k
+				graph, key = map(pack, (graph, key))
+				if graph in delta:
+					delta[graph][key] = v
+				else:
+					delta[graph] = {key: v}
+		for graph in kf_from['nodes'].keys() & kf_to['nodes'].keys():
+			for node in kf_from['nodes'][graph].keys(
+			) - kf_to['nodes'][graph].keys():
+				grap, node = map(pack, (graph[0], node))
+				if grap not in delta:
+					delta[grap] = {NODES: {node: FALSE}}
+				elif NODES not in delta[grap]:
+					delta[grap][NODES] = {node: FALSE}
+				else:
+					delta[grap][NODES][node] = FALSE
+			for node in kf_to['nodes'][graph].keys(
+			) - kf_from['nodes'][graph].keys():
+				grap, node = map(pack, (graph[0], node))
+				if grap not in delta:
+					delta[grap] = {NODES: {node: TRUE}}
+				elif NODE_VAL not in delta[grap]:
+					delta[grap][NODES] = {node: TRUE}
+				else:
+					delta[grap][NODES][node] = TRUE
+		for graph, orig, dest in kf_from['edges'].keys() - kf_to['edges'].keys(
+		):
+			graph = pack(graph)
+			if graph not in delta:
+				delta[graph] = {EDGES: {pack((orig, dest)): FALSE}}
+			elif EDGES not in delta[graph]:
+				delta[graph][EDGES] = {pack((orig, dest)): FALSE}
+			else:
+				delta[graph][EDGES][pack((orig, dest))] = FALSE
+		for graph, orig, dest in kf_to['edges'].keys() - kf_from['edges'].keys(
+		):
+			graph = pack(graph)
+			if graph not in delta:
+				delta[graph] = {EDGES: {pack((orig, dest)): TRUE}}
+			elif EDGES not in delta[graph]:
+				delta[graph][EDGES] = {pack((orig, dest)): TRUE}
+			else:
+				delta[graph][EDGES][pack((orig, dest))] = TRUE
 		unid = self.universal_delta(btt_from=btt_from, btt_to=btt_to)
 		if unid:
 			delta[UNIVERSAL] = unid
@@ -649,11 +786,12 @@ class EngineHandle(object):
 		return delta
 
 	@prepacked
-	def time_travel(self,
-					branch,
-					turn,
-					tick=None,
-					chars='all') -> Tuple[bytes, bytes]:
+	def time_travel(
+		self,
+		branch,
+		turn,
+		tick=None,
+	) -> Tuple[bytes, bytes]:
 		"""Go to a different `(branch, turn, tick)` and return a delta
 
 		For compatibility with `next_turn` this actually returns a tuple,
@@ -671,9 +809,8 @@ class EngineHandle(object):
 		else:
 			self._real.tick = tick
 		if slow_delta:
-			delta = self._get_slow_delta(chars,
-											btt_from=(branch_from, turn_from,
-														tick_from),
+			delta = self._get_slow_delta(btt_from=(branch_from, turn_from,
+													tick_from),
 											btt_to=(branch, turn, tick))
 			packed_delta = self._concat_char_delta(delta)
 		else:
@@ -1523,7 +1660,7 @@ class EngineHandle(object):
 
 	def del_portal(self, char: Hashable, orig: Hashable,
 					dest: Hashable) -> None:
-		del self._real.character[char].portal[orig][dest]
+		self._real.character[char].remove_edge(orig, dest)
 
 	def set_portal_stat(self, char: Hashable, orig: Hashable, dest: Hashable,
 						k: Hashable, v) -> None:

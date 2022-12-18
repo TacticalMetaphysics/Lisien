@@ -563,6 +563,7 @@ class Engine(AbstractEngine, gORM):
 			self.method = FunctionStore(self._method_file)
 		self.rule = AllRules(self)
 		self.rulebook = AllRuleBooks(self)
+		self._char_caches = self._caches + [self._things_cache]
 
 	def _load_graphs(self) -> None:
 		for charn in self.query.characters():
@@ -1392,12 +1393,17 @@ class Engine(AbstractEngine, gORM):
 		self._things_cache.store(character, node, branch, turn, tick, loc)
 		self.query.set_thing_loc(character, node, branch, turn, tick, loc)
 
-	def _snap_keyframe(self, graph: Hashable, branch: str, turn: int,
-						tick: int, nodes: NodeValDictType,
-						edges: EdgeValDictType,
-						graph_val: StatDictType) -> None:
-		super()._snap_keyframe(graph, branch, turn, tick, nodes, edges,
-								graph_val)
+	def _snap_keyframe_de_novo_graph(self,
+										graph: Hashable,
+										branch: str,
+										turn: int,
+										tick: int,
+										nodes: NodeValDictType,
+										edges: EdgeValDictType,
+										graph_val: StatDictType,
+										copy_to_branch: str = None) -> None:
+		super()._snap_keyframe_de_novo_graph(graph, branch, turn, tick, nodes,
+												edges, graph_val)
 		newkf = {}
 		contkf = {}
 		for (name, node) in nodes.items():

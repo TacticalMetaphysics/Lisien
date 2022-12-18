@@ -742,7 +742,7 @@ class ORM:
 		self._childbranch = defaultdict(set)
 		"""Immediate children of a branch"""
 		self._branches = {}
-		"""Start time, end time, and parent of each branch"""
+		"""Parent, start time, and end time of each branch"""
 		self._branch_parents = defaultdict(set)
 		"""Parents of a branch at any remove"""
 		self._turn_end = defaultdict(lambda: 0)
@@ -881,6 +881,51 @@ class ORM:
 		if cache_arranger:
 			self._cache_arrange_thread.start()
 
+	def _get_kf(self, branch, turn, tick):
+		ret = {
+			'graph_val': {},
+			'nodes': {},
+			'node_val': {},
+			'edges': {},
+			'edge_val': {}
+		}
+		gvck = self._graph_val_cache.keyframe
+		gv = ret['graph_val']
+		for k in gvck:
+			try:
+				gv[k] = gvck[k][branch][turn][tick]
+			except KeyError:
+				pass
+		nck = self._nodes_cache.keyframe
+		n = ret['nodes']
+		for k in nck:
+			try:
+				n[k] = nck[k][branch][turn][tick]
+			except KeyError:
+				pass
+		nvck = self._node_val_cache.keyframe
+		nv = ret['node_val']
+		for k in nvck:
+			try:
+				nv[k] = nvck[k][branch][turn][tick]
+			except KeyError:
+				pass
+		eck = self._edges_cache.keyframe
+		e = ret['edges']
+		for k in eck:
+			try:
+				e[k] = eck[k][branch][turn][tick]
+			except KeyError:
+				pass
+		evck = self._edge_val_cache.keyframe
+		ev = ret['edge_val']
+		for k in evck:
+			try:
+				ev[k] = evck[k][branch][turn][tick]
+			except KeyError:
+				pass
+		return ret
+
 	def _init_load(self) -> None:
 		keyframes_list = self._keyframes_list
 		keyframes_dict = self._keyframes_dict
@@ -920,11 +965,39 @@ class ORM:
 			parent, _, _, _, _ = self._branches[parent]
 			self._branch_parents[child].add(parent)
 
-	@world_locked
-	def _snap_keyframe(self, graph: Hashable, branch: str, turn: int,
-						tick: int, nodes: NodeValDictType,
-						edges: EdgeValDictType,
-						graph_val: StatDictType) -> None:
+	def _snap_keyframe_de_novo(self, branch: str, turn: int,
+								tick: int) -> None:
+		kfl = self._keyframes_list
+		kfd = self._keyframes_dict
+		kfs = self._keyframes_times
+		nkfs = self._new_keyframes
+		for graphn, graph in self.graph.items():
+			nodes = graph._nodes_state()
+			edges = graph._edges_state()
+			val = graph._val_state()
+			self._snap_keyframe_de_novo_graph(graphn, branch, turn, tick,
+												nodes, edges, val)
+			nkfs.append((graphn, branch, turn, tick, nodes, edges, val))
+			kfl.append((graphn, branch, turn, tick))
+			kfs.add((branch, turn, tick))
+			if branch not in kfd:
+				kfd[branch] = {
+					turn: {
+						tick,
+					}
+				}
+			elif turn not in kfd[branch]:
+				kfd[branch][turn] = {
+					tick,
+				}
+			else:
+				kfd[branch][turn].add(tick)
+
+	def _snap_keyframe_de_novo_graph(self, graph: Hashable, branch: str,
+										turn: int, tick: int,
+										nodes: NodeValDictType,
+										edges: EdgeValDictType,
+										graph_val: StatDictType) -> None:
 		nodes_keyframes_branch_d = self._nodes_cache.keyframe[graph, ][branch]
 		if turn in nodes_keyframes_branch_d:
 			nodes_keyframes_branch_d[turn][tick] = {
@@ -966,36 +1039,327 @@ class ORM:
 		else:
 			gvkb[turn] = {tick: graph_val}
 
-	@world_locked
-	def snap_keyframe(self) -> None:
-		branch, turn, tick = self._btt()
-		snapp = self._snap_keyframe
+	def _alias_kf(self, branch_from, branch_to, turn, tick):
+		gvck = self._graph_val_cache.keyframe
+		for gvckg in gvck.values():
+			try:
+				vals = gvckg[branch_from][turn][tick]
+			except KeyError:
+				continue
+			if turn not in gvckg[branch_to]:
+				gvckg[branch_to][turn] = {tick: vals}
+			else:
+				gvckg[branch_to][turn][tick] = vals
+		nck = self._nodes_cache.keyframe
+		for nckg in nck.values():
+			try:
+				nodes = nckg[branch_from][turn][tick]
+			except KeyError:
+				continue
+			if turn not in nckg[branch_to]:
+				nckg[branch_to][turn] = {tick: nodes}
+			else:
+				nckg[branch_to][turn][tick] = nodes
+		nvck = self._node_val_cache.keyframe
+		for gn in nvck.values():
+			try:
+				vals = gn[branch_from][turn][tick]
+			except KeyError:
+				continue
+			if turn not in gn[branch_to]:
+				gn[branch_to][turn] = {tick: vals}
+			else:
+				gn[branch_to][turn][tick] = vals
+		eck = self._edges_cache.keyframe
+		for gorigdest in eck.values():
+			try:
+				edge = gorigdest[branch_from][turn][tick]
+			except KeyError:
+				continue
+			if turn not in gorigdest[branch_to]:
+				gorigdest[branch_to][turn] = {tick: edge}
+			else:
+				gorigdest[branch_to][turn][tick] = edge
+		evck = self._edge_val_cache.keyframe
+		for godi in evck.values():
+			try:
+				vals = godi[branch_from][turn][tick]
+			except KeyError:
+				continue
+			if turn not in godi[branch_to]:
+				godi[branch_to][turn] = {tick: vals}
+			else:
+				godi[branch_to][turn][tick] = vals
+
+	def _snap_keyframe_from_delta(self, then: Tuple[str, int, int],
+									now: Tuple[str, int, int],
+									delta: DeltaType) -> None:
+		# may mutate delta
+		assert then[0] == now[0]
+		whens = [now]
 		kfl = self._keyframes_list
 		kfd = self._keyframes_dict
 		kfs = self._keyframes_times
-		if (branch, turn, tick) in kfs:
-			return
-		nkfs = self._new_keyframes
-		for graphn, graph in self.graph.items():
-			nodes = graph._nodes_state()
-			edges = graph._edges_state()
-			val = graph._val_state()
-			snapp(graphn, branch, turn, tick, nodes, edges, val)
-			nkfs.append((graphn, branch, turn, tick, nodes, edges, val))
-			kfl.append((graphn, branch, turn, tick))
-			kfs.add((branch, turn, tick))
-			if branch not in kfd:
-				kfd[branch] = {
-					turn: {
-						tick,
-					}
-				}
-			elif turn not in kfd[branch]:
-				kfd[branch][turn] = {
+		kfs.add(now)
+		branch, turn, tick = now
+		if branch not in kfd:
+			kfd[branch] = {
+				turn: {
 					tick,
 				}
+			}
+		elif turn not in kfd[branch]:
+			kfd[branch][turn] = {
+				tick,
+			}
+		else:
+			kfd[branch][turn].add(tick)
+		nkfs = self._new_keyframes
+		nodes_keyframe = {}
+		node_val_keyframe = {}
+		edges_keyframe = {}
+		edge_val_keyframe = {}
+		graph_val_keyframe = {}
+		nvck = self._node_val_cache.keyframe
+		for graph, node in nvck:
+			if graph not in node_val_keyframe:
+				node_val_keyframe[graph] = {}
+			try:
+				node_val_keyframe[graph][node] = nvck[graph, node][then[0]][
+					then[1]][then[2]].copy()
+				node_val_keyframe[graph][node]["name"] = node
+			except KeyError:
+				continue
+		eck = self._edges_cache.keyframe
+		for graph, orig, dest in eck:
+			try:
+				exists = eck[graph, orig, dest][then[0]][then[1]][then[2]][0]
+			except KeyError:
+				continue
+			if graph in edges_keyframe:
+				if orig in edges_keyframe[graph]:
+					edges_keyframe[graph][orig][dest] = exists
+				else:
+					edges_keyframe[graph][orig] = {dest: exists}
 			else:
-				kfd[branch][turn].add(tick)
+				edges_keyframe[graph] = {orig: {dest: exists}}
+		evck = self._edge_val_cache.keyframe
+		for graph, orig, dest, idx in evck:
+			assert idx == 0  # until I get to multigraphs
+			try:
+				val = evck[graph, orig, dest,
+							idx][then[0]][then[1]][then[2]].copy()
+			except KeyError:
+				continue
+			if graph in edge_val_keyframe:
+				if orig in edge_val_keyframe:
+					edge_val_keyframe[graph][orig][dest] = val
+				else:
+					edge_val_keyframe[graph][orig] = {dest: val}
+			else:
+				edge_val_keyframe[graph] = {orig: {dest: val}}
+		for graph in self.graph.keys():
+			try:
+				nodes_keyframe[graph] = self._nodes_cache.keyframe[graph, ][
+					then[0]][then[1]][then[2]].copy()
+			except KeyError:
+				nodes_keyframe[graph] = {}
+			try:
+				graph_val_keyframe[graph] = self._graph_val_cache.keyframe[
+					graph, ][then[0]][then[1]][then[2]].copy()
+			except KeyError:
+				graph_val_keyframe[graph] = {}
+			# apply the delta to the keyframes, then save the keyframes back
+			# into the caches, and possibly copy them to another branch as well
+			deltg = delta.get(graph, {})
+			if 'nodes' in deltg:
+				dn = deltg.pop('nodes')
+				if graph in nodes_keyframe:
+					nkg = nodes_keyframe[graph]
+					nvkg = node_val_keyframe.setdefault(graph, {})
+					for node, exists in dn.items():
+						if node in nkg:
+							if not exists:
+								del nkg[node]
+								if node in nvkg:
+									del nvkg[node]
+						elif exists:
+							nkg[node] = True
+				else:
+					nodes_keyframe[graph] = {
+						node: exists
+						for node, exists in dn.items() if exists
+					}
+			if graph in nodes_keyframe:
+				if graph not in node_val_keyframe:
+					node_val_keyframe[graph] = {}
+				nvkg = node_val_keyframe[graph]
+				nckg = self._nodes_cache.keyframe[graph, ]
+				if now[1] in nckg[now[0]]:
+					nckg[now[0]][now[1]][now[2]] = nodes_keyframe[graph]
+				else:
+					nckg[now[0]][now[1]] = {now[2]: nodes_keyframe[graph]}
+				for node, ex in nodes_keyframe[graph].items():
+					if ex and node not in nvkg:
+						nvkg[node] = {"name": node}
+			if 'node_val' in deltg:
+				dnv = deltg.pop('node_val')
+				if graph in node_val_keyframe:
+					nvg = node_val_keyframe[graph]
+					for node, value in dnv.items():
+						if node in nvg:
+							nvgn = nvg[node]
+							for k, v in value.items():
+								if v is None:
+									del nvgn[k]
+								else:
+									nvgn[k] = v
+						else:
+							nvg[node] = value
+						if "name" not in nvg[node]:
+							nvg[node]["name"] = node
+				else:
+					node_val_keyframe[graph] = dnv
+			if graph in node_val_keyframe:
+				nvck = self._node_val_cache.keyframe
+				for node, val in node_val_keyframe[graph].items():
+					if now[1] in nvck[graph, node][now[0]]:
+						nvck[graph, node][now[0]][now[1]][now[2]] = val
+					else:
+						nvck[graph, node][now[0]][now[1]] = {now[2]: val}
+			if 'edges' in deltg:
+				dge = deltg.pop('edges')
+				ekg = edges_keyframe.setdefault(graph, {})
+				evkg = edge_val_keyframe.setdefault(graph, {})
+				for (orig, dest), exists in dge.items():
+					if orig in ekg:
+						if exists:
+							ekg[orig][dest] = exists
+						else:
+							if dest in ekg[orig]:
+								del ekg[orig][dest]
+							if orig in evkg and dest in evkg[orig]:
+								del evkg[orig][dest]
+					elif exists:
+						ekg[orig] = {dest: exists}
+			if graph in edge_val_keyframe:
+				for orig, dests in edge_val_keyframe[graph].items():
+					for dest, val in dests.items():
+						if now[1] in evck[graph, orig, dest, 0][now[0]]:
+							evck[graph, orig, dest,
+									0][now[0]][now[1]][now[2]] = val
+						else:
+							evck[graph, orig, dest, 0][now[0]][now[1]] = {
+								now[2]: val
+							}
+			if graph in edges_keyframe:
+				if graph not in edge_val_keyframe:
+					edge_val_keyframe[graph] = {}
+				for orig, dests in edges_keyframe[graph].items():
+					if orig not in edge_val_keyframe[graph]:
+						edge_val_keyframe[graph][orig] = {}
+					for dest, ex in dests.items():
+						if now[1] in eck[graph, orig, dest][now[0]]:
+							eck[graph, orig, dest][now[0]][now[1]][now[2]] = {
+								0: ex
+							}
+						else:
+							eck[graph, orig, dest][now[0]][now[1]] = {
+								now[2]: {
+									0: ex
+								}
+							}
+						if ex and dest not in edge_val_keyframe[graph][orig]:
+							edge_val_keyframe[graph][orig][dest] = {}
+			if 'edge_val' in deltg:
+				dgev = deltg.pop('edge_val')
+				if graph in edge_val_keyframe:
+					evkg = edge_val_keyframe[graph]
+					for orig, dests in dgev.items():
+						if orig in evkg:
+							evkgo = evkg[orig]
+							for dest, vals in dests.items():
+								if dest in evkgo:
+									evkgo[dest].update(vals)
+								else:
+									evkgo[dest] = vals
+						else:
+							evkg[orig] = dests
+				else:
+					edge_val_keyframe[graph] = dgev
+			if deltg:
+				if graph in graph_val_keyframe:
+					graph_val_keyframe[graph].update(deltg)
+				else:
+					graph_val_keyframe[graph] = deltg
+			if graph in graph_val_keyframe:
+				gvckg = self._graph_val_cache.keyframe[graph, ]
+				if now[1] in gvckg[now[0]]:
+					gvckg[now[0]][now[1]][now[2]] = graph_val_keyframe[graph]
+				else:
+					gvckg[now[0]][now[1]] = {now[2]: graph_val_keyframe[graph]}
+			for when in whens:
+				nkfs.append((graph, *when, node_val_keyframe.get(graph, {}),
+								edge_val_keyframe.get(graph, {}),
+								graph_val_keyframe.get(graph, {})))
+				kfl.append((graph, *when))
+
+	def _recurse_delta_keyframes(self, time_from):
+		"""Make keyframes until we have one in the current branch"""
+		kfd = self._keyframes_dict
+		if time_from[0] in kfd:
+			# could probably avoid these sorts by restructuring kfd
+			for turn in sorted(kfd[time_from[0]].keys(), reverse=True):
+				if turn <= time_from[1]:
+					for tick in sorted(kfd[time_from[0]][turn], reverse=True):
+						if time_from[2] <= tick:
+							return time_from[0], turn, tick
+		parent, turn_from, tick_from, turn_to, tick_to = self._branches[
+			time_from[0]]
+		if parent is None:
+			self._snap_keyframe_de_novo(*time_from)
+		else:
+			(parent, turn_from, tick_from) = self._recurse_delta_keyframes(
+				(parent, turn_from, tick_from))
+			if (parent, time_from[1],
+				time_from[2]) not in self._keyframes_times:
+				self._snap_keyframe_from_delta(
+					(parent, turn_from, tick_from),
+					(parent, time_from[1], time_from[2]),
+					self.get_delta(parent, turn_from, tick_from, time_from[1],
+									time_from[2]))
+			self._alias_kf(parent, *time_from)
+		return time_from
+
+	@world_locked
+	def snap_keyframe(self) -> None:
+		branch, turn, tick = self._btt()
+		if (branch, turn, tick) in self._keyframes_times:
+			return
+		kfd = self._keyframes_dict
+		the_kf: Optional[Tuple[str, int, int]] = None
+		if branch in kfd:
+			# I could probably avoid sorting these by using windowdicts
+			for trn in sorted(kfd[branch].keys(), reverse=True):
+				if trn < turn:
+					the_kf = (branch, trn, max(kfd[branch][trn]))
+					break
+				elif trn == turn:
+					for tck in sorted(kfd[branch][trn], reverse=True):
+						if tck <= tick:
+							the_kf = (branch, trn, tck)
+							break
+				if the_kf is not None:
+					break
+		if the_kf is None:
+			parent, _, _, turn_to, tick_to = self._branches[branch]
+			if parent is None:
+				return self._snap_keyframe_de_novo(branch, turn, tick)
+			the_kf = self._recurse_delta_keyframes((branch, turn, tick))
+		self._snap_keyframe_from_delta(the_kf, (branch, turn, tick),
+										self.get_delta(*the_kf, turn, tick))
+		if the_kf[0] != branch:
+			self._alias_kf(the_kf[0], branch, turn, tick)
 
 	def _build_loading_windows(
 			self, branch_from: str, turn_from: int, tick_from: int,
@@ -1030,7 +1394,6 @@ class ORM:
 		str, int, int]], dict, List[NodeRowType], List[EdgeRowType],
 				List[GraphValRowType], List[NodeValRowType],
 				List[EdgeValRowType]]:
-		snap_keyframe = self._snap_keyframe
 		latest_past_keyframe: Optional[Tuple[str, int, int]] = None
 		earliest_future_keyframe: Optional[Tuple[str, int, int]] = None
 		branch_now, turn_now, tick_now = branch, turn, tick
@@ -1207,6 +1570,7 @@ class ORM:
 					edgevalrows.append(row)
 					updload(*row[4:8])
 
+		snap_keyframe = self._snap_keyframe_de_novo_graph
 		for graph in self.graph:
 			stuff = keyframed[graph] = get_keyframe(graph, past_branch,
 													past_turn, past_tick)
@@ -1780,13 +2144,14 @@ class ORM:
 				nodes = data._nodes_state()
 				edges = data._edges_state()
 				val = data._val_state()
-				self._snap_keyframe(name, branch, turn, tick, nodes, edges,
-									val)
+				self._snap_keyframe_de_novo_graph(name, branch, turn, tick,
+													nodes, edges, val)
 				self._new_keyframes.append(
 					(name, branch, turn, tick, nodes, edges, val))
 			elif isinstance(data, nx.Graph):
-				self._snap_keyframe(name, branch, turn, tick, data._node,
-									data._adj, data.graph)
+				self._snap_keyframe_de_novo_graph(name, branch, turn, tick,
+													data._node, data._adj,
+													data.graph)
 				self._new_keyframes.append((name, branch, turn, tick,
 											data._node, data._adj, data.graph))
 			elif isinstance(data, dict):
@@ -1794,22 +2159,31 @@ class ORM:
 					data = nx.from_dict_of_dicts(data)
 				except AttributeError:
 					data = nx.from_dict_of_lists(data)
-				self._snap_keyframe(name, branch, turn, tick, data._node,
-									data._adj, data.graph)
+				self._snap_keyframe_de_novo_graph(name, branch, turn, tick,
+													data._node, data._adj,
+													data.graph)
 				self._new_keyframes.append((name, branch, turn, tick,
 											data._node, data._adj, data.graph))
 			else:
 				if len(data) != 3 or not all(
 					isinstance(d, dict) for d in data):
 					raise ValueError("Invalid graph data")
-				self._snap_keyframe(name, branch, turn, tick, *data)
+				self._snap_keyframe_de_novo_graph(name, branch, turn, tick,
+													*data)
 				self._new_keyframes.append((name, branch, turn, tick) +
 											tuple(data))
+			if branch in self._keyframes_dict:
+				if turn in self._keyframes_dict[branch]:
+					self._keyframes_dict[branch][turn].add(tick)
+				else:
+					self._keyframes_dict[branch][turn] = {tick}
+			else:
+				self._keyframes_dict[branch] = {turn: {tick}}
 			graphmap = self.graph
 			others = set(graphmap)
 			others.discard(name)
 			branch, turn, tick = self._btt()
-			snapp = self._snap_keyframe
+			snapp = self._snap_keyframe_de_novo_graph
 			kfl = self._keyframes_list
 			kfd = self._keyframes_dict
 			kfs = self._keyframes_times
