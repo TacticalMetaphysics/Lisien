@@ -18,7 +18,7 @@ from kivy.uix.boxlayout import BoxLayout
 
 from kivy.properties import (BooleanProperty, ObjectProperty,
 								ReferenceListProperty)
-from .graph.arrow import GraphArrow
+from .graph.arrow import GraphArrowWidget
 from .util import try_load, dummynum
 from LiSE.proxy import CharStatProxy
 
@@ -48,16 +48,16 @@ class CharMenu(BoxLayout):
 			Clock.schedule_once(self.on_screen, 0)
 			return
 		self.screen.boardview.reciprocal_portal = self.reciprocal_portal
-		# self.forearrow = GraphArrow(board=self.screen.boardview.board,
-		# 							origin=self.ids.emptyleft,
-		# 							destination=self.ids.emptyright)
-		# self.ids.portaladdbut.canvas.add(self.forearrow)
-		# if self.reciprocal_portal:
-		# 	assert (self.revarrow is None)
-		# 	self.revarrow = GraphArrow(board=self.screen.boardview.board,
-		# 								origin=self.ids.emptyright,
-		# 								destination=self.ids.emptyleft)
-		# 	self.ids.portaladdbut.canvas.add(self.revarrow)
+		self.forearrow = GraphArrowWidget(board=self.screen.boardview.board,
+											origin=self.ids.emptyleft,
+											destination=self.ids.emptyright)
+		self.ids.portaladdbut.add_widget(self.forearrow)
+		if self.reciprocal_portal:
+			assert (self.revarrow is None)
+			self.revarrow = GraphArrowWidget(board=self.screen.boardview.board,
+												origin=self.ids.emptyright,
+												destination=self.ids.emptyleft)
+			self.ids.portaladdbut.add_widget(self.revarrow)
 		self.bind(reciprocal_portal=self.screen.boardview.setter(
 			'reciprocal_portal'))
 
@@ -160,9 +160,9 @@ class CharMenu(BoxLayout):
 		self.screen.boardview.reciprocal_portal = not self.screen.boardview.reciprocal_portal
 		if self.screen.boardview.reciprocal_portal:
 			assert (self.revarrow is None)
-			self.revarrow = GraphArrow(board=self.screen.boardview.board,
-										origin=self.ids.emptyright,
-										destination=self.ids.emptyleft)
+			self.revarrow = GraphArrowWidget(board=self.screen.boardview.board,
+												origin=self.ids.emptyright,
+												destination=self.ids.emptyleft)
 			self.ids.portaladdbut.add_widget(self.revarrow)
 		else:
 			if hasattr(self, 'revarrow'):
