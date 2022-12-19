@@ -654,7 +654,7 @@ class GraphBoard(RelativeLayout):
 
 	def add_spot(self, placen, *args):
 		if (placen in self.character.place and placen not in self.spot):
-			self.stack_plane.add_widget(
+			self.stack_plane.add_datum(
 				self.make_spot(self.character.place[placen]))
 
 	def _trigger_add_spot(self, placen):

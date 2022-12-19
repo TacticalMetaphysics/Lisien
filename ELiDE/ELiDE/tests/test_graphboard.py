@@ -217,7 +217,7 @@ class GraphBoardTest(GraphicUnitTest):
 		idle_until(lambda: 'that' in board.pawn, 100, "Didn't make pawn")
 		that = board.pawn['that']
 		one = board.spot[1]
-		idle_until(lambda: that in one.children, 100,
+		idle_until(lambda: getattr(that, 'pos', None) == (one.right, one.top), 100,
 					"pawn did not locate within 100 ticks")
 
 
