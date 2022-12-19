@@ -5,8 +5,9 @@ import networkx as nx
 from LiSE import Engine
 from LiSE.character import Facade
 from ELiDE.app import ELiDEApp
-from ELiDE.graph.board import GraphBoard, GraphBoardView, FinalLayout, \
- BoardScatterPlane
+from ELiDE.graph.board import GraphBoard, GraphBoardView
+from ELiDE.graph.pawnspot import TextureStackPlane
+from ELiDE.graph.arrow import ArrowPlane
 from .util import idle_until, window_with_widget, ELiDEAppTest
 from ..dummy import Dummy
 
@@ -20,12 +21,12 @@ class GraphBoardTest(GraphicUnitTest):
 		graph = nx.grid_2d_graph(spots_wide, spots_tall)
 		char = Facade(graph)
 		app = ELiDEApp()
-		spotlayout = FinalLayout()
-		arrowlayout = FinalLayout()
+		spotlayout = TextureStackPlane()
+		arrowlayout = ArrowPlane()
 		board = GraphBoard(app=app,
 							character=char,
-							spotlayout=spotlayout,
-							arrowlayout=arrowlayout)
+							stack_plane=spotlayout,
+							arrow_plane=arrowlayout)
 		spotlayout.pos = board.pos
 		board.bind(pos=spotlayout.setter('pos'))
 		spotlayout.size = board.size
@@ -88,8 +89,7 @@ class GraphBoardTest(GraphicUnitTest):
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
 		win = window_with_widget(boardview)
-		idle_until(lambda: 0 in board.spot and board.spot[0] in board.
-					stack_plane.children)
+		idle_until(lambda: 0 in board.spot)
 		x, y = board.spot[0].center
 		motion = UnitTestTouch(x, y)
 		motion.touch_down()
