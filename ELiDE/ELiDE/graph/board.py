@@ -15,9 +15,6 @@
 """The big widget that shows the graph of the selected Character."""
 from functools import partial
 
-from kivy.graphics import InstructionGroup, Rectangle
-from kivy.core.image import Image as BaseImage
-from kivy.resources import resource_find
 from kivy.properties import (BooleanProperty, ReferenceListProperty,
 								DictProperty, ObjectProperty, NumericProperty,
 								ListProperty, StringProperty)
@@ -32,10 +29,8 @@ from kivy.graphics.transformation import Matrix
 from kivy.uix.widget import Widget
 from kivy.vector import Vector
 
-from LiSE.proxy import ThingProxy
 from .pawnspot import TextureStackPlane, Stack
 from .spot import GraphSpot
-from .pawn import Pawn
 from .arrow import GraphArrow, GraphArrowWidget, ArrowPlane, get_points_multi
 from .pawn import Pawn
 from ..dummy import Dummy
@@ -319,7 +314,7 @@ class GraphBoard(RelativeLayout):
 			if isinstance(sel, Widget):
 				sel.dispatch('on_touch_up', touch)
 			elif isinstance(sel, Stack):
-				if isinstance(sel.proxy, ThingProxy):
+				if hasattr(sel.proxy, 'location'):
 					for candidate in self.stack_plane.iter_collided_keys(
 						*touch.pos):
 						if candidate in self.spot:
