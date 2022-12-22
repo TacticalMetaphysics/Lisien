@@ -1,3 +1,4 @@
+import pytest
 from kivy.tests.common import UnitTestTouch
 from kivy.tests.common import GraphicUnitTest, UnitTestTouch
 import networkx as nx
@@ -110,25 +111,6 @@ class GraphBoardTest(GraphicUnitTest):
 		motion.touch_down()
 		motion.touch_up()
 		assert app.selection == board.pawn['that']
-
-	@staticmethod
-	def test_pawn_relocate():
-		char = Facade()
-		char.add_place(0, _x=0.1, _y=0.1)
-		char.add_place(1, _x=0.2, _y=0.1)
-		char.add_thing('that', location=0)
-		app = ELiDEApp()
-		board = GraphBoard(app=app, character=char)
-		boardview = GraphBoardView(board=board)
-		win = window_with_widget(boardview)
-		idle_until(lambda: 0 in board.spot and 1 in board.spot and 'that' in board.pawn)
-		that = board.pawn['that']
-		one = board.spot[1]
-		# In a real ELiDE session, the following would happen as a
-		# result of a Board.update() call
-		char.thing['that']['location'] = that.loc_name = 1
-		idle_until(lambda: that.pos == (one.right, one.top), 1000,
-					"pawn did not relocate within 1000 ticks")
 
 	def test_pawn_drag(self):
 		char = Facade()
