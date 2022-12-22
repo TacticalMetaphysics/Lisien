@@ -239,17 +239,17 @@ class SwitchGraphTest(ELiDEAppTest):
 		app.character_name = 'tall'
 
 		def all_x_same():
-			if app.mainscreen.boardview.board is None or app.mainscreen.boardview.board.stack_plane is None or not app.mainscreen.boardview.board.stack_plane.children:
+			if app.mainscreen.boardview.board is None or app.mainscreen.boardview.board.stack_plane is None or not app.mainscreen.boardview.board.spot:
 				return False
 			first_x = next(
-				iter(app.mainscreen.boardview.board.stack_plane.children)).x
+				iter(app.mainscreen.boardview.board.spot.values())).x
 			return all(child.x == first_x for child in
-						app.mainscreen.boardview.board.stack_plane.children)
+						app.mainscreen.boardview.board.spot.values())
 
-		idle_until(all_x_same, 1000, "Never got the new board")
+		idle_until(all_x_same, 100, "Never got the new board")
 		idle_until(
 			lambda: len(
 				set(child.y for child in app.mainscreen.boardview.board.
 					stack_plane.children)) == len(
 						app.mainscreen.boardview.board.stack_plane.children),
-			1000, "New board arranged weird")
+			100, "New board arranged weird")
