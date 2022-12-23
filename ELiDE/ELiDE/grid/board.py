@@ -125,7 +125,10 @@ class GridBoard(RelativeLayout):
 	def add_new_pawns(self, *args):
 
 		def adder(pwn):
-			self.spot[pwn.proxy['location']].add_widget(pwn)
+			locn = pwn.proxy['location']
+			if locn not in self.spot:
+				return
+			self.spot[locn].add_widget(pwn)
 
 		return self._maybe_add_nodes(GridPawn.default_image_paths,
 										self.character.thing, self.pawn,
