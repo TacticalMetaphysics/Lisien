@@ -1000,6 +1000,7 @@ class BoardScatterPlane(ScatterPlane):
 												_image_paths=list(
 													dummy.paths))))
 		dummy.num += 1
+		return True
 
 	def on_board(self, *args):
 		if hasattr(self, '_oldboard'):
