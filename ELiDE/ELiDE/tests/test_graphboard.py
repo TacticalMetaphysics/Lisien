@@ -155,6 +155,8 @@ class GraphBoardTest(GraphicUnitTest):
 		dummy = Dummy(
 			name='hello',
 			paths=['atlas://rltiles/base/unseen'],
+			size=(32, 32),
+			pos=(0,0)
 		)
 		board.add_widget(dummy)
 		idle_until(lambda: dummy in board.children, 100,
@@ -165,7 +167,8 @@ class GraphBoardTest(GraphicUnitTest):
 					"Dummy didn't add place")
 		dummy2 = Dummy(name='goodbye',
 						paths=['atlas://rltiles/base/unseen'],
-						center=dummy.center)
+						pos=dummy.pos,
+					   size=(32, 32))
 		dummy2_name = dummy2.name = 'dummy2'
 		board.add_widget(dummy2)
 		idle_until(lambda: dummy2 in board.children, 100,

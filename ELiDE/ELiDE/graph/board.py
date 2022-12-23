@@ -962,7 +962,7 @@ class BoardScatterPlane(ScatterPlane):
 		(x, y) = self.to_local(*dummy.pos_up)
 		x /= self.board.width
 		y /= self.board.height
-		self.board.stack_plane.add_widget(
+		self.board.stack_plane.add_datum(
 			self.board.make_spot(
 				self.board.character.new_place(dummy.name,
 												_x=x,
@@ -979,12 +979,10 @@ class BoardScatterPlane(ScatterPlane):
 		location, and imagery of the provided dummy.
 
 		"""
-		candidates = []
 		dummy_center = self.to_local(*dummy.center)
 		dummy.pos = self.to_local(*dummy.pos)
-		for spot in self.board.spot.values():
-			if spot.collide_point(*dummy.center):
-				candidates.append(spot)
+		candidates = [spot for spot in self.board.stack_plane.iter_collided_keys(*dummy_center)
+					  if spot in self.board.spot]
 		if not candidates:
 			return
 		whereat = candidates.pop()
@@ -998,7 +996,7 @@ class BoardScatterPlane(ScatterPlane):
 		self.board.stack_plane.add_datum(
 			self.board.make_pawn(
 				self.board.character.new_thing(dummy.name,
-												whereat.proxy.name,
+												whereat,
 												_image_paths=list(
 													dummy.paths))))
 		dummy.num += 1
