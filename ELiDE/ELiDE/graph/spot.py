@@ -19,7 +19,7 @@ top of these.
 from kivy.clock import Clock
 
 from .arrow import get_points, get_quad_vertices
-from .pawnspot import GraphPawnSpot
+from ELiDE.pawnspot import GraphPawnSpot
 from ..collide import Collide2DPoly
 from ..util import trigger
 

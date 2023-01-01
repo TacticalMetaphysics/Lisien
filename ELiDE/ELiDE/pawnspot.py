@@ -28,8 +28,8 @@ from kivy.uix.layout import Layout
 from kivy.clock import Clock
 from kivy.uix.widget import Widget
 
-from ..util import trigger
-from ..imagestackproxy import ImageStackProxy
+from ELiDE.util import trigger
+from ELiDE.imagestackproxy import ImageStackProxy
 
 
 class TextureStackPlane(Widget):

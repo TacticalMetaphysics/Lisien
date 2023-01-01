@@ -13,9 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Widget representing things that move about from place to place."""
-from kivy.properties import (AliasProperty, ObjectProperty, NumericProperty,
-								ReferenceListProperty)
-from .pawnspot import GraphPawnSpot
+from ELiDE.pawnspot import GraphPawnSpot
 from ..pawn import PawnBehavior
 
 
