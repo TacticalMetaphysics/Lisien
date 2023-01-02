@@ -76,7 +76,8 @@ class CharMenu(BoxLayout):
 
 	def pawn_from_dummy(self, dummy):
 		name = dummy.name
-		self.screen.mainview.children[0].pawn_from_dummy(dummy)
+		if not self.screen.mainview.children[0].pawn_from_dummy(dummy):
+			return
 		graphboard = self.screen.graphboards[self.app.character_name]
 		if name not in graphboard.pawn:
 			graphboard.add_pawn(name)

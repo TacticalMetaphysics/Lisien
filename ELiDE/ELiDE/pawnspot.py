@@ -120,6 +120,7 @@ class TextureStackPlane(Widget):
 		self._top_ys = np.array(top_ys)
 		self._right_xs = np.array(right_xs)
 		self._keys.append(name)
+		self.data.append(datum)
 		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
 		fbo.release()
 
