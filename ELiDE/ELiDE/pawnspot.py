@@ -58,6 +58,7 @@ class TextureStackPlane(Widget):
 			self._translate = Translate(x=self.x, y=self.y)
 			self._rectangle = Rectangle(size=self.size,
 										texture=self._fbo.texture)
+		self.bind(pos=self._trigger_redraw, size=self._trigger_redraw)
 		self._trigger_redraw()
 
 	def on_pos(self, *args):
@@ -80,8 +81,10 @@ class TextureStackPlane(Widget):
 			x = datum["x"]
 			y = datum["y"]
 		texs = datum["textures"]
-		x *= self.width
-		y *= self.height
+		if isinstance(x, float):
+			x *= self.width
+		if isinstance(y, float):
+			y *= self.height
 		self.unbind_uid('data', self._redraw_bind_uid)
 		fbo = self._fbo
 		fbo.bind()
@@ -91,15 +94,15 @@ class TextureStackPlane(Widget):
 		top_ys = list(self._top_ys)
 		bot_ys = list(self._bot_ys)
 		rects = []
-		wide = 0
-		tall = 0
+		wide = datum.get("width", 0)
+		tall = datum.get("height", 0)
 		for tex in texs:
 			if isinstance(tex, str):
 				tex = Image.load(resource_find(tex)).texture
 				w, h = tex.size
-				if w > wide:
+				if "width" not in datum and w > wide:
 					wide = w
-				if h > tall:
+				if "height" not in datum and h > tall:
 					tall = h
 			rects.append(Rectangle(texture=tex, pos=(x, y), size=(wide, tall)))
 		instructions[name] = {"rectangles": rects, "group": InstructionGroup()}
@@ -142,8 +145,18 @@ class TextureStackPlane(Widget):
 		for datum in self.data:
 			name = datum['name']
 			texs = datum['textures']
-			x = datum['x'] * self_width
-			y = datum['y'] * self_height
+			if isinstance(datum['x'], float):
+				x = datum['x'] * self_width
+			else:
+				if not isinstance(datum['x'], int):
+					raise TypeError("need int or float for pos")
+				x = datum['x']
+			if isinstance(datum['y'], float):
+				y = datum['y'] * self_height
+			else:
+				if not isinstance(datum['y'], int):
+					raise TypeError("need int or float for pos")
+				y = datum['y']
 			if name in stack_index:
 				inst = instructions[name]
 				grp = inst['group']
@@ -159,18 +172,23 @@ class TextureStackPlane(Widget):
 											texture=texture)
 						grp.add(rect)
 						rects.append(rect)
-				width = 0
-				height = 0
+				width = datum.get("width", 0)
+				height = datum.get("height", 0)
 				for texture, rect in zip(texs, rects):
 					if isinstance(texture, str):
 						texture = Image.load(resource_find(texture)).texture
 					w, h = texture.size
-					if w > width:
+					if "width" in datum:
+						w = width
+					elif w > width:
 						width = w
-					if h > height:
+					if "height" in datum:
+						h = height
+					elif h > height:
 						height = h
 					rect.texture = texture
-					rect.size = texture.size
+					assert w > 0 and h > 0
+					rect.size = (w, h)
 				idx = stack_index[name]
 				right = x + width
 				left_xs[idx] = x
@@ -181,17 +199,22 @@ class TextureStackPlane(Widget):
 			else:
 				stack_index[name] = len(keys)
 				keys.append(name)
-				width = 0
-				height = 0
+				width = datum.get('width', 0)
+				height = datum.get('height', 0)
 				rects = []
 				for texture in datum['textures']:
 					if isinstance(texture, str):
 						texture = Image.load(resource_find(texture)).texture
 					w, h = texture.size
-					if w > width:
+					if "width" in datum:
+						w = width
+					elif w > width:
 						width = w
-					if h > height:
+					if "height" in datum:
+						h = height
+					elif h > height:
 						height = h
+					assert w > 0 and h > 0
 					rects.append(
 						Rectangle(pos=(x, y), size=(w, h), texture=texture))
 				right = x + width
@@ -222,6 +245,7 @@ class TextureStackPlane(Widget):
 		self._bot_ys = np.array(bot_ys)
 		self._keys = keys
 		fbo.release()
+		self._rectangle.texture = fbo.texture
 
 	def iter_collided_keys(self, x, y):
 		hits = (self._left_xs <= x) & (self._bot_ys <= y) & (

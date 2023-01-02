@@ -1,79 +1,79 @@
+from collections import defaultdict
 from functools import partial
 
 from kivy.clock import Clock
 from kivy.logger import Logger
 from kivy.properties import (DictProperty, ListProperty, NumericProperty,
 								ObjectProperty, ReferenceListProperty)
-from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.widget import Widget
 from kivy.lang.builder import Builder
 from .spot import GridSpot
 from .pawn import GridPawn
 from ..boardview import BoardView
+from ..pawnspot import TextureStackPlane
 
 
-class GridBoard(RelativeLayout):
+class GridBoard(Widget):
 	selection = ObjectProperty()
 	selection_candidates = ListProperty()
 	character = ObjectProperty()
-	tile_width = NumericProperty()
-	tile_height = NumericProperty()
+	tile_width = NumericProperty(32)
+	tile_height = NumericProperty(32)
 	tile_size = ReferenceListProperty(tile_width, tile_height)
-	pawn = DictProperty({})
-	spot = DictProperty({})
-	spot_cls = ObjectProperty(GridSpot)
-	pawn_cls = ObjectProperty(GridPawn)
-	_parented: bool
 
-	def do_layout(self, *args):
-		Logger.debug("GridBoard laying out at size {}".format(self.size))
-		rows = cols = 0
-		colw = rowh = 0
-		for name, spot in self.spot.items():
-			row, col = name
-			rows = max((rows, row))
-			cols = max((cols, col))
-			colw = max((spot.width, colw))
-			rowh = max((spot.height, rowh))
-		self.width = colw * cols
-		self.height = rowh * rows
-		for name, tile in self.spot.items():
-			gx, gy = name
-			tile.pos = gx * colw, gy * rowh
+	def __init__(self, **kwargs):
+		self.pawn = {}
+		self.spot = {}
+		self.contained = defaultdict(set)
+		super().__init__(**kwargs)
 
 	def add_spot(self, placen, *args):
 		if placen not in self.character.place:
 			raise KeyError(f"No such place for spot: {placen}")
-		self.add_widget(self.make_spot(self.character.place[placen]))
+		self._spot_plane.add_datum(self.make_spot(
+			self.character.place[placen]))
 
 	def make_spot(self, place):
 		placen = place["name"]
+		if not isinstance(placen, tuple) or len(placen) != 2:
+			raise TypeError(
+				"Can only make spot from places with tuple names of length 2")
 		if placen in self.spot:
 			raise KeyError("Already have a Spot for this Place")
 		if not isinstance(placen, tuple) or len(placen) != 2 or not isinstance(
 			placen[0], int) or not isinstance(placen[1], int):
 			raise TypeError(
 				"GridBoard can only display places named with pairs of ints")
-
-		r = self.spot_cls(board=self, proxy=place)
+		if "_image_paths" in place:
+			textures = list(place["_image_paths"])
+		else:
+			textures = list(GridPawn.default_image_paths)
+		r = {
+			"name": placen,
+			"x": placen[0] * int(self.tile_width),
+			"y": placen[1] * int(self.tile_height),
+			"width": self.tile_width,
+			"height": self.tile_height,
+			"textures": textures,
+		}
 		self.spot[place["name"]] = r
 		return r
 
-	def make_pawn(self, thing):
+	def make_pawn(self, thing) -> dict:
 		if thing["name"] in self.pawn:
 			raise KeyError("Already have a Pawn for this Thing")
-		r = self.pawn_cls(board=self, proxy=thing)
+		location = self.spot[thing["location"]]
+		r = {
+			"name": thing["name"],
+			"x": location["x"],
+			"y": location["y"],
+			"width": self.tile_width,
+			"height": self.tile_height,
+			"location": location,
+			"textures": list(thing["_image_paths"])
+		}
 		self.pawn[thing["name"]] = r
 		return r
-
-	def _trigger_add_tile(self, placen):
-		part = partial(self.add_spot, placen)
-		Clock.unschedule(part)
-		Clock.schedule_once(part, 0)
-
-	def add_new_spots(self, *args):
-		return self._maybe_add_nodes(GridSpot.default_image_paths,
-										self.character.place, self.spot,
-										self.make_spot, self.add_widget)
 
 	def add_pawn(self, thingn, *args):
 		if thingn not in self.character.thing:
@@ -81,88 +81,35 @@ class GridBoard(RelativeLayout):
 		if thingn in self.pawn:
 			raise KeyError(f"Already have a pawn for {thingn}")
 		pwn = self.make_pawn(self.character.thing[thingn])
-		whereat = self.spot[pwn.proxy['location']]
-		whereat.add_widget(pwn)
-		self.pawn[thingn] = pwn
+		location = pwn['location']
+		self.contained[location].add(thingn)
+		self._pawn_plane.add_datum(pwn)
 
 	def _trigger_add_pawn(self, thingn):
 		part = partial(self.add_pawn, thingn)
 		Clock.unschedule(part)
 		Clock.schedule_once(part, 0)
 
-	@staticmethod
-	def _maybe_add_nodes(default_image_paths, nodemap, mymap, maker, adder):
-		default_zeroes = [0] * len(default_image_paths)
-		to_add = []
-		patchmap = {}
-		for noden, node in nodemap.items():
-			if noden not in mymap:
-				to_add.append(node)
-				patch = {}
-				if '_image_paths' in node:
-					zeroes = [0] * len(node['_image_paths'])
-				else:
-					patch['_image_paths'] = default_image_paths
-					zeroes = default_zeroes
-				if '_offxs' not in node:
-					patch['_offxs'] = zeroes
-				if '_offys' not in node:
-					patch['_offys'] = zeroes
-				if patch:
-					patchmap[noden] = patch
-		if patchmap:
-			nodemap.patch(patchmap)
-		added = []
-		for node in to_add:
-			try:
-				mine = maker(node)
-			except TypeError:
-				continue
-			added.append(mine)
-			adder(mine)
-		return added
-
-	def add_new_pawns(self, *args):
-
-		def adder(pwn):
-			self.spot[pwn.proxy['location']].add_widget(pwn)
-
-		return self._maybe_add_nodes(GridPawn.default_image_paths,
-										self.character.thing, self.pawn,
-										self.make_pawn, adder)
-
 	def on_parent(self, *args):
-		if not self.parent or hasattr(self, '_parented'):
+		if not self.character:
+			Clock.schedule_once(self.on_parent, 0)
 			return
-		self._parented = True
-		self.update()
-
-	def remove_absent_pawns(self):
-		pawnmap = self.pawn
-		thingmap = self.character.thing
-		for name, pawn in list(pawnmap.items()):
-			if name not in thingmap:
-				pawn.parent.remove_widget(pawn)
-				del pawnmap[name]
-
-	def remove_absent_spots(self):
-		spotmap = self.spot
-		placemap = self.character.place
-		remove_widget = self.remove_widget
-		for name, spot in list(spotmap.items()):
-			if name not in placemap:
-				remove_widget(spot)
-				del spotmap[name]
-
-	def update(self, *args):
-		self.remove_absent_pawns()
-		self.remove_absent_spots()
-		self.add_new_spots()
-		self.add_new_pawns()
-		for spot in self.spot.values():
-			spot.finalize()
-		for pawn in self.pawn.values():
-			pawn.finalize()
+		if not hasattr(self, '_pawn_plane'):
+			self._pawn_plane = TextureStackPlane(pos=self.pos, size=self.size)
+			self._spot_plane = TextureStackPlane(pos=self.pos, size=self.size)
+			self.bind(pos=self._pawn_plane.setter('pos'),
+						size=self._pawn_plane.setter('size'))
+			self.bind(pos=self._spot_plane.setter('pos'),
+						size=self._spot_plane.setter('size'))
+			self.add_widget(self._spot_plane)
+			self.add_widget(self._pawn_plane)
+		spot_data = list(map(self.make_spot, self.character.place.values()))
+		wide = max(datum["x"] for datum in spot_data) + self.tile_width
+		high = max(datum["y"] for datum in spot_data) + self.tile_width
+		self.size = self._spot_plane.size = self._pawn_plane.size = wide, high
+		pawn_data = list(map(self.make_pawn, self.character.thing.values()))
+		self._spot_plane.data = spot_data
+		self._pawn_plane.data = pawn_data
 
 	def rm_spot(self, name):
 		spot = self.spot.pop(name)
@@ -170,13 +117,13 @@ class GridBoard(RelativeLayout):
 			self.selection_candidates.remove(spot)
 		for pwn in spot.children:
 			del self.pawn[pwn.name]
-		self.remove_widget(spot)
+		self._spot_plane.remove_datum(spot)
 
 	def rm_pawn(self, name):
 		pwn = self.pawn.pop(name)
 		if pwn in self.selection_candidates:
 			self.selection_candidates.remove(pwn)
-		pwn.parent.remove_widget(pwn)
+		self._pawn_plane.remove_datum(pwn)
 
 	def update_from_delta(self, delta, *args):
 		pawnmap = self.pawn
@@ -189,17 +136,16 @@ class GridBoard(RelativeLayout):
 			pwn = pawnmap.pop(name)
 			if pwn in selection_candidates:
 				selection_candidates.remove(pwn)
-			pwn.parent.remove_widget(pwn)
-
-		remove_widget = self.remove_widget
+			self._pawn_plane.remove_datum(pwn)
 
 		def rm_spot(name):
 			spot = spotmap.pop(name)
 			if spot in selection_candidates:
 				selection_candidates.remove(spot)
-			for pwn in spot.children:
+			for pwn in self.contained[name]:
 				del pawnmap[pwn.name]
-			remove_widget(spot)
+			del self.contained[name]
+			self._spot_plane.remove_datum(spot)
 
 		if 'nodes' in delta:
 			for node, extant in delta['nodes'].items():
@@ -222,13 +168,11 @@ class GridBoard(RelativeLayout):
 						'_image_paths'] or GridSpot.default_image_paths
 				elif node in pawnmap:
 					pawn = pawnmap[node]
-					pawn.unfinalize()
 					if 'location' in stats:
 						pawn.loc_name = stats['location']
 					if '_image_paths' in stats:
 						pawn.paths = stats[
 							'_image_paths'] or GridPawn.default_image_paths
-					pawn.finalize(initial=False)
 				else:
 					Logger.warning(
 						"GridBoard: diff tried to change stats of node {}"
