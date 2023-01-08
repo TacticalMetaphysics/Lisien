@@ -4,9 +4,13 @@ from functools import partial
 from kivy.clock import Clock
 from kivy.logger import Logger
 from kivy.properties import (DictProperty, ListProperty, NumericProperty,
-								ObjectProperty, ReferenceListProperty)
+								ObjectProperty, ReferenceListProperty,
+								BooleanProperty)
+from kivy.uix.scatter import ScatterPlane
 from kivy.uix.widget import Widget
 from kivy.lang.builder import Builder
+from kivy.vector import Vector
+
 from .spot import GridSpot
 from .pawn import GridPawn
 from ..boardview import BoardView
@@ -30,8 +34,7 @@ class GridBoard(Widget):
 	def add_spot(self, placen, *args):
 		if placen not in self.character.place:
 			raise KeyError(f"No such place for spot: {placen}")
-		self._spot_plane.add_datum(self.make_spot(
-			self.character.place[placen]))
+		self.spot_plane.add_datum(self.make_spot(self.character.place[placen]))
 
 	def make_spot(self, place):
 		placen = place["name"]
@@ -83,7 +86,7 @@ class GridBoard(Widget):
 		pwn = self.make_pawn(self.character.thing[thingn])
 		location = pwn['location']
 		self.contained[location].add(thingn)
-		self._pawn_plane.add_datum(pwn)
+		self.pawn_plane.add_datum(pwn)
 
 	def _trigger_add_pawn(self, thingn):
 		part = partial(self.add_pawn, thingn)
@@ -95,21 +98,21 @@ class GridBoard(Widget):
 			Clock.schedule_once(self.on_parent, 0)
 			return
 		if not hasattr(self, '_pawn_plane'):
-			self._pawn_plane = TextureStackPlane(pos=self.pos, size=self.size)
-			self._spot_plane = TextureStackPlane(pos=self.pos, size=self.size)
-			self.bind(pos=self._pawn_plane.setter('pos'),
-						size=self._pawn_plane.setter('size'))
-			self.bind(pos=self._spot_plane.setter('pos'),
-						size=self._spot_plane.setter('size'))
-			self.add_widget(self._spot_plane)
-			self.add_widget(self._pawn_plane)
+			self.pawn_plane = TextureStackPlane(pos=self.pos, size=self.size)
+			self.spot_plane = TextureStackPlane(pos=self.pos, size=self.size)
+			self.bind(pos=self.pawn_plane.setter('pos'),
+						size=self.pawn_plane.setter('size'))
+			self.bind(pos=self.spot_plane.setter('pos'),
+						size=self.spot_plane.setter('size'))
+			self.add_widget(self.spot_plane)
+			self.add_widget(self.pawn_plane)
 		spot_data = list(map(self.make_spot, self.character.place.values()))
 		wide = max(datum["x"] for datum in spot_data) + self.tile_width
 		high = max(datum["y"] for datum in spot_data) + self.tile_width
-		self.size = self._spot_plane.size = self._pawn_plane.size = wide, high
+		self.size = self.spot_plane.size = self.pawn_plane.size = wide, high
 		pawn_data = list(map(self.make_pawn, self.character.thing.values()))
-		self._spot_plane.data = spot_data
-		self._pawn_plane.data = pawn_data
+		self.spot_plane.data = spot_data
+		self.pawn_plane.data = pawn_data
 
 	def rm_spot(self, name):
 		spot = self.spot.pop(name)
@@ -117,13 +120,13 @@ class GridBoard(Widget):
 			self.selection_candidates.remove(spot)
 		for pwn in spot.children:
 			del self.pawn[pwn.name]
-		self._spot_plane.remove_datum(spot)
+		self.spot_plane.remove_datum(spot)
 
 	def rm_pawn(self, name):
 		pwn = self.pawn.pop(name)
 		if pwn in self.selection_candidates:
 			self.selection_candidates.remove(pwn)
-		self._pawn_plane.remove_datum(pwn)
+		self.pawn_plane.remove_datum(pwn)
 
 	def update_from_delta(self, delta, *args):
 		pawnmap = self.pawn
@@ -136,7 +139,7 @@ class GridBoard(Widget):
 			pwn = pawnmap.pop(name)
 			if pwn in selection_candidates:
 				selection_candidates.remove(pwn)
-			self._pawn_plane.remove_datum(pwn)
+			self.pawn_plane.remove_datum(pwn)
 
 		def rm_spot(name):
 			spot = spotmap.pop(name)
@@ -145,7 +148,7 @@ class GridBoard(Widget):
 			for pwn in self.contained[name]:
 				del pawnmap[pwn.name]
 			del self.contained[name]
-			self._spot_plane.remove_datum(spot)
+			self.spot_plane.remove_datum(spot)
 
 		if 'nodes' in delta:
 			for node, extant in delta['nodes'].items():
@@ -184,6 +187,87 @@ class GridBoard(Widget):
 		Clock.schedule_once(part, 0)
 
 
+class GridBoardScatterPlane(ScatterPlane):
+	selection_candidates = ListProperty([])
+	selection = ObjectProperty(allownone=True)
+	keep_selection = BooleanProperty(False)
+	board = ObjectProperty()
+
+	def spot_from_dummy(self, dummy):
+		raise NotImplementedError("oop")
+
+	def pawn_from_dummy(self, dummy):
+		dummy_center = self.to_local(*dummy.center)
+		candidates = list(
+			self.board.spot_plane.iter_collided_keys(*dummy_center))
+		if not candidates:
+			return
+		whereat_d = self.board.spot[candidates.pop()]
+		half_wide = self.board.tile_width / 2
+		half_high = self.board.tile_height / 2
+		if candidates:
+			whereat_center = whereat_d["x"] + half_wide, whereat_d[
+				"y"] + half_high
+			dist = Vector(*whereat_center).distance(dummy_center)
+			while candidates:
+				thereat_d = self.board.spot[candidates.pop()]
+				thereat_center = thereat_d["x"] + half_wide, thereat_d[
+					"y"] + half_high
+				thereto = Vector(*thereat_center).distance(dummy_center)
+				if thereto < dist:
+					whereat_d, dist = thereat_d, thereto
+		self.board.pawn_plane.add_datum(
+			self.board.make_pawn(
+				self.board.character.new_thing(dummy.name,
+												whereat_d["name"],
+												_image_paths=list(
+													dummy.paths))))
+		dummy.num += 1
+
+	def on_touch_down(self, touch):
+		if touch.is_mouse_scrolling:
+			scale = self.scale + (0.05
+									if touch.button == 'scrolldown' else -0.05)
+			if (self.scale_min
+				and scale < self.scale_min) or (self.scale_max
+												and scale > self.scale_max):
+				return
+			rescale = scale * 1.0 / self.scale
+			self.apply_transform(Matrix().scale(rescale, rescale, rescale),
+									post_multiply=True,
+									anchor=self.to_local(*touch.pos))
+			return self.dispatch('on_transform_with_touch', touch)
+		return super().on_touch_down(touch)
+
+	def apply_transform(self, trans, post_multiply=False, anchor=(0, 0)):
+		super().apply_transform(trans,
+								post_multiply=post_multiply,
+								anchor=anchor)
+		self._last_transform = trans, post_multiply, anchor
+
+	def on_transform_with_touch(self, touch):
+		x, y = self.pos
+		w = self.board.width * self.scale
+		h = self.board.height * self.scale
+		if hasattr(self, '_last_transform') and (w < self.parent.width
+													or h < self.parent.height):
+			trans, post_multiply, anchor = self._last_transform
+			super().apply_transform(trans.inverse(), post_multiply, anchor)
+			return
+		if x > self.parent.x:
+			self.x = self.parent.x
+		if y > self.parent.y:
+			self.y = self.parent.y
+		if x + w < self.parent.right:
+			self.x = self.parent.right - w
+		if y + h < self.parent.top:
+			self.y = self.parent.top - h
+
+	def on_board(self, *args):
+		self.clear_widgets()
+		self.add_widget(self.board)
+
+
 class GridBoardView(BoardView):
 	pass
 
@@ -194,7 +278,7 @@ Builder.load_string("""
 	size_hint: None, None
 <GridBoardView>:
 	plane: boardplane
-	BoardScatterPlane:
+	GridBoardScatterPlane:
 		id: boardplane
 		board: root.board
 		scale_min: root.scale_min

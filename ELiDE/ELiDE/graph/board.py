@@ -945,7 +945,7 @@ class GraphBoard(RelativeLayout):
 			yield self.arrow[orig][dest]
 
 
-class BoardScatterPlane(ScatterPlane):
+class GraphBoardScatterPlane(ScatterPlane):
 	selection_candidates = ListProperty([])
 	selection = ObjectProperty(allownone=True)
 	keep_selection = BooleanProperty(False)
@@ -1069,7 +1069,7 @@ Builder.load_string("""
 	size_hint: None, None
 <GraphBoardView>:
 	plane: boardplane
-	BoardScatterPlane:
+	GraphBoardScatterPlane:
 		id: boardplane
 		board: root.board
 		adding_portal: root.adding_portal
