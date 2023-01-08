@@ -3,10 +3,8 @@ from functools import partial
 
 from kivy.clock import Clock
 from kivy.logger import Logger
-from kivy.properties import (DictProperty, ListProperty, NumericProperty,
-								ObjectProperty, ReferenceListProperty,
-								BooleanProperty)
-from kivy.uix.scatter import ScatterPlane
+from kivy.properties import (ListProperty, NumericProperty, ObjectProperty,
+								ReferenceListProperty, BooleanProperty)
 from kivy.uix.widget import Widget
 from kivy.lang.builder import Builder
 from kivy.vector import Vector
@@ -14,6 +12,7 @@ from kivy.vector import Vector
 from .spot import GridSpot
 from .pawn import GridPawn
 from ..boardview import BoardView
+from ELiDE.boardscatter import BoardScatterPlane
 from ..pawnspot import TextureStackPlane
 
 
@@ -187,7 +186,7 @@ class GridBoard(Widget):
 		Clock.schedule_once(part, 0)
 
 
-class GridBoardScatterPlane(ScatterPlane):
+class GridBoardScatterPlane(BoardScatterPlane):
 	selection_candidates = ListProperty([])
 	selection = ObjectProperty(allownone=True)
 	keep_selection = BooleanProperty(False)
@@ -223,45 +222,6 @@ class GridBoardScatterPlane(ScatterPlane):
 												_image_paths=list(
 													dummy.paths))))
 		dummy.num += 1
-
-	def on_touch_down(self, touch):
-		if touch.is_mouse_scrolling:
-			scale = self.scale + (0.05
-									if touch.button == 'scrolldown' else -0.05)
-			if (self.scale_min
-				and scale < self.scale_min) or (self.scale_max
-												and scale > self.scale_max):
-				return
-			rescale = scale * 1.0 / self.scale
-			self.apply_transform(Matrix().scale(rescale, rescale, rescale),
-									post_multiply=True,
-									anchor=self.to_local(*touch.pos))
-			return self.dispatch('on_transform_with_touch', touch)
-		return super().on_touch_down(touch)
-
-	def apply_transform(self, trans, post_multiply=False, anchor=(0, 0)):
-		super().apply_transform(trans,
-								post_multiply=post_multiply,
-								anchor=anchor)
-		self._last_transform = trans, post_multiply, anchor
-
-	def on_transform_with_touch(self, touch):
-		x, y = self.pos
-		w = self.board.width * self.scale
-		h = self.board.height * self.scale
-		if hasattr(self, '_last_transform') and (w < self.parent.width
-													or h < self.parent.height):
-			trans, post_multiply, anchor = self._last_transform
-			super().apply_transform(trans.inverse(), post_multiply, anchor)
-			return
-		if x > self.parent.x:
-			self.x = self.parent.x
-		if y > self.parent.y:
-			self.y = self.parent.y
-		if x + w < self.parent.right:
-			self.x = self.parent.right - w
-		if y + h < self.parent.top:
-			self.y = self.parent.top - h
 
 	def on_board(self, *args):
 		self.clear_widgets()
