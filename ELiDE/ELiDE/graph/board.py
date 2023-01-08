@@ -983,9 +983,9 @@ class GraphBoardScatterPlane(BoardScatterPlane):
 		candidates = []
 		dummy_center = self.to_local(*dummy.center)
 		dummy.pos = self.to_local(*dummy.pos)
-		for spot in self.board.spot.values():
-			if spot.collide_point(*dummy.center):
-				candidates.append(spot)
+		for key in self.board.stack_plane.iter_collided_keys(*dummy_center):
+			if key in self.board.spot:
+				candidates.append(self.board.spot[key])
 		if not candidates:
 			return
 		whereat = candidates.pop()
