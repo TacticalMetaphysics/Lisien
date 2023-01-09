@@ -36,6 +36,7 @@ class TextureStackPlane(Widget):
 	data = ListProperty()
 	selected = ObjectProperty(allownone=True)
 	color_selected = ListProperty([0.0, 1.0, 1.0, 1.0])
+	default_image_path = 'atlas://rltiles/base.atlas/unseen'
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -177,7 +178,12 @@ class TextureStackPlane(Widget):
 				height = datum.get("height", 0)
 				for texture, rect in zip(texs, rects):
 					if isinstance(texture, str):
-						texture = Image.load(resource_find(texture)).texture
+						try:
+							texture = Image.load(
+								resource_find(texture)).texture
+						except Exception:
+							texture = Image.load(
+								self.default_image_path).texture
 					w, h = texture.size
 					if "width" in datum:
 						w = width
@@ -205,7 +211,12 @@ class TextureStackPlane(Widget):
 				rects = []
 				for texture in datum['textures']:
 					if isinstance(texture, str):
-						texture = Image.load(resource_find(texture)).texture
+						try:
+							texture = Image.load(
+								resource_find(texture)).texture
+						except Exception:
+							texture = Image.load(
+								self.default_image_path).texture
 					w, h = texture.size
 					if "width" in datum:
 						w = width
