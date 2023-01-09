@@ -492,7 +492,7 @@ class Engine(AbstractEngine, gORM):
 			with self.batch():
 				self._things_cache.load(thingrows)
 		else:
-			self.warning(f"No thing data at {branch, turn, tick}")
+			self.debug(f"No thing data at {branch, turn, tick}")
 
 	def _init_caches(self) -> None:
 		from .xcollections import (FunctionStore, CharacterMapping,

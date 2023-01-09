@@ -20,18 +20,14 @@ screen they are at the moment.
 
 """
 from math import cos, sin, atan, pi
+from operator import itemgetter
+
 import numpy as np
 from kivy.uix.widget import Widget
-from kivy.uix.floatlayout import FloatLayout
 from kivy.graphics.fbo import Fbo
-from kivy.graphics import (Translate, Rectangle, Quad, Color)
-from kivy.properties import (ReferenceListProperty, AliasProperty,
-								ObjectProperty, NumericProperty, ListProperty,
-								BooleanProperty, StringProperty)
+from kivy.graphics import (Translate, Rectangle, Quad, Color, InstructionGroup)
+from kivy.properties import (NumericProperty, ListProperty, ObjectProperty)
 from kivy.clock import Clock
-
-from ..dummy import Dummy
-from ..util import trigger
 
 try:
 	from kivy.garden.collider import Collide2DPoly
@@ -63,7 +59,7 @@ def up_and_down(orig, dest, taillen):
 	x1 = endx - off1
 	x2 = endx + off1
 	y1 = y2 = endy - off2 if oy < dy else endy + off2
-	return ([x0, y0, endx, endy], [x1, y1, endx, endy, x2, y2])
+	return [x0, y0, endx, endy], [x1, y1, endx, endy, x2, y2]
 
 
 def left_and_right(orig, dest, taillen):
@@ -86,7 +82,7 @@ def left_and_right(orig, dest, taillen):
 	y1 = endy - off1
 	y2 = endy + off1
 	x1 = x2 = endx - off2 if ox < dx else endx + off2
-	return ([x0, y0, endx, endy], [x1, y1, endx, endy, x2, y2])
+	return [x0, y0, endx, endy], [x1, y1, endx, endy, x2, y2]
 
 
 def _get_points_first_part(orig, dest, taillen):
@@ -147,10 +143,10 @@ def get_points_multi(args):
 		except ValueError:
 			p1 = 2, 2, 2, 2, 1, 0, 1, 1, 0, 1
 		if len(p1) == 2:
-			ret[orig, dest] = p1
+			ret[orig.name, dest.name] = p1
 			continue
 		ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty = p1
-		keys.append((orig, dest))
+		keys.append((orig.name, dest.name))
 		leftxs.append(leftx)
 		rightxs.append(rightx)
 		topys.append(topy)
@@ -231,163 +227,90 @@ def get_points(orig, dest, taillen):
 	starty = boty * yco
 	endx = rightx * xco
 	endy = topy * yco
-	return ([startx, starty, endx, endy], [x1, y1, endx, endy, x2, y2])
+	return [startx, starty, endx, endy], [x1, y1, endx, endy, x2, y2]
+
+
+def get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2, bgr, fgr):
+	return {
+		'shaft_bg': get_thin_rect_vertices(ox, oy, dx, dy, bgr),
+		'shaft_fg': get_thin_rect_vertices(ox, oy, dx, dy, fgr),
+		'left_head_bg': get_thin_rect_vertices(x1, y1, endx, endy, bgr),
+		'right_head_bg': get_thin_rect_vertices(x2, y2, endx, endy, bgr),
+		'left_head_fg': get_thin_rect_vertices(x1, y1, endx, endy, fgr),
+		'right_head_fg': get_thin_rect_vertices(x2, y2, endx, endy, fgr)
+	}
 
 
 eight0s = tuple([0] * 8)
 
 
-class GraphArrowWidget(Widget):
-	"""A widget that points from one :class:`~LiSE.gui.graph.Spot` to
-	another.
+class GraphArrow:
 
-	:class:`Arrow`s are the graphical representations of
-	:class:`~LiSE.model.Portal`s. They point from the :class:`Spot`
-	representing the :class:`Portal`'s origin, to the one representing
-	its destination.
+	@property
+	def slope(self):
+		"""Return a float of the increase in y divided by the increase in x,
+		both from left to right.
 
-	"""
-	board = ObjectProperty()
-	name = StringProperty()
-	margin = NumericProperty(10)
-	"""When deciding whether a touch collides with me, how far away can
-	the touch get before I should consider it a miss?"""
-	w = NumericProperty(2)
-	"""The width of the inner, brighter portion of the :class:`Arrow`. The
-	whole :class:`Arrow` will end up thicker."""
-	pawns_here = ListProperty()
-	trunk_points = ListProperty()
-	head_points = ListProperty()
-	points = ReferenceListProperty(trunk_points, head_points)
-	trunk_quad_vertices_bg = ListProperty(eight0s)
-	trunk_quad_vertices_fg = ListProperty(eight0s)
-	left_head_quad_vertices_bg = ListProperty(eight0s)
-	right_head_quad_vertices_bg = ListProperty(eight0s)
-	left_head_quad_vertices_fg = ListProperty(eight0s)
-	right_head_quad_vertices_fg = ListProperty(eight0s)
-	slope = NumericProperty(0.0, allownone=True)
-	origin = ObjectProperty()
-	destination = ObjectProperty()
-	repointed = BooleanProperty(True)
-	bg_scale_unselected = NumericProperty(4)
-	bg_scale_selected = NumericProperty(5)
-	selected = BooleanProperty(False)
-	bg_color_unselected = ListProperty([0.5, 0.5, 0.5, 0.5])
-	bg_color_selected = ListProperty([0.0, 1.0, 1.0, 1.0])
-	fg_color_unselected = ListProperty([1.0, 1.0, 1.0, 1.0])
-	fg_color_selected = ListProperty([1.0, 1.0, 1.0, 1.0])
-	bg_color_unselected_head = ListProperty()
-	bg_color_selected_head = ListProperty()
-	fg_color_unselected_head = ListProperty()
-	fg_color_selected_head = ListProperty()
-	arrowhead_size = NumericProperty(10)
-	collide_radius = NumericProperty(3)
-	collider = ObjectProperty()
-	portal = ObjectProperty()
-
-	def on_portal(self, *args):
-		"""Set my ``name`` and instantiate my ``mirrormap`` as soon as I have
-		the properties I need to do so.
+		Returns ``None`` when vertical.
 
 		"""
-		if not (self.board and self.origin and self.destination
-				and self.origin.name in self.board.character.portal
-				and self.destination.name in self.board.character.portal):
-			Clock.schedule_once(self.on_portal, 0)
+		orig = self.origin
+		dest = self.destination
+		ox = orig.x
+		oy = orig.y
+		dx = dest.x
+		dy = dest.y
+		if oy == dy:
+			return 0.
+		elif ox == dx:
+			return None
+		else:
+			rise = dy - oy
+			run = dx - ox
+			return rise / run
+
+	@property
+	def y_intercept(self):
+		"""Return my Y-intercept.
+
+		I probably don't really hit the left edge of the window, but
+		this is where I would, if I were long enough.
+
+		"""
+		orig = self.origin
+		dest = self.destination
+		(ox, oy) = orig.pos
+		(dx, dy) = dest.pos
+		denominator = dx - ox
+		x_numerator = (dy - oy) * ox
+		y_numerator = denominator * oy
+		return (y_numerator - x_numerator), denominator
+
+	@property
+	def reciprocal(self):
+		if self.destination.name not in self.board.pred_arrow:
 			return
-		self.name = '{}->{}'.format(self.portal['origin'],
-									self.portal['destination'])
+		if self.origin.name not in self.board.pred_arrow[
+			self.destination.name]:
+			return
+		return self.board.pred_arrow[self.destination.name][self.origin.name]
+
+	@property
+	def selected(self):
+		return self is self.board.app.selection
+
+	@selected.setter
+	def selected(self, b):
+		self.repoint(b)
+
+	def __init__(self, *, board, origin, destination):
+		self.board = board
+		self.origin = origin
+		self.destination = destination
 
 	def collide_point(self, x, y):
-		"""Delegate to my ``collider``, or return ``False`` if I don't have
-		one.
-
-		"""
-		if not self.collider:
-			return False
-		return (x, y) in self.collider
-
-	def __init__(self, **kwargs):
-		"""Create trigger for my _repoint method. Delegate to parent for
-		everything else.
-
-		"""
-		self._trigger_repoint = Clock.create_trigger(self._repoint, timeout=-1)
-		super().__init__(**kwargs)
-
-	def on_origin(self, *args):
-		"""Make sure to redraw whenever the origin moves."""
-		if self.origin is None:
-			Clock.schedule_once(self.on_origin, 0)
-			return
-		if hasattr(self, '_origin'):
-			if hasattr(self._origin, '_bound_pos_repoint'):
-				self._origin.unbind_uid('pos', self._origin._bound_pos_repoint)
-				del self._origin._bound_pos_repoint
-			if hasattr(self._origin, '_bound_size_repoint'):
-				self._origin_unbind_uid('size',
-										self._origin._bound_size_repoint)
-				del self._origin._bound_size
-		origin = self._origin = self.origin
-		origin._bound_pos_repoint = origin.fbind('pos', self._trigger_repoint)
-		origin._bound_size_repoint = origin.fbind('size',
-													self._trigger_repoint)
-
-	def on_destination(self, *args):
-		"""Make sure to redraw whenever the destination moves."""
-		if self.destination is None:
-			Clock.schedule_once(self.on_destination, 0)
-			return
-		if hasattr(self, '_destination'):
-			if hasattr(self._destination, '_bound_pos_repoint'):
-				self._destination.unbind_uid(
-					'pos', self._destination._bound_pos_repoint)
-				del self._destination._bound_pos_repoint
-			if hasattr(self._destination, '_bound_size_repoint'):
-				self.destination.unbind_uid(
-					'size', self._destination._bound_size_repoint)
-				del self._destination._bound_size_repoint
-		destination = self._destination = self.destination
-		destination._bound_pos_repoint = destination.fbind(
-			'pos', self._trigger_repoint)
-		destination._bound_size_repoint = destination.fbind(
-			'size', self._trigger_repoint)
-
-	def add_widget(self, wid, index=0, canvas=None):
-		"""Put the :class:`Pawn` at a point along my length proportionate to
-		how close it is to finishing its travel through me.
-
-		Only :class:`Pawn` should ever be added as a child of :class:`Arrow`.
-
-		"""
-		super().add_widget(wid, index, canvas)
-		if not hasattr(wid, 'group'):
-			return
-		wid._no_use_canvas = True
-		mycanvas = (self.canvas.before if canvas == 'before' else
-					self.canvas.after if canvas == 'after' else self.canvas)
-		mycanvas.remove(wid.canvas)
-		pawncanvas = (self.board.spotlayout.canvas.before if canvas == 'before'
-						else self.board.spotlayout.canvas.after
-						if canvas == 'after' else self.board.spotlayout.canvas)
-		for child in self.children:
-			if hasattr(child, 'group') and child.group in pawncanvas.children:
-				pawncanvas.remove(child.group)
-			pawncanvas.add(child.group)
-		self.pospawn(wid)
-
-	def remove_widget(self, wid):
-		"""Remove the special :class:`InstructionGroup` I was using to draw
-		this :class:`Pawn`.
-
-		"""
-		super().remove_widget(wid)
-		wid._no_use_canvas = False
-
-	def on_points(self, *args):
-		"""Reposition my children when I have new points."""
-		for pawn in self.children:
-			self.pospawn(pawn)
+		return self.board.arrow_plane._colliders_map[
+			self.origin.name, self.destination.name].collide_point(x, y)
 
 	def pos_along(self, pct):
 		"""Return coordinates for where a Pawn should be if it has travelled
@@ -404,246 +327,140 @@ class GraphArrowWidget(Widget):
 		(dx, dy) = self.destination.center
 		xdist = (dx - ox) * pct
 		ydist = (dy - oy) * pct
-		return (ox + xdist, oy + ydist)
+		return ox + xdist, oy + ydist
 
-	def pospawn(self, pawn):
-		"""Position a :class:`Pawn` that is my child so as to reflect how far
-		its :class:`Thing` has gone along my :class:`Portal`.
-
-		"""
-		if self._turn < pawn.thing['arrival_time']:
-			# It's weird that the pawn is getting placed in me, but
-			# I'll do my best..
-			pawn.pos = self.pos_along(0)
-			return
-		elif (pawn.thing['next_arrival_time']
-				and self._turn >= pawn.thing['next_arrival_time']):
-			pawn.pos = self.pos_along(1)
-			return
-		try:
-			pawn.pos = self.pos_along(
-				(self._turn - pawn.thing['arrival_time']) /
-				(pawn.thing['next_arrival_time'] - pawn.thing['arrival_time']))
-		except (TypeError, ZeroDivisionError):
-			pawn.pos = self.pos_along(0)
-
-	def _get_points(self):
-		"""Return the coordinates of the points that describe my shape."""
-		return get_points(self.origin, self.destination, self.arrowhead_size)
-
-	def _get_slope(self):
-		"""Return a float of the increase in y divided by the increase in x,
-		both from left to right."""
-		orig = self.origin
-		dest = self.destination
-		ox = orig.x
-		oy = orig.y
-		dx = dest.x
-		dy = dest.y
-		if oy == dy:
-			return 0
-		elif ox == dx:
-			return None
+	def repoint(self, selected=None):
+		arrow_plane = self.board.arrow_plane
+		fbo = arrow_plane._fbo
+		fbo.bind()
+		fbo.clear_buffer()
+		shaft_points, head_points = get_points(self.origin, self.destination,
+												arrow_plane.arrowhead_size)
+		r = arrow_plane.arrow_width / 2
+		if selected or self.selected:
+			bg_scale = arrow_plane.bg_scale_selected
+			bg_color = arrow_plane.bg_color_selected
+			fg_color = arrow_plane.fg_color_selected
 		else:
-			rise = dy - oy
-			run = dx - ox
-			return rise / run
+			bg_scale = arrow_plane.bg_scale_unselected
+			bg_color = arrow_plane.bg_color_unselected
+			fg_color = arrow_plane.fg_color_unselected
+		verts = get_quad_vertices(*shaft_points, *head_points, r * bg_scale, r)
+		insts = self.board.arrow_plane._instructions_map[
+			self.origin.name, self.destination.name]
+		insts['color0'].rgba = bg_color
+		insts['color1'].rgba = fg_color
+		insts['shaft_bg'].points = verts['shaft_bg']
+		insts['left_head_bg'].points = verts['left_head_bg']
+		insts['right_head_bg'].points = verts['right_head_bg']
+		insts['shaft_fg'].points = verts['shaft_fg']
+		insts['left_head_fg'].points = verts['left_head_fg']
+		insts['right_head_fg'].points = verts['right_head_fg']
+		fbo.release()
+		fbo.ask_update()
+		arrow_plane.canvas.ask_update()
 
-	def _get_b(self):
-		"""Return my Y-intercept.
 
-		I probably don't really hit the left edge of the window, but
-		this is where I would, if I were long enough.
+def get_instructions(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2, bgr, r,
+						bg_color, fg_color):
+	quadverts = get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2,
+									bgr, r)
+	return {
+		'color0': Color(rgba=bg_color),
+		'shaft_bg': Quad(points=quadverts['shaft_bg']),
+		'left_head_bg': Quad(points=quadverts['left_head_bg']),
+		'right_head_bg': Quad(points=quadverts['right_head_bg']),
+		'color1': Color(rgba=fg_color),
+		'shaft_fg': Quad(points=quadverts['shaft_fg']),
+		'left_head_fg': Quad(points=quadverts['left_head_fg']),
+		'right_head_fg': Quad(points=quadverts['right_head_fg']),
+	}
 
-		"""
-		orig = self.origin
-		dest = self.destination
-		(ox, oy) = orig.pos
-		(dx, dy) = dest.pos
-		denominator = dx - ox
-		x_numerator = (dy - oy) * ox
-		y_numerator = denominator * oy
-		return ((y_numerator - x_numerator), denominator)
 
-	def _repoint(self, *args):
-		"""Recalculate points, y-intercept, and slope"""
-		if None in (self.origin, self.destination):
-			Clock.schedule_once(self._repoint, 0)
+class GraphArrowWidget(Widget, GraphArrow):
+	arrowhead_size = NumericProperty(10)
+	arrow_width = NumericProperty(2)
+	bg_scale = NumericProperty(5)
+	bg_color = ListProperty([0.5, 0.5, 0.5, 0.5])
+	fg_color = ListProperty([1.0, 1.0, 1.0, 1.0])
+
+	def __init__(self, **kwargs):
+		self._trigger_repoint = Clock.create_trigger(self.repoint)
+		super().__init__(**kwargs)
+
+	def on_origin(self, *args):
+		if hasattr(self, '_origin_bind_uid'):
+			self.unbind_uid(self._origin_bind_uid)
+			del self._origin_bind_uid
+		if not self.origin:
 			return
-		try:
-			(self.trunk_points, self.head_points) = self._get_points()
-		except ValueError:
-			self.trunk_points = self.head_points = []
+		self._origin_bind_uid = self.origin.fbind('pos', self._trigger_repoint)
+
+	def on_destination(self, *args):
+		if hasattr(self, '_destination_bind_uid'):
+			self.unbind_uid(self._destination_bind_uid)
+			del self._destination_bind_uid
+		if not self.destination:
 			return
-		(ox, oy, dx, dy) = self.trunk_points
-		r = self.w / 2
-		bgr = r * (self.bg_scale_selected
-					if self.selected else self.bg_scale_unselected)
-		self.trunk_quad_vertices_bg = get_thin_rect_vertices(
-			ox, oy, dx, dy, bgr)
-		self.collider = Collide2DPoly(self.trunk_quad_vertices_bg)
-		self.trunk_quad_vertices_fg = get_thin_rect_vertices(ox, oy, dx, dy, r)
-		(x1, y1, endx, endy, x2, y2) = self.head_points
-		self.left_head_quad_vertices_bg = get_thin_rect_vertices(
-			x1, y1, endx, endy, bgr)
-		self.right_head_quad_vertices_bg = get_thin_rect_vertices(
-			x2, y2, endx, endy, bgr)
-		self.left_head_quad_vertices_fg = get_thin_rect_vertices(
-			x1, y1, endx, endy, r)
-		self.right_head_quad_vertices_fg = get_thin_rect_vertices(
-			x2, y2, endx, endy, r)
-		self.slope = self._get_slope()
-		self.repointed = True
-
-	@trigger
-	def _pull_bg_color0(self, *args):
-		self._color0.rgba = self.bg_color_selected if self.selected else self.bg_color_unselected
-
-	@trigger
-	def _pull_points_quad0(self, *args):
-		self._quad0.points = self.trunk_quad_vertices_bg
-
-	@trigger
-	def _pull_head_bg_color1(self, *args):
-		if self.selected:
-			self._color1.rgba = self.bg_color_selected_head or self.bg_color_selected
-		else:
-			self._color1.rgba = self.bg_color_unselected_head or self.bg_color_unselected
-
-	@trigger
-	def _pull_bg_left_head_points_quad1_0(self, *args):
-		self._quad1_0.points = self.left_head_quad_vertices_bg
-
-	@trigger
-	def _pull_bg_right_head_points_quad1_1(self, *args):
-		self._quad1_1.points = self.right_head_quad_vertices_bg
-
-	@trigger
-	def _pull_color2(self, *args):
-		if self.selected:
-			self._color2.rgba = self.fg_color_selected
-		else:
-			self._color2.rgba = self.fg_color_unselected
-
-	@trigger
-	def _pull_color3(self, *args):
-		if self.selected:
-			self._color3.rgba = self.fg_color_selected_head or self.fg_color_selected
-		else:
-			self._color3.rgba = self.fg_color_unselected_head or self.fg_color_unselected
-
-	@trigger
-	def _pull_quad2_points(self, *args):
-		self._quad2.points = self.trunk_quad_vertices_fg
-
-	@trigger
-	def _pull_points_quad3_0(self, *args):
-		self._quad3_0.points = self.left_head_quad_vertices_fg
-
-	@trigger
-	def _pull_points_quad3_1(self, *args):
-		self._quad3_1.points = self.right_head_quad_vertices_fg
+		self._destination_bind_uid = self.destination.fbind(
+			'pos', self._trigger_repoint)
 
 	def on_parent(self, *args):
-		if not self.canvas:
+		if not self.origin or not self.destination or not self.canvas:
 			Clock.schedule_once(self.on_parent, 0)
 			return
-		if not self.trunk_points or not self.head_points:
-			self._repoint()
-		if hasattr(self, '_color0'):
+		self.canvas.clear()
+		if self.parent is None:
 			return
+		shaft_points, head_points = get_points(self.origin, self.destination,
+												self.arrowhead_size)
 		with self.canvas:
-			self._color0 = Color(rgba=self.bg_color_selected if self.
-									selected else self.bg_color_unselected)
-			for att in (
-				'bg_color_selected',
-				'bg_color_unselected',
-				'selected',
-			):
-				self.fbind(att, self._pull_bg_color0)
-			self._quad0 = Quad(points=self.trunk_quad_vertices_bg)
-			self.fbind('trunk_quad_vertices_bg', self._pull_points_quad0)
-			self._color1 = Color(rgba=(
-				self.bg_color_selected_head or self.bg_color_selected
-			) if self.selected else (
-				self.bg_color_unselected_head or self.bg_color_unselected))
-			for att in ('bg_color_selected_head', 'bg_color_selected',
-						'bg_color_unselected_head', 'bg_color_unselected',
-						'selected'):
-				self.fbind(att, self._pull_head_bg_color1)
-			self._quad1_0 = Quad(points=self.left_head_quad_vertices_bg)
-			self.fbind('left_head_quad_vertices_bg',
-						self._pull_bg_left_head_points_quad1_0)
-			self._quad1_1 = Quad(points=self.right_head_quad_vertices_bg)
-			self.fbind('right_head_quad_vertices_bg',
-						self._pull_bg_right_head_points_quad1_1)
-			self._color2 = Color(rgba=self.fg_color_selected if self.
-									selected else self.fg_color_unselected)
-			for att in ('fg_color_selected', 'fg_color_unselected',
-						'selected'):
-				self.fbind(att, self._pull_color2)
-			self._quad2 = Quad(points=self.trunk_quad_vertices_fg)
-			self.fbind('trunk_quad_vertices_fg', self._pull_quad2_points)
-			self._color3 = Color(rgba=(
-				self.fg_color_selected_head or self.fg_color_selected
-			) if self.selected else (
-				self.fg_color_unselected_head or self.fg_color_unselected))
-			for att in ('selected', 'fg_color_selected_head',
-						'fg_color_selected', 'fg_color_unselected_head',
-						'fg_color_unselected'):
-				self.fbind(att, self._pull_color3)
-			self._quad3_0 = Quad(points=self.left_head_quad_vertices_fg)
-			self.fbind('left_head_quad_vertices_fg', self._pull_points_quad3_0)
-			self._quad3_1 = Quad(points=self.right_head_quad_vertices_fg)
-			self.fbind('right_head_quad_vertices_fg',
-						self._pull_points_quad3_1)
+			r = self.arrow_width / 2
+			self._instructions = get_instructions(*shaft_points, *head_points,
+													r * self.bg_scale, r,
+													self.bg_color,
+													self.fg_color)
+
+	def repoint(self, *args):
+		shaft_points, head_points = get_points(self.origin, self.destination,
+												self.arrowhead_size)
+		r = self.arrow_width / 2
+		verts = get_quad_vertices(*shaft_points, *head_points,
+									r * self.bg_scale, r)
+		insts = self._instructions
+		insts['color0'].rgba = self.bg_color
+		insts['color1'].rgba = self.fg_color
+		insts['shaft_bg'].points = verts['shaft_bg']
+		insts['left_head_bg'].points = verts['left_head_bg']
+		insts['right_head_bg'].points = verts['right_head_bg']
+		insts['shaft_fg'].points = verts['shaft_fg']
+		insts['left_head_fg'].points = verts['left_head_fg']
+		insts['right_head_fg'].points = verts['right_head_fg']
 
 
-class GraphArrow(GraphArrowWidget):
-	"""A :class:`GraphArrowWidget` that represents a :class:`Portal` object.
-
-	This subclass is much more often used than :class:`GraphArrowWidget`,
-	which is only seen on its own when the user is in the process of
-	creating a new :class:`Portal`.
-
-	"""
-	origspot = ObjectProperty()
-	destspot = ObjectProperty()
-	portal = ObjectProperty()
-	"""The portal that I represent."""
-	reciprocal = AliasProperty(lambda self: self._get_reciprocal()
-								if None not in
-								(self.board, self.portal) else None,
-								lambda self, v: None,
-								bind=('portal', ))
-	grabbed = BooleanProperty(False)
-	_turn = NumericProperty()
-
-	def _get_reciprocal(self):
-		"""Return the :class:`Arrow` that connects my origin and destination
-		in the opposite direction, if it exists.
-
-		"""
-		orign = self.portal['origin']
-		destn = self.portal['destination']
-		if (destn in self.board.arrow and orign in self.board.arrow[destn]):
-			return self.board.arrow[destn][orign]
-		else:
-			return None
-
-	def on_portal(self, *args):
-		orig = self.portal['origin']
-		dest = self.portal['destination']
-		spot = self.board.spot
-		self.origin = spot[orig] if orig in spot else Dummy()
-		self.destination = spot[dest] if dest in spot else Dummy()
-
-
-class ArrowLayout(FloatLayout):
+class ArrowPlane(Widget):
+	data = ListProperty()
+	arrowhead_size = NumericProperty(10)
+	arrow_width = NumericProperty(2)
+	bg_scale_unselected = NumericProperty(4)
+	bg_scale_selected = NumericProperty(5)
+	bg_color_selected = ListProperty([0.0, 1.0, 1.0, 1.0])
+	bg_color_unselected = ListProperty([0.5, 0.5, 0.5, 0.5])
+	fg_color_unselected = ListProperty([1.0, 1.0, 1.0, 1.0])
+	fg_color_selected = ListProperty([1.0, 1.0, 1.0, 1.0])
 
 	def __init__(self, **kwargs):
 		self._trigger_redraw = Clock.create_trigger(self.redraw)
-		self.bind(children=self._trigger_redraw)
+		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+		self.bind(arrowhead_size=self._trigger_redraw)
+		self._colliders_map = {}
+		self._instructions_map = {}
+		self._port_index = {}
+		self._port_l = []
+		self._bot_left_corner_ys = []
+		self._bot_left_corner_xs = []
+		self._top_right_corner_ys = []
+		self._top_right_corner_xs = []
 		super().__init__(**kwargs)
 
 	def on_parent(self, *args):
@@ -655,6 +472,7 @@ class ArrowLayout(FloatLayout):
 			self._translate = Translate(x=self.x, y=self.y)
 			self._rectangle = Rectangle(size=self.size,
 										texture=self._fbo.texture)
+		self._trigger_redraw()
 
 	def redraw(self, *args):
 		if not hasattr(self, '_rectangle'):
@@ -664,44 +482,152 @@ class ArrowLayout(FloatLayout):
 		fbo.bind()
 		fbo.clear()
 		fbo.clear_buffer()
+		add = fbo.add
+		r = self.arrow_width // 2
+		bg_scale_selected = self.bg_scale_selected
+		bg_color_unselected = self.bg_color_unselected
+		fg_color_unselected = self.fg_color_unselected
+		taillen = self.arrowhead_size
+		points_map = get_points_multi(
+			(datum['origspot'], datum['destspot'], taillen)
+			for datum in self.data)
+		port_l = []
+		bot_left_corner_xs = []
+		bot_left_corner_ys = []
+		top_right_corner_xs = []
+		top_right_corner_ys = []
+		port_index = self._port_index
+		colliders_map = self._colliders_map
+		for port, ((ox, oy, dx, dy), (x1, y1, endx, endy, x2,
+										y2)) in points_map.items():
+			bgr = r * bg_scale_selected  # change for selectedness pls
+			instructions = get_instructions(ox, oy, dx, dy, x1, y1, endx, endy,
+											x2, y2, bgr, r,
+											bg_color_unselected,
+											fg_color_unselected)
+			instructions['group'] = grp = InstructionGroup()
+			grp.add(instructions['color0'])
+			grp.add(instructions['shaft_bg'])
+			grp.add(instructions['left_head_bg'])
+			grp.add(instructions['right_head_bg'])
+			grp.add(instructions['color1'])
+			grp.add(instructions['shaft_fg'])
+			grp.add(instructions['left_head_fg'])
+			grp.add(instructions['right_head_fg'])
+			add(grp)
+			self._instructions_map[port] = instructions
+			if ox < dx:
+				leftx = ox
+				rightx = dx
+			else:
+				rightx = ox
+				leftx = dx
+			if oy < dy:
+				boty = oy
+				topy = dy
+			else:
+				boty = dy
+				topy = oy
+			port_index[port] = len(port_l)
+			port_l.append(port)
+			bot_left_corner_xs.append(leftx - bgr)
+			bot_left_corner_ys.append(boty - bgr)
+			top_right_corner_xs.append(rightx + bgr)
+			top_right_corner_ys.append(topy + bgr)
+			colliders_map[port] = Collide2DPoly(
+				points=instructions['shaft_bg'].points)
 		fbo.release()
-		trigger_redraw = self._trigger_redraw
-		redraw_bound = '_redraw_bound_' + str(id(self))
-		for child in self.children:
-			if hasattr(child, redraw_bound):
-				child.unbind_uid('selected', getattr(child, redraw_bound))
-			fbo.add(child.canvas)
-			setattr(child, redraw_bound, child.fbind('selected',
-														trigger_redraw))
-			if hasattr(child.origspot, redraw_bound):
-				child.origspot.unbind_uid(
-					'pos', getattr(child.origspot, redraw_bound))
-			setattr(child.origspot, redraw_bound,
-					child.origspot.fbind('pos', trigger_redraw))
-			if hasattr(child.destspot, redraw_bound):
-				child.destspot.unbind_uid(
-					'pos', getattr(child.destspot, redraw_bound))
-			setattr(child.destspot, redraw_bound,
-					child.destspot.fbind('pos', trigger_redraw))
+		self.canvas.ask_update()
+		self._port_l = port_l
+		self._bot_left_corner_xs = np.array(bot_left_corner_xs)
+		self._bot_left_corner_ys = np.array(bot_left_corner_ys)
+		self._top_right_corner_xs = np.array(top_right_corner_xs)
+		self._top_right_corner_ys = np.array(top_right_corner_ys)
+
+	def add_new_portal(self, datum):
+		orig_spot = datum['origspot']
+		dest_spot = datum['destspot']
+		shaft_points, head_points = get_points(orig_spot, dest_spot,
+												self.arrowhead_size)
+		self.unbind_uid('data', self._redraw_bind_uid)
+		self.data.append(datum)
+		r = self.arrow_width / 2
+		bgr = r * self.bg_scale_unselected
+		instructions = self._instructions_map[
+			orig_spot.name,
+			dest_spot.name] = get_instructions(*shaft_points, *head_points,
+												bgr, r,
+												self.bg_color_unselected,
+												self.fg_color_unselected)
+		instructions['group'] = grp = InstructionGroup()
+		grp.add(instructions['color0'])
+		grp.add(instructions['shaft_bg'])
+		grp.add(instructions['left_head_bg'])
+		grp.add(instructions['right_head_bg'])
+		grp.add(instructions['color1'])
+		grp.add(instructions['shaft_fg'])
+		grp.add(instructions['left_head_fg'])
+		grp.add(instructions['right_head_fg'])
+		self._fbo.add(grp)
+		ox, oy, dx, dy = shaft_points
+		if ox < dx:
+			left_x = ox
+			right_x = dx
+		else:
+			right_x = ox
+			left_x = dx
+		if oy < dy:
+			bot_y = oy
+			top_y = dy
+		else:
+			bot_y = dy
+			top_y = oy
+		self._port_l.append((orig_spot.name, dest_spot.name))
+		self._bot_left_corner_xs = np.array(
+			list(self._bot_left_corner_xs) + [left_x - bgr])
+		self._bot_left_corner_ys = np.array(
+			list(self._bot_left_corner_ys) + [bot_y - bgr])
+		self._top_right_corner_xs = np.array(
+			list(self._top_right_corner_xs) + [right_x + bgr])
+		self._top_right_corner_ys = np.array(
+			list(self._top_right_corner_ys) + [top_y + bgr])
+		self._colliders_map[orig_spot.name, dest_spot.name] = Collide2DPoly(
+			points=instructions['shaft_bg'].points)
+		self.canvas.ask_update()
+		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+
+	def remove_edge(self, orig, dest):
+		self._fbo.remove(self._instructions_map[orig, dest]['group'])
+		index = self._port_index[orig, dest]
+		del self._port_index[orig, dest]
+		del self._instructions_map[orig, dest]
+		del self._colliders_map[orig, dest]
+		del self._port_l[index]
+		for arr in ('_bot_left_corner_ys', '_bot_left_corner_xs',
+					'_top_right_corner_ys', '_top_right_corner_xs'):
+			dat = list(getattr(self, arr))
+			del dat[index]
+			setattr(self, arr, np.array(dat))
+		self.canvas.ask_update()
+
+	def iter_collided_edges(self, x, y):
+		collider_map = self._colliders_map
+		hits = (self._bot_left_corner_xs <= x) & (
+			self._bot_left_corner_ys <= y
+		) & (x <= self._top_right_corner_xs) & (y <= self._top_right_corner_ys)
+		for port in map(itemgetter(0),
+						filter(itemgetter(1), zip(self._port_l, hits))):
+			if collider_map[port].collide_point(x, y):
+				yield port
 
 	def on_pos(self, *args):
 		if not hasattr(self, '_translate'):
 			return
 		self._translate.x, self._translate.y = self.pos
+		self.canvas.ask_update()
 
 	def on_size(self, *args):
 		if not hasattr(self, '_rectangle') or not hasattr(self, '_fbo'):
 			return
 		self._rectangle.size = self._fbo.size = self.size
 		self.redraw()
-
-	def add_widget(self, widget, index=0, canvas=None):
-		ret = super().add_widget(widget, index, canvas)
-		if canvas is None:
-			self.canvas.children.remove(widget.canvas)
-		self._trigger_redraw()
-		return ret
-
-	def remove_widget(self, widget):
-		super().remove_widget(widget)
-		self._trigger_redraw()

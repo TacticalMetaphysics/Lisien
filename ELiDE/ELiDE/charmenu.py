@@ -48,6 +48,10 @@ class CharMenu(BoxLayout):
 			Clock.schedule_once(self.on_screen, 0)
 			return
 		self.screen.boardview.reciprocal_portal = self.reciprocal_portal
+		self.forearrow = GraphArrowWidget(board=self.screen.boardview.board,
+											origin=self.ids.emptyleft,
+											destination=self.ids.emptyright)
+		self.ids.portaladdbut.add_widget(self.forearrow)
 		if self.reciprocal_portal:
 			assert (self.revarrow is None)
 			self.revarrow = GraphArrowWidget(board=self.screen.boardview.board,
@@ -72,7 +76,8 @@ class CharMenu(BoxLayout):
 
 	def pawn_from_dummy(self, dummy):
 		name = dummy.name
-		self.screen.mainview.children[0].pawn_from_dummy(dummy)
+		if not self.screen.mainview.children[0].pawn_from_dummy(dummy):
+			return
 		graphboard = self.screen.graphboards[self.app.character_name]
 		if name not in graphboard.pawn:
 			graphboard.add_pawn(name)
@@ -230,10 +235,6 @@ Builder.load_string("""
 				center_x: portaladdbut.right - portaladdbut.width / 3
 				center_y: portaladdbut.center_y
 				size: (0, 0)
-			GraphArrowWidget:
-				graph: root.screen.boardview.graph if root.screen and root.screen.boardview else None
-				origin: emptyleft
-				destination: emptyright
 		Button:
 			id: portaldirbut
 			text: 'One-way' if root.reciprocal_portal else 'Two-way'

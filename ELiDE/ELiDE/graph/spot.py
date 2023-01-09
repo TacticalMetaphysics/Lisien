@@ -18,8 +18,9 @@ top of these.
 """
 from kivy.clock import Clock
 
-from kivy.properties import (AliasProperty, ObjectProperty, NumericProperty)
-from .pawnspot import GraphPawnSpot
+from .arrow import get_points, get_quad_vertices
+from ELiDE.pawnspot import GraphPawnSpot
+from ..collide import Collide2DPoly
 from ..util import trigger
 
 
@@ -51,6 +52,69 @@ class GraphSpot(GraphPawnSpot):
 	def on_board(self, *args):
 		super().on_board(*args)
 		self.board.bind(size=self._upd_pos)
+
+	def on_pos(self, *args):
+
+		def upd(orig, dest):
+			bgr = r * bg_scale_selected  # change for selectedness pls
+			if (orig, dest) not in port_index:
+				return
+			idx = port_index[orig, dest]
+			inst = instructions[orig, dest]
+			(ox, oy, dx, dy), (x1, y1, endx, endy, x2,
+								y2) = get_points(spot[orig], spot[dest],
+													arrowhead_size)
+			if ox < dx:
+				bot_left_xs[idx] = ox - bgr
+				top_right_xs[idx] = dx + bgr
+			else:
+				bot_left_xs[idx] = dx - bgr
+				top_right_xs[idx] = ox + bgr
+			if oy < dy:
+				bot_left_ys[idx] = oy - bgr
+				top_right_ys[idx] = dy + bgr
+			else:
+				bot_left_ys[idx] = dy - bgr
+				top_right_ys[idx] = oy + bgr
+			quadverts = get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy,
+											x2, y2, bgr, r)
+			inst['shaft_bg'].points = quadverts['shaft_bg']
+			colliders[orig, dest] = Collide2DPoly(points=quadverts['shaft_bg'])
+			inst['left_head_bg'].points = quadverts['left_head_bg']
+			inst['right_head_bg'].points = quadverts['right_head_bg']
+			inst['shaft_fg'].points = quadverts['shaft_fg']
+			inst['left_head_fg'].points = quadverts['left_head_fg']
+			inst['right_head_fg'].points = quadverts['right_head_fg']
+
+		if not self.board:
+			return
+		arrow_plane = self.board.arrow_plane
+		fbo = arrow_plane._fbo
+		arrowhead_size = arrow_plane.arrowhead_size
+		r = arrow_plane.arrow_width // 2
+		bg_scale_selected = arrow_plane.bg_scale_selected
+		spot = self.board.spot
+		succ = self.board.arrow
+		pred = self.board.pred_arrow
+		name = self.name
+		instructions = arrow_plane._instructions_map
+		colliders = arrow_plane._colliders_map
+		instructions = arrow_plane._instructions_map
+		port_index = arrow_plane._port_index
+		bot_left_xs = arrow_plane._bot_left_corner_xs
+		bot_left_ys = arrow_plane._bot_left_corner_ys
+		top_right_xs = arrow_plane._top_right_corner_xs
+		top_right_ys = arrow_plane._top_right_corner_ys
+		fbo.bind()
+		fbo.clear_buffer()
+		if name in succ:
+			for dest in succ[name]:
+				upd(name, dest)
+		if name in pred:
+			for orig in pred[name]:
+				upd(orig, name)
+		fbo.release()
+		return super().on_pos(*args)
 
 	def _upd_pos(self, *args):
 		if self.board is None:
