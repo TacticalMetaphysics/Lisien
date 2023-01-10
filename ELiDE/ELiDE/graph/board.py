@@ -218,6 +218,9 @@ class GraphBoard(RelativeLayout):
 					self.arrow[name][dest].repoint()
 					if dest in self.arrow and name in self.arrow[dest]:
 						self.arrow[dest][name].repoint()
+				for thing in sel.proxy.contents():
+					pawn = self.pawn[thing["name"]]
+					pawn.pos = sel.right, sel.top  # real layout needed
 			return ret
 		elif self.selection_candidates:
 			for cand in self.selection_candidates:
