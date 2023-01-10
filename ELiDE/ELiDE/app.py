@@ -44,7 +44,7 @@ import ELiDE.rulesview
 import ELiDE.charsview
 import ELiDE.timestream
 from ELiDE.graph.board import GraphBoard
-from ELiDE.graph.arrow import GraphArrowWidget
+from ELiDE.graph.arrow import GraphArrow
 from ELiDE.graph.spot import GraphSpot
 from ELiDE.graph.pawn import Pawn
 from ELiDE.grid.board import GridBoard
@@ -373,9 +373,10 @@ class ELiDEApp(App):
 			return self.character.stat
 		elif hasattr(self.selection, 'proxy'):
 			return self.selection.proxy
-		elif (hasattr(self.selection, 'portal')
-				and self.selection.portal is not None):
-			return self.selection.portal
+		elif (hasattr(self.selection, 'origin')
+				and hasattr(self.selection, 'destination')):
+			return self.character.portal[self.selection.origin.name][
+				self.selection.destination.name]
 		else:
 			raise ValueError("Invalid selection: {}".format(self.selection))
 
@@ -428,7 +429,7 @@ class ELiDEApp(App):
 		selection = self.selection
 		if selection is None:
 			return
-		if isinstance(selection, GraphArrowWidget):
+		if isinstance(selection, GraphArrow):
 			if selection.reciprocal and selection.reciprocal.portal.get(
 				'is_mirror', False):
 				selection.reciprocal.portal.delete()

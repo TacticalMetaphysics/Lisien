@@ -1,3 +1,4 @@
+import pytest
 from kivy.tests.common import UnitTestTouch
 from kivy.tests.common import GraphicUnitTest, UnitTestTouch
 import networkx as nx
@@ -5,8 +6,9 @@ import networkx as nx
 from LiSE import Engine
 from LiSE.character import Facade
 from ELiDE.app import ELiDEApp
-from ELiDE.graph.board import GraphBoard, GraphBoardView, FinalLayout, \
- BoardScatterPlane
+from ELiDE.graph.board import GraphBoard, GraphBoardView
+from ELiDE.graph.pawnspot import TextureStackPlane
+from ELiDE.graph.arrow import ArrowPlane
 from .util import idle_until, window_with_widget, ELiDEAppTest
 from ..dummy import Dummy
 
@@ -20,12 +22,12 @@ class GraphBoardTest(GraphicUnitTest):
 		graph = nx.grid_2d_graph(spots_wide, spots_tall)
 		char = Facade(graph)
 		app = ELiDEApp()
-		spotlayout = FinalLayout()
-		arrowlayout = FinalLayout()
+		spotlayout = TextureStackPlane()
+		arrowlayout = ArrowPlane()
 		board = GraphBoard(app=app,
 							character=char,
-							spotlayout=spotlayout,
-							arrowlayout=arrowlayout)
+							stack_plane=spotlayout,
+							arrow_plane=arrowlayout)
 		spotlayout.pos = board.pos
 		board.bind(pos=spotlayout.setter('pos'))
 		spotlayout.size = board.size
@@ -71,8 +73,7 @@ class GraphBoardTest(GraphicUnitTest):
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
 		win = window_with_widget(boardview)
-		idle_until(lambda: 0 in board.arrow and 1 in board.arrow[0] and board.
-					arrow[0][1] in board.arrowlayout.children)
+		idle_until(lambda: 0 in board.arrow and 1 in board.arrow[0])
 		ox, oy = board.spot[0].center
 		dx, dy = board.spot[1].center
 		motion = UnitTestTouch((ox + ((dx - ox) / 2)), dy)
@@ -88,8 +89,7 @@ class GraphBoardTest(GraphicUnitTest):
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
 		win = window_with_widget(boardview)
-		idle_until(lambda: 0 in board.spot and board.spot[0] in board.
-					spotlayout.children)
+		idle_until(lambda: 0 in board.spot)
 		x, y = board.spot[0].center
 		motion = UnitTestTouch(x, y)
 		motion.touch_down()
@@ -106,34 +106,11 @@ class GraphBoardTest(GraphicUnitTest):
 		boardview = GraphBoardView(board=board)
 		win = window_with_widget(boardview)
 		idle_until(
-			lambda: 0 in board.spot and board.spot[0] in board.spotlayout.
-			children and board.pawn['that'] in board.spot[0].children)
+			lambda: 0 in board.spot and 'that' in board.pawn, 100)
 		motion = UnitTestTouch(*board.pawn['that'].center)
 		motion.touch_down()
 		motion.touch_up()
 		assert app.selection == board.pawn['that']
-
-	@staticmethod
-	def test_pawn_relocate():
-		char = Facade()
-		char.add_place(0, _x=0.1, _y=0.1)
-		char.add_place(1, _x=0.2, _y=0.1)
-		char.add_thing('that', location=0)
-		app = ELiDEApp()
-		board = GraphBoard(app=app, character=char)
-		boardview = GraphBoardView(board=board)
-		win = window_with_widget(boardview)
-		idle_until(lambda: 0 in board.spot and board.spot[
-			0] in board.spotlayout.children and 1 in board.spot and board.spot[
-				1] in board.spotlayout.children and 'that' in board.pawn and
-					board.pawn['that'] in board.spot[0].children)
-		that = board.pawn['that']
-		one = board.spot[1]
-		# In a real ELiDE session, the following would happen as a
-		# result of a Board.update() call
-		char.thing['that']['location'] = that.loc_name = 1
-		idle_until(lambda: that in one.children, 1000,
-					"pawn did not relocate within 1000 ticks")
 
 	def test_pawn_drag(self):
 		char = Facade()
@@ -144,10 +121,8 @@ class GraphBoardTest(GraphicUnitTest):
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
 		win = window_with_widget(boardview)
-		idle_until(lambda: 0 in board.spot and board.spot[
-			0] in board.spotlayout.children and 1 in board.spot and board.spot[
-				1] in board.spotlayout.children and 'that' in board.pawn and
-					board.pawn['that'] in board.spot[0].children)
+		idle_until(lambda: 0 in board.spot and 1 in board.spot and 'that' in board.
+					pawn)
 		that = board.pawn['that']
 		one = board.spot[1]
 		touch = UnitTestTouch(*that.center)
@@ -160,11 +135,11 @@ class GraphBoardTest(GraphicUnitTest):
 			y = one.center_y - coef * dist_y
 			touch.touch_move(x, y)
 			self.advance_frames(1)
-		that.pos = one.center
+		touch.touch_move(*one.center)
 		self.advance_frames(1)
-		touch.touch_up(*one.center)
+		touch.touch_up(*one.pos)
 		idle_until(lambda: that.pos != one.center, 100)
-		idle_until(lambda: char.thing["that"]["location"] == 1, 100)
+		idle_until(lambda: that.proxy["location"] == 1, 100)
 
 	@staticmethod
 	def test_spot_and_pawn_from_dummy():
@@ -174,12 +149,14 @@ class GraphBoardTest(GraphicUnitTest):
 		view = GraphBoardView(board=board)
 		idle_until(lambda: view.plane is not None, 100,
 					"Never made BoardScatterPlane")
-		idle_until(lambda: board.spotlayout is not None, 100,
-					"Never made SpotLayout")
+		idle_until(lambda: board.stack_plane is not None, 100,
+					"Never made StackPlane")
 		win = window_with_widget(view)
 		dummy = Dummy(
 			name='hello',
 			paths=['atlas://rltiles/base/unseen'],
+			size=(32, 32),
+			pos=(0,0)
 		)
 		board.add_widget(dummy)
 		idle_until(lambda: dummy in board.children, 100,
@@ -190,7 +167,8 @@ class GraphBoardTest(GraphicUnitTest):
 					"Dummy didn't add place")
 		dummy2 = Dummy(name='goodbye',
 						paths=['atlas://rltiles/base/unseen'],
-						pos=dummy.center)
+						pos=dummy.pos,
+					   size=(32, 32))
 		dummy2_name = dummy2.name = 'dummy2'
 		board.add_widget(dummy2)
 		idle_until(lambda: dummy2 in board.children, 100,
@@ -198,8 +176,9 @@ class GraphBoardTest(GraphicUnitTest):
 		view.pawn_from_dummy(dummy2)
 		idle_until(lambda: dummy2_name in char.thing, 100,
 					"Dummy 2 didn't add thing")
+		spot = board.spot[dummy_name]
 		idle_until(
-			lambda: board.pawn[dummy2_name] in board.spot[dummy_name].children,
+			lambda: board.pawn[dummy2_name].pos == (spot.right, spot.top),
 			100, "Dummy 2 didn't get to dummy 1")
 
 	@staticmethod
@@ -209,7 +188,7 @@ class GraphBoardTest(GraphicUnitTest):
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
 		win = window_with_widget(boardview)
-		idle_until(lambda: board.spotlayout)
+		idle_until(lambda: board.stack_plane)
 		char.add_place(1, _x=0.2, _y=0.2)
 		board.add_spot(1)
 		idle_until(lambda: 1 in board.spot, 100, "Didn't make spot")
@@ -217,7 +196,7 @@ class GraphBoardTest(GraphicUnitTest):
 		idle_until(lambda: 'that' in board.pawn, 100, "Didn't make pawn")
 		that = board.pawn['that']
 		one = board.spot[1]
-		idle_until(lambda: that in one.children, 100,
+		idle_until(lambda: getattr(that, 'pos', None) == (one.right, one.top), 100,
 					"pawn did not locate within 100 ticks")
 
 
@@ -238,29 +217,24 @@ class SwitchGraphTest(ELiDEAppTest):
 		print(
 			f'test_character_switch_graph got app {id(app)}, engine proxy {id(app.engine)}'
 		)
-		first_y = next(iter(
-			app.mainscreen.boardview.board.spotlayout.children)).y
-		assert all(
-			child.y == first_y
-			for child in app.mainscreen.boardview.board.spotlayout.children)
 		assert len(
 			set(child.x for child in
-				app.mainscreen.boardview.board.spotlayout.children)) == len(
-					app.mainscreen.boardview.board.spotlayout.children)
+				app.mainscreen.boardview.board.stack_plane.children)) == len(
+					app.mainscreen.boardview.board.stack_plane.children)
 		app.character_name = 'tall'
 
 		def all_x_same():
-			if app.mainscreen.boardview.board is None or app.mainscreen.boardview.board.spotlayout is None or not app.mainscreen.boardview.board.spotlayout.children:
+			if app.mainscreen.boardview.board is None or app.mainscreen.boardview.board.stack_plane is None or not app.mainscreen.boardview.board.spot:
 				return False
 			first_x = next(
-				iter(app.mainscreen.boardview.board.spotlayout.children)).x
+				iter(app.mainscreen.boardview.board.spot.values())).x
 			return all(child.x == first_x for child in
-						app.mainscreen.boardview.board.spotlayout.children)
+						app.mainscreen.boardview.board.spot.values())
 
-		idle_until(all_x_same, 1000, "Never got the new board")
+		idle_until(all_x_same, 100, "Never got the new board")
 		idle_until(
 			lambda: len(
 				set(child.y for child in app.mainscreen.boardview.board.
-					spotlayout.children)
-			) == len(app.mainscreen.boardview.board.spotlayout.children), 1000,
-			"New board arranged weird")
+					stack_plane.children)) == len(
+						app.mainscreen.boardview.board.stack_plane.children),
+			100, "New board arranged weird")

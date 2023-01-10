@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The big widget that shows the graph of the selected Character."""
 from functools import partial
+
 from kivy.properties import (BooleanProperty, ReferenceListProperty,
 								DictProperty, ObjectProperty, NumericProperty,
 								ListProperty, StringProperty)
@@ -23,16 +24,18 @@ from kivy.clock import Clock
 from kivy.uix.image import Image
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.scatter import ScatterPlane
-from kivy.graphics.transformation import Matrix
+from kivy.uix.widget import Widget
 from kivy.vector import Vector
 
+from LiSE.proxy import ThingProxy
+from ELiDE.pawnspot import TextureStackPlane, Stack
 from .spot import GraphSpot
-from .arrow import GraphArrow, GraphArrowWidget, ArrowLayout, get_points_multi
+from .arrow import GraphArrow, GraphArrowWidget, ArrowPlane, get_points_multi
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
 from ..boardview import BoardView
+from ..boardscatter import BoardScatterPlane
 import numpy as np
 
 
@@ -105,13 +108,14 @@ class GraphBoard(RelativeLayout):
 	spot = DictProperty({})
 	pawn = DictProperty({})
 	arrow = DictProperty({})
+	pred_arrow = DictProperty({})
 	wallpaper = ObjectProperty()
 	kvlayoutback = ObjectProperty()
-	arrowlayout = ObjectProperty()
-	spotlayout = ObjectProperty()
+	arrow_plane = ObjectProperty()
+	stack_plane = ObjectProperty()
 	kvlayoutfront = ObjectProperty()
-	wids = ReferenceListProperty(wallpaper, kvlayoutback, arrowlayout,
-									spotlayout, kvlayoutfront)
+	wids = ReferenceListProperty(wallpaper, kvlayoutback, arrow_plane,
+									stack_plane, kvlayoutfront)
 	spots_unposd = ListProperty([])
 	layout_tries = NumericProperty(5)
 	tracking_vel = BooleanProperty(False)
@@ -122,9 +126,9 @@ class GraphBoard(RelativeLayout):
 	reciprocal_portal = BooleanProperty(False)
 	grabbing = BooleanProperty(True)
 	grabbed = ObjectProperty(None, allownone=True)
-	spot_cls = ObjectProperty(GraphSpot)
-	pawn_cls = ObjectProperty(Pawn)
-	arrow_cls = ObjectProperty(GraphArrow, allownone=True)
+	spot_cls = ObjectProperty(Stack)
+	pawn_cls = ObjectProperty(Stack)
+	arrow_cls = GraphArrow
 	proto_arrow_cls = ObjectProperty(GraphArrowWidget)
 	_scheduled_rm_spot = DictProperty()
 	_scheduled_rm_arrow = DictProperty()
@@ -144,7 +148,8 @@ class GraphBoard(RelativeLayout):
 		touch.push()
 		touch.apply_transform_2d(self.to_local)
 		if self.app.selection:
-			if self.app.selection.collide_point(*touch.pos):
+			if self.app.selection.collide_point(*touch.pos) and hasattr(
+				self.app.selection, '__self__'):
 				Logger.debug("Board: hit selection")
 				touch.grab(self.app.selection)
 		pawns = list(self.pawns_at(*touch.pos))
@@ -167,18 +172,24 @@ class GraphBoard(RelativeLayout):
 				self.add_widget(self.protodest)
 				self.protodest.on_touch_down(touch)
 				self.protoportal = self.proto_arrow_cls(
-					origin=self.origspot, destination=self.protodest)
+					board=self,
+					origin=self.origspot,
+					destination=self.protodest)
 				self.add_widget(self.protoportal)
 				if self.reciprocal_portal:
 					self.protoportal2 = self.proto_arrow_cls(
-						destination=self.origspot, origin=self.protodest)
+						board=self,
+						destination=self.origspot,
+						origin=self.protodest)
 					self.add_widget(self.protoportal2)
 			touch.pop()
 			return True
-		arrows = list(self.arrows_at(*touch.pos))
-		if arrows:
-			Logger.debug("Board: hit {} arrows".format(len(arrows)))
-			self.selection_candidates = arrows
+		edges = list(self.arrow_plane.iter_collided_edges(*touch.pos))
+		if edges:
+			Logger.debug("Board: hit {} arrows".format(len(edges)))
+			self.selection_candidates = [
+				self.arrow[orig][dest] for (orig, dest) in edges
+			]
 			if self.app.selection in self.selection_candidates:
 				self.selection_candidates.remove(self.app.selection)
 			if isinstance(
@@ -199,15 +210,29 @@ class GraphBoard(RelativeLayout):
 			if not self.selection_candidates:
 				self.keep_selection = True
 			ret = super().on_touch_move(touch)
+			sel = self.app.selection
+			if isinstance(sel, Stack):
+				sel.center = touch.pos
+				name = sel.proxy['name']
+				for dest in self.arrow.get(name, ()):
+					self.arrow[name][dest].repoint()
+					if dest in self.arrow and name in self.arrow[dest]:
+						self.arrow[dest][name].repoint()
 			return ret
 		elif self.selection_candidates:
 			for cand in self.selection_candidates:
 				if cand.collide_point(*touch.pos):
 					self.app.selection = cand
 					cand.selected = True
-					touch.grab(cand)
+					if isinstance(cand, Widget):
+						touch.grab(cand)
 					ret = super().on_touch_move(touch)
 					return ret
+		if hasattr(self, 'protodest'):
+			self.protodest.pos = touch.pos
+			self.protoportal._trigger_repoint()
+			if hasattr(self, 'protoportal2'):
+				self.protoportal2._trigger_repoint()
 
 	def portal_touch_up(self, touch):
 		"""Try to create a portal between the spots the user chose."""
@@ -226,23 +251,53 @@ class GraphBoard(RelativeLayout):
 				port = self.character.new_portal(orig.name,
 													dest.name,
 													symmetrical=symmetrical)
-				self.arrowlayout.add_widget(self.make_arrow(port))
+				self.arrow_plane.add_new_portal(self.make_arrow(port))
+				if orig.name not in self.arrow:
+					self.arrow[orig.name] = {}
+				if dest.name not in self.pred_arrow:
+					self.pred_arrow[dest.name] = {}
+				self.arrow[orig.name][dest.name] = self.pred_arrow[dest.name][
+					orig.name] = GraphArrow(board=self,
+											origin=self.spot[orig.name],
+											destination=self.spot[dest.name])
 				if symmetrical:
-					self.arrowlayout.add_widget(
+					self.arrow_plane.add_new_portal(
 						self.make_arrow(
 							self.character.portal[dest.name][orig.name]))
+					if dest.name not in self.arrow:
+						self.arrow[dest.name] = {}
+					if orig.name not in self.pred_arrow:
+						self.pred_arrow[orig.name] = {}
+					self.arrow[dest.name][orig.name] = self.pred_arrow[
+						orig.name][dest.name] = GraphArrow(
+							board=self,
+							origin=self.spot[dest.name],
+							destination=self.spot[orig.name])
 		except StopIteration:
 			pass
 		self.remove_widget(self.protoportal)
+		del self.protoportal
 		if hasattr(self, 'protoportal2'):
 			self.remove_widget(self.protoportal2)
 			del self.protoportal2
-		self.remove_widget(self.protodest)
-		del self.protoportal
 		del self.protodest
 
 	def on_touch_up(self, touch):
 		"""Delegate touch handling if possible, else select something."""
+
+		def unsel_graph_arrow():
+			origspot = self.app.selection.origin
+			destspot = self.app.selection.destination
+			insts = self.arrow_plane._instructions_map[origspot.name,
+														destspot.name]
+			fbo = self.arrow_plane._fbo
+			fbo.bind()
+			insts['color0'].rgba = self.arrow_plane.bg_color_unselected
+			insts['color1'].rgba = self.arrow_plane.fg_color_unselected
+			fbo.clear_buffer()
+			fbo.release()
+			self.arrow_plane.canvas.ask_update()
+
 		if hasattr(self, '_lasttouch') and self._lasttouch == touch:
 			return
 		self._lasttouch = touch
@@ -254,40 +309,73 @@ class GraphBoard(RelativeLayout):
 			ret = self.portal_touch_up(touch)
 			touch.pop()
 			return ret
-		if self.app.selection and hasattr(self.app.selection, 'on_touch_up'):
-			self.app.selection.dispatch('on_touch_up', touch)
+		if self.app.selection:
+			sel = self.app.selection
+			if isinstance(sel, Widget):
+				sel.dispatch('on_touch_up', touch)
+			elif isinstance(sel, Stack):
+				if isinstance(sel.proxy, ThingProxy):
+					for candidate in self.stack_plane.iter_collided_keys(
+						*touch.pos):
+						if candidate in self.spot:
+							newloc = self.character.place[candidate]
+							sel.proxy.location = newloc
+							newspot = self.spot[candidate]
+							sel.pos = newspot.right, newspot.top
+							return
+					oldloc = sel.proxy.location
+					oldspot = self.spot[oldloc.name]
+					sel.pos = oldspot.right, oldspot.top
+					return
+				else:
+					prox = sel.proxy
+					prox['_x'] = sel.x / self.width
+					prox['_y'] = sel.y / self.height
 		for candidate in self.selection_candidates:
 			if candidate.collide_point(*touch.pos):
+				if isinstance(candidate, GraphArrow):
+					portal = self.character.portal[candidate.origin.name][
+						candidate.destination.name]
+					try:
+						reciprocal = self.character.portal[
+							candidate.destination.name][candidate.origin.name]
+					except KeyError:
+						reciprocal = None
+					if reciprocal is not None and (portal.get(
+						'is_mirror', False) or portal.get('is_mirror', False)):
+						candidate = candidate.reciprocal
+					insts = self.arrow_plane._instructions_map[
+						portal['origin'], portal['destination']]
+					fbo = self.arrow_plane._fbo
+					fbo.bind()
+					insts['color0'].rgba = self.arrow_plane.bg_color_selected
+					insts['color1'].rgba = self.arrow_plane.fg_color_selected
+					fbo.clear_buffer()
+					fbo.release()
+					self.arrow_plane.canvas.ask_update()
 				if hasattr(candidate, 'selected'):
-					if isinstance(candidate,
-									GraphArrow) and candidate.reciprocal:
-						# mirror arrows can't be selected directly, you have to work with the one they mirror
-						if candidate.portal.get('is_mirror', False):
-							candidate.selected = True
-							candidate = candidate.reciprocal
-						elif candidate.reciprocal and candidate.reciprocal.portal.get(
-							'is_mirror', False):
-							candidate.reciprocal.selected = True
 					candidate.selected = True
-				if hasattr(self.app.selection, 'selected'):
+				if hasattr(self.app.selection,
+							'selected') and self.app.selection != candidate:
 					self.app.selection.selected = False
-					if isinstance(
-						self.app.selection, GraphArrow
-					) and self.app.selection.reciprocal and candidate is not self.app.selection.reciprocal:
-						self.app.selection.reciprocal.selected = False
+				if isinstance(self.app.selection, GraphArrow):
+					unsel_graph_arrow()
 				self.app.selection = candidate
 				self.keep_selection = True
-				parent = candidate.parent
-				parent.remove_widget(candidate)
-				parent.add_widget(candidate)
+				if hasattr(candidate, 'parent'):
+					# Causes Pawns to reposition within their parent,
+					# and Spots to save their positions.
+					# Better way to do this?
+					parent = candidate.parent
+					parent.remove_widget(candidate)
+					parent.add_widget(candidate)
 				break
 		if not self.keep_selection:
 			Logger.debug("Board: deselecting " + repr(self.app.selection))
 			if hasattr(self.app.selection, 'selected'):
 				self.app.selection.selected = False
-				if isinstance(self.app.selection,
-								GraphArrow) and self.app.selection.reciprocal:
-					self.app.selection.reciprocal.selected = False
+			if isinstance(self.app.selection, GraphArrow):
+				unsel_graph_arrow()
 			self.app.selection = None
 		self.keep_selection = False
 		touch.ungrab(self)
@@ -317,8 +405,8 @@ class GraphBoard(RelativeLayout):
 		self.bind(wallpaper_path=self._pull_image)
 		self._pull_size()
 		self.kvlayoutback = KvLayoutBack(**self.widkwargs)
-		self.arrowlayout = ArrowLayout(**self.widkwargs)
-		self.spotlayout = FinalLayout(**self.widkwargs)
+		self.arrow_plane = ArrowPlane(**self.widkwargs)
+		self.stack_plane = TextureStackPlane(**self.widkwargs)
 		self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
 		for wid in self.wids:
 			self.add_widget(wid)
@@ -381,7 +469,17 @@ class GraphBoard(RelativeLayout):
 			raise KeyError("Already have a Pawn for this Thing")
 		r = self.pawn_cls(board=self, proxy=thing)
 		self.pawn[thing["name"]] = r
-		return r
+		locspot = self.spot[thing["location"]]
+		if "_image_paths" in thing:
+			texs = list(thing["_image_paths"])
+		else:
+			texs = list(Pawn.default_image_paths)
+		return {  # need to lay out multiple pawns per spot properly
+			"x": locspot.right / self.width,
+			"y": locspot.top / self.height,
+			"name": thing["name"],
+			"textures": texs
+		}
 
 	def make_spot(self, place):
 		"""Make a :class:`Spot` to represent a :class:`Place`, store it, and
@@ -390,17 +488,19 @@ class GraphBoard(RelativeLayout):
 		"""
 		if place["name"] in self.spot:
 			raise KeyError("Already have a Spot for this Place")
-		r = self.spot_cls(board=self, place=place)
-		self.spot[place["name"]] = r
-		if '_x' in place and '_y' in place:
-			r.pos = (self.width * place['_x'], self.height * place['_y'])
-		return r
+		self.spot[place["name"]] = self.spot_cls(board=self, proxy=place)
+		if "_image_paths" in place:
+			texs = list(place["_image_paths"])
+		else:
+			texs = list(GraphSpot.default_image_paths)
+		return {
+			"x": place.get("_x", 0.5),
+			"y": place.get("_y", 0.5),
+			"name": place["name"],
+			"textures": texs
+		}
 
 	def make_arrow(self, portal):
-		"""Make an :class:`Arrow` to represent a :class:`Portal`, store it,
-		and return it.
-
-		"""
 		if (portal["origin"] not in self.spot
 			or portal["destination"] not in self.spot):
 			raise ValueError("An :class:`Arrow` should only be made after "
@@ -410,42 +510,33 @@ class GraphBoard(RelativeLayout):
 			raise KeyError("Already have an Arrow for this Portal")
 		return self._core_make_arrow(portal, self.spot[portal['origin']],
 										self.spot[portal['destination']],
-										self.arrow)
+										self.arrow, self.pred_arrow)
 
 	def _core_make_arrow(self,
 							portal,
 							origspot,
 							destspot,
 							arrowmap,
+							pred_arrowmap,
 							points=None):
-		if points is None:
-			r = self.arrow_cls(
-				board=self,
-				portal=portal,
-				origspot=origspot,
-				destspot=destspot,
-			)
-			r._trigger_repoint()
-		else:
-			r = self.arrow_cls(board=self,
-								portal=portal,
-								origspot=origspot,
-								destspot=destspot,
-								points=points)
+		r = {
+			"board": self,
+			"portal": portal,
+			"origspot": origspot,
+			"destspot": destspot
+		}
+		if points is not None:
+			r["points"] = points
 		orign = portal["origin"]
-		if orign not in arrowmap:
-			arrowmap[orign] = {}
-		arrowmap[orign][portal["destination"]] = r
+		destn = portal["destination"]
 		return r
 
 	def rm_arrows_to_and_from(self, name):
-		origs = list(self.arrow.keys())
-		if name in origs:
-			origs.remove(name)
+		if name in self.arrow.keys():
 			for dest in list(self.arrow[name].keys()):
 				self.rm_arrow(name, dest)
-		for orig in origs:
-			if name in self.arrow[orig]:
+		if name in self.pred_arrow.keys():
+			for orig in list(self.pred_arrow[name].keys()):
 				self.rm_arrow(orig, name)
 
 	def rm_pawn(self, name, *args):
@@ -472,7 +563,7 @@ class GraphBoard(RelativeLayout):
 			self.selection_candidates.remove(spot)
 		pawns_here = list(spot.children)
 		self.rm_arrows_to_and_from(name)
-		self.spotlayout.remove_widget(spot)
+		self.stack_plane.remove_widget(spot)
 		spot.canvas.clear()
 		for pawn in pawns_here:
 			self.rm_pawn(pawn.name)
@@ -492,7 +583,7 @@ class GraphBoard(RelativeLayout):
 		arr = self.arrow[orig].pop(dest)
 		if arr in self.selection_candidates:
 			self.selection_candidates.remove(arr)
-		self.arrowlayout.remove_widget(arr)
+		self.arrow_plane.remove_edge(orig, dest)
 		if (orig, dest) in self._scheduled_rm_arrow:
 			del self._scheduled_rm_arrow[orig, dest]
 
@@ -558,7 +649,7 @@ class GraphBoard(RelativeLayout):
 
 	def add_spot(self, placen, *args):
 		if (placen in self.character.place and placen not in self.spot):
-			self.spotlayout.add_widget(
+			self.stack_plane.add_widget(
 				self.make_spot(self.character.place[placen]))
 
 	def _trigger_add_spot(self, placen):
@@ -577,47 +668,59 @@ class GraphBoard(RelativeLayout):
 			if place_name not in spotmap:
 				place = placemap[place_name]
 				places2add.append(place)
-				patch = {}
-				if '_image_paths' in place:
-					zeroes = [0] * len(place['_image_paths'])
-				else:
-					patch['_image_paths'] = default_image_paths
-					zeroes = [0]
-				if '_offxs' not in place:
-					patch['_offxs'] = zeroes
-				if '_offys' not in place:
-					patch['_offys'] = zeroes
-				if patch:
-					nodes_patch[place_name] = patch
+				nodes_patch[place_name] = {
+					'_image_paths':
+					list(place.get('_image_paths', default_image_paths))
+				}
 		if nodes_patch:
 			self.character.node.patch(nodes_patch)
 		make_spot = self.make_spot
-		spotlayout = self.spotlayout
-		add_widget_to_spotlayout = spotlayout.add_widget
+		spots_posd = []
+		stack_idx = self.stack_plane._stack_index
 		for place in places2add:
 			spot = make_spot(place)
-			add_widget_to_spotlayout(spot)
 			if '_x' not in place or '_y' not in place:
 				spots_unposd.append(spot)
-		self.spots_unposd = spots_unposd
+			elif spot["name"] not in stack_idx:
+				spots_posd.append(spot)
+		if spots_unposd:
+			try:
+				self.grid_layout(spots_unposd)
+			except (TypeError, ValueError):
+				self.nx_layout(spots_unposd)
+		if spots_posd:
+			self.stack_plane.unbind_uid('data',
+										self.stack_plane._redraw_bind_uid)
+			self.stack_plane.data.extend(spots_posd)
+			self.stack_plane.redraw()
+			self.stack_plane._redraw_bind_uid = self.stack_plane.fbind(
+				'data', self.stack_plane._trigger_redraw)
 
 	def add_arrow(self, orign, destn, *args):
 		if not (orign in self.character.portal
 				and destn in self.character.portal[orign]):
 			raise ValueError("No portal for arrow {}->{}".format(orign, destn))
+		portal = self.character.portal[orign][destn]
 		if not (orign in self.arrow and destn in self.arrow[orign]):
-			self.arrowlayout.add_widget(
-				self.make_arrow(self.character.portal[orign][destn]))
-		assert self.arrow[orign][destn] in self.arrowlayout.children
+			self.arrow_plane.add_new_portal(self.make_arrow(portal))
+			the_arrow = GraphArrow(board=self,
+									origin=self.spot[orign],
+									destination=self.spot[destn])
+			if orign not in self.arrow:
+				self.arrow[orign] = {}
+			self.arrow[orign][destn] = the_arrow
+			if destn not in self.pred_arrow:
+				self.pred_arrow[destn] = {}
+			self.pred_arrow[destn][orign] = the_arrow
 
 	def add_new_arrows(self, *args):
 		Logger.debug("Board: adding new arrows to {}".format(
 			self.character.name))
 		portmap = self.character.portal
 		arrowmap = self.arrow
+		pred_arrowmap = self.pred_arrow
 		spotmap = self.spot
-		arrowlayout = self.arrowlayout
-		add_widget_to_arrowlayout = arrowlayout.add_widget
+		append_to_arrow_plane = self.arrow_plane.data.append
 		core_make_arrow = self._core_make_arrow
 		todo = []
 		for arrow_orig, arrow_dests in portmap.items():
@@ -626,12 +729,24 @@ class GraphBoard(RelativeLayout):
 					or arrow_dest not in arrowmap[arrow_orig]):
 					todo.append(
 						(portal, spotmap[arrow_orig], spotmap[arrow_dest]))
+					the_arr = GraphArrow(board=self,
+											origin=spotmap[arrow_orig],
+											destination=spotmap[arrow_dest])
+					if arrow_orig not in arrowmap:
+						arrowmap[arrow_orig] = {}
+					if arrow_dest not in arrowmap[arrow_orig]:
+						arrowmap[arrow_orig][arrow_dest] = the_arr
+					if arrow_dest not in pred_arrowmap:
+						pred_arrowmap[arrow_dest] = {}
+					if arrow_orig not in pred_arrowmap[arrow_dest]:
+						pred_arrowmap[arrow_dest][arrow_orig] = the_arr
 		points = get_points_multi(
 			(origspot, destspot, 10) for (portal, origspot, destspot) in todo)
 		for portal, origspot, destspot in todo:
-			add_widget_to_arrowlayout(
+			append_to_arrow_plane(
 				core_make_arrow(portal, origspot, destspot, arrowmap,
-								points[origspot, destspot]))
+								pred_arrowmap, points[origspot.name,
+														destspot.name]))
 
 	def add_pawn(self, thingn, *args):
 		if thingn not in self.character.thing:
@@ -639,9 +754,9 @@ class GraphBoard(RelativeLayout):
 		if thingn in self.pawn:
 			raise KeyError(f"Already have pawn for Thing: {thingn}")
 		pwn = self.make_pawn(self.character.thing[thingn])
-		whereat = self.spot[pwn.loc_name]
-		whereat.add_widget(pwn)
-		self.pawn[thingn] = pwn
+		stacp = self.stack_plane
+		stacp.unbind_uid('data', stacp._redraw_bind_uid)
+
 		if thingn in self._scheduled_add_pawn:
 			del self._scheduled_add_pawn[thingn]
 
@@ -661,29 +776,22 @@ class GraphBoard(RelativeLayout):
 		for (thing_name, thing) in self.character.thing.items():
 			if thing_name not in pawnmap:
 				things2add.append(thing)
-				patch = {}
-				if '_image_paths' in thing:
-					zeroes = [0] * len(thing['_image_paths'])
-				else:
-					patch['_image_paths'] = Pawn.default_image_paths
-					zeroes = [0] * len(Pawn.default_image_paths)
-				if '_offxs' not in thing:
-					patch['_offxs'] = zeroes
-				if '_offys' not in thing:
-					patch['_offys'] = zeroes
-				if '_stackhs' not in thing:
-					patch['_stackhs'] = zeroes
-				if patch:
-					nodes_patch[thing_name] = patch
-		if nodes_patch:
-			self.character.node.patch(nodes_patch)
 		make_pawn = self.make_pawn
-		spotmap = self.spot
 		for thing in things2add:
 			pwn = make_pawn(thing)
+			nodes_patch[thing['name']] = {
+				'_x': float(pwn['x']),
+				'_y': float(pwn['y']),
+				'_image_paths': list(pwn['textures'])
+			}
 			pawns_added.append(pwn)
-			whereat = spotmap[thing['location']]
-			whereat.add_widget(pwn)
+		if nodes_patch:
+			self.character.node.patch(nodes_patch)
+		self.stack_plane.unbind_uid('data', self.stack_plane._redraw_bind_uid)
+		self.stack_plane.data.extend(pawns_added)
+		self.stack_plane.redraw()
+		self.stack_plane._redraw_bind_uid = self.stack_plane.fbind(
+			'data', self.stack_plane._trigger_redraw)
 
 	def update(self, *args):
 		"""Force an update to match the current state of my character.
@@ -698,7 +806,7 @@ class GraphBoard(RelativeLayout):
 			Logger.warning(
 				"Board: tried to update without a connection to a LiSE core")
 			return
-		if not self.spotlayout or not self.arrowlayout:
+		if not self.stack_plane or not self.arrow_plane:
 			self.trigger_update()
 			return
 		# remove widgets that don't represent anything anymore
@@ -711,7 +819,6 @@ class GraphBoard(RelativeLayout):
 		if self.arrow_cls:
 			self.add_new_arrows()
 		self.add_new_pawns()
-		self.spotlayout.finalize_all()
 		Logger.debug("Board: updated")
 
 	trigger_update = trigger(update)
@@ -725,9 +832,6 @@ class GraphBoard(RelativeLayout):
 					self.add_pawn(node)
 				elif node not in self.spot:
 					self.add_spot(node)
-					spot = self.spot[node]
-					if '_x' not in spot.place or '_y' not in spot.place:
-						self.spots_unposd.append(spot)
 			else:
 				if node in self.pawn:
 					self.rm_pawn(node)
@@ -773,50 +877,48 @@ class GraphBoard(RelativeLayout):
 			Clock.unschedule(self._scheduled_update_from_delta)
 		self._scheduled_update_from_delta = Clock.schedule_once(part, 0)
 
-	def on_spots_unposd(self, *args):
-		# TODO: If only some spots are unpositioned, and they remain
-		# that way for several frames, put them somewhere that the
-		# user will be able to find.
-		if not self.spots_unposd:
-			return
-		try:
-			self.grid_layout()
-		except (TypeError, ValueError):
-			self.nx_layout()
-
-	def _apply_node_layout(self, l, *args):
+	def _apply_node_layout(self, l, spot, *args):
 		if self.width == 1 or self.height == 1:
-			Clock.schedule_once(partial(self._apply_node_layout, l), 0.01)
+			Clock.schedule_once(partial(self._apply_node_layout, l, spot),
+								0.01)
 			return
+		if not isinstance(spot, dict):
+			spot = {spt['name']: spt for spt in spot}
 		node_upd = {}
-		for spot in self.spots_unposd:
-			(x, y) = l[spot.name]
-			assert 0 <= x <= 0.99, "{} has invalid x: {}".format(spot.name, x)
-			assert 0 <= y <= 0.99, "{} has invalid y: {}".format(spot.name, y)
-			assert spot in self.spotlayout.children
-			assert self.spotlayout.width == self.width
-			assert self.spotlayout.height == self.height
-			node_upd[spot.name] = {'_x': x, '_y': y}
-			spot.pos = (x * self.width, y * self.height)
+		newspots = []
+		for name, (x, y) in l.items():
+			assert 0 <= x <= 0.99, "{} has invalid x: {}".format(name, x)
+			assert 0 <= y <= 0.99, "{} has invalid y: {}".format(name, y)
+			assert self.stack_plane.width == self.width
+			assert self.stack_plane.height == self.height
+			node_upd[name] = {'_x': x, '_y': y}
+			spot[name]['x'] = x
+			spot[name]['y'] = y
+			newspots.append(spot[name])
+		if newspots:
+			self.stack_plane.unbind_uid('data',
+										self.stack_plane._redraw_bind_uid)
+			self.stack_plane.data.extend(newspots)
+			self.stack_plane.redraw()
+			self.stack_plane._redraw_bind_uid = self.stack_plane.fbind(
+				'data', self.stack_plane._trigger_redraw)
 		if node_upd:
 			self.character.node.patch(node_upd)
 		self.spots_unposd = []
 
-	def grid_layout(self, *args):
+	def grid_layout(self, spots, *args):
 		self._apply_node_layout(
-			normalize_layout(
-				{spot.name: spot.name
-					for spot in self.spots_unposd}))
+			normalize_layout({spot['name']: spot['name']
+								for spot in spots}), spots)
 
-	def nx_layout(self, *args):
-		for spot in self.spots_unposd:
-			if not (spot.name and spot.proxy):
-				Clock.schedule_once(self.nx_layout, 0)
-				return
+	def nx_layout(self, spots, *args):
 		spots_only = self.character.facade()
 		for thing in list(spots_only.thing.keys()):
 			del spots_only.thing[thing]
-		self._apply_node_layout(self.graph_layout(spots_only))
+		for place in spots_only.place.keys() - set(spot['name']
+													for spot in spots):
+			del spots_only.place[place]
+		self._apply_node_layout(self.graph_layout(spots_only), spots)
 
 	def arrows(self):
 		"""Iterate over all my arrows."""
@@ -826,24 +928,23 @@ class GraphBoard(RelativeLayout):
 
 	def pawns_at(self, x, y):
 		"""Iterate over pawns that collide the given point."""
-		for pawn in self.pawn.values():
-			if pawn.collide_point(x, y):
-				yield pawn
+		for name in self.pawn.keys() & set(
+			self.stack_plane.iter_collided_keys(x, y)):
+			yield self.pawn[name]
 
 	def spots_at(self, x, y):
 		"""Iterate over spots that collide the given point."""
-		for spot in self.spot.values():
-			if spot.collide_point(x, y):
-				yield spot
+		for name in self.spot.keys() & set(
+			self.stack_plane.iter_collided_keys(x, y)):
+			yield self.spot[name]
 
 	def arrows_at(self, x, y):
 		"""Iterate over arrows that collide the given point."""
-		for arrow in self.arrows():
-			if arrow.collide_point(x, y):
-				yield arrow
+		for orig, dest in self.arrow_plane.iter_collided_edges(x, y):
+			yield self.arrow[orig][dest]
 
 
-class BoardScatterPlane(ScatterPlane):
+class GraphBoardScatterPlane(BoardScatterPlane):
 	selection_candidates = ListProperty([])
 	selection = ObjectProperty(allownone=True)
 	keep_selection = BooleanProperty(False)
@@ -862,7 +963,7 @@ class BoardScatterPlane(ScatterPlane):
 		(x, y) = self.to_local(*dummy.pos_up)
 		x /= self.board.width
 		y /= self.board.height
-		self.board.spotlayout.add_widget(
+		self.board.stack_plane.add_widget(
 			self.board.make_spot(
 				self.board.character.new_place(dummy.name,
 												_x=x,
@@ -882,9 +983,9 @@ class BoardScatterPlane(ScatterPlane):
 		candidates = []
 		dummy_center = self.to_local(*dummy.center)
 		dummy.pos = self.to_local(*dummy.pos)
-		for spot in self.board.spot.values():
-			if spot.collide_widget(dummy):
-				candidates.append(spot)
+		for key in self.board.stack_plane.iter_collided_keys(*dummy_center):
+			if key in self.board.spot:
+				candidates.append(self.board.spot[key])
 		if not candidates:
 			return
 		whereat = candidates.pop()
@@ -895,7 +996,7 @@ class BoardScatterPlane(ScatterPlane):
 				thereto = Vector(*thereat.center).distance(dummy_center)
 				if thereto < dist:
 					whereat, dist = thereat, thereto
-		whereat.add_widget(
+		self.board.stack_plane.add_datum(
 			self.board.make_pawn(
 				self.board.character.new_thing(dummy.name,
 												whereat.proxy.name,
@@ -916,45 +1017,6 @@ class BoardScatterPlane(ScatterPlane):
 					reciprocal_portal=self.board.setter('reciprocal_portal'))
 		self._oldboard = self.board
 
-	def on_touch_down(self, touch):
-		if touch.is_mouse_scrolling:
-			scale = self.scale + (0.05
-									if touch.button == 'scrolldown' else -0.05)
-			if (self.scale_min
-				and scale < self.scale_min) or (self.scale_max
-												and scale > self.scale_max):
-				return
-			rescale = scale * 1.0 / self.scale
-			self.apply_transform(Matrix().scale(rescale, rescale, rescale),
-									post_multiply=True,
-									anchor=self.to_local(*touch.pos))
-			return self.dispatch('on_transform_with_touch', touch)
-		return super().on_touch_down(touch)
-
-	def apply_transform(self, trans, post_multiply=False, anchor=(0, 0)):
-		super().apply_transform(trans,
-								post_multiply=post_multiply,
-								anchor=anchor)
-		self._last_transform = trans, post_multiply, anchor
-
-	def on_transform_with_touch(self, touch):
-		x, y = self.pos
-		w = self.board.width * self.scale
-		h = self.board.height * self.scale
-		if hasattr(self, '_last_transform') and (w < self.parent.width
-													or h < self.parent.height):
-			trans, post_multiply, anchor = self._last_transform
-			super().apply_transform(trans.inverse(), post_multiply, anchor)
-			return
-		if x > self.parent.x:
-			self.x = self.parent.x
-		if y > self.parent.y:
-			self.y = self.parent.y
-		if x + w < self.parent.right:
-			self.x = self.parent.right - w
-		if y + h < self.parent.top:
-			self.y = self.parent.top - h
-
 
 class GraphBoardView(BoardView):
 	adding_portal = BooleanProperty(False)
@@ -967,7 +1029,7 @@ Builder.load_string("""
 	size_hint: None, None
 <GraphBoardView>:
 	plane: boardplane
-	BoardScatterPlane:
+	GraphBoardScatterPlane:
 		id: boardplane
 		board: root.board
 		adding_portal: root.adding_portal
