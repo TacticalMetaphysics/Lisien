@@ -517,8 +517,9 @@ class Stack:
 				grp.add(insts['line'])
 				insts['color1'] = Color(rgba=[1., 1., 1., 1.])
 				grp.add(insts['color1'])
-		elif stack_plane.selected == self.proxy['name']:
-			stack_plane.selected = None
+		else:
+			if stack_plane.selected == self.proxy['name']:
+				stack_plane.selected = None
 			if 'color0' in insts:
 				stack_plane._fbo.bind()
 				stack_plane._fbo.clear_buffer()
