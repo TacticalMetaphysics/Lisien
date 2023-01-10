@@ -111,6 +111,9 @@ class GridBoard(Widget):
 			self.add_widget(self.spot_plane)
 			self.add_widget(self.pawn_plane)
 		spot_data = list(map(self.make_spot, self.character.place.values()))
+		if not spot_data:
+			self.spot_plane.data = self.pawn_plane.data = []
+			return
 		wide = max(datum["x"] for datum in spot_data) + self.tile_width
 		high = max(datum["y"] for datum in spot_data) + self.tile_width
 		self.size = self.spot_plane.size = self.pawn_plane.size = wide, high
