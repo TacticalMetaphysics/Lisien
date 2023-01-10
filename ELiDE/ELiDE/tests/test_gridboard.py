@@ -20,7 +20,7 @@ class GridBoardTest(GraphicUnitTest):
 		spot_height = 32
 		graph = nx.grid_2d_graph(spots_wide, spots_tall)
 		char = Facade(graph)
-		something = char.place[1, 1].new_thing('something')
+		char.place[1, 1].add_thing('something')
 		otherthing = char.place[2, 2].new_thing('otherthing')
 		assert len(char.thing) == 2
 		board = GridBoard(character=char)
@@ -29,17 +29,19 @@ class GridBoardTest(GraphicUnitTest):
 					and all_pawns_placed(board, char)):
 			EventLoop.idle()
 		otherthing['location'] = board.pawn['otherthing']["location"] = (0, 0)
-		zero = board.spot[0, 0]
-		that = board.pawn['otherthing']
 		board.spot_plane.data = list(map(board.make_spot, char.place.values()))
 		board.pawn_plane.data = list(map(board.make_pawn, char.thing.values()))
-		for i in range(100):
-			EventLoop.idle()
-		for x in range(spots_wide):
-			for y in range(spots_tall):
-				spot = board.spot[x, y]
-				assert spot["x"] == x * spot_width
-				assert spot["y"] == y * spot_height
+
+		def arranged():
+			for x in range(spots_wide):
+				for y in range(spots_tall):
+					spot = board.spot[x, y]
+					if spot["x"] != x * spot_width or spot[
+						"y"] != y * spot_height:
+						return False
+			return True
+
+		idle_until(arranged, 100)
 		this = board.pawn["something"]
 		that = board.pawn["otherthing"]
 		assert this["x"] == board.spot[1, 1]["x"]
