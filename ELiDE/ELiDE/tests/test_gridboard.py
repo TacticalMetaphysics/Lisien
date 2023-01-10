@@ -1,15 +1,9 @@
-import shutil
-import sys
-from tempfile import mkdtemp
-
 from kivy.base import EventLoop
 from kivy.tests.common import GraphicUnitTest
-from kivy.config import ConfigParser
 import networkx as nx
 
 from LiSE import Engine
 from LiSE.character import Facade
-from ELiDE.app import ELiDEApp
 from ELiDE.grid.board import GridBoard, GridBoardView
 from .util import all_spots_placed, all_pawns_placed, idle_until, \
  window_with_widget, \
@@ -34,21 +28,24 @@ class GridBoardTest(GraphicUnitTest):
 		while not (all_spots_placed(board, char)
 					and all_pawns_placed(board, char)):
 			EventLoop.idle()
-		otherthing['location'] = board.pawn['otherthing'].loc_name = (0, 0)
+		otherthing['location'] = board.pawn['otherthing']["location"] = (0, 0)
 		zero = board.spot[0, 0]
 		that = board.pawn['otherthing']
-		idle_until(lambda: that in zero.children, 1000,
-					"pawn 'otherthing' did not relocate within 1000 ticks")
-		assert that.parent == zero
+		board.spot_plane.data = list(map(board.make_spot, char.place.values()))
+		board.pawn_plane.data = list(map(board.make_pawn, char.thing.values()))
+		for i in range(100):
+			EventLoop.idle()
 		for x in range(spots_wide):
 			for y in range(spots_tall):
 				spot = board.spot[x, y]
-				assert spot.x == x * spot_width
-				assert spot.y == y * spot_height
-		assert board.pawn['something'].parent == board.spot[1, 1]
-		assert board.pawn['something'].pos == board.spot[1, 1].pos
-		assert board.pawn['otherthing'].parent == board.spot[0, 0]
-		assert board.pawn['otherthing'].pos == board.spot[0, 0].pos
+				assert spot["x"] == x * spot_width
+				assert spot["y"] == y * spot_height
+		this = board.pawn["something"]
+		that = board.pawn["otherthing"]
+		assert this["x"] == board.spot[1, 1]["x"]
+		assert this["y"] == board.spot[1, 1]["y"]
+		assert that["x"] == board.spot[0, 0]["x"]
+		assert that["y"] == board.spot[0, 0]["y"]
 
 
 class SwitchGridTest(ELiDEAppTest):

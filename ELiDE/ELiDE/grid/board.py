@@ -64,13 +64,20 @@ class GridBoard(Widget):
 	def make_pawn(self, thing) -> dict:
 		location = self.spot[thing["location"]]
 		r = {
-			"name": thing["name"],
-			"x": location["x"],
-			"y": location["y"],
-			"width": self.tile_width,
-			"height": self.tile_height,
-			"location": location,
-			"textures": list(thing["_image_paths"])
+			"name":
+			thing["name"],
+			"x":
+			location["x"],
+			"y":
+			location["y"],
+			"width":
+			self.tile_width,
+			"height":
+			self.tile_height,
+			"location":
+			location,
+			"textures":
+			list(thing.get("_image_paths", GridPawn.default_image_paths))
 		}
 		self.pawn[thing["name"]] = r
 		return r
@@ -91,7 +98,7 @@ class GridBoard(Widget):
 		Clock.schedule_once(part, 0)
 
 	def on_parent(self, *args):
-		if not self.character:
+		if self.character is None:
 			Clock.schedule_once(self.on_parent, 0)
 			return
 		if not hasattr(self, '_pawn_plane'):
