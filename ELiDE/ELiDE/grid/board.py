@@ -33,6 +33,8 @@ class GridBoard(Widget):
 	def add_spot(self, placen, *args):
 		if placen not in self.character.place:
 			raise KeyError(f"No such place for spot: {placen}")
+		if placen in self.spot:
+			raise KeyError("Already have a Spot for this Place")
 		self.spot_plane.add_datum(self.make_spot(self.character.place[placen]))
 
 	def make_spot(self, place):
@@ -40,8 +42,6 @@ class GridBoard(Widget):
 		if not isinstance(placen, tuple) or len(placen) != 2:
 			raise TypeError(
 				"Can only make spot from places with tuple names of length 2")
-		if placen in self.spot:
-			raise KeyError("Already have a Spot for this Place")
 		if not isinstance(placen, tuple) or len(placen) != 2 or not isinstance(
 			placen[0], int) or not isinstance(placen[1], int):
 			raise TypeError(
