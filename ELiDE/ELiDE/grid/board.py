@@ -62,8 +62,6 @@ class GridBoard(Widget):
 		return r
 
 	def make_pawn(self, thing) -> dict:
-		if thing["name"] in self.pawn:
-			raise KeyError("Already have a Pawn for this Thing")
 		location = self.spot[thing["location"]]
 		r = {
 			"name": thing["name"],
