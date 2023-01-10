@@ -1,5 +1,3 @@
-import pytest
-from kivy.tests.common import UnitTestTouch
 from kivy.tests.common import GraphicUnitTest, UnitTestTouch
 import networkx as nx
 
@@ -7,7 +5,7 @@ from LiSE import Engine
 from LiSE.character import Facade
 from ELiDE.app import ELiDEApp
 from ELiDE.graph.board import GraphBoard, GraphBoardView
-from ELiDE.graph.pawnspot import TextureStackPlane
+from ELiDE.pawnspot import TextureStackPlane
 from ELiDE.graph.arrow import ArrowPlane
 from .util import idle_until, window_with_widget, ELiDEAppTest
 from ..dummy import Dummy
@@ -105,8 +103,7 @@ class GraphBoardTest(GraphicUnitTest):
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
 		win = window_with_widget(boardview)
-		idle_until(
-			lambda: 0 in board.spot and 'that' in board.pawn, 100)
+		idle_until(lambda: 0 in board.spot and 'that' in board.pawn, 100)
 		motion = UnitTestTouch(*board.pawn['that'].center)
 		motion.touch_down()
 		motion.touch_up()
@@ -121,8 +118,8 @@ class GraphBoardTest(GraphicUnitTest):
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
 		win = window_with_widget(boardview)
-		idle_until(lambda: 0 in board.spot and 1 in board.spot and 'that' in board.
-					pawn)
+		idle_until(lambda: 0 in board.spot and 1 in board.spot and 'that' in
+					board.pawn)
 		that = board.pawn['that']
 		one = board.spot[1]
 		touch = UnitTestTouch(*that.center)
@@ -152,12 +149,10 @@ class GraphBoardTest(GraphicUnitTest):
 		idle_until(lambda: board.stack_plane is not None, 100,
 					"Never made StackPlane")
 		win = window_with_widget(view)
-		dummy = Dummy(
-			name='hello',
-			paths=['atlas://rltiles/base/unseen'],
-			size=(32, 32),
-			pos=(0,0)
-		)
+		dummy = Dummy(name='hello',
+						paths=['atlas://rltiles/base/unseen'],
+						size=(32, 32),
+						pos=(0, 0))
 		board.add_widget(dummy)
 		idle_until(lambda: dummy in board.children, 100,
 					"Dummy didn't get to board")
@@ -168,7 +163,7 @@ class GraphBoardTest(GraphicUnitTest):
 		dummy2 = Dummy(name='goodbye',
 						paths=['atlas://rltiles/base/unseen'],
 						pos=dummy.pos,
-					   size=(32, 32))
+						size=(32, 32))
 		dummy2_name = dummy2.name = 'dummy2'
 		board.add_widget(dummy2)
 		idle_until(lambda: dummy2 in board.children, 100,
@@ -178,8 +173,8 @@ class GraphBoardTest(GraphicUnitTest):
 					"Dummy 2 didn't add thing")
 		spot = board.spot[dummy_name]
 		idle_until(
-			lambda: board.pawn[dummy2_name].pos == (spot.right, spot.top),
-			100, "Dummy 2 didn't get to dummy 1")
+			lambda: board.pawn[dummy2_name].pos == (spot.right, spot.top), 100,
+			"Dummy 2 didn't get to dummy 1")
 
 	@staticmethod
 	def test_pawn_add_new_place():
@@ -196,8 +191,8 @@ class GraphBoardTest(GraphicUnitTest):
 		idle_until(lambda: 'that' in board.pawn, 100, "Didn't make pawn")
 		that = board.pawn['that']
 		one = board.spot[1]
-		idle_until(lambda: getattr(that, 'pos', None) == (one.right, one.top), 100,
-					"pawn did not locate within 100 ticks")
+		idle_until(lambda: getattr(that, 'pos', None) == (one.right, one.top),
+					100, "pawn did not locate within 100 ticks")
 
 
 class SwitchGraphTest(ELiDEAppTest):
@@ -226,15 +221,16 @@ class SwitchGraphTest(ELiDEAppTest):
 		def all_x_same():
 			if app.mainscreen.boardview.board is None or app.mainscreen.boardview.board.stack_plane is None or not app.mainscreen.boardview.board.spot:
 				return False
-			first_x = next(
-				iter(app.mainscreen.boardview.board.spot.values())).x
-			return all(child.x == first_x for child in
-						app.mainscreen.boardview.board.spot.values())
+			first_x = next(iter(
+				app.mainscreen.boardview.board.spot.values())).x
+			return all(
+				child.x == first_x
+				for child in app.mainscreen.boardview.board.spot.values())
 
 		idle_until(all_x_same, 100, "Never got the new board")
 		idle_until(
 			lambda: len(
 				set(child.y for child in app.mainscreen.boardview.board.
-					stack_plane.children)) == len(
-						app.mainscreen.boardview.board.stack_plane.children),
-			100, "New board arranged weird")
+					stack_plane.children)
+			) == len(app.mainscreen.boardview.board.stack_plane.children), 100,
+			"New board arranged weird")
