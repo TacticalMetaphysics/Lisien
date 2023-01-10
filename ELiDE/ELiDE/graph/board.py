@@ -27,7 +27,6 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.widget import Widget
 from kivy.vector import Vector
 
-from LiSE.proxy import ThingProxy
 from ELiDE.pawnspot import TextureStackPlane, Stack
 from .spot import GraphSpot
 from .arrow import GraphArrow, GraphArrowWidget, ArrowPlane, get_points_multi
@@ -317,7 +316,7 @@ class GraphBoard(RelativeLayout):
 			if isinstance(sel, Widget):
 				sel.dispatch('on_touch_up', touch)
 			elif isinstance(sel, Stack):
-				if isinstance(sel.proxy, ThingProxy):
+				if hasattr(sel.proxy, 'location'):
 					for candidate in self.stack_plane.iter_collided_keys(
 						*touch.pos):
 						if candidate in self.spot:

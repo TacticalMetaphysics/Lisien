@@ -134,7 +134,7 @@ class GraphBoardTest(GraphicUnitTest):
 			self.advance_frames(1)
 		touch.touch_move(*one.center)
 		self.advance_frames(1)
-		touch.touch_up(*one.pos)
+		touch.touch_up(*one.center)
 		idle_until(lambda: that.pos != one.center, 100)
 		idle_until(lambda: that.proxy["location"] == 1, 100)
 
