@@ -63,15 +63,17 @@ class SwitchGridTest(ELiDEAppTest):
 		idle_until(lambda: app.mainscreen.gridview in app.mainscreen.mainview.
 					children)
 		idle_until(lambda: app.mainscreen.gridview.board.children)
-		assert all(child.y == 0
-					for child in app.mainscreen.gridview.board.children)
-		assert not all(child.x == 0
-						for child in app.mainscreen.gridview.board.children)
+		assert all(spot["y"] == 0
+					for spot in app.mainscreen.gridview.board.spot.values())
+		idle_until(
+			lambda: not all(spot["x"] == 0 for spot in app.mainscreen.gridview.
+							board.spot.values()), 100)
 		app.character_name = 'tall'
 		idle_until(
-			lambda: all(child.x == 0
-						for child in app.mainscreen.gridview.board.children),
-			1000, "Never got the new board")
+			lambda: all(spot["x"] == 0
+						for spot in app.mainscreen.gridview.board.spot.values(
+						)), 1000, "Never got the new board")
 		idle_until(
-			lambda: not all(child.y == 0 for child in app.mainscreen.gridview.
-							board.children), 1000, "New board arranged weird")
+			lambda: not all(spot["y"] == 0
+							for spot in app.mainscreen.gridview.board.spot.
+							values()), 1000, "New board arranged weird")
