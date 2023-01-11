@@ -65,6 +65,7 @@ class SwitchGridTest(ELiDEAppTest):
 		idle_until(lambda: app.mainscreen.gridview in app.mainscreen.mainview.
 					children)
 		idle_until(lambda: app.mainscreen.gridview.board.children)
+		assert len(app.mainscreen.gridview.board.spot) == 10
 		assert all(spot["y"] == 0
 					for spot in app.mainscreen.gridview.board.spot.values())
 		idle_until(
