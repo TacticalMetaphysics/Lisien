@@ -21,7 +21,6 @@ from queue import Queue
 from threading import RLock, Thread
 from typing import (Callable, Dict, Any, Union, Tuple, Optional, List,
 					Hashable, Iterator)
-from weakref import WeakValueDictionary
 
 from blinker import Signal
 import networkx as nx
@@ -725,20 +724,19 @@ class ORM:
 		node_cls = self.node_cls
 		edge_cls = self.edge_cls
 		self._where_cached = defaultdict(list)
-		self._node_objs = node_objs = WeakValueDictionary()
-		self._get_node_stuff: Tuple[WeakValueDictionary,
-									Callable[[Hashable, Hashable], bool],
+		self._node_objs = node_objs = {}
+		self._get_node_stuff: Tuple[dict, Callable[[Hashable, Hashable], bool],
 									Callable[[Hashable, Hashable],
 												node_cls]] = (
 													node_objs,
 													self._node_exists,
 													self._make_node)
-		self._edge_objs = edge_objs = WeakValueDictionary()
-		self._get_edge_stuff: Tuple[WeakValueDictionary, Callable[
-			[Hashable, Hashable, Hashable, int],
-			bool], Callable[[Hashable, Hashable, Hashable, int],
-							edge_cls]] = (edge_objs, self._edge_exists,
-											self._make_edge)
+		self._edge_objs = edge_objs = {}
+		self._get_edge_stuff: Tuple[
+			dict, Callable[[Hashable, Hashable, Hashable, int], bool],
+			Callable[[Hashable, Hashable, Hashable, int],
+						edge_cls]] = (edge_objs, self._edge_exists,
+										self._make_edge)
 		self._childbranch = defaultdict(set)
 		"""Immediate children of a branch"""
 		self._branches = {}
