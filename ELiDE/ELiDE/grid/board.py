@@ -33,6 +33,8 @@ class GridBoard(Widget):
 	def add_spot(self, placen, *args):
 		if placen not in self.character.place:
 			raise KeyError(f"No such place for spot: {placen}")
+		if placen in self.spot:
+			raise KeyError("Already have a Spot for this Place")
 		self.spot_plane.add_datum(self.make_spot(self.character.place[placen]))
 
 	def make_spot(self, place):
@@ -40,8 +42,6 @@ class GridBoard(Widget):
 		if not isinstance(placen, tuple) or len(placen) != 2:
 			raise TypeError(
 				"Can only make spot from places with tuple names of length 2")
-		if placen in self.spot:
-			raise KeyError("Already have a Spot for this Place")
 		if not isinstance(placen, tuple) or len(placen) != 2 or not isinstance(
 			placen[0], int) or not isinstance(placen[1], int):
 			raise TypeError(
@@ -62,17 +62,22 @@ class GridBoard(Widget):
 		return r
 
 	def make_pawn(self, thing) -> dict:
-		if thing["name"] in self.pawn:
-			raise KeyError("Already have a Pawn for this Thing")
 		location = self.spot[thing["location"]]
 		r = {
-			"name": thing["name"],
-			"x": location["x"],
-			"y": location["y"],
-			"width": self.tile_width,
-			"height": self.tile_height,
-			"location": location,
-			"textures": list(thing["_image_paths"])
+			"name":
+			thing["name"],
+			"x":
+			location["x"],
+			"y":
+			location["y"],
+			"width":
+			self.tile_width,
+			"height":
+			self.tile_height,
+			"location":
+			location,
+			"textures":
+			list(thing.get("_image_paths", GridPawn.default_image_paths))
 		}
 		self.pawn[thing["name"]] = r
 		return r
@@ -93,7 +98,7 @@ class GridBoard(Widget):
 		Clock.schedule_once(part, 0)
 
 	def on_parent(self, *args):
-		if not self.character:
+		if self.character is None:
 			Clock.schedule_once(self.on_parent, 0)
 			return
 		if not hasattr(self, '_pawn_plane'):
@@ -106,6 +111,9 @@ class GridBoard(Widget):
 			self.add_widget(self.spot_plane)
 			self.add_widget(self.pawn_plane)
 		spot_data = list(map(self.make_spot, self.character.place.values()))
+		if not spot_data:
+			self.spot_plane.data = self.pawn_plane.data = []
+			return
 		wide = max(datum["x"] for datum in spot_data) + self.tile_width
 		high = max(datum["y"] for datum in spot_data) + self.tile_width
 		self.size = self.spot_plane.size = self.pawn_plane.size = wide, high

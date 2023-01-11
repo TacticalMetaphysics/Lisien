@@ -781,7 +781,10 @@ class AbstractCharacter(Mapping):
 		return len(self.node)
 
 	def __bool__(self):
-		return self.name in self.db.character
+		try:
+			return self.name in self.db.character
+		except AttributeError:
+			return False  # we can't "really exist" when we've no engine
 
 	def __contains__(self, k):
 		return k in self.node

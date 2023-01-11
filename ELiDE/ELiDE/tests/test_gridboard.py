@@ -1,15 +1,9 @@
-import shutil
-import sys
-from tempfile import mkdtemp
-
 from kivy.base import EventLoop
 from kivy.tests.common import GraphicUnitTest
-from kivy.config import ConfigParser
 import networkx as nx
 
 from LiSE import Engine
 from LiSE.character import Facade
-from ELiDE.app import ELiDEApp
 from ELiDE.grid.board import GridBoard, GridBoardView
 from .util import all_spots_placed, all_pawns_placed, idle_until, \
  window_with_widget, \
@@ -26,7 +20,7 @@ class GridBoardTest(GraphicUnitTest):
 		spot_height = 32
 		graph = nx.grid_2d_graph(spots_wide, spots_tall)
 		char = Facade(graph)
-		something = char.place[1, 1].new_thing('something')
+		char.place[1, 1].add_thing('something')
 		otherthing = char.place[2, 2].new_thing('otherthing')
 		assert len(char.thing) == 2
 		board = GridBoard(character=char)
@@ -34,21 +28,26 @@ class GridBoardTest(GraphicUnitTest):
 		while not (all_spots_placed(board, char)
 					and all_pawns_placed(board, char)):
 			EventLoop.idle()
-		otherthing['location'] = board.pawn['otherthing'].loc_name = (0, 0)
-		zero = board.spot[0, 0]
-		that = board.pawn['otherthing']
-		idle_until(lambda: that in zero.children, 1000,
-					"pawn 'otherthing' did not relocate within 1000 ticks")
-		assert that.parent == zero
-		for x in range(spots_wide):
-			for y in range(spots_tall):
-				spot = board.spot[x, y]
-				assert spot.x == x * spot_width
-				assert spot.y == y * spot_height
-		assert board.pawn['something'].parent == board.spot[1, 1]
-		assert board.pawn['something'].pos == board.spot[1, 1].pos
-		assert board.pawn['otherthing'].parent == board.spot[0, 0]
-		assert board.pawn['otherthing'].pos == board.spot[0, 0].pos
+		otherthing['location'] = board.pawn['otherthing']["location"] = (0, 0)
+		board.spot_plane.data = list(map(board.make_spot, char.place.values()))
+		board.pawn_plane.data = list(map(board.make_pawn, char.thing.values()))
+
+		def arranged():
+			for x in range(spots_wide):
+				for y in range(spots_tall):
+					spot = board.spot[x, y]
+					if spot["x"] != x * spot_width or spot[
+						"y"] != y * spot_height:
+						return False
+			return True
+
+		idle_until(arranged, 100)
+		this = board.pawn["something"]
+		that = board.pawn["otherthing"]
+		assert this["x"] == board.spot[1, 1]["x"]
+		assert this["y"] == board.spot[1, 1]["y"]
+		assert that["x"] == board.spot[0, 0]["x"]
+		assert that["y"] == board.spot[0, 0]["y"]
 
 
 class SwitchGridTest(ELiDEAppTest):
@@ -66,15 +65,18 @@ class SwitchGridTest(ELiDEAppTest):
 		idle_until(lambda: app.mainscreen.gridview in app.mainscreen.mainview.
 					children)
 		idle_until(lambda: app.mainscreen.gridview.board.children)
-		assert all(child.y == 0
-					for child in app.mainscreen.gridview.board.children)
-		assert not all(child.x == 0
-						for child in app.mainscreen.gridview.board.children)
+		assert len(app.mainscreen.gridview.board.spot) == 10
+		assert all(spot["y"] == 0
+					for spot in app.mainscreen.gridview.board.spot.values())
+		idle_until(
+			lambda: not all(spot["x"] == 0 for spot in app.mainscreen.gridview.
+							board.spot.values()), 100)
 		app.character_name = 'tall'
 		idle_until(
-			lambda: all(child.x == 0
-						for child in app.mainscreen.gridview.board.children),
-			1000, "Never got the new board")
+			lambda: all(spot["x"] == 0
+						for spot in app.mainscreen.gridview.board.spot.values(
+						)), 1000, "Never got the new board")
 		idle_until(
-			lambda: not all(child.y == 0 for child in app.mainscreen.gridview.
-							board.children), 1000, "New board arranged weird")
+			lambda: not all(spot["y"] == 0
+							for spot in app.mainscreen.gridview.board.spot.
+							values()), 1000, "New board arranged weird")
