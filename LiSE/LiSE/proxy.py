@@ -211,7 +211,6 @@ class NodeProxy(CachingEntityProxy):
 							char=self._charname,
 							node=self.name,
 							rulebook=rb,
-							block=False,
 							branching=True)
 
 	def __init__(self, character, nodename):
@@ -255,7 +254,6 @@ class NodeProxy(CachingEntityProxy):
 							node=self.name,
 							k=k,
 							v=v,
-							block=False,
 							branching=True)
 
 	def _del_item(self, k):
@@ -265,7 +263,6 @@ class NodeProxy(CachingEntityProxy):
 							char=self._charname,
 							node=self.name,
 							k=k,
-							block=False,
 							branching=True)
 
 	def delete(self):
@@ -346,7 +343,6 @@ class ThingProxy(NodeProxy):
 							char=self.character.name,
 							thing=self.name,
 							loc=v,
-							block=False,
 							branching=True)
 		self.send(self, key='location', value=v)
 
@@ -365,8 +361,7 @@ class ThingProxy(NodeProxy):
 							char=self._charname,
 							thing=self.name,
 							path=path,
-							weight=weight,
-							block=False)
+							weight=weight)
 
 	def go_to_place(self, place, weight=None):
 		if hasattr(place, 'name'):
@@ -375,8 +370,7 @@ class ThingProxy(NodeProxy):
 							char=self._charname,
 							thing=self.name,
 							place=place,
-							weight=weight,
-							block=False)
+							weight=weight)
 
 	def travel_to(self, dest, weight=None, graph=None):
 		if hasattr(dest, 'name'):
@@ -401,8 +395,7 @@ class ThingProxy(NodeProxy):
 							dest=dest,
 							arrival_tick=arrival_tick,
 							weight=weight,
-							graph=graph,
-							block=False)
+							graph=graph)
 
 
 Thing.register(ThingProxy)
@@ -427,8 +420,7 @@ class PortalProxy(CachingEntityProxy):
 							char=self._charname,
 							orig=self._origin,
 							dest=self._destination,
-							rulebook=rb,
-							block=False)
+							rulebook=rb)
 
 	def _get_rulebook_name(self):
 		return self.engine.handle(command='get_portal_rulebook',
@@ -467,7 +459,6 @@ class PortalProxy(CachingEntityProxy):
 							dest=self._destination,
 							k=k,
 							v=v,
-							block=False,
 							branching=True)
 
 	def _del_item(self, k):
@@ -476,7 +467,6 @@ class PortalProxy(CachingEntityProxy):
 							orig=self._origin,
 							dest=self._destination,
 							k=k,
-							block=False,
 							branching=True)
 
 	def __init__(self, character, origname, destname):
@@ -531,7 +521,6 @@ class NodeMapProxy(MutableMapping, Signal):
 		self.engine.handle('set_character_node_rulebook',
 							char=self._charname,
 							rulebook=rb,
-							block=False,
 							branching=True)
 
 	@property
@@ -581,8 +570,7 @@ class NodeMapProxy(MutableMapping, Signal):
 		"""
 		self.engine.handle('update_nodes',
 							char=self.character.name,
-							patch=patch,
-							block=True)
+							patch=patch)
 		for node, stats in patch.items():
 			nodeproxycache = self[node]._cache
 			for k, v in stats.items():
@@ -609,7 +597,6 @@ class ThingMapProxy(CachingProxy):
 		self.engine.handle('set_character_thing_rulebook',
 							char=self.name,
 							rulebook=rb,
-							block=False,
 							branching=True)
 
 	@property
@@ -640,7 +627,6 @@ class ThingMapProxy(CachingProxy):
 							char=self.name,
 							thing=k,
 							statdict=v,
-							block=False,
 							branching=True)
 		self._cache[k] = ThingProxy(self.engine, self.name, v.pop('location'))
 		self.engine._node_stat_cache[self.name][k] = v
@@ -649,7 +635,6 @@ class ThingMapProxy(CachingProxy):
 		self.engine.handle(command='del_node',
 							char=self.name,
 							node=k,
-							block=False,
 							branching=True)
 		del self._cache[k]
 		del self.engine._node_stat_cache[self.name][k]
@@ -678,7 +663,6 @@ class PlaceMapProxy(CachingProxy):
 		self.engine.handle('set_character_place_rulebook',
 							char=self.name,
 							rulebook=rb,
-							block=False,
 							branching=True)
 
 	@property
@@ -705,7 +689,6 @@ class PlaceMapProxy(CachingProxy):
 							char=self.name,
 							place=k,
 							statdict=v,
-							block=False,
 							branching=True)
 		self.engine._node_stat_cache[self.name][k] = v
 
@@ -713,7 +696,6 @@ class PlaceMapProxy(CachingProxy):
 		self.engine.handle(command='del_node',
 							char=self.name,
 							node=k,
-							block=False,
 							branching=True)
 		del self.engine._node_stat_cache[self.name][k]
 
@@ -773,7 +755,6 @@ class SuccessorsProxy(CachingProxy):
 							orig=self._orig,
 							dest=dest,
 							statdict=value,
-							block=False,
 							branching=True)
 
 	def _del_item(self, dest):
@@ -797,7 +778,6 @@ class CharSuccessorsMappingProxy(CachingProxy):
 		self.engine.handle('set_character_portal_rulebook',
 							char=self.character.name,
 							rulebook=rb,
-							block=False,
 							branching=True)
 
 	@property
@@ -834,7 +814,6 @@ class CharSuccessorsMappingProxy(CachingProxy):
 							character=self.name,
 							node=orig,
 							val=val,
-							block=False,
 							branching=True)
 
 	def _del_item(self, orig):
@@ -877,10 +856,8 @@ class PredecessorsProxy(MutableMapping):
 							char=self._charname,
 							place=k,
 							statdict=v,
-							block=False,
 							branching=True)
 		self.engine.handle('set_portal', (self._charname, k, self.name),
-							block=False,
 							branching=True)
 
 	def __delitem__(self, k):
@@ -919,7 +896,6 @@ class CharPredecessorsMappingProxy(MutableMapping):
 							char=self.name,
 							node=k,
 							preds=v,
-							block=False,
 							branching=True)
 
 	def __delitem__(self, k):
@@ -962,14 +938,12 @@ class CharStatProxy(CachingEntityProxy):
 							char=self.name,
 							k=k,
 							v=v,
-							block=True,
 							branching=True)
 
 	def _del_item(self, k):
 		self.engine.handle(command='del_character_stat',
 							char=self.name,
 							k=k,
-							block=True,
 							branching=True)
 
 
@@ -999,8 +973,7 @@ class RuleProxy(Signal):
 		self._cache['triggers'] = v
 		self.engine.handle('set_rule_triggers',
 							rule=self.name,
-							triggers=self._nominate(v),
-							block=False)
+							triggers=self._nominate(v))
 		self.send(self, triggers=v)
 
 	@property
@@ -1012,8 +985,7 @@ class RuleProxy(Signal):
 		self._cache['prereqs'] = v
 		self.engine.handle('set_rule_prereqs',
 							rule=self.name,
-							prereqs=self._nominate(v),
-							block=False)
+							prereqs=self._nominate(v))
 		self.send(self, prereqs=v)
 
 	@property
@@ -1025,8 +997,7 @@ class RuleProxy(Signal):
 		self._cache['actions'] = v
 		self.engine.handle('set_rule_actions',
 							rule=self.name,
-							actions=self._nominate(v),
-							block=False)
+							actions=self._nominate(v))
 		self.send(self, actions=v)
 
 	def __init__(self, engine, rulename):
@@ -1073,7 +1044,6 @@ class RuleBookProxy(MutableSequence, Signal):
 							rulebook=self.name,
 							i=i,
 							rule=v,
-							block=False,
 							branching=True)
 		self.send(self, i=i, val=v)
 
@@ -1082,7 +1052,6 @@ class RuleBookProxy(MutableSequence, Signal):
 		self.engine.handle(command='del_rulebook_rule',
 							rulebook=self.name,
 							i=i,
-							block=False,
 							branching=True)
 		self.send(self, i=i, val=None)
 
@@ -1094,7 +1063,6 @@ class RuleBookProxy(MutableSequence, Signal):
 							rulebook=self.name,
 							i=i,
 							rule=v,
-							block=False,
 							branching=True)
 		for j in range(i, len(self)):
 			self.send(self, i=j, val=self[j])
@@ -1119,7 +1087,6 @@ class UnitMapProxy(Mapping):
 		self.engine.handle('set_unit_rulebook',
 							char=self.character.name,
 							rulebook=rb,
-							block=False,
 							branching=True)
 
 	def __init__(self, character):
@@ -1198,7 +1165,6 @@ class CharacterProxy(AbstractCharacter):
 							char=self.name,
 							nodes=g._node,
 							adj=g._adj,
-							block=False,
 							branching=True)
 		for node, nodeval in g.nodes.items():
 			if node not in self.node:
@@ -1238,7 +1204,6 @@ class CharacterProxy(AbstractCharacter):
 		self.engine.handle('set_character_rulebook',
 							char=self.name,
 							rulebook=rb,
-							block=False,
 							branching=True)
 
 	@cached_property
@@ -1312,8 +1277,11 @@ class CharacterProxy(AbstractCharacter):
 				self.engine._character_portals_cache.store(
 					self.name, orig, dest, PortalProxy(self, orig, dest))
 			else:
-				self.engine._character_portals_cache.delete(
-					self.name, orig, dest)
+				try:
+					self.engine._character_portals_cache.delete(
+						self.name, orig, dest)
+				except KeyError:
+					pass
 		self.portal._apply_delta(delta.pop('edge_val', {}))
 		nodemap = self.node
 		name = self.name
@@ -1367,7 +1335,6 @@ class CharacterProxy(AbstractCharacter):
 							char=self.name,
 							place=name,
 							statdict=kwargs,
-							block=False,
 							branching=True)
 		self.place._cache[name] = PlaceProxy(self, name)
 		self.engine._node_stat_cache[self.name][name] = kwargs
@@ -1376,7 +1343,6 @@ class CharacterProxy(AbstractCharacter):
 		self.engine.handle(command='add_places_from',
 							char=self.name,
 							seq=list(seq),
-							block=False,
 							branching=True)
 		placecache = self.place._cache
 		nodestatcache = self.engine._node_stat_cache[self.name]
@@ -1397,7 +1363,6 @@ class CharacterProxy(AbstractCharacter):
 							thing=name,
 							loc=location,
 							statdict=kwargs,
-							block=False,
 							branching=True)
 		self.thing._cache[name] = ThingProxy(self, name, location, **kwargs)
 
@@ -1405,7 +1370,6 @@ class CharacterProxy(AbstractCharacter):
 		self.engine.handle(command='add_things_from',
 							char=self.name,
 							seq=list(seq),
-							block=False,
 							branching=True)
 		for name, location in seq:
 			self.thing._cache[name] = ThingProxy(self, name, location)
@@ -1414,11 +1378,7 @@ class CharacterProxy(AbstractCharacter):
 		if node not in self.node:
 			raise KeyError("No such node: {}".format(node))
 		name = self.name
-		self.engine.handle('del_node',
-							char=name,
-							node=node,
-							block=False,
-							branching=True)
+		self.engine.handle('del_node', char=name, node=node, branching=True)
 		placecache = self.place._cache
 		thingcache = self.thing._cache
 		if node in placecache:
@@ -1441,11 +1401,7 @@ class CharacterProxy(AbstractCharacter):
 		if place not in placemap:
 			raise KeyError("No such place: {}".format(place))
 		name = self.name
-		self.engine.handle('del_node',
-							char=name,
-							node=place,
-							block=False,
-							branching=True)
+		self.engine.handle('del_node', char=name, node=place, branching=True)
 		del placemap._cache[place]
 		portscache = self.engine._character_portals_cache
 		del portscache.successors[name][place]
@@ -1456,11 +1412,7 @@ class CharacterProxy(AbstractCharacter):
 		if thing not in thingmap:
 			raise KeyError("No such thing: {}".format(thing))
 		name = self.name
-		self.engine.handle('del_node',
-							char=name,
-							node=thing,
-							block=False,
-							branching=True)
+		self.engine.handle('del_node', char=name, node=thing, branching=True)
 		del thingmap._cache[thing]
 		portscache = self.engine._character_portals_cache
 		del portscache.successors[name][thing]
@@ -1472,7 +1424,6 @@ class CharacterProxy(AbstractCharacter):
 							char=self.name,
 							node=node,
 							loc=location,
-							block=False,
 							branching=True)
 
 	def add_portal(self, origin, destination, symmetrical=False, **kwargs):
@@ -1482,7 +1433,6 @@ class CharacterProxy(AbstractCharacter):
 							dest=destination,
 							symmetrical=symmetrical,
 							statdict=kwargs,
-							block=False,
 							branching=True)
 		self.engine._character_portals_cache.store(
 			self.name, origin, destination,
@@ -1511,7 +1461,6 @@ class CharacterProxy(AbstractCharacter):
 							char=self.name,
 							orig=origin,
 							dest=destination,
-							block=False,
 							branching=True)
 		char_port_cache.delete(self.name, origin, destination)
 
@@ -1523,7 +1472,6 @@ class CharacterProxy(AbstractCharacter):
 							char=self.name,
 							seq=l,
 							symmetrical=symmetrical,
-							block=False,
 							branching=True)
 		for (origin, destination) in l:
 			if origin not in self.portal._cache:
@@ -1545,7 +1493,6 @@ class CharacterProxy(AbstractCharacter):
 							char=self.name,
 							graph=graph,
 							node=node,
-							block=False,
 							branching=True)
 
 	def remove_unit(self, graph, node=None):
@@ -1557,7 +1504,6 @@ class CharacterProxy(AbstractCharacter):
 							char=self.name,
 							graph=graph,
 							node=node,
-							block=False,
 							branching=True)
 
 	def units(self):
@@ -1605,16 +1551,12 @@ class CharacterMapProxy(MutableMapping, Signal):
 		self.engine.handle(command='set_character',
 							char=k,
 							data=v,
-							block=False,
 							branching=True)
 		self.engine._char_cache[k] = CharacterProxy(self.engine, k)
 		self.send(self, key=k, val=v)
 
 	def __delitem__(self, k):
-		self.engine.handle(command='del_character',
-							char=k,
-							block=False,
-							branching=True)
+		self.engine.handle(command='del_character', char=k, branching=True)
 		if k in self.engine._char_cache:
 			del self.engine._char_cache[k]
 		self.send(self, key=k, val=None)
@@ -1740,16 +1682,12 @@ class GlobalVarProxy(MutableMapping, Signal):
 
 	def __setitem__(self, k, v):
 		self._cache[k] = v
-		self.engine.handle('set_universal',
-							k=k,
-							v=v,
-							block=False,
-							branching=True)
+		self.engine.handle('set_universal', k=k, v=v, branching=True)
 		self.send(self, key=k, value=v)
 
 	def __delitem__(self, k):
 		del self._cache[k]
-		self.engine.handle('del_universal', k=k, block=False, branching=True)
+		self.engine.handle('del_universal', k=k, branching=True)
 		self.send(self, key=k, value=None)
 
 	def _update_cache(self, data):
@@ -2040,7 +1978,6 @@ class EngineProxy(AbstractEngine):
 		self._handle_out_lock = Lock()
 		self._handle_in = handle_in
 		self._handle_in_lock = Lock()
-		self._handle_lock = Lock()
 		self._commit_lock = Lock()
 		self.logger = logger
 
@@ -2150,10 +2087,6 @@ class EngineProxy(AbstractEngine):
 		will be passed to it, with the exceptions of
 		``cb``, ``branching``, and ``silent``.
 
-		With ``block=False``, don't wait for a result.
-		This is best for when you want to make some change to the game
-		state and already know what effect it will have.
-
 		With ``branching=True``, handle paradoxes by creating new
 		branches of history. I will switch to the new branch if needed.
 		If I have an attribute ``branching_cb``, I'll call it if and
@@ -2161,16 +2094,12 @@ class EngineProxy(AbstractEngine):
 		``branching=True``.
 
 		With a function ``cb``, I will call ``cb`` when I get
-		a result. If ``block=False`` this will happen in a thread.
+		a result.
 		``cb`` will be called with keyword arguments ``command``,
 		the same command you asked for; ``result``, the value returned
 		by it, possibly ``None``; and the present ``branch``,
 		``turn``, and ``tick``, possibly different than when you called
-		``handle``.
-
-		If any of ``branching``, ``cb``, or ``future`` are ``True``,
-		I will return a ``Future``. The ``Future``'s return value
-		is a tuple of ``(command, branch, turn, tick, result)``.
+		``handle``.`.
 
 		"""
 		if self.closed:
@@ -2181,59 +2110,34 @@ class EngineProxy(AbstractEngine):
 			kwargs['command'] = cmd
 		else:
 			raise TypeError("No command")
-		branching = kwargs.get('branching', False)
 		cb = kwargs.pop('cb', None)
-		future = kwargs.pop('future', False)
-		self._handle_lock.acquire()
-		if kwargs.pop('block', True):
-			assert not kwargs.get('silent')
-			self.debug('EngineProxy: sending {}'.format(kwargs))
-			self.send_bytes(self.pack(kwargs))
-			received = self.recv_bytes()
-			command, branch, turn, tick, r = self.unpack(received)
-			self.debug('EngineProxy: received {}'.format(
-				(command, branch, turn, tick, r)))
-			if (branch, turn, tick) != self._btt():
-				self._branch = branch
-				self._turn = turn
-				self._tick = tick
-				self.time.send(self, branch=branch, turn=turn, tick=tick)
-			if isinstance(r, Exception):
-				self._handle_lock.release()
-				raise r
-			if cmd != command:
-				raise RuntimeError(
-					f"Sent command {cmd}, but received results for {command}")
-			if cb:
-				cb(command=command,
-					branch=branch,
-					turn=turn,
-					tick=tick,
-					result=r)
-			self._handle_lock.release()
-			return r
-		else:
-			kwargs['silent'] = not (branching or cb or future)
-			self.debug('EngineProxy: asynchronously sending {}'.format(kwargs))
-			self.send_bytes(self.pack(kwargs))
-			if branching:
-				# what happens if more than one branching call
-				# is happening at once?
-				return self._submit(self._branching, cb)
-			elif cb:
-				return self._submit(self._callback, cb)
-			if future:
-				return self._submit(self._unpack_recv)
-		self._handle_lock.release()
+		assert not kwargs.get('silent')
+		self.debug('EngineProxy: sending {}'.format(kwargs))
+		self.send_bytes(self.pack(kwargs))
+		received = self.recv_bytes()
+		command, branch, turn, tick, r = self.unpack(received)
+		self.debug('EngineProxy: received {}'.format(
+			(command, branch, turn, tick, r)))
+		if (branch, turn, tick) != self._btt():
+			self._branch = branch
+			self._turn = turn
+			self._tick = tick
+			self.time.send(self, branch=branch, turn=turn, tick=tick)
+		if isinstance(r, Exception):
+			raise r
+		if cmd != command:
+			raise RuntimeError(
+				f"Sent command {cmd}, but received results for {command}")
+		if cb:
+			cb(command=command, branch=branch, turn=turn, tick=tick, result=r)
+		return r
 
 	def _unpack_recv(self):
 		ret = self.unpack(self.recv_bytes())
-		self._handle_lock.release()
 		return ret
 
 	def _callback(self, cb):
 		command, branch, turn, tick, res = self.unpack(self.recv_bytes())
-		self._handle_lock.release()
 		self.debug('EngineProxy: received, with callback {}: {}'.format(
 			cb, (command, branch, turn, tick, res)))
 		ex = None
@@ -2253,7 +2157,6 @@ class EngineProxy(AbstractEngine):
 
 	def _branching(self, cb=None):
 		command, branch, turn, tick, r = self.unpack(self.recv_bytes())
-		self._handle_lock.release()
 		self.debug('EngineProxy: received, with branching, {}'.format(
 			(command, branch, turn, tick, r)))
 		if (branch, turn, tick) != (self._branch, self._turn, self._tick):
@@ -2338,28 +2241,11 @@ class EngineProxy(AbstractEngine):
 	def is_parent_of(self, parent, child):
 		return self.handle('is_parent_of', parent=parent, child=child)
 
-	def _pull_async(self, chars, cb):
-		if not callable(cb):
-			raise TypeError("Uncallable callback")
-		self.send_bytes(
-			self.pack({
-				'silent': False,
-				'command': 'get_char_deltas',
-				'chars': chars
-			}))
-		cbs = [self._upd_caches]
-		if cb:
-			cbs.append(cb)
-		self._call_with_recv(cbs)
-
-	def pull(self, cb=None, block=True):
+	def pull(self, cb=None):
 		"""Update the state of all my proxy objects from the real objects."""
-		if block:
-			deltas = self.handle('get_char_deltas', cb=self._upd_deltas)
-			if cb:
-				cb(deltas)
-		else:
-			return self._submit(self._pull_async, cb)
+		deltas = self.handle('get_char_deltas', cb=self._upd_deltas)
+		if cb:
+			cb(deltas)
 
 	def _upd_and_cb(self, cb, *args, **kwargs):
 		self._upd_caches(*args, no_del=True, **kwargs)
@@ -2368,14 +2254,12 @@ class EngineProxy(AbstractEngine):
 			cb(*args, **kwargs)
 
 	# TODO: make this into a Signal, like it is in the LiSE core
-	def next_turn(self, cb=None, block=False):
+	def next_turn(self, cb=None):
 		if cb and not callable(cb):
 			raise TypeError("Uncallable callback")
-		return self.handle('next_turn',
-							block=block,
-							cb=partial(self._upd_and_cb, cb))
+		return self.handle('next_turn', cb=partial(self._upd_and_cb, cb))
 
-	def time_travel(self, branch, turn, tick=None, cb=None, block=True):
+	def time_travel(self, branch, turn, tick=None, cb=None):
 		"""Move to a different point in the timestream
 
 		Needs ``branch`` and ``turn`` arguments. The ``tick`` is
@@ -2388,24 +2272,21 @@ class EngineProxy(AbstractEngine):
 		should be included, but may be a list of character names
 		to include.
 
-		With ``block=True`` (the default), wait until finished computing
-		differences before returning. Otherwise my ``branch``, ``turn``,
-		and ``tick`` will stay where they are until that's done.
-
 		"""
 		if cb is not None and not callable(cb):
 			raise TypeError("Uncallable callback")
 		return self.handle('time_travel',
-							block=block,
 							branch=branch,
 							turn=turn,
 							tick=tick,
 							cb=partial(self._upd_and_cb, cb))
 
-	def add_character(self, char, data={}, block=False, **attr):
+	def add_character(self, char, data=None, **attr):
 		if char in self._char_cache:
 			raise KeyError("Character already exists")
 		assert char not in self._char_stat_cache
+		if data is None:
+			data = {}
 		if not isinstance(data, dict):
 			# it's a networkx graph
 			data = {
@@ -2453,11 +2334,10 @@ class EngineProxy(AbstractEngine):
 					char=char,
 					data=data,
 					attr=attr,
-					block=block,
 					branching=True)
 
 	def new_character(self, char, **attr):
-		self.add_character(char, block=True, **attr)
+		self.add_character(char, **attr)
 		return self._char_cache[char]
 
 	new_graph = new_character
@@ -2470,10 +2350,7 @@ class EngineProxy(AbstractEngine):
 		del self._character_places_cache[char]
 		del self._things_cache[char]
 		self._character_portals_cache.delete_char(char)
-		self.handle(command='del_character',
-					char=char,
-					block=False,
-					branching=True)
+		self.handle(command='del_character', char=char, branching=True)
 
 	del_graph = del_character
 
@@ -2487,11 +2364,7 @@ class EngineProxy(AbstractEngine):
 			del self._things_cache[char][node]
 		if node in self._character_places_cache[char]:  # just to be safe
 			del self._character_places_cache[char][node]
-		self.handle(command='del_node',
-					char=char,
-					node=node,
-					block=False,
-					branching=True)
+		self.handle(command='del_node', char=char, node=node, branching=True)
 
 	def del_portal(self, char, orig, dest):
 		if char not in self._char_cache:
@@ -2501,12 +2374,11 @@ class EngineProxy(AbstractEngine):
 					char=char,
 					orig=orig,
 					dest=dest,
-					block=False,
 					branching=True)
 
 	def commit(self):
 		self._commit_lock.acquire()
-		self.handle('commit', block=False, cb=self._release_commit_lock)
+		self.handle('commit', cb=self._release_commit_lock)
 
 	def _release_commit_lock(self, *, command, branch, turn, tick, result):
 		self._commit_lock.release()
