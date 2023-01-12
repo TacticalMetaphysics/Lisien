@@ -155,16 +155,15 @@ def windows_intersection(
 	if len(windows) == 0:
 		return []
 	elif len(windows) == 1:
-		return windows
+		return list(windows)
 
-	done = []
-	for window in windows:
-		if not done:
-			done.append(window)
-			continue
+	done = [windows[0]]
+	for window in windows[1:]:
 		res = intersect2(done.pop(), window)
 		if res:
 			done.append(res)
+		else:
+			return done
 	return done
 
 
