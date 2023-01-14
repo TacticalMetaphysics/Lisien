@@ -283,6 +283,31 @@ def test_location_qry(engy):
 	assert list(res1) == [1, 2]
 
 
+def test_place_val_qry(engy):
+	phys = engy.new_character("physical")
+	place1 = phys.new_place(1)
+	place2 = phys.new_place(2)
+	assert engy.turn == 0
+	place1['flavor'] = 'delicious'
+	place2['flavor'] = 'disgusting'
+	engy.next_turn()
+	assert engy.turn == 1
+	place2['flavor'] = 'delicious'
+	engy.next_turn()
+	assert engy.turn == 2
+	place1['flavor'] = 'disgusting'
+	engy.next_turn()
+	assert engy.turn == 3
+	place2['flavor'] = 'disgusting'
+	qry = place1.historical('flavor') == place2.historical('flavor')
+	res = engy.turns_when(qry)
+	assert 1 in res
+	assert 3 in res
+	assert 0 not in res
+	assert 2 not in res
+	assert set(res) == {1, 3}
+
+
 @pytest.mark.slow
 def test_stress_graph_val_select_eq(engy):
 	import random
