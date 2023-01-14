@@ -25,6 +25,8 @@ hist_loc = that.historical('location')
 print(list(engine.turns_when(hist_loc == 'there')))
 ```
 
+You'll get a list of turns when ``that`` was ``there``.
+
 Other comparison operators like > and < work as well.
 
 """
