@@ -330,6 +330,7 @@ def test_graph_val_select_lt_gt(engy):
 	bar_hist = me.historical('bar')
 	res = engy.turns_when(foo_hist < bar_hist)
 	assert set(res) == {1, 2, 6, 8}
+	assert str({1, 2, 6, 8}) in str(engy.turns_when(foo_hist < bar_hist))
 	res = engy.turns_when(foo_hist > bar_hist)
 	assert set(res) == {0, 3, 4, 5, 7}
 

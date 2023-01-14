@@ -12,13 +12,20 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""The query engine provides Pythonic methods to access the database.
+"""Database access and query builder
 
-This module also contains a notably unfinished implementation of a query
-language specific to LiSE. Access some stats using entities' method
-``historical``, and do comparisons on those, and instead of a boolean
-result you'll get a callable object that will return an iterator over
-turn numbers in which the comparison evaluated to ``True``.
+Sometimes you want to know when some stat of a LiSE entity had a particular
+value. To find out, construct a historical query and pass it to
+``Engine.turns_when``, like this:
+
+```
+physical = engine.character['physical']
+that = physical.thing['that']
+hist_loc = that.historical('location')
+print(list(engine.turns_when(hist_loc == 'there')))
+```
+
+Other comparison operators like > and < work as well.
 
 """
 import operator
@@ -359,6 +366,13 @@ class QueryResult(Sequence, Set):
 
 	def _last(self):
 		raise NotImplementedError("_last")
+
+	def __str__(self):
+		return f"<{self.__class__.__name__} containing {set(self)}>"
+
+	def __repr__(self):
+		return (f"<{self.__class__.__name__}({self._past_l}, {self._past_r},"
+				f"{self._oper}, {self._end_of_time})")
 
 
 class QueryResultEndTurn(QueryResult):
