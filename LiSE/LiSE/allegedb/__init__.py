@@ -21,7 +21,6 @@ from queue import Queue
 from threading import RLock, Thread
 from typing import (Callable, Dict, Any, Union, Tuple, Optional, List,
 					Hashable, Iterator)
-from weakref import WeakValueDictionary
 
 from blinker import Signal
 import networkx as nx
@@ -725,20 +724,19 @@ class ORM:
 		node_cls = self.node_cls
 		edge_cls = self.edge_cls
 		self._where_cached = defaultdict(list)
-		self._node_objs = node_objs = WeakValueDictionary()
-		self._get_node_stuff: Tuple[WeakValueDictionary,
-									Callable[[Hashable, Hashable], bool],
+		self._node_objs = node_objs = {}
+		self._get_node_stuff: Tuple[dict, Callable[[Hashable, Hashable], bool],
 									Callable[[Hashable, Hashable],
 												node_cls]] = (
 													node_objs,
 													self._node_exists,
 													self._make_node)
-		self._edge_objs = edge_objs = WeakValueDictionary()
-		self._get_edge_stuff: Tuple[WeakValueDictionary, Callable[
-			[Hashable, Hashable, Hashable, int],
-			bool], Callable[[Hashable, Hashable, Hashable, int],
-							edge_cls]] = (edge_objs, self._edge_exists,
-											self._make_edge)
+		self._edge_objs = edge_objs = {}
+		self._get_edge_stuff: Tuple[
+			dict, Callable[[Hashable, Hashable, Hashable, int], bool],
+			Callable[[Hashable, Hashable, Hashable, int],
+						edge_cls]] = (edge_objs, self._edge_exists,
+										self._make_edge)
 		self._childbranch = defaultdict(set)
 		"""Immediate children of a branch"""
 		self._branches = {}
@@ -782,19 +780,12 @@ class ORM:
 
 	def __init__(self,
 					dbstring,
-					sqlfilename: str = None,
 					clear=False,
-					alchemy=True,
 					connect_args: dict = None,
 					cache_arranger=False):
-		"""Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
-		either case, begin a transaction.
+		"""Make a SQLAlchemy engine and begin a transaction
 
-		:arg dbstring: rfc1738 URL for a database connection. Unless it
-		begins with "sqlite:///", SQLAlchemy will be required.
-
-		:arg alchemy: Set to ``False`` to use the precompiled SQLite queries
-		even if SQLAlchemy is available.
+		:arg dbstring: rfc1738 URL for a database connection.
 		
 		:arg connect_args: Dictionary of
 		keyword arguments to be used for the database connection.
@@ -812,8 +803,7 @@ class ORM:
 		if hasattr(self, '_post_init_cache_hook'):
 			self._post_init_cache_hook()
 		if not hasattr(self, 'query'):
-			self.query = self.query_engine_cls(dbstring, connect_args, alchemy,
-												sqlfilename,
+			self.query = self.query_engine_cls(dbstring, connect_args,
 												getattr(self, 'pack', None),
 												getattr(self, 'unpack', None))
 		if clear:
@@ -1789,11 +1779,11 @@ class ORM:
 			parturn = self._branches[v][1]
 			if curturn < parturn:
 				raise OutOfTimelineError(
-					"Tried to jump to branch {br}, "
-					"which starts at turn {rv}. "
+					"Tried to jump to branch {br} at turn {tr}, "
+					"but {br} starts at turn {rv}. "
 					"Go to turn {rv} or later to use this branch.".format(
-						br=v, rv=parturn), self.branch, self.turn, self.tick,
-					v, self.turn, self.tick)
+						br=v, tr=self.turn, rv=parturn), self.branch,
+					self.turn, self.tick, v, self.turn, self.tick)
 		branch_is_new = v not in self._branches
 		if branch_is_new:
 			# assumes the present turn in the parent branch has
@@ -2054,8 +2044,9 @@ class ORM:
 			# but I couldn't come up with a situation where that would actually
 			# happen
 			raise OutOfTimelineError(
-				"You're in the past. Go to turn {}, tick {} to change things".
-				format(turn_end, tick_end), *btt(), branch, turn, tick)
+				"You're in the past. Go to turn {}, tick {} to change things"
+				" -- or start a new branch".format(turn_end, tick_end), *btt(),
+				branch, turn, tick)
 		if self._planning:
 			last_plan = self._last_plan
 			if (turn, tick) in plan_ticks[last_plan]:

@@ -143,10 +143,11 @@ class EntityStatAccessor(object):
 				self.engine.tick = tick
 			elif self.tick is not None:
 				self.engine.tick = self.tick
-			res = self.entity[self.stat]
-			self.engine.branch = branc
-			self.engine.turn = trn
-			self.engine.tick = tck
+			if hasattr(self.entity, 'stat'):
+				res = self.entity.stat[self.stat]
+			else:
+				res = self.entity[self.stat]
+			self.engine._set_btt(branc, trn, tck)
 		for munger in self.mungers:
 			res = munger(res)
 		return res

@@ -29,8 +29,11 @@ from blinker import Signal
 from .allegedb import ORM as gORM
 from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
 						DeltaType, world_locked)
-from .util import sort_set, EntityStatAccessor, AbstractEngine, final_rule
+from .util import sort_set, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
+from .query import (Query, make_side_sel, StatusAlias, ComparisonQuery,
+					CompoundQuery, QueryResultMidTurn, QueryResult,
+					QueryResultEndTurn, CombinedQueryResult)
 from . import exc
 
 
@@ -230,7 +233,6 @@ class Engine(AbstractEngine, gORM):
 					connect_string: str = None,
 					connect_args: dict = None,
 					schema_cls: Type[AbstractSchema] = NullSchema,
-					alchemy=False,
 					flush_interval=1,
 					keyframe_interval=10,
 					commit_interval: int = None,
@@ -255,19 +257,12 @@ class Engine(AbstractEngine, gORM):
 		returning a boolean for whether to permit a rule to run
 		:arg action: module containing action functions, taking a LiSE entity and
 		mutating it (and possibly the rest of the world)
-		:arg connect_string: a rfc1738 URI for a database to connect to;
-		if absent, we'll use a SQLite database in the prefix directory.
-		With ``alchemy=False`` we can only open SQLite databases,
-		in which case ``connect_string`` is just a path to the database--
-		unless it's ``":memory:"``, which is an in-memory database that
-		won't be saved
+		:arg connect_string: a rfc1738 URI for a database to connect to
 		:arg connect_args: dictionary of keyword arguments for the
 		database connection
 		:arg schema: a Schema class that determines which changes to allow to
 		the world; used when a player should not be able to change just anything.
 		Defaults to `NullSchema`
-		:arg alchemy: whether to use SQLAlchemy to connect to the
-		database. If False, LiSE can only use SQLite
 		:arg flush_interval: LiSE will put pending changes into the database
 		transaction every ``flush_interval`` turns. If ``None``), only flush
 		on commit. Default ``1``.
@@ -351,15 +346,11 @@ class Engine(AbstractEngine, gORM):
 			if clear and os.path.exists(self._action_file):
 				os.remove(self._action_file)
 		self.schema = schema_cls(self)
-		if connect_string and not alchemy:
+		if connect_string:
 			connect_string = connect_string.split('sqlite:///')[-1]
 		super().__init__(connect_string or os.path.join(prefix, 'world.db'),
-							sqlfilename=os.path.join(
-								os.path.dirname(os.path.abspath(__file__)),
-								'sqlite.json'),
 							clear=clear,
 							connect_args=connect_args,
-							alchemy=alchemy,
 							cache_arranger=cache_arranger)
 		self._things_cache.setdb = self.query.set_thing_loc
 		self._universal_cache.setdb = self.query.universal_set
@@ -1402,33 +1393,6 @@ class Engine(AbstractEngine, gORM):
 		self._things_cache.store(character, node, branch, turn, tick, loc)
 		self.query.set_thing_loc(character, node, branch, turn, tick, loc)
 
-	def alias(self, v: Any, stat: Hashable = 'dummy') -> EntityStatAccessor:
-		"""Return a pointer to a value for use in historical queries.
-
-		It will behave much as if you assigned the value to some entity
-		and then used its ``historical`` method to get a reference to
-		the set of its past values, which happens to contain only the
-		value you've provided here, ``v``.
-
-		:arg v: the value to represent
-		:arg stat: what name to pretend its stat has; usually irrelevant
-
-		"""
-		from .util import EntityStatAccessor
-		r = DummyEntity(self)
-		r[stat] = v
-		return EntityStatAccessor(r, stat, engine=self)
-
-	def _entityfy(self,
-					v: Any,
-					stat: Hashable = 'dummy') -> EntityStatAccessor:
-		from .query import Query
-		if (isinstance(v, self.thing_cls) or isinstance(v, self.place_cls)
-			or isinstance(v, self.portal_cls) or isinstance(v, Query)
-			or isinstance(v, EntityStatAccessor)):
-			return v
-		return self.alias(v, stat)
-
 	def _snap_keyframe_de_novo_graph(self,
 										graph: Hashable,
 										branch: str,
@@ -1465,8 +1429,14 @@ class Engine(AbstractEngine, gORM):
 		else:
 			kfs[turn][tick] = newkf
 
-	def turns_when(self, qry):
-		"""Yield the turns in this branch when the query held true
+	def turns_when(self,
+					qry: Query,
+					mid_turn=False) -> Union[QueryResult, set]:
+		"""Return the turns when the query held true
+
+		Only the state of the world at the end of the turn is considered.
+		To include turns where the query held true at some tick, but
+		became false, set ``mid_turn=True``
 
 		:arg qry: a Query, likely constructed by comparing the result
 				  of a call to an entity's ``historical`` method with
@@ -1474,11 +1444,70 @@ class Engine(AbstractEngine, gORM):
 				  ``historical(..)``
 
 		"""
-		# yeah, it's just a loop over the query's method...I'm planning
-		# on moving some iter_turns logic in here when I figure out what
-		# of it is truly independent of any given type of query
-		for branch, turn in qry.iter_turns():
-			yield turn
+		unpack = self.unpack
+		end = self._branch_end_plan[self.branch] + 1
+
+		def unpack_data_mid(data):
+			return [((turn_from, tick_from), (turn_to, tick_to), unpack(v))
+					for (turn_from, tick_from, turn_to, tick_to, v) in data]
+
+		def unpack_data_end(data):
+			return [(turn_from, turn_to, unpack(v))
+					for (turn_from, _, turn_to, _, v) in data]
+
+		if not isinstance(qry, ComparisonQuery):
+			if not isinstance(qry, CompoundQuery):
+				raise TypeError("Unsupported query type: " + repr(type(qry)))
+			return CombinedQueryResult(
+				self.turns_when(qry.leftside, mid_turn),
+				self.turns_when(qry.rightside, mid_turn), qry.oper)
+		self.query.flush()
+		branches = list({branch for branch, _, _ in self._iter_parent_btt()})
+		left = qry.leftside
+		right = qry.rightside
+		if isinstance(left, StatusAlias) and isinstance(right, StatusAlias):
+			left_sel = make_side_sel(left.entity, left.stat, branches,
+										self.pack, mid_turn)
+			right_sel = make_side_sel(right.entity, right.stat, branches,
+										self.pack, mid_turn)
+			left_data = self.query.execute(left_sel)
+			right_data = self.query.execute(right_sel)
+			if mid_turn:
+				return QueryResultMidTurn(unpack_data_mid(left_data),
+											unpack_data_mid(right_data),
+											qry.oper, end)
+			else:
+				return QueryResultEndTurn(unpack_data_end(left_data),
+											unpack_data_end(right_data),
+											qry.oper, end)
+		elif isinstance(left, StatusAlias):
+			left_sel = make_side_sel(left.entity, left.stat, branches,
+										self.pack, mid_turn)
+			left_data = self.query.execute(left_sel)
+			if mid_turn:
+				return QueryResultMidTurn(unpack_data_mid(left_data),
+											[(0, 0, None, None, right)],
+											qry.oper, end)
+			else:
+				return QueryResultEndTurn(unpack_data_end(left_data),
+											[(0, None, right)], qry.oper, end)
+		elif isinstance(right, StatusAlias):
+			right_sel = make_side_sel(right.entity, right.stat, branches,
+										self.pack, mid_turn)
+			right_data = self.query.execute(right_sel)
+			if mid_turn:
+				return QueryResultMidTurn([(0, 0, None, None, left)],
+											unpack_data_mid(right_data),
+											qry.oper, end)
+			else:
+				return QueryResultEndTurn([(0, None, left)],
+											unpack_data_end(right_data),
+											qry.oper, end)
+		else:
+			if qry.oper(left, right):
+				return set(range(0, self.turn))
+			else:
+				return set()
 
 	def _node_contents(self, character: Hashable, node: Hashable) -> Set:
 		return self._node_contents_cache.retrieve(character, node,

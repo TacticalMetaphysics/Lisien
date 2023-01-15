@@ -15,7 +15,8 @@
 import re
 from functools import reduce
 from collections import defaultdict
-from LiSE.engine import Engine
+from ..engine import Engine
+from ..query import windows_intersection
 import pytest
 import os
 import shutil
@@ -53,17 +54,17 @@ def roommate_collisions(college24_premade):
 		student = chara
 		other_student = engine.character['dorm{}room{}student{}'.format(
 			dorm, room, other_student)]
-
-		same_loc_turns = list(
-			engine.turns_when(
-				student.unit.only.historical('location') ==
-				other_student.unit.only.historical('location')))
+		cond = student.unit.only.historical(
+			'location') == other_student.unit.only.historical('location')
+		same_loc_turns = {turn for (branch, turn) in cond._iter_times()}
 		assert same_loc_turns, "{} and {} don't seem to share a room".format(
 			student.name, other_student.name)
 		assert len(
 			same_loc_turns
 		) >= 6, "{} and {} did not share their room for at least 6 turns".format(
 			student.name, other_student.name)
+
+		assert same_loc_turns == engine.turns_when(cond)
 
 		done.add(student.name)
 		done.add(other_student.name)
@@ -88,9 +89,9 @@ def sober_collisions(college24_premade):
 
 	def sameClasstime(stu0, stu1):
 		assert list(
-			engine.turns_when(
-				stu0.unit.only.historical('location') == stu1.unit.only.
-				historical('location') == engine.alias('classroom'))
+			engine.turns_when((stu0.unit.only.historical(
+				'location') == stu1.unit.only.historical('location')) & (
+					stu1.unit.only.historical('location') == 'classroom'))
 		), """{stu0} seems not to have been in the classroom 
 				at the same time as {stu1}.
 				{stu0} was there at turns {turns0}
@@ -99,12 +100,10 @@ def sober_collisions(college24_premade):
 			stu1=stu1.name,
 			turns0=list(
 				engine.turns_when(
-					stu0.unit.only.historical('location') == engine.alias(
-						'classroom'))),
+					stu0.unit.only.historical('location') == 'classroom')),
 			turns1=list(
 				engine.turns_when(
-					stu1.unit.only.historical('location') == engine.alias(
-						'classroom'))))
+					stu1.unit.only.historical('location') == 'classroom')))
 		return stu1
 
 	reduce(sameClasstime, students)
@@ -134,8 +133,8 @@ def noncollision(college24_premade):
 						assert not list(
 							engine.turns_when(
 								stu0.unit.only.historical('location') ==
-								stu1.unit.only.historical('location') ==
-								engine.alias('dorm{}room{}'.format(d, r)))
+								stu1.unit.only.historical(
+									'location') == 'dorm{}room{}'.format(d, r))
 						), "{} seems to share a room with {}".format(
 							stu0.name, stu1.name)
 				common = 'common{}'.format(d)
@@ -146,10 +145,292 @@ def noncollision(college24_premade):
 								engine.turns_when(
 									stu0.unit.only.historical('location') ==
 									stu1.unit.only.historical(
-										'location') == engine.alias(common))
+										'location') == common)
 							), "{} seems to have been in the same common room  as {}".format(
 								stu0.name, stu1.name)
 
 
 def test_noncollision_premade(college24_premade):
 	noncollision(college24_premade)
+
+
+def test_windows_intersection():
+	assert windows_intersection([(2, None), (0, 1)]) == []
+	assert windows_intersection([(1, 2), (0, 1)]) == [(1, 1)]
+
+
+def test_graph_val_select_eq(engy):
+	assert engy.turn == 0
+	me = engy.new_character('me')
+	me.stat['foo'] = 'bar'
+	me.stat['qux'] = 'bas'
+	engy.next_turn()
+	assert engy.turn == 1
+	me.stat['foo'] = ''
+	me.stat['foo'] = 'bas'
+	me.stat['qux'] = 'bar'
+	engy.next_turn()
+	assert engy.turn == 2
+	me.stat['qux'] = 'bas'
+	engy.next_turn()
+	assert engy.turn == 3
+	me.stat['qux'] = 'bar'
+	engy.next_turn()
+	assert engy.turn == 4
+	engy.branch = 'leaf'
+	assert engy.turn == 4
+	engy.next_turn()
+	assert engy.turn == 5
+	me.stat['foo'] = 'bar'
+	engy.next_turn()
+	assert engy.turn == 6
+	me.stat['foo'] = 'bas'
+	me.stat['qux'] = 'bas'
+	engy.next_turn()
+	assert engy.turn == 7
+	foo_alias = me.historical('foo')
+	qux_alias = me.historical('qux')
+	qry = foo_alias == qux_alias
+	turn_end_result = engy.turns_when(qry)
+	assert 5 in turn_end_result
+	assert 3 not in turn_end_result
+	assert turn_end_result == set(turn_end_result) == {2, 5, 6, 7}
+	assert engy.turns_when(qry)[-1] == 7
+	assert engy.turns_when(qry)[0] == 2
+	mid_turn_result = engy.turns_when(qry, mid_turn=True)
+	assert 3 in mid_turn_result
+	assert 4 not in mid_turn_result
+	assert mid_turn_result == set(mid_turn_result) == {1, 2, 3, 5, 6, 7}
+	assert list(engy.turns_when(qry)) == list(turn_end_result) == [2, 5, 6, 7]
+	assert list(reversed(engy.turns_when(qry))) == list(
+		reversed(turn_end_result)) == [7, 6, 5, 2]
+	assert engy.turns_when(qry, mid_turn=True)[-1] == 7
+	assert engy.turns_when(qry, mid_turn=True)[0] == 1
+
+
+def test_graph_nodeval_select_eq(engy):
+	assert engy.turn == 0
+	me = engy.new_character('me')
+	me.stat['foo'] = 'bar'
+	qux = me.new_place('qux')
+	qux['quux'] = 'bas'
+	engy.next_turn()
+	assert engy.turn == 1
+	me.stat['foo'] = ''
+	me.stat['foo'] = 'bas'
+	qux['quux'] = 'bar'
+	engy.next_turn()
+	assert engy.turn == 2
+	qux['quux'] = 'bas'
+	engy.next_turn()
+	assert engy.turn == 3
+	qux['quux'] = 'bar'
+	engy.next_turn()
+	assert engy.turn == 4
+	engy.branch = 'leaf'
+	assert engy.turn == 4
+	engy.next_turn()
+	assert engy.turn == 5
+	me.stat['foo'] = 'bar'
+	engy.next_turn()
+	assert engy.turn == 6
+	me.stat['foo'] = 'bas'
+	qux['quux'] = 'bas'
+	engy.next_turn()
+	assert engy.turn == 7
+	foo_alias = me.historical('foo')
+	qux_alias = qux.historical('quux')
+	qry = foo_alias == qux_alias
+	turn_end_result = engy.turns_when(qry)
+	assert 5 in turn_end_result
+	assert 3 not in turn_end_result
+	assert turn_end_result == set(turn_end_result) == {2, 5, 6, 7}
+	assert engy.turns_when(qry)[-1] == 7
+	assert engy.turns_when(qry)[0] == 2
+	mid_turn_result = engy.turns_when(qry, mid_turn=True)
+	assert 3 in mid_turn_result
+	assert 4 not in mid_turn_result
+	assert mid_turn_result == set(mid_turn_result) == {1, 2, 3, 5, 6, 7}
+	assert list(engy.turns_when(qry)) == list(turn_end_result) == [2, 5, 6, 7]
+	assert list(reversed(engy.turns_when(qry))) == list(
+		reversed(turn_end_result)) == [7, 6, 5, 2]
+	assert engy.turns_when(qry, mid_turn=True)[-1] == 7
+	assert engy.turns_when(qry, mid_turn=True)[0] == 1
+
+
+def test_location_qry(engy):
+	phys = engy.new_character("physical")
+	place1 = phys.new_place(1)
+	place2 = phys.new_place(2)
+	place3 = phys.new_place(3)
+	thing1 = place3.new_thing('t1')
+	thing2 = place1.new_thing('t2')
+	engy.next_turn()
+	thing1.location = place2
+	thing2.location = place2
+	thing2.location = place1
+	engy.next_turn()
+	thing2.location = place2
+	qry = thing1.historical('location') == thing2.historical('location')
+	res0 = engy.turns_when(qry)
+	assert 2 in res0
+	assert 1 not in res0
+	assert list(res0) == [2]
+	res1 = engy.turns_when(qry, mid_turn=True)
+	assert 0 not in res1
+	assert 1 in res1
+	assert 2 in res1
+	assert list(res1) == [1, 2]
+
+
+def test_place_val_qry(engy):
+	phys = engy.new_character("physical")
+	place1 = phys.new_place(1)
+	place2 = phys.new_place(2)
+	assert engy.turn == 0
+	place1['flavor'] = 'delicious'
+	place2['flavor'] = 'disgusting'
+	engy.next_turn()
+	assert engy.turn == 1
+	place2['flavor'] = 'delicious'
+	engy.next_turn()
+	assert engy.turn == 2
+	place1['flavor'] = 'disgusting'
+	engy.next_turn()
+	assert engy.turn == 3
+	place2['flavor'] = 'disgusting'
+	qry = place1.historical('flavor') == place2.historical('flavor')
+	res = engy.turns_when(qry)
+	assert 1 in res
+	assert 3 in res
+	assert 0 not in res
+	assert 2 not in res
+	assert set(res) == {1, 3}
+
+
+@pytest.mark.slow
+def test_stress_graph_val_select_eq(engy):
+	import random
+	from time import monotonic
+	me = engy.new_character('me')
+	me.stat['qux'] = random.choice(['foo', 'bar', 'bas'])
+	me.stat['quux'] = random.choice(['foo', 'bar', 'bas'])
+	for i in range(10000):
+		engy.next_turn()
+		me.stat['qux'] = random.choice(['foo', 'bar', 'bas'])
+		me.stat['quux'] = random.choice(['foo', 'bar', 'bas'])
+	qry = me.historical('qux') == me.historical('quux')
+	start_ts = monotonic()
+	res = engy.turns_when(qry)
+	assert monotonic() - start_ts < 1
+	start_ts = monotonic()
+	rez = list(res)
+	print(len(rez))
+	assert monotonic() - start_ts < 1
+
+
+def test_graph_val_select_lt_gt(engy):
+	me = engy.new_character('me')
+	me.stat['foo'] = 10
+	me.stat['bar'] = 1
+	engy.next_turn()
+	me.stat['foo'] = 2
+	me.stat['bar'] = 8
+	engy.next_turn()
+	me.stat['foo'] = 3
+	engy.next_turn()
+	me.stat['foo'] = 9
+	engy.next_turn()
+	engy.branch = 'leaf'
+	me.stat['bar'] = 5
+	engy.next_turn()
+	me.stat['bar'] = 2
+	engy.next_turn()
+	me.stat['bar'] = 10
+	engy.next_turn()
+	me.stat['bar'] = 1
+	engy.next_turn()
+	me.stat['bar'] = 10
+	foo_hist = me.historical('foo')
+	bar_hist = me.historical('bar')
+	res = engy.turns_when(foo_hist < bar_hist)
+	assert set(res) == {1, 2, 6, 8}
+	assert str({1, 2, 6, 8}) in str(engy.turns_when(foo_hist < bar_hist))
+	res = engy.turns_when(foo_hist > bar_hist)
+	assert set(res) == {0, 3, 4, 5, 7}
+
+
+@pytest.mark.slow
+def test_stress_graph_val_select_lt(engy):
+	import random
+	from time import monotonic
+	me = engy.new_character('me')
+	me.stat['foo'] = random.randrange(0, 10)
+	me.stat['bar'] = random.randrange(0, 10)
+	for i in range(10000):
+		engy.next_turn()
+		me.stat['foo'] = random.randrange(0, 10)
+		me.stat['bar'] = random.randrange(0, 10)
+	qry = me.historical('foo') < me.historical('bar')
+	start_ts = monotonic()
+	res = engy.turns_when(qry)
+	assert monotonic() - start_ts < 1
+	start_ts = monotonic()
+	rez = list(res)
+	print(len(rez))
+	assert monotonic() - start_ts < 1
+
+
+def test_graph_val_compound(engy):
+	you = engy.new_character('you')
+	assert engy.turn == 0
+	me = engy.new_character('me')
+	me.stat['foo'] = 'bar'
+	me.stat['qux'] = 'bas'
+	you.stat['foo'] = 10
+	you.stat['bar'] = 1
+	engy.next_turn()
+	assert engy.turn == 1
+	me.stat['foo'] = ''
+	me.stat['foo'] = 'bas'
+	me.stat['qux'] = 'bar'
+	you.stat['foo'] = 2
+	you.stat['bar'] = 8
+	engy.next_turn()
+	assert engy.turn == 2
+	me.stat['qux'] = 'bas'
+	you.stat['foo'] = 3
+	engy.next_turn()
+	assert engy.turn == 3
+	me.stat['qux'] = 'bar'
+	you.stat['foo'] = 9
+	engy.next_turn()
+	assert engy.turn == 4
+	engy.branch = 'leaf'
+	assert engy.turn == 4
+	you.stat['bar'] = 5
+	engy.next_turn()
+	assert engy.turn == 5
+	me.stat['foo'] = 'bar'
+	you.stat['bar'] = 2
+	engy.next_turn()
+	assert engy.turn == 6
+	me.stat['foo'] = 'bas'
+	me.stat['qux'] = 'bas'
+	you.stat['bar'] = 10
+	engy.next_turn()
+	you.stat['bar'] = 1
+	assert engy.turn == 7
+	engy.next_turn()
+	assert engy.turn == 8
+	you.stat['bar'] = 10
+	eq_qry = me.historical('foo') == me.historical('qux')
+	correct_eq = {2, 5, 6, 7, 8}
+	assert set(engy.turns_when(eq_qry)) == correct_eq
+	lt_qry = you.historical('foo') < you.historical('bar')
+	correct_lt = {1, 2, 6, 8}
+	assert set(engy.turns_when(lt_qry)) == correct_lt
+	assert engy.turns_when(lt_qry & eq_qry) == correct_eq & correct_lt
+	assert engy.turns_when(lt_qry | eq_qry) == correct_eq | correct_lt
+	assert engy.turns_when(lt_qry - eq_qry) == correct_lt - correct_eq
+	assert engy.turns_when(eq_qry - lt_qry) == correct_eq - correct_lt
