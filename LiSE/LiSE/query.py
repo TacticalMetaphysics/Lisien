@@ -370,7 +370,7 @@ class QueryResult(Sequence, Set):
 		raise NotImplementedError("_last")
 
 	def __str__(self):
-		return f"<{self.__class__.__name__} containing {set(self)}>"
+		return f"<{self.__class__.__name__} containing {list(self)}>"
 
 	def __repr__(self):
 		return (f"<{self.__class__.__name__}({self._past_l}, {self._past_r},"
