@@ -40,6 +40,7 @@ from queue import Queue
 from threading import Thread
 from typing import Any, List, Callable, Tuple
 
+import numpy as np
 from sqlalchemy import select, and_, Table
 from sqlalchemy.sql.functions import func
 from .alchemy import meta, gather_sql
@@ -378,38 +379,7 @@ class QueryResult(Sequence, Set):
 
 
 class QueryResultEndTurn(QueryResult):
-
-	def _slow_iter(self):
-		if self._list is not None:
-			yield from self._list
-			return
-		if not ((self._past_l or self._future_l) and
-				(self._past_r or self._future_r)):
-			self._list = []
-			return
-		_list = []
-		oper = self._oper
-		add = self._trues.add
-		append = _list.append
-		for turn_from, turn_to, l_v, r_v in _yield_intersections(
-			chain(iter(self._past_l), reversed(self._future_l)),
-			chain(iter(self._past_r), reversed(self._future_r)),
-			until=self._end_of_time):
-			if oper(l_v, r_v):
-				for turn in range(turn_from, turn_to):
-					add(turn)
-					append(turn)
-					yield turn
-		self._list = _list
-		del self._falses
-
 	def _generate(self):
-		try:
-			import numpy as np
-		except ImportError:
-			for _ in self._slow_iter():
-				pass
-			return
 		spans = []
 		left = []
 		right = []
@@ -564,45 +534,7 @@ def _yield_intersections(iter_l, iter_r, until=None):
 
 class QueryResultMidTurn(QueryResult):
 
-	def _slow_iter(self):
-		if self._list is not None:
-			yield from self._list
-			return
-		if not ((self._past_l or self._future_l) and
-				(self._past_r or self._future_r)):
-			return
-		add = self._trues.add
-		oper = self._oper
-		_list = []
-		append = _list.append
-
-		for time_from, time_to, l_v, r_v in _yield_intersections(
-			chain(iter(self._past_l), reversed(self._future_l)),
-			chain(iter(self._past_r), reversed(self._future_r)),
-			until=(self._end_of_time, 0)):
-			if oper(l_v, r_v):
-				(turn_from, tick_from) = time_from
-				(turn_to, tick_to) = time_to
-				if turn_from == turn_to:
-					if tick_to > tick_from:
-						add(turn_from)
-						yield turn_from
-				else:
-					for turn in range(turn_from,
-										turn_to + (1 if tick_to else 0)):
-						add(turn)
-						append(turn)
-						yield turn
-		self._list = _list
-		del self._falses
-
 	def _generate(self):
-		try:
-			import numpy as np
-		except ImportError:
-			for _ in self._slow_iter():
-				pass
-			return
 		spans = []
 		left = []
 		right = []
