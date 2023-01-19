@@ -315,7 +315,7 @@ class GraphBoard(RelativeLayout):
 			sel = self.app.selection
 			if isinstance(sel, Widget):
 				sel.dispatch('on_touch_up', touch)
-			elif isinstance(sel, Stack):
+			elif isinstance(sel, Stack) and touch.pos == sel.center:
 				if hasattr(sel.proxy, 'location'):
 					for candidate in self.stack_plane.iter_collided_keys(
 						*touch.pos):
