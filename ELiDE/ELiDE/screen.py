@@ -25,6 +25,7 @@ from kivy.app import App
 from kivy.clock import mainthread
 from kivy.factory import Factory
 from kivy.lang import Builder
+from kivy.uix.slider import Slider
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
@@ -68,9 +69,6 @@ class StatListPanel(BoxLayout):
 	engine = ObjectProperty()
 	proxy = ObjectProperty()
 	toggle_stat_cfg = ObjectProperty()
-	toggle_gridview = ObjectProperty()
-	toggle_calendar = ObjectProperty()
-	toggle_timestream = ObjectProperty()
 
 	def on_proxy(self, *args):
 		if hasattr(self.proxy, 'name'):
@@ -475,6 +473,7 @@ class CharMenuContainer(BoxLayout):
 	dummyplace = ObjectProperty()
 	dummything = ObjectProperty()
 	portaladdbut = ObjectProperty()
+	toggle_gridview = ObjectProperty()
 
 	def __init__(self, **kwargs):
 		super(CharMenuContainer, self).__init__(**kwargs)
@@ -486,6 +485,9 @@ class CharMenuContainer(BoxLayout):
 		self.charmenu.bind(dummything=self.setter('dummything'))
 		self.portaladdbut = self.charmenu.portaladdbut
 		self.charmenu.bind(portaladdbut=self.setter('portaladdbut'))
+		if self.toggle_gridview:
+			self.charmenu = self.toggle_gridview
+		self.bind(toggle_gridview=self.charmenu.setter('toggle_gridview'))
 		self.stepper = RuleStepper(size_hint_y=0.9)
 		self.button = Button(on_release=self._toggle,
 								text='Rule\nstepper',
@@ -523,11 +525,14 @@ class CharMenuContainer(BoxLayout):
 			self.add_widget(self.button)
 
 
+class TimeScroll(Slider):
+	pass
+
+
 Builder.load_string("""
 #: import resource_find kivy.resources.resource_find
 <StatListPanel>:
 	orientation: 'vertical'
-	cfgstatbut: cfgstatbut
 	statlist: statlist
 	id: statpanel
 	proxy: app.selected_proxy
@@ -542,20 +547,10 @@ Builder.load_string("""
 		update_mode: 'present'
 		disabled: app.edit_locked
 	Button:
-		id: gridviewbut
-		size_hint_y: 0.05
-		text: 'Toggle grid'
-		on_release: root.toggle_gridview()
-	Button:
 		id: cfgstatbut
 		size_hint_y: 0.05
 		text: root.button_text
 		on_release: root.toggle_stat_cfg()
-	Button:
-		id: timestreambut
-		size_hint_y: 0.05
-		text: 'Timestream'
-		on_release: root.toggle_timestream()
 <SimulateButton>:
 	graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
 	graphics_bot: self.y + self.font_size + 3
@@ -654,10 +649,14 @@ Builder.load_string("""
 	statpanel: statpanel
 	timepanel: timepanel
 	dialoglayout: dialoglayout
+	TimeScroll:
+		id: timescroll
+		pos_hint: {'bot': 0}
+		size_hint: (1, 0.1)
 	Widget:
 		id: mainview
 		x: statpanel.right
-		y: 0
+		y: timescroll.top
 		size_hint: (None, None)
 		width: charmenu.x - statpanel.right
 		height: root.height
@@ -665,24 +664,26 @@ Builder.load_string("""
 		id: statpanel
 		engine: app.engine
 		toggle_stat_cfg: app.statcfg.toggle
-		toggle_calendar: root.toggle_calendar
-		toggle_gridview: root.toggle_gridview
-		pos_hint: {'left': 0, 'top': 1}
+		x: 0
+		y: timepanel.top
 		size_hint: (0.25, 0.8)
 		selection_name: app.selected_proxy_name
 		toggle_timestream: root.toggle_timestream
 	TimePanel:
 		id: timepanel
 		screen: root
-		pos_hint: {'bot': 0}
+		x: 0
+		y: timescroll.top
 		size_hint: (0.25, 0.2)
 		disable_one_turn: root.tmp_block
 	CharMenuContainer:
 		id: charmenu
+		toggle_calendar: root.toggle_calendar
+		toggle_gridview: root.toggle_gridview
 		orientation: 'vertical'
 		screen: root
 		pos_hint: {'right': 1, 'top': 1}
-		size_hint: (0.1, 1)
+		size_hint: (0.2, 0.9)
 	DialogLayout:
 		id: dialoglayout
 		engine: app.engine
