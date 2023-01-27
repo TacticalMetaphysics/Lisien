@@ -364,13 +364,6 @@ class GraphBoard(RelativeLayout):
 					unsel_graph_arrow()
 				self.app.selection = candidate
 				self.keep_selection = True
-				if hasattr(candidate, 'parent'):
-					# Causes Pawns to reposition within their parent,
-					# and Spots to save their positions.
-					# Better way to do this?
-					parent = candidate.parent
-					parent.remove_widget(candidate)
-					parent.add_widget(candidate)
 				break
 		if not self.keep_selection:
 			Logger.debug("Board: deselecting " + repr(self.app.selection))
