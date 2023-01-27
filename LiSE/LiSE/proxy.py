@@ -2034,6 +2034,8 @@ class EngineProxy(AbstractEngine):
 		self.send_bytes(self.pack({'command': 'get_btt'}))
 		received = self.unpack(self.recv_bytes())
 		self._branch, self._turn, self._tick = received[-1]
+		self.send_bytes(self.pack({'command': 'branches'}))
+		self._branches = self.unpack(self.recv_bytes())[-1]
 		self.method.load()
 		self.action.load()
 		self.prereq.load()
@@ -2236,6 +2238,11 @@ class EngineProxy(AbstractEngine):
 		self._branch = branch
 		self._turn = turn
 		self._tick = tick
+		parent, turn_from, tick_from, turn_to, tick_to = self._branches.get(
+			branch, (None, turn, tick, turn, tick))
+		if (turn, tick) > (turn_to, tick_to):
+			self._branches[
+				branch] = parent, turn_from, tick_from, turn_to, tick_to
 		self.time.send(self, branch=branch, turn=turn, tick=tick)
 
 	def is_parent_of(self, parent, child):
