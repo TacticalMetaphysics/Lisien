@@ -179,7 +179,9 @@ class GridBoard(Widget):
 				elif node in pawnmap:
 					pawn = pawnmap[node]
 					if 'location' in stats:
-						pawn.loc_name = stats['location']
+						loc = self.spot[stats['location']]
+						pawn['x'], pawn['y'] = loc['x'], loc['y']
+						self.pawn_plane.data[self.pawn_plane._keys[node]] = pawn
 					if '_image_paths' in stats:
 						pawn.paths = stats[
 							'_image_paths'] or GridPawn.default_image_paths

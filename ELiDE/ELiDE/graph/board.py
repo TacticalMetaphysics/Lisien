@@ -847,7 +847,9 @@ class GraphBoard(RelativeLayout):
 			elif node in self.pawn:
 				pawn = self.pawn[node]
 				if 'location' in stats:
-					pawn.loc_name = stats['location']
+					loc = self.spot[stats['location']]
+					pawn.x = loc.right
+					pawn.y = loc.top
 				if '_image_paths' in stats:
 					pawn.paths = stats[
 						'_image_paths'] or pawn.default_image_paths
