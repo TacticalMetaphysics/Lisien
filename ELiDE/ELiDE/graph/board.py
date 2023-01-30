@@ -853,13 +853,11 @@ class GraphBoard(RelativeLayout):
 						'_image_paths'] or spot.default_image_paths
 			elif node in self.pawn:
 				pawn = self.pawn[node]
-				pawn.unfinalize()
 				if 'location' in stats:
 					pawn.loc_name = stats['location']
 				if '_image_paths' in stats:
 					pawn.paths = stats[
 						'_image_paths'] or pawn.default_image_paths
-				pawn.finalize(initial=False)
 			else:
 				Logger.warning(
 					"Board: diff tried to change stats of node {} "
