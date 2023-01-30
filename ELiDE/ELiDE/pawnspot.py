@@ -529,15 +529,15 @@ class Stack:
 
 	@property
 	def pos(self):
-		stack_plane = self.board.stack_plane
+		stack_plane = self._stack_plane
 		idx = stack_plane._stack_index[self.proxy['name']]
-		return float(stack_plane._left_xs[idx]), float(
+		return int(stack_plane._left_xs[idx]), int(
 			stack_plane._bot_ys[idx])
 
 	@pos.setter
 	def pos(self, xy):
 		x, y = xy
-		stack_plane = self.board.stack_plane
+		stack_plane = self._stack_plane
 		stack_plane.unbind_uid('data', stack_plane._redraw_bind_uid)
 		name = self.proxy['name']
 		insts = stack_plane._instructions[name]
@@ -567,10 +567,14 @@ class Stack:
 		stack_plane.canvas.ask_update()
 
 	@property
+	def _stack_plane(self):
+		return self.board.stack_plane
+
+	@property
 	def x(self):
-		stack_plane = self.board.stack_plane
+		stack_plane = self._stack_plane
 		idx = stack_plane._stack_index[self.proxy['name']]
-		return float(stack_plane._left_xs[idx])
+		return int(stack_plane._left_xs[idx])
 
 	@x.setter
 	def x(self, x):
@@ -578,9 +582,9 @@ class Stack:
 
 	@property
 	def y(self):
-		stack_plane = self.board.stack_plane
+		stack_plane = self._stack_plane
 		idx = stack_plane._stack_index[self.proxy['name']]
-		return float(stack_plane._bot_ys[idx])
+		return int(stack_plane._bot_ys[idx])
 
 	@y.setter
 	def y(self, y):
