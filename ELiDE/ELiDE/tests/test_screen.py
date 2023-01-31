@@ -94,6 +94,7 @@ class ScreenTest(ELiDEAppTest):
 		motion.touch_up()
 		idle_until(lambda: int(turnfield.hint_text) == 3, 400,
 		           "Time didn't advance fast enough")
+		playbut.state = 'normal'
 
 	def test_update(self):
 		def almost(a, b):
