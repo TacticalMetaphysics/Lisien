@@ -129,7 +129,9 @@ class GridBoard(Widget):
 						size=self.spot_plane.setter('size'))
 			self.add_widget(self.spot_plane)
 			self.add_widget(self.pawn_plane)
-		spot_data = list(map(self.make_spot, self.character.place.values()))
+		spot_data = list(map(self.make_spot, filter(
+			lambda spot: isinstance(spot["name"], tuple) and len(
+				spot["name"]) == 2, self.character.place.values())))
 		if not spot_data:
 			self.spot_plane.data = self.pawn_plane.data = []
 			return
