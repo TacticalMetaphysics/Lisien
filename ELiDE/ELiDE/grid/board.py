@@ -155,13 +155,13 @@ class GridBoard(Widget):
 			self.selection_candidates.remove(spot)
 		for pwn in spot.children:
 			del self.pawn[pwn.name]
-		self.spot_plane.remove_datum(spot)
+		self.spot_plane.remove(name)
 
 	def rm_pawn(self, name):
 		pwn = self.pawn.pop(name)
 		if pwn in self.selection_candidates:
 			self.selection_candidates.remove(pwn)
-		self.pawn_plane.remove_datum(pwn)
+		self.pawn_plane.remove(name)
 
 	def update_from_delta(self, delta, *args):
 		pawnmap = self.pawn
@@ -211,7 +211,7 @@ class GridBoard(Widget):
 							loc = self.spot[stats['location']]
 							pawn.pos = loc.pos
 						except KeyError:
-							self.rm_pawn(stats['location'])
+							self.rm_pawn(node)
 					if '_image_paths' in stats:
 						pawn.paths = stats[
 							'_image_paths'] or self.pawn_cls.default_image_paths

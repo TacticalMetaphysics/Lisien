@@ -392,7 +392,7 @@ class MainScreen(Screen):
 		If you want to disable this, set ``engine.universal['block'] = True``
 
 		"""
-		if self.playbut.state == 'normal' or not hasattr(
+		if self.playbut is None or self.playbut.state == 'normal' or not hasattr(
 			self.app,
 			'engine') or self.app.engine is None or self.app.engine.closed:
 			return

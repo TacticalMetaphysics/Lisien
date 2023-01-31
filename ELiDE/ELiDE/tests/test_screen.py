@@ -96,6 +96,13 @@ class ScreenTest(ELiDEAppTest):
 		           "Time didn't advance fast enough")
 
 	def test_update(self):
+		def almost(a, b):
+			if isinstance(a, tuple) and isinstance(b, tuple):
+				for aa, bb in zip(a, b):
+					if not almost(aa, bb):
+						return False
+				return True
+			return abs(a-b) < 1
 		with Engine(self.prefix) as eng:
 			phys = eng.new_character('physical')
 			here = phys.new_place((0, 0))
@@ -105,7 +112,12 @@ class ScreenTest(ELiDEAppTest):
 
 			@this.rule(always=True)
 			def go(me):
-				me["location"] = (1, 1)
+				if me["location"] == (1, 1):
+					me["location"] = 9
+				elif me["location"] == 9:
+					me["location"] = (0, 0)
+				else:
+					me["location"] = (1, 1)
 		app = self.app
 		app.starting_dir = self.prefix
 		app.build()
@@ -126,17 +138,37 @@ class ScreenTest(ELiDEAppTest):
 		gridspot1 = gridboard.spot[1, 1]
 		graphpawn = graphboard.pawn[2]
 		gridpawn = gridboard.pawn[2]
-		idle_until(lambda: graphpawn.x == locspot0.right, 100,
-		           "Never positioned pawn to 0's right")
-		idle_until(lambda: graphpawn.y == locspot0.top, 100,
+		idle_until(lambda: almost(graphpawn.x, locspot0.right), 100,
+		           f"Never positioned pawn to 0's right (it's at {graphpawn.x}"
+		           f", not {locspot0.right}")
+		idle_until(lambda: almost(graphpawn.y, locspot0.top), 100,
 		           "Never positioned pawn to 0's top")
-		idle_until(lambda: gridpawn.pos == gridspot0.pos, 100,
+		idle_until(lambda: almost(gridpawn.pos, gridspot0.pos), 100,
 		           "Never positioned pawn to grid 0, 0")
 		app.mainscreen.next_turn()
 		assert app.engine.character['physical'].thing[2]['location'] == (1, 1)
-		idle_until(lambda: graphpawn.x == locspot1.right, 100,
-		           "Never positioned pawn to 1's right")
-		idle_until(lambda: graphpawn.y == locspot1.top, 100,
-		           "Never positioned pawn to 1's top")
-		idle_until(lambda: gridpawn.pos == gridspot1.pos, 100,
+		idle_until(lambda: almost(graphpawn.x, locspot1.right), 100,
+		           "Never positioned pawn to 1's right "
+		           f"(pawn is at {graphpawn.x} not {locspot1.right})")
+		idle_until(lambda: almost(graphpawn.y, locspot1.top), 100,
+		           "Never positioned pawn to 1's top "
+		           f"(it's at {graphpawn.y}, not {locspot1.top})")
+		idle_until(lambda: almost(gridpawn.pos, gridspot1.pos), 100,
 		           "Never positioned pawn to grid 1, 1")
+		locspot9 = graphboard.spot[9]
+		app.mainscreen.next_turn()
+		assert app.engine.character['physical'].thing[2]['location'] == 9
+		idle_until(lambda: 2 not in gridboard.pawn, 100,
+		           "pawn never removed from grid")
+		idle_until(lambda: almost(graphpawn.x, locspot9.right)
+					and almost(graphpawn.y, locspot9.top),
+		           100, "Never positioned pawn to 9's top-right")
+		app.mainscreen.next_turn()
+		assert app.engine.character['physical'].thing[2]['location'] == (0, 0)
+		idle_until(lambda: 2 in gridboard.pawn, 100,
+		           "pawn never returned to grid")
+		idle_until(lambda: almost(graphpawn.x, locspot0.right)
+		           and almost(graphpawn.y, locspot0.top),
+		           100, "Never returned to 0's top-right")
+		idle_until(lambda: almost(gridpawn.pos, gridspot0.pos),
+		           100, "Never returned to grid 0, 0")

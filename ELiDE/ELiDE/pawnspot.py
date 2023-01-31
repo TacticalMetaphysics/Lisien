@@ -125,6 +125,35 @@ class TextureStackPlane(Widget):
 		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
 		fbo.release()
 
+	def remove(self, name_or_idx):
+		def delarr(arr, i):
+			if i == 0:
+				return arr[1:]
+			elif i == len(arr) - 1:
+				return arr[:-1]
+			else:
+				return np.concatenate((arr[:i], arr[i+1:]))
+		if name_or_idx in self._keys:
+			idx = self._keys.index(name_or_idx)
+			name = name_or_idx
+		else:
+			idx = name_or_idx
+			name = self._keys[idx]
+		self.unbind_uid('data', self._redraw_bind_uid)
+		fbo = self._fbo
+		fbo.bind()
+		grp = self._instructions[name]["group"]
+		fbo.remove(grp)
+		del self._instructions[name]
+		del self._stack_index[name]
+		del self._keys[idx]
+		self._left_xs = delarr(self._left_xs, idx)
+		self._bot_ys = delarr(self._bot_ys, idx)
+		self._top_ys = delarr(self._top_ys, idx)
+		self._right_xs = delarr(self._right_xs, idx)
+		del self.data[idx]
+		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+
 	def redraw(self, *args):
 		if not hasattr(self, '_rectangle'):
 			self._trigger_redraw()
@@ -531,7 +560,7 @@ class Stack:
 	def pos(self):
 		stack_plane = self._stack_plane
 		idx = stack_plane._stack_index[self.proxy['name']]
-		return int(stack_plane._left_xs[idx]), int(
+		return float(stack_plane._left_xs[idx]), float(
 			stack_plane._bot_ys[idx])
 
 	@pos.setter
@@ -574,7 +603,7 @@ class Stack:
 	def x(self):
 		stack_plane = self._stack_plane
 		idx = stack_plane._stack_index[self.proxy['name']]
-		return int(stack_plane._left_xs[idx])
+		return float(stack_plane._left_xs[idx])
 
 	@x.setter
 	def x(self, x):
@@ -584,7 +613,7 @@ class Stack:
 	def y(self):
 		stack_plane = self._stack_plane
 		idx = stack_plane._stack_index[self.proxy['name']]
-		return int(stack_plane._bot_ys[idx])
+		return float(stack_plane._bot_ys[idx])
 
 	@y.setter
 	def y(self, y):
@@ -599,7 +628,7 @@ class Stack:
 		bot = stack_plane._bot_ys[idx]
 		right = stack_plane._right_xs[idx]
 		top = stack_plane._top_ys[idx]
-		return right - left, top - bot
+		return float(right - left), float(top - bot)
 
 	@size.setter
 	def size(self, wh):
@@ -628,7 +657,7 @@ class Stack:
 		idx = stack_plane._stack_index[name]
 		left = stack_plane._left_xs[idx]
 		right = stack_plane._right_xs[idx]
-		return right - left
+		return float(right - left)
 
 	@width.setter
 	def width(self, w):
@@ -641,7 +670,7 @@ class Stack:
 		idx = stack_plane._stack_index[name]
 		top = stack_plane._top_ys[idx]
 		bot = stack_plane._bot_ys[idx]
-		return top - bot
+		return float(top - bot)
 
 	@height.setter
 	def height(self, h):
@@ -658,7 +687,7 @@ class Stack:
 		t = stack_plane._top_ys[idx]
 		w = r - x
 		h = t - y
-		return x + w / 2, y + h / 2
+		return float(x + w / 2), float(y + h / 2)
 
 	@center.setter
 	def center(self, c):
@@ -681,7 +710,7 @@ class Stack:
 		x = stack_plane._left_xs[idx]
 		r = stack_plane._right_xs[idx]
 		w = r - x
-		return x + w / 2
+		return float(x + w / 2)
 
 	@center_x.setter
 	def center_x(self, cx):
@@ -701,7 +730,7 @@ class Stack:
 		y = stack_plane._bot_ys[idx]
 		t = stack_plane._top_ys[idx]
 		h = t - y
-		return y + h / 2
+		return float(y + h / 2)
 
 	@center_y.setter
 	def center_y(self, cy):
@@ -718,7 +747,7 @@ class Stack:
 		stack_plane = self.board.stack_plane
 		name = self.proxy['name']
 		idx = stack_plane._stack_index[name]
-		return stack_plane._top_ys[idx]
+		return float(stack_plane._top_ys[idx])
 
 	@top.setter
 	def top(self, t):
@@ -736,7 +765,7 @@ class Stack:
 		stack_plane = self.board.stack_plane
 		name = self.proxy['name']
 		idx = stack_plane._stack_index[name]
-		return stack_plane._right_xs[idx]
+		return float(stack_plane._right_xs[idx])
 
 	@right.setter
 	def right(self, r):

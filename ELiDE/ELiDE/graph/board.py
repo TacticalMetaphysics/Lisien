@@ -845,9 +845,9 @@ class GraphBoard(RelativeLayout):
 				x = stats.get('_x')
 				y = stats.get('_y')
 				if x is not None:
-					spot.x = x * self.width
+					spot.x = int(x * self.width)
 				if y is not None:
-					spot.y = y * self.height
+					spot.y = int(y * self.height)
 				if '_image_paths' in stats:
 					spot.paths = stats[
 						'_image_paths'] or spot.default_image_paths
@@ -855,8 +855,8 @@ class GraphBoard(RelativeLayout):
 				pawn = self.pawn[node]
 				if 'location' in stats:
 					loc = self.spot[stats['location']]
-					pawn.x = loc.right
-					pawn.y = loc.top
+					pawn.x = int(loc.right)
+					pawn.y = int(loc.top)
 				if '_image_paths' in stats:
 					pawn.paths = stats[
 						'_image_paths'] or pawn.default_image_paths
