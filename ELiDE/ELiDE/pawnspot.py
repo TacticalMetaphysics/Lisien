@@ -153,6 +153,7 @@ class TextureStackPlane(Widget):
 		self._right_xs = delarr(self._right_xs, idx)
 		del self.data[idx]
 		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+		fbo.release()
 
 	def redraw(self, *args):
 		if not hasattr(self, '_rectangle'):
