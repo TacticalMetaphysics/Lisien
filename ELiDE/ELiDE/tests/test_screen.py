@@ -98,10 +98,7 @@ class ScreenTest(ELiDEAppTest):
 	def test_update(self):
 		def almost(a, b):
 			if isinstance(a, tuple) and isinstance(b, tuple):
-				for aa, bb in zip(a, b):
-					if not almost(aa, bb):
-						return False
-				return True
+				return all(almost(aa, bb) for (aa, bb) in zip(a, b))
 			return abs(a-b) < 1
 		with Engine(self.prefix) as eng:
 			phys = eng.new_character('physical')
