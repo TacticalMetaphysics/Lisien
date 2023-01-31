@@ -12,7 +12,7 @@ from ELiDE.statcfg import StatScreen
 from ELiDE.graph.board import GraphBoard
 from ELiDE.grid.board import GridBoard
 from .util import ELiDEAppTest, ListenableDict, MockEngine, idle_until, \
- window_with_widget
+	window_with_widget
 
 
 class MockStore:
@@ -46,10 +46,10 @@ class ScreenTest(ELiDEAppTest):
 			gridboards={'physical': GridBoard(character=char)})
 		win = window_with_widget(screen)
 		idle_until(lambda: 'timepanel' in screen.ids, 100,
-					"timepanel never got id")
+		           "timepanel never got id")
 		timepanel = screen.ids['timepanel']
 		idle_until(lambda: timepanel.size != [100, 100], 100,
-					"timepanel never resized")
+		           "timepanel never resized")
 		turnfield = timepanel.ids['turnfield']
 		turn_before = int(turnfield.hint_text)
 		stepbut = timepanel.ids['stepbut']
@@ -78,14 +78,14 @@ class ScreenTest(ELiDEAppTest):
 		entity.name = 'name'
 		app.selected_proxy = app.proxy = app.statcfg.proxy = entity
 		screen = MainScreen(graphboards={'foo': GraphBoard(character=char)},
-							gridboards={'foo': GridBoard(character=char)},
-							play_speed=1.0)
+		                    gridboards={'foo': GridBoard(character=char)},
+		                    play_speed=1.0)
 		win = window_with_widget(screen)
 		idle_until(lambda: 'timepanel' in screen.ids, 100,
-					"timepanel never got id")
+		           "timepanel never got id")
 		timepanel = screen.ids['timepanel']
 		idle_until(lambda: timepanel.size != [100, 100], 100,
-					"timepanel never resized")
+		           "timepanel never resized")
 		turnfield = timepanel.ids['turnfield']
 		turn_before = int(turnfield.hint_text)
 		playbut = timepanel.ids['playbut']
@@ -93,7 +93,7 @@ class ScreenTest(ELiDEAppTest):
 		motion.touch_down()
 		motion.touch_up()
 		idle_until(lambda: int(turnfield.hint_text) == 3, 400,
-					"Time didn't advance fast enough")
+		           "Time didn't advance fast enough")
 
 	def test_update(self):
 		with Engine(self.prefix) as eng:
@@ -102,30 +102,41 @@ class ScreenTest(ELiDEAppTest):
 			phys.add_place((1, 1))
 			phys.add_place(9)  # test that gridboard can handle this
 			this = here.new_thing(2)
+
 			@this.rule(always=True)
 			def go(me):
 				me["location"] = (1, 1)
 		app = self.app
 		app.starting_dir = self.prefix
 		app.build()
-		idle_until(lambda: app.engine is not None, 100, "Never got engine proxy")
+		idle_until(lambda: app.engine is not None, 100,
+		           "Never got engine proxy")
 		assert app.engine.character['physical'].thing[2]['location'] == (0, 0)
 		graphboard = app.mainscreen.graphboards['physical']
 		gridboard = app.mainscreen.gridboards['physical']
-		idle_until(lambda: graphboard.size != [100, 100], 100, "Never resized graphboard")
-		idle_until(lambda: gridboard.size != [100, 100], 100, "Never resized gridboard")
-		idle_until(lambda: (0, 0) in graphboard.spot, 100, "Never made spot for location 0")
+		idle_until(lambda: graphboard.size != [100, 100], 100,
+		           "Never resized graphboard")
+		idle_until(lambda: gridboard.size != [100, 100], 100,
+		           "Never resized gridboard")
+		idle_until(lambda: (0, 0) in graphboard.spot, 100,
+		           "Never made spot for location 0")
 		locspot0 = graphboard.spot[0, 0]
 		gridspot0 = gridboard.spot[0, 0]
 		locspot1 = graphboard.spot[1, 1]
 		gridspot1 = gridboard.spot[1, 1]
 		graphpawn = graphboard.pawn[2]
 		gridpawn = gridboard.pawn[2]
-		idle_until(lambda: graphpawn.x == locspot0.right, 100, "Never positioned pawn to 0's right")
-		idle_until(lambda: graphpawn.y == locspot0.top, 100, "Never positioned pawn to 0's top")
-		idle_until(lambda: gridpawn.pos == gridspot0.pos, 100, "Never positioned pawn to grid 0, 0")
+		idle_until(lambda: graphpawn.x == locspot0.right, 100,
+		           "Never positioned pawn to 0's right")
+		idle_until(lambda: graphpawn.y == locspot0.top, 100,
+		           "Never positioned pawn to 0's top")
+		idle_until(lambda: gridpawn.pos == gridspot0.pos, 100,
+		           "Never positioned pawn to grid 0, 0")
 		app.mainscreen.next_turn()
 		assert app.engine.character['physical'].thing[2]['location'] == (1, 1)
-		idle_until(lambda: graphpawn.x == locspot1.right, 100, "Never positioned pawn to 1's right")
-		idle_until(lambda: graphpawn.y == locspot1.top, 100, "Never positioned pawn to 1's top")
-		idle_until(lambda: gridpawn.pos == gridspot1.pos, 100, "Never positioned pawn to grid 1, 1")
+		idle_until(lambda: graphpawn.x == locspot1.right, 100,
+		           "Never positioned pawn to 1's right")
+		idle_until(lambda: graphpawn.y == locspot1.top, 100,
+		           "Never positioned pawn to 1's top")
+		idle_until(lambda: gridpawn.pos == gridspot1.pos, 100,
+		           "Never positioned pawn to grid 1, 1")
