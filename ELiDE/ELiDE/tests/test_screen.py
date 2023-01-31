@@ -137,7 +137,7 @@ class ScreenTest(ELiDEAppTest):
 		gridpawn = gridboard.pawn[2]
 		idle_until(lambda: almost(graphpawn.x, locspot0.right), 100,
 		           f"Never positioned pawn to 0's right (it's at {graphpawn.x}"
-		           f", not {locspot0.right}")
+		           f", not {locspot0.right})")
 		idle_until(lambda: almost(graphpawn.y, locspot0.top), 100,
 		           "Never positioned pawn to 0's top")
 		idle_until(lambda: almost(gridpawn.pos, gridspot0.pos), 100,
