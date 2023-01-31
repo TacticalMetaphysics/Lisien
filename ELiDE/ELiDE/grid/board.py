@@ -70,10 +70,10 @@ class GridBoard(Widget):
 			textures = list(self.spot_cls.default_image_paths)
 		r = {
 			"name": placen,
-			"x": placen[0] * int(self.tile_width),
-			"y": placen[1] * int(self.tile_height),
-			"width": self.tile_width,
-			"height": self.tile_height,
+			"x": int(placen[0] * self.tile_width),
+			"y": int(placen[1] * self.tile_height),
+			"width": int(self.tile_width),
+			"height": int(self.tile_height),
 			"textures": textures,
 			"proxy": place
 		}
@@ -85,13 +85,13 @@ class GridBoard(Widget):
 			"name":
 			thing["name"],
 			"x":
-			location.x,
+			int(location.x),
 			"y":
-			location.y,
+			int(location.y),
 			"width":
-			self.tile_width,
+			int(self.tile_width),
 			"height":
-			self.tile_height,
+			int(self.tile_height),
 			"location":
 			location,
 			"textures":
