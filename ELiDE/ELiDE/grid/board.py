@@ -207,15 +207,18 @@ class GridBoard(Widget):
 				elif node in pawnmap:
 					pawn = pawnmap[node]
 					if 'location' in stats:
-						loc = self.spot[stats['location']]
-						pawn.pos = loc.pos
+						try:
+							loc = self.spot[stats['location']]
+							pawn.pos = loc.pos
+						except KeyError:
+							self.rm_pawn(stats['location'])
 					if '_image_paths' in stats:
 						pawn.paths = stats[
 							'_image_paths'] or self.pawn_cls.default_image_paths
+				elif stats['location'] in self.spot:
+					self.add_pawn(node)
 				else:
-					Logger.warning(
-						"GridBoard: diff tried to change stats of node {}"
-						"but I don't have a widget for it".format(node))
+					Logger.warning(f"GridBoard: Thing {node} has invalid location {stats['location']}")
 
 	def trigger_update_from_delta(self, delta, *args):
 		part = partial(self.update_from_delta, delta)
