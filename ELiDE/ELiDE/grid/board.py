@@ -9,11 +9,25 @@ from kivy.uix.widget import Widget
 from kivy.lang.builder import Builder
 from kivy.vector import Vector
 
-from .spot import GridSpot
-from .pawn import GridPawn
 from ..boardview import BoardView
 from ELiDE.boardscatter import BoardScatterPlane
-from ..pawnspot import TextureStackPlane
+from ..pawnspot import TextureStackPlane, Stack
+
+
+class GridPawn(Stack):
+	default_image_paths = ["atlas://rltiles/base.atlas/unseen"]
+
+	@property
+	def _stack_plane(self):
+		return self.board.pawn_plane
+
+
+class GridSpot(Stack):
+	default_image_paths = ["atlas://rltiles/floor.atlas/floor-stone"]
+
+	@property
+	def _stack_plane(self):
+		return self.board.spot_plane
 
 
 class GridBoard(Widget):
@@ -23,6 +37,8 @@ class GridBoard(Widget):
 	tile_width = NumericProperty(32)
 	tile_height = NumericProperty(32)
 	tile_size = ReferenceListProperty(tile_width, tile_height)
+	pawn_cls = GridPawn
+	spot_cls = GridSpot
 
 	def __init__(self, **kwargs):
 		self.pawn = {}
@@ -35,7 +51,9 @@ class GridBoard(Widget):
 			raise KeyError(f"No such place for spot: {placen}")
 		if placen in self.spot:
 			raise KeyError("Already have a Spot for this Place")
-		self.spot_plane.add_datum(self.make_spot(self.character.place[placen]))
+		spt = self.make_spot(self.character.place[placen])
+		self.spot_plane.add_datum(spt)
+		self.spot[placen] = self.spot_cls(board=self, proxy=spt["proxy"])
 
 	def make_spot(self, place):
 		placen = place["name"]
@@ -49,16 +67,16 @@ class GridBoard(Widget):
 		if "_image_paths" in place:
 			textures = list(place["_image_paths"])
 		else:
-			textures = list(GridPawn.default_image_paths)
+			textures = list(self.spot_cls.default_image_paths)
 		r = {
 			"name": placen,
-			"x": placen[0] * int(self.tile_width),
-			"y": placen[1] * int(self.tile_height),
-			"width": self.tile_width,
-			"height": self.tile_height,
+			"x": int(placen[0] * self.tile_width),
+			"y": int(placen[1] * self.tile_height),
+			"width": int(self.tile_width),
+			"height": int(self.tile_height),
 			"textures": textures,
+			"proxy": place
 		}
-		self.spot[place["name"]] = r
 		return r
 
 	def make_pawn(self, thing) -> dict:
@@ -67,19 +85,19 @@ class GridBoard(Widget):
 			"name":
 			thing["name"],
 			"x":
-			location["x"],
+			int(location.x),
 			"y":
-			location["y"],
+			int(location.y),
 			"width":
-			self.tile_width,
+			int(self.tile_width),
 			"height":
-			self.tile_height,
+			int(self.tile_height),
 			"location":
 			location,
 			"textures":
-			list(thing.get("_image_paths", GridPawn.default_image_paths))
+			list(thing.get("_image_paths", self.pawn_cls.default_image_paths)),
+			"proxy": thing
 		}
-		self.pawn[thing["name"]] = r
 		return r
 
 	def add_pawn(self, thingn, *args):
@@ -88,6 +106,7 @@ class GridBoard(Widget):
 		if thingn in self.pawn:
 			raise KeyError(f"Already have a pawn for {thingn}")
 		pwn = self.make_pawn(self.character.thing[thingn])
+		self.pawn[thingn] = self.pawn_cls(board=self, proxy=pwn["proxy"])
 		location = pwn['location']
 		self.contained[location].add(thingn)
 		self.pawn_plane.add_datum(pwn)
@@ -110,15 +129,24 @@ class GridBoard(Widget):
 						size=self.spot_plane.setter('size'))
 			self.add_widget(self.spot_plane)
 			self.add_widget(self.pawn_plane)
-		spot_data = list(map(self.make_spot, self.character.place.values()))
+		spot_data = list(map(self.make_spot, filter(
+			lambda spot: isinstance(spot["name"], tuple) and len(
+				spot["name"]) == 2, self.character.place.values())))
 		if not spot_data:
 			self.spot_plane.data = self.pawn_plane.data = []
 			return
+		for spt in spot_data:
+			self.spot[spt["name"]] = self.spot_cls(board=self, proxy=spt["proxy"])
+		self.spot_plane.unbind_uid('data', self.spot_plane._redraw_bind_uid)
+		self.spot_plane.data = spot_data
+		self.spot_plane.redraw()
+		self.spot_plane._redraw_bind_uid = self.spot_plane.fbind('data', self.spot_plane._trigger_redraw)
 		wide = max(datum["x"] for datum in spot_data) + self.tile_width
 		high = max(datum["y"] for datum in spot_data) + self.tile_width
 		self.size = self.spot_plane.size = self.pawn_plane.size = wide, high
 		pawn_data = list(map(self.make_pawn, self.character.thing.values()))
-		self.spot_plane.data = spot_data
+		for pwn in pawn_data:
+			self.pawn[pwn["name"]] = self.pawn_cls(board=self, proxy=pwn["proxy"])
 		self.pawn_plane.data = pawn_data
 
 	def rm_spot(self, name):
@@ -127,13 +155,13 @@ class GridBoard(Widget):
 			self.selection_candidates.remove(spot)
 		for pwn in spot.children:
 			del self.pawn[pwn.name]
-		self.spot_plane.remove_datum(spot)
+		self.spot_plane.remove(name)
 
 	def rm_pawn(self, name):
 		pwn = self.pawn.pop(name)
 		if pwn in self.selection_candidates:
 			self.selection_candidates.remove(pwn)
-		self.pawn_plane.remove_datum(pwn)
+		self.pawn_plane.remove(name)
 
 	def update_from_delta(self, delta, *args):
 		pawnmap = self.pawn
@@ -175,20 +203,22 @@ class GridBoard(Widget):
 			for node, stats in delta['node_val'].items():
 				if node in spotmap and '_image_paths' in stats:
 					spotmap[node].paths = stats[
-						'_image_paths'] or GridSpot.default_image_paths
+						'_image_paths'] or self.spot_cls.default_image_paths
 				elif node in pawnmap:
 					pawn = pawnmap[node]
 					if 'location' in stats:
-						loc = self.spot[stats['location']]
-						pawn['x'], pawn['y'] = loc['x'], loc['y']
-						self.pawn_plane.data[self.pawn_plane._keys[node]] = pawn
+						try:
+							loc = self.spot[stats['location']]
+							pawn.pos = loc.pos
+						except KeyError:
+							self.rm_pawn(node)
 					if '_image_paths' in stats:
 						pawn.paths = stats[
-							'_image_paths'] or GridPawn.default_image_paths
+							'_image_paths'] or self.pawn_cls.default_image_paths
+				elif stats['location'] in self.spot:
+					self.add_pawn(node)
 				else:
-					Logger.warning(
-						"GridBoard: diff tried to change stats of node {}"
-						"but I don't have a widget for it".format(node))
+					Logger.warning(f"GridBoard: Thing {node} has invalid location {stats['location']}")
 
 	def trigger_update_from_delta(self, delta, *args):
 		part = partial(self.update_from_delta, delta)
