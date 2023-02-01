@@ -199,6 +199,7 @@ class MainScreen(Screen):
 	statlist = ObjectProperty()
 	statpanel = ObjectProperty()
 	timepanel = ObjectProperty()
+	timescroll = ObjectProperty()
 	kv = StringProperty()
 	use_kv = BooleanProperty()
 	play_speed = NumericProperty()
@@ -313,8 +314,9 @@ class MainScreen(Screen):
 	def on_touch_down(self, touch):
 		if self.visible:
 			touch.grab(self)
-		for interceptor in (self.timepanel, self.charmenu, self.statpanel,
-							self.dummyplace, self.dummything):
+		for interceptor in (self.timepanel, self.timescroll,
+		                    self.charmenu, self.statpanel,
+		                    self.dummyplace, self.dummything):
 			if interceptor.collide_point(*touch.pos):
 				interceptor.dispatch('on_touch_down', touch)
 				self.boardview.keep_selection = self.gridview.keep_selection = True
@@ -326,6 +328,8 @@ class MainScreen(Screen):
 	def on_touch_up(self, touch):
 		if self.timepanel.collide_point(*touch.pos):
 			return self.timepanel.dispatch('on_touch_up', touch)
+		elif self.timescroll.collide_point(*touch.pos):
+			return self.timescroll.dispatch('on_touch_up', touch)
 		elif self.charmenu.collide_point(*touch.pos):
 			return self.charmenu.dispatch('on_touch_up', touch)
 		elif self.statpanel.collide_point(*touch.pos):
@@ -648,6 +652,7 @@ Builder.load_string("""
 	statlist: statpanel.statlist
 	statpanel: statpanel
 	timepanel: timepanel
+	timescroll: timescroll
 	dialoglayout: dialoglayout
 	TimeScroll:
 		id: timescroll
