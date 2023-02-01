@@ -530,6 +530,16 @@ class AbstractEngine(ABC):
 
 		return unpacker
 
+	@property
+	def initial_turn(self):
+		"""The first turn of the current branch"""
+		return self._branches[self.branch][1]
+
+	@property
+	def final_turn(self):
+		"""The last turn of the current branch"""
+		return self._branches[self.branch][3]
+
 	def coin_flip(self) -> bool:
 		"""Return True or False with equal probability."""
 		return self.choice((True, False))

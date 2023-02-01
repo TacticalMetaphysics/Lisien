@@ -199,7 +199,7 @@ class MainScreen(Screen):
 	statlist = ObjectProperty()
 	statpanel = ObjectProperty()
 	timepanel = ObjectProperty()
-	timescroll = ObjectProperty()
+	turnscroll = ObjectProperty()
 	kv = StringProperty()
 	use_kv = BooleanProperty()
 	play_speed = NumericProperty()
@@ -314,7 +314,7 @@ class MainScreen(Screen):
 	def on_touch_down(self, touch):
 		if self.visible:
 			touch.grab(self)
-		for interceptor in (self.timepanel, self.timescroll,
+		for interceptor in (self.timepanel, self.turnscroll,
 		                    self.charmenu, self.statpanel,
 		                    self.dummyplace, self.dummything):
 			if interceptor.collide_point(*touch.pos):
@@ -328,8 +328,8 @@ class MainScreen(Screen):
 	def on_touch_up(self, touch):
 		if self.timepanel.collide_point(*touch.pos):
 			return self.timepanel.dispatch('on_touch_up', touch)
-		elif self.timescroll.collide_point(*touch.pos):
-			return self.timescroll.dispatch('on_touch_up', touch)
+		elif self.turnscroll.collide_point(*touch.pos):
+			return self.turnscroll.dispatch('on_touch_up', touch)
 		elif self.charmenu.collide_point(*touch.pos):
 			return self.charmenu.dispatch('on_touch_up', touch)
 		elif self.statpanel.collide_point(*touch.pos):
@@ -529,8 +529,39 @@ class CharMenuContainer(BoxLayout):
 			self.add_widget(self.button)
 
 
-class TimeScroll(Slider):
-	pass
+class TurnScroll(Slider):
+	
+	def __init__(self, **kwargs):
+		kwargs['step'] = 1
+		super().__init__(**kwargs)
+		self._collect_engine()
+	
+	def _collect_engine(self, *args):
+		app = App.get_running_app()
+		if app.engine is None:
+			Logger.warning("TurnScroll: no engine")
+			Clock.schedule_once(self._collect_engine, 0)
+			return
+		engine = app.engine
+		self.min = engine.initial_turn
+		self.max = engine.final_turn
+		Logger.debug(f"TurnScroll: {self.min}<-->{self.max}")
+		self.value = engine.turn
+		engine.time.connect(self._receive_time)
+	
+	def _receive_time(self, engine, branch, turn, tick):
+		self.min = engine.initial_turn
+		self.max = engine.final_turn
+		self.value = turn
+		Logger.debug(f"TurnScroll: {self.min}<-{self.value}->{self.max}")
+
+	def on_touch_up(self, touch):
+		if touch.grab_current == self:
+			app = App.get_running_app()
+			app.engine.time.disconnect(self._receive_time)
+			Logger.debug(f"TurnScroll: about to travel to {self.value}")
+			app.time_travel(app.engine.branch, int(self.value))
+			app.engine.time.connect(self._receive_time)
 
 
 Builder.load_string("""
@@ -652,16 +683,16 @@ Builder.load_string("""
 	statlist: statpanel.statlist
 	statpanel: statpanel
 	timepanel: timepanel
-	timescroll: timescroll
+	turnscroll: turnscroll
 	dialoglayout: dialoglayout
-	TimeScroll:
-		id: timescroll
+	TurnScroll:
+		id: turnscroll
 		pos_hint: {'bot': 0}
 		size_hint: (1, 0.1)
 	Widget:
 		id: mainview
 		x: statpanel.right
-		y: timescroll.top
+		y: turnscroll.top
 		size_hint: (None, None)
 		width: charmenu.x - statpanel.right
 		height: root.height
@@ -678,7 +709,7 @@ Builder.load_string("""
 		id: timepanel
 		screen: root
 		x: 0
-		y: timescroll.top
+		y: turnscroll.top
 		size_hint: (0.25, 0.2)
 		disable_one_turn: root.tmp_block
 	CharMenuContainer:

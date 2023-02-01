@@ -125,7 +125,6 @@ class ELiDEApp(App):
 			self.engine.time_travel(branch,
 									turn,
 									tick,
-									chars='all',
 									cb=self._update_from_time_travel)
 		except OutOfTimelineError as ex:
 			(self.branch, self.turn, self.tick) = (ex.branch_from,
@@ -219,6 +218,7 @@ class ELiDEApp(App):
 
 	def _pull_time_from_signal(self, *args, branch, turn, tick):
 		self.branch, self.turn, self.tick = branch, turn, tick
+		self.mainscreen.ids.turnscroll.value = turn
 
 	def start_subprocess(self, *args):
 		"""Start the LiSE core and get a proxy to it

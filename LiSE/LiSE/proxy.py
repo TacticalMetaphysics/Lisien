@@ -2242,7 +2242,7 @@ class EngineProxy(AbstractEngine):
 			branch, (None, turn, tick, turn, tick))
 		if (turn, tick) > (turn_to, tick_to):
 			self._branches[
-				branch] = parent, turn_from, tick_from, turn_to, tick_to
+				branch] = parent, turn_from, tick_from, turn, tick
 		self.time.send(self, branch=branch, turn=turn, tick=tick)
 
 	def is_parent_of(self, parent, child):
