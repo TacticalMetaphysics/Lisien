@@ -694,6 +694,7 @@ Builder.load_string("""
 	dialoglayout: dialoglayout
 	TurnScroll:
 		id: turnscroll
+		value_track: True
 		pos_hint: {'bot': 0}
 		size_hint: (1, 0.1)
 	Widget:
