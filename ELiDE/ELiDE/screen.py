@@ -555,6 +555,13 @@ class TurnScroll(Slider):
 		self.value = turn
 		Logger.debug(f"TurnScroll: {self.min}<-{self.value}->{self.max}")
 
+	def on_touch_move(self, touch):
+		if touch.grab_current == self:
+			app = App.get_running_app()
+			app.mainscreen.timepanel.ids.turnfield.hint_text = str(
+				int(self.value))
+		return super().on_touch_move(touch)
+
 	def on_touch_up(self, touch):
 		if touch.grab_current == self:
 			app = App.get_running_app()
