@@ -65,7 +65,7 @@ class SwitchGridTest(ELiDEAppTest):
 		idle_until(
 			lambda: hasattr(app, 'mainscreen') and app.mainscreen.mainview and
 			app.mainscreen.statpanel and hasattr(app.mainscreen, 'gridview'))
-		app.mainscreen.statpanel.toggle_gridview()
+		app.mainscreen.charmenu.toggle_gridview()
 		idle_until(lambda: app.mainscreen.gridview in app.mainscreen.mainview.
 					children)
 		idle_until(lambda: app.mainscreen.gridview.board.children)

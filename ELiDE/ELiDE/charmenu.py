@@ -29,6 +29,7 @@ class CharMenu(BoxLayout):
 	revarrow = ObjectProperty(None, allownone=True)
 	dummyplace = ObjectProperty()
 	dummything = ObjectProperty()
+	toggle_gridview = ObjectProperty()
 	dummies = ReferenceListProperty(dummyplace, dummything)
 
 	@property
@@ -47,7 +48,6 @@ class CharMenu(BoxLayout):
 		if not (self.screen and self.screen.boardview and self.screen.app):
 			Clock.schedule_once(self.on_screen, 0)
 			return
-		self.screen.boardview.reciprocal_portal = self.reciprocal_portal
 		self.forearrow = GraphArrowWidget(board=self.screen.boardview.board,
 											origin=self.ids.emptyleft,
 											destination=self.ids.emptyright)
@@ -158,7 +158,7 @@ class CharMenu(BoxLayout):
 		fact.
 
 		"""
-		self.screen.boardview.reciprocal_portal = not self.screen.boardview.reciprocal_portal
+		self.reciprocal_portal = self.screen.boardview.reciprocal_portal = not self.screen.boardview.reciprocal_portal
 		if self.screen.boardview.reciprocal_portal:
 			assert (self.revarrow is None)
 			self.revarrow = GraphArrowWidget(board=self.screen.boardview.board,
@@ -196,8 +196,16 @@ Builder.load_string("""
 	portaladdbut: portaladdbut
 	portaldirbut: portaldirbut
 	Button:
-		text: 'Characters'
-		on_release: root.toggle_chars_screen()
+		text: 'Delete'
+		on_release: app.delete_selection()
+	Button:
+		id: timestreambut
+		text: 'Timestream'
+		on_release: root.toggle_timestream()
+	Button:
+		id: gridviewbut
+		text: 'Toggle grid'
+		on_release: root.toggle_gridview()
 	Button:
 		text: 'Strings'
 		on_release: root.toggle_strings_editor()
@@ -208,8 +216,8 @@ Builder.load_string("""
 		text: 'Rules'
 		on_release: root.toggle_rules()
 	Button:
-		text: 'Delete'
-		on_release: app.delete_selection()
+		text: 'Characters'
+		on_release: root.toggle_chars_screen()
 	BoxLayout:
 		Widget:
 			id: placetab
@@ -221,6 +229,17 @@ Builder.load_string("""
 		Button:
 			text: 'cfg'
 			on_release: root.toggle_spot_cfg()
+	BoxLayout:
+		Widget:
+			id: thingtab
+			Dummy:
+				id: dummything
+				center: thingtab.center
+				prefix: 'thing'
+				on_pos_up: root.pawn_from_dummy(self)
+		Button:
+			text: 'cfg'
+			on_release: root.toggle_pawn_cfg()
 	BoxLayout:
 		orientation: 'vertical'
 		ToggleButton:
@@ -239,15 +258,4 @@ Builder.load_string("""
 			id: portaldirbut
 			text: 'One-way' if root.reciprocal_portal else 'Two-way'
 			on_release: root.toggle_reciprocal()
-	BoxLayout:
-		Widget:
-			id: thingtab
-			Dummy:
-				id: dummything
-				center: thingtab.center
-				prefix: 'thing'
-				on_pos_up: root.pawn_from_dummy(self)
-		Button:
-			text: 'cfg'
-			on_release: root.toggle_pawn_cfg()
 """)
