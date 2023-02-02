@@ -550,9 +550,15 @@ class TurnScroll(Slider):
 		engine.time.connect(self._receive_time)
 	
 	def _receive_time(self, engine, branch, turn, tick):
-		self.min = engine.initial_turn
-		self.max = engine.final_turn
 		self.value = turn
+		try:
+			self.min = engine.initial_turn
+		except KeyError:
+			self.min = turn
+		try:
+			self.max = engine.final_turn
+		except KeyError:
+			self.max = turn
 		Logger.debug(f"TurnScroll: {self.min}<-{self.value}->{self.max}")
 
 	def on_touch_move(self, touch):

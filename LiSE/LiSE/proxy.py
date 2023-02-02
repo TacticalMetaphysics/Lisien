@@ -2240,7 +2240,7 @@ class EngineProxy(AbstractEngine):
 		self._tick = tick
 		parent, turn_from, tick_from, turn_to, tick_to = self._branches.get(
 			branch, (None, turn, tick, turn, tick))
-		if (turn, tick) > (turn_to, tick_to):
+		if branch not in self._branches or (turn, tick) > (turn_to, tick_to):
 			self._branches[
 				branch] = parent, turn_from, tick_from, turn, tick
 		self.time.send(self, branch=branch, turn=turn, tick=tick)
