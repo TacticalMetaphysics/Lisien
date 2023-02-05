@@ -417,9 +417,16 @@ to the LiSE engine:
 * ``function``
 * ``method``
 
+Game code must not alter the function of LiSE itself (no "hot
+patching"). If it does, then it is part of LiSE.
+
 If you write another application (not using any allegedb, LiSE, or
 ELiDE code) that accesses a LiSE server via HTTP(S), it is separate
-from LiSE and not subject to its license.
+from LiSE and not subject to its license. If you run LiSE in a
+Python interpreter embedded into your application, the LiSE
+license only covers LiSE itself, and not any code run outside
+of that Python interpreter. You must still release any modifications
+you make to LiSE, but the embedding application remains your own.
 
 In case of my death, I, Zachary Spector, wish for every allegedb,
 LiSE, texturestack, and ELiDE source file to be relicensed under
