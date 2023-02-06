@@ -335,9 +335,7 @@ make triangles move in response to dissimilar neighbors like so:
 
 In this case you didn't really *have* to use the name of the rule,
 since you still have the rule object in scope, but maybe you won't
-always. And, anyway, rules are evaluated in an order similar to
-alphabetical order, so having two rules with the same name would be
-unacceptably ambiguous.
+always.
 
 When you have a set of rules that needs to apply to many
 entities, and you can't just make them all units, you can have the
