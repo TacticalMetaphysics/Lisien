@@ -127,6 +127,10 @@ class ELiDEApp(App):
 									tick,
 									cb=self._update_from_time_travel)
 		except OutOfTimelineError as ex:
+			Logger.warning(
+				f"App: couldn't time travel to {(branch, turn, tick)}: " +
+				ex.args[0],
+				exc_info=ex)
 			(self.branch, self.turn, self.tick) = (ex.branch_from,
 													ex.turn_from, ex.tick_from)
 
