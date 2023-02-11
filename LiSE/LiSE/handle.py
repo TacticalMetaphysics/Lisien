@@ -29,6 +29,7 @@ from typing import Dict, Tuple, Set, Callable, Union, Any, Hashable, List, Itera
 
 import msgpack
 
+from .allegedb import OutOfTimelineError
 from .engine import Engine
 from .node import Node
 from .portal import Portal
@@ -798,9 +799,14 @@ class EngineHandle(object):
 		the 0th item of which is `None`.
 
 		"""
-		# TODO: detect if you're headed to sometime outside of the already
-		#	   simulated past, and respond appropriately
-		#	   - refuse to time travel to a plan
+		if branch in self._real._branches:
+			parent, turn_from, tick_from, turn_to, tick_to = self._real._branches[branch]
+			if tick is None:
+				if turn < turn_from or turn > turn_to:
+					raise OutOfTimelineError("Out of bounds", *self._real._btt())
+			else:
+				if (turn, tick) < (turn_from, tick_from) or (turn, tick) > (turn_to, tick_to):
+					raise OutOfTimelineError("Out of bounds", *self._real.btt())
 		branch_from, turn_from, tick_from = self._real._btt()
 		slow_delta = branch != branch_from
 		self._real.time = (branch, turn)
