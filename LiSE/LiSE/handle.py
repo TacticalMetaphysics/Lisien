@@ -811,7 +811,7 @@ class EngineHandle(object):
 				if (turn, tick) < (turn_from, tick_from) or (turn, tick) > (
 					turn_to, tick_to):
 					raise OutOfTimelineError("Out of bounds",
-												*self._real.btt(), branch,
+												*self._real._btt(), branch,
 												turn, tick)
 		branch_from, turn_from, tick_from = self._real._btt()
 		slow_delta = branch != branch_from
