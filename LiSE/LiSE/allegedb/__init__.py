@@ -782,7 +782,8 @@ class ORM:
 					dbstring,
 					clear=False,
 					connect_args: dict = None,
-					cache_arranger=False):
+					cache_arranger=False,
+					enforce_end_of_time=False):
 		"""Make a SQLAlchemy engine and begin a transaction
 
 		:arg dbstring: rfc1738 URL for a database connection.
@@ -796,6 +797,7 @@ class ORM:
 		self._planning = False
 		self._forward = False
 		self._no_kc = False
+		self._enforce_end_of_time = enforce_end_of_time
 		# in case this is the first startup
 		self._obranch = 'trunk'
 		self._otick = self._oturn = 0
@@ -1931,7 +1933,7 @@ class ORM:
 				"occurs before the start of "
 				"the branch {}".format(v, branch), self.branch, self.turn,
 				self.tick, self.branch, v, self.tick)
-		elif v > turn_end and not self._planning:
+		elif self._enforce_end_of_time and v > turn_end and not self._planning:
 			raise OutOfTimelineError(
 				f"The turn number {v} occurs after the end "
 				f"of the branch {branch}", self.branch, self.turn, self.tick,

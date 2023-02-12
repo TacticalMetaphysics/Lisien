@@ -242,7 +242,8 @@ class Engine(AbstractEngine, gORM):
 					clear=False,
 					keep_rules_journal=True,
 					keyframe_on_close=True,
-					cache_arranger=False):
+					cache_arranger=False,
+					enforce_end_of_time=True):
 		"""Store the connections for the world database and the code database;
 		set up listeners; and start a transaction
 
@@ -290,6 +291,9 @@ class Engine(AbstractEngine, gORM):
 		when it's to points we anticipate. If you use this, you can
 		specify some other point in time to index by putting the
 		`(branch, turn, tick)` in my `cache_arrange_queue`. Default ``False``.
+		:arg enforce_end_of_time: Whether to raise an exception when
+		time travelling to a point after the time that's been simulated.
+		Default ``True``.
 
 		"""
 		if logfun is None:
@@ -352,7 +356,8 @@ class Engine(AbstractEngine, gORM):
 		super().__init__(connect_string or os.path.join(prefix, 'world.db'),
 							clear=clear,
 							connect_args=connect_args,
-							cache_arranger=cache_arranger)
+							cache_arranger=cache_arranger,
+							enforce_end_of_time=enforce_end_of_time)
 		self._things_cache.setdb = self.query.set_thing_loc
 		self._universal_cache.setdb = self.query.universal_set
 		self._rulebooks_cache.setdb = self.query.rulebook_set

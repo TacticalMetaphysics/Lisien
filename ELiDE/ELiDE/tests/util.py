@@ -108,7 +108,7 @@ class MockEngine(Signal):
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.turn = self.initial_turn = 0
+		self.turn = self.initial_turn = self.final_turn = 0
 		self._ready = True
 
 	def __setattr__(self, key, value):
@@ -120,6 +120,7 @@ class MockEngine(Signal):
 
 	def next_turn(self, *args, **kwargs):
 		self.turn += 1
+		self.final_turn = self.turn
 		kwargs['cb']('next_turn', 'trunk', self.turn, 0, ([], {}))
 
 	def handle(self, *args, **kwargs):
