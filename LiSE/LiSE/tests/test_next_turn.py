@@ -178,3 +178,35 @@ def test_portal_rule(engy):
 	engy.next_turn()
 	assert btt == engy._btt()
 	assert port['run']
+
+
+def test_post_time_travel_increment(engy):
+	"""Test that, when the rules are run after time travel resulting in
+	a tick greater than zero, we advance to the next turn before running rules
+
+	"""
+	char = engy.new_character('char')
+	char.stat['something'] = 0
+	place = char.new_place('there')
+	place['otherthing'] = 0
+
+	@char.rule(always=True)
+	def incr(chara):
+		chara.stat['something'] += 1
+
+	@place.rule(always=True)
+	def decr(plac):
+		plac['otherthing'] -= 1
+
+	engy.next_turn()
+	engy.next_turn()
+	assert engy.tick == 2
+	engy.branch = 'branch1'
+	assert engy.tick == 2
+	engy.next_turn()
+	assert engy.tick == 2
+	engy.turn = 2
+	engy.branch = 'trunk'
+	assert engy.tick == 2
+	engy.next_turn()
+	assert engy.tick == 2
