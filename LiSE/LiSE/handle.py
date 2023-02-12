@@ -803,13 +803,15 @@ class EngineHandle(object):
 			parent, turn_from, tick_from, turn_to, tick_to = self._real._branches[
 				branch]
 			if tick is None:
-				if turn < turn_from or turn > turn_to:
+				if turn < turn_from or (self._real._enforce_end_of_time
+										and turn > turn_to):
 					raise OutOfTimelineError("Out of bounds",
 												*self._real._btt(), branch,
 												turn, tick)
 			else:
-				if (turn, tick) < (turn_from, tick_from) or (turn, tick) > (
-					turn_to, tick_to):
+				if (turn, tick) < (turn_from, tick_from) or (
+					self._real._enforce_end_of_time and (turn, tick) >
+					(turn_to, tick_to)):
 					raise OutOfTimelineError("Out of bounds",
 												*self._real._btt(), branch,
 												turn, tick)
