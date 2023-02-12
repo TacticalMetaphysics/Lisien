@@ -1923,16 +1923,19 @@ class ORM:
 		if self._forward and v < self._oturn:
 			raise ValueError("Can't time travel backward in a forward context")
 
-		# first make sure the cursor is not before the start of this branch
-		if branch != 'trunk':
-			parent, turn_start, tick_start, turn_end, tick_end = self._branches[
-				branch]
-			if v < turn_start:
-				raise OutOfTimelineError(
-					"The turn number {} "
-					"occurs before the start of "
-					"the branch {}".format(v, branch), self.branch, self.turn,
-					self.tick, self.branch, v, self.tick)
+		parent, turn_start, tick_start, turn_end, tick_end = self._branches[
+			branch]
+		if v < turn_start:
+			raise OutOfTimelineError(
+				"The turn number {} "
+				"occurs before the start of "
+				"the branch {}".format(v, branch), self.branch, self.turn,
+				self.tick, self.branch, v, self.tick)
+		elif v > turn_end and not self._planning:
+			raise OutOfTimelineError(
+				f"The turn number {v} occurs after the end "
+				f"of the branch {branch}", self.branch, self.turn, self.tick,
+				self.branch, v, self.tick)
 		if branch not in loaded:
 			if (branch, v) in self._turn_end_plan:
 				tick = self._turn_end_plan[branch, v]
@@ -2039,7 +2042,7 @@ class ORM:
 									"Go to tick {} to change things".format(
 										turn, turn_end[branch_turn]))
 		parent, turn_start, tick_start, turn_end, tick_end = branches[branch]
-		if turn < turn_end:
+		if (turn, tick) < (turn_end, tick_end):
 			# There used to be a check for turn == turn_end and tick < tick_end
 			# but I couldn't come up with a situation where that would actually
 			# happen
@@ -2058,8 +2061,10 @@ class ORM:
 			plan_ticks[last_plan][turn].append(tick)
 			plan_ticks_uncommitted.append((last_plan, turn, tick))
 			time_plan[branch, turn, tick] = last_plan
-		turn_end_plan[branch_turn] = tick
-		branches[branch] = parent, turn_start, tick_start, turn_end, tick
+		elif (turn, tick) > (turn_end, tick_end):
+			branches[branch] = parent, turn_start, tick_start, turn, tick
+		if tick > turn_end_plan[branch_turn]:
+			turn_end_plan[branch_turn] = tick
 		loaded = self._loaded
 		if branch in loaded:
 			(early_turn, early_tick, late_turn, late_tick) = loaded[branch]

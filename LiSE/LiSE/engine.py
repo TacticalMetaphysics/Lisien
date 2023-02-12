@@ -84,9 +84,10 @@ class NextTurn(Signal):
 			raise exc.RulesEngineError(
 				"Can't run the rules engine on any turn but the latest")
 		if start_turn == latest_turn:
-			# As a side effect, the following assignment sets the tick
-			# to the latest in the new turn, which will be 0 if that
-			# turn has not yet been simulated.
+			parent, turn_from, tick_from, turn_to, tick_to = engine._branches[
+				start_branch]
+			engine._branches[
+				start_branch] = parent, turn_from, tick_from, engine.turn + 1, 0
 			engine.turn += 1
 		with engine.advancing():
 			for res in iter(engine.advance, final_rule):

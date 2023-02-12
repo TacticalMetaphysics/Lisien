@@ -582,8 +582,11 @@ class Cache:
 		if not loading and not planning:
 			parbranch, turn_start, tick_start, turn_end, tick_end = db_branches[
 				branch]
-			db_branches[branch] = parbranch, turn_start, tick_start, turn, tick
-			db_turn_end[branch, turn] = tick
+			if (turn, tick) > (turn_end, tick_end):
+				db_branches[
+					branch] = parbranch, turn_start, tick_start, turn, tick
+			if tick > db_turn_end[branch, turn]:
+				db_turn_end[branch, turn] = tick
 		self_store_journal(*args)
 		self.shallowest[parent + (entity, key, branch, turn, tick)] = value
 		if turn in turns:

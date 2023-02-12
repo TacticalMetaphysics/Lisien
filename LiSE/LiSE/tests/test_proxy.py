@@ -99,13 +99,9 @@ def test_fast_delta(handle_initialized):
 	btt2 = hand._real._btt()
 	slowd2 = unpack_delta(hand._get_slow_delta(btt_from=btt, btt_to=btt2))
 	assert hand.unpack(diff2) == slowd2, "Fast delta differs from slow delta"
-	ret, diff3 = hand.time_travel('trunk', 3)
-	btt3 = hand._real._btt()
-	slowd3 = unpack_delta(hand._get_slow_delta(btt_from=btt2, btt_to=btt3))
-	assert hand.unpack(diff3) == slowd3, "Fast delta differs from slow delta"
 	ret, diff4 = hand.time_travel('trunk', 1)
 	btt4 = hand._real._btt()
-	slowd4 = unpack_delta(hand._get_slow_delta(btt_from=btt3, btt_to=btt4))
+	slowd4 = unpack_delta(hand._get_slow_delta(btt_from=btt2, btt_to=btt4))
 	assert hand.unpack(diff4) == slowd4, "Fast delta differs from slow delta"
 
 
