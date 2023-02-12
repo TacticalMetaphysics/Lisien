@@ -27,7 +27,9 @@ class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
 		self.manager = EngineProcessManager()
 		self.tempdir = tempfile.mkdtemp(dir='.')
 		self.engine = self.manager.start(
-			self.tempdir, connect_string='sqlite:///:memory:')
+			self.tempdir,
+			connect_string='sqlite:///:memory:',
+			enforce_end_of_time=False)
 		self.graphmakers = (self.engine.new_character, )
 		self.addCleanup(self._do_cleanup)
 

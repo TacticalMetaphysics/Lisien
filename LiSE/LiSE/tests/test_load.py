@@ -31,7 +31,7 @@ def test_keyframe_load_init(tempdir):
 
 
 def test_multi_keyframe(tempdir):
-	eng = Engine(tempdir)
+	eng = Engine(tempdir, enforce_end_of_time=False)
 	inittest(eng)
 	eng.snap_keyframe()
 	tick0 = eng.tick
@@ -66,7 +66,7 @@ def test_multi_keyframe(tempdir):
 
 def test_keyframe_load_unload(tempdir):
 	"""Make sure all of the caches can load and unload before and after kfs"""
-	with Engine(tempdir) as eng:
+	with Engine(tempdir, enforce_end_of_time=False) as eng:
 		eng.snap_keyframe()
 		eng.turn = 1
 		inittest(eng)
@@ -74,7 +74,7 @@ def test_keyframe_load_unload(tempdir):
 		eng.turn = 2
 		eng.universal['hi'] = 'hello'
 		now = eng._btt()
-	with Engine(tempdir) as eng:
+	with Engine(tempdir, enforce_end_of_time=False) as eng:
 		assert eng._time_is_loaded(*now)
 		assert not eng._time_is_loaded('trunk', 0)
 		eng.turn = 1
