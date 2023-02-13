@@ -433,7 +433,7 @@ def queries(table):
 	branches = table['branches']
 
 	r['branch_children'] = select(
-		[branches.c.branch]).where(branches.c.parent == bindparam('branch'))
+		branches.c.branch).where(branches.c.parent == bindparam('branch'))
 
 	tc = table['turns_completed']
 	r['turns_completed_update'] = update_where(['turn'], [tc.c.branch])
