@@ -18,6 +18,11 @@ Each proxy class is meant to emulate the equivalent LiSE class,
 and any change you make to a proxy will be made in the corresponding
 entity in the LiSE core.
 
+To use these, first instantiate an ``EngineProcessManager``, then
+call its ``start`` method with the same arguments you'd give a real
+``Engine``. You'll get an ``EngineProxy``, which acts like the underlying
+``Engine`` for most purposes.
+
 """
 import sys
 import logging
@@ -2404,6 +2409,7 @@ class EngineProxy(AbstractEngine):
 
 
 def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
+	"""Loop to handle one command at a time and pipe results back"""
 	engine_handle = EngineHandle(args, kwargs, logq, loglevel=loglevel)
 	compress = lz4.frame.compress
 	decompress = lz4.frame.decompress
@@ -2475,6 +2481,7 @@ class RedundantProcessError(ProcessError):
 class EngineProcessManager(object):
 
 	def start(self, *args, **kwargs):
+		"""Start LiSE in a subprocess, and return a proxy to it"""
 		if hasattr(self, 'engine_proxy'):
 			raise RedundantProcessError("Already started")
 		(handle_out_pipe_recv, self._handle_out_pipe_send) = Pipe(duplex=False)
@@ -2537,6 +2544,7 @@ class EngineProcessManager(object):
 		return self.engine_proxy
 
 	def sync_log(self, limit=None, block=True):
+		"""Get log messages from the subprocess, and log them in this one"""
 		n = 0
 		while limit is None or n < limit:
 			try:
@@ -2555,10 +2563,12 @@ class EngineProcessManager(object):
 				return
 
 	def sync_log_forever(self):
+		"""Continually call ``sync_log``, for use in a subthread"""
 		while True:
 			self.sync_log(1)
 
 	def shutdown(self):
+		"""Close the engine in the subprocess, then join the subprocess"""
 		self.engine_proxy.close()
 		self._p.join()
 		del self.engine_proxy
