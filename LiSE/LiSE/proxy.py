@@ -1965,7 +1965,7 @@ class EngineProxy(AbstractEngine):
 					handle_in,
 					logger,
 					do_game_start=False,
-					install_modules=[],
+					install_modules=(),
 					submit_func=None,
 					threads=None):
 		self.closed = False
