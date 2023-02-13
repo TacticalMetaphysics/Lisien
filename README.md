@@ -86,7 +86,7 @@ instead.
 ```
 # install the Kivy app framework
 git clone https://github.com/TacticalMetaphysics/LiSE.git
-python3 -m pip install kivy.deps.sdl2 kivy.deps.glew -r LiSE\requirements.txt
+python3 -m pip install kivy.deps.sdl2 kivy.deps.glew pygments -r LiSE\requirements.txt
 set PYTHONPATH=%cd%\LiSE;%cd%\ELiDE  # only works in cmd.exe, not powershell. Has to be run once per cmd.exe session
 ```
 
