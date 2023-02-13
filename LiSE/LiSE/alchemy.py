@@ -408,8 +408,8 @@ def queries(table):
 			and_(things.c.turn == bindparam('turn_from_b'),
 					things.c.tick >= bindparam('tick_from'))))
 	r['load_things_tick_to_end'] = select(
-		[things.c.thing, things.c.turn, things.c.tick,
-			things.c.location]).where(things_to_end_clause)
+		things.c.thing, things.c.turn, things.c.tick,
+			things.c.location).where(things_to_end_clause)
 	r['load_things_tick_to_tick'] = select(
 		[things.c.thing, things.c.turn, things.c.tick,
 			things.c.location]).where(
