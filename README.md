@@ -89,7 +89,8 @@ python3 -m pip install kivy.deps.sdl2 kivy.deps.glew
 # install LiSE and the ELiDE frontend
 git clone https://github.com/TacticalMetaphysics/LiSE.git
 cd LiSE
-set PYTHONPATH=%cd%\LiSE:%cd%\ELiDE
+set PYTHONPATH=%cd%\LiSE;%cd%\ELiDE
+python -m pip install -r requirements.txt
 ```
 
 ## Linux
@@ -104,6 +105,7 @@ USE_GSTREAMER=0 pip3 install --user kivy
 git clone https://github.com/TacticalMetaphysics/LiSE.git
 cd LiSE
 export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE
+python -m pip install -r requirements.txt
 ```
 
 ## Mac
@@ -120,6 +122,7 @@ USE_GSTREAMER=0 pip3 install --user kivy
 git clone https://github.com/TacticalMetaphysics/LiSE.git
 cd LiSE
 export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE
+python -m pip install -r requirements.txt
 ```
 
 You could now start the graphical frontend with ``python3 -mELiDE``,
