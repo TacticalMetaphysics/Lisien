@@ -375,7 +375,7 @@ def queries_for_table_dict(table):
 			table['edge_val'].c.idx, table['edge_val'].c.key,
 			table['edge_val'].c.turn, table['edge_val'].c.tick,
 			table['edge_val'].c.value
-		]).where(tick_to_tick_clause(table['edge_val'])),
+		).where(tick_to_tick_clause(table['edge_val'])),
 		'load_graph_val_tick_to_end':
 		select(
 			table['graph_val'].c.key, table['graph_val'].c.turn,
