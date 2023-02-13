@@ -89,7 +89,7 @@ python3 -m pip install kivy.deps.sdl2 kivy.deps.glew
 # install LiSE and the ELiDE frontend
 git clone https://github.com/TacticalMetaphysics/LiSE.git
 cd LiSE
-set PYTHONPATH=%cd%\LiSE;%cd%\ELiDE
+set PYTHONPATH=%cd%\LiSE;%cd%\ELiDE  # only works in cmd.exe
 python -m pip install -r requirements.txt
 ```
 
