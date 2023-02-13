@@ -30,6 +30,7 @@ class CharMenu(BoxLayout):
 	dummyplace = ObjectProperty()
 	dummything = ObjectProperty()
 	toggle_gridview = ObjectProperty()
+	toggle_timestream = ObjectProperty()
 	dummies = ReferenceListProperty(dummyplace, dummything)
 
 	@property
@@ -201,7 +202,7 @@ Builder.load_string("""
 	Button:
 		id: timestreambut
 		text: 'Timestream'
-		on_release: app.mainscreen.toggle_timestream()
+		on_release: root.toggle_timestream()
 	Button:
 		id: gridviewbut
 		text: 'Toggle grid'
