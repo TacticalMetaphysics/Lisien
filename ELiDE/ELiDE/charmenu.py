@@ -30,6 +30,7 @@ class CharMenu(BoxLayout):
 	dummyplace = ObjectProperty()
 	dummything = ObjectProperty()
 	toggle_gridview = ObjectProperty()
+	toggle_timestream = ObjectProperty()
 	dummies = ReferenceListProperty(dummyplace, dummything)
 
 	@property

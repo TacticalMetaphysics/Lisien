@@ -187,7 +187,7 @@ class ConnectionHolder:
 		statement = self.sql[k].compile(dialect=self.engine.dialect)
 		if hasattr(statement, 'positiontup'):
 			return self.connection.execute(
-				statement, **dict(zip(statement.positiontup, largs)))
+				statement, dict(zip(statement.positiontup, largs)))
 		elif largs:
 			raise TypeError("{} is a DDL query, I think".format(k))
 		return self.connection.execute(self.sql[k])
@@ -196,7 +196,7 @@ class ConnectionHolder:
 		statement = self.sql[k].compile(dialect=self.engine.dialect)
 		return self.connection.execute(
 			statement,
-			*(dict(zip(statement.positiontup, larg)) for larg in largs))
+			[dict(zip(statement.positiontup, larg)) for larg in largs])
 
 	def initdb(self):
 		"""Create tables and indices as needed."""

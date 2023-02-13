@@ -84,26 +84,22 @@ use [the python.org version](https://www.python.org/downloads/release/python-391
 instead.
 
 ```
-# install the Kivy app framework
-python3 -m pip install kivy.deps.sdl2 kivy.deps.glew
-# install LiSE and the ELiDE frontend
 git clone https://github.com/TacticalMetaphysics/LiSE.git
-cd LiSE
-set PYTHONPATH=%cd%\LiSE:%cd%\ELiDE
+python -m pip install --pre --extra-index-url https://kivy.org/downloads/simple "kivy[base]" kivy.deps.sdl2 kivy.deps.glew pygments -r LiSE\requirements.txt
+set PYTHONPATH=%cd%\LiSE;%cd%\ELiDE  # only works in cmd.exe, not powershell. Has to be run once per cmd.exe session
 ```
 
 ## Linux
 ```
-# install the Kivy app framework
 sudo apt-get install cython3 python3-dev python3-pip \
 libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
 libsdl2-ttf-dev
 # ELiDE doesn't play movies, so disable gstreamer
-USE_GSTREAMER=0 pip3 install --user kivy
+USE_GSTREAMER=0 pip3 install --user kivy pygments -r LiSE/requirements.txt
 # install LiSE and the ELiDE frontend
 git clone https://github.com/TacticalMetaphysics/LiSE.git
 cd LiSE
-export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE
+export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE  # has to be run once per terminal session
 ```
 
 ## Mac
@@ -115,11 +111,11 @@ brew install python pip3
 # install the Kivy app framework
 brew install cython
 # ELiDE doesn't play movies, so disable gstreamer
-USE_GSTREAMER=0 pip3 install --user kivy
+USE_GSTREAMER=0 python -m pip install --user kivy pygments -r LiSE/requirements.txt
 # install LiSE and the ELiDE frontend
 git clone https://github.com/TacticalMetaphysics/LiSE.git
 cd LiSE
-export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE
+export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE  # has to be run once per terminal session
 ```
 
 You could now start the graphical frontend with ``python3 -mELiDE``,

@@ -478,6 +478,7 @@ class CharMenuContainer(BoxLayout):
 	dummything = ObjectProperty()
 	portaladdbut = ObjectProperty()
 	toggle_gridview = ObjectProperty()
+	toggle_timestream = ObjectProperty()
 
 	def __init__(self, **kwargs):
 		super(CharMenuContainer, self).__init__(**kwargs)
@@ -491,7 +492,8 @@ class CharMenuContainer(BoxLayout):
 		self.charmenu.bind(portaladdbut=self.setter('portaladdbut'))
 		if self.toggle_gridview:
 			self.charmenu = self.toggle_gridview
-		self.bind(toggle_gridview=self.charmenu.setter('toggle_gridview'))
+		self.bind(toggle_gridview=self.charmenu.setter('toggle_gridview'),
+		          toggle_timestream=self.charmenu.setter('toggle_timestream'))
 		self.stepper = RuleStepper(size_hint_y=0.9)
 		self.button = Button(on_release=self._toggle,
 								text='Rule\nstepper',
@@ -730,6 +732,7 @@ Builder.load_string("""
 		id: charmenu
 		toggle_calendar: root.toggle_calendar
 		toggle_gridview: root.toggle_gridview
+		toggle_timestream: root.toggle_timestream
 		orientation: 'vertical'
 		screen: root
 		pos_hint: {'right': 1, 'top': 1}

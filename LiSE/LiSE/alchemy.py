@@ -369,10 +369,10 @@ def queries(table):
 			tick = t.columns['tick']
 			if branch in key and turn in key and tick in key:
 				key = [branch, turn, tick]
-		r[t.name + '_dump'] = select(list(t.c.values())).order_by(*key)
+		r[t.name + '_dump'] = select(*t.c.values()).order_by(*key)
 		r[t.name + '_insert'] = t.insert().values(
 			tuple(bindparam(cname) for cname in t.c.keys()))
-		r[t.name + '_count'] = select([func.COUNT('*')]).select_from(t)
+		r[t.name + '_count'] = select(func.COUNT('*')).select_from(t)
 
 	r['del_char_things'] = table['things'].delete().where(
 		table['things'].c.character == bindparam('character'))
@@ -408,11 +408,11 @@ def queries(table):
 			and_(things.c.turn == bindparam('turn_from_b'),
 					things.c.tick >= bindparam('tick_from'))))
 	r['load_things_tick_to_end'] = select(
-		[things.c.thing, things.c.turn, things.c.tick,
-			things.c.location]).where(things_to_end_clause)
+		things.c.thing, things.c.turn, things.c.tick,
+			things.c.location).where(things_to_end_clause)
 	r['load_things_tick_to_tick'] = select(
-		[things.c.thing, things.c.turn, things.c.tick,
-			things.c.location]).where(
+		things.c.thing, things.c.turn, things.c.tick,
+			things.c.location).where(
 				and_(
 					things_to_end_clause,
 					or_(
@@ -433,7 +433,7 @@ def queries(table):
 	branches = table['branches']
 
 	r['branch_children'] = select(
-		[branches.c.branch]).where(branches.c.parent == bindparam('branch'))
+		branches.c.branch).where(branches.c.parent == bindparam('branch'))
 
 	tc = table['turns_completed']
 	r['turns_completed_update'] = update_where(['turn'], [tc.c.branch])
