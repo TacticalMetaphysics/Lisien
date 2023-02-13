@@ -787,6 +787,7 @@ class QueryEngine(object):
 
 	def close(self):
 		"""Commit the transaction, then close the connection"""
+		self.flush()
 		self._inq.put('shutdown')
 		self._holder.existence_lock.acquire()
 		self._holder.existence_lock.release()
