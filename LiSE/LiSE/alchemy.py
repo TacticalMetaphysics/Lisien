@@ -411,8 +411,8 @@ def queries(table):
 		things.c.thing, things.c.turn, things.c.tick,
 			things.c.location).where(things_to_end_clause)
 	r['load_things_tick_to_tick'] = select(
-		[things.c.thing, things.c.turn, things.c.tick,
-			things.c.location]).where(
+		things.c.thing, things.c.turn, things.c.tick,
+			things.c.location).where(
 				and_(
 					things_to_end_clause,
 					or_(
