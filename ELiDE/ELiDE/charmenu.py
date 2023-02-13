@@ -201,7 +201,7 @@ Builder.load_string("""
 	Button:
 		id: timestreambut
 		text: 'Timestream'
-		on_release: root.toggle_timestream()
+		on_release: app.mainscreen.toggle_timestream()
 	Button:
 		id: gridviewbut
 		text: 'Toggle grid'
