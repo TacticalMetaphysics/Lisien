@@ -198,8 +198,9 @@ def _make_graph_val_select(graph: bytes, stat: bytes, branches: List[str],
 						func.max(tab.c.tick).label('tick')).group_by(
 							tab.c.graph, tab.c.key, tab.c.branch,
 							tab.c.turn).where(
-								and_(tab.c.graph == graph, tab.c.key == stat,
-										tab.c.branch.in_(branches)))
+								and_(
+									tab.c.graph == graph, tab.c.key == stat,
+									tab.c.branch.in_(branches))).subquery()
 	return _the_select(tab).select_from(
 		tab.join(
 			ticksel,
@@ -223,7 +224,7 @@ def _make_node_val_select(graph: bytes, node: bytes, stat: bytes,
 									tab.c.key == stat,
 									tab.c.branch.in_(branches))).group_by(
 										tab.c.graph, tab.c.node, tab.c.key,
-										tab.c.branch, tab.c.turn)
+										tab.c.branch, tab.c.turn).subquery()
 	return _the_select(tab).select_from(
 		tab.join(
 			ticksel,
@@ -247,7 +248,7 @@ def _make_location_select(graph: bytes, thing: bytes, branches: List[str],
 									tab.c.thing == thing,
 									tab.c.branch.in_(branches))).group_by(
 										tab.c.character, tab.c.thing,
-										tab.c.branch, tab.c.turn)
+										tab.c.branch, tab.c.turn).subquery()
 	return _the_select(tab, val_col='location').select_from(
 		tab.join(
 			ticksel,
@@ -274,7 +275,7 @@ def _make_edge_val_select(graph: bytes, orig: bytes, dest: bytes, idx: int,
 					tab.c.idx == idx, tab.c.key == stat,
 					tab.c.branch.in_(branches))).group_by(
 						tab.c.graph, tab.c.orig, tab.c.dest, tab.c.idx,
-						tab.c.key, tab.c.branch, tab.c.turn)
+						tab.c.key, tab.c.branch, tab.c.turn).subquery()
 	return _the_select(tab).select_from(
 		tab.join(
 			ticksel,
@@ -379,6 +380,7 @@ class QueryResult(Sequence, Set):
 
 
 class QueryResultEndTurn(QueryResult):
+
 	def _generate(self):
 		spans = []
 		left = []
