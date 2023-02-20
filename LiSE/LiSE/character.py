@@ -1438,13 +1438,15 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		if name in self.thing:
 			raise WorldIntegrityError(
 				"Already have a Thing named {}".format(name))
-		self.add_node(name, **kwargs)
+		starter = self.node_dict_factory()
+		starter.update(kwargs)
 		if isinstance(location, Node):
 			location = location.name
-		self.place2thing(
-			name,
-			location,
-		)
+		starter['location'] = location
+		self.thing[name] = starter
+		if name not in self._succ:
+			self._succ[name] = self.adjlist_inner_dict_factory()
+			self._pred[name] = self.adjlist_inner_dict_factory()
 
 	def add_things_from(self, seq, **attrs):
 		for tup in seq:

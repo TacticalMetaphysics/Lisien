@@ -930,10 +930,26 @@ class QueryEngine(query.QueryEngine):
 		self._char_portal_rules_handled = []
 		self._node_rules_handled = []
 		self._portal_rules_handled = []
+		self._unitness = []
+		self._location = []
 
 	def flush(self):
 		super().flush()
 		put = self._inq.put
+		if self._unitness:
+			put(('silent', 'many', 'del_units_after',
+					[(character, graph, node, branch, turn, turn, tick)
+						for (character, graph, node, branch, turn, tick,
+								_) in self._unitness]))
+			put(('silent', 'many', 'units_insert', self._unitness))
+			self._unitness = []
+		if self._location:
+			put(('silent', 'many', 'del_things_after', [
+				(character, thing, branch, turn, turn, tick)
+				for (character, thing, branch, turn, tick, _) in self._location
+			]))
+			put(('silent', 'many', 'things_insert', self._location))
+			self._location = []
 		if self._char_rules_handled:
 			put(('silent', 'many', 'character_rules_handled_insert',
 					self._char_rules_handled))
@@ -1386,17 +1402,12 @@ class QueryEngine(query.QueryEngine):
 	def set_thing_loc(self, character, thing, branch, turn, tick, loc):
 		(character, thing) = map(self.pack, (character, thing))
 		loc = self.pack(loc)
-		self.call_one('del_things_after', character, thing, branch, turn, turn,
-						tick)
-		self.call_one('things_insert', character, thing, branch, turn, tick,
-						loc)
+		self._location.append((character, thing, branch, turn, tick, loc))
 
 	def unit_set(self, character, graph, node, branch, turn, tick, isav):
 		(character, graph, node) = map(self.pack, (character, graph, node))
-		self.call_one('del_units_after', character, graph, node, branch, turn,
-						turn, tick)
-		self.call_one('units_insert', character, graph, node, branch, turn,
-						tick, isav)
+		self._unitness.append(
+			(character, graph, node, branch, turn, tick, isav))
 
 	def rulebooks_rules(self):
 		for (rulebook, rule) in self.call_one('rulebooks_rules'):
