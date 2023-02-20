@@ -1605,10 +1605,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		charmap = self.engine.character
 		avit = self.engine._unitness_cache.iter_entities
 		makenode = self.engine._get_node
-		for graph in avit(charname, branch, turn, tick):
+		for graph in charmap:
 			for node in avit(charname, graph, branch, turn, tick):
-				if graph in charmap:
-					yield makenode(charmap[graph], node)
+				yield makenode(charmap[graph], node)
 
 	def historical(self, stat):
 		"""Get a historical view on the given stat
