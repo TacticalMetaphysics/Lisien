@@ -950,34 +950,20 @@ class QueryEngine(query.QueryEngine):
 			]))
 			put(('silent', 'many', 'things_insert', self._location))
 			self._location = []
-		if self._char_rules_handled:
-			put(('silent', 'many', 'character_rules_handled_insert',
-					self._char_rules_handled))
-			self._char_rules_handled = []
-		if self._unit_rules_handled:
-			put(('silent', 'many', 'unit_rules_handled_insert',
-					self._unit_rules_handled))
-			self._unit_rules_handled = []
-		if self._char_thing_rules_handled:
-			put(('silent', 'many', 'character_thing_rules_handled_insert',
-					self._char_thing_rules_handled))
-			self._char_thing_rules_handled = []
-		if self._char_place_rules_handled:
-			put(('silent', 'many', 'character_place_rules_handled_insert',
-					self._char_place_rules_handled))
-			self._char_place_rules_handled = []
-		if self._char_portal_rules_handled:
-			put(('silent', 'many', 'character_portal_rules_handled_insert',
-					self._char_portal_rules_handled))
-			self._char_portal_rules_handled = []
-		if self._node_rules_handled:
-			put(('silent', 'many', 'node_rules_handled_insert',
-					self._node_rules_handled))
-			self._node_rules_handled = []
-		if self._portal_rules_handled:
-			put(('silent', 'many', 'portal_rules_handled_insert',
-					self._portal_rules_handled))
-			self._portal_rules_handled = []
+		for (attr, cmd) in [
+			('_char_rules_handled', 'character_rules_handled_insert'),
+			('_unit_rules_handled', 'unit_rules_handled_insert'),
+			('_char_thing_rules_handled',
+				'character_thing_rules_handled_insert'),
+			('_char_place_rules_handled',
+				'character_place_rules_handled_insert'),
+			('_char_portal_rules_handled',
+				'character_portal_rules_handled_insert'),
+			('_node_rules_handled', '_node_rules_handled_insert'),
+			('_portal_rules_handled', 'portal_rules_handled_insert')
+		]:
+			put(('silent', 'many', cmd, getattr(self, attr)))
+			setattr(self, attr, [])
 
 	def universals_dump(self):
 		unpack = self.unpack
