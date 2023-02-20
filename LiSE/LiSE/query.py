@@ -962,7 +962,8 @@ class QueryEngine(query.QueryEngine):
 			('_node_rules_handled', '_node_rules_handled_insert'),
 			('_portal_rules_handled', 'portal_rules_handled_insert')
 		]:
-			put(('silent', 'many', cmd, getattr(self, attr)))
+			if getattr(self, attr):
+				put(('silent', 'many', cmd, getattr(self, attr)))
 			setattr(self, attr, [])
 
 	def universals_dump(self):
