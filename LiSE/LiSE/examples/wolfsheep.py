@@ -1,5 +1,6 @@
 import random
 import networkx as nx
+import numpy as np
 
 from LiSE import Engine
 
@@ -30,6 +31,33 @@ def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10):
 								_image_paths=['atlas://rltiles/dc-mon/sheep'])
 		sheeps.add_unit(shep)
 		print('sheep', i)
+
+	@wolfs.unit.rule(always=True)
+	def pursue_sheep(wolff):
+		# find the sheep that's nearest
+		sheep_locs = np.array([
+			sheep['location']
+			for sheep in wolff.engine.character['sheep'].units()
+		])
+		my_loc = wolff['location']
+		dists = np.linalg.norm(sheep_locs - my_loc, axis=1)
+		nearest = tuple(sheep_locs[dists.argmin()])
+		if my_loc == nearest:  # om nom nom
+			sheepch = wolff.engine.character['sheep']
+			for the_sheep in wolff.contents():
+				if the_sheep.user is sheepch:
+					the_sheep.delete()
+			return
+		# take a step closer
+		if nearest[0] > my_loc[0]:
+			wolff['location'] = (my_loc[0] + 1, my_loc[1])
+		elif nearest[0] < my_loc[0]:
+			wolff['location'] = (my_loc[0] - 1, my_loc[1])
+		elif nearest[1] > my_loc[1]:
+			wolff['location'] = (my_loc[0], my_loc[1] + 1)
+		else:
+			assert nearest[1] < my_loc[1]
+			wolff['location'] = (my_loc[0], my_loc[1] - 1)
 
 
 if __name__ == '__main__':
