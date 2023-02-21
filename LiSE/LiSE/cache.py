@@ -557,18 +557,15 @@ class PortalRulesHandledCache(RulesHandledCache):
 			return character, orig, dest
 
 	def iter_unhandled_rules(self, branch, turn, tick):
-		charm = self.engine.character
 		portals_with_rulebook_changed = {
 			(character, orig, dest)
 			for (character, orig, dest, _, _,
 					_) in self.engine._portals_rulebooks_cache.shallowest
 		}
-		portals_default_rulebooks = set()
-		now = self.engine._btt()
-		iter_ports = self.engine._edges_cache.iter_keys
-		for charn in charm:
-			portals_default_rulebooks.update(
-				(None, (charn, *port)) for port in iter_ports(charn, *now))
+		portals_default_rulebooks = {
+			(None, port)
+			for port in self.engine._edges_cache.keys
+		}
 		portals_with_filled_default_rulebooks = {
 			(character, orig, dest)
 			for (_, (character, orig, dest)) in (
