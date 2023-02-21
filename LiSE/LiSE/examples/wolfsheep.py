@@ -31,7 +31,7 @@ def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10):
 		sheeps.add_unit(shep)
 		print('sheep', i)
 
-	@wolfs.unit.rule(always=True)
+	@wolfs.unit.rule
 	def pursue_sheep(wolff):
 		import numpy as np
 		# find the sheep that's nearest
@@ -58,6 +58,10 @@ def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10):
 		else:
 			assert nearest[1] < my_loc[1]
 			wolff['location'] = (my_loc[0], my_loc[1] - 1)
+
+	@pursue_sheep.trigger
+	def any_sheep(wolff):
+		return bool(wolff.engine.character['sheep'].unit)
 
 
 if __name__ == '__main__':
