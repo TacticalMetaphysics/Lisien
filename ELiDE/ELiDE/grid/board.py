@@ -96,7 +96,8 @@ class GridBoard(Widget):
 			location,
 			"textures":
 			list(thing.get("_image_paths", self.pawn_cls.default_image_paths)),
-			"proxy": thing
+			"proxy":
+			thing
 		}
 		return r
 
@@ -129,24 +130,30 @@ class GridBoard(Widget):
 						size=self.spot_plane.setter('size'))
 			self.add_widget(self.spot_plane)
 			self.add_widget(self.pawn_plane)
-		spot_data = list(map(self.make_spot, filter(
-			lambda spot: isinstance(spot["name"], tuple) and len(
-				spot["name"]) == 2, self.character.place.values())))
+		spot_data = list(
+			map(
+				self.make_spot,
+				filter(
+					lambda spot: isinstance(spot["name"], tuple) and len(spot[
+						"name"]) == 2, self.character.place.values())))
 		if not spot_data:
 			self.spot_plane.data = self.pawn_plane.data = []
 			return
 		for spt in spot_data:
-			self.spot[spt["name"]] = self.spot_cls(board=self, proxy=spt["proxy"])
+			self.spot[spt["name"]] = self.spot_cls(board=self,
+													proxy=spt["proxy"])
 		self.spot_plane.unbind_uid('data', self.spot_plane._redraw_bind_uid)
 		self.spot_plane.data = spot_data
 		self.spot_plane.redraw()
-		self.spot_plane._redraw_bind_uid = self.spot_plane.fbind('data', self.spot_plane._trigger_redraw)
+		self.spot_plane._redraw_bind_uid = self.spot_plane.fbind(
+			'data', self.spot_plane._trigger_redraw)
 		wide = max(datum["x"] for datum in spot_data) + self.tile_width
 		high = max(datum["y"] for datum in spot_data) + self.tile_width
 		self.size = self.spot_plane.size = self.pawn_plane.size = wide, high
 		pawn_data = list(map(self.make_pawn, self.character.thing.values()))
 		for pwn in pawn_data:
-			self.pawn[pwn["name"]] = self.pawn_cls(board=self, proxy=pwn["proxy"])
+			self.pawn[pwn["name"]] = self.pawn_cls(board=self,
+													proxy=pwn["proxy"])
 		self.pawn_plane.data = pawn_data
 
 	def rm_spot(self, name):
@@ -174,7 +181,7 @@ class GridBoard(Widget):
 			pwn = pawnmap.pop(name)
 			if pwn in selection_candidates:
 				selection_candidates.remove(pwn)
-			self.pawn_plane.remove_datum(pwn)
+			self.pawn_plane.remove(name)
 
 		def rm_spot(name):
 			spot = spotmap.pop(name)
@@ -183,7 +190,7 @@ class GridBoard(Widget):
 			for pwn in self.contained[name]:
 				del pawnmap[pwn.name]
 			del self.contained[name]
-			self.spot_plane.remove_datum(spot)
+			self.spot_plane.remove(name)
 
 		if 'nodes' in delta:
 			for node, extant in delta['nodes'].items():
@@ -218,7 +225,9 @@ class GridBoard(Widget):
 				elif stats['location'] in self.spot:
 					self.add_pawn(node)
 				else:
-					Logger.warning(f"GridBoard: Thing {node} has invalid location {stats['location']}")
+					Logger.warning(
+						f"GridBoard: Thing {node} has invalid location {stats['location']}"
+					)
 
 	def trigger_update_from_delta(self, delta, *args):
 		part = partial(self.update_from_delta, delta)
