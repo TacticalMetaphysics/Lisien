@@ -535,7 +535,7 @@ class EngineHandle(object):
 			if 'nodes' in chardelta:
 				nd = chard[NODES] = {
 					pack(node): pack(ex)
-					for node, ex in chardelta.pop('nodes')
+					for node, ex in chardelta.pop('nodes').items()
 				}
 				packd[NODES] = concat_d(nd)
 			if 'node_val' in chardelta:
