@@ -1,6 +1,5 @@
 import random
 import networkx as nx
-import numpy as np
 
 from LiSE import Engine
 
@@ -34,6 +33,7 @@ def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10):
 
 	@wolfs.unit.rule(always=True)
 	def pursue_sheep(wolff):
+		import numpy as np
 		# find the sheep that's nearest
 		sheep_locs = np.array([
 			sheep['location']
