@@ -201,11 +201,12 @@ class UnitnessCache(Cache):
 		else:
 			uniqav[turn] = {tick: charav}
 		if not graphavs[turn][tick]:
-			graphs[turn][tick].remove(graph)
-			if len(graphs[turn][tick]) == 1:
-				uniqgraph[turn][tick] = next(iter(graphs[turn][tick]))
-			else:
-				uniqgraph[turn][tick] = None
+			if graph in graphs[turn][tick]:
+				graphs[turn][tick].remove(graph)
+				if len(graphs[turn][tick]) == 1:
+					uniqgraph[turn][tick] = next(iter(graphs[turn][tick]))
+				else:
+					uniqgraph[turn][tick] = None
 		if turn in graphavs and tick in graphavs[turn] and len(
 			graphavs[turn][tick]) != 1:
 			if turn in soloav:
