@@ -483,6 +483,13 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 				rulebook = self.get_rulebook(character, branch, turn, tick)
 			except KeyError:
 				continue
+			try:
+				rulebook_rules = self.engine._rulebooks_cache.retrieve(
+					rulebook, branch, turn, tick)
+			except KeyError:
+				continue
+			if not rulebook_rules:
+				continue
 			char = charm[character]
 			charn = char.node
 			charp = char.portal
@@ -513,17 +520,31 @@ class NodeRulesHandledCache(RulesHandledCache):
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		charm = self.engine.character
-		for character in sort_set(charm.keys()):
-			for node in sort_set(charm[character].node.keys()):
-				try:
-					rulebook = self.get_rulebook(character, node, branch, turn,
-													tick)
-					rules = self.unhandled_rulebook_rules(
-						character, node, rulebook, branch, turn, tick)
-				except KeyError:
-					continue
-				for rule in rules:
-					yield character, node, rulebook, rule
+		nodes_with_rulebook_changed = {
+			(character, node)
+			for (character, node, _, _,
+					_) in self.engine._nodes_rulebooks_cache.shallowest
+		}
+		nodes_with_filled_default_rulebooks = {
+			(character, node)
+			for (_, (character, node)) in (
+				{(None, (character, node))
+					for character in charm for node in charm[character].node}
+				& self.engine._rulebooks_cache.branches.keys())
+		}
+		for (character,
+				node) in sort_set(nodes_with_rulebook_changed
+									| nodes_with_filled_default_rulebooks):
+			try:
+				rulebook = self.get_rulebook(character, node, branch, turn,
+												tick)
+				rules = self.unhandled_rulebook_rules(character, node,
+														rulebook, branch, turn,
+														tick)
+			except KeyError:
+				continue
+			for rule in rules:
+				yield character, node, rulebook, rule
 
 
 class PortalRulesHandledCache(RulesHandledCache):
@@ -537,27 +558,36 @@ class PortalRulesHandledCache(RulesHandledCache):
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		charm = self.engine.character
-		for character in sort_set(charm.keys()):
-			char = charm[character]
-			charn = char.node
-			charp = char.portal
-			for orig in sort_set(charp.keys()):
-				if orig not in charn:
-					continue
-				dests = charp[orig]
-				for dest in sort_set(dests.keys()):
-					if dest not in charn:
-						continue
-					try:
-						rulebook = self.get_rulebook(character, orig, dest,
-														branch, turn, tick)
-						rules = self.unhandled_rulebook_rules(
-							character, orig, dest, rulebook, branch, turn,
-							tick)
-					except KeyError:
-						continue
-					for rule in rules:
-						yield character, orig, dest, rulebook, rule
+		portals_with_rulebook_changed = {
+			(character, orig, dest)
+			for (character, orig, dest, _, _,
+					_) in self.engine._portals_rulebooks_cache.shallowest
+		}
+		portals_default_rulebooks = set()
+		now = self.engine._btt()
+		iter_ports = self.engine._edges_cache.iter_keys
+		for charn in charm:
+			portals_default_rulebooks.update(
+				(None, (charn, *port)) for port in iter_ports(charn, *now))
+		portals_with_filled_default_rulebooks = {
+			(character, orig, dest)
+			for (_, (character, orig, dest)) in (
+				portals_default_rulebooks
+				& self.engine._rulebooks_cache.branches.keys())
+		}
+		for (character, orig,
+				dest) in (portals_with_rulebook_changed
+							| portals_with_filled_default_rulebooks):
+			try:
+				rulebook = self.get_rulebook(character, orig, dest, branch,
+												turn, tick)
+				rules = self.unhandled_rulebook_rules(character, orig, dest,
+														rulebook, branch, turn,
+														tick)
+			except KeyError:
+				continue
+			for rule in rules:
+				yield character, orig, dest, rulebook, rule
 
 
 class ThingsCache(Cache):
