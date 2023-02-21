@@ -35,13 +35,17 @@ def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10):
 	def pursue_sheep(wolff):
 		import numpy as np
 		# find the sheep that's nearest
-		sheep_locs = np.array([
+		sheep_locs = [
 			sheep['location']
 			for sheep in wolff.engine.character['sheep'].units()
-		])
+		]
 		my_loc = wolff['location']
-		dists = np.linalg.norm(sheep_locs - my_loc, axis=1)
-		nearest = tuple(sheep_locs[dists.argmin()])
+		if len(sheep_locs) == 1:
+			nearest = sheep_locs[0]
+		else:
+			sheep_locs = np.array(sheep_locs)
+			dists = np.linalg.norm((sheep_locs - my_loc), axis=1)
+			nearest = tuple(sheep_locs[dists.argmin()])
 		if my_loc == nearest:  # om nom nom
 			sheepch = wolff.engine.character['sheep']
 			n_del = 0
@@ -64,6 +68,10 @@ def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10):
 
 	@pursue_sheep.trigger
 	def any_sheep(wolff):
+		return bool(wolff.engine.character['sheep'].unit)
+
+	@pursue_sheep.prereq
+	def sheep_remains(wolff):
 		return bool(wolff.engine.character['sheep'].unit)
 
 
