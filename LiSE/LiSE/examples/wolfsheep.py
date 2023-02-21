@@ -44,9 +44,12 @@ def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10):
 		nearest = tuple(sheep_locs[dists.argmin()])
 		if my_loc == nearest:  # om nom nom
 			sheepch = wolff.engine.character['sheep']
-			for the_sheep in wolff.contents():
-				if the_sheep.user is sheepch:
+			n_del = 0
+			for the_sheep in wolff.location.contents():
+				if the_sheep.user.only is sheepch:
 					the_sheep.delete()
+					n_del += 1
+			assert n_del
 			return
 		# take a step closer
 		if nearest[0] > my_loc[0]:
