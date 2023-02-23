@@ -321,18 +321,6 @@ Now the triangles only relocate whenever their neighborhood looks too
 much like them, whereas squares only relocate when they have too many
 triangle neighbors.
 
-You should make sure your rules have unique names. This requirement is
-necessary for assigning rules by name rather than decorator; you could
-make triangles move in response to dissimilar neighbors like so:
-
-```python
-	tri.unit.rulebook.append('sq_relocate')
-```
-
-In this case you didn't really *have* to use the name of the rule,
-since you still have the rule object in scope, but maybe you won't
-always.
-
 When you have a set of rules that needs to apply to many
 entities, and you can't just make them all units, you can have the
 entities share a rulebook. This works:
