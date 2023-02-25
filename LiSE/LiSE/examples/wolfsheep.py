@@ -80,7 +80,10 @@ if __name__ == '__main__':
 
 	args = []
 	kwargs = {}
-	if len(sys.argv) == 2:
+	if len(sys.argv) == 3:
+		kwargs['random_seed'] = sys.argv[-1]
+		args.append(sys.argv[-2])
+	elif len(sys.argv) == 2:
 		args.append(sys.argv[-1])
 	else:
 		kwargs['connect_string'] = 'sqlite:///:memory:'
