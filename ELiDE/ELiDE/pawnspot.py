@@ -530,7 +530,6 @@ class Stack:
 
 	@paths.setter
 	def paths(self, v):
-		print("got paths ", v)
 		name = self.proxy['name']
 		plane = self._stack_plane
 		datum = plane.data[plane._stack_index[name]]
