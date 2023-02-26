@@ -1194,7 +1194,29 @@ class Engine(AbstractEngine, gORM):
 
 		avcache_retr = self._unitness_cache._base_retrieve
 		node_exists = self._node_exists
-		get_node = self._get_node
+		make_node = self._make_node
+		thing_cls = self.thing_cls
+		place_cls = self.place_cls
+		node_objs = self._node_objs
+
+		def get_node(graphn, noden):
+			key = (graphn, noden)
+			if key not in node_objs:
+				node_objs[key] = make_node(charmap[graphn], noden)
+			return node_objs[key]
+
+		def get_thing(graphn, thingn):
+			key = (graphn, noden)
+			if key not in node_objs:
+				node_objs[key] = thing_cls(charmap[graphn], noden)
+			return node_objs[key]
+
+		def get_place(graphn, placen):
+			key = (graphn, placen)
+			if key not in node_objs:
+				node_objs[key] = place_cls(charmap[graphn], noden)
+			return node_objs[key]
+
 		for (charn, graphn, avn, rulebook,
 				rulen) in self._unit_rules_handled_cache.iter_unhandled_rules(
 					branch, turn, tick):
@@ -1218,7 +1240,7 @@ class Engine(AbstractEngine, gORM):
 			rule = rulemap[rulen]
 			handled = partial(handled_char_thing, charn, thingn, rulebook,
 								rulen, branch, turn)
-			entity = get_node(charn, thingn)
+			entity = get_thing(charn, thingn)
 			trig_futs.append(
 				pool.submit(check_triggers, rulebook, rule, handled, entity))
 		handled_char_place = self._handled_char_place
@@ -1231,7 +1253,7 @@ class Engine(AbstractEngine, gORM):
 			rule = rulemap[rulen]
 			handled = partial(handled_char_place, charn, placen, rulebook,
 								rulen, branch, turn)
-			entity = get_node(charn, placen)
+			entity = get_place(charn, placen)
 			trig_futs.append(
 				pool.submit(check_triggers, rulebook, rule, handled, entity))
 		edge_exists = self._edge_exists
