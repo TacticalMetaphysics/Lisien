@@ -367,11 +367,10 @@ class RulesHandledCache(object):
 					uerb = uer[branch]
 					if turn in uerb:
 						return uerb[turn]
-		try:
-			rulebook_rules = self.engine._rulebooks_cache.retrieve(
-				rulebook, branch, turn, tick)
-		except KeyError:
+		rbc = self.engine._rulebooks_cache
+		if not rbc.contains_key(rulebook, branch, turn, tick):
 			return []
+		rulebook_rules = rbc.retrieve(rulebook, branch, turn, tick)
 		handled_rules = self.handled.setdefault(
 			entity + (rulebook, branch, turn), set())
 		return [rule for rule in rulebook_rules if rule not in handled_rules]
