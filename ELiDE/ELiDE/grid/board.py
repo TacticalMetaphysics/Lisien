@@ -222,12 +222,8 @@ class GridBoard(Widget):
 					if '_image_paths' in stats:
 						pawn.paths = stats[
 							'_image_paths'] or self.pawn_cls.default_image_paths
-				elif stats['location'] in self.spot:
+				elif 'location' in stats and stats['location'] in self.spot:
 					self.add_pawn(node)
-				else:
-					Logger.warning(
-						f"GridBoard: Thing {node} has invalid location {stats['location']}"
-					)
 
 	def trigger_update_from_delta(self, delta, *args):
 		part = partial(self.update_from_delta, delta)
