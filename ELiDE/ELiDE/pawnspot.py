@@ -562,11 +562,11 @@ class Stack:
 
 	@property
 	def selected(self):
-		return self.board.stack_plane.selected == self.proxy['name']
+		return self._stack_plane.selected == self.proxy['name']
 
 	@selected.setter
 	def selected(self, v: bool):
-		stack_plane: TextureStackPlane = self.board.stack_plane
+		stack_plane: TextureStackPlane = self._stack_plane
 		name = self.proxy['name']
 		insts = stack_plane._instructions[name]
 		if v:
