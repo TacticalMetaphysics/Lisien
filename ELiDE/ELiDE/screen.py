@@ -20,6 +20,7 @@ grid, the time control panel, and the menu.
 """
 from functools import partial
 from ast import literal_eval
+from threading import Thread
 
 from kivy.app import App
 from kivy.clock import mainthread
@@ -314,9 +315,8 @@ class MainScreen(Screen):
 	def on_touch_down(self, touch):
 		if self.visible:
 			touch.grab(self)
-		for interceptor in (self.timepanel, self.turnscroll,
-		                    self.charmenu, self.statpanel,
-		                    self.dummyplace, self.dummything):
+		for interceptor in (self.timepanel, self.turnscroll, self.charmenu,
+							self.statpanel, self.dummyplace, self.dummything):
 			if interceptor.collide_point(*touch.pos):
 				interceptor.dispatch('on_touch_down', touch)
 				self.boardview.keep_selection = self.gridview.keep_selection = True
@@ -435,7 +435,10 @@ class MainScreen(Screen):
 				"MainScreen: not advancing time while there's a dialog")
 			return
 		self.tmp_block = True
-		eng.next_turn(cb=partial(self._update_from_next_turn, cb=cb))
+		self._next_turn_thread = Thread(
+			target=eng.next_turn,
+			kwargs={'cb': partial(self._update_from_next_turn, cb=cb)})
+		self._next_turn_thread.start()
 		self.ids.charmenu._switch_to_menu()
 
 	def switch_to_calendar(self, *args):
@@ -492,8 +495,9 @@ class CharMenuContainer(BoxLayout):
 		self.charmenu.bind(portaladdbut=self.setter('portaladdbut'))
 		if self.toggle_gridview:
 			self.charmenu = self.toggle_gridview
-		self.bind(toggle_gridview=self.charmenu.setter('toggle_gridview'),
-		          toggle_timestream=self.charmenu.setter('toggle_timestream'))
+		self.bind(
+			toggle_gridview=self.charmenu.setter('toggle_gridview'),
+			toggle_timestream=self.charmenu.setter('toggle_timestream'))
 		self.stepper = RuleStepper(size_hint_y=0.9)
 		self.button = Button(on_release=self._toggle,
 								text='Rule\nstepper',
@@ -532,12 +536,12 @@ class CharMenuContainer(BoxLayout):
 
 
 class TurnScroll(Slider):
-	
+
 	def __init__(self, **kwargs):
 		kwargs['step'] = 1
 		super().__init__(**kwargs)
 		self._collect_engine()
-	
+
 	def _collect_engine(self, *args):
 		app = App.get_running_app()
 		if app.engine is None:
@@ -550,7 +554,7 @@ class TurnScroll(Slider):
 		Logger.debug(f"TurnScroll: {self.min}<-->{self.max}")
 		self.value = engine.turn
 		engine.time.connect(self._receive_time)
-	
+
 	def _receive_time(self, engine, branch, turn, tick):
 		self.value = turn
 		try:
