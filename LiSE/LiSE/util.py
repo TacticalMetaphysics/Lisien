@@ -595,7 +595,7 @@ class AbstractEngine(ABC):
 			return False
 		if pct >= 100:
 			return True
-		return pct / 100 < self.random()
+		return pct > self.randint(0, 99)
 
 	betavariate = getnoplan('_rando.betavariate')
 	choice = getnoplan('_rando.choice')
