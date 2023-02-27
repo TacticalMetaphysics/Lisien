@@ -1206,7 +1206,7 @@ class Engine(AbstractEngine, gORM):
 			return node_objs[key]
 
 		def get_thing(graphn, thingn):
-			key = (graphn, noden)
+			key = (graphn, thingn)
 			if key not in node_objs:
 				node_objs[key] = thing_cls(charmap[graphn], noden)
 			return node_objs[key]
