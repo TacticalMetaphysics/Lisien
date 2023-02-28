@@ -118,4 +118,3 @@ if __name__ == '__main__':
 		kwargs['connect_string'] = 'sqlite:///:memory:'
 	with Engine(*args, **kwargs) as engn:
 		install(engn)
-		engn.next_turn()
