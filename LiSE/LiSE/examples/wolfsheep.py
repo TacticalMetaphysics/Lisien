@@ -57,8 +57,13 @@ def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10):
 	@sheeps.unit.rule(always=True)
 	def wander(shep):
 		here = shep.location
-		neighbors = [port.destination for port in here.portals()]
+		x, y = here.name
+		physical = shep.engine.character['physical']
+		neighbors = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
 		for neighbor in neighbors:
+			if neighbor not in physical.place:
+				continue
+			neighbor = physical.place[neighbor]
 			if not neighbor['bare']:
 				shep.location = neighbor
 				return
