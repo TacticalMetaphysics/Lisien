@@ -38,6 +38,25 @@ def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10):
 		there['bare'] = False
 		there['_image_paths'] = ['atlas://rltiles/floor/floor-moss']
 
+	@sheeps.unit.rule
+	def graze(shep):
+		shep.location['bare'] = True
+		shep.location['_image_paths'] = ['atlas://rltiles/floor/floor-normal']
+
+	@graze.trigger
+	def grass_here(shep):
+		return not shep.location['bare']
+
+	@sheeps.unit.rule(always=True)
+	def wander(shep):
+		here = shep.location
+		neighbors = [port.destination for port in here.portals()]
+		for neighbor in neighbors:
+			if not neighbor['bare']:
+				shep.location = neighbor
+				return
+		shep.location = shep.engine.choice(neighbors)
+
 	@wolfs.unit.rule
 	def pursue_sheep(wolff):
 		import numpy as np
