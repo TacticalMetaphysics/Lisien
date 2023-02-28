@@ -7,10 +7,10 @@ from LiSE import Engine
 def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10):
 	proto: nx.Graph = nx.grid_2d_graph(*map_size)
 	for node in proto.nodes.values():
-		node['soil'] = random.choice([True, False])
+		node['bare'] = random.choice([True, False])
 		node['_image_paths'] = [
 			'atlas://rltiles/floor/' +
-			('floor-normal' if node['soil'] else 'floor-moss')
+			('floor-normal' if node['bare'] else 'floor-moss')
 		]
 	phys = eng.new_character('physical', proto)
 	wolfs = eng.new_character('wolf')
@@ -30,6 +30,13 @@ def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10):
 								_image_paths=['atlas://rltiles/dc-mon/sheep'])
 		sheeps.add_unit(shep)
 		print('sheep', i)
+
+	@phys.rule(always=True)
+	def grow(chara):
+		bare_places = list(filter(lambda x: x['bare'], chara.place.values()))
+		there = chara.engine.choice(bare_places)
+		there['bare'] = False
+		there['_image_paths'] = ['atlas://rltiles/floor/floor-moss']
 
 	@wolfs.unit.rule
 	def pursue_sheep(wolff):
@@ -89,3 +96,4 @@ if __name__ == '__main__':
 		kwargs['connect_string'] = 'sqlite:///:memory:'
 	with Engine(*args, **kwargs) as engn:
 		install(engn)
+		engn.next_turn()
