@@ -5,14 +5,18 @@ from LiSE import Engine
 
 
 def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10):
+	bare_places = []
 	proto: nx.Graph = nx.grid_2d_graph(*map_size)
-	for node in proto.nodes.values():
+	for node_name, node in proto.nodes.items():
 		node['bare'] = random.choice([True, False])
 		node['_image_paths'] = [
 			'atlas://rltiles/floor/' +
 			('floor-normal' if node['bare'] else 'floor-moss')
 		]
+		if node['bare']:
+			bare_places.append(node_name)
 	phys = eng.new_character('physical', proto)
+	phys.stat['bare_places'] = bare_places
 	wolfs = eng.new_character('wolf')
 	sheeps = eng.new_character('sheep')
 	unoccupied = [(x, y) for x in range(map_size[0])
@@ -33,14 +37,17 @@ def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10):
 
 	@phys.rule(always=True)
 	def grow(chara):
-		bare_places = list(filter(lambda x: x['bare'], chara.place.values()))
-		there = chara.engine.choice(bare_places)
+		bare_places = chara.stat['bare_places']
+		i = chara.engine.randrange(0, len(bare_places))
+		there = chara.place[bare_places.pop(i)]
 		there['bare'] = False
 		there['_image_paths'] = ['atlas://rltiles/floor/floor-moss']
 
 	@sheeps.unit.rule
 	def graze(shep):
 		shep.location['bare'] = True
+		shep.engine.character['physical'].stat['bare_places'].append(
+			shep['location'])
 		shep.location['_image_paths'] = ['atlas://rltiles/floor/floor-normal']
 
 	@graze.trigger
