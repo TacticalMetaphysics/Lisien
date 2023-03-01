@@ -1042,7 +1042,7 @@ class Cache:
 							ret = kf[key]
 							shallowest[args] = ret
 							return ret
-		return KeyError(f"No value for {entity} at {branch, turn, tick}")
+		return KeyError(f"No value for {entity, key} at {branch, turn, tick}")
 
 	def retrieve(self, *args):
 		"""Get a value previously .store(...)'d.
