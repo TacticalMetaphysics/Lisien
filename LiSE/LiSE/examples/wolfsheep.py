@@ -4,7 +4,9 @@ import networkx as nx
 from LiSE import Engine
 
 
-def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10):
+def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10, seed=None):
+	if seed is not None:
+		random.seed(seed)
 	bare_places = []
 	proto: nx.Graph = nx.grid_2d_graph(*map_size)
 	for node_name, node in proto.nodes.items():

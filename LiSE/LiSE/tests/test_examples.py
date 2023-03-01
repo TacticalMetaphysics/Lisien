@@ -2,7 +2,7 @@ import networkx as nx
 import pytest
 
 from LiSE import Engine
-from LiSE.examples import college, kobold, polygons, sickle
+from LiSE.examples import college, kobold, polygons, sickle, wolfsheep
 
 
 @pytest.mark.slow
@@ -48,5 +48,11 @@ def test_char_stat_startup(tempdir):
 
 def test_sickle(engy):
 	sickle.install(engy)
+	for i in range(100):
+		engy.next_turn()
+
+
+def test_wolfsheep(engy):
+	wolfsheep.install(engy, seed=69105)
 	for i in range(100):
 		engy.next_turn()
