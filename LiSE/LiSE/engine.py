@@ -1394,6 +1394,8 @@ class Engine(AbstractEngine, gORM):
 	def _set_thing_loc(self, character: Hashable, node: Hashable,
 						loc: Hashable) -> None:
 		branch, turn, tick = self._nbtt()
+		# make sure the location really exists now
+		self._nodes_cache.retrieve(character, loc, branch, turn, tick)
 		self._things_cache.store(character, node, branch, turn, tick, loc)
 		self.query.set_thing_loc(character, node, branch, turn, tick, loc)
 
