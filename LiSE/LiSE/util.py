@@ -429,7 +429,8 @@ class AbstractEngine(ABC):
 			'CacheError': exc.CacheError,
 			'TravelException': exc.TravelException,
 			'OutOfTimelineError': exc.OutOfTimelineError,
-			'HistoricKeyError': exc.HistoricKeyError
+			'HistoricKeyError': exc.HistoricKeyError,
+			'NotInKeyframeError': exc.NotInKeyframeError
 		}
 
 		def unpack_exception(ext):
