@@ -918,8 +918,8 @@ class Cache:
 									return ret
 								else:
 									return KeyError(
-										f"No value for {entity, key} at {branch, turn, tick}"
-									)
+										f"No value for {entity, key} "
+										f"at {branch, turn, tick}")
 						ret = brancs[r][t]
 						shallowest[args] = ret
 						return ret
@@ -936,8 +936,8 @@ class Cache:
 									return ret
 								else:
 									return KeyError(
-										f"No value for {entity, key} at {branch, turn, tick}"
-									)
+										f"No value for {entity, key} "
+										f"at {branch, turn, tick}")
 							elif brancs.rev_before(r - 1) == kfb.rev_before(r -
 																			1):
 								kfbr = kfb[r - 1]
@@ -950,8 +950,8 @@ class Cache:
 										return ret
 									else:
 										return KeyError(
-											f"No value for {entity, key} at {branch, turn, tick}"
-										)
+											f"No value for {entity, key} "
+											f"at {branch, turn, tick}")
 						ret = brancs[r - 1].final()
 						shallowest[args] = ret
 						return ret
@@ -962,18 +962,16 @@ class Cache:
 							shallowest[args] = ret
 							return ret
 						else:
-							return KeyError(
-								f"No value for {entity, key} at {branch, turn, tick}"
-							)
+							return KeyError(f"No value for {entity, key} "
+											f"at {branch, turn, tick}")
 					elif b in keyframes and keyframes[b].rev_gettable(r - 1):
 						if key in keyframes[b][r - 1].final():
 							ret = keyframes[b][r - 1].final()[key]
 							shallowest[args] = ret
 							return ret
 						else:
-							return KeyError(
-								f"No value for {entity, key} at {branch, turn, tick}"
-							)
+							return KeyError(f"No value for {entity, key} "
+											f"at {branch, turn, tick}")
 				elif b in keyframes:
 					kfb = keyframes[branch]
 					if r in kfb:
@@ -985,9 +983,8 @@ class Cache:
 								shallowest[args] = ret
 								return ret
 							else:
-								return KeyError(
-									f"No value for {entity, key} at {branch, turn, tick}"
-								)
+								return KeyError(f"No value for {entity, key} "
+												f"at {branch, turn, tick}")
 					if kfb.rev_gettable(r - 1):
 						kfbr = kfb[r]
 						kf = kfbr.final()
@@ -996,9 +993,8 @@ class Cache:
 							shallowest[args] = ret
 							return ret
 						else:
-							return KeyError(
-								f"No value for {entity, key} at {branch, turn, tick}"
-							)
+							return KeyError(f"No value for {entity, key} "
+											f"at {branch, turn, tick}")
 		else:
 			if branch in keyframes:
 				kfb = keyframes[branch]
@@ -1011,9 +1007,8 @@ class Cache:
 							shallowest[args] = ret
 							return ret
 						else:
-							return KeyError(
-								f"No value for {entity, key} at {branch, turn, tick}"
-							)
+							return KeyError(f"No value for {entity, key} "
+											f"at {branch, turn, tick}")
 				if kfb.rev_gettable(turn - 1):
 					kfbr = kfb[turn]
 					kf = kfbr.final()
@@ -1021,9 +1016,8 @@ class Cache:
 						ret = shallowest[args] = kf[key]
 						return ret
 					else:
-						return KeyError(
-							f"No value for {entity, key} at {branch, turn, tick}"
-						)
+						return KeyError(f"No value for {entity, key} "
+										f"at {branch, turn, tick}")
 			for (b, r, t) in self.db._iter_parent_btt(branch):
 				if b in keyframes:
 					kfb = keyframes[b]
