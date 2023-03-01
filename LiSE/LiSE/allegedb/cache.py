@@ -1029,6 +1029,9 @@ class Cache:
 								ret = kf[key]
 								shallowest[args] = ret
 								return ret
+							else:
+								return KeyError(f"No value for {entity, key} "
+								                f"at {branch, turn, tick}")
 					if kfb.rev_gettable(r - 1):
 						kfbr = kfb[r]
 						kf = kfbr.final()
@@ -1036,6 +1039,9 @@ class Cache:
 							ret = kf[key]
 							shallowest[args] = ret
 							return ret
+						else:
+							return KeyError(f"No value for {entity, key} "
+							                f"at {branch, turn, tick}")
 		return KeyError(f"No value for {entity, key} at {branch, turn, tick}")
 
 	def retrieve(self, *args):
