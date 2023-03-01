@@ -61,10 +61,10 @@ def install(eng: Engine, map_size=(100, 100), wolves=10, sheep=10, seed=None):
 		here = shep.location
 		x, y = here.name
 		physical = shep.engine.character['physical']
-		neighbors = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+		neighbors = list(
+			filter(lambda b: b in physical.place, [(x + 1, y), (x - 1, y),
+													(x, y + 1), (x, y - 1)]))
 		for neighbor in neighbors:
-			if neighbor not in physical.place:
-				continue
 			neighbor = physical.place[neighbor]
 			if not neighbor['bare']:
 				shep.location = neighbor
