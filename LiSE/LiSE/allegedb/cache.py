@@ -985,9 +985,10 @@ class Cache:
 					kfbr = kfb[turn]
 					kf = kfbr.final()
 					if key in kf:
-						ret = kf[key]
-						shallowest[args] = ret
-						return ret
+						shallowest[args] = kf[key]
+					else:
+						shallowest[args] = None
+					return shallowest[args]
 			for (b, r, t) in self.db._iter_parent_btt(branch):
 				if b in keyframes:
 					kfb = keyframes[b]
