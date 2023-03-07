@@ -85,6 +85,7 @@ instead.
 
 ```
 git clone https://github.com/TacticalMetaphysics/LiSE.git
+cd LiSE
 python -m pip install --pre --extra-index-url https://kivy.org/downloads/simple "kivy[base]" kivy.deps.sdl2 kivy.deps.glew pygments -r LiSE\requirements.txt
 set PYTHONPATH=%cd%\LiSE;%cd%\ELiDE  # only works in cmd.exe, not powershell. Has to be run once per cmd.exe session
 ```
