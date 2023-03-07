@@ -544,7 +544,7 @@ class GraphBoard(RelativeLayout):
 		pwn = self.pawn.pop(name)
 		if pwn in self.selection_candidates:
 			self.selection_candidates.remove(pwn)
-		pwn.parent.remove_widget(pwn)
+		self.stack_plane.remove(name)
 
 	def _trigger_rm_pawn(self, name):
 		Clock.schedule_once(partial(self.rm_pawn, name), 0)

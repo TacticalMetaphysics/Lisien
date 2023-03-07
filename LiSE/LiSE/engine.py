@@ -17,6 +17,7 @@ stores for game data and entities, as well as properties for manipulating the
 flow of time.
 
 """
+from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial
 from collections import defaultdict
 from types import FunctionType, ModuleType
@@ -370,6 +371,7 @@ class Engine(AbstractEngine, gORM):
 		self.commit_interval = commit_interval
 		self.keyframe_interval = keyframe_interval
 		self.flush_interval = flush_interval
+		self._trigger_pool = ThreadPoolExecutor()
 		self._rules_iter = self._follow_rules()
 		# set up the randomizer
 		from random import Random
@@ -1145,16 +1147,16 @@ class Engine(AbstractEngine, gORM):
 		branch, turn, tick = self._btt()
 		charmap = self.character
 		rulemap = self.rule
+		pool = self._trigger_pool
 		todo = defaultdict(list)
 
-		def check_triggers(rule, handled_fun, entity):
+		def check_triggers(rulebook, rule, handled_fun, entity):
 			for trigger in rule.triggers:
 				res = trigger(entity)
 				if res:
-					return True
+					todo[rulebook].append((rule, handled_fun, entity))
 			else:
 				handled_fun(self.tick)
-				return False
 
 		def check_prereqs(rule, handled_fun, entity):
 			if not entity:
@@ -1177,42 +1179,56 @@ class Engine(AbstractEngine, gORM):
 			handled_fun(self.tick)
 			return actres
 
-		# TODO: triggers that don't mutate anything should be
-		#  evaluated in parallel
+		trig_futs = []
 		for (charactername, rulebook, rulename
 				) in self._character_rules_handled_cache.iter_unhandled_rules(
 					branch, turn, tick):
 			if charactername not in charmap:
 				continue
-			self.debug(f"checking triggers for character rule: "
-						f"{charactername}, {rulebook}, {rulename}")
 			rule = rulemap[rulename]
 			handled = partial(self._handled_char, charactername, rulebook,
 								rulename, branch, turn)
 			entity = charmap[charactername]
-			if check_triggers(rule, handled, entity):
-				self.debug(f"character rule triggered: "
-							f"{charactername}, {rulebook}, {rulename}")
-				todo[rulebook].append((rule, handled, entity))
+			trig_futs.append(
+				pool.submit(check_triggers, rulebook, rule, handled, entity))
+
 		avcache_retr = self._unitness_cache._base_retrieve
 		node_exists = self._node_exists
-		get_node = self._get_node
+		make_node = self._make_node
+		thing_cls = self.thing_cls
+		place_cls = self.place_cls
+		node_objs = self._node_objs
+
+		def get_node(graphn, noden):
+			key = (graphn, noden)
+			if key not in node_objs:
+				node_objs[key] = make_node(charmap[graphn], noden)
+			return node_objs[key]
+
+		def get_thing(graphn, thingn):
+			key = (graphn, thingn)
+			if key not in node_objs:
+				node_objs[key] = thing_cls(charmap[graphn], noden)
+			return node_objs[key]
+
+		def get_place(graphn, placen):
+			key = (graphn, placen)
+			if key not in node_objs:
+				node_objs[key] = place_cls(charmap[graphn], noden)
+			return node_objs[key]
+
 		for (charn, graphn, avn, rulebook,
 				rulen) in self._unit_rules_handled_cache.iter_unhandled_rules(
 					branch, turn, tick):
 			if not node_exists(graphn, avn) or avcache_retr(
 				(charn, graphn, avn, branch, turn, tick)) in (KeyError, None):
 				continue
-			self.debug(f"checking triggers for unit rule: "
-						f"{charn, graphn, avn, rulebook, rulen}")
 			rule = rulemap[rulen]
 			handled = partial(self._handled_av, charn, graphn, avn, rulebook,
 								rulen, branch, turn)
 			entity = get_node(graphn, avn)
-			if check_triggers(rule, handled, entity):
-				self.debug(f"unit rule triggered: "
-							f"{charn, graphn, avn, rulebook, rulen}")
-				todo[rulebook].append((rule, handled, entity))
+			trig_futs.append(
+				pool.submit(check_triggers, rulebook, rule, handled, entity))
 		is_thing = self._is_thing
 		handled_char_thing = self._handled_char_thing
 		for (
@@ -1221,16 +1237,12 @@ class Engine(AbstractEngine, gORM):
 			branch, turn, tick):
 			if not node_exists(charn, thingn) or not is_thing(charn, thingn):
 				continue
-			self.debug(f"checking triggers for character-thing rule: "
-						f"{charn, thingn, rulebook, rulen}")
 			rule = rulemap[rulen]
 			handled = partial(handled_char_thing, charn, thingn, rulebook,
 								rulen, branch, turn)
-			entity = get_node(charn, thingn)
-			if check_triggers(rule, handled, entity):
-				self.debug(f"character-thing rule triggered: "
-							f"{charn, thingn, rulebook, rulen}")
-				todo[rulebook].append((rule, handled, entity))
+			entity = get_thing(charn, thingn)
+			trig_futs.append(
+				pool.submit(check_triggers, rulebook, rule, handled, entity))
 		handled_char_place = self._handled_char_place
 		for (
 			charn, placen, rulebook, rulen
@@ -1238,16 +1250,12 @@ class Engine(AbstractEngine, gORM):
 			branch, turn, tick):
 			if not node_exists(charn, placen) or is_thing(charn, placen):
 				continue
-			self.debug(f"checking triggers for character-place rule: "
-						f"{charn, placen, rulebook, rulen}")
 			rule = rulemap[rulen]
 			handled = partial(handled_char_place, charn, placen, rulebook,
 								rulen, branch, turn)
-			entity = get_node(charn, placen)
-			if check_triggers(rule, handled, entity):
-				self.debug(f"character-place rule triggered: "
-							f"{charn, placen, rulebook, rulen}")
-				todo[rulebook].append((rule, handled, entity))
+			entity = get_place(charn, placen)
+			trig_futs.append(
+				pool.submit(check_triggers, rulebook, rule, handled, entity))
 		edge_exists = self._edge_exists
 		get_edge = self._get_edge
 		handled_char_port = self._handled_char_port
@@ -1257,32 +1265,24 @@ class Engine(AbstractEngine, gORM):
 			branch, turn, tick):
 			if not edge_exists(charn, orign, destn):
 				continue
-			self.debug(f"checking triggers for character-portal rule: "
-						f"{charn, orign, destn, rulebook, rulen}")
 			rule = rulemap[rulen]
 			handled = partial(handled_char_port, charn, orign, destn, rulebook,
 								rulen, branch, turn)
 			entity = get_edge(charn, orign, destn)
-			if check_triggers(rule, handled, entity):
-				self.debug(f"character-portal rule triggered: "
-							f"{charn, orign, destn, rulebook, rulen}")
-				todo[rulebook].append((rule, handled, entity))
+			trig_futs.append(
+				pool.submit(check_triggers, rulebook, rule, handled, entity))
 		handled_node = self._handled_node
 		for (charn, noden, rulebook,
 				rulen) in self._node_rules_handled_cache.iter_unhandled_rules(
 					branch, turn, tick):
 			if not node_exists(charn, noden):
 				continue
-			self.debug(f"checking triggers for node rule: "
-						f"{charn, noden, rulebook, rulen}")
 			rule = rulemap[rulen]
 			handled = partial(handled_node, charn, noden, rulebook, rulen,
 								branch, turn)
 			entity = get_node(charn, noden)
-			if check_triggers(rule, handled, entity):
-				self.debug(
-					f"node rule triggered: {charn, noden, rulebook, rulen}")
-				todo[rulebook].append((rule, handled, entity))
+			trig_futs.append(
+				pool.submit(check_triggers, rulebook, rule, handled, entity))
 		handled_portal = self._handled_portal
 		for (
 			charn, orign, destn, rulebook,
@@ -1290,16 +1290,13 @@ class Engine(AbstractEngine, gORM):
 				branch, turn, tick):
 			if not edge_exists(charn, orign, destn):
 				continue
-			self.debug(f"checking triggers for portal rule: "
-						f"{charn, orign, destn, rulebook, rulen}")
 			rule = rulemap[rulen]
 			handled = partial(handled_portal, charn, orign, destn, rulebook,
 								rulen, branch, turn)
 			entity = get_edge(charn, orign, destn)
-			if check_triggers(rule, handled, entity):
-				self.debug(f"portal rule triggered: "
-							f"{charn, orign, destn, rulebook, rulen}")
-				todo[rulebook].append((rule, handled, entity))
+			trig_futs.append(
+				pool.submit(check_triggers, rulebook, rule, handled, entity))
+		wait(trig_futs)
 
 		# TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
 		def fmtent(entity):
@@ -1397,6 +1394,9 @@ class Engine(AbstractEngine, gORM):
 	def _set_thing_loc(self, character: Hashable, node: Hashable,
 						loc: Hashable) -> None:
 		branch, turn, tick = self._nbtt()
+		# make sure the location really exists now
+		if loc is not None:
+			self._nodes_cache.retrieve(character, loc, branch, turn, tick)
 		self._things_cache.store(character, node, branch, turn, tick, loc)
 		self.query.set_thing_loc(character, node, branch, turn, tick, loc)
 

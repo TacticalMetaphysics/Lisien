@@ -1438,13 +1438,15 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		if name in self.thing:
 			raise WorldIntegrityError(
 				"Already have a Thing named {}".format(name))
-		self.add_node(name, **kwargs)
+		starter = self.node_dict_factory()
+		starter.update(kwargs)
 		if isinstance(location, Node):
 			location = location.name
-		self.place2thing(
-			name,
-			location,
-		)
+		starter['location'] = location
+		self.thing[name] = starter
+		if name not in self._succ:
+			self._succ[name] = self.adjlist_inner_dict_factory()
+			self._pred[name] = self.adjlist_inner_dict_factory()
 
 	def add_things_from(self, seq, **attrs):
 		for tup in seq:
@@ -1586,11 +1588,14 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 	def portals(self):
 		"""Iterate over all portals."""
-		char = self.character
+		chara = self.character
+		charn = self.character.name
 		make_edge = self.engine._get_edge
-		for (o, d) in self.engine._edges_cache.iter_keys(
-			self.character.name, *self.engine._btt()):
-			yield make_edge(char, o, d)
+		edges_cache = self.engine._edges_cache
+		now = self.engine._btt()
+		for (char, orig, dest) in edges_cache.keys:
+			if char == charn and edges_cache.retrieve(char, orig, dest, *now):
+				yield make_edge(chara, orig, dest)
 
 	def units(self):
 		"""Iterate over all my units
@@ -1603,10 +1608,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		charmap = self.engine.character
 		avit = self.engine._unitness_cache.iter_entities
 		makenode = self.engine._get_node
-		for graph in avit(charname, branch, turn, tick):
+		for graph in charmap:
 			for node in avit(charname, graph, branch, turn, tick):
-				if graph in charmap:
-					yield makenode(charmap[graph], node)
+				yield makenode(charmap[graph], node)
 
 	def historical(self, stat):
 		"""Get a historical view on the given stat

@@ -15,6 +15,7 @@
 """Exception classes for use in LiSE."""
 from .allegedb import HistoricKeyError, OutOfTimelineError
 from .allegedb.query import IntegrityError, TimeError
+from .allegedb.cache import NotInKeyframeError
 
 try:
 	from sqlalchemy.exc import OperationalError as alchemyOpError

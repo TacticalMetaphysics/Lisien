@@ -21,6 +21,10 @@ from .window import WindowDict, HistoricKeyError, FuturistWindowDict, \
 from collections import OrderedDict, defaultdict, deque
 
 
+class NotInKeyframeError(KeyError):
+	pass
+
+
 def _default_args_munger(self, k):
 	"""By default, `PickyDefaultDict`'s ``type`` takes no positional arguments.
 
@@ -916,6 +920,8 @@ class Cache:
 									ret = kf[key]
 									shallowest[args] = ret
 									return ret
+								else:
+									return NotInKeyframeError("No value")
 						ret = brancs[r][t]
 						shallowest[args] = ret
 						return ret
@@ -930,6 +936,8 @@ class Cache:
 									ret = kf[key]
 									shallowest[args] = ret
 									return ret
+								else:
+									return NotInKeyframeError("No value")
 							elif brancs.rev_before(r - 1) == kfb.rev_before(r -
 																			1):
 								kfbr = kfb[r - 1]
@@ -940,19 +948,26 @@ class Cache:
 										ret = kf[key]
 										shallowest[args] = ret
 										return ret
+									else:
+										return NotInKeyframeError("No value")
 						ret = brancs[r - 1].final()
 						shallowest[args] = ret
 						return ret
 					elif b in keyframes and r in keyframes[b] and keyframes[b][
-						r].rev_gettable(t) and key in keyframes[b][r][t]:
-						ret = keyframes[b][r][t][key]
-						shallowest[args] = ret
-						return ret
-					elif b in keyframes and keyframes[b].rev_gettable(
-						r - 1) and key in keyframes[b][r - 1].final():
-						ret = keyframes[b][r - 1].final()[key]
-						shallowest[args] = ret
-						return ret
+						r].rev_gettable(t):
+						if key in keyframes[b][r][t]:
+							ret = keyframes[b][r][t][key]
+							shallowest[args] = ret
+							return ret
+						else:
+							return NotInKeyframeError("No value")
+					elif b in keyframes and keyframes[b].rev_gettable(r - 1):
+						if key in keyframes[b][r - 1].final():
+							ret = keyframes[b][r - 1].final()[key]
+							shallowest[args] = ret
+							return ret
+						else:
+							return NotInKeyframeError("No value")
 				elif b in keyframes:
 					kfb = keyframes[branch]
 					if r in kfb:
@@ -963,6 +978,8 @@ class Cache:
 								ret = kf[key]
 								shallowest[args] = ret
 								return ret
+							else:
+								return NotInKeyframeError("No value")
 					if kfb.rev_gettable(r - 1):
 						kfbr = kfb[r]
 						kf = kfbr.final()
@@ -970,6 +987,8 @@ class Cache:
 							ret = kf[key]
 							shallowest[args] = ret
 							return ret
+						else:
+							return NotInKeyframeError("No value")
 		else:
 			if branch in keyframes:
 				kfb = keyframes[branch]
@@ -981,13 +1000,16 @@ class Cache:
 							ret = kf[key]
 							shallowest[args] = ret
 							return ret
+						else:
+							return NotInKeyframeError("No value")
 				if kfb.rev_gettable(turn - 1):
 					kfbr = kfb[turn]
 					kf = kfbr.final()
 					if key in kf:
-						ret = kf[key]
-						shallowest[args] = ret
+						ret = shallowest[args] = kf[key]
 						return ret
+					else:
+						return NotInKeyframeError("No value")
 			for (b, r, t) in self.db._iter_parent_btt(branch):
 				if b in keyframes:
 					kfb = keyframes[b]
@@ -999,6 +1021,8 @@ class Cache:
 								ret = kf[key]
 								shallowest[args] = ret
 								return ret
+							else:
+								return NotInKeyframeError("No value")
 					if kfb.rev_gettable(r - 1):
 						kfbr = kfb[r]
 						kf = kfbr.final()
@@ -1006,7 +1030,9 @@ class Cache:
 							ret = kf[key]
 							shallowest[args] = ret
 							return ret
-		return KeyError(f"No value for {entity} at {branch, turn, tick}")
+						else:
+							return NotInKeyframeError("No value")
+		return KeyError("No value, ever")
 
 	def retrieve(self, *args):
 		"""Get a value previously .store(...)'d.

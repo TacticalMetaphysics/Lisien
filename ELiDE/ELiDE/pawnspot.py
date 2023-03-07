@@ -126,13 +126,15 @@ class TextureStackPlane(Widget):
 		fbo.release()
 
 	def remove(self, name_or_idx):
+
 		def delarr(arr, i):
 			if i == 0:
 				return arr[1:]
 			elif i == len(arr) - 1:
 				return arr[:-1]
 			else:
-				return np.concatenate((arr[:i], arr[i+1:]))
+				return np.concatenate((arr[:i], arr[i + 1:]))
+
 		if name_or_idx in self._keys:
 			idx = self._keys.index(name_or_idx)
 			name = name_or_idx
@@ -520,12 +522,50 @@ class Stack:
 		self.proxy = kwargs['proxy']
 
 	@property
+	def paths(self):
+		name = self.proxy['name']
+		plane = self._stack_plane
+		datum = plane.data[plane._stack_index[name]]
+		return datum['textures']
+
+	@paths.setter
+	def paths(self, v):
+		name = self.proxy['name']
+		plane = self._stack_plane
+		datum = plane.data[plane._stack_index[name]]
+		plane.unbind_uid('data', plane._redraw_bind_uid)
+		datum['textures'] = v
+		insts = plane._instructions[name]
+		rects = insts['rectangles']
+		group = insts['group']
+		plane._fbo.bind()
+		for rect in rects:
+			group.remove(rect)
+		rects = insts['rectangles'] = []
+		wide = datum.get("width", 0)
+		tall = datum.get("height", 0)
+		for path in v:
+			if not isinstance(path, str):
+				raise TypeError("paths must be strings")
+			tex = Image.load(path).texture
+			w, h = tex.size
+			if "width" not in datum and w > wide:
+				wide = w
+			if "height" not in datum and h > tall:
+				tall = h
+			rect = Rectangle(texture=tex, pos=self.pos, size=(wide, tall))
+			rects.append(rect)
+			group.add(rect)
+		plane._redraw_bind_uid = plane.fbind('data', plane._trigger_redraw)
+		plane._fbo.release()
+
+	@property
 	def selected(self):
-		return self.board.stack_plane.selected == self.proxy['name']
+		return self._stack_plane.selected == self.proxy['name']
 
 	@selected.setter
 	def selected(self, v: bool):
-		stack_plane: TextureStackPlane = self.board.stack_plane
+		stack_plane: TextureStackPlane = self._stack_plane
 		name = self.proxy['name']
 		insts = stack_plane._instructions[name]
 		if v:

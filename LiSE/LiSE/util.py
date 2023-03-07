@@ -429,7 +429,8 @@ class AbstractEngine(ABC):
 			'CacheError': exc.CacheError,
 			'TravelException': exc.TravelException,
 			'OutOfTimelineError': exc.OutOfTimelineError,
-			'HistoricKeyError': exc.HistoricKeyError
+			'HistoricKeyError': exc.HistoricKeyError,
+			'NotInKeyframeError': exc.NotInKeyframeError
 		}
 
 		def unpack_exception(ext):
@@ -595,7 +596,7 @@ class AbstractEngine(ABC):
 			return False
 		if pct >= 100:
 			return True
-		return pct / 100 < self.random()
+		return pct > self.randint(0, 99)
 
 	betavariate = getnoplan('_rando.betavariate')
 	choice = getnoplan('_rando.choice')
