@@ -1,4 +1,4 @@
-LiSE is an application for developing life simulation games.
+LiSE is a tool for developing life simulation games.
 
 [Documentation](https://tacticalmetaphysics.github.io/LiSE/manual.html)
 
