@@ -596,7 +596,6 @@ Builder.load_string("""
 		bold: True
 	Calendar:
 		id: statlist
-		size_hint_y: 0.8
 		entity: root.proxy
 		update_mode: 'present'
 		disabled: app.edit_locked
@@ -722,7 +721,7 @@ Builder.load_string("""
 		toggle_stat_cfg: app.statcfg.toggle
 		x: 0
 		y: timepanel.top
-		size_hint: (0.25, 0.8)
+		size_hint: (0.25, 0.7)
 		selection_name: app.selected_proxy_name
 		toggle_timestream: root.toggle_timestream
 	TimePanel:
