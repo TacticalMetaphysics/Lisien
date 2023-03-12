@@ -377,7 +377,6 @@ class ELiDEApp(App):
 											stats=stats,
 											beginning=startturn,
 											end=endturn),
-		Logger.info(f"Calendar:{schedule}")
 		calendar.from_schedule(schedule, start_turn=startturn)
 
 	def _set_language(self, lang):
