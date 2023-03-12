@@ -368,6 +368,8 @@ class ELiDEApp(App):
 			sched_entity = self.selected_proxy
 		calendar.entity = sched_entity
 		if startturn == endturn == self.turn:
+			# It's the "calendar" that's actually just the current stats
+			# of the selected entity, on the left side of ELiDE
 			schedule = {stat: [self.selected_proxy[stat]] for stat in stats}
 		else:
 			schedule = self.engine.handle('get_schedule',
