@@ -367,7 +367,7 @@ class ELiDEApp(App):
 		else:
 			sched_entity = self.selected_proxy
 		calendar.entity = sched_entity
-		if startturn == endturn:
+		if startturn == endturn == self.turn:
 			schedule = {stat: [self.selected_proxy[stat]] for stat in stats}
 		else:
 			schedule = self.engine.handle('get_schedule',
