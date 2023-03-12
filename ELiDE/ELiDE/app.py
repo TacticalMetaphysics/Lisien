@@ -17,6 +17,7 @@ import sys
 import os
 import json
 from functools import partial
+from itertools import chain
 
 from LiSE.allegedb import OutOfTimelineError
 
@@ -353,21 +354,29 @@ class ELiDEApp(App):
 		"""Fill in a calendar widget with actual simulation data"""
 		startturn = self.turn - past_turns
 		endturn = self.turn + future_turns
-		stats = ['_config'] + [
+		stats = [
 			stat for stat in self.selected_proxy
-			if not stat.startswith('_') and stat not in ('character', 'name')
+			if not stat.startswith('_') and stat not in ('character', 'name',
+															'units',
+															'wallpaper')
 		]
+		if '_config' in self.selected_proxy:
+			stats.append("_config")
 		if isinstance(self.selected_proxy, CharStatProxy):
 			sched_entity = self.engine.character[self.selected_proxy.name]
 		else:
 			sched_entity = self.selected_proxy
 		calendar.entity = sched_entity
-		calendar.from_schedule(self.engine.handle('get_schedule',
-													entity=sched_entity,
-													stats=stats,
-													beginning=startturn,
-													end=endturn),
-								start_turn=startturn)
+		if startturn == endturn:
+			schedule = {stat: [self.selected_proxy[stat]] for stat in stats}
+		else:
+			schedule = self.engine.handle('get_schedule',
+											entity=sched_entity,
+											stats=stats,
+											beginning=startturn,
+											end=endturn),
+		Logger.info(f"Calendar:{schedule}")
+		calendar.from_schedule(schedule, start_turn=startturn)
 
 	def _set_language(self, lang):
 		self.engine.string.language = lang

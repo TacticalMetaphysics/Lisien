@@ -288,6 +288,9 @@ class Agenda(AbstractCalendar):
 	def from_schedule(self, schedule, start_turn=None, key=str):
 		# It should be convenient to style the calendar using data from the core;
 		# not sure what the API should be like
+		if not schedule:
+			self.data = []
+			return
 		control2wid = self._control2wid
 		if start_turn is None:
 			start_turn = self.entity.engine.turn
@@ -349,6 +352,9 @@ class Calendar(AbstractCalendar):
 	multicol = BooleanProperty(False)
 
 	def from_schedule(self, schedule, start_turn=None, key=str):
+		if not schedule:
+			self.data = []
+			return
 		control2wid = self._control2wid
 		if start_turn is None:
 			start_turn = self.entity.engine.turn
