@@ -63,7 +63,7 @@ def set_in_mapping(mapp, stat, v):
 	if stat not in mapp:
 		mapp[stat] = v
 		return
-	if isinstance(v, dict) or isinstance(v, set):
+	if isinstance(v, (dict, set)):
 		mapp[stat].update(v)
 		for item in list(mapp[stat]):
 			if item not in v:

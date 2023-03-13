@@ -230,8 +230,7 @@ class FacadePlace(FacadeNode):
 
 	def __init__(self, mapping, real_or_name, **kwargs):
 		super().__init__(mapping, real_or_name, **kwargs)
-		if isinstance(real_or_name, Place) or isinstance(
-			real_or_name, FacadePlace):
+		if isinstance(real_or_name, (Place, FacadePlace)):
 			self._real = real_or_name
 		else:
 			self._real = {'name': real_or_name}
@@ -1537,7 +1536,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			raise NotImplementedError(
 				"Currently can't add units within a plan")
 		if b is None:
-			if not (isinstance(a, Place) or isinstance(a, Thing)):
+			if not isinstance(a, (Place, Thing)):
 				raise TypeError('when called with one argument, '
 								'it must be a place or thing')
 			g = a.character.name
@@ -1550,7 +1549,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 								'the first is a character or its name')
 			else:
 				g = a
-			if isinstance(b, Place) or isinstance(b, Thing):
+			if isinstance(b, (Place, Thing)):
 				n = b.name
 			elif not isinstance(b, str):
 				raise TypeError('when called with two arguments, '
