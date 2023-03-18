@@ -27,6 +27,7 @@ from abc import ABC, abstractmethod
 
 from networkx import Graph
 from blinker import Signal
+
 from .allegedb import ORM as gORM
 from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
 						DeltaType, world_locked)
@@ -35,6 +36,11 @@ from .xcollections import StringStore, FunctionStore, MethodStore
 from .query import (Query, make_side_sel, StatusAlias, ComparisonQuery,
 					CompoundQuery, QueryResultMidTurn, QueryResult,
 					QueryResultEndTurn, CombinedQueryResult)
+from .character import Character
+from .thing import Thing
+from .place import Place
+from .portal import Portal
+from .query import QueryEngine
 from . import exc
 
 
@@ -205,11 +211,6 @@ class Engine(AbstractEngine, gORM):
 		Default ``True``.
 
 	"""
-	from .character import Character
-	from .thing import Thing
-	from .place import Place
-	from .portal import Portal
-	from .query import QueryEngine
 	char_cls = Character
 	thing_cls = Thing
 	place_cls = node_cls = Place
