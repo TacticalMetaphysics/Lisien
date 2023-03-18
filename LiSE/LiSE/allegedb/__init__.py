@@ -1894,6 +1894,7 @@ class ORM:
 	# easier to override things this way
 	@property
 	def branch(self) -> str:
+		"""The fork of the timestream that we're on."""
 		return self._get_branch()
 
 	@branch.setter
@@ -1965,6 +1966,7 @@ class ORM:
 	# easier to override things this way
 	@property
 	def turn(self) -> int:
+		"""Units of time that have passed since the sim started."""
 		return self._get_turn()
 
 	@turn.setter
@@ -2009,6 +2011,12 @@ class ORM:
 	# easier to override things this way
 	@property
 	def tick(self) -> int:
+		"""A counter of how many changes have occurred this turn.
+
+		Can be set manually, but is more often set to the last tick in a turn
+		as a side effect of setting ``turn``.
+
+		"""
 		return self._get_tick()
 
 	@tick.setter

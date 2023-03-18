@@ -1,7 +1,7 @@
 .. LiSE documentation master file, created by
-   sphinx-quickstart on Mon Feb 19 10:28:00 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+	sphinx-quickstart on Mon Feb 19 10:28:00 2018.
+	You can adapt this file completely to your liking, but it should at least
+	contain the root `toctree` directive.
 
 LiSE
 ====
@@ -12,6 +12,20 @@ code and world state in the working directory, but you can pass in another
 directory if you prefer. Either use it with a context manager
 (``with Engine() as eng:``) or call its ``.close()`` method when you're done
 changing things.
+
+The top-level data structure within LiSE is the character. Most
+data within the world model is kept in some character or other;
+these will quite frequently represent people, but can be readily
+adapted to represent any kind of data that can be comfortably
+described as a graph or a JSON object. Every change to a character
+will be written to the database.
+
+LiSE tracks history as a series of turns. In each turn, each
+simulation rule is evaluated once for each of the simulated
+entities it's been applied to. World changes in a given turn are
+remembered together, such that the whole world state can be
+rewound: simply set the properties ``branch`` and ``turn`` back to
+what they were just before the change you want to undo.
 
 World Modelling
 ---------------
@@ -96,15 +110,15 @@ action of a rule. This is how you would make something happen after a
 delay. Say you want a rule that puts the character ``alice`` to sleep,
 then wakes her up after eight turns (presumably hour-long).::
 
-    alice = engine.character['alice']
+	alice = engine.character['alice']
 
-    @alice.rule
-    def sleep(character):
-        character.stat['awake'] = False
-        start_turn = character.engine.turn
-        with character.engine.plan():
-            character.engine.turn += 8
-            character.stat['awake'] = True
+	@alice.rule
+	def sleep(character):
+		character.stat['awake'] = False
+		start_turn = character.engine.turn
+		with character.engine.plan():
+			character.engine.turn += 8
+			character.stat['awake'] = True
 
 At the end of a ``plan():`` block, the game-time will be reset to its
 position at the start of that block.
@@ -119,52 +133,109 @@ such as ELiDE.
 To ask the player to make a decision, first define a method for them to
 call, then return a menu description like this one.::
 
-    @engine.method
-    def wake_alice(self):
-        self.character['alice'].stat['awake'] = True
+	@engine.method
+	def wake_alice(self):
+		self.character['alice'].stat['awake'] = True
 
-    alice = engine.character['alice']
+	alice = engine.character['alice']
 
-    @alice.rule
-    def wakeup(character):
-        return "Wake up?", [("Yes", character.engine.wake_alice), ("No", None)]
+	@alice.rule
+	def wakeup(character):
+		return "Wake up?", [("Yes", character.engine.wake_alice), ("No", None)]
 
 Only methods defined with the ``@engine.method`` decorator may be used in a menu.
 
 engine
 ------
-.. automodule:: LiSE.engine
-   :members:
+Engine
+######
+	Each instance of LiSE maintains a connection to a database
+	representing the state of a simulated world. Simulation rules
+	within this world are described by lists of Python functions, some
+	of which make changes to the world.
+
+	.. autoclass:: LiSE.Engine
+
+	.. autoproperty:: LiSE.Engine.branch
+
+	.. autoproperty:: LiSE.Engine.turn
+
+	.. py:property:: Engine.time
+		Acts like a tuple of (branch, turn) for the most part.
+
+		This wraps a :class:`blinker.Signal`. To set a function to be called whenever the
+		branch or turn changes, pass it to the ``Engine.time.connect`` method.
+
+	.. py:property:: Engine.rule
+		A mapping of all rules that have been made.
+
+	.. py:property:: Engine.rulebook
+		A mapping of lists of rules.
+
+		They are followed in their order. A whole rulebook full of rules may be
+		assigned to an entity at once.
+
+	.. py:property:: Engine.eternal
+		A mapping of arbitrary data, not sensitive to sim-time.
+
+		It's stored in the database. A good place to keep your game's settings.
+
+	.. py:property:: Engine.universal
+		A mapping of arbitrary data that changes over sim-time.
+
+		Each turn, the state of the randomizer is saved here under the key ``'rando_state'``.
+
+Function stores
+***************
+	All of ``trigger``, ``prereq``,
+	``action``, ``method``, and ``function`` are modules or similar;
+	they default to :class:`FunctionStore` objects, which can write
+	Python code to the underlying module at runtime.
+
+	.. py:property:: Engine.trigger
+		A mapping of, and decorator for, functions that might trigger a rule.
+
+	.. py:property:: Engine.prereq
+		A mapping of, and decorator for, functions a rule might require to return True for it to run.
+
+	.. py:property:: Engine.action
+		A mapping of, and decorator for, functions that might manipulate the world state as a result of a rule running.
+
+	.. py:property:: Engine.method
+		A mapping of, and decorator for, extension methods to be added to the engine object.
+
+	.. py:property:: Engine.function
+		A mapping of, and decorator for, generic functions.
 
 node
 ----
 .. automodule:: LiSE.node
-   :members:
+	:members:
 
 place
 -----
 .. automodule:: LiSE.place
-   :members:
+	:members:
 
 thing
 -----
 .. automodule:: LiSE.thing
-   :members:
+	:members:
 
 portal
 ------
 .. automodule:: LiSE.portal
-   :members:
+	:members:
 
 rule
 ----
 .. automodule:: LiSE.rule
-   :members:
+	:members:
 
 query
 -----
 .. automodule:: LiSE.query
-   :members:
+	:members:
 
 
 allegedb
@@ -187,62 +258,62 @@ _____
 
 ::
 
-    >>> from LiSE.allegedb import ORM
-    >>> orm = ORM('sqlite:///test.db')
-    >>> g = orm.new_digraph('test')
-    >>> g.add_nodes_from(['spam', 'eggs', 'ham'])
-    >>> g.add_edge('spam', 'eggs')
-    >>> g.adj
-    <LiSE.allegedb.graph.DiGraphSuccessorsMapping object containing {'ham': {}, 'eggs': {}, 'spam': {'eggs': {}}}>
-    >>> del g
-    >>> orm.close()
-    >>> del orm
-    >>> orm = ORM('sqlite:///test.db')
-    >>> g = orm.graph['test']
-    >>> g.adj
-    <LiSE.allegedb.graph.DiGraphSuccessorsMapping object containing {'ham': {}, 'eggs': {}, 'spam': {'eggs': {}}}>
-    >>> import networkx as nx
-    >>> red = nx.random_lobster(10, 0.9, 0.9)
-    >>> blue = orm.new_digraph('blue', red)  # initialize with data from the given graph
-    >>> red.adj == blue.adj
-    True
-    >>> orm.turn = 1
-    >>> blue.add_edge(17, 15)
-    >>> red.adj == blue.adj
-    False
-    >>> orm.turn = 0  # undoing what I did when turn=1
-    >>> red.adj == blue.adj
-    True
-    >>> orm.branch = 'test'    # navigating to a branch for the first time creates that branch
-    >>> orm.turn = 1
-    >>> red.adj == blue.adj
-    True
-    >>> orm.branch = 'trunk'
-    >>> red.adj == blue.adj
-    False
+	>>> from LiSE.allegedb import ORM
+	>>> orm = ORM('sqlite:///test.db')
+	>>> g = orm.new_digraph('test')
+	>>> g.add_nodes_from(['spam', 'eggs', 'ham'])
+	>>> g.add_edge('spam', 'eggs')
+	>>> g.adj
+	<LiSE.allegedb.graph.DiGraphSuccessorsMapping object containing {'ham': {}, 'eggs': {}, 'spam': {'eggs': {}}}>
+	>>> del g
+	>>> orm.close()
+	>>> del orm
+	>>> orm = ORM('sqlite:///test.db')
+	>>> g = orm.graph['test']
+	>>> g.adj
+	<LiSE.allegedb.graph.DiGraphSuccessorsMapping object containing {'ham': {}, 'eggs': {}, 'spam': {'eggs': {}}}>
+	>>> import networkx as nx
+	>>> red = nx.random_lobster(10, 0.9, 0.9)
+	>>> blue = orm.new_digraph('blue', red)  # initialize with data from the given graph
+	>>> red.adj == blue.adj
+	True
+	>>> orm.turn = 1
+	>>> blue.add_edge(17, 15)
+	>>> red.adj == blue.adj
+	False
+	>>> orm.turn = 0  # undoing what I did when turn=1
+	>>> red.adj == blue.adj
+	True
+	>>> orm.branch = 'test'	# navigating to a branch for the first time creates that branch
+	>>> orm.turn = 1
+	>>> red.adj == blue.adj
+	True
+	>>> orm.branch = 'trunk'
+	>>> red.adj == blue.adj
+	False
 
 ORM
 ___
 .. automodule:: LiSE.allegedb
-   :members:
+	:members:
 
 cache
 _____
 .. automodule:: LiSE.allegedb.cache
-   :members:
+	:members:
 
 graph
 _____
 .. automodule:: LiSE.allegedb.graph
-   :members:
+	:members:
 
 query
 _____
 .. automodule:: LiSE.allegedb.query
-   :members:
+	:members:
 
 wrap
 ____
 .. automodule:: LiSE.allegedb.wrap
-   :members:
+	:members:
 

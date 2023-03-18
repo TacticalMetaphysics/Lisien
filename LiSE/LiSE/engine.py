@@ -154,58 +154,55 @@ class NullSchema(AbstractSchema):
 class Engine(AbstractEngine, gORM):
 	"""LiSE, the Life Simulator Engine.
 
-	Each instance of LiSE maintains a connection to a database
-	representing the state of a simulated world. Simulation rules
-	within this world are described by lists of Python functions, some
-	of which make changes to the world.
-
-	The top-level data structure within LiSE is the character. Most
-	data within the world model is kept in some character or other;
-	these will quite frequently represent people, but can be readily
-	adapted to represent any kind of data that can be comfortably
-	described as a graph or a JSON object. Every change to a character
-	will be written to the database.
-
-	LiSE tracks history as a series of turns. In each turn, each
-	simulation rule is evaluated once for each of the simulated
-	entities it's been applied to. World changes in a given turn are
-	remembered together, such that the whole world state can be
-	rewound: simply set the properties ``branch`` and ``turn`` back to
-	what they were just before the change you want to undo.
-
-	Properties:
-
-	- ``branch``: The fork of the timestream that we're on.
-	- ``turn``: Units of time that have passed since the sim started.
-	- ``time``: ``(branch, turn)``, and you can register functions to be called
-	  when the time changes, as ``eng.time.connect(func)``
-	- ``tick``: A counter of how many changes have occurred this turn.
-	  Can be set manually, but is more often set to the last tick in a turn
-	  as a side effect of setting ``turn``.
-	- ``character``: A mapping of :class:`Character` objects by name.
-	- ``rule``: A mapping of all rules that have been made.
-	- ``rulebook``: A mapping of lists of rules. They are followed in
-	  their order.  A whole rulebook full of rules may be assigned to
-	  an entity at once.
-	- ``trigger``: Functions that might trigger a rule.
-	- ``prereq``: Functions a rule might require to return
-	  ``True`` for it to run.
-	- ``action``: Functions that might manipulate the world
-	  state as a result of a rule running.
-	- ``method``: Extension methods to be added to the engine object.
-	- ``function``: Generic functions. All of ``trigger``, ``prereq``,
-	  ``action``, ``method``, and ``function`` are modules or similar;
-	  they default to :class:`FunctionStore` objects, which can write
-	  Python code to the underlying module at runtime.
-	- ``string``: A mapping of strings, probably shown to the player
-	  at some point. Defaults to a :class:`StringStore` object,
-	  which can alter the underlying JSON file at runtime.
-	- ``eternal``: Mapping of arbitrary serializable objects. It isn't
-	  sensitive to sim-time. A good place to keep game settings.
-	- ``universal``: Another mapping of arbitrary serializable
-	  objects, but this one *is* sensitive to sim-time. Each turn, the
-	  state of the randomizer is saved here under the key
-	  ``'rando_state'``.
+	:param prefix: directory containing the simulation and its code;
+		defaults to the working directory
+	:param string: module storing strings to be used in the game
+	:param function: module containing utility functions
+	:param method: module containing functions taking this engine as
+		first arg
+	:param trigger: module containing trigger functions, taking a LiSE
+		entity and returning a boolean for whether to run a rule
+	:param prereq: module containing prereq functions, taking a LiSE entity and
+		returning a boolean for whether to permit a rule to run
+	:param action: module containing action functions, taking a LiSE entity and
+		mutating it (and possibly the rest of the world)
+	:param connect_string: a rfc1738 URI for a database to connect to. Leave
+		`None` to use the SQLite database in the `prefix`
+	:param connect_args: dictionary of keyword arguments for the
+		database connection
+	:param schema: a Schema class that determines which changes to allow to
+		the world; used when a player should not be able to change just anything.
+		Defaults to `NullSchema`
+	:param flush_interval: LiSE will put pending changes into the database
+		transaction every ``flush_interval`` turns. If ``None``), only flush
+		on commit. Default ``1``.
+	:param keyframe_interval: How many turns to pass before automatically
+		snapping a keyframe, default ``10``. If ``None``, you'll need
+		to call ``snap_keyframe`` yourself.
+	:param commit_interval: LiSE will commit changes to disk every
+		``commit_interval`` turns. If ``None`` (the default), only commit
+		on close or manual call to ``commit``
+	:param random_seed: a number to initialize the randomizer
+	:param logfun: an optional function taking arguments
+		``level, message``, which should log `message` somehow
+	:param clear: whether to delete *any and all* existing data
+		and code in ``prefix`` and the databse. Use with caution!
+	:param keep_rules_journal: Boolean; if true (default), keep
+		information on the behavior of the rules engine in the database.
+		Makes the database rather large, but useful for debugging.
+	:param keyframe_on_close: Whether to snap a keyframe when closing the
+		engine, default ``True``. This is usually what you want, as it will
+		make future startups faster, but could cause database bloat if
+		your game runs few turns per session.
+	:param cache_arranger: Whether to start a background
+		process that indexes the caches to make time travel faster
+		when it's to points we anticipate. If you use this, you can
+		specify some other point in time to index by putting the
+		`(branch, turn, tick)` in my :attribute:`cache_arrange_queue`.
+		 Default ``False``.
+	:param enforce_end_of_time: Whether to raise an exception when
+		time travelling to a point after the time that's been simulated.
+		Default ``True``.
 
 	"""
 	from .character import Character
@@ -245,58 +242,6 @@ class Engine(AbstractEngine, gORM):
 					keyframe_on_close=True,
 					cache_arranger=False,
 					enforce_end_of_time=True):
-		"""Store the connections for the world database and the code database;
-		set up listeners; and start a transaction
-
-		:arg prefix: directory containing the simulation and its code;
-		defaults to the working directory
-		:arg string: module storing strings to be used in the game
-		:arg function: module containing utility functions
-		:arg method: module containing functions taking this engine as
-		first arg
-		:arg trigger: module containing trigger functions, taking a LiSE
-		entity and returning a boolean for whether to run a rule
-		:arg prereq: module containing prereq functions, taking a LiSE entity and
-		returning a boolean for whether to permit a rule to run
-		:arg action: module containing action functions, taking a LiSE entity and
-		mutating it (and possibly the rest of the world)
-		:arg connect_string: a rfc1738 URI for a database to connect to
-		:arg connect_args: dictionary of keyword arguments for the
-		database connection
-		:arg schema: a Schema class that determines which changes to allow to
-		the world; used when a player should not be able to change just anything.
-		Defaults to `NullSchema`
-		:arg flush_interval: LiSE will put pending changes into the database
-		transaction every ``flush_interval`` turns. If ``None``), only flush
-		on commit. Default ``1``.
-		:arg keyframe_interval: How many turns to pass before automatically
-		snapping a keyframe, default ``10``. If ``None``, you'll need
-		to call ``snap_keyframe`` yourself.
-		:arg commit_interval: LiSE will commit changes to disk every
-		``commit_interval`` turns. If ``None`` (the default), only commit
-		on close or manual call to ``commit``
-		:arg random_seed: a number to initialize the randomizer
-		:arg logfun: an optional function taking arguments
-		``level, message``, which should log `message` somehow
-		:arg clear: whether to delete *any and all* existing data
-		and code in ``prefix``. Use with caution!
-		:arg keep_rules_journal: Boolean; if true (default), keep
-		information on the behavior of the rules engine in the database.
-		Makes the database rather large, but useful for debugging.
-		:arg keyframe_on_close: Whether to snap a keyframe when closing the
-		engine, default ``True``. This is usually what you want, as it will
-		make future startups faster, but could cause database bloat if
-		your game runs few turns per session.
-		:arg cache_arranger: Whether to start a background
-		process that indexes the caches to make time travel faster
-		when it's to points we anticipate. If you use this, you can
-		specify some other point in time to index by putting the
-		`(branch, turn, tick)` in my `cache_arrange_queue`. Default ``False``.
-		:arg enforce_end_of_time: Whether to raise an exception when
-		time travelling to a point after the time that's been simulated.
-		Default ``True``.
-
-		"""
 		if logfun is None:
 			from logging import getLogger
 			logger = getLogger("Life Sim Engine")
