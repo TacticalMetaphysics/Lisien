@@ -315,10 +315,21 @@ class Node(graph.Node, rule.RuleFollower):
 
 	@property
 	def portal(self):
+		""" A mapping of portals leading out from this node.
+
+		Aliases ``portal``, ``adj``, ``edge``, ``successor``, and ``succ``
+		are available.
+
+		"""
 		return Dests(self)
 
 	@property
 	def preportal(self):
+		"""A mapping of portals leading to this node.
+
+		Aliases ``preportal``, ``predecessor`` and ``pred`` are available.
+
+		"""
 		return Origs(self)
 
 	def __iter__(self):
