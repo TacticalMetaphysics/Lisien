@@ -413,6 +413,7 @@ class Node(graph.Node, rule.RuleFollower):
 
 	@property
 	def content(self):
+		"""A mapping of ``Thing`` objects that are here"""
 		return NodeContent(self)
 
 	def contents(self):
