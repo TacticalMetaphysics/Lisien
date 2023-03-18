@@ -1270,7 +1270,7 @@ class Engine(AbstractEngine, gORM):
 					except StopIteration:
 						raise InnerStopIteration
 
-	def advance(self) -> Any:
+	def _advance(self) -> Any:
 		"""Follow the next rule if available.
 
 		If we've run out of rules, reset the rules iterator.
