@@ -417,6 +417,7 @@ class Node(graph.Node, rule.RuleFollower):
 		return NodeContent(self)
 
 	def contents(self):
+		"""A set-like object containing ``Thing`` objects that are here"""
 		return self.content.values()
 
 	def delete(self):
