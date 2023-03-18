@@ -555,11 +555,11 @@ class Engine(AbstractEngine, gORM):
 		Characters also have special keys for the various rulebooks
 		they have:
 
-		* 'character_rulebook'
-		* 'unit_rulebook'
-		* 'character_thing_rulebook'
-		* 'character_place_rulebook'
-		* 'character_portal_rulebook'
+		* ``'character_rulebook'``
+		* ``'unit_rulebook'``
+		* ``'character_thing_rulebook'``
+		* ``'character_place_rulebook'``
+		* ``'character_portal_rulebook'``
 
 		And each node and edge may have a 'rulebook' stat of its own.
 		If a node is a thing, it gets a 'location'; when the 'location'
@@ -567,9 +567,9 @@ class Engine(AbstractEngine, gORM):
 
 		Keys at the top level that are not character names:
 
-		* 'rulebooks', a dictionary keyed by the name of each changed
+		* ``'rulebooks'``, a dictionary keyed by the name of each changed
 		  rulebook, the value being a list of rule names
-		* 'rules', a dictionary keyed by the name of each changed rule,
+		* ``'rules'``, a dictionary keyed by the name of each changed rule,
 		  containing any of the lists 'triggers', 'prereqs', and 'actions'
 
 		"""
@@ -580,10 +580,10 @@ class Engine(AbstractEngine, gORM):
 			if not isinstance(arg, int):
 				raise TypeError("turn and tick must be int")
 		if turn_from == turn_to:
-			return self.get_turn_delta(branch,
-										turn_to,
-										tick_to,
-										start_tick=tick_from)
+			return self._get_turn_delta(branch,
+			                            turn_to,
+			                            tick_to,
+			                            start_tick=tick_from)
 		delta = super().get_delta(branch, turn_from, tick_from, turn_to,
 									tick_to)
 		if turn_from < turn_to:
@@ -708,11 +708,11 @@ class Engine(AbstractEngine, gORM):
 
 		return delta
 
-	def get_turn_delta(self,
-						branch: str = None,
-						turn: int = None,
-						tick: int = None,
-						start_tick=0) -> DeltaType:
+	def _get_turn_delta(self,
+	                    branch: str = None,
+	                    turn: int = None,
+	                    tick: int = None,
+	                    start_tick=0) -> DeltaType:
 		"""Get a dictionary of changes to the world within a given turn
 
 		Defaults to the present turn, and stops at the present tick
@@ -734,7 +734,7 @@ class Engine(AbstractEngine, gORM):
 		tick = tick or self.tick
 		if tick == start_tick:
 			return {}
-		delta = super().get_turn_delta(branch, turn, start_tick, tick)
+		delta = super()._get_turn_delta(branch, turn, start_tick, tick)
 		if start_tick < tick:
 			attribute = 'settings'
 			tick += 1

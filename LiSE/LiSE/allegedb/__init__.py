@@ -569,7 +569,7 @@ class ORM:
 
 		from functools import partial
 		if turn_from == turn_to:
-			return self.get_turn_delta(branch, turn_from, tick_from, tick_to)
+			return self._get_turn_delta(branch, turn_from, tick_from, tick_to)
 		delta = {}
 		graph_objs = self._graph_objs
 		if turn_to < turn_from:
@@ -613,11 +613,11 @@ class ORM:
 
 		return delta
 
-	def get_turn_delta(self,
-						branch: str = None,
-						turn: int = None,
-						tick_from=0,
-						tick_to: int = None) -> DeltaType:
+	def _get_turn_delta(self,
+	                    branch: str = None,
+	                    turn: int = None,
+	                    tick_from=0,
+	                    tick_to: int = None) -> DeltaType:
 		"""Get a dictionary describing changes made on a given turn.
 
 		If ``tick_to`` is not supplied, report all changes after ``tick_from``
