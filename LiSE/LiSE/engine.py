@@ -893,13 +893,8 @@ class Engine(AbstractEngine, gORM):
 		"""Log a message at level 'critical'"""
 		self.log('critical', msg)
 
-	@world_locked
-	def commit(self) -> None:
-		"""Save all pending changes to the database.
-
-		``commit`` is more thorough than ``flush``.
-
-		"""
+	def flush(self):
+		__doc__ = gORM.flush.__doc__
 		try:
 			self.universal['rando_state'] = self._rando.getstate()
 		except exc.OutOfTimelineError:
@@ -908,6 +903,7 @@ class Engine(AbstractEngine, gORM):
 			self.universal['rando_state'] = self._rando.getstate()
 			self.turn = turn
 			self.tick = tick
+		super().flush()
 		turns_completed_previous = self._turns_completed_previous
 		turns_completed = self._turns_completed
 		set_turn_completed = self.query.set_turn_completed
@@ -918,7 +914,6 @@ class Engine(AbstractEngine, gORM):
 					raise RuntimeError("Incoherent turns_completed cache")
 				set_turn_completed(branch, turn_late)
 		self._turns_completed_previous = turns_completed.copy()
-		super().commit()
 
 	def close(self) -> None:
 		"""Commit changes and close the database."""
