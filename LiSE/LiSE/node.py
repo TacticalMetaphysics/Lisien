@@ -309,8 +309,7 @@ class Node(graph.Node, rule.RuleFollower):
 	def user(self):
 		return UserMapping(self)
 
-	def __init__(self, character, name, clobber=False):
-		"""Store character and name, and initialize caches"""
+	def __init__(self, character, name):
 		super().__init__(character, name)
 		self.db = character.engine
 
