@@ -156,56 +156,89 @@ Engine
 
 	.. autoclass:: LiSE.Engine
 
-	.. autoproperty:: LiSE.Engine.branch
+		.. autoproperty:: LiSE.Engine.branch
 
-	.. autoproperty:: LiSE.Engine.turn
+		.. autoproperty:: LiSE.Engine.turn
 
-	.. py:property:: Engine.time
-		Acts like a tuple of (branch, turn) for the most part.
+		.. py:property:: Engine.time
+			Acts like a tuple of (branch, turn) for the most part.
 
-		This wraps a :class:`blinker.Signal`. To set a function to be called whenever the
-		branch or turn changes, pass it to the ``Engine.time.connect`` method.
+			This wraps a :class:`blinker.Signal`. To set a function to be called whenever the
+			branch or turn changes, pass it to the ``Engine.time.connect`` method.
 
-	.. py:property:: Engine.rule
-		A mapping of all rules that have been made.
+		.. py:property:: Engine.rule
+			A mapping of all rules that have been made.
 
-	.. py:property:: Engine.rulebook
-		A mapping of lists of rules.
+		.. py:property:: Engine.rulebook
+			A mapping of lists of rules.
 
-		They are followed in their order. A whole rulebook full of rules may be
-		assigned to an entity at once.
+			They are followed in their order. A whole rulebook full of rules may be
+			assigned to an entity at once.
 
-	.. py:property:: Engine.eternal
-		A mapping of arbitrary data, not sensitive to sim-time.
+		.. py:property:: Engine.eternal
+			A mapping of arbitrary data, not sensitive to sim-time.
 
-		It's stored in the database. A good place to keep your game's settings.
+			It's stored in the database. A good place to keep your game's settings.
 
-	.. py:property:: Engine.universal
-		A mapping of arbitrary data that changes over sim-time.
+		.. py:property:: Engine.universal
+			A mapping of arbitrary data that changes over sim-time.
 
-		Each turn, the state of the randomizer is saved here under the key ``'rando_state'``.
+			Each turn, the state of the randomizer is saved here under the key ``'rando_state'``.
 
-Function stores
-***************
-	All of ``trigger``, ``prereq``,
-	``action``, ``method``, and ``function`` are modules or similar;
-	they default to :class:`FunctionStore` objects, which can write
-	Python code to the underlying module at runtime.
+		.. py:property:: Engine.trigger
 
-	.. py:property:: Engine.trigger
-		A mapping of, and decorator for, functions that might trigger a rule.
+			A mapping of, and decorator for, functions that might trigger a rule.
 
-	.. py:property:: Engine.prereq
-		A mapping of, and decorator for, functions a rule might require to return True for it to run.
+			Decorated functions get stored in the mapping as well as a file, so they can be
+			loaded back in when the game is resumed.
 
-	.. py:property:: Engine.action
-		A mapping of, and decorator for, functions that might manipulate the world state as a result of a rule running.
+		.. py:property:: Engine.prereq
 
-	.. py:property:: Engine.method
-		A mapping of, and decorator for, extension methods to be added to the engine object.
+			A mapping of, and decorator for, functions a rule might require to return True for it to run.
 
-	.. py:property:: Engine.function
-		A mapping of, and decorator for, generic functions.
+		.. py:property:: Engine.action
+
+			A mapping of, and decorator for, functions that might manipulate the world state as a result of a rule running.
+
+		.. py:property:: Engine.method
+
+			A mapping of, and decorator for, extension methods to be added to the engine object.
+
+		.. py:property:: Engine.function
+
+			A mapping of, and decorator for, generic functions.
+
+		.. py:method:: Engine.next_turn
+			Make time move forward in the simulation.
+
+			Calls ``advance`` repeatedly, returning a list of the rules' return values.
+
+			Stops when the turn has ended, or a rule returns something non-``None``.
+
+			This is also a ``Signal``, so you can register functions to be
+			called when the simulation runs. Pass them to ``Engine.next_turn_connect(..)``.
+
+			:return: a pair, of which item 0 is the returned value from a rule if applicable (default: ``[]``),
+				and item 1 is a delta describing changes to the simulation resulting from this call.
+				See the following method, ``get_delta``, for a description of the delta format.
+
+		.. automethod:: get_delta
+
+		.. automethod:: new_character
+
+		.. automethod:: add_character
+
+		.. automethod:: del_character
+
+		.. automethod:: turns_when
+
+		.. automethod:: apply_choices
+
+		.. automethod:: flush
+
+		.. automethod:: commit
+
+		.. automethod:: close
 
 node
 ----

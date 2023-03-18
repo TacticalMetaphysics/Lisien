@@ -367,7 +367,7 @@ class EngineHandle(object):
 
 	def advance(self) -> None:
 		"""Run one rule"""
-		self._real.advance()
+		self._real._advance()
 
 	def _get_char_deltas(
 			self,

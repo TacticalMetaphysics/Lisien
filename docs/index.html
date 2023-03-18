@@ -4,16 +4,14 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>Welcome to LiSE’s documentation! &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Introduction" href="manual.html" />
@@ -49,26 +47,113 @@
 <li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#rule-creation">Rule Creation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#time-control">Time Control</a></li>
 <li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#input-prompts">Input Prompts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.engine">engine</a></li>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.node">node</a></li>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.place">place</a></li>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.thing">thing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.portal">portal</a></li>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.rule">rule</a></li>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.query">query</a></li>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#engine">engine</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#id1">Engine</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.node">node</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Dests"><code class="docutils literal notranslate"><span class="pre">Dests</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node"><code class="docutils literal notranslate"><span class="pre">Node</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.NodeContent"><code class="docutils literal notranslate"><span class="pre">NodeContent</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Origs"><code class="docutils literal notranslate"><span class="pre">Origs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.UserMapping"><code class="docutils literal notranslate"><span class="pre">UserMapping</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.place">place</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.place.Place"><code class="docutils literal notranslate"><span class="pre">Place</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.thing">thing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.thing.Thing"><code class="docutils literal notranslate"><span class="pre">Thing</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.portal">portal</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.portal.Portal"><code class="docutils literal notranslate"><span class="pre">Portal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.portal.RuleMapping"><code class="docutils literal notranslate"><span class="pre">RuleMapping</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.rule">rule</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.ActionList"><code class="docutils literal notranslate"><span class="pre">ActionList</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.AllRuleBooks"><code class="docutils literal notranslate"><span class="pre">AllRuleBooks</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.AllRules"><code class="docutils literal notranslate"><span class="pre">AllRules</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.PrereqList"><code class="docutils literal notranslate"><span class="pre">PrereqList</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.Rule"><code class="docutils literal notranslate"><span class="pre">Rule</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.RuleBook"><code class="docutils literal notranslate"><span class="pre">RuleBook</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.RuleFollower"><code class="docutils literal notranslate"><span class="pre">RuleFollower</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.RuleFuncList"><code class="docutils literal notranslate"><span class="pre">RuleFuncList</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.RuleFuncListDescriptor"><code class="docutils literal notranslate"><span class="pre">RuleFuncListDescriptor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.RuleMapping"><code class="docutils literal notranslate"><span class="pre">RuleMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.TriggerList"><code class="docutils literal notranslate"><span class="pre">TriggerList</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.roundtrip_dedent"><code class="docutils literal notranslate"><span class="pre">roundtrip_dedent()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.query">query</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.query.CombinedQueryResult"><code class="docutils literal notranslate"><span class="pre">CombinedQueryResult</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.query.QueryResult"><code class="docutils literal notranslate"><span class="pre">QueryResult</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.query.QueryResultEndTurn"><code class="docutils literal notranslate"><span class="pre">QueryResultEndTurn</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.query.QueryResultMidTurn"><code class="docutils literal notranslate"><span class="pre">QueryResultMidTurn</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.query.intersect2"><code class="docutils literal notranslate"><span class="pre">intersect2()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.query.slow_iter_turns_eval_cmp"><code class="docutils literal notranslate"><span class="pre">slow_iter_turns_eval_cmp()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.query.windows_intersection"><code class="docutils literal notranslate"><span class="pre">windows_intersection()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.query.windows_union"><code class="docutils literal notranslate"><span class="pre">windows_union()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#allegedb">allegedb</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#usage">usage</a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#module-LiSE.allegedb">ORM</a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#module-LiSE.allegedb.cache">cache</a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#module-LiSE.allegedb.graph">graph</a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#id1">query</a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#module-LiSE.allegedb.wrap">wrap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.GraphNameError"><code class="docutils literal notranslate"><span class="pre">GraphNameError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.ORM"><code class="docutils literal notranslate"><span class="pre">ORM</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.OutOfTimelineError"><code class="docutils literal notranslate"><span class="pre">OutOfTimelineError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.PlanningContext"><code class="docutils literal notranslate"><span class="pre">PlanningContext</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.TimeSignal"><code class="docutils literal notranslate"><span class="pre">TimeSignal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.TimeSignalDescriptor"><code class="docutils literal notranslate"><span class="pre">TimeSignalDescriptor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.cache.Cache"><code class="docutils literal notranslate"><span class="pre">Cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.cache.EdgesCache"><code class="docutils literal notranslate"><span class="pre">EdgesCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.cache.NodesCache"><code class="docutils literal notranslate"><span class="pre">NodesCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.cache.NotInKeyframeError"><code class="docutils literal notranslate"><span class="pre">NotInKeyframeError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.cache.PickyDefaultDict"><code class="docutils literal notranslate"><span class="pre">PickyDefaultDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.cache.StructuredDefaultDict"><code class="docutils literal notranslate"><span class="pre">StructuredDefaultDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.cache.lru_append"><code class="docutils literal notranslate"><span class="pre">lru_append()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.AbstractEntityMapping"><code class="docutils literal notranslate"><span class="pre">AbstractEntityMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.AbstractSuccessors"><code class="docutils literal notranslate"><span class="pre">AbstractSuccessors</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.AllegedMapping"><code class="docutils literal notranslate"><span class="pre">AllegedMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.DiGraph"><code class="docutils literal notranslate"><span class="pre">DiGraph</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.DiGraphPredecessorsMapping"><code class="docutils literal notranslate"><span class="pre">DiGraphPredecessorsMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.DiGraphSuccessorsMapping"><code class="docutils literal notranslate"><span class="pre">DiGraphSuccessorsMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.Edge"><code class="docutils literal notranslate"><span class="pre">Edge</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.EntityCollisionError"><code class="docutils literal notranslate"><span class="pre">EntityCollisionError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.GraphEdgeMapping"><code class="docutils literal notranslate"><span class="pre">GraphEdgeMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.GraphMapping"><code class="docutils literal notranslate"><span class="pre">GraphMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.GraphNodeMapping"><code class="docutils literal notranslate"><span class="pre">GraphNodeMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.GraphSuccessorsMapping"><code class="docutils literal notranslate"><span class="pre">GraphSuccessorsMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.GraphsMapping"><code class="docutils literal notranslate"><span class="pre">GraphsMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.Node"><code class="docutils literal notranslate"><span class="pre">Node</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.convert_to_networkx_graph"><code class="docutils literal notranslate"><span class="pre">convert_to_networkx_graph()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.graph.getatt"><code class="docutils literal notranslate"><span class="pre">getatt()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.query.GlobalKeyValueStore"><code class="docutils literal notranslate"><span class="pre">GlobalKeyValueStore</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.query.TimeError"><code class="docutils literal notranslate"><span class="pre">TimeError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.wrap.DictWrapper"><code class="docutils literal notranslate"><span class="pre">DictWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.wrap.ListWrapper"><code class="docutils literal notranslate"><span class="pre">ListWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.wrap.MutableMappingUnwrapper"><code class="docutils literal notranslate"><span class="pre">MutableMappingUnwrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.wrap.MutableMappingWrapper"><code class="docutils literal notranslate"><span class="pre">MutableMappingWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.wrap.MutableSequenceWrapper"><code class="docutils literal notranslate"><span class="pre">MutableSequenceWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.wrap.MutableWrapper"><code class="docutils literal notranslate"><span class="pre">MutableWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.wrap.MutableWrapperDictList"><code class="docutils literal notranslate"><span class="pre">MutableWrapperDictList</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.wrap.MutableWrapperSet"><code class="docutils literal notranslate"><span class="pre">MutableWrapperSet</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.wrap.SetWrapper"><code class="docutils literal notranslate"><span class="pre">SetWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.wrap.SubDictWrapper"><code class="docutils literal notranslate"><span class="pre">SubDictWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.wrap.SubListWrapper"><code class="docutils literal notranslate"><span class="pre">SubListWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.wrap.SubSetWrapper"><code class="docutils literal notranslate"><span class="pre">SubSetWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.allegedb.wrap.UnwrappingDict"><code class="docutils literal notranslate"><span class="pre">UnwrappingDict</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ELiDE/index.html">ELiDE</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#game">game</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#game">game</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.game.GameApp"><code class="docutils literal notranslate"><span class="pre">GameApp</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.game.GameScreen"><code class="docutils literal notranslate"><span class="pre">GameScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.game.Screens"><code class="docutils literal notranslate"><span class="pre">Screens</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#graph">graph</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#module-ELiDE.graph.board">board</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#pawn">pawn</a></li>
@@ -76,29 +161,117 @@
 <li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#arrow">arrow</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#module-ELiDE.screen">screen</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#card">card</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#charmenu">charmenu</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#charsview">charsview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#dialog">dialog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#module-ELiDE.screen">screen</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.screen.CharMenuContainer"><code class="docutils literal notranslate"><span class="pre">CharMenuContainer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.screen.KvLayout"><code class="docutils literal notranslate"><span class="pre">KvLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.screen.MainScreen"><code class="docutils literal notranslate"><span class="pre">MainScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.screen.OneTurnButton"><code class="docutils literal notranslate"><span class="pre">OneTurnButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.screen.SimulateButton"><code class="docutils literal notranslate"><span class="pre">SimulateButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.screen.StatListPanel"><code class="docutils literal notranslate"><span class="pre">StatListPanel</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.screen.TimePanel"><code class="docutils literal notranslate"><span class="pre">TimePanel</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.screen.TurnScroll"><code class="docutils literal notranslate"><span class="pre">TurnScroll</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#card">card</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.card.Card"><code class="docutils literal notranslate"><span class="pre">Card</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.card.ColorTextureBox"><code class="docutils literal notranslate"><span class="pre">ColorTextureBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.card.DeckBuilderLayout"><code class="docutils literal notranslate"><span class="pre">DeckBuilderLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.card.DeckBuilderScrollBar"><code class="docutils literal notranslate"><span class="pre">DeckBuilderScrollBar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.card.DeckBuilderView"><code class="docutils literal notranslate"><span class="pre">DeckBuilderView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.card.Foundation"><code class="docutils literal notranslate"><span class="pre">Foundation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.card.ScrollBarBar"><code class="docutils literal notranslate"><span class="pre">ScrollBarBar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.card.get_pos_hint"><code class="docutils literal notranslate"><span class="pre">get_pos_hint()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.card.get_pos_hint_x"><code class="docutils literal notranslate"><span class="pre">get_pos_hint_x()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.card.get_pos_hint_y"><code class="docutils literal notranslate"><span class="pre">get_pos_hint_y()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#charmenu">charmenu</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.charmenu.CharMenu"><code class="docutils literal notranslate"><span class="pre">CharMenu</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#charsview">charsview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.charsview.CharactersRecycleBoxLayout"><code class="docutils literal notranslate"><span class="pre">CharactersRecycleBoxLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.charsview.CharactersScreen"><code class="docutils literal notranslate"><span class="pre">CharactersScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.charsview.CharactersView"><code class="docutils literal notranslate"><span class="pre">CharactersView</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#dialog">dialog</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.dialog.Box"><code class="docutils literal notranslate"><span class="pre">Box</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.dialog.Dialog"><code class="docutils literal notranslate"><span class="pre">Dialog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.dialog.DialogLayout"><code class="docutils literal notranslate"><span class="pre">DialogLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.dialog.DialogMenu"><code class="docutils literal notranslate"><span class="pre">DialogMenu</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.dialog.MessageBox"><code class="docutils literal notranslate"><span class="pre">MessageBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.dialog.ScrollableLabel"><code class="docutils literal notranslate"><span class="pre">ScrollableLabel</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#menu">menu</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#rulesview">rulesview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#rulesview">rulesview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.rulesview.CharacterRulesScreen"><code class="docutils literal notranslate"><span class="pre">CharacterRulesScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.rulesview.RuleButton"><code class="docutils literal notranslate"><span class="pre">RuleButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.rulesview.RulesBox"><code class="docutils literal notranslate"><span class="pre">RulesBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.rulesview.RulesList"><code class="docutils literal notranslate"><span class="pre">RulesList</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.rulesview.RulesScreen"><code class="docutils literal notranslate"><span class="pre">RulesScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.rulesview.RulesView"><code class="docutils literal notranslate"><span class="pre">RulesView</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#spritebuilder">spritebuilder</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.spritebuilder.PawnConfigDialog"><code class="docutils literal notranslate"><span class="pre">PawnConfigDialog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.spritebuilder.PawnConfigScreen"><code class="docutils literal notranslate"><span class="pre">PawnConfigScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.spritebuilder.SpotConfigDialog"><code class="docutils literal notranslate"><span class="pre">SpotConfigDialog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.spritebuilder.SpotConfigScreen"><code class="docutils literal notranslate"><span class="pre">SpotConfigScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.spritebuilder.SpriteBuilder"><code class="docutils literal notranslate"><span class="pre">SpriteBuilder</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.spritebuilder.SpriteDialog"><code class="docutils literal notranslate"><span class="pre">SpriteDialog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.spritebuilder.SpriteSelector"><code class="docutils literal notranslate"><span class="pre">SpriteSelector</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#dummy">dummy</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#pallet">pallet</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#statlist">statlist</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.statlist.BaseStatListView"><code class="docutils literal notranslate"><span class="pre">BaseStatListView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.statlist.StatListView"><code class="docutils literal notranslate"><span class="pre">StatListView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.statlist.StatRowLabel"><code class="docutils literal notranslate"><span class="pre">StatRowLabel</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.statlist.StatRowListItem"><code class="docutils literal notranslate"><span class="pre">StatRowListItem</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.statlist.StatRowListItemContainer"><code class="docutils literal notranslate"><span class="pre">StatRowListItemContainer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.statlist.StatRowSlider"><code class="docutils literal notranslate"><span class="pre">StatRowSlider</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.statlist.StatRowTextInput"><code class="docutils literal notranslate"><span class="pre">StatRowTextInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.statlist.StatRowToggleButton"><code class="docutils literal notranslate"><span class="pre">StatRowToggleButton</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#statcfg">statcfg</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#stores">stores</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.EdBox"><code class="docutils literal notranslate"><span class="pre">EdBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.Editor"><code class="docutils literal notranslate"><span class="pre">Editor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.FuncEditor"><code class="docutils literal notranslate"><span class="pre">FuncEditor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.FuncsEdBox"><code class="docutils literal notranslate"><span class="pre">FuncsEdBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.FuncsEdScreen"><code class="docutils literal notranslate"><span class="pre">FuncsEdScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.FunctionNameInput"><code class="docutils literal notranslate"><span class="pre">FunctionNameInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.LanguageInput"><code class="docutils literal notranslate"><span class="pre">LanguageInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.RecycleToggleButton"><code class="docutils literal notranslate"><span class="pre">RecycleToggleButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.StoreButton"><code class="docutils literal notranslate"><span class="pre">StoreButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.StoreList"><code class="docutils literal notranslate"><span class="pre">StoreList</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.StringInput"><code class="docutils literal notranslate"><span class="pre">StringInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.StringNameInput"><code class="docutils literal notranslate"><span class="pre">StringNameInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.StringsEdBox"><code class="docutils literal notranslate"><span class="pre">StringsEdBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.StringsEdScreen"><code class="docutils literal notranslate"><span class="pre">StringsEdScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.stores.munge_source"><code class="docutils literal notranslate"><span class="pre">munge_source()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#python-editor">Python Editor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#strings-editor">Strings Editor</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#util">util</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#app">app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#util">util</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.util.SelectableRecycleBoxLayout"><code class="docutils literal notranslate"><span class="pre">SelectableRecycleBoxLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.util.dummynum"><code class="docutils literal notranslate"><span class="pre">dummynum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.util.fortyfive"><code class="docutils literal notranslate"><span class="pre">fortyfive</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.util.get_thin_rect_vertices"><code class="docutils literal notranslate"><span class="pre">get_thin_rect_vertices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.util.ninety"><code class="docutils literal notranslate"><span class="pre">ninety</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.util.trigger"><code class="docutils literal notranslate"><span class="pre">trigger</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.util.try_load"><code class="docutils literal notranslate"><span class="pre">try_load()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ELiDE/index.html#app">app</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ELiDE/index.html#ELiDE.app.ELiDEApp"><code class="docutils literal notranslate"><span class="pre">ELiDEApp</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -171,8 +344,8 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |
       <a href="_sources/index.rst.txt"

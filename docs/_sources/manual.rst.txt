@@ -12,12 +12,8 @@ Sims tracks sims' opinions of one another, their likes and dislikes
 and so forth, even for the ones you never talk to and have shown no
 interest in. If you streamline a life sim to where it doesn't have
 extraneous detail complexity you lose a huge part of what makes it
-lifelike.
-
-This causes trouble for developers when even *they* don't really
-understand why sims hate each other, and even if they do, failures of
-bookkeeping can cause technical issues like how long it takes to
-save or load your game in Dwarf Fortress.
+lifelike. This causes trouble for developers when even *they* don't
+understand why sims hate each other
 
 To address all those problems, LiSE provides a state container.
 Everything that ever happens in a game gets recorded, so that you can
