@@ -354,18 +354,10 @@ class Node(graph.Node, rule.RuleFollower):
 		super().__delitem__(k)
 		self.send(self, key=k, val=None)
 
-	def portals(self):
-		"""Iterate over :class:`Portal` objects that lead away from me"""
-		yield from self.portal.values()
-
 	def successors(self):
 		"""Iterate over nodes with edges leading from here to there."""
 		for port in self.portal.values():
 			yield port.destination
-
-	def preportals(self):
-		"""Iterate over :class:`Portal` objects that lead to me"""
-		yield from self.preportal.values()
 
 	def predecessors(self):
 		"""Iterate over nodes with edges leading here from there."""
