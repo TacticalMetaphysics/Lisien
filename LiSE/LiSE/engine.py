@@ -893,11 +893,13 @@ class Engine(AbstractEngine, gORM):
 		"""Log a message at level 'critical'"""
 		self.log('critical', msg)
 
-	def flush(self) -> None:
-		self.query.flush()
-
 	@world_locked
 	def commit(self) -> None:
+		"""Save all pending changes to the database.
+
+		``commit`` is more thorough than ``flush``.
+
+		"""
 		try:
 			self.universal['rando_state'] = self._rando.getstate()
 		except exc.OutOfTimelineError:
