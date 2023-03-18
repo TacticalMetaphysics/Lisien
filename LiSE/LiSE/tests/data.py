@@ -229,60 +229,30 @@ PHYSICAL_INITIAL_COPY = {
 	'name': 'physical',
 	'edge_val': {
 		'common0': {
-			'dorm0room5': {
-				'is_mirror': True
-			},
-			'dorm0room3': {
-				'is_mirror': True
-			},
+			'dorm0room5': {},
+			'dorm0room3': {},
 			'classroom': {},
-			'dorm0room1': {
-				'is_mirror': True
-			},
-			'dorm0room0': {
-				'is_mirror': True
-			},
-			'dorm0room4': {
-				'is_mirror': True
-			},
-			'dorm0room2': {
-				'is_mirror': True
-			}
+			'dorm0room1': {},
+			'dorm0room0': {},
+			'dorm0room4': {},
+			'dorm0room2': {}
 		},
 		'dorm1room3': {
 			'common1': {}
 		},
 		'common2': {
-			'dorm2room1': {
-				'is_mirror': True
-			},
-			'dorm2room2': {
-				'is_mirror': True
-			},
-			'dorm2room0': {
-				'is_mirror': True
-			},
+			'dorm2room1': {},
+			'dorm2room2': {},
+			'dorm2room0': {},
 			'classroom': {},
-			'dorm2room5': {
-				'is_mirror': True
-			},
-			'dorm2room4': {
-				'is_mirror': True
-			},
-			'dorm2room3': {
-				'is_mirror': True
-			}
+			'dorm2room5': {},
+			'dorm2room4': {},
+			'dorm2room3': {}
 		},
 		'classroom': {
-			'common0': {
-				'is_mirror': True
-			},
-			'common2': {
-				'is_mirror': True
-			},
-			'common1': {
-				'is_mirror': True
-			}
+			'common0': {},
+			'common2': {},
+			'common1': {}
 		},
 		'dorm1room1': {
 			'common1': {}
@@ -333,25 +303,13 @@ PHYSICAL_INITIAL_COPY = {
 			'common0': {}
 		},
 		'common1': {
-			'dorm1room3': {
-				'is_mirror': True
-			},
-			'dorm1room1': {
-				'is_mirror': True
-			},
+			'dorm1room3': {},
+			'dorm1room1': {},
 			'classroom': {},
-			'dorm1room5': {
-				'is_mirror': True
-			},
-			'dorm1room0': {
-				'is_mirror': True
-			},
-			'dorm1room2': {
-				'is_mirror': True
-			},
-			'dorm1room4': {
-				'is_mirror': True
-			}
+			'dorm1room5': {},
+			'dorm1room0': {},
+			'dorm1room2': {},
+			'dorm1room4': {}
 		},
 		'dorm1room4': {
 			'common1': {}

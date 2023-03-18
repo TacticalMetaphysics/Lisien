@@ -722,14 +722,14 @@ class AbstractCharacter(Mapping):
 		pass
 
 	@abstractmethod
-	def add_portal(self, orig, dest, symmetrical=False, **kwargs):
+	def add_portal(self, orig, dest, **kwargs):
 		pass
 
 	def add_edge(self, orig, dest, **kwargs):
 		self.add_portal(orig, dest, **kwargs)
 
-	def new_portal(self, orig, dest, symmetrical=False, **kwargs):
-		self.add_portal(orig, dest, symmetrical, **kwargs)
+	def new_portal(self, orig, dest, **kwargs):
+		self.add_portal(orig, dest, **kwargs)
 		return self.portal[orig][dest]
 
 	@abstractmethod

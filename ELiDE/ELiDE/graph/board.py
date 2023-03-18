@@ -338,14 +338,6 @@ class GraphBoard(RelativeLayout):
 				if isinstance(candidate, GraphArrow):
 					portal = self.character.portal[candidate.origin.name][
 						candidate.destination.name]
-					try:
-						reciprocal = self.character.portal[
-							candidate.destination.name][candidate.origin.name]
-					except KeyError:
-						reciprocal = None
-					if reciprocal is not None and (portal.get(
-						'is_mirror', False) or portal.get('is_mirror', False)):
-						candidate = candidate.reciprocal
 					insts = self.arrow_plane._instructions_map[
 						portal['origin'], portal['destination']]
 					fbo = self.arrow_plane._fbo

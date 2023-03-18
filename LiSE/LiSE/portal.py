@@ -111,55 +111,18 @@ class Portal(Edge, RuleFollower):
 		return RuleMapping(self)
 
 	def __getitem__(self, key):
-		"""Get the present value of the key.
-
-		If I am a mirror of another Portal, return the value from that
-		Portal instead.
-
-		"""
 		if key == 'origin':
 			return self.orig
 		elif key == 'destination':
 			return self.dest
 		elif key == 'character':
 			return self.character.name
-		elif key == 'is_mirror':
-			try:
-				return super().__getitem__(key)
-			except KeyError:
-				return False
-		elif 'is_mirror' in self and self['is_mirror']:
-			return self.character.preportal[self.orig][self.dest][key]
 		else:
 			return super().__getitem__(key)
 
 	def __setitem__(self, key, value):
-		"""Set ``key``=``value`` at the present game-time.
-
-		If I am a mirror of another Portal, set ``key``=``value`` on
-		that Portal instead.
-
-		"""
 		if key in ('origin', 'destination', 'character'):
 			raise KeyError("Can't change " + key)
-		elif 'is_mirror' in self and self['is_mirror']:
-			self.reciprocal[key] = value
-			return
-		elif key == 'symmetrical' and value:
-			if (self.dest not in self.character.portal
-				or self.orig not in self.character.portal[self.dest]):
-				self.character.add_portal(self.dest, self.orig)
-			self.character.portal[self.dest][self.orig]["is_mirror"] = True
-			self.send(self, key='symmetrical', val=False)
-			return
-		elif key == 'symmetrical' and not value:
-			try:
-				self.character.portal[self.dest][
-					self.orig]["is_mirror"] = False
-			except KeyError:
-				pass
-			self.send(self, key='symmetrical', val=False)
-			return
 		super().__setitem__(key, value)
 
 	def __repr__(self):

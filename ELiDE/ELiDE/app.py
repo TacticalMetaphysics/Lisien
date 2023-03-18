@@ -87,14 +87,7 @@ class ELiDEApp(App):
 							type(selected_proxy))
 		origin = selected_proxy.origin
 		destination = selected_proxy.destination
-		reciprocal = selected_proxy.reciprocal
-		if selected_proxy.get(
-			'is_mirror', False) or (reciprocal
-									and reciprocal.get('is_mirror', False)):
-			link = '<>'
-		else:
-			link = '->'
-		self.selected_proxy_name = str(origin.name) + link + str(
+		self.selected_proxy_name = str(origin.name) + '->' + str(
 			destination.name)
 
 	def _get_character_name(self, *args):
@@ -443,14 +436,10 @@ class ELiDEApp(App):
 		if selection is None:
 			return
 		if isinstance(selection, GraphArrow):
-			if selection.reciprocal and selection.reciprocal.portal.get(
-				'is_mirror', False):
-				selection.reciprocal.portal.delete()
-				self.mainscreen.boardview.board.rm_arrow(
-					selection.destination.name, selection.origin.name)
 			self.mainscreen.boardview.board.rm_arrow(
 				selection.origin.name, selection.destination.name)
-			selection.portal.delete()
+			self.engine.portal[selection.origin.name][
+				selection.destination.name].delete()
 		elif isinstance(selection, GraphSpot):
 			charn = selection.board.character.name
 			self.mainscreen.graphboards[charn].rm_spot(selection.name)
