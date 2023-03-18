@@ -301,7 +301,7 @@ class Node(graph.Node, rule.RuleFollower):
 		self.engine.query.set_node_rulebook(character, node, branch, turn,
 											tick, rulebook)
 
-	successor = adj = edge = getatt('portal')
+	successor = succ = adj = edge = getatt('portal')
 	predecessor = pred = getatt('preportal')
 	engine = getatt('db')
 
