@@ -338,6 +338,7 @@ class Node(graph.Node, rule.RuleFollower):
 		return
 
 	def clear(self):
+		"""Delete all my keys"""
 		for key in super().__iter__():
 			del self[key]
 
