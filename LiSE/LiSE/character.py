@@ -1493,7 +1493,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		self.add_portal(origin, destination, **kwargs)
 		return self.engine._get_edge(self, origin, destination, 0)
 
-	def add_portals_from(self, seq):
+	def add_portals_from(self, seq, **kwargs):
 		"""Make portals for a sequence of (origin, destination) pairs
 
 		Actually, triples are acceptable too, in which case the third
@@ -1502,8 +1502,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		for tup in seq:
 			orig = tup[0]
 			dest = tup[1]
-			kwargs = tup[2] if len(tup) > 2 else {}
-			self.add_portal(orig, dest, **kwargs)
+			kwarrgs = tup[2] if len(tup) > 2 else kwargs
+			self.add_portal(orig, dest, **kwarrgs)
 
 	def add_unit(self, a, b=None):
 		"""Start keeping track of a unit"""
