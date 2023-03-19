@@ -404,6 +404,8 @@ class RuleBook(MutableSequence, Signal):
 
 	def __setitem__(self, i, v):
 		v = getattr(v, 'name', v)
+		if v == "truth":
+			raise ValueError("Illegal rule name")
 		branch, turn, tick = self.engine._nbtt()
 		try:
 			cache = self._get_cache(branch, turn, tick)
@@ -421,6 +423,8 @@ class RuleBook(MutableSequence, Signal):
 
 	def insert(self, i, v):
 		v = getattr(v, 'name', v)
+		if v == "truth":
+			raise ValueError("Illegal rule name")
 		branch, turn, tick = self.engine._nbtt()
 		try:
 			cache = self._get_cache(branch, turn, tick)
@@ -509,6 +513,8 @@ class RuleMapping(MutableMapping, Signal):
 		raise AttributeError
 
 	def __setitem__(self, k, v):
+		if k == "truth":
+			raise KeyError("Illegal rule name")
 		if isinstance(v, Hashable) and v in self.engine.rule:
 			v = self.engine.rule[v]
 		elif isinstance(v, str) and hasattr(self.engine.function, v):
@@ -730,6 +736,8 @@ class AllRules(MutableMapping, Signal):
 
 			return r
 		k = name if name is not None else v.__name__
+		if k == "truth":
+			raise ValueError("Illegal rule name")
 		self[k] = v
 		ret = self[k]
 		if always:
