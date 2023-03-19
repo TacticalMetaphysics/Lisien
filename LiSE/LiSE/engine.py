@@ -30,7 +30,8 @@ from blinker import Signal
 
 from .allegedb import ORM as gORM
 from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
-						DeltaType, world_locked)
+						DeltaType)
+from .allegedb.window import update_window, update_backward_window
 from .util import sort_set, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
 from .query import (Query, make_side_sel, StatusAlias, ComparisonQuery,
@@ -573,7 +574,6 @@ class Engine(AbstractEngine, gORM):
 		  and ``'actions'``
 
 		"""
-		from .allegedb.window import update_window, update_backward_window
 		if not isinstance(branch, str):
 			raise TypeError("branch must be str")
 		for arg in (turn_from, tick_from, turn_to, tick_to):
