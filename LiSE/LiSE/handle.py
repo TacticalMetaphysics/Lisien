@@ -1665,8 +1665,7 @@ class EngineHandle(object):
 
 	def add_portal(self, char: Hashable, orig: Hashable, dest: Hashable,
 					statdict: Dict) -> None:
-		self._real.character[char].add_portal(orig, dest,
-												**statdict)
+		self._real.character[char].add_portal(orig, dest, **statdict)
 
 	def add_portals_from(self, char: Hashable, seq: Iterable) -> None:
 		self._real.character[char].add_portals_from(seq)
