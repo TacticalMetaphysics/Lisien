@@ -1431,12 +1431,11 @@ class CharacterProxy(AbstractCharacter):
 							loc=location,
 							branching=True)
 
-	def add_portal(self, origin, destination, symmetrical=False, **kwargs):
+	def add_portal(self, origin, destination, **kwargs):
 		self.engine.handle(command='add_portal',
 							char=self.name,
 							orig=origin,
 							dest=destination,
-							symmetrical=symmetrical,
 							statdict=kwargs,
 							branching=True)
 		self.engine._character_portals_cache.store(
@@ -1449,12 +1448,6 @@ class CharacterProxy(AbstractCharacter):
 			placecache[origin] = PlaceProxy(self, origin)
 		if destination not in node:
 			placecache[destination] = PlaceProxy(self, destination)
-		if symmetrical:
-			self.engine._character_portals_cache.store(
-				self.name, destination, origin,
-				PortalProxy(self, destination, origin))
-			self.engine._portal_stat_cache[
-				self.name][destination][origin]['is_mirror'] = True
 
 	def remove_portal(self, origin, destination):
 		char_port_cache = self.engine._character_portals_cache

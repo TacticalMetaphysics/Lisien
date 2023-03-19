@@ -569,7 +569,7 @@ class ORM:
 
 		from functools import partial
 		if turn_from == turn_to:
-			return self.get_turn_delta(branch, turn_from, tick_from, tick_to)
+			return self._get_turn_delta(branch, turn_from, tick_from, tick_to)
 		delta = {}
 		graph_objs = self._graph_objs
 		if turn_to < turn_from:
@@ -613,11 +613,11 @@ class ORM:
 
 		return delta
 
-	def get_turn_delta(self,
-						branch: str = None,
-						turn: int = None,
-						tick_from=0,
-						tick_to: int = None) -> DeltaType:
+	def _get_turn_delta(self,
+	                    branch: str = None,
+	                    turn: int = None,
+	                    tick_from=0,
+	                    tick_to: int = None) -> DeltaType:
 		"""Get a dictionary describing changes made on a given turn.
 
 		If ``tick_to`` is not supplied, report all changes after ``tick_from``
@@ -1894,6 +1894,7 @@ class ORM:
 	# easier to override things this way
 	@property
 	def branch(self) -> str:
+		"""The fork of the timestream that we're on."""
 		return self._get_branch()
 
 	@branch.setter
@@ -1965,6 +1966,7 @@ class ORM:
 	# easier to override things this way
 	@property
 	def turn(self) -> int:
+		"""Units of time that have passed since the sim started."""
 		return self._get_turn()
 
 	@turn.setter
@@ -2009,6 +2011,12 @@ class ORM:
 	# easier to override things this way
 	@property
 	def tick(self) -> int:
+		"""A counter of how many changes have occurred this turn.
+
+		Can be set manually, but is more often set to the last tick in a turn
+		as a side effect of setting ``turn``.
+
+		"""
 		return self._get_tick()
 
 	@tick.setter
@@ -2080,6 +2088,30 @@ class ORM:
 		self._otick = tick
 		return branch, turn, tick
 
+	def flush(self) -> None:
+		"""Write pending changes to disk.
+
+		You can set a ``flush_interval`` when you instantiate ``Engine``
+		to call this every so many turns. However, this may cause your game to
+		hitch up sometimes, so it's better to call ``flush`` when you know the
+		player won't be running the simulation for a while.
+
+		"""
+		turn_end = self._turn_end
+		set_turn = self.query.set_turn
+		for (branch, turn), plan_end_tick in self._turn_end_plan.items():
+			set_turn(branch, turn, turn_end[branch], plan_end_tick)
+		if self._plans_uncommitted:
+			self.query.plans_insert_many(self._plans_uncommitted)
+		if self._plan_ticks_uncommitted:
+			self.query.plan_ticks_insert_many(self._plan_ticks_uncommitted)
+		if self._new_keyframes:
+			self.query.keyframes_insert_many(self._new_keyframes)
+			self._new_keyframes = []
+		self.query.flush()
+		self._plans_uncommitted = []
+		self._plan_ticks_uncommitted = []
+
 	@world_locked
 	def commit(self) -> None:
 		"""Write the state of all graphs and commit the transaction.
@@ -2095,20 +2127,8 @@ class ORM:
 						tick_end) in self._branches.items():
 			set_branch(branch, parent, turn_start, tick_start, turn_end,
 						tick_end)
-		turn_end = self._turn_end
-		set_turn = self.query.set_turn
-		for (branch, turn), plan_end_tick in self._turn_end_plan.items():
-			set_turn(branch, turn, turn_end[branch], plan_end_tick)
-		if self._plans_uncommitted:
-			self.query.plans_insert_many(self._plans_uncommitted)
-		if self._plan_ticks_uncommitted:
-			self.query.plan_ticks_insert_many(self._plan_ticks_uncommitted)
-		if self._new_keyframes:
-			self.query.keyframes_insert_many(self._new_keyframes)
-			self._new_keyframes = []
+		self.flush()
 		self.query.commit()
-		self._plans_uncommitted = []
-		self._plan_ticks_uncommitted = []
 
 	def close(self) -> None:
 		"""Write changes to database and close the connection"""

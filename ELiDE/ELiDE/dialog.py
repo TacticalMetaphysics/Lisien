@@ -230,7 +230,7 @@ class DialogLayout(FloatLayout):
 				mnukwargs['options'] = list(
 					map(self._munge_menu_option, mnukwargs['options']))
 				dia.menu_kwargs = mnukwargs
-			elif isinstance(mnukwargs, list) or isinstance(mnukwargs, tuple):
+			elif isinstance(mnukwargs, (list, tuple)):
 				dia.menu_kwargs['options'] = list(
 					map(self._munge_menu_option, mnukwargs))
 			else:

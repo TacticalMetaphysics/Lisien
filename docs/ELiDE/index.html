@@ -4,16 +4,14 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>ELiDE &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
     <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="prev" title="LiSE" href="../LiSE/index.html" />
@@ -354,99 +352,6 @@ None for the default canvas.</p>
 <span id="board"></span><h3>board<a class="headerlink" href="#module-ELiDE.graph.board" title="Permalink to this heading">¶</a></h3>
 <p>The big widget that shows the graph of the selected Character.</p>
 <dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.graph.board.BoardScatterPlane">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.board.</span></span><span class="sig-name descname"><span class="pre">BoardScatterPlane</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#BoardScatterPlane"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.BoardScatterPlane" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.BoardScatterPlane.apply_transform">
-<span class="sig-name descname"><span class="pre">apply_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_multiply</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anchor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">0)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#BoardScatterPlane.apply_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.BoardScatterPlane.apply_transform" title="Permalink to this definition">¶</a></dt>
-<dd><p>Transforms the scatter by applying the “trans” transformation
-matrix (on top of its current transformation state). The resultant
-matrix can be found in the <code class="xref py py-attr docutils literal notranslate"><span class="pre">transform</span></code> property.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>trans</cite>: <code class="xref py py-class docutils literal notranslate"><span class="pre">Matrix</span></code>.</dt><dd><p>Transformation matrix to be applied to the scatter widget.</p>
-</dd>
-<dt><cite>anchor</cite>: tuple, defaults to (0, 0).</dt><dd><p>The point to use as the origin of the transformation
-(uses local widget space).</p>
-</dd>
-<dt><cite>post_multiply</cite>: bool, defaults to False.</dt><dd><p>If True, the transform matrix is post multiplied
-(as if applied before the current transform).</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p>Usage example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kivy.graphics.transformation</span> <span class="kn">import</span> <span class="n">Matrix</span>
-<span class="n">mat</span> <span class="o">=</span> <span class="n">Matrix</span><span class="p">()</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-<span class="n">scatter_instance</span><span class="o">.</span><span class="n">apply_transform</span><span class="p">(</span><span class="n">mat</span><span class="p">)</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.BoardScatterPlane.on_touch_down">
-<span class="sig-name descname"><span class="pre">on_touch_down</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#BoardScatterPlane.on_touch_down"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.BoardScatterPlane.on_touch_down" title="Permalink to this definition">¶</a></dt>
-<dd><p>Receive a touch down event.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>touch</cite>: <code class="xref py py-class docutils literal notranslate"><span class="pre">MotionEvent</span></code> class</dt><dd><p>Touch received. The touch is in parent coordinates. See
-<code class="xref py py-mod docutils literal notranslate"><span class="pre">relativelayout</span></code> for a discussion on
-coordinate systems.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>bool
-If True, the dispatching of the touch event will stop.
-If False, the event will continue to be dispatched to the rest
-of the widget tree.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.BoardScatterPlane.on_transform_with_touch">
-<span class="sig-name descname"><span class="pre">on_transform_with_touch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#BoardScatterPlane.on_transform_with_touch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.BoardScatterPlane.on_transform_with_touch" title="Permalink to this definition">¶</a></dt>
-<dd><p>Called when a touch event has transformed the scatter widget.
-By default this does nothing, but can be overridden by derived
-classes that need to react to transformations caused by user
-input.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>touch</cite>:</dt><dd><p>The touch object which triggered the transformation.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<div class="versionadded">
-<p><span class="versionmodified added">New in version 1.8.0.</span></p>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.BoardScatterPlane.pawn_from_dummy">
-<span class="sig-name descname"><span class="pre">pawn_from_dummy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dummy</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#BoardScatterPlane.pawn_from_dummy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.BoardScatterPlane.pawn_from_dummy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make a real thing and its pawn from a dummy pawn.</p>
-<p>Create a new <code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Pawn</span></code> instance, along with the
-underlying <code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.Thing</span></code> instance, and give it the name,
-location, and imagery of the provided dummy.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.BoardScatterPlane.spot_from_dummy">
-<span class="sig-name descname"><span class="pre">spot_from_dummy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dummy</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#BoardScatterPlane.spot_from_dummy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.BoardScatterPlane.spot_from_dummy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make a real place and its spot from a dummy spot.</p>
-<p>Create a new <code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Spot</span></code> instance, along with the
-underlying <code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.Place</span></code> instance, and give it the name,
-position, and imagery of the provided dummy.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.graph.board.FinalLayout">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.board.</span></span><span class="sig-name descname"><span class="pre">FinalLayout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#FinalLayout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.FinalLayout" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -466,13 +371,6 @@ graph.</p>
 <dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.arrows_at">
 <span class="sig-name descname"><span class="pre">arrows_at</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.arrows_at"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.arrows_at" title="Permalink to this definition">¶</a></dt>
 <dd><p>Iterate over arrows that collide the given point.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.make_arrow">
-<span class="sig-name descname"><span class="pre">make_arrow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">portal</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.make_arrow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.make_arrow" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make an <code class="xref py py-class docutils literal notranslate"><span class="pre">Arrow</span></code> to represent a <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>, store it,
-and return it.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -567,6 +465,29 @@ when possible.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoardScatterPlane">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.board.</span></span><span class="sig-name descname"><span class="pre">GraphBoardScatterPlane</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoardScatterPlane"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoardScatterPlane" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoardScatterPlane.pawn_from_dummy">
+<span class="sig-name descname"><span class="pre">pawn_from_dummy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dummy</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoardScatterPlane.pawn_from_dummy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoardScatterPlane.pawn_from_dummy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a real thing and its pawn from a dummy pawn.</p>
+<p>Create a new <code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Pawn</span></code> instance, along with the
+underlying <code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.Thing</span></code> instance, and give it the name,
+location, and imagery of the provided dummy.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoardScatterPlane.spot_from_dummy">
+<span class="sig-name descname"><span class="pre">spot_from_dummy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dummy</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoardScatterPlane.spot_from_dummy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoardScatterPlane.spot_from_dummy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a real place and its spot from a dummy spot.</p>
+<p>Create a new <code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Spot</span></code> instance, along with the
+underlying <code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.Place</span></code> instance, and give it the name,
+position, and imagery of the provided dummy.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoardView">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.board.</span></span><span class="sig-name descname"><span class="pre">GraphBoardView</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoardView"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoardView" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -636,6 +557,12 @@ the window the <code class="xref py py-class docutils literal notranslate"><span
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.graph.spot.GraphSpot.on_pos">
+<span class="sig-name descname"><span class="pre">on_pos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/spot.html#GraphSpot.on_pos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.spot.GraphSpot.on_pos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Translate all the rectangles within this widget to reflect the widget’s position.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ELiDE.graph.spot.GraphSpot.on_touch_up">
 <span class="sig-name descname"><span class="pre">on_touch_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/spot.html#GraphSpot.on_touch_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.spot.GraphSpot.on_touch_up" title="Permalink to this definition">¶</a></dt>
 <dd><p>Receive a touch up event. The touch is in parent coordinates.</p>
@@ -662,182 +589,14 @@ recorded in the database.</p>
 points from the origin to the destination, regardless of where on the
 screen they are at the moment.</p>
 <dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.ArrowLayout">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.arrow.</span></span><span class="sig-name descname"><span class="pre">ArrowLayout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#ArrowLayout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.ArrowLayout" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.ArrowLayout.add_widget">
-<span class="sig-name descname"><span class="pre">add_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#ArrowLayout.add_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.ArrowLayout.add_widget" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add a new widget as a child of this widget.</p>
-<blockquote>
-<div><dl class="field-list">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl>
-<dt><cite>widget</cite>: <code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></dt><dd><p>Widget to add to our list of children.</p>
-</dd>
-<dt><cite>index</cite>: int, defaults to 0</dt><dd><p>Index to insert the widget in the list. Notice that the default
-of 0 means the widget is inserted at the beginning of the list
-and will thus be drawn on top of other sibling widgets. For a
-full discussion of the index and widget hierarchy, please see
-the <span class="xref std std-doc">Widgets Programming Guide</span>.</p>
-<div class="versionadded">
-<p><span class="versionmodified added">New in version 1.0.5.</span></p>
-</div>
-</dd>
-<dt><cite>canvas</cite>: str, defaults to None</dt><dd><p>Canvas to add widget’s canvas to. Can be ‘before’, ‘after’ or
-None for the default canvas.</p>
-<div class="versionadded">
-<p><span class="versionmodified added">New in version 1.9.0.</span></p>
-</div>
-</dd>
-</dl>
-</dd>
-</dl>
-</div></blockquote>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">kivy.uix.button</span> <span class="kn">import</span> <span class="n">Button</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">kivy.uix.slider</span> <span class="kn">import</span> <span class="n">Slider</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">root</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">root</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">Button</span><span class="p">())</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">slider</span> <span class="o">=</span> <span class="n">Slider</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">root</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">slider</span><span class="p">)</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.ArrowLayout.remove_widget">
-<span class="sig-name descname"><span class="pre">remove_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#ArrowLayout.remove_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.ArrowLayout.remove_widget" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove a widget from the children of this widget.</p>
-<blockquote>
-<div><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>widget</cite>: <code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></dt><dd><p>Widget to remove from our children list.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</div></blockquote>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">kivy.uix.button</span> <span class="kn">import</span> <span class="n">Button</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">root</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">button</span> <span class="o">=</span> <span class="n">Button</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">root</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">button</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">root</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="n">button</span><span class="p">)</span>
-</pre></div>
-</div>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrow">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.arrow.</span></span><span class="sig-name descname"><span class="pre">GraphArrow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#GraphArrow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrow" title="Permalink to this definition">¶</a></dt>
-<dd><p>A <a class="reference internal" href="#ELiDE.graph.arrow.GraphArrowWidget" title="ELiDE.graph.arrow.GraphArrowWidget"><code class="xref py py-class docutils literal notranslate"><span class="pre">GraphArrowWidget</span></code></a> that represents a <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> object.</p>
-<p>This subclass is much more often used than <a class="reference internal" href="#ELiDE.graph.arrow.GraphArrowWidget" title="ELiDE.graph.arrow.GraphArrowWidget"><code class="xref py py-class docutils literal notranslate"><span class="pre">GraphArrowWidget</span></code></a>,
-which is only seen on its own when the user is in the process of
-creating a new <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrow.on_portal">
-<span class="sig-name descname"><span class="pre">on_portal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#GraphArrow.on_portal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrow.on_portal" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set my <code class="docutils literal notranslate"><span class="pre">name</span></code> and instantiate my <code class="docutils literal notranslate"><span class="pre">mirrormap</span></code> as soon as I have
-the properties I need to do so.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrow.portal">
-<span class="sig-name descname"><span class="pre">portal</span></span><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrow.portal" title="Permalink to this definition">¶</a></dt>
-<dd><p>The portal that I represent.</p>
-</dd></dl>
-
-</dd></dl>
+<dt class="sig sig-object py" id="ELiDE.graph.arrow.ArrowPlane">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.arrow.</span></span><span class="sig-name descname"><span class="pre">ArrowPlane</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#ArrowPlane"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.ArrowPlane" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrowWidget">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.arrow.</span></span><span class="sig-name descname"><span class="pre">GraphArrowWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#GraphArrowWidget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrowWidget" title="Permalink to this definition">¶</a></dt>
-<dd><p>A widget that points from one <code class="xref py py-class docutils literal notranslate"><span class="pre">Spot</span></code> to
-another.</p>
-<p><code class="xref py py-class docutils literal notranslate"><span class="pre">Arrow`s</span> <span class="pre">are</span> <span class="pre">the</span> <span class="pre">graphical</span> <span class="pre">representations</span> <span class="pre">of</span>
-<span class="pre">:class:`~LiSE.model.Portal`s.</span> <span class="pre">They</span> <span class="pre">point</span> <span class="pre">from</span> <span class="pre">the</span> <span class="pre">:class:`Spot</span></code>
-representing the <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>’s origin, to the one representing
-its destination.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrowWidget.add_widget">
-<span class="sig-name descname"><span class="pre">add_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#GraphArrowWidget.add_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrowWidget.add_widget" title="Permalink to this definition">¶</a></dt>
-<dd><p>Put the <code class="xref py py-class docutils literal notranslate"><span class="pre">Pawn</span></code> at a point along my length proportionate to
-how close it is to finishing its travel through me.</p>
-<p>Only <code class="xref py py-class docutils literal notranslate"><span class="pre">Pawn</span></code> should ever be added as a child of <code class="xref py py-class docutils literal notranslate"><span class="pre">Arrow</span></code>.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrowWidget.collide_point">
-<span class="sig-name descname"><span class="pre">collide_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#GraphArrowWidget.collide_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrowWidget.collide_point" title="Permalink to this definition">¶</a></dt>
-<dd><p>Delegate to my <code class="docutils literal notranslate"><span class="pre">collider</span></code>, or return <code class="docutils literal notranslate"><span class="pre">False</span></code> if I don’t have
-one.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrowWidget.margin">
-<span class="sig-name descname"><span class="pre">margin</span></span><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrowWidget.margin" title="Permalink to this definition">¶</a></dt>
-<dd><p>When deciding whether a touch collides with me, how far away can
-the touch get before I should consider it a miss?</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrowWidget.on_destination">
-<span class="sig-name descname"><span class="pre">on_destination</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#GraphArrowWidget.on_destination"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrowWidget.on_destination" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make sure to redraw whenever the destination moves.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrowWidget.on_origin">
-<span class="sig-name descname"><span class="pre">on_origin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#GraphArrowWidget.on_origin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrowWidget.on_origin" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make sure to redraw whenever the origin moves.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrowWidget.on_points">
-<span class="sig-name descname"><span class="pre">on_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#GraphArrowWidget.on_points"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrowWidget.on_points" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reposition my children when I have new points.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrowWidget.on_portal">
-<span class="sig-name descname"><span class="pre">on_portal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#GraphArrowWidget.on_portal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrowWidget.on_portal" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set my <code class="docutils literal notranslate"><span class="pre">name</span></code> and instantiate my <code class="docutils literal notranslate"><span class="pre">mirrormap</span></code> as soon as I have
-the properties I need to do so.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrowWidget.pos_along">
-<span class="sig-name descname"><span class="pre">pos_along</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pct</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#GraphArrowWidget.pos_along"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrowWidget.pos_along" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return coordinates for where a Pawn should be if it has travelled
-along <code class="docutils literal notranslate"><span class="pre">pct</span></code> of my length (between 0 and 1).</p>
-<p>Might get complex when I switch over to using beziers for
-arrows, but for now this is quite simple, using distance along
-a line segment.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrowWidget.pospawn">
-<span class="sig-name descname"><span class="pre">pospawn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pawn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#GraphArrowWidget.pospawn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrowWidget.pospawn" title="Permalink to this definition">¶</a></dt>
-<dd><p>Position a <code class="xref py py-class docutils literal notranslate"><span class="pre">Pawn</span></code> that is my child so as to reflect how far
-its <code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code> has gone along my <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrowWidget.remove_widget">
-<span class="sig-name descname"><span class="pre">remove_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#GraphArrowWidget.remove_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrowWidget.remove_widget" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove the special <code class="xref py py-class docutils literal notranslate"><span class="pre">InstructionGroup</span></code> I was using to draw
-this <code class="xref py py-class docutils literal notranslate"><span class="pre">Pawn</span></code>.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.graph.arrow.GraphArrowWidget.w">
-<span class="sig-name descname"><span class="pre">w</span></span><a class="headerlink" href="#ELiDE.graph.arrow.GraphArrowWidget.w" title="Permalink to this definition">¶</a></dt>
-<dd><p>The width of the inner, brighter portion of the <code class="xref py py-class docutils literal notranslate"><span class="pre">Arrow</span></code>. The
-whole <code class="xref py py-class docutils literal notranslate"><span class="pre">Arrow</span></code> will end up thicker.</p>
-</dd></dl>
-
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="ELiDE.graph.arrow.get_points">
@@ -990,6 +749,25 @@ you can manually enter a Branch and Tick to go to. Moving through
 time this way doesn’t simulate anything–you’ll only see what
 happened as a result of “simulate,” “1 turn,” or some other way
 the LiSE rules engine has been made to run.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.screen.TurnScroll">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.screen.</span></span><span class="sig-name descname"><span class="pre">TurnScroll</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#TurnScroll"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.TurnScroll" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.screen.TurnScroll.on_touch_move">
+<span class="sig-name descname"><span class="pre">on_touch_move</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#TurnScroll.on_touch_move"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.TurnScroll.on_touch_move" title="Permalink to this definition">¶</a></dt>
+<dd><p>Receive a touch move event. The touch is in parent coordinates.</p>
+<p>See <code class="xref py py-meth docutils literal notranslate"><span class="pre">on_touch_down()</span></code> for more information.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.screen.TurnScroll.on_touch_up">
+<span class="sig-name descname"><span class="pre">on_touch_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#TurnScroll.on_touch_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.TurnScroll.on_touch_up" title="Permalink to this definition">¶</a></dt>
+<dd><p>Receive a touch up event. The touch is in parent coordinates.</p>
+<p>See <code class="xref py py-meth docutils literal notranslate"><span class="pre">on_touch_down()</span></code> for more information.</p>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -2878,7 +2656,12 @@ set the title in the class as previously stated in the documentation.</p>
 <li class="toctree-l1"><a class="reference internal" href="../manual.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">ELiDE</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#game">game</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#game">game</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.game.GameApp"><code class="docutils literal notranslate"><span class="pre">GameApp</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.game.GameScreen"><code class="docutils literal notranslate"><span class="pre">GameScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.game.Screens"><code class="docutils literal notranslate"><span class="pre">Screens</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#graph">graph</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.graph.board">board</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pawn">pawn</a></li>
@@ -2886,29 +2669,117 @@ set the title in the class as previously stated in the documentation.</p>
 <li class="toctree-l3"><a class="reference internal" href="#arrow">arrow</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.screen">screen</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#card">card</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#charmenu">charmenu</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#charsview">charsview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#dialog">dialog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.screen">screen</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.CharMenuContainer"><code class="docutils literal notranslate"><span class="pre">CharMenuContainer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.KvLayout"><code class="docutils literal notranslate"><span class="pre">KvLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.MainScreen"><code class="docutils literal notranslate"><span class="pre">MainScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.OneTurnButton"><code class="docutils literal notranslate"><span class="pre">OneTurnButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.SimulateButton"><code class="docutils literal notranslate"><span class="pre">SimulateButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.StatListPanel"><code class="docutils literal notranslate"><span class="pre">StatListPanel</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.TimePanel"><code class="docutils literal notranslate"><span class="pre">TimePanel</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.TurnScroll"><code class="docutils literal notranslate"><span class="pre">TurnScroll</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#card">card</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.card.Card"><code class="docutils literal notranslate"><span class="pre">Card</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.card.ColorTextureBox"><code class="docutils literal notranslate"><span class="pre">ColorTextureBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.card.DeckBuilderLayout"><code class="docutils literal notranslate"><span class="pre">DeckBuilderLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.card.DeckBuilderScrollBar"><code class="docutils literal notranslate"><span class="pre">DeckBuilderScrollBar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.card.DeckBuilderView"><code class="docutils literal notranslate"><span class="pre">DeckBuilderView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.card.Foundation"><code class="docutils literal notranslate"><span class="pre">Foundation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.card.ScrollBarBar"><code class="docutils literal notranslate"><span class="pre">ScrollBarBar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.card.get_pos_hint"><code class="docutils literal notranslate"><span class="pre">get_pos_hint()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.card.get_pos_hint_x"><code class="docutils literal notranslate"><span class="pre">get_pos_hint_x()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.card.get_pos_hint_y"><code class="docutils literal notranslate"><span class="pre">get_pos_hint_y()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#charmenu">charmenu</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.charmenu.CharMenu"><code class="docutils literal notranslate"><span class="pre">CharMenu</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#charsview">charsview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.charsview.CharactersRecycleBoxLayout"><code class="docutils literal notranslate"><span class="pre">CharactersRecycleBoxLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.charsview.CharactersScreen"><code class="docutils literal notranslate"><span class="pre">CharactersScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.charsview.CharactersView"><code class="docutils literal notranslate"><span class="pre">CharactersView</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#dialog">dialog</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.dialog.Box"><code class="docutils literal notranslate"><span class="pre">Box</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.dialog.Dialog"><code class="docutils literal notranslate"><span class="pre">Dialog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.dialog.DialogLayout"><code class="docutils literal notranslate"><span class="pre">DialogLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.dialog.DialogMenu"><code class="docutils literal notranslate"><span class="pre">DialogMenu</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.dialog.MessageBox"><code class="docutils literal notranslate"><span class="pre">MessageBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.dialog.ScrollableLabel"><code class="docutils literal notranslate"><span class="pre">ScrollableLabel</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#menu">menu</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#rulesview">rulesview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rulesview">rulesview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.rulesview.CharacterRulesScreen"><code class="docutils literal notranslate"><span class="pre">CharacterRulesScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.rulesview.RuleButton"><code class="docutils literal notranslate"><span class="pre">RuleButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.rulesview.RulesBox"><code class="docutils literal notranslate"><span class="pre">RulesBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.rulesview.RulesList"><code class="docutils literal notranslate"><span class="pre">RulesList</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.rulesview.RulesScreen"><code class="docutils literal notranslate"><span class="pre">RulesScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.rulesview.RulesView"><code class="docutils literal notranslate"><span class="pre">RulesView</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#spritebuilder">spritebuilder</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.spritebuilder.PawnConfigDialog"><code class="docutils literal notranslate"><span class="pre">PawnConfigDialog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.spritebuilder.PawnConfigScreen"><code class="docutils literal notranslate"><span class="pre">PawnConfigScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.spritebuilder.SpotConfigDialog"><code class="docutils literal notranslate"><span class="pre">SpotConfigDialog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.spritebuilder.SpotConfigScreen"><code class="docutils literal notranslate"><span class="pre">SpotConfigScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.spritebuilder.SpriteBuilder"><code class="docutils literal notranslate"><span class="pre">SpriteBuilder</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.spritebuilder.SpriteDialog"><code class="docutils literal notranslate"><span class="pre">SpriteDialog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.spritebuilder.SpriteSelector"><code class="docutils literal notranslate"><span class="pre">SpriteSelector</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#dummy">dummy</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pallet">pallet</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#statlist">statlist</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.BaseStatListView"><code class="docutils literal notranslate"><span class="pre">BaseStatListView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.StatListView"><code class="docutils literal notranslate"><span class="pre">StatListView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.StatRowLabel"><code class="docutils literal notranslate"><span class="pre">StatRowLabel</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.StatRowListItem"><code class="docutils literal notranslate"><span class="pre">StatRowListItem</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.StatRowListItemContainer"><code class="docutils literal notranslate"><span class="pre">StatRowListItemContainer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.StatRowSlider"><code class="docutils literal notranslate"><span class="pre">StatRowSlider</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.StatRowTextInput"><code class="docutils literal notranslate"><span class="pre">StatRowTextInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.StatRowToggleButton"><code class="docutils literal notranslate"><span class="pre">StatRowToggleButton</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#statcfg">statcfg</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#stores">stores</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.EdBox"><code class="docutils literal notranslate"><span class="pre">EdBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.Editor"><code class="docutils literal notranslate"><span class="pre">Editor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.FuncEditor"><code class="docutils literal notranslate"><span class="pre">FuncEditor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.FuncsEdBox"><code class="docutils literal notranslate"><span class="pre">FuncsEdBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.FuncsEdScreen"><code class="docutils literal notranslate"><span class="pre">FuncsEdScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.FunctionNameInput"><code class="docutils literal notranslate"><span class="pre">FunctionNameInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.LanguageInput"><code class="docutils literal notranslate"><span class="pre">LanguageInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.RecycleToggleButton"><code class="docutils literal notranslate"><span class="pre">RecycleToggleButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.StoreButton"><code class="docutils literal notranslate"><span class="pre">StoreButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.StoreList"><code class="docutils literal notranslate"><span class="pre">StoreList</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.StringInput"><code class="docutils literal notranslate"><span class="pre">StringInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.StringNameInput"><code class="docutils literal notranslate"><span class="pre">StringNameInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.StringsEdBox"><code class="docutils literal notranslate"><span class="pre">StringsEdBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.StringsEdScreen"><code class="docutils literal notranslate"><span class="pre">StringsEdScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.stores.munge_source"><code class="docutils literal notranslate"><span class="pre">munge_source()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#python-editor">Python Editor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#strings-editor">Strings Editor</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#util">util</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#app">app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#util">util</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.SelectableRecycleBoxLayout"><code class="docutils literal notranslate"><span class="pre">SelectableRecycleBoxLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.dummynum"><code class="docutils literal notranslate"><span class="pre">dummynum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.fortyfive"><code class="docutils literal notranslate"><span class="pre">fortyfive</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.get_thin_rect_vertices"><code class="docutils literal notranslate"><span class="pre">get_thin_rect_vertices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.ninety"><code class="docutils literal notranslate"><span class="pre">ninety</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.trigger"><code class="docutils literal notranslate"><span class="pre">trigger</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.try_load"><code class="docutils literal notranslate"><span class="pre">try_load()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#app">app</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.app.ELiDEApp"><code class="docutils literal notranslate"><span class="pre">ELiDEApp</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -2947,8 +2818,8 @@ set the title in the class as previously stated in the documentation.</p>
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |
       <a href="../_sources/ELiDE/index.rst.txt"

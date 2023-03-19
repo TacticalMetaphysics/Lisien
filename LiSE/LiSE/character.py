@@ -230,8 +230,7 @@ class FacadePlace(FacadeNode):
 
 	def __init__(self, mapping, real_or_name, **kwargs):
 		super().__init__(mapping, real_or_name, **kwargs)
-		if isinstance(real_or_name, Place) or isinstance(
-			real_or_name, FacadePlace):
+		if isinstance(real_or_name, (Place, FacadePlace)):
 			self._real = real_or_name
 		else:
 			self._real = {'name': real_or_name}
@@ -512,12 +511,8 @@ class Facade(AbstractCharacter, nx.DiGraph):
 		kwargs['location'] = location
 		self.thing[name] = kwargs
 
-	def add_portal(self, orig, dest, symmetrical=False, **kwargs):
+	def add_portal(self, orig, dest, **kwargs):
 		self.portal[orig][dest] = kwargs
-		if symmetrical:
-			mirror = dict(kwargs)
-			mirror['is_mirror'] = True
-			self.portal[dest][orig] = mirror
 
 	def remove_portal(self, origin, destination):
 		del self.portal[origin][destination]
@@ -1483,16 +1478,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				port.destination = place
 			self.engine._node_objs[self.name, name] = place
 
-	def add_portal(self, origin, destination, symmetrical=False, **kwargs):
+	def add_portal(self, origin, destination,**kwargs):
 		"""Connect the origin to the destination with a :class:`Portal`.
 
-		Keyword arguments are the :class:`Portal`'s
-		attributes. Exception: if keyword ``symmetrical`` == ``True``,
-		a mirror-:class:`Portal` will be placed in the opposite
-		direction between the same nodes. It will always appear to
-		have the placed :class:`Portal`'s stats, and any change to the
-		mirror :class:`Portal`'s stats will affect the placed
-		:class:`Portal`.
+		Keyword arguments are the :class:`Portal`'sattributes.
 
 		"""
 		if isinstance(origin, Node):
@@ -1500,35 +1489,22 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		if isinstance(destination, Node):
 			destination = destination.name
 		super().add_edge(origin, destination, **kwargs)
-		if symmetrical:
-			self.add_portal(destination, origin, is_mirror=True)
 
-	def new_portal(self, origin, destination, symmetrical=False, **kwargs):
-		if isinstance(origin, Node):
-			origin = origin.name
-		if isinstance(destination, Node):
-			destination = destination.name
-		self.add_portal(origin, destination, symmetrical, **kwargs)
+	def new_portal(self, origin, destination, **kwargs):
+		"""Create a portal and return it"""
+		self.add_portal(origin, destination, **kwargs)
 		return self.engine._get_edge(self, origin, destination, 0)
 
-	def add_portals_from(self, seq, symmetrical=False):
+	def add_portals_from(self, seq):
 		"""Make portals for a sequence of (origin, destination) pairs
 
 		Actually, triples are acceptable too, in which case the third
 		item is a dictionary of stats for the new :class:`Portal`.
-
-		If optional argument ``symmetrical`` is set to ``True``, all
-		the :class:`Portal` instances will have a mirror portal going
-		in the opposite direction, which will always have the same
-		stats.
-
 		"""
 		for tup in seq:
 			orig = tup[0]
 			dest = tup[1]
 			kwargs = tup[2] if len(tup) > 2 else {}
-			if symmetrical:
-				kwargs['symmetrical'] = True
 			self.add_portal(orig, dest, **kwargs)
 
 	def add_unit(self, a, b=None):
@@ -1537,7 +1513,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			raise NotImplementedError(
 				"Currently can't add units within a plan")
 		if b is None:
-			if not (isinstance(a, Place) or isinstance(a, Thing)):
+			if not isinstance(a, (Place, Thing)):
 				raise TypeError('when called with one argument, '
 								'it must be a place or thing')
 			g = a.character.name
@@ -1550,7 +1526,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 								'the first is a character or its name')
 			else:
 				g = a
-			if isinstance(b, Place) or isinstance(b, Thing):
+			if isinstance(b, (Place, Thing)):
 				n = b.name
 			elif not isinstance(b, str):
 				raise TypeError('when called with two arguments, '

@@ -301,7 +301,7 @@ class Node(graph.Node, rule.RuleFollower):
 		self.engine.query.set_node_rulebook(character, node, branch, turn,
 											tick, rulebook)
 
-	successor = adj = edge = getatt('portal')
+	successor = succ = adj = edge = getatt('portal')
 	predecessor = pred = getatt('preportal')
 	engine = getatt('db')
 
@@ -309,17 +309,27 @@ class Node(graph.Node, rule.RuleFollower):
 	def user(self):
 		return UserMapping(self)
 
-	def __init__(self, character, name, clobber=False):
-		"""Store character and name, and initialize caches"""
+	def __init__(self, character, name):
 		super().__init__(character, name)
 		self.db = character.engine
 
 	@property
 	def portal(self):
+		""" A mapping of portals leading out from this node.
+
+		Aliases ``portal``, ``adj``, ``edge``, ``successor``, and ``succ``
+		are available.
+
+		"""
 		return Dests(self)
 
 	@property
 	def preportal(self):
+		"""A mapping of portals leading to this node.
+
+		Aliases ``preportal``, ``predecessor`` and ``pred`` are available.
+
+		"""
 		return Origs(self)
 
 	def __iter__(self):
@@ -328,6 +338,7 @@ class Node(graph.Node, rule.RuleFollower):
 		return
 
 	def clear(self):
+		"""Delete all my keys"""
 		for key in super().__iter__():
 			del self[key]
 
@@ -343,18 +354,10 @@ class Node(graph.Node, rule.RuleFollower):
 		super().__delitem__(k)
 		self.send(self, key=k, val=None)
 
-	def portals(self):
-		"""Iterate over :class:`Portal` objects that lead away from me"""
-		yield from self.portal.values()
-
 	def successors(self):
 		"""Iterate over nodes with edges leading from here to there."""
 		for port in self.portal.values():
 			yield port.destination
-
-	def preportals(self):
-		"""Iterate over :class:`Portal` objects that lead to me"""
-		yield from self.preportal.values()
 
 	def predecessors(self):
 		"""Iterate over nodes with edges leading here from there."""
@@ -410,9 +413,11 @@ class Node(graph.Node, rule.RuleFollower):
 
 	@property
 	def content(self):
+		"""A mapping of ``Thing`` objects that are here"""
 		return NodeContent(self)
 
 	def contents(self):
+		"""A set-like object containing ``Thing`` objects that are here"""
 		return self.content.values()
 
 	def delete(self):
