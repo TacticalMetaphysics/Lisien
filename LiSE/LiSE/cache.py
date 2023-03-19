@@ -184,27 +184,42 @@ class UnitnessCache(Cache):
 		else:
 			discard_something(graphavs, node)
 			discard_something(charavs, (graph, node))
+			try:
+				if not graphavs[turn][tick]:
+					discard_something(graphs, graph)
+			except HistoricKeyError:
+				pass
+			try:
+				if not charavs[turn][tick]:
+					discard_something(users, character)
+			except HistoricKeyError:
+				pass
+		try:
+			graphav = singleton_get(graphavs[turn][tick])
+			if turn in soloav:
+				soloav[turn][tick] = graphav
+			else:
+				soloav[turn] = {tick: graphav}
+		except HistoricKeyError:
+			pass
+		try:
+			charav = singleton_get(charavs[turn][tick])
+			if turn in uniqav:
+				uniqav[turn][tick] = charav
+			else:
+				uniqav[turn] = {tick: charav}
+		except HistoricKeyError:
+			pass
+		try:
 			if not graphavs[turn][tick]:
-				discard_something(graphs, graph)
-			if not charavs[turn][tick]:
-				discard_something(users, character)
-		graphav = singleton_get(graphavs[turn][tick])
-		if turn in soloav:
-			soloav[turn][tick] = graphav
-		else:
-			soloav[turn] = {tick: graphav}
-		charav = singleton_get(charavs[turn][tick])
-		if turn in uniqav:
-			uniqav[turn][tick] = charav
-		else:
-			uniqav[turn] = {tick: charav}
-		if not graphavs[turn][tick]:
-			if graph in graphs[turn][tick]:
-				graphs[turn][tick].remove(graph)
-				if len(graphs[turn][tick]) == 1:
-					uniqgraph[turn][tick] = next(iter(graphs[turn][tick]))
-				else:
-					uniqgraph[turn][tick] = None
+				if graph in graphs[turn][tick]:
+					graphs[turn][tick].remove(graph)
+					if len(graphs[turn][tick]) == 1:
+						uniqgraph[turn][tick] = next(iter(graphs[turn][tick]))
+					else:
+						uniqgraph[turn][tick] = None
+		except HistoricKeyError:
+			pass
 		if turn in graphavs and tick in graphavs[turn] and len(
 			graphavs[turn][tick]) != 1:
 			if turn in soloav:
