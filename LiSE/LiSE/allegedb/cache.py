@@ -875,8 +875,8 @@ class Cache:
 
 	def _base_retrieve(self, args, store_hint=True):
 		shallowest = self.shallowest
-		if args in shallowest:
-			return shallowest[args]
+		# if args in shallowest:
+		# 	return shallowest[args]
 		entity: tuple = args[:-4]
 		key: Hashable
 		branch: str
@@ -979,7 +979,7 @@ class Cache:
 						else:
 							return NotInKeyframeError("No value")
 				elif b in keyframes:
-					kfb = keyframes[branch]
+					kfb = keyframes[b]
 					if r in kfb:
 						kfbr = kfb[r]
 						if kfbr.rev_gettable(tick):
