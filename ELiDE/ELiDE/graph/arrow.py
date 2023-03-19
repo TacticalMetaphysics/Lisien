@@ -346,16 +346,21 @@ class GraphArrow:
 			bg_color = arrow_plane.bg_color_unselected
 			fg_color = arrow_plane.fg_color_unselected
 		verts = get_quad_vertices(*shaft_points, *head_points, r * bg_scale, r)
-		insts = self.board.arrow_plane._instructions_map[
-			self.origin.name, self.destination.name]
-		insts['color0'].rgba = bg_color
-		insts['color1'].rgba = fg_color
-		insts['shaft_bg'].points = verts['shaft_bg']
-		insts['left_head_bg'].points = verts['left_head_bg']
-		insts['right_head_bg'].points = verts['right_head_bg']
-		insts['shaft_fg'].points = verts['shaft_fg']
-		insts['left_head_fg'].points = verts['left_head_fg']
-		insts['right_head_fg'].points = verts['right_head_fg']
+		if (self.origin.name,
+			self.destination.name) in self.board.arrow_plane._instructions_map:
+			insts = self.board.arrow_plane._instructions_map[
+				self.origin.name, self.destination.name]
+			insts['color0'].rgba = bg_color
+			insts['color1'].rgba = fg_color
+			insts['shaft_bg'].points = verts['shaft_bg']
+			insts['left_head_bg'].points = verts['left_head_bg']
+			insts['right_head_bg'].points = verts['right_head_bg']
+			insts['shaft_fg'].points = verts['shaft_fg']
+			insts['left_head_fg'].points = verts['left_head_fg']
+			insts['right_head_fg'].points = verts['right_head_fg']
+		else:
+			self.board.arrow_plane._instructions_map = get_instructions(
+				*shaft_points, *head_points, bg_color, fg_color)
 		fbo.release()
 		fbo.ask_update()
 		arrow_plane.canvas.ask_update()
@@ -498,8 +503,23 @@ class ArrowPlane(Widget):
 		top_right_corner_ys = []
 		port_index = self._port_index
 		colliders_map = self._colliders_map
-		for port, ((ox, oy, dx, dy), (x1, y1, endx, endy, x2,
-										y2)) in points_map.items():
+		oxs = []
+		oys = []
+		dxs = []
+		dys = []
+		for ((ox, oy, dx, dy), _) in points_map.values():
+			oxs.append(ox)
+			oys.append(oy)
+			dxs.append(dx)
+			dys.append(dy)
+		widths = np.abs(np.array(dxs) - np.array(oxs))
+		heights = np.abs(np.array(dys) - np.array(oys))
+		lengths = np.sqrt(np.square(widths) + np.square(heights))
+		for length, (port, ((ox, oy, dx, dy),
+							(x1, y1, endx, endy, x2,
+								y2))) in zip(lengths, points_map.items()):
+			if length < r:
+				continue
 			bgr = r * bg_scale_selected  # change for selectedness pls
 			instructions = get_instructions(ox, oy, dx, dy, x1, y1, endx, endy,
 											x2, y2, bgr, r,
