@@ -165,7 +165,7 @@ class UnitnessCache(Cache):
 			else:
 				cache[turn] = {tick: {what}}
 
-		def remove_something(cache, what):
+		def discard_something(cache, what):
 			if turn in cache:
 				nucache = cache[turn][tick].copy()
 				nucache.remove(what)
@@ -175,8 +175,6 @@ class UnitnessCache(Cache):
 				nucache = cacheturn[cacheturn.end].copy()
 				nucache.remove(what)
 				cache[turn] = {tick: nucache}
-			else:
-				raise ValueError
 
 		if is_unit:
 			add_something(graphavs, node)
@@ -184,12 +182,12 @@ class UnitnessCache(Cache):
 			add_something(graphs, graph)
 			add_something(users, character)
 		else:
-			remove_something(graphavs, node)
-			remove_something(charavs, (graph, node))
+			discard_something(graphavs, node)
+			discard_something(charavs, (graph, node))
 			if not graphavs[turn][tick]:
-				remove_something(graphs, graph)
+				discard_something(graphs, graph)
 			if not charavs[turn][tick]:
-				remove_something(users, character)
+				discard_something(users, character)
 		graphav = singleton_get(graphavs[turn][tick])
 		if turn in soloav:
 			soloav[turn][tick] = graphav
