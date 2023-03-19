@@ -146,9 +146,12 @@ class TextureStackPlane(Widget):
 		fbo.bind()
 		grp = self._instructions[name]["group"]
 		fbo.remove(grp)
+		stack_index = self._stack_index
 		del self._instructions[name]
-		del self._stack_index[name]
+		del stack_index[name]
 		del self._keys[idx]
+		for key in self._keys[idx:]:
+			stack_index[key] -= 1
 		self._left_xs = delarr(self._left_xs, idx)
 		self._bot_ys = delarr(self._bot_ys, idx)
 		self._top_ys = delarr(self._top_ys, idx)
