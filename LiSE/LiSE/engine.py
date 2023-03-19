@@ -569,7 +569,8 @@ class Engine(AbstractEngine, gORM):
 		* ``'rulebooks'``, a dictionary keyed by the name of each changed
 		  rulebook, the value being a list of rule names
 		* ``'rules'``, a dictionary keyed by the name of each changed rule,
-		  containing any of the lists 'triggers', 'prereqs', and 'actions'
+		  containing any of the lists ``'triggers'``, ``'prereqs'``,
+		  and ``'actions'``
 
 		"""
 		from .allegedb.window import update_window, update_backward_window
