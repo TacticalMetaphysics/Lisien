@@ -411,13 +411,12 @@ class GraphBoard(RelativeLayout):
 			return
 
 		self.engine = getattr(self.character, 'engine', None)
-		self.wallpaper_path = self.character.stat.setdefault(
-			'wallpaper', 'wallpape.jpg')
+		self.wallpaper_path = self.character.stat.get('wallpaper',
+														'wallpape.jpg')
 		if '_control' not in self.character.stat or 'wallpaper' not in self.character.stat[
 			'_control']:
-			control = self.character.stat.setdefault('_control', {})
+			control = self.character.stat.get('_control', {})
 			control['wallpaper'] = 'textinput'
-			self.character.stat['_control'] = control
 		self.character.stat.connect(self._trigger_pull_wallpaper)
 		self.trigger_update()
 
