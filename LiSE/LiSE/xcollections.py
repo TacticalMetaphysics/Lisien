@@ -266,9 +266,12 @@ class FunctionStore(Signal):
 		self.send(self, attr=name, val=locl[name])
 
 	def get_source(self, name):
+		if name == 'truth':
+			return "def truth(*args):\n\treturn True"
 		return unparse(self._ast.body[self._ast_idx[name]])
 
-	def truth(self, *args):
+	@staticmethod
+	def truth(*args):
 		return True
 
 

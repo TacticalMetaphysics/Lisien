@@ -661,11 +661,6 @@ class AllRules(MutableMapping, Signal):
 	def __init__(self, engine):
 		super().__init__()
 		self.engine = engine
-		if not hasattr(engine.trigger, 'always'):
-
-			@engine.trigger
-			def always(obj):
-				return True
 
 	@cached_property
 	def _cache(self):
@@ -730,7 +725,7 @@ class AllRules(MutableMapping, Signal):
 				self[name] = f
 				ret = self[name]
 				if always:
-					ret.triggers.append('always')
+					ret.triggers.append('truth')
 				return ret
 
 			return r
@@ -738,7 +733,7 @@ class AllRules(MutableMapping, Signal):
 		self[k] = v
 		ret = self[k]
 		if always:
-			ret.triggers.append('always')
+			ret.triggers.append('truth')
 		return ret
 
 	def new_empty(self, name):

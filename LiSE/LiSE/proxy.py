@@ -1785,6 +1785,7 @@ class FuncStoreProxy(Signal):
 
 	def load(self):
 		self._cache = self.engine.handle('source_copy', store=self._store)
+		self._cache['truth'] = 'def truth(*args):\n\treturn True'
 
 	def __getattr__(self, k):
 		if k in super().__getattribute__('_cache'):
@@ -1810,6 +1811,8 @@ class FuncStoreProxy(Signal):
 		del self._cache[func_name]
 
 	def get_source(self, func_name):
+		if func_name == 'truth':
+			return "def truth(*args):\n\treturn True"
 		return self.engine.handle(command='get_source',
 									store=self._store,
 									name=func_name)
