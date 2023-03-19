@@ -742,7 +742,7 @@ class GraphBoard(RelativeLayout):
 			raise KeyError(f"Already have pawn for Thing: {thingn}")
 		pwn = self.make_pawn(self.character.thing[thingn])
 		stacp = self.stack_plane
-		stacp.unbind_uid('data', stacp._redraw_bind_uid)
+		stacp.add_datum(pwn)
 
 		if thingn in self._scheduled_add_pawn:
 			del self._scheduled_add_pawn[thingn]
