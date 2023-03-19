@@ -1457,7 +1457,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		self.engine._set_thing_loc(self.name, name, location)
 		if (self.name, name) in self.engine._node_objs:
 			obj = self.engine._node_objs[self.name, name]
-			thing = Thing(self, name, clobber=True)
+			thing = Thing(self, name)
 			for port in obj.portals():
 				port.origin = thing
 			for port in obj.preportals():
