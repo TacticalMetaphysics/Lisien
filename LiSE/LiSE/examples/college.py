@@ -31,6 +31,11 @@ This is implemented inefficiently. I've been using it as a stress test.
 """
 
 
+def two_way(orig, dest):
+	orig.new_portal(dest.name)
+	dest.new_portal(orig.name)
+
+
 def install(eng):
 	phys = eng.new_character('physical')
 	phys.stat['hour'] = 0
@@ -169,12 +174,12 @@ def install(eng):
 		common = phys.new_place(
 			'common{}'.format(n))  # A common room for students to meet in
 		dorm.add_unit(common)
-		common.two_way(classroom)
+		two_way(common, classroom)
 		# All rooms in a dorm are connected via its common room
 		for i in range(0, 6):
 			room = phys.new_place('dorm{}room{}'.format(n, i))
 			dorm.add_unit(room)
-			room.two_way(common)
+			two_way(room, common)
 			student0 = eng.new_character('dorm{}room{}student0'.format(n, i))
 			body0 = room.new_thing('dorm{}room{}student0'.format(n, i))
 			student0.add_unit(body0)
