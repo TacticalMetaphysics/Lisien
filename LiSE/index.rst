@@ -280,11 +280,9 @@ node
 		.. automethod:: delete
 
 	.. autoclass:: Place
-
 		:members:
 
 	.. autoclass:: Thing
-
 		:members:
 
 portal

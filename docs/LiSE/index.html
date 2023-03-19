@@ -580,10 +580,12 @@ anymore.</p>
 <dd><p>The kind of node where a thing might ultimately be located.</p>
 <p>LiSE entities are truthy so long as they exist, falsy if they’ve
 been deleted.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Members<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Place.delete">
+<span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Place.delete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Place.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove myself from the world model immediately.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -594,10 +596,71 @@ been deleted.</p>
 travelling through a Portal.</p>
 <p>LiSE entities are truthy so long as they exist, falsy if they’ve
 been deleted.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Members<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Thing.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Thing.clear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Thing.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unset everything.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Thing.delete">
+<span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Thing.delete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Thing.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get rid of this, starting now.</p>
+<p>Apart from deleting the node, this also informs all its users
+that it doesn’t exist and therefore can’t be their avatar
+anymore.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Thing.follow_path">
+<span class="sig-name descname"><span class="pre">follow_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.11)"><span class="pre">list</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Hashable" title="(in Python v3.11)"><span class="pre">Hashable</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Thing.follow_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Thing.follow_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Go to several nodes in succession, deciding how long to
+spend in each by consulting the <code class="docutils literal notranslate"><span class="pre">weight</span></code> stat of the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> connecting the one node to the next,
+default 1 turn.</p>
+<p>Return the total number of turns the travel will take. Raise
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TravelException</span></code> if I can’t follow the whole path,
+either because some of its nodes don’t exist, or because I’m
+scheduled to be somewhere else.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Thing.go_to_place">
+<span class="sig-name descname"><span class="pre">go_to_place</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">place</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#LiSE.node.Node" title="LiSE.node.Node"><span class="pre">Node</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Hashable" title="(in Python v3.11)"><span class="pre">Hashable</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Hashable" title="(in Python v3.11)"><span class="pre">Hashable</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Thing.go_to_place"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Thing.go_to_place" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assuming I’m in a node that has a <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> direct
+to the given node, schedule myself to travel to the
+given <a class="reference internal" href="#LiSE.node.Place" title="LiSE.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code></a>, taking an amount of time indicated by
+the <code class="docutils literal notranslate"><span class="pre">weight</span></code> stat on the <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>, if given; else 1
+turn.</p>
+<p>Return the number of turns the travel will take.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.node.Thing.location">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">location</span></span><a class="headerlink" href="#LiSE.node.Thing.location" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <code class="docutils literal notranslate"><span class="pre">Thing</span></code> or <code class="docutils literal notranslate"><span class="pre">Place</span></code> I’m in.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Thing.travel_to">
+<span class="sig-name descname"><span class="pre">travel_to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#LiSE.node.Node" title="LiSE.node.Node"><span class="pre">Node</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Hashable" title="(in Python v3.11)"><span class="pre">Hashable</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Hashable" title="(in Python v3.11)"><span class="pre">Hashable</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">graph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractCharacter</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Thing.travel_to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Thing.travel_to" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the shortest path to the given node from where I am
+now, and follow it.</p>
+<p>If supplied, the <code class="docutils literal notranslate"><span class="pre">weight</span></code> stat of each <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> along
+the path will be used in pathfinding, and for deciding how
+long to stay in each Place along the way.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">graph</span></code> argument may be any NetworkX-style graph. It
+will be used for pathfinding if supplied, otherwise I’ll use
+my <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code>. In either case, however, I will attempt
+to actually follow the path using my <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code>, which
+might not be possible if the supplied <code class="docutils literal notranslate"><span class="pre">graph</span></code> and my
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code> are too different. If it’s not possible,
+I’ll raise a <code class="xref py py-class docutils literal notranslate"><span class="pre">TravelException</span></code>, whose <code class="docutils literal notranslate"><span class="pre">subpath</span></code>
+attribute holds the part of the path that I <em>can</em> follow. To
+make me follow it, pass it to my <code class="docutils literal notranslate"><span class="pre">follow_path</span></code> method.</p>
+<p>Return value is the number of turns the travel will take.</p>
+</dd></dl>
+
 </dd></dl>
 
 </section>
