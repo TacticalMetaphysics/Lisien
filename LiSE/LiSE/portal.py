@@ -37,13 +37,6 @@ class RuleMapping(BaseRuleMapping):
 class Portal(Edge, RuleFollower):
 	"""Connection between two Places that Things may travel along.
 
-	Portals are one-way, but you can make one appear two-way by
-	setting the ``symmetrical`` key to ``True``,
-	eg. ``character.add_portal(orig, dest, symmetrical=True)``.
-	The portal going the other way will appear to have all the
-	stats of this one, and attempting to set a stat on it will
-	set it here instead.
-
 	LiSE entities are truthy so long as they exist, falsy if they've
 	been deleted.
 

@@ -671,12 +671,6 @@ make me follow it, pass it to my <code class="docutils literal notranslate"><spa
 <dt class="sig sig-object py" id="LiSE.portal.Portal">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.portal.</span></span><span class="sig-name descname"><span class="pre">Portal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/portal.html#Portal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.portal.Portal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Connection between two Places that Things may travel along.</p>
-<p>Portals are one-way, but you can make one appear two-way by
-setting the <code class="docutils literal notranslate"><span class="pre">symmetrical</span></code> key to <code class="docutils literal notranslate"><span class="pre">True</span></code>,
-eg. <code class="docutils literal notranslate"><span class="pre">character.add_portal(orig,</span> <span class="pre">dest,</span> <span class="pre">symmetrical=True)</span></code>.
-The portal going the other way will appear to have all the
-stats of this one, and attempting to set a stat on it will
-set it here instead.</p>
 <p>LiSE entities are truthy so long as they exist, falsy if they’ve
 been deleted.</p>
 <dl class="py property">
