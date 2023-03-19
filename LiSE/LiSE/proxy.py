@@ -41,7 +41,7 @@ import lz4.frame
 import msgpack
 from cached_property import cached_property
 
-from .allegedb import HistoricKeyError
+from .allegedb import OutOfTimelineError
 from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
 from .character import Facade
@@ -2425,7 +2425,7 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 			if branching:
 				try:
 					r = getattr(engine_handle, cmd)(**instruction)
-				except HistoricKeyError:
+				except OutOfTimelineError:
 					engine_handle.increment_branch()
 					r = getattr(engine_handle, cmd)(**instruction)
 			else:
