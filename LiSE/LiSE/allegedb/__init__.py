@@ -1211,7 +1211,8 @@ class ORM:
 							nvgn = nvg[node]
 							for k, v in value.items():
 								if v is None:
-									del nvgn[k]
+									if k in nvgn:
+										del nvgn[k]
 								else:
 									nvgn[k] = v
 						else:
