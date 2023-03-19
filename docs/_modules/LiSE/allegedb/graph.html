@@ -301,24 +301,7 @@
 	<span class="k">def</span> <span class="nf">_validate_node_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="kc">True</span>
 
-	<span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">clobber</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-		<span class="n">gnn</span> <span class="o">=</span> <span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
-		<span class="n">nobjs</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_node_objs</span>
-		<span class="k">if</span> <span class="n">clobber</span> <span class="ow">and</span> <span class="n">gnn</span> <span class="ow">in</span> <span class="n">nobjs</span><span class="p">:</span>
-			<span class="k">del</span> <span class="n">nobjs</span><span class="p">[</span><span class="n">gnn</span><span class="p">]</span>
-		<span class="k">elif</span> <span class="n">gnn</span> <span class="ow">in</span> <span class="n">nobjs</span><span class="p">:</span>
-			<span class="n">ret</span> <span class="o">=</span> <span class="n">nobjs</span><span class="p">[</span><span class="n">gnn</span><span class="p">]</span>
-			<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
-				<span class="k">raise</span> <span class="n">EntityCollisionError</span><span class="p">(</span>
-					<span class="s2">&quot;Already have node </span><span class="si">{}</span><span class="s2"> in graph </span><span class="si">{}</span><span class="s2">, but it&#39;s of class </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span>
-					<span class="nb">format</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-							<span class="nb">type</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
-			<span class="k">return</span> <span class="n">ret</span>
-		<span class="n">ret</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Node</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
-		<span class="n">nobjs</span><span class="p">[</span><span class="n">gnn</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span>
-		<span class="k">return</span> <span class="n">ret</span>
-
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">clobber</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Store name and graph&quot;&quot;&quot;</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">graph</span>
@@ -381,18 +364,6 @@
 					<span class="s1">&#39;_get_cache_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_set_db_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_set_cache_stuff&#39;</span><span class="p">)</span>
 
 	<span class="n">set_db_time</span> <span class="o">=</span> <span class="n">set_cache_time</span> <span class="o">=</span> <span class="mi">0</span>
-
-	<span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-		<span class="n">gnodi</span> <span class="o">=</span> <span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
-		<span class="n">edgeobjs</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edge_objs</span>
-		<span class="k">if</span> <span class="n">gnodi</span> <span class="ow">in</span> <span class="n">edgeobjs</span><span class="p">:</span>
-			<span class="n">ret</span> <span class="o">=</span> <span class="n">edgeobjs</span><span class="p">[</span><span class="n">gnodi</span><span class="p">]</span>
-			<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
-				<span class="k">raise</span> <span class="n">EntityCollisionError</span><span class="p">(</span>
-					<span class="s2">&quot;Already have an edge </span><span class="si">{}</span><span class="s2">-&gt;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">] in graph </span><span class="si">{}</span><span class="s2">, but of class </span><span class="si">{}</span><span class="s2">&quot;</span>
-					<span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">ret</span><span class="p">)))</span>
-			<span class="k">return</span> <span class="n">ret</span>
-		<span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Edge</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Store the graph, the names of the nodes, and the index.</span>

@@ -33,7 +33,7 @@ World Modelling
 Start by calling the engine's ``new_character`` method with a string
 ``name``.  This will return a character object with the name you
 provided. Now draw a map by calling the method ``new_place`` with many
-different string ``name`` s, then linking them together with the
+different ``name`` s, then linking them together with the
 method ``new_portal(origin, destination)``.  To store data pertaining
 to some particular place, retrieve the place from the ``place``
 mapping of the character: if the character is ``world`` and the place
@@ -147,12 +147,7 @@ Only methods defined with the ``@engine.method`` decorator may be used in a menu
 
 engine
 ------
-Engine
-######
-	Each instance of LiSE maintains a connection to a database
-	representing the state of a simulated world. Simulation rules
-	within this world are described by lists of Python functions, some
-	of which make changes to the world.
+.. automodule:: LiSE.engine
 
 	.. autoclass:: LiSE.Engine
 
@@ -161,26 +156,31 @@ Engine
 		.. autoproperty:: LiSE.Engine.turn
 
 		.. py:property:: Engine.time
+
 			Acts like a tuple of (branch, turn) for the most part.
 
 			This wraps a :class:`blinker.Signal`. To set a function to be called whenever the
 			branch or turn changes, pass it to the ``Engine.time.connect`` method.
 
 		.. py:property:: Engine.rule
+
 			A mapping of all rules that have been made.
 
 		.. py:property:: Engine.rulebook
+
 			A mapping of lists of rules.
 
 			They are followed in their order. A whole rulebook full of rules may be
 			assigned to an entity at once.
 
 		.. py:property:: Engine.eternal
+
 			A mapping of arbitrary data, not sensitive to sim-time.
 
 			It's stored in the database. A good place to keep your game's settings.
 
 		.. py:property:: Engine.universal
+
 			A mapping of arbitrary data that changes over sim-time.
 
 			Each turn, the state of the randomizer is saved here under the key ``'rando_state'``.

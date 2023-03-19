@@ -480,7 +480,9 @@
 
 <div class="viewcode-block" id="Node.new_portal"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.new_portal">[docs]</a>	<span class="k">def</span> <span class="nf">new_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="o">**</span><span class="n">stats</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Connect a portal from here to another node, and return it.&quot;&quot;&quot;</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">new_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="o">**</span><span class="n">stats</span><span class="p">)</span></div>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">new_portal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+											<span class="nb">getattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">other</span><span class="p">),</span>
+											<span class="o">**</span><span class="n">stats</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Node.new_thing"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.new_thing">[docs]</a>	<span class="k">def</span> <span class="nf">new_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">stats</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Create a new thing, located here, and return it.&quot;&quot;&quot;</span>
