@@ -12,10 +12,10 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""A base class for nodes that can be in a character.
+"""The nodes of LiSE's character graphs.
 
-Every actual node that you're meant to use will be a place or
-thing. This module is for what they have in common.
+Every node that actually exists is either a Place or a Thing, but they
+have a lot in common.
 
 """
 from collections.abc import Mapping, ValuesView

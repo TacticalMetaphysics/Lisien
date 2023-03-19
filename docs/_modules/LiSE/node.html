@@ -44,10 +44,10 @@
 <span class="c1">#</span>
 <span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
 <span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
-<span class="sd">&quot;&quot;&quot;A base class for nodes that can be in a character.</span>
+<span class="sd">&quot;&quot;&quot;The nodes of LiSE&#39;s character graphs.</span>
 
-<span class="sd">Every actual node that you&#39;re meant to use will be a place or</span>
-<span class="sd">thing. This module is for what they have in common.</span>
+<span class="sd">Every node that actually exists is either a Place or a Thing, but they</span>
+<span class="sd">have a lot in common.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">ValuesView</span>
@@ -533,12 +533,12 @@
 		<span class="k">except</span><span class="p">:</span>
 			<span class="k">return</span> <span class="kc">True</span>
 
-	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Place.delete"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Place.delete">[docs]</a>	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove myself from the world model immediately.&quot;&quot;&quot;</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="p">,</span>
 									<span class="n">key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-									<span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+									<span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div></div>
 
 
 <span class="k">def</span> <span class="nf">roerror</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -630,18 +630,18 @@
 		<span class="k">return</span> <span class="s2">&quot;&lt;</span><span class="si">{}</span><span class="s2">.character[&#39;</span><span class="si">{}</span><span class="s2">&#39;].thing[&#39;</span><span class="si">{}</span><span class="s2">&#39;]&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Thing.delete"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Thing.delete">[docs]</a>	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_set_loc</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="p">,</span>
 									<span class="n">key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-									<span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+									<span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
 
-	<span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Thing.clear"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Thing.clear">[docs]</a>	<span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Unset everything.&quot;&quot;&quot;</span>
 		<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
 			<span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_keys</span><span class="p">:</span>
-				<span class="k">del</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+				<span class="k">del</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span></div>
 
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">location</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -671,7 +671,7 @@
 				<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_turn_end_plan</span><span class="p">[</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">]))</span>
 
-	<span class="k">def</span> <span class="nf">go_to_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="Thing.go_to_place"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Thing.go_to_place">[docs]</a>	<span class="k">def</span> <span class="nf">go_to_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
 					<span class="n">place</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Node</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">],</span>
 					<span class="n">weight</span><span class="p">:</span> <span class="n">Hashable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Assuming I&#39;m in a node that has a :class:`Portal` direct</span>
@@ -694,9 +694,9 @@
 		<span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
 			<span class="n">orm</span><span class="o">.</span><span class="n">turn</span> <span class="o">+=</span> <span class="n">turns</span>
 			<span class="bp">self</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">placen</span>
-		<span class="k">return</span> <span class="n">turns</span>
+		<span class="k">return</span> <span class="n">turns</span></div>
 
-	<span class="k">def</span> <span class="nf">follow_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="n">Hashable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<div class="viewcode-block" id="Thing.follow_path"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Thing.follow_path">[docs]</a>	<span class="k">def</span> <span class="nf">follow_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="n">Hashable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Go to several nodes in succession, deciding how long to</span>
 <span class="sd">		spend in each by consulting the ``weight`` stat of the</span>
 <span class="sd">		:class:`Portal` connecting the one node to the next,</span>
@@ -738,9 +738,9 @@
 				<span class="n">subsubpath</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">subplace</span><span class="p">)</span>
 				<span class="n">prevsubplace</span> <span class="o">=</span> <span class="n">subplace</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">location</span> <span class="o">=</span> <span class="n">subplace</span>
-		<span class="k">return</span> <span class="n">turns_total</span>
+		<span class="k">return</span> <span class="n">turns_total</span></div>
 
-	<span class="k">def</span> <span class="nf">travel_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="Thing.travel_to"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Thing.travel_to">[docs]</a>	<span class="k">def</span> <span class="nf">travel_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
 					<span class="n">dest</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Node</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">],</span>
 					<span class="n">weight</span><span class="p">:</span> <span class="n">Hashable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 					<span class="n">graph</span><span class="p">:</span> <span class="n">AbstractCharacter</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -769,7 +769,7 @@
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;I&#39;m already at </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">destn</span><span class="p">))</span>
 		<span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span> <span class="k">if</span> <span class="n">graph</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">graph</span>
 		<span class="n">path</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">shortest_path</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="bp">self</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">],</span> <span class="n">destn</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">follow_path</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span></div>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">follow_path</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span></div></div>
 
 
 <span class="k">def</span> <span class="nf">roerror</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
