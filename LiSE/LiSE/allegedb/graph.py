@@ -269,19 +269,11 @@ class Node(AbstractEntityMapping):
 	def _validate_node_type(self):
 		return True
 
-	def __new__(cls, graph, node, clobber=False):
+	def __new__(cls, graph, node):
 		gnn = (graph.name, node)
 		nobjs = graph.db._node_objs
-		if clobber and gnn in nobjs:
+		if gnn in nobjs:
 			del nobjs[gnn]
-		elif gnn in nobjs:
-			ret = nobjs[gnn]
-			if not isinstance(ret, cls):
-				raise EntityCollisionError(
-					"Already have node {} in graph {}, but it's of class {}".
-					format(node, graph.name,
-							type(ret).__name__))
-			return ret
 		ret = super(Node, cls).__new__(cls)
 		nobjs[gnn] = ret
 		return ret
