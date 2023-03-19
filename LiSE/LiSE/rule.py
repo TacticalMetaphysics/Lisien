@@ -661,6 +661,11 @@ class AllRules(MutableMapping, Signal):
 	def __init__(self, engine):
 		super().__init__()
 		self.engine = engine
+		if not hasattr(engine.trigger, 'always'):
+
+			@engine.trigger
+			def always(obj):
+				return True
 
 	@cached_property
 	def _cache(self):
@@ -715,17 +720,26 @@ class AllRules(MutableMapping, Signal):
 		del self._cache[k]
 		self.send(self, key=k, rule=None)
 
-	def __call__(self, v=None, name=None):
-		if v is None and name is not None:
+	def __call__(self, v=None, name=None, always=False):
+		if v is None:
 
 			def r(f):
+				nonlocal name
+				if name is None:
+					name = f.__name__
 				self[name] = f
-				return self[name]
+				ret = self[name]
+				if always:
+					ret.triggers.append('always')
+				return ret
 
 			return r
 		k = name if name is not None else v.__name__
 		self[k] = v
-		return self[k]
+		ret = self[k]
+		if always:
+			ret.triggers.append('always')
+		return ret
 
 	def new_empty(self, name):
 		"""Make a new rule with no actions or anything, and return it."""
