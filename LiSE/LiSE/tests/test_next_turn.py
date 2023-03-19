@@ -110,7 +110,7 @@ def test_portal_dot_rule(engy):
 	char = engy.new_character('char')
 	orig = char.new_place('orig')
 	dest = char.new_place('dest')
-	port = orig.one_way(dest)
+	port = orig.new_portal(dest)
 	starttick = engy.tick
 
 	@char.portal.rule(always=True)
@@ -162,7 +162,7 @@ def test_portal_rule(engy):
 	char = engy.new_character('char')
 	orig = char.new_place('orig')
 	dest = char.new_place('dest')
-	port = orig.one_way(dest)
+	port = orig.new_portal(dest)
 	starttick = engy.tick
 
 	@port.rule(always=True)
