@@ -602,6 +602,7 @@ class ArrowPlane(Widget):
 		else:
 			bot_y = dy
 			top_y = oy
+		self._port_index[orig_spot.name, dest_spot.name] = len(self._port_l)
 		self._port_l.append((orig_spot.name, dest_spot.name))
 		self._bot_left_corner_xs = np.array(
 			list(self._bot_left_corner_xs) + [left_x - bgr])
