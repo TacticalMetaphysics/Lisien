@@ -215,8 +215,8 @@ class GraphBoard(RelativeLayout):
 				name = sel.proxy['name']
 				for dest in self.arrow.get(name, ()):
 					self.arrow[name][dest].repoint()
-					if dest in self.arrow and name in self.arrow[dest]:
-						self.arrow[dest][name].repoint()
+				for orig in self.pred_arrow.get(name, ()):
+					self.arrow[orig][name].repoint()
 				for thing in sel.proxy.contents():
 					pawn = self.pawn[thing["name"]]
 					pawn.pos = sel.right, sel.top  # real layout needed
