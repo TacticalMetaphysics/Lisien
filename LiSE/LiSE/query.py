@@ -290,8 +290,8 @@ def _make_edge_val_select(graph: bytes, orig: bytes, dest: bytes, idx: int,
 def make_side_sel(entity, stat, branches: List[str], pack: callable,
 					mid_turn: bool):
 	from .character import AbstractCharacter
-	from .place import Place
-	from .thing import Thing
+	from .node import Place
+	from .node import Thing
 	from .portal import Portal
 	if isinstance(entity, AbstractCharacter):
 		return _make_graph_val_select(pack(entity.name), pack(stat), branches,
@@ -319,7 +319,7 @@ def make_side_sel(entity, stat, branches: List[str], pack: callable,
 
 
 def _getcol(alias: "StatusAlias"):
-	from .thing import Thing
+	from .node import Thing
 	if isinstance(alias.entity, Thing) and alias.stat == 'location':
 		return 'location'
 	return 'value'

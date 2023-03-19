@@ -51,9 +51,7 @@ from .allegedb.wrap import MutableMappingUnwrapper
 from .xcollections import CompositeDict
 from .rule import RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
-from .node import Node
-from .thing import Thing
-from .place import Place
+from .node import Node, Place, Thing
 from .portal import Portal
 from .util import getatt, singleton_get, timer, AbstractEngine, AbstractCharacter
 from .exc import WorldIntegrityError
@@ -1478,7 +1476,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				port.destination = place
 			self.engine._node_objs[self.name, name] = place
 
-	def add_portal(self, origin, destination,**kwargs):
+	def add_portal(self, origin, destination, **kwargs):
 		"""Connect the origin to the destination with a :class:`Portal`.
 
 		Keyword arguments are the :class:`Portal`'sattributes.

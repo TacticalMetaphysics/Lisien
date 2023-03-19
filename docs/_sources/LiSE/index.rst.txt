@@ -279,15 +279,13 @@ node
 
 		.. automethod:: delete
 
-place
------
-.. automodule:: LiSE.place
-	:members:
+	.. autoclass:: Place
 
-thing
------
-.. automodule:: LiSE.thing
-	:members:
+		:members:
+
+	.. autoclass:: Thing
+
+		:members:
 
 portal
 ------

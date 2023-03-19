@@ -19,15 +19,17 @@ thing. This module is for what they have in common.
 
 """
 from collections.abc import Mapping, ValuesView
+from typing import Optional, Hashable, Union
 
+import networkx as nx
 from networkx import shortest_path, shortest_path_length
 
 from .allegedb import graph, HistoricKeyError
 
-from .util import getatt
+from .util import getatt, AbstractCharacter
 from .query import StatusAlias
 from . import rule
-from .exc import AmbiguousUserError
+from .exc import AmbiguousUserError, TravelException
 
 
 class UserMapping(Mapping):
@@ -464,3 +466,279 @@ class Node(graph.Node, rule.RuleFollower):
 
 	def __bool__(self):
 		return self.name in self.character.node
+
+
+class Place(Node):
+	"""The kind of node where a thing might ultimately be located.
+
+	LiSE entities are truthy so long as they exist, falsy if they've
+	been deleted.
+
+	"""
+	__slots__ = ('graph', 'db', 'node', '_rulebook', '_rulebooks',
+					'_real_rule_mapping')
+
+	extrakeys = {
+		'name',
+	}
+
+	def __getitem__(self, key):
+		if key == 'name':
+			return self.name
+		return super().__getitem__(key)
+
+	def __repr__(self):
+		return "<{}.character[{}].place[{}]>".format(repr(self.engine),
+														repr(
+															self['character']),
+														repr(self['name']))
+
+	def _validate_node_type(self):
+		try:
+			self.engine._things_cache.retrieve(self.character.name, self.name,
+												*self.engine._btt())
+			return False
+		except:
+			return True
+
+	def delete(self):
+		"""Remove myself from the world model immediately."""
+		super().delete()
+		self.character.place.send(self.character.place,
+									key=self.name,
+									val=None)
+
+
+def roerror(*args):
+	raise RuntimeError("Read-only")
+
+
+class Thing(Node):
+	"""The sort of item that has a particular location at any given time.
+
+	Things are always in Places or other Things, and may additionally be
+	travelling through a Portal.
+
+	LiSE entities are truthy so long as they exist, falsy if they've
+	been deleted.
+
+	"""
+	__slots__ = ('graph', 'db', 'node', '_rulebook', '_rulebooks',
+					'_real_rule_mapping')
+
+	_extra_keys = {'name', 'location'}
+
+	def _getname(self):
+		return self.name
+
+	def _getloc(self):
+		try:
+			return self.engine._things_cache.retrieve(self.character.name,
+														self.name,
+														*self.engine._btt())
+		except:
+			return None
+
+	def _validate_node_type(self):
+		return self._getloc() is not None
+
+	def _get_arrival_time(self):
+		charn = self.character.name
+		n = self.name
+		thingcache = self.engine._things_cache
+		for b, trn, tck in self.engine._iter_parent_btt():
+			try:
+				v = thingcache.turn_before(charn, n, b, trn)
+			except KeyError:
+				v = thingcache.turn_after(charn, n, b, trn)
+			if v is not None:
+				return v
+		else:
+			raise ValueError("Couldn't find arrival time")
+
+	def _set_loc(self, loc: Optional[Hashable]):
+		self.engine._set_thing_loc(self.character.name, self.name, loc)
+		self.send(self, key='location', val=loc)
+
+	_getitem_dispatch = {'name': _getname, 'location': _getloc}
+
+	_setitem_dispatch = {'name': roerror, 'location': _set_loc}
+
+	def __getitem__(self, key: Hashable):
+		"""Return one of my stats stored in the database, or special cases:
+
+		``name``: return the name that uniquely identifies me within
+		my Character
+
+		``location``: return the name of my location
+
+		"""
+		disp = self._getitem_dispatch
+		if key in disp:
+			return disp[key](self)
+		else:
+			return super().__getitem__(key)
+
+	def __setitem__(self, key, value):
+		"""Set ``key``=``value`` for the present game-time."""
+		try:
+			self._setitem_dispatch[key](self, value)
+		except HistoricKeyError as ex:
+			raise ex
+		except KeyError:
+			super().__setitem__(key, value)
+
+	def __delitem__(self, key):
+		"""As of now, this key isn't mine."""
+		if key in self._extra_keys:
+			raise ValueError("Can't delete {}".format(key))
+		super().__delitem__(key)
+
+	def __repr__(self):
+		return "<{}.character['{}'].thing['{}']>".format(
+			self.engine, self.character.name, self.name)
+
+	def delete(self):
+		super().delete()
+		self._set_loc(None)
+		self.character.thing.send(self.character.thing,
+									key=self.name,
+									val=None)
+
+	def clear(self):
+		"""Unset everything."""
+		for k in list(self.keys()):
+			if k not in self._extra_keys:
+				del self[k]
+
+	@property
+	def location(self):
+		"""The ``Thing`` or ``Place`` I'm in."""
+		locn = self['location']
+		if locn is None:
+			return
+		return self.engine._get_node(self.character, locn)
+
+	@location.setter
+	def location(self, v: Union[Node, Hashable]):
+		if hasattr(v, 'name'):
+			v = v.name
+		self['location'] = v
+
+	@property
+	def next_location(self):
+		branch = self.engine.branch
+		turn = self.engine._things_cache.turn_after(self.character.name,
+													self.name,
+													*self.engine.time)
+		if turn is None:
+			return None
+		return self.engine._get_node(
+			self.character,
+			self.engine._things_cache.retrieve(
+				self.character.name, self.name, branch, turn,
+				self.engine._turn_end_plan[branch, turn]))
+
+	def go_to_place(self,
+					place: Union[Node, Hashable],
+					weight: Hashable = None) -> int:
+		"""Assuming I'm in a node that has a :class:`Portal` direct
+		to the given node, schedule myself to travel to the
+		given :class:`Place`, taking an amount of time indicated by
+		the ``weight`` stat on the :class:`Portal`, if given; else 1
+		turn.
+
+		Return the number of turns the travel will take.
+
+		"""
+		if hasattr(place, 'name'):
+			placen = place.name
+		else:
+			placen = place
+		curloc = self["location"]
+		orm = self.character.engine
+		turns = 1 if weight is None else self.engine._portal_objs[(
+			self.character.name, curloc, place)].get(weight, 1)
+		with self.engine.plan():
+			orm.turn += turns
+			self['location'] = placen
+		return turns
+
+	def follow_path(self, path: list, weight: Hashable = None) -> int:
+		"""Go to several nodes in succession, deciding how long to
+		spend in each by consulting the ``weight`` stat of the
+		:class:`Portal` connecting the one node to the next,
+		default 1 turn.
+
+		Return the total number of turns the travel will take. Raise
+		:class:`TravelException` if I can't follow the whole path,
+		either because some of its nodes don't exist, or because I'm
+		scheduled to be somewhere else.
+
+		"""
+		if len(path) < 2:
+			raise ValueError("Paths need at least 2 nodes")
+		eng = self.character.engine
+		with eng.plan():
+			prevplace = path.pop(0)
+			if prevplace != self['location']:
+				raise ValueError("Path does not start at my present location")
+			subpath = [prevplace]
+			for place in path:
+				if (prevplace not in self.character.portal
+					or place not in self.character.portal[prevplace]):
+					raise TravelException(
+						"Couldn't follow portal from {} to {}".format(
+							prevplace, place),
+						path=subpath,
+						traveller=self)
+				subpath.append(place)
+				prevplace = place
+			turns_total = 0
+			prevsubplace = subpath.pop(0)
+			subsubpath = [prevsubplace]
+			for subplace in subpath:
+				portal = self.character.portal[prevsubplace][subplace]
+				turn_inc = 1 if weight is None else portal.get(weight, 1)
+				eng.turn += turn_inc
+				self.location = subplace
+				turns_total += turn_inc
+				subsubpath.append(subplace)
+				prevsubplace = subplace
+			self.location = subplace
+		return turns_total
+
+	def travel_to(self,
+					dest: Union[Node, Hashable],
+					weight: Hashable = None,
+					graph: AbstractCharacter = None) -> int:
+		"""Find the shortest path to the given node from where I am
+		now, and follow it.
+
+		If supplied, the ``weight`` stat of each :class:`Portal` along
+		the path will be used in pathfinding, and for deciding how
+		long to stay in each Place along the way.
+
+		The ``graph`` argument may be any NetworkX-style graph. It
+		will be used for pathfinding if supplied, otherwise I'll use
+		my :class:`Character`. In either case, however, I will attempt
+		to actually follow the path using my :class:`Character`, which
+		might not be possible if the supplied ``graph`` and my
+		:class:`Character` are too different. If it's not possible,
+		I'll raise a :class:`TravelException`, whose ``subpath``
+		attribute holds the part of the path that I *can* follow. To
+		make me follow it, pass it to my ``follow_path`` method.
+
+		Return value is the number of turns the travel will take.
+
+		"""
+		destn = dest.name if hasattr(dest, 'name') else dest
+		if destn == self.location.name:
+			raise ValueError("I'm already at {}".format(destn))
+		graph = self.character if graph is None else graph
+		path = nx.shortest_path(graph, self["location"], destn, weight)
+		return self.follow_path(path, weight)
+
+
+def roerror(*args, **kwargs):
+	raise ValueError("Read-only")

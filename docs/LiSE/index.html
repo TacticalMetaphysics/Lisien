@@ -574,109 +574,30 @@ anymore.</p>
 
 </dd></dl>
 
-</section>
-<section id="module-LiSE.place">
-<span id="place"></span><h2>place<a class="headerlink" href="#module-LiSE.place" title="Permalink to this heading">¶</a></h2>
-<p>The type of node that is a location.</p>
-<p>Though both things and places are nodes, things are obliged to be
-located in another node. Places are not.</p>
 <dl class="py class">
-<dt class="sig sig-object py" id="LiSE.place.Place">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.place.</span></span><span class="sig-name descname"><span class="pre">Place</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clobber</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/place.html#Place"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.place.Place" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="LiSE.node.Place">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.node.</span></span><span class="sig-name descname"><span class="pre">Place</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clobber</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Place"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Place" title="Permalink to this definition">¶</a></dt>
 <dd><p>The kind of node where a thing might ultimately be located.</p>
 <p>LiSE entities are truthy so long as they exist, falsy if they’ve
 been deleted.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="LiSE.place.Place.delete">
-<span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/place.html#Place.delete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.place.Place.delete" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove myself from the world model immediately.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Members<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
 </dd></dl>
 
-</dd></dl>
-
-</section>
-<section id="module-LiSE.thing">
-<span id="thing"></span><h2>thing<a class="headerlink" href="#module-LiSE.thing" title="Permalink to this heading">¶</a></h2>
-<p>The sort of node that is ultimately located in a Place.</p>
-<p>Things may be located in other Things as well, but eventually must be
-recursively located in a Place.</p>
-<p>There’s a subtle distinction between “location” and “containment”: a
-Thing may be contained by a Portal, but cannot be located there –
-only in one of the Portal’s endpoints. Things are both located in and
-contained by Places, or possibly other Things.</p>
 <dl class="py class">
-<dt class="sig sig-object py" id="LiSE.thing.Thing">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.thing.</span></span><span class="sig-name descname"><span class="pre">Thing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clobber</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/thing.html#Thing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.thing.Thing" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="LiSE.node.Thing">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.node.</span></span><span class="sig-name descname"><span class="pre">Thing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clobber</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Thing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Thing" title="Permalink to this definition">¶</a></dt>
 <dd><p>The sort of item that has a particular location at any given time.</p>
 <p>Things are always in Places or other Things, and may additionally be
 travelling through a Portal.</p>
 <p>LiSE entities are truthy so long as they exist, falsy if they’ve
 been deleted.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="LiSE.thing.Thing.clear">
-<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/thing.html#Thing.clear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.thing.Thing.clear" title="Permalink to this definition">¶</a></dt>
-<dd><p>Unset everything.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="LiSE.thing.Thing.delete">
-<span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/thing.html#Thing.delete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.thing.Thing.delete" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get rid of this, starting now.</p>
-<p>Apart from deleting the node, this also informs all its users
-that it doesn’t exist and therefore can’t be their avatar
-anymore.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="LiSE.thing.Thing.follow_path">
-<span class="sig-name descname"><span class="pre">follow_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.11)"><span class="pre">list</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Hashable" title="(in Python v3.11)"><span class="pre">Hashable</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></span><a class="reference internal" href="../_modules/LiSE/thing.html#Thing.follow_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.thing.Thing.follow_path" title="Permalink to this definition">¶</a></dt>
-<dd><p>Go to several nodes in succession, deciding how long to
-spend in each by consulting the <code class="docutils literal notranslate"><span class="pre">weight</span></code> stat of the
-<code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> connecting the one node to the next,
-default 1 turn.</p>
-<p>Return the total number of turns the travel will take. Raise
-<code class="xref py py-class docutils literal notranslate"><span class="pre">TravelException</span></code> if I can’t follow the whole path,
-either because some of its nodes don’t exist, or because I’m
-scheduled to be somewhere else.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="LiSE.thing.Thing.go_to_place">
-<span class="sig-name descname"><span class="pre">go_to_place</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">place</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#LiSE.node.Node" title="LiSE.node.Node"><span class="pre">Node</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Hashable" title="(in Python v3.11)"><span class="pre">Hashable</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Hashable" title="(in Python v3.11)"><span class="pre">Hashable</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></span><a class="reference internal" href="../_modules/LiSE/thing.html#Thing.go_to_place"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.thing.Thing.go_to_place" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assuming I’m in a node that has a <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> direct
-to the given node, schedule myself to travel to the
-given <code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code>, taking an amount of time indicated by
-the <code class="docutils literal notranslate"><span class="pre">weight</span></code> stat on the <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>, if given; else 1
-turn.</p>
-<p>Return the number of turns the travel will take.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="LiSE.thing.Thing.location">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">location</span></span><a class="headerlink" href="#LiSE.thing.Thing.location" title="Permalink to this definition">¶</a></dt>
-<dd><p>The <code class="docutils literal notranslate"><span class="pre">Thing</span></code> or <code class="docutils literal notranslate"><span class="pre">Place</span></code> I’m in.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="LiSE.thing.Thing.travel_to">
-<span class="sig-name descname"><span class="pre">travel_to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#LiSE.node.Node" title="LiSE.node.Node"><span class="pre">Node</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Hashable" title="(in Python v3.11)"><span class="pre">Hashable</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Hashable" title="(in Python v3.11)"><span class="pre">Hashable</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">graph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractCharacter</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></span><a class="reference internal" href="../_modules/LiSE/thing.html#Thing.travel_to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.thing.Thing.travel_to" title="Permalink to this definition">¶</a></dt>
-<dd><p>Find the shortest path to the given node from where I am
-now, and follow it.</p>
-<p>If supplied, the <code class="docutils literal notranslate"><span class="pre">weight</span></code> stat of each <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> along
-the path will be used in pathfinding, and for deciding how
-long to stay in each Place along the way.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">graph</span></code> argument may be any NetworkX-style graph. It
-will be used for pathfinding if supplied, otherwise I’ll use
-my <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code>. In either case, however, I will attempt
-to actually follow the path using my <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code>, which
-might not be possible if the supplied <code class="docutils literal notranslate"><span class="pre">graph</span></code> and my
-<code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code> are too different. If it’s not possible,
-I’ll raise a <code class="xref py py-class docutils literal notranslate"><span class="pre">TravelException</span></code>, whose <code class="docutils literal notranslate"><span class="pre">subpath</span></code>
-attribute holds the part of the path that I <em>can</em> follow. To
-make me follow it, pass it to my <code class="docutils literal notranslate"><span class="pre">follow_path</span></code> method.</p>
-<p>Return value is the number of turns the travel will take.</p>
-</dd></dl>
-
+<dl class="field-list simple">
+<dt class="field-odd">Members<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -2228,14 +2149,8 @@ edge), for when the user stores a set in them.</p>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#module-LiSE.node">node</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node"><code class="docutils literal notranslate"><span class="pre">Node</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.place">place</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.place.Place"><code class="docutils literal notranslate"><span class="pre">Place</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.thing">thing</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.thing.Thing"><code class="docutils literal notranslate"><span class="pre">Thing</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Place"><code class="docutils literal notranslate"><span class="pre">Place</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Thing"><code class="docutils literal notranslate"><span class="pre">Thing</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#module-LiSE.portal">portal</a><ul>

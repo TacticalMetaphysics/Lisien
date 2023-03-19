@@ -48,9 +48,7 @@ from .character import Facade
 from .util import getatt, AbstractEngine, MsgpackExtensionType, AbstractCharacter
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
-from .node import NodeContent, UserMapping
-from .place import Place
-from .thing import Thing
+from .node import NodeContent, UserMapping, Place, Thing
 from .portal import Portal
 
 

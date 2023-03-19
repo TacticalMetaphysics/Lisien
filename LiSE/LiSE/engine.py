@@ -37,8 +37,7 @@ from .query import (Query, make_side_sel, StatusAlias, ComparisonQuery,
 					CompoundQuery, QueryResultMidTurn, QueryResult,
 					QueryResultEndTurn, CombinedQueryResult)
 from .character import Character
-from .thing import Thing
-from .place import Place
+from .node import Place, Thing
 from .portal import Portal
 from .query import QueryEngine
 from . import exc
@@ -581,9 +580,9 @@ class Engine(AbstractEngine, gORM):
 				raise TypeError("turn and tick must be int")
 		if turn_from == turn_to:
 			return self._get_turn_delta(branch,
-			                            turn_to,
-			                            tick_to,
-			                            start_tick=tick_from)
+										turn_to,
+										tick_to,
+										start_tick=tick_from)
 		delta = super().get_delta(branch, turn_from, tick_from, turn_to,
 									tick_to)
 		if turn_from < turn_to:
@@ -709,10 +708,10 @@ class Engine(AbstractEngine, gORM):
 		return delta
 
 	def _get_turn_delta(self,
-	                    branch: str = None,
-	                    turn: int = None,
-	                    tick: int = None,
-	                    start_tick=0) -> DeltaType:
+						branch: str = None,
+						turn: int = None,
+						tick: int = None,
+						start_tick=0) -> DeltaType:
 		"""Get a dictionary of changes to the world within a given turn
 
 		Defaults to the present turn, and stops at the present tick
