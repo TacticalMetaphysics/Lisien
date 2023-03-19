@@ -238,11 +238,11 @@ class Engine(AbstractEngine, gORM):
 					commit_interval: int = None,
 					random_seed: int = None,
 					logfun: FunctionType = None,
-					clear=False,
-					keep_rules_journal=True,
-					keyframe_on_close=True,
-					cache_arranger=False,
-					enforce_end_of_time=True):
+					clear: bool = False,
+					keep_rules_journal: bool = True,
+					keyframe_on_close: bool = True,
+					cache_arranger: bool = False,
+					enforce_end_of_time: bool = True):
 		if logfun is None:
 			from logging import getLogger
 			logger = getLogger("Life Sim Engine")
