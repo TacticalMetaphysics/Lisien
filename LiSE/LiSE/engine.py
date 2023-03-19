@@ -938,10 +938,9 @@ class Engine(AbstractEngine, gORM):
 
 	def _set_branch(self, v: str) -> None:
 		oldrando = self.universal.get('rando_state')
-		curbranch = self._get_branch()
 		super()._set_branch(v)
 		if v not in self._turns_completed:
-			self._turns_completed[v] = self._turns_completed[curbranch]
+			self._turns_completed[v] = self.turn
 		newrando = self.universal.get('rando_state')
 		if newrando and newrando != oldrando:
 			self._rando.setstate(newrando)
