@@ -269,16 +269,7 @@ class Node(AbstractEntityMapping):
 	def _validate_node_type(self):
 		return True
 
-	def __new__(cls, graph, node):
-		gnn = (graph.name, node)
-		nobjs = graph.db._node_objs
-		if gnn in nobjs:
-			del nobjs[gnn]
-		ret = super(Node, cls).__new__(cls)
-		nobjs[gnn] = ret
-		return ret
-
-	def __init__(self, graph, node, clobber=False):
+	def __init__(self, graph, node):
 		"""Store name and graph"""
 		super().__init__()
 		self.graph = graph
@@ -341,18 +332,6 @@ class Edge(AbstractEntityMapping):
 					'_get_cache_stuff', '_set_db_stuff', '_set_cache_stuff')
 
 	set_db_time = set_cache_time = 0
-
-	def __new__(cls, graph, orig, dest, idx=0):
-		gnodi = (graph.name, orig, dest, idx)
-		edgeobjs = graph.db._edge_objs
-		if gnodi in edgeobjs:
-			ret = edgeobjs[gnodi]
-			if not isinstance(ret, cls):
-				raise EntityCollisionError(
-					"Already have an edge {}->{}[{}] in graph {}, but of class {}"
-					.format(orig, dest, idx, graph.name, type(ret)))
-			return ret
-		return super(Edge, cls).__new__(cls)
 
 	def __init__(self, graph, orig, dest, idx=0):
 		"""Store the graph, the names of the nodes, and the index.
