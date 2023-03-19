@@ -156,26 +156,31 @@ engine
 		.. autoproperty:: LiSE.Engine.turn
 
 		.. py:property:: Engine.time
+
 			Acts like a tuple of (branch, turn) for the most part.
 
 			This wraps a :class:`blinker.Signal`. To set a function to be called whenever the
 			branch or turn changes, pass it to the ``Engine.time.connect`` method.
 
 		.. py:property:: Engine.rule
+
 			A mapping of all rules that have been made.
 
 		.. py:property:: Engine.rulebook
+
 			A mapping of lists of rules.
 
 			They are followed in their order. A whole rulebook full of rules may be
 			assigned to an entity at once.
 
 		.. py:property:: Engine.eternal
+
 			A mapping of arbitrary data, not sensitive to sim-time.
 
 			It's stored in the database. A good place to keep your game's settings.
 
 		.. py:property:: Engine.universal
+
 			A mapping of arbitrary data that changes over sim-time.
 
 			Each turn, the state of the randomizer is saved here under the key ``'rando_state'``.
