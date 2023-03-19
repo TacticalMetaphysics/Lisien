@@ -56,3 +56,8 @@ def test_wolfsheep(engy):
 	wolfsheep.install(engy, seed=69105)
 	for i in range(100):
 		engy.next_turn()
+	engy.turn = 5
+	engy.branch = 'lol'
+	engy.universal['haha'] = 'lol'
+	for i in range(95):
+		engy.next_turn()
