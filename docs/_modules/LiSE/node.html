@@ -364,15 +364,24 @@
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="n">Origs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">content</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;A mapping of ``Thing`` objects that are here&quot;&quot;&quot;</span>
+		<span class="k">return</span> <span class="n">NodeContent</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Node.contents"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.contents">[docs]</a>	<span class="k">def</span> <span class="nf">contents</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;A set-like object containing ``Thing`` objects that are here&quot;&quot;&quot;</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">values</span><span class="p">()</span></div>
+
 	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">yield from</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">()</span>
 		<span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_keys</span>
 		<span class="k">return</span>
 
-<div class="viewcode-block" id="Node.clear"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.clear">[docs]</a>	<span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Delete all my keys&quot;&quot;&quot;</span>
 		<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">():</span>
-			<span class="k">del</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+			<span class="k">del</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
 	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Handle extra keys, then delegate.&quot;&quot;&quot;</span>
@@ -442,15 +451,6 @@
 			<span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shortest_path_length</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="n">weight</span><span class="p">))</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 			<span class="k">return</span> <span class="kc">False</span></div>
-
-	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">content</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;A mapping of ``Thing`` objects that are here&quot;&quot;&quot;</span>
-		<span class="k">return</span> <span class="n">NodeContent</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-
-<div class="viewcode-block" id="Node.contents"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.contents">[docs]</a>	<span class="k">def</span> <span class="nf">contents</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;A set-like object containing ``Thing`` objects that are here&quot;&quot;&quot;</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">values</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="Node.delete"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.delete">[docs]</a>	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Get rid of this, starting now.</span>

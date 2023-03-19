@@ -470,31 +470,26 @@ the abilities to follow rules; to be connected by portals; and to
 contain things.</p>
 <p>This is truthy if it exists, falsy if it’s been deleted.</p>
 <dl class="py property">
-<dt class="sig sig-object py" id="LiSE.node.Node.adj">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">adj</span></span><a class="headerlink" href="#LiSE.node.Node.adj" title="Permalink to this definition">¶</a></dt>
-<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
-<p>Return a callable object that fetches the given attribute(s) from its operand.
-After f = attrgetter(‘name’), the call f(r) returns r.name.
-After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
-After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
-(r.name.first, r.name.last).</p>
+<dt class="sig sig-object py" id="LiSE.node.Node.user">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">user</span></span><a class="headerlink" href="#LiSE.node.Node.user" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of the characters that have this node as an avatar.</p>
+<p>When there’s only one user, you can use the special sub-property
+<code class="docutils literal notranslate"><span class="pre">Node.user.only</span></code> to get it.</p>
 </dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="LiSE.node.Node.character">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">character</span></span><a class="headerlink" href="#LiSE.node.Node.character" title="Permalink to this definition">¶</a></dt>
-<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
-<p>Return a callable object that fetches the given attribute(s) from its operand.
-After f = attrgetter(‘name’), the call f(r) returns r.name.
-After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
-After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
-(r.name.first, r.name.last).</p>
+<dt class="sig sig-object py" id="LiSE.node.Node.portal">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">portal</span></span><a class="headerlink" href="#LiSE.node.Node.portal" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of portals leading out from this node.</p>
+<p>Aliases <code class="docutils literal notranslate"><span class="pre">portal</span></code>, <code class="docutils literal notranslate"><span class="pre">adj</span></code>, <code class="docutils literal notranslate"><span class="pre">edge</span></code>, <code class="docutils literal notranslate"><span class="pre">successor</span></code>, and <code class="docutils literal notranslate"><span class="pre">succ</span></code>
+are available.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="LiSE.node.Node.clear">
-<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.clear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.clear" title="Permalink to this definition">¶</a></dt>
-<dd><p>Delete all my keys</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.node.Node.preportal">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">preportal</span></span><a class="headerlink" href="#LiSE.node.Node.preportal" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of portals leading to this node.</p>
+<p>Aliases <code class="docutils literal notranslate"><span class="pre">preportal</span></code>, <code class="docutils literal notranslate"><span class="pre">predecessor</span></code> and <code class="docutils literal notranslate"><span class="pre">pred</span></code> are available.</p>
 </dd></dl>
 
 <dl class="py property">
@@ -510,119 +505,15 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="LiSE.node.Node.delete">
-<span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.delete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.delete" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get rid of this, starting now.</p>
-<p>Apart from deleting the node, this also informs all its users
-that it doesn’t exist and therefore can’t be their avatar
-anymore.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="LiSE.node.Node.edge">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">edge</span></span><a class="headerlink" href="#LiSE.node.Node.edge" title="Permalink to this definition">¶</a></dt>
-<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
-<p>Return a callable object that fetches the given attribute(s) from its operand.
-After f = attrgetter(‘name’), the call f(r) returns r.name.
-After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
-After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
-(r.name.first, r.name.last).</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="LiSE.node.Node.engine">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">engine</span></span><a class="headerlink" href="#LiSE.node.Node.engine" title="Permalink to this definition">¶</a></dt>
-<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
-<p>Return a callable object that fetches the given attribute(s) from its operand.
-After f = attrgetter(‘name’), the call f(r) returns r.name.
-After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
-After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
-(r.name.first, r.name.last).</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="LiSE.node.Node.historical">
-<span class="sig-name descname"><span class="pre">historical</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stat</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.historical"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.historical" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a reference to the values that a stat has had in the past.</p>
-<p>You can use the reference in comparisons to make a history
-query, and execute the query by calling it, or passing it to
-<code class="docutils literal notranslate"><span class="pre">self.engine.ticks_when</span></code>.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="LiSE.node.Node.name">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#LiSE.node.Node.name" title="Permalink to this definition">¶</a></dt>
-<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
-<p>Return a callable object that fetches the given attribute(s) from its operand.
-After f = attrgetter(‘name’), the call f(r) returns r.name.
-After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
-After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
-(r.name.first, r.name.last).</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="LiSE.node.Node.new_portal">
-<span class="sig-name descname"><span class="pre">new_portal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">stats</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.new_portal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.new_portal" title="Permalink to this definition">¶</a></dt>
-<dd><p>Connect a portal from here to another node, and return it.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="LiSE.node.Node.new_thing">
-<span class="sig-name descname"><span class="pre">new_thing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">stats</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.new_thing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.new_thing" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a new thing, located here, and return it.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="LiSE.node.Node.path_exists">
-<span class="sig-name descname"><span class="pre">path_exists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.path_exists"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.path_exists" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return whether there is a path leading from me to <code class="docutils literal notranslate"><span class="pre">dest</span></code>.</p>
-<p>With <code class="docutils literal notranslate"><span class="pre">weight</span></code>, only consider edges that have a stat by the
-given name.</p>
-<p>Raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if <code class="docutils literal notranslate"><span class="pre">dest</span></code> is not a node in my character
-or the name of one.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="LiSE.node.Node.portal">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">portal</span></span><a class="headerlink" href="#LiSE.node.Node.portal" title="Permalink to this definition">¶</a></dt>
-<dd><p>A mapping of portals leading out from this node.</p>
-<p>Aliases <code class="docutils literal notranslate"><span class="pre">portal</span></code>, <code class="docutils literal notranslate"><span class="pre">adj</span></code>, <code class="docutils literal notranslate"><span class="pre">edge</span></code>, <code class="docutils literal notranslate"><span class="pre">successor</span></code>, and <code class="docutils literal notranslate"><span class="pre">succ</span></code>
-are available.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="LiSE.node.Node.pred">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">pred</span></span><a class="headerlink" href="#LiSE.node.Node.pred" title="Permalink to this definition">¶</a></dt>
-<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
-<p>Return a callable object that fetches the given attribute(s) from its operand.
-After f = attrgetter(‘name’), the call f(r) returns r.name.
-After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
-After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
-(r.name.first, r.name.last).</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="LiSE.node.Node.predecessor">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">predecessor</span></span><a class="headerlink" href="#LiSE.node.Node.predecessor" title="Permalink to this definition">¶</a></dt>
-<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
-<p>Return a callable object that fetches the given attribute(s) from its operand.
-After f = attrgetter(‘name’), the call f(r) returns r.name.
-After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
-After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
-(r.name.first, r.name.last).</p>
+<dt class="sig sig-object py" id="LiSE.node.Node.successors">
+<span class="sig-name descname"><span class="pre">successors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.successors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.successors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over nodes with edges leading from here to there.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="LiSE.node.Node.predecessors">
 <span class="sig-name descname"><span class="pre">predecessors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.predecessors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.predecessors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Iterate over nodes with edges leading here from there.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="LiSE.node.Node.preportal">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">preportal</span></span><a class="headerlink" href="#LiSE.node.Node.preportal" title="Permalink to this definition">¶</a></dt>
-<dd><p>A mapping of portals leading to this node.</p>
-<p>Aliases <code class="docutils literal notranslate"><span class="pre">preportal</span></code>, <code class="docutils literal notranslate"><span class="pre">predecessor</span></code> and <code class="docutils literal notranslate"><span class="pre">pred</span></code> are available.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -641,32 +532,44 @@ or the name of one.</p>
 or the name of one.</p>
 </dd></dl>
 
-<dl class="py property">
-<dt class="sig sig-object py" id="LiSE.node.Node.succ">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">succ</span></span><a class="headerlink" href="#LiSE.node.Node.succ" title="Permalink to this definition">¶</a></dt>
-<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
-<p>Return a callable object that fetches the given attribute(s) from its operand.
-After f = attrgetter(‘name’), the call f(r) returns r.name.
-After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
-After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
-(r.name.first, r.name.last).</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="LiSE.node.Node.successor">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">successor</span></span><a class="headerlink" href="#LiSE.node.Node.successor" title="Permalink to this definition">¶</a></dt>
-<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
-<p>Return a callable object that fetches the given attribute(s) from its operand.
-After f = attrgetter(‘name’), the call f(r) returns r.name.
-After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
-After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
-(r.name.first, r.name.last).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Node.path_exists">
+<span class="sig-name descname"><span class="pre">path_exists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.path_exists"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.path_exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether there is a path leading from me to <code class="docutils literal notranslate"><span class="pre">dest</span></code>.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">weight</span></code>, only consider edges that have a stat by the
+given name.</p>
+<p>Raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if <code class="docutils literal notranslate"><span class="pre">dest</span></code> is not a node in my character
+or the name of one.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="LiSE.node.Node.successors">
-<span class="sig-name descname"><span class="pre">successors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.successors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.successors" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterate over nodes with edges leading from here to there.</p>
+<dt class="sig sig-object py" id="LiSE.node.Node.new_portal">
+<span class="sig-name descname"><span class="pre">new_portal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">stats</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.new_portal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.new_portal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connect a portal from here to another node, and return it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Node.new_thing">
+<span class="sig-name descname"><span class="pre">new_thing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">stats</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.new_thing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.new_thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new thing, located here, and return it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Node.historical">
+<span class="sig-name descname"><span class="pre">historical</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stat</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.historical"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.historical" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a reference to the values that a stat has had in the past.</p>
+<p>You can use the reference in comparisons to make a history
+query, and execute the query by calling it, or passing it to
+<code class="docutils literal notranslate"><span class="pre">self.engine.ticks_when</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Node.delete">
+<span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.delete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get rid of this, starting now.</p>
+<p>Apart from deleting the node, this also informs all its users
+that it doesn’t exist and therefore can’t be their avatar
+anymore.</p>
 </dd></dl>
 
 </dd></dl>

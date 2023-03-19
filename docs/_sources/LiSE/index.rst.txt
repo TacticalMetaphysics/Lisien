@@ -245,7 +245,39 @@ node
 .. automodule:: LiSE.node
 
 	.. autoclass:: LiSE.node.Node
-		:members:
+
+		.. py:property:: user
+
+			A mapping of the characters that have this node as an avatar.
+
+			When there's only one user, you can use the special sub-property
+			``Node.user.only`` to get it.
+
+		.. autoproperty:: portal
+
+		.. autoproperty:: preportal
+
+		.. autoproperty:: content
+
+		.. automethod:: contents
+
+		.. automethod:: successors
+
+		.. automethod:: predecessors
+
+		.. automethod:: shortest_path
+
+		.. automethod:: shortest_path_length
+
+		.. automethod:: path_exists
+
+		.. automethod:: new_portal
+
+		.. automethod:: new_thing
+
+		.. automethod:: historical
+
+		.. automethod:: delete
 
 place
 -----
