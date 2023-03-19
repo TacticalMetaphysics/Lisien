@@ -99,7 +99,7 @@ class NextTurn(Signal):
 				start_branch] = parent, turn_from, tick_from, engine.turn + 1, 0
 			engine.turn += 1
 		with engine.advancing():
-			for res in iter(engine.advance, final_rule):
+			for res in iter(engine._advance, final_rule):
 				if res:
 					engine.universal['last_result'] = res
 					engine.universal['last_result_idx'] = 0
