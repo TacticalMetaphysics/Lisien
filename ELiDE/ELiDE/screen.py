@@ -545,7 +545,6 @@ class TurnScroll(Slider):
 	def _collect_engine(self, *args):
 		app = App.get_running_app()
 		if app.engine is None:
-			Logger.warning("TurnScroll: no engine")
 			Clock.schedule_once(self._collect_engine, 0)
 			return
 		engine = app.engine
