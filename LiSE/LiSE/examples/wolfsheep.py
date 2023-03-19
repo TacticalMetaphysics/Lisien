@@ -110,6 +110,21 @@ def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=10, seed=None):
 	def sheep_remains(wolff):
 		return bool(wolff.engine.character['sheep'].unit)
 
+	@eng.action
+	def breed(shep):
+		units = list(shep.units())
+		shep.engine.shuffle(units)
+		# pick a sheep that has another sheep next to it
+		for unit in units:
+			for neighbor in unit.successors():
+				for here in neighbor.contents():
+					if here.user.only is shep:
+						shep.add_unit(
+							unit.location.new_thing(
+								f'sheep{len(units)}',
+								_image_paths=['atlas://rltiles/dc-mon/sheep']))
+						return
+
 
 if __name__ == '__main__':
 	import sys
