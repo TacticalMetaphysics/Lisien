@@ -795,7 +795,13 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
 
 def unwrapped_dict(d):
-	return {k: v.unwrap() if hasattr(v, 'unwrap') else v for k, v in d.items()}
+	ret = {}
+	for k, v in d.items():
+		if hasattr(v, 'unwrap') and not getattr(v, 'no_unwrap', False):
+			ret[k] = v.unwrap()
+		else:
+			ret[k] = v
+	return ret
 
 
 class DiGraph(networkx.DiGraph):
