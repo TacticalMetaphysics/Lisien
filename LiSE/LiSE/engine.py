@@ -203,7 +203,7 @@ class Engine(AbstractEngine, gORM):
 		process that indexes the caches to make time travel faster
 		when it's to points we anticipate. If you use this, you can
 		specify some other point in time to index by putting the
-		`(branch, turn, tick)` in my :attribute:`cache_arrange_queue`.
+		``(branch, turn, tick)`` in my ``cache_arrange_queue``.
 		 Default ``False``.
 	:param enforce_end_of_time: Whether to raise an exception when
 		time travelling to a point after the time that's been simulated.
