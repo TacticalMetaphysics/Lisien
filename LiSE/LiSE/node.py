@@ -448,7 +448,9 @@ class Node(graph.Node, rule.RuleFollower):
 
 	def new_portal(self, other, **stats):
 		"""Connect a portal from here to another node, and return it."""
-		return self.character.new_portal(self, other, **stats)
+		return self.character.new_portal(self.name,
+											getattr(other, 'name', other),
+											**stats)
 
 	def new_thing(self, name, **stats):
 		"""Create a new thing, located here, and return it."""
