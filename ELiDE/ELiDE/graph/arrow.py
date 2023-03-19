@@ -345,9 +345,11 @@ class GraphArrow:
 			bg_scale = arrow_plane.bg_scale_unselected
 			bg_color = arrow_plane.bg_color_unselected
 			fg_color = arrow_plane.fg_color_unselected
-		verts = get_quad_vertices(*shaft_points, *head_points, r * bg_scale, r)
+		plane = self.board.arrow_plane
 		if (self.origin.name,
 			self.destination.name) in self.board.arrow_plane._instructions_map:
+			verts = get_quad_vertices(*shaft_points, *head_points,
+										r * bg_scale, r)
 			insts = self.board.arrow_plane._instructions_map[
 				self.origin.name, self.destination.name]
 			insts['color0'].rgba = bg_color
@@ -358,9 +360,22 @@ class GraphArrow:
 			insts['shaft_fg'].points = verts['shaft_fg']
 			insts['left_head_fg'].points = verts['left_head_fg']
 			insts['right_head_fg'].points = verts['right_head_fg']
+			plane._colliders_map[self.origin.name,
+									self.destination.name] = Collide2DPoly(
+										points=verts['shaft_bg'])
 		else:
-			self.board.arrow_plane._instructions_map = get_instructions(
+			plane._instructions_map = insts = get_instructions(
 				*shaft_points, *head_points, bg_color, fg_color)
+			plane._colliders_map[
+				self.origin.name,
+				self.destination.name].points = Collide2DPoly(
+					points=insts['shaft_bg'].points)
+		myidx = plane._port_index[self.origin.name, self.destination.name]
+		(ox, oy, dx, dy) = shaft_points
+		plane._bot_left_corner_xs[myidx] = min((ox, dx))
+		plane._bot_left_corner_ys[myidx] = min((oy, dy))
+		plane._top_right_corner_xs[myidx] = max((ox, dx))
+		plane._top_right_corner_ys[myidx] = max((oy, dy))
 		fbo.release()
 		fbo.ask_update()
 		arrow_plane.canvas.ask_update()
