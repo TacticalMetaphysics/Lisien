@@ -444,27 +444,9 @@ class Node(graph.Node, rule.RuleFollower):
 										turn, tick, False)
 		self.character.node.send(self.character.node, key=self.name, val=None)
 
-	def one_way_portal(self, other, **stats):
+	def new_portal(self, other, **stats):
 		"""Connect a portal from here to another node, and return it."""
-		return self.character.new_portal(self,
-											other,
-											symmetrical=False,
-											**stats)
-
-	def one_way(self, other, **stats):
-		"""Connect a portal from here to another node, and return it."""
-		return self.one_way_portal(other, **stats)
-
-	def two_way_portal(self, other, **stats):
-		"""Connect these nodes with a two-way portal and return it."""
-		return self.character.new_portal(self,
-											other,
-											symmetrical=True,
-											**stats)
-
-	def two_way(self, other, **stats):
-		"""Connect these nodes with a two-way portal and return it."""
-		return self.two_way_portal(other, **stats)
+		return self.character.new_portal(self, other, **stats)
 
 	def new_thing(self, name, **stats):
 		"""Create a new thing, located here, and return it."""
