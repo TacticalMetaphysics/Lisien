@@ -614,10 +614,10 @@ class ORM:
 		return delta
 
 	def _get_turn_delta(self,
-	                    branch: str = None,
-	                    turn: int = None,
-	                    tick_from=0,
-	                    tick_to: int = None) -> DeltaType:
+						branch: str = None,
+						turn: int = None,
+						tick_from=0,
+						tick_to: int = None) -> DeltaType:
 		"""Get a dictionary describing changes made on a given turn.
 
 		If ``tick_to`` is not supplied, report all changes after ``tick_from``
