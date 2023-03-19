@@ -332,6 +332,15 @@ class Node(graph.Node, rule.RuleFollower):
 		"""
 		return Origs(self)
 
+	@property
+	def content(self):
+		"""A mapping of ``Thing`` objects that are here"""
+		return NodeContent(self)
+
+	def contents(self):
+		"""A set-like object containing ``Thing`` objects that are here"""
+		return self.content.values()
+
 	def __iter__(self):
 		yield from super().__iter__()
 		yield from self._extra_keys
@@ -410,15 +419,6 @@ class Node(graph.Node, rule.RuleFollower):
 			return bool(self.shortest_path_length(dest, weight))
 		except KeyError:
 			return False
-
-	@property
-	def content(self):
-		"""A mapping of ``Thing`` objects that are here"""
-		return NodeContent(self)
-
-	def contents(self):
-		"""A set-like object containing ``Thing`` objects that are here"""
-		return self.content.values()
 
 	def delete(self):
 		"""Get rid of this, starting now.
