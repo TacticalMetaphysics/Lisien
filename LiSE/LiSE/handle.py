@@ -1664,13 +1664,12 @@ class EngineHandle(object):
 		return set_delta(old, new)
 
 	def add_portal(self, char: Hashable, orig: Hashable, dest: Hashable,
-					symmetrical: bool, statdict: Dict) -> None:
-		self._real.character[char].add_portal(orig, dest, symmetrical,
+					statdict: Dict) -> None:
+		self._real.character[char].add_portal(orig, dest,
 												**statdict)
 
-	def add_portals_from(self, char: Hashable, seq: Iterable,
-							symmetrical: bool) -> None:
-		self._real.character[char].add_portals_from(seq, symmetrical)
+	def add_portals_from(self, char: Hashable, seq: Iterable) -> None:
+		self._real.character[char].add_portals_from(seq)
 
 	def del_portal(self, char: Hashable, orig: Hashable,
 					dest: Hashable) -> None:
