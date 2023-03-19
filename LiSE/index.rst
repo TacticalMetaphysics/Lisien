@@ -147,12 +147,7 @@ Only methods defined with the ``@engine.method`` decorator may be used in a menu
 
 engine
 ------
-Engine
-######
-	Each instance of LiSE maintains a connection to a database
-	representing the state of a simulated world. Simulation rules
-	within this world are described by lists of Python functions, some
-	of which make changes to the world.
+.. automodule:: LiSE.engine
 
 	.. autoclass:: LiSE.Engine
 
