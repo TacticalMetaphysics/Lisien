@@ -33,7 +33,7 @@ World Modelling
 Start by calling the engine's ``new_character`` method with a string
 ``name``.  This will return a character object with the name you
 provided. Now draw a map by calling the method ``new_place`` with many
-different string ``name`` s, then linking them together with the
+different ``name`` s, then linking them together with the
 method ``new_portal(origin, destination)``.  To store data pertaining
 to some particular place, retrieve the place from the ``place``
 mapping of the character: if the character is ``world`` and the place
