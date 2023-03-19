@@ -243,7 +243,9 @@ Engine
 node
 ----
 .. automodule:: LiSE.node
-	:members:
+
+	.. autoclass:: LiSE.node.Node
+		:members:
 
 place
 -----

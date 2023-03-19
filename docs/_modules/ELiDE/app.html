@@ -119,14 +119,7 @@
 							<span class="nb">type</span><span class="p">(</span><span class="n">selected_proxy</span><span class="p">))</span>
 		<span class="n">origin</span> <span class="o">=</span> <span class="n">selected_proxy</span><span class="o">.</span><span class="n">origin</span>
 		<span class="n">destination</span> <span class="o">=</span> <span class="n">selected_proxy</span><span class="o">.</span><span class="n">destination</span>
-		<span class="n">reciprocal</span> <span class="o">=</span> <span class="n">selected_proxy</span><span class="o">.</span><span class="n">reciprocal</span>
-		<span class="k">if</span> <span class="n">selected_proxy</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-			<span class="s1">&#39;is_mirror&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">reciprocal</span>
-									<span class="ow">and</span> <span class="n">reciprocal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;is_mirror&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)):</span>
-			<span class="n">link</span> <span class="o">=</span> <span class="s1">&#39;&lt;&gt;&#39;</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">link</span> <span class="o">=</span> <span class="s1">&#39;-&gt;&#39;</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">selected_proxy_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="o">+</span> <span class="n">link</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">selected_proxy_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;-&gt;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span>
 			<span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">_get_character_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -399,7 +392,9 @@
 		<span class="k">else</span><span class="p">:</span>
 			<span class="n">sched_entity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected_proxy</span>
 		<span class="n">calendar</span><span class="o">.</span><span class="n">entity</span> <span class="o">=</span> <span class="n">sched_entity</span>
-		<span class="k">if</span> <span class="n">startturn</span> <span class="o">==</span> <span class="n">endturn</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">startturn</span> <span class="o">==</span> <span class="n">endturn</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">:</span>
+			<span class="c1"># It&#39;s the &quot;calendar&quot; that&#39;s actually just the current stats</span>
+			<span class="c1"># of the selected entity, on the left side of ELiDE</span>
 			<span class="n">schedule</span> <span class="o">=</span> <span class="p">{</span><span class="n">stat</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">selected_proxy</span><span class="p">[</span><span class="n">stat</span><span class="p">]]</span> <span class="k">for</span> <span class="n">stat</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">}</span>
 		<span class="k">else</span><span class="p">:</span>
 			<span class="n">schedule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="s1">&#39;get_schedule&#39;</span><span class="p">,</span>
@@ -407,7 +402,6 @@
 											<span class="n">stats</span><span class="o">=</span><span class="n">stats</span><span class="p">,</span>
 											<span class="n">beginning</span><span class="o">=</span><span class="n">startturn</span><span class="p">,</span>
 											<span class="n">end</span><span class="o">=</span><span class="n">endturn</span><span class="p">),</span>
-		<span class="n">Logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Calendar:</span><span class="si">{</span><span class="n">schedule</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 		<span class="n">calendar</span><span class="o">.</span><span class="n">from_schedule</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="n">start_turn</span><span class="o">=</span><span class="n">startturn</span><span class="p">)</span></div>
 
 	<span class="k">def</span> <span class="nf">_set_language</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lang</span><span class="p">):</span>
@@ -475,14 +469,10 @@
 		<span class="k">if</span> <span class="n">selection</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="k">return</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="n">GraphArrow</span><span class="p">):</span>
-			<span class="k">if</span> <span class="n">selection</span><span class="o">.</span><span class="n">reciprocal</span> <span class="ow">and</span> <span class="n">selection</span><span class="o">.</span><span class="n">reciprocal</span><span class="o">.</span><span class="n">portal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-				<span class="s1">&#39;is_mirror&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
-				<span class="n">selection</span><span class="o">.</span><span class="n">reciprocal</span><span class="o">.</span><span class="n">portal</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">rm_arrow</span><span class="p">(</span>
-					<span class="n">selection</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">selection</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">rm_arrow</span><span class="p">(</span>
 				<span class="n">selection</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">selection</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-			<span class="n">selection</span><span class="o">.</span><span class="n">portal</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">selection</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">][</span>
+				<span class="n">selection</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
 		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="n">GraphSpot</span><span class="p">):</span>
 			<span class="n">charn</span> <span class="o">=</span> <span class="n">selection</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">graphboards</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span><span class="o">.</span><span class="n">rm_spot</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -569,7 +559,7 @@
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

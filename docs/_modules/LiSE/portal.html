@@ -5,14 +5,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LiSE.portal &#8212; LiSE 0.13.1 documentation</title>
+    <title>LiSE.portal &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
     <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-    <script src="../../_static/jquery.js"></script>
-    <script src="../../_static/underscore.js"></script>
-    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/sphinx_highlight.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -59,17 +57,17 @@
 <span class="kn">from</span> <span class="nn">.rule</span> <span class="kn">import</span> <span class="n">RuleMapping</span> <span class="k">as</span> <span class="n">BaseRuleMapping</span>
 
 
-<div class="viewcode-block" id="RuleMapping"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.RuleMapping">[docs]</a><span class="k">class</span> <span class="nc">RuleMapping</span><span class="p">(</span><span class="n">BaseRuleMapping</span><span class="p">):</span>
-	<span class="sd">&quot;&quot;&quot;Mapping to get rules followed by a portal.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="RuleMapping"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.portal.RuleMapping">[docs]</a><span class="k">class</span> <span class="nc">RuleMapping</span><span class="p">(</span><span class="n">BaseRuleMapping</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Mapping to get rules followed by a portal.&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">portal</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;Store portal, engine, and rulebook.&quot;&quot;&quot;</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Store portal, engine, and rulebook.&quot;&quot;&quot;</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">portal</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">portal</span><span class="o">.</span><span class="n">rulebook</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">portal</span> <span class="o">=</span> <span class="n">portal</span></div>
 
 
-<div class="viewcode-block" id="Portal"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Portal">[docs]</a><span class="k">class</span> <span class="nc">Portal</span><span class="p">(</span><span class="n">Edge</span><span class="p">,</span> <span class="n">RuleFollower</span><span class="p">):</span>
-	<span class="sd">&quot;&quot;&quot;Connection between two Places that Things may travel along.</span>
+<div class="viewcode-block" id="Portal"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.portal.Portal">[docs]</a><span class="k">class</span> <span class="nc">Portal</span><span class="p">(</span><span class="n">Edge</span><span class="p">,</span> <span class="n">RuleFollower</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Connection between two Places that Things may travel along.</span>
 
 <span class="sd">	Portals are one-way, but you can make one appear two-way by</span>
 <span class="sd">	setting the ``symmetrical`` key to ``True``,</span>
@@ -145,71 +143,34 @@
 		<span class="k">return</span> <span class="n">RuleMapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;Get the present value of the key.</span>
-
-<span class="sd">		If I am a mirror of another Portal, return the value from that</span>
-<span class="sd">		Portal instead.</span>
-
-<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;origin&#39;</span><span class="p">:</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span>
 		<span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;destination&#39;</span><span class="p">:</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span>
 		<span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;character&#39;</span><span class="p">:</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
-		<span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;is_mirror&#39;</span><span class="p">:</span>
-			<span class="k">try</span><span class="p">:</span>
-				<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-				<span class="k">return</span> <span class="kc">False</span>
-		<span class="k">elif</span> <span class="s1">&#39;is_mirror&#39;</span> <span class="ow">in</span> <span class="bp">self</span> <span class="ow">and</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;is_mirror&#39;</span><span class="p">]:</span>
-			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">preportal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">][</span><span class="n">key</span><span class="p">]</span>
 		<span class="k">else</span><span class="p">:</span>
 			<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;Set ``key``=``value`` at the present game-time.</span>
-
-<span class="sd">		If I am a mirror of another Portal, set ``key``=``value`` on</span>
-<span class="sd">		that Portal instead.</span>
-
-<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;origin&#39;</span><span class="p">,</span> <span class="s1">&#39;destination&#39;</span><span class="p">,</span> <span class="s1">&#39;character&#39;</span><span class="p">):</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t change &quot;</span> <span class="o">+</span> <span class="n">key</span><span class="p">)</span>
-		<span class="k">elif</span> <span class="s1">&#39;is_mirror&#39;</span> <span class="ow">in</span> <span class="bp">self</span> <span class="ow">and</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;is_mirror&#39;</span><span class="p">]:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">reciprocal</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-			<span class="k">return</span>
-		<span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;symmetrical&#39;</span> <span class="ow">and</span> <span class="n">value</span><span class="p">:</span>
-			<span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dest</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span>
-				<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">]):</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">)</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">][</span><span class="s2">&quot;is_mirror&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;symmetrical&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-			<span class="k">return</span>
-		<span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;symmetrical&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
-			<span class="k">try</span><span class="p">:</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">][</span>
-					<span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">][</span><span class="s2">&quot;is_mirror&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
-			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-				<span class="k">pass</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;symmetrical&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-			<span class="k">return</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;Describe character, origin, and destination&quot;&quot;&quot;</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Describe character, origin, and destination&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="s2">&quot;&lt;</span><span class="si">{}</span><span class="s2">.character[</span><span class="si">{}</span><span class="s2">].portal[</span><span class="si">{}</span><span class="s2">][</span><span class="si">{}</span><span class="s2">]&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
 			<span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">),</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s1">&#39;character&#39;</span><span class="p">]),</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s1">&#39;origin&#39;</span><span class="p">]),</span>
 			<span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">]))</span>
 
 	<span class="k">def</span> <span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;It means something that I exist, even if I have no data.&quot;&quot;&quot;</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;It means something that I exist, even if I have no data.&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span>
 				<span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">])</span>
 
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">reciprocal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;If there&#39;s another Portal connecting the same origin and</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;If there&#39;s another Portal connecting the same origin and</span>
 <span class="sd">		destination that I do, but going the opposite way, return</span>
 <span class="sd">		it. Else raise KeyError.</span>
 
@@ -219,8 +180,8 @@
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;This portal has no reciprocal&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Portal.historical"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Portal.historical">[docs]</a>	<span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;Return a reference to the values that a stat has had in the past.</span>
+<div class="viewcode-block" id="Portal.historical"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.portal.Portal.historical">[docs]</a>	<span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a reference to the values that a stat has had in the past.</span>
 
 <span class="sd">		You can use the reference in comparisons to make a history</span>
 <span class="sd">		query, and execute the query by calling it, or passing it to</span>
@@ -229,8 +190,8 @@
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="n">StatusAlias</span><span class="p">(</span><span class="n">entity</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Portal.update"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Portal.update">[docs]</a>	<span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Mapping</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">f</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;Works like regular update, but less</span>
+<div class="viewcode-block" id="Portal.update"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.portal.Portal.update">[docs]</a>	<span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Mapping</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">f</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Works like regular update, but less</span>
 
 <span class="sd">		Only actually updates when the new value and the old value differ.</span>
 <span class="sd">		This is necessary to prevent certain infinite loops.</span>
@@ -253,8 +214,8 @@
 			<span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span> <span class="ow">or</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">!=</span> <span class="n">v</span><span class="p">:</span>
 				<span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span></div>
 
-<div class="viewcode-block" id="Portal.delete"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Portal.delete">[docs]</a>	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;Remove myself from my :class:`Character`.</span>
+<div class="viewcode-block" id="Portal.delete"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.portal.Portal.delete">[docs]</a>	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove myself from my :class:`Character`.</span>
 
 <span class="sd">		For symmetry with :class:`Thing` and :class:`Place`.</span>
 
@@ -274,7 +235,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">send</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;dest&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Portal.unwrap"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Portal.unwrap">[docs]</a>	<span class="k">def</span> <span class="nf">unwrap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Portal.unwrap"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.portal.Portal.unwrap">[docs]</a>	<span class="k">def</span> <span class="nf">unwrap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="p">{</span>
 			<span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">unwrap</span><span class="p">()</span>
 			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;unwrap&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;no_unwrap&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span>
@@ -340,7 +301,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
