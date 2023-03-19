@@ -873,7 +873,7 @@ class Cache:
 			presettings_turns[turn] = {tick: parent + (entity, key, prev)}
 			settings_turns[turn] = {tick: parent + (entity, key, value)}
 
-	def _base_retrieve(self, args):
+	def _base_retrieve(self, args, store_hint=True):
 		shallowest = self.shallowest
 		if args in shallowest:
 			return shallowest[args]
@@ -893,16 +893,19 @@ class Cache:
 				if turn in brancs:
 					if brancs[turn].rev_gettable(tick):
 						ret = brancs[turn][tick]
-						shallowest[args] = ret
+						if store_hint:
+							shallowest[args] = ret
 						return ret
 					elif brancs.rev_gettable(turn - 1):
 						b1 = brancs[turn - 1]
 						ret = b1.final()
-						shallowest[args] = ret
+						if store_hint:
+							shallowest[args] = ret
 						return ret
 				else:
 					ret = brancs[turn].final()
-					shallowest[args] = ret
+					if store_hint:
+						shallowest[args] = ret
 					return ret
 			for (b, r, t) in self.db._iter_parent_btt(branch):
 				brancs = branchentk.get(b)
@@ -918,12 +921,14 @@ class Cache:
 								kf = kfbr[t]
 								if key in kf:
 									ret = kf[key]
-									shallowest[args] = ret
+									if store_hint:
+										shallowest[args] = ret
 									return ret
 								else:
 									return NotInKeyframeError("No value")
 						ret = brancs[r][t]
-						shallowest[args] = ret
+						if store_hint:
+							shallowest[args] = ret
 						return ret
 					elif brancs.rev_gettable(r - 1):
 						if b in keyframes and keyframes[b].rev_gettable(r - 1):
@@ -934,7 +939,8 @@ class Cache:
 								kf = kfbr.final()
 								if key in kf:
 									ret = kf[key]
-									shallowest[args] = ret
+									if store_hint:
+										shallowest[args] = ret
 									return ret
 								else:
 									return NotInKeyframeError("No value")
@@ -946,25 +952,29 @@ class Cache:
 									kf = kfbr.final()
 									if key in kf:
 										ret = kf[key]
-										shallowest[args] = ret
+										if store_hint:
+											shallowest[args] = ret
 										return ret
 									else:
 										return NotInKeyframeError("No value")
 						ret = brancs[r - 1].final()
-						shallowest[args] = ret
+						if store_hint:
+							shallowest[args] = ret
 						return ret
 					elif b in keyframes and r in keyframes[b] and keyframes[b][
 						r].rev_gettable(t):
 						if key in keyframes[b][r][t]:
 							ret = keyframes[b][r][t][key]
-							shallowest[args] = ret
+							if store_hint:
+								shallowest[args] = ret
 							return ret
 						else:
 							return NotInKeyframeError("No value")
 					elif b in keyframes and keyframes[b].rev_gettable(r - 1):
 						if key in keyframes[b][r - 1].final():
 							ret = keyframes[b][r - 1].final()[key]
-							shallowest[args] = ret
+							if store_hint:
+								shallowest[args] = ret
 							return ret
 						else:
 							return NotInKeyframeError("No value")
@@ -976,7 +986,8 @@ class Cache:
 							kf = kfbr[tick]
 							if key in kf:
 								ret = kf[key]
-								shallowest[args] = ret
+								if store_hint:
+									shallowest[args] = ret
 								return ret
 							else:
 								return NotInKeyframeError("No value")
@@ -985,7 +996,8 @@ class Cache:
 						kf = kfbr.final()
 						if key in kf:
 							ret = kf[key]
-							shallowest[args] = ret
+							if store_hint:
+								shallowest[args] = ret
 							return ret
 						else:
 							return NotInKeyframeError("No value")
@@ -998,7 +1010,8 @@ class Cache:
 						kf = kfbr[tick]
 						if key in kf:
 							ret = kf[key]
-							shallowest[args] = ret
+							if store_hint:
+								shallowest[args] = ret
 							return ret
 						else:
 							return NotInKeyframeError("No value")
@@ -1006,7 +1019,9 @@ class Cache:
 					kfbr = kfb[turn]
 					kf = kfbr.final()
 					if key in kf:
-						ret = shallowest[args] = kf[key]
+						ret = kf[key]
+						if store_hint:
+							shallowest[args] = ret
 						return ret
 					else:
 						return NotInKeyframeError("No value")
@@ -1019,7 +1034,8 @@ class Cache:
 							kf = kfbr[t]
 							if key in kf:
 								ret = kf[key]
-								shallowest[args] = ret
+								if store_hint:
+									shallowest[args] = ret
 								return ret
 							else:
 								return NotInKeyframeError("No value")
@@ -1028,7 +1044,8 @@ class Cache:
 						kf = kfbr.final()
 						if key in kf:
 							ret = kf[key]
-							shallowest[args] = ret
+							if store_hint:
+								shallowest[args] = ret
 							return ret
 						else:
 							return NotInKeyframeError("No value")
