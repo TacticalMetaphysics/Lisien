@@ -247,12 +247,11 @@ class RulesView(Widget):
 		setattr(getattr(self, '_{}_builder'.format(what)), 'decks',
 				self.get_functions_cards(what, allfuncs))
 
-	def _pull_functions(self, what):
-		return self.get_functions_cards(
-			what,
-			list(
-				map(self.inspect_func,
-					getattr(self.engine, what)._cache.items())))
+	def _pull_functions(self, what, truth=True):
+		it = map(self.inspect_func, getattr(self.engine, what)._cache.items())
+		if not truth:
+			it = filter(lambda x: x[0] != "truth", it)
+		return self.get_functions_cards(what, list(it))
 
 	def pull_triggers(self, *args):
 		"""Refresh the cards in the trigger builder"""
@@ -262,13 +261,15 @@ class RulesView(Widget):
 
 	def pull_prereqs(self, *args):
 		"""Refresh the cards in the prereq builder"""
-		self._prereq_builder.decks = self._pull_functions('prereq')
+		self._prereq_builder.decks = self._pull_functions('prereq',
+															truth=False)
 
 	_trigger_pull_prereqs = trigger(pull_prereqs)
 
 	def pull_actions(self, *args):
 		"""Refresh the cards in the action builder"""
-		self._action_builder.decks = self._pull_functions('action')
+		self._action_builder.decks = self._pull_functions('action',
+															truth=False)
 
 	_trigger_pull_actions = trigger(pull_actions)
 
