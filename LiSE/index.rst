@@ -438,3 +438,11 @@ query
 .. automodule:: LiSE.query
 
 	.. autoclass:: QueryResult
+
+xcollections
+------------
+.. automodule:: LiSE.xcollections
+
+	.. autoclass:: StringStore
+
+	.. autoclass:: FunctionStore

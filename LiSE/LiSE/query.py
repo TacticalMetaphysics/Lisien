@@ -24,7 +24,7 @@ value. To find out, construct a historical query and pass it to
 	print(list(engine.turns_when(hist_loc == 'there')))
 
 
-You'll get a list of turns when ``that`` was ``there``.
+You'll get the turns when ``that`` was ``there``.
 
 Other comparison operators like ``>`` and ``<`` work as well.
 

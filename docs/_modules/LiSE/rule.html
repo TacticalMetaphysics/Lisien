@@ -81,20 +81,28 @@
 
 
 <span class="sd">When run, this code will:</span>
-<span class="sd">* copy the `do_something` function to `action.py`, where LiSE knows</span>
-<span class="sd">to run it when a rule triggers it</span>
-<span class="sd">* create a new rule named `&#39;do_something&#39;`</span>
-<span class="sd">* set the function `do_something` as the first (and, so far, only) entry</span>
-<span class="sd">in the actions list of the rule by that name</span>
-<span class="sd">* copy the `whenever` function to `trigger.py`, where LiSE knows to</span>
-<span class="sd">call it when a rule has it as a trigger</span>
-<span class="sd">* set the function `whenever` as the first entry in the triggers list</span>
-<span class="sd">of the rule `&#39;do_something&#39;`</span>
-<span class="sd">* append the function `forever` to the same triggers list</span>
-<span class="sd">* copy `do_something_else` to `action.py`</span>
-<span class="sd">* append `do_something_else` to the actions list of the rule</span>
 
-<span class="sd">The `trigger`, `prereq`, and `action` attributes of Rule objects</span>
+<span class="sd">	* copy the ``do_something`` function to ``action.py``, where LiSE knows\</span>
+<span class="sd">			to run it when a rule triggers it</span>
+
+<span class="sd">	* create a new rule named ``&#39;do_something&#39;``</span>
+
+<span class="sd">	* set the function ``do_something`` as the first (and, so far, only) entry\</span>
+<span class="sd">			in the actions list of the rule by that name</span>
+
+<span class="sd">	* copy the ``whenever`` function to ``trigger.py``, where LiSE knows to\</span>
+<span class="sd">			call it when a rule has it as a trigger</span>
+
+<span class="sd">	* set the function ``whenever`` as the first entry in the triggers list\</span>
+<span class="sd">			of the rule ``&#39;do_something&#39;``</span>
+
+<span class="sd">	* append the function ``forever`` to the same triggers list</span>
+
+<span class="sd">	* copy ``do_something_else`` to ``action.py``</span>
+
+<span class="sd">	* append ``do_something_else`` to the actions list of the rule</span>
+
+<span class="sd">The ``trigger``, ``prereq``, and ``action`` attributes of Rule objects</span>
 <span class="sd">may also be used like lists. You can put functions in them yourself,</span>
 <span class="sd">provided they are already present in the correct module. If it&#39;s</span>
 <span class="sd">inconvenient to get the actual function object, use a string of</span>

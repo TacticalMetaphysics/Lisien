@@ -163,24 +163,36 @@ class Engine(AbstractEngine, gORM):
 	"""LiSE, the Life Simulator Engine.
 
 	:param prefix: directory containing the simulation and its code;
-		defaults to the working directory
-	:param string: module storing strings to be used in the game
-	:param function: module containing utility functions
+		defaults to the working directory.
+	:param string: module storing strings to be used in the game; if absent,
+		we'll use a :class:`LiSE.xcollections.StringStore` to keep them in a
+		JSON file in the ``prefix``.
+	:param function: module containing utility functions; if absent, we'll
+		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py
+		file in the ``prefix``
 	:param method: module containing functions taking this engine as
-		first arg
+		first arg; if absent, we'll
+		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py
+		file in the ``prefix``.
 	:param trigger: module containing trigger functions, taking a LiSE
-		entity and returning a boolean for whether to run a rule
+		entity and returning a boolean for whether to run a rule; if absent, we'll
+		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py
+		file in the ``prefix``.
 	:param prereq: module containing prereq functions, taking a LiSE entity and
-		returning a boolean for whether to permit a rule to run
+		returning a boolean for whether to permit a rule to run; if absent, we'll
+		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py
+		file in the ``prefix``.
 	:param action: module containing action functions, taking a LiSE entity and
-		mutating it (and possibly the rest of the world)
+		mutating it (and possibly the rest of the world); if absent, we'll
+		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py
+		file in the ``prefix``.
 	:param connect_string: a rfc1738 URI for a database to connect to. Leave
-		`None` to use the SQLite database in the `prefix`
+		``None`` to use the SQLite database in the ``prefix``.
 	:param connect_args: dictionary of keyword arguments for the
 		database connection
 	:param schema: a Schema class that determines which changes to allow to
-		the world; used when a player should not be able to change just anything.
-		Defaults to :class:`NullSchema`
+		the world; used when a player should not be able to change just
+		anything. Defaults to :class:`NullSchema`.
 	:param flush_interval: LiSE will put pending changes into the database
 		transaction every ``flush_interval`` turns. If ``None``, only flush
 		on commit. Default ``1``.
@@ -189,13 +201,13 @@ class Engine(AbstractEngine, gORM):
 		to call ``snap_keyframe`` yourself.
 	:param commit_interval: LiSE will commit changes to disk every
 		``commit_interval`` turns. If ``None`` (the default), only commit
-		on close or manual call to ``commit``
-	:param random_seed: a number to initialize the randomizer
+		on close or manual call to ``commit``.
+	:param random_seed: a number to initialize the randomizer.
 	:param logfun: an optional function taking arguments
-		``level, message``, which should log `message` somehow
+		``level, message``, which should log `message` somehow.
 	:param clear: whether to delete *any and all* existing data
-		and code in ``prefix`` and the databse. Use with caution!
-	:param keep_rules_journal: Boolean; if true (default), keep
+		and code in ``prefix`` and the database. Use with caution!
+	:param keep_rules_journal: Boolean; if ``True`` (the default), keep
 		information on the behavior of the rules engine in the database.
 		Makes the database rather large, but useful for debugging.
 	:param keyframe_on_close: Whether to snap a keyframe when closing the

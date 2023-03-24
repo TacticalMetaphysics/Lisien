@@ -173,24 +173,36 @@ flow of time.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>prefix</strong> – directory containing the simulation and its code;
-defaults to the working directory</p></li>
-<li><p><strong>string</strong> – module storing strings to be used in the game</p></li>
-<li><p><strong>function</strong> – module containing utility functions</p></li>
+defaults to the working directory.</p></li>
+<li><p><strong>string</strong> – module storing strings to be used in the game; if absent,
+we’ll use a <a class="reference internal" href="#LiSE.xcollections.StringStore" title="LiSE.xcollections.StringStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.xcollections.StringStore</span></code></a> to keep them in a
+JSON file in the <code class="docutils literal notranslate"><span class="pre">prefix</span></code>.</p></li>
+<li><p><strong>function</strong> – module containing utility functions; if absent, we’ll
+use a <a class="reference internal" href="#LiSE.xcollections.FunctionStore" title="LiSE.xcollections.FunctionStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.xcollections.FunctionStore</span></code></a> to keep them in a .py
+file in the <code class="docutils literal notranslate"><span class="pre">prefix</span></code></p></li>
 <li><p><strong>method</strong> – module containing functions taking this engine as
-first arg</p></li>
+first arg; if absent, we’ll
+use a <a class="reference internal" href="#LiSE.xcollections.FunctionStore" title="LiSE.xcollections.FunctionStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.xcollections.FunctionStore</span></code></a> to keep them in a .py
+file in the <code class="docutils literal notranslate"><span class="pre">prefix</span></code>.</p></li>
 <li><p><strong>trigger</strong> – module containing trigger functions, taking a LiSE
-entity and returning a boolean for whether to run a rule</p></li>
+entity and returning a boolean for whether to run a rule; if absent, we’ll
+use a <a class="reference internal" href="#LiSE.xcollections.FunctionStore" title="LiSE.xcollections.FunctionStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.xcollections.FunctionStore</span></code></a> to keep them in a .py
+file in the <code class="docutils literal notranslate"><span class="pre">prefix</span></code>.</p></li>
 <li><p><strong>prereq</strong> – module containing prereq functions, taking a LiSE entity and
-returning a boolean for whether to permit a rule to run</p></li>
+returning a boolean for whether to permit a rule to run; if absent, we’ll
+use a <a class="reference internal" href="#LiSE.xcollections.FunctionStore" title="LiSE.xcollections.FunctionStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.xcollections.FunctionStore</span></code></a> to keep them in a .py
+file in the <code class="docutils literal notranslate"><span class="pre">prefix</span></code>.</p></li>
 <li><p><strong>action</strong> – module containing action functions, taking a LiSE entity and
-mutating it (and possibly the rest of the world)</p></li>
+mutating it (and possibly the rest of the world); if absent, we’ll
+use a <a class="reference internal" href="#LiSE.xcollections.FunctionStore" title="LiSE.xcollections.FunctionStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.xcollections.FunctionStore</span></code></a> to keep them in a .py
+file in the <code class="docutils literal notranslate"><span class="pre">prefix</span></code>.</p></li>
 <li><p><strong>connect_string</strong> – a rfc1738 URI for a database to connect to. Leave
-<cite>None</cite> to use the SQLite database in the <cite>prefix</cite></p></li>
+<code class="docutils literal notranslate"><span class="pre">None</span></code> to use the SQLite database in the <code class="docutils literal notranslate"><span class="pre">prefix</span></code>.</p></li>
 <li><p><strong>connect_args</strong> – dictionary of keyword arguments for the
 database connection</p></li>
 <li><p><strong>schema</strong> – a Schema class that determines which changes to allow to
-the world; used when a player should not be able to change just anything.
-Defaults to <code class="xref py py-class docutils literal notranslate"><span class="pre">NullSchema</span></code></p></li>
+the world; used when a player should not be able to change just
+anything. Defaults to <code class="xref py py-class docutils literal notranslate"><span class="pre">NullSchema</span></code>.</p></li>
 <li><p><strong>flush_interval</strong> – LiSE will put pending changes into the database
 transaction every <code class="docutils literal notranslate"><span class="pre">flush_interval</span></code> turns. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, only flush
 on commit. Default <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
@@ -199,13 +211,13 @@ snapping a keyframe, default <code class="docutils literal notranslate"><span cl
 to call <code class="docutils literal notranslate"><span class="pre">snap_keyframe</span></code> yourself.</p></li>
 <li><p><strong>commit_interval</strong> – LiSE will commit changes to disk every
 <code class="docutils literal notranslate"><span class="pre">commit_interval</span></code> turns. If <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default), only commit
-on close or manual call to <code class="docutils literal notranslate"><span class="pre">commit</span></code></p></li>
-<li><p><strong>random_seed</strong> – a number to initialize the randomizer</p></li>
+on close or manual call to <code class="docutils literal notranslate"><span class="pre">commit</span></code>.</p></li>
+<li><p><strong>random_seed</strong> – a number to initialize the randomizer.</p></li>
 <li><p><strong>logfun</strong> – an optional function taking arguments
-<code class="docutils literal notranslate"><span class="pre">level,</span> <span class="pre">message</span></code>, which should log <cite>message</cite> somehow</p></li>
+<code class="docutils literal notranslate"><span class="pre">level,</span> <span class="pre">message</span></code>, which should log <cite>message</cite> somehow.</p></li>
 <li><p><strong>clear</strong> – whether to delete <em>any and all</em> existing data
-and code in <code class="docutils literal notranslate"><span class="pre">prefix</span></code> and the databse. Use with caution!</p></li>
-<li><p><strong>keep_rules_journal</strong> – Boolean; if true (default), keep
+and code in <code class="docutils literal notranslate"><span class="pre">prefix</span></code> and the database. Use with caution!</p></li>
+<li><p><strong>keep_rules_journal</strong> – Boolean; if <code class="docutils literal notranslate"><span class="pre">True</span></code> (the default), keep
 information on the behavior of the rules engine in the database.
 Makes the database rather large, but useful for debugging.</p></li>
 <li><p><strong>keyframe_on_close</strong> – Whether to snap a keyframe when closing the
@@ -213,14 +225,15 @@ engine, default <code class="docutils literal notranslate"><span class="pre">Tru
 make future startups faster, but could cause database bloat if
 your game runs few turns per session.</p></li>
 <li><p><strong>cache_arranger</strong> – Whether to start a background
-process that indexes the caches to make time travel faster
+thread that indexes the caches to make time travel faster
 when it’s to points we anticipate. If you use this, you can
 specify some other point in time to index by putting the
 <code class="docutils literal notranslate"><span class="pre">(branch,</span> <span class="pre">turn,</span> <span class="pre">tick)</span></code> in my <code class="docutils literal notranslate"><span class="pre">cache_arrange_queue</span></code>.
 Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
 <li><p><strong>enforce_end_of_time</strong> – Whether to raise an exception when
 time travelling to a point after the time that’s been simulated.
-Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+Default <code class="docutils literal notranslate"><span class="pre">True</span></code>. You normally want this, but it could cause problems
+if you’re not using the rules engine.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1052,20 +1065,20 @@ decorator syntax:</p>
         <span class="o">...</span>
 </pre></div>
 </div>
-<p>When run, this code will:
-* copy the <cite>do_something</cite> function to <cite>action.py</cite>, where LiSE knows
-to run it when a rule triggers it
-* create a new rule named <cite>‘do_something’</cite>
-* set the function <cite>do_something</cite> as the first (and, so far, only) entry
-in the actions list of the rule by that name
-* copy the <cite>whenever</cite> function to <cite>trigger.py</cite>, where LiSE knows to
-call it when a rule has it as a trigger
-* set the function <cite>whenever</cite> as the first entry in the triggers list
-of the rule <cite>‘do_something’</cite>
-* append the function <cite>forever</cite> to the same triggers list
-* copy <cite>do_something_else</cite> to <cite>action.py</cite>
-* append <cite>do_something_else</cite> to the actions list of the rule</p>
-<p>The <cite>trigger</cite>, <cite>prereq</cite>, and <cite>action</cite> attributes of Rule objects
+<p>When run, this code will:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>copy the <code class="docutils literal notranslate"><span class="pre">do_something</span></code> function to <code class="docutils literal notranslate"><span class="pre">action.py</span></code>, where LiSE knows                 to run it when a rule triggers it</p></li>
+<li><p>create a new rule named <code class="docutils literal notranslate"><span class="pre">'do_something'</span></code></p></li>
+<li><p>set the function <code class="docutils literal notranslate"><span class="pre">do_something</span></code> as the first (and, so far, only) entry                      in the actions list of the rule by that name</p></li>
+<li><p>copy the <code class="docutils literal notranslate"><span class="pre">whenever</span></code> function to <code class="docutils literal notranslate"><span class="pre">trigger.py</span></code>, where LiSE knows to                 call it when a rule has it as a trigger</p></li>
+<li><p>set the function <code class="docutils literal notranslate"><span class="pre">whenever</span></code> as the first entry in the triggers list                 of the rule <code class="docutils literal notranslate"><span class="pre">'do_something'</span></code></p></li>
+<li><p>append the function <code class="docutils literal notranslate"><span class="pre">forever</span></code> to the same triggers list</p></li>
+<li><p>copy <code class="docutils literal notranslate"><span class="pre">do_something_else</span></code> to <code class="docutils literal notranslate"><span class="pre">action.py</span></code></p></li>
+<li><p>append <code class="docutils literal notranslate"><span class="pre">do_something_else</span></code> to the actions list of the rule</p></li>
+</ul>
+</div></blockquote>
+<p>The <code class="docutils literal notranslate"><span class="pre">trigger</span></code>, <code class="docutils literal notranslate"><span class="pre">prereq</span></code>, and <code class="docutils literal notranslate"><span class="pre">action</span></code> attributes of Rule objects
 may also be used like lists. You can put functions in them yourself,
 provided they are already present in the correct module. If it’s
 inconvenient to get the actual function object, use a string of
@@ -1132,7 +1145,7 @@ value. To find out, construct a historical query and pass it to
 <span class="nb">print</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">turns_when</span><span class="p">(</span><span class="n">hist_loc</span> <span class="o">==</span> <span class="s1">&#39;there&#39;</span><span class="p">)))</span>
 </pre></div>
 </div>
-<p>You’ll get a list of turns when <code class="docutils literal notranslate"><span class="pre">that</span></code> was <code class="docutils literal notranslate"><span class="pre">there</span></code>.</p>
+<p>You’ll get the turns when <code class="docutils literal notranslate"><span class="pre">that</span></code> was <code class="docutils literal notranslate"><span class="pre">there</span></code>.</p>
 <p>Other comparison operators like <code class="docutils literal notranslate"><span class="pre">&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;</span></code> work as well.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="LiSE.query.QueryResult">
@@ -1143,6 +1156,35 @@ the predicate for that turn number, and testing for membership of nearby
 turns is fast. Accessing the start or the end of the QueryResult only
 evaluates the initial or final item. Other forms of access cause the whole
 query to be evaluated in parallel.</p>
+</dd></dl>
+
+</section>
+<section id="module-LiSE.xcollections">
+<span id="xcollections"></span><h2>xcollections<a class="headerlink" href="#module-LiSE.xcollections" title="Permalink to this heading">¶</a></h2>
+<p>Common classes for collections in LiSE</p>
+<p>Notably includes wrappers for mutable objects, allowing them to be stored in
+the database. These simply store the new value.</p>
+<p>Most of these are subclasses of <code class="xref py py-class docutils literal notranslate"><span class="pre">blinker.Signal</span></code>, so you can listen
+for changes using the <code class="docutils literal notranslate"><span class="pre">connect(..)</span></code> method.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="LiSE.xcollections.StringStore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.xcollections.</span></span><span class="sig-name descname"><span class="pre">StringStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lang</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'eng'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/xcollections.html#StringStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.xcollections.StringStore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store strings in database, and format them with one another upon retrieval.</p>
+<p>In any one string, putting the key of another string in curly
+braces will cause the other string to be substituted in.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="LiSE.xcollections.FunctionStore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.xcollections.</span></span><span class="sig-name descname"><span class="pre">FunctionStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/xcollections.html#FunctionStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.xcollections.FunctionStore" title="Permalink to this definition">¶</a></dt>
+<dd><p>A module-like object that lets you alter its code and save your changes.</p>
+<p>Instantiate it with a path to a file that you want to keep the code in.
+Assign functions to its attributes, then call its <code class="docutils literal notranslate"><span class="pre">save()</span></code> method,
+and they’ll be unparsed and written to the file.</p>
+<p>This is a <code class="docutils literal notranslate"><span class="pre">Signal</span></code>, so you can pass a function to its <code class="docutils literal notranslate"><span class="pre">connect</span></code> method,
+and it will be called when a function is added, changed, or deleted.
+The keyword arguments will be <code class="docutils literal notranslate"><span class="pre">attr</span></code>, the name of the function, and <code class="docutils literal notranslate"><span class="pre">val</span></code>,
+the function itself.</p>
 </dd></dl>
 
 </section>
@@ -1197,6 +1239,11 @@ query to be evaluated in parallel.</p>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#module-LiSE.query">query</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#LiSE.query.QueryResult"><code class="docutils literal notranslate"><span class="pre">QueryResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.xcollections">xcollections</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.xcollections.StringStore"><code class="docutils literal notranslate"><span class="pre">StringStore</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.xcollections.FunctionStore"><code class="docutils literal notranslate"><span class="pre">FunctionStore</span></code></a></li>
 </ul>
 </li>
 </ul>
