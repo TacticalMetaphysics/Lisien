@@ -4,7 +4,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>Welcome to LiSE’s documentation! &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
@@ -51,6 +51,10 @@
 <li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine"><code class="docutils literal notranslate"><span class="pre">Engine</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.character">character</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character"><code class="docutils literal notranslate"><span class="pre">Character</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.node">node</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node"><code class="docutils literal notranslate"><span class="pre">Node</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Place"><code class="docutils literal notranslate"><span class="pre">Place</span></code></a></li>
@@ -59,22 +63,10 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.portal">portal</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.portal.Portal"><code class="docutils literal notranslate"><span class="pre">Portal</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.portal.RuleMapping"><code class="docutils literal notranslate"><span class="pre">RuleMapping</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.rule">rule</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.ActionList"><code class="docutils literal notranslate"><span class="pre">ActionList</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.AllRuleBooks"><code class="docutils literal notranslate"><span class="pre">AllRuleBooks</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.AllRules"><code class="docutils literal notranslate"><span class="pre">AllRules</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.PrereqList"><code class="docutils literal notranslate"><span class="pre">PrereqList</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.Rule"><code class="docutils literal notranslate"><span class="pre">Rule</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.RuleBook"><code class="docutils literal notranslate"><span class="pre">RuleBook</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.RuleFollower"><code class="docutils literal notranslate"><span class="pre">RuleFollower</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.RuleFuncList"><code class="docutils literal notranslate"><span class="pre">RuleFuncList</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.RuleFuncListDescriptor"><code class="docutils literal notranslate"><span class="pre">RuleFuncListDescriptor</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.RuleMapping"><code class="docutils literal notranslate"><span class="pre">RuleMapping</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.TriggerList"><code class="docutils literal notranslate"><span class="pre">TriggerList</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.roundtrip_dedent"><code class="docutils literal notranslate"><span class="pre">roundtrip_dedent()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.query">query</a><ul>
@@ -86,15 +78,6 @@
 <li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.query.slow_iter_turns_eval_cmp"><code class="docutils literal notranslate"><span class="pre">slow_iter_turns_eval_cmp()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.query.windows_intersection"><code class="docutils literal notranslate"><span class="pre">windows_intersection()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.query.windows_union"><code class="docutils literal notranslate"><span class="pre">windows_union()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#allegedb">allegedb</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#usage">usage</a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#module-LiSE.allegedb">ORM</a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#module-LiSE.allegedb.cache">cache</a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#module-LiSE.allegedb.graph">graph</a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#id1">query</a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#module-LiSE.allegedb.wrap">wrap</a></li>
 </ul>
 </li>
 </ul>
@@ -297,7 +280,7 @@
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |
       <a href="_sources/index.rst.txt"

@@ -85,11 +85,11 @@
 	<span class="k">return</span> <span class="n">lockedy</span>
 
 
-<div class="viewcode-block" id="GraphNameError"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.GraphNameError">[docs]</a><span class="k">class</span> <span class="nc">GraphNameError</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&quot;&quot;&quot;For errors involving graphs&#39; names&quot;&quot;&quot;</span></div>
+<span class="k">class</span> <span class="nc">GraphNameError</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;For errors involving graphs&#39; names&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="OutOfTimelineError"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.OutOfTimelineError">[docs]</a><span class="k">class</span> <span class="nc">OutOfTimelineError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">OutOfTimelineError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;You tried to access a point in time that didn&#39;t happen&quot;&quot;&quot;</span>
 
 	<span class="nd">@property</span>
@@ -114,10 +114,10 @@
 
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">tick_to</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span></div>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="PlanningContext"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.PlanningContext">[docs]</a><span class="k">class</span> <span class="nc">PlanningContext</span><span class="p">(</span><span class="n">ContextDecorator</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">PlanningContext</span><span class="p">(</span><span class="n">ContextDecorator</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A context manager for &#39;hypothetical&#39; edits.</span>
 
 <span class="sd">	Start a block of code like::</span>
@@ -169,10 +169,10 @@
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">orm</span><span class="o">.</span><span class="n">_set_btt</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">)</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">orm</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="kc">True</span></div>
+			<span class="bp">self</span><span class="o">.</span><span class="n">orm</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="kc">True</span>
 
 
-<div class="viewcode-block" id="TimeSignal"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.TimeSignal">[docs]</a><span class="k">class</span> <span class="nc">TimeSignal</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">TimeSignal</span><span class="p">:</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Acts like a tuple of ``(branch, turn)`` for the most part.</span>
 
 <span class="sd">	This wraps a ``Signal``. To set a function to be called whenever the</span>
@@ -225,10 +225,10 @@
 		<span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">other</span>
 
 	<span class="k">def</span> <span class="fm">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-		<span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">other</span></div>
+		<span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">other</span>
 
 
-<div class="viewcode-block" id="TimeSignalDescriptor"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.TimeSignalDescriptor">[docs]</a><span class="k">class</span> <span class="nc">TimeSignalDescriptor</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">TimeSignalDescriptor</span><span class="p">:</span>
 	<span class="vm">__doc__</span> <span class="o">=</span> <span class="n">TimeSignal</span><span class="o">.</span><span class="vm">__doc__</span>
 	<span class="n">signals</span> <span class="o">=</span> <span class="p">{}</span>
 
@@ -304,10 +304,10 @@
 					<span class="n">tick_then</span><span class="o">=</span><span class="n">tick_then</span><span class="p">,</span>
 					<span class="n">branch_now</span><span class="o">=</span><span class="n">branch_now</span><span class="p">,</span>
 					<span class="n">turn_now</span><span class="o">=</span><span class="n">turn_now</span><span class="p">,</span>
-					<span class="n">tick_now</span><span class="o">=</span><span class="n">tick_now</span><span class="p">)</span></div>
+					<span class="n">tick_now</span><span class="o">=</span><span class="n">tick_now</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="ORM"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM">[docs]</a><span class="k">class</span> <span class="nc">ORM</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">ORM</span><span class="p">:</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Instantiate this with the same string argument you&#39;d use for a</span>
 <span class="sd">	SQLAlchemy ``create_engine`` call. This will be your interface to</span>
 <span class="sd">	allegedb.</span>
@@ -418,12 +418,12 @@
 		<span class="n">edge_objs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span>
 		<span class="k">return</span> <span class="n">ret</span>
 
-<div class="viewcode-block" id="ORM.plan"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.plan">[docs]</a>	<span class="k">def</span> <span class="nf">plan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reset</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PlanningContext</span><span class="p">:</span>
-		<span class="k">return</span> <span class="n">PlanningContext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reset</span><span class="p">)</span></div>
+	<span class="k">def</span> <span class="nf">plan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reset</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PlanningContext</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">PlanningContext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reset</span><span class="p">)</span>
 
 	<span class="n">plan</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">PlanningContext</span><span class="o">.</span><span class="vm">__doc__</span>
 
-<div class="viewcode-block" id="ORM.advancing"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.advancing">[docs]</a>	<span class="nd">@contextmanager</span>
+	<span class="nd">@contextmanager</span>
 	<span class="k">def</span> <span class="nf">advancing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;A context manager for when time is moving forward one turn at a time.</span>
 
@@ -435,9 +435,9 @@
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Already advancing&quot;</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="kc">True</span>
 		<span class="k">yield</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="kc">False</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="kc">False</span>
 
-<div class="viewcode-block" id="ORM.batch"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.batch">[docs]</a>	<span class="nd">@contextmanager</span>
+	<span class="nd">@contextmanager</span>
 	<span class="k">def</span> <span class="nf">batch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;A context manager for when you&#39;re creating lots of state.</span>
 
@@ -456,7 +456,7 @@
 		<span class="k">if</span> <span class="n">gc_was_active</span><span class="p">:</span>
 			<span class="n">gc</span><span class="o">.</span><span class="n">enable</span><span class="p">()</span>
 			<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_no_kc</span> <span class="o">=</span> <span class="kc">False</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_no_kc</span> <span class="o">=</span> <span class="kc">False</span>
 
 	<span class="k">def</span> <span class="nf">_arrange_caches_at_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 								<span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -524,7 +524,7 @@
 											<span class="n">tick</span><span class="o">=</span><span class="n">tick</span><span class="p">)</span>
 			<span class="n">q</span><span class="o">.</span><span class="n">task_done</span><span class="p">()</span>
 
-<div class="viewcode-block" id="ORM.get_delta"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.get_delta">[docs]</a>	<span class="k">def</span> <span class="nf">get_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn_from</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick_from</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+	<span class="k">def</span> <span class="nf">get_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn_from</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick_from</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 					<span class="n">turn_to</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick_to</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DeltaType</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Get a dictionary describing changes to all graphs.</span>
 
@@ -643,13 +643,13 @@
 						<span class="k">lambda</span> <span class="n">g</span><span class="p">:</span> <span class="n">graph_objs</span><span class="p">[</span><span class="n">g</span><span class="p">]</span><span class="o">.</span><span class="n">is_multigraph</span><span class="p">()),</span>
 				<span class="n">evbranches</span><span class="p">[</span><span class="n">branch</span><span class="p">])</span>
 
-		<span class="k">return</span> <span class="n">delta</span></div>
+		<span class="k">return</span> <span class="n">delta</span>
 
 	<span class="k">def</span> <span class="nf">_get_turn_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-	                    <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-	                    <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-	                    <span class="n">tick_from</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-	                    <span class="n">tick_to</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DeltaType</span><span class="p">:</span>
+						<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+						<span class="n">turn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+						<span class="n">tick_from</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+						<span class="n">tick_to</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DeltaType</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Get a dictionary describing changes made on a given turn.</span>
 
 <span class="sd">		If ``tick_to`` is not supplied, report all changes after ``tick_from``</span>
@@ -1243,7 +1243,8 @@
 							<span class="n">nvgn</span> <span class="o">=</span> <span class="n">nvg</span><span class="p">[</span><span class="n">node</span><span class="p">]</span>
 							<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 								<span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-									<span class="k">del</span> <span class="n">nvgn</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+									<span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">nvgn</span><span class="p">:</span>
+										<span class="k">del</span> <span class="n">nvgn</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 								<span class="k">else</span><span class="p">:</span>
 									<span class="n">nvgn</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
 						<span class="k">else</span><span class="p">:</span>
@@ -1674,7 +1675,7 @@
 		<span class="k">return</span> <span class="p">(</span><span class="n">latest_past_keyframe</span><span class="p">,</span> <span class="n">earliest_future_keyframe</span><span class="p">,</span> <span class="n">keyframed</span><span class="p">,</span>
 				<span class="n">noderows</span><span class="p">,</span> <span class="n">edgerows</span><span class="p">,</span> <span class="n">graphvalrows</span><span class="p">,</span> <span class="n">nodevalrows</span><span class="p">,</span> <span class="n">edgevalrows</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ORM.unload"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.unload">[docs]</a>	<span class="nd">@world_locked</span>
+	<span class="nd">@world_locked</span>
 	<span class="k">def</span> <span class="nf">unload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove everything from memory we can&quot;&quot;&quot;</span>
 		<span class="c1"># find the slices of time that need to stay loaded</span>
@@ -1753,7 +1754,7 @@
 		<span class="k">for</span> <span class="n">branch</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">loaded</span><span class="p">)</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">to_keep</span><span class="p">):</span>
 			<span class="k">for</span> <span class="n">cache</span> <span class="ow">in</span> <span class="n">caches</span><span class="p">:</span>
 				<span class="n">cache</span><span class="o">.</span><span class="n">remove_branch</span><span class="p">(</span><span class="n">branch</span><span class="p">)</span>
-			<span class="k">del</span> <span class="n">loaded</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span></div>
+			<span class="k">del</span> <span class="n">loaded</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
 
 	<span class="k">def</span> <span class="nf">_time_is_loaded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
 						<span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1779,7 +1780,7 @@
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Alias for ``close``&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
-<div class="viewcode-block" id="ORM.is_parent_of"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.is_parent_of">[docs]</a>	<span class="k">def</span> <span class="nf">is_parent_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">child</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">is_parent_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">child</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return whether ``child`` is a branch descended from ``parent`` at</span>
 <span class="sd">		any remove.</span>
 
@@ -1794,7 +1795,7 @@
 					<span class="n">child</span><span class="p">))</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_branches</span><span class="p">[</span><span class="n">child</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">parent</span><span class="p">:</span>
 			<span class="k">return</span> <span class="kc">True</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_parent_of</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_branches</span><span class="p">[</span><span class="n">child</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span></div>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_parent_of</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_branches</span><span class="p">[</span><span class="n">child</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
 
 	<span class="k">def</span> <span class="nf">_get_branch</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_obranch</span>
@@ -1889,7 +1890,7 @@
 						<span class="n">branch_end_plan</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
 							<span class="p">(</span><span class="n">branch_end_plan</span><span class="p">[</span><span class="n">branch</span><span class="p">],</span> <span class="n">turn</span><span class="p">))</span>
 
-<div class="viewcode-block" id="ORM.delete_plan"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.delete_plan">[docs]</a>	<span class="nd">@world_locked</span>
+	<span class="nd">@world_locked</span>
 	<span class="k">def</span> <span class="nf">delete_plan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plan</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Delete the portion of a plan that has yet to occur.</span>
 
@@ -1921,7 +1922,7 @@
 			<span class="n">plan_ticks</span><span class="p">[</span><span class="n">trn</span><span class="p">]</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">tck</span><span class="p">)</span>
 			<span class="k">if</span> <span class="ow">not</span> <span class="n">plan_ticks</span><span class="p">[</span><span class="n">trn</span><span class="p">]:</span>
 				<span class="k">del</span> <span class="n">plan_ticks</span><span class="p">[</span><span class="n">trn</span><span class="p">]</span>
-			<span class="k">del</span> <span class="n">time_plan</span><span class="p">[</span><span class="n">branch</span><span class="p">,</span> <span class="n">trn</span><span class="p">,</span> <span class="n">tck</span><span class="p">]</span></div>
+			<span class="k">del</span> <span class="n">time_plan</span><span class="p">[</span><span class="n">branch</span><span class="p">,</span> <span class="n">trn</span><span class="p">,</span> <span class="n">tck</span><span class="p">]</span>
 
 	<span class="c1"># easier to override things this way</span>
 	<span class="nd">@property</span>
@@ -2120,7 +2121,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_otick</span> <span class="o">=</span> <span class="n">tick</span>
 		<span class="k">return</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
 
-<div class="viewcode-block" id="ORM.flush"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.flush">[docs]</a>	<span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Write pending changes to disk.</span>
 
 <span class="sd">		You can set a ``flush_interval`` when you instantiate ``Engine``</span>
@@ -2142,9 +2143,9 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">_new_keyframes</span> <span class="o">=</span> <span class="p">[]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_plans_uncommitted</span> <span class="o">=</span> <span class="p">[]</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_plan_ticks_uncommitted</span> <span class="o">=</span> <span class="p">[]</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_plan_ticks_uncommitted</span> <span class="o">=</span> <span class="p">[]</span>
 
-<div class="viewcode-block" id="ORM.commit"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.commit">[docs]</a>	<span class="nd">@world_locked</span>
+	<span class="nd">@world_locked</span>
 	<span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Write the state of all graphs and commit the transaction.</span>
 
@@ -2160,16 +2161,16 @@
 			<span class="n">set_branch</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">turn_start</span><span class="p">,</span> <span class="n">tick_start</span><span class="p">,</span> <span class="n">turn_end</span><span class="p">,</span>
 						<span class="n">tick_end</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 
-<div class="viewcode-block" id="ORM.close"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.close">[docs]</a>	<span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Write changes to database and close the connection&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;cache_arrange_queue&#39;</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">cache_arrange_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s1">&#39;shutdown&#39;</span><span class="p">)</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_arrange_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_cache_arrange_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 	<span class="k">def</span> <span class="nf">_nudge_loaded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="n">loaded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaded</span>
@@ -2270,7 +2271,7 @@
 				<span class="k">else</span><span class="p">:</span>
 					<span class="n">kfd</span><span class="p">[</span><span class="n">branch</span><span class="p">][</span><span class="n">turn</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">tick</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ORM.new_graph"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.new_graph">[docs]</a>	<span class="k">def</span> <span class="nf">new_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">new_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a new instance of type Graph, initialized with the given</span>
 <span class="sd">		data if provided.</span>
 
@@ -2278,9 +2279,9 @@
 <span class="sd">		:arg data: dictionary or NetworkX graph object providing initial state</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Only DiGraph for now&quot;</span><span class="p">)</span></div>
+		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Only DiGraph for now&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ORM.new_digraph"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.new_digraph">[docs]</a>	<span class="k">def</span> <span class="nf">new_digraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DiGraph</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">new_digraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DiGraph</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a new instance of type DiGraph, initialized with the given</span>
 <span class="sd">		data if provided.</span>
 
@@ -2295,9 +2296,9 @@
 								<span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">_node</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">_succ</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">graph</span><span class="p">])</span>
 		<span class="k">else</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_init_graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;DiGraph&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
-		<span class="k">return</span> <span class="n">DiGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span></div>
+		<span class="k">return</span> <span class="n">DiGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ORM.new_multigraph"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.new_multigraph">[docs]</a>	<span class="k">def</span> <span class="nf">new_multigraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">new_multigraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a new instance of type MultiGraph</span>
 
 <span class="sd">		Initialized with the given data if provided.</span>
@@ -2306,9 +2307,9 @@
 <span class="sd">		:arg data: dictionary or NetworkX graph object providing initial state</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Only DiGraph for now&quot;</span><span class="p">)</span></div>
+		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Only DiGraph for now&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ORM.new_multidigraph"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.new_multidigraph">[docs]</a>	<span class="k">def</span> <span class="nf">new_multidigraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">new_multidigraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a new instance of type MultiDiGraph</span>
 
 <span class="sd">		Initialized with the givendata if provided.</span>
@@ -2317,9 +2318,9 @@
 <span class="sd">		:arg data: dictionary or NetworkX graph object providing initial state</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Only DiGraph for now&quot;</span><span class="p">)</span></div>
+		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Only DiGraph for now&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ORM.get_graph"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.get_graph">[docs]</a>	<span class="k">def</span> <span class="nf">get_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">get_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a graph previously created with ``new_graph``,</span>
 <span class="sd">		``new_digraph``, ``new_multigraph``, or</span>
 <span class="sd">		``new_multidigraph``</span>
@@ -2327,9 +2328,9 @@
 <span class="sd">		:arg name: name of an existing graph</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph_objs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph_objs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
-<div class="viewcode-block" id="ORM.del_graph"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.ORM.del_graph">[docs]</a>	<span class="nd">@world_locked</span>
+	<span class="nd">@world_locked</span>
 	<span class="k">def</span> <span class="nf">del_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove all traces of a graph&#39;s existence from the database</span>
 
@@ -2340,7 +2341,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">get_graph</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">del_graph</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph_objs</span><span class="p">:</span>
-			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph_objs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph_objs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
 	<span class="k">def</span> <span class="nf">_iter_parent_btt</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
@@ -2431,7 +2432,7 @@
 		<span class="n">nbtt</span><span class="p">,</span> <span class="n">exist_edge</span><span class="p">,</span> <span class="n">store</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exist_edge_stuff</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">nbtt</span><span class="p">()</span>
 		<span class="n">exist_edge</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">exist</span><span class="p">)</span>
-		<span class="n">store</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">exist</span><span class="p">)</span></div>
+		<span class="n">store</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">exist</span><span class="p">)</span>
 </pre></div>
 
           </div>

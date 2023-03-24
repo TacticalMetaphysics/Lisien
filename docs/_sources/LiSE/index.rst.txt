@@ -153,6 +153,8 @@ engine
 
 		.. autoproperty:: LiSE.Engine.branch
 
+		.. automethod:: is_parent_of
+
 		.. autoproperty:: LiSE.Engine.turn
 
 		.. py:property:: Engine.time
@@ -208,6 +210,13 @@ engine
 
 			A mapping of, and decorator for, generic functions.
 
+		.. py:property:: rule
+
+			A mapping of :class:`LiSE.rule.Rule` objects, whether applied to an entity or not.
+
+			Can also be used as a decorator on functions to make them into new rules, with the decorated function as
+			their initial action.
+
 		.. py:method:: Engine.next_turn
 			Make time move forward in the simulation.
 
@@ -222,7 +231,17 @@ engine
 				and item 1 is a delta describing changes to the simulation resulting from this call.
 				See the following method, ``get_delta``, for a description of the delta format.
 
+		.. automethod:: advancing
+
+		.. automethod:: batch
+
 		.. automethod:: get_delta
+
+		.. automethod:: snap_keyframe
+
+		.. automethod:: plan
+
+		.. automethod:: delete_plan
 
 		.. automethod:: new_character
 
@@ -239,6 +258,81 @@ engine
 		.. automethod:: commit
 
 		.. automethod:: close
+
+		.. automethod:: unload
+
+character
+---------
+.. automodule:: LiSE.character
+
+	.. autoclass:: Character
+
+		.. py:property:: stat
+
+			A mapping of game-time-sensitive data.
+
+		.. py:property:: place
+
+			A mapping of :class:`LiSE.node.Place` objects in this :class:`Character`.
+
+			Has a ``rule`` method for applying new rules to every :class:`Place` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+		.. py:property:: thing
+
+			A mapping of :class:`LiSE.node.Thing` objects in this :class:`Character`.
+
+			Has a ``rule`` method for applying new rules to every :class:`Thing` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+		.. py:property:: node
+
+			A mapping of :class:`LiSE.node.Thing` and :class:`LiSE.node.Place` objects in this :class:`Character`.
+
+			Has a ``rule`` method for applying new rules to every :class:`Node` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+		.. py:property:: portal
+
+			A two-layer mapping of :class:`LiSE.portal.Portal` objects in this :class:`Character`, by origin and destination
+
+			Has a ``rule`` method for applying new rules to every :class:`Portal` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+			Aliases:  ``adj``, ``edge``, ``succ``
+
+		.. py:property:: preportal
+
+			A two-layer mapping of :class:`LiSE.portal.Portal` objects in this :class:`Character`, by destination and origin
+
+			Has a ``rule`` method for applying new rules to every :class:`Portal` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+			Alias: ``pred``
+
+		.. automethod:: add_places_from
+
+		.. automethod:: add_portal
+
+		.. automethod:: add_portals_from
+
+		.. automethod:: add_thing
+
+		.. automethod:: historical
+
+		.. automethod:: new_portal
+
+		.. automethod:: place2thing
+
+		.. automethod:: portals
+
+		.. automethod:: remove_portal
+
+		.. automethod:: remove_unit
+
+		.. automethod:: thing2place
+
+		.. automethod:: units
 
 node
 ----
@@ -288,95 +382,39 @@ node
 portal
 ------
 .. automodule:: LiSE.portal
-	:members:
+
+	.. autoclass:: Portal
+
+		.. py:attribute:: origin
+
+			The :class:`LiSE.node.Place` or :class:`LiSE.node.Thing` that this leads out from
+
+		.. py:attribute:: destination
+
+			The :class:`LiSE.node.Place` or :class:`LiSE.node.Thing` that this leads into
+
+		.. py:property:: character
+
+			The :class:`LiSE.character.Character` that this is in
+
+		.. py:property:: engine
+
+			The :class:`LiSE.engine.Engine` that this is in
+
+		.. autoproperty:: reciprocal
+
+		.. automethod:: historical
+
+		.. automethod:: delete
 
 rule
 ----
 .. automodule:: LiSE.rule
-	:members:
+
+	.. autoclass:: Rule
+		:members:
 
 query
 -----
 .. automodule:: LiSE.query
 	:members:
-
-
-allegedb
---------
-State container and object-relational mapper for versioned graphs.
-
-allegedb serves its own special variant on the networkx
-DiGraph class (with more to come). Every change to them is
-stored in an SQL database.
-
-This means you can keep multiple versions of one set of graphs and
-switch between them without the need to save, load, or run git-checkout.
-Just point the ORM at the correct branch and turn, and all of the
-graphs in the program will change. All the different branches and
-revisions remain in the database to be brought back when needed.
-
-
-usage
-_____
-
-::
-
-	>>> from LiSE.allegedb import ORM
-	>>> orm = ORM('sqlite:///test.db')
-	>>> g = orm.new_digraph('test')
-	>>> g.add_nodes_from(['spam', 'eggs', 'ham'])
-	>>> g.add_edge('spam', 'eggs')
-	>>> g.adj
-	<LiSE.allegedb.graph.DiGraphSuccessorsMapping object containing {'ham': {}, 'eggs': {}, 'spam': {'eggs': {}}}>
-	>>> del g
-	>>> orm.close()
-	>>> del orm
-	>>> orm = ORM('sqlite:///test.db')
-	>>> g = orm.graph['test']
-	>>> g.adj
-	<LiSE.allegedb.graph.DiGraphSuccessorsMapping object containing {'ham': {}, 'eggs': {}, 'spam': {'eggs': {}}}>
-	>>> import networkx as nx
-	>>> red = nx.random_lobster(10, 0.9, 0.9)
-	>>> blue = orm.new_digraph('blue', red)  # initialize with data from the given graph
-	>>> red.adj == blue.adj
-	True
-	>>> orm.turn = 1
-	>>> blue.add_edge(17, 15)
-	>>> red.adj == blue.adj
-	False
-	>>> orm.turn = 0  # undoing what I did when turn=1
-	>>> red.adj == blue.adj
-	True
-	>>> orm.branch = 'test'	# navigating to a branch for the first time creates that branch
-	>>> orm.turn = 1
-	>>> red.adj == blue.adj
-	True
-	>>> orm.branch = 'trunk'
-	>>> red.adj == blue.adj
-	False
-
-ORM
-___
-.. automodule:: LiSE.allegedb
-	:members:
-
-cache
-_____
-.. automodule:: LiSE.allegedb.cache
-	:members:
-
-graph
-_____
-.. automodule:: LiSE.allegedb.graph
-	:members:
-
-query
-_____
-.. automodule:: LiSE.allegedb.query
-	:members:
-
-wrap
-____
-.. automodule:: LiSE.allegedb.wrap
-	:members:
-

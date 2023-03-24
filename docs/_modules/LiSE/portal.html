@@ -57,17 +57,17 @@
 <span class="kn">from</span> <span class="nn">.rule</span> <span class="kn">import</span> <span class="n">RuleMapping</span> <span class="k">as</span> <span class="n">BaseRuleMapping</span>
 
 
-<div class="viewcode-block" id="RuleMapping"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.portal.RuleMapping">[docs]</a><span class="k">class</span> <span class="nc">RuleMapping</span><span class="p">(</span><span class="n">BaseRuleMapping</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">RuleMapping</span><span class="p">(</span><span class="n">BaseRuleMapping</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Mapping to get rules followed by a portal.&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">portal</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Store portal, engine, and rulebook.&quot;&quot;&quot;</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">portal</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">portal</span><span class="o">.</span><span class="n">rulebook</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">portal</span> <span class="o">=</span> <span class="n">portal</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">portal</span> <span class="o">=</span> <span class="n">portal</span>
 
 
 <div class="viewcode-block" id="Portal"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.portal.Portal">[docs]</a><span class="k">class</span> <span class="nc">Portal</span><span class="p">(</span><span class="n">Edge</span><span class="p">,</span> <span class="n">RuleFollower</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&quot;&quot;&quot;Connection between two Places that Things may travel along.</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Connection between two nodes that :class:`LiSE.node.Thing` travel along</span>
 
 <span class="sd">	LiSE entities are truthy so long as they exist, falsy if they&#39;ve</span>
 <span class="sd">	been deleted.</span>
@@ -183,7 +183,7 @@
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="n">StatusAlias</span><span class="p">(</span><span class="n">entity</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Portal.update"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.portal.Portal.update">[docs]</a>	<span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Mapping</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">f</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Mapping</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">f</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Works like regular update, but less</span>
 
 <span class="sd">		Only actually updates when the new value and the old value differ.</span>
@@ -205,7 +205,7 @@
 						<span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
 		<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 			<span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span> <span class="ow">or</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">!=</span> <span class="n">v</span><span class="p">:</span>
-				<span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span></div>
+				<span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
 
 <div class="viewcode-block" id="Portal.delete"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.portal.Portal.delete">[docs]</a>	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove myself from my :class:`Character`.</span>
@@ -228,12 +228,13 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">send</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;dest&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Portal.unwrap"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.portal.Portal.unwrap">[docs]</a>	<span class="k">def</span> <span class="nf">unwrap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">unwrap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a dictionary representation of this entity&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="p">{</span>
 			<span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">unwrap</span><span class="p">()</span>
 			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;unwrap&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;no_unwrap&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span>
 			<span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-		<span class="p">}</span></div></div>
+		<span class="p">}</span></div>
 </pre></div>
 
           </div>
@@ -295,7 +296,7 @@
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
     </div>
 

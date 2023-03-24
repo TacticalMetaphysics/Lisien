@@ -61,22 +61,24 @@
 
 <span class="sd">To add a new rule to a LiSE entity, the easiest thing is to use the</span>
 <span class="sd">decorator syntax::</span>
-<span class="sd">&gt;@entity.rule</span>
-<span class="sd">&gt;def do_something(entity):</span>
-<span class="sd">&gt;	...</span>
-<span class="sd">&gt;</span>
-<span class="sd">&gt;@do_something.trigger</span>
-<span class="sd">&gt;def whenever(entity):</span>
-<span class="sd">&gt;	...</span>
-<span class="sd">&gt;</span>
-<span class="sd">&gt;@do_something.trigger</span>
-<span class="sd">&gt;def forever(entity):</span>
-<span class="sd">&gt;	....</span>
-<span class="sd">&gt;</span>
-<span class="sd">&gt;@do_something.action</span>
-<span class="sd">&gt;def do_something_else(entity):</span>
-<span class="sd">&gt;	...</span>
-<span class="sd">&gt;</span>
+
+<span class="sd">	@entity.rule</span>
+<span class="sd">	def do_something(entity):</span>
+<span class="sd">		...</span>
+
+<span class="sd">	@do_something.trigger</span>
+<span class="sd">	def whenever(entity):</span>
+<span class="sd">		...</span>
+
+<span class="sd">	@do_something.trigger</span>
+<span class="sd">	def forever(entity):</span>
+<span class="sd">		...</span>
+
+<span class="sd">	@do_something.action</span>
+<span class="sd">	def do_something_else(entity):</span>
+<span class="sd">		...</span>
+
+
 
 <span class="sd">When run, this code will:</span>
 <span class="sd">* copy the `do_something` function to `action.py`, where LiSE knows</span>
@@ -115,12 +117,12 @@
 <span class="kn">from</span> <span class="nn">.cache</span> <span class="kn">import</span> <span class="n">Cache</span>
 
 
-<div class="viewcode-block" id="roundtrip_dedent"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.roundtrip_dedent">[docs]</a><span class="k">def</span> <span class="nf">roundtrip_dedent</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">roundtrip_dedent</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Reformat some lines of code into what unparse makes.&quot;&quot;&quot;</span>
-	<span class="k">return</span> <span class="n">unparse</span><span class="p">(</span><span class="n">parse</span><span class="p">(</span><span class="n">dedent_source</span><span class="p">(</span><span class="n">source</span><span class="p">)))</span></div>
+	<span class="k">return</span> <span class="n">unparse</span><span class="p">(</span><span class="n">parse</span><span class="p">(</span><span class="n">dedent_source</span><span class="p">(</span><span class="n">source</span><span class="p">)))</span>
 
 
-<div class="viewcode-block" id="RuleFuncList"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleFuncList">[docs]</a><span class="k">class</span> <span class="nc">RuleFuncList</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">,</span> <span class="n">Signal</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">RuleFuncList</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">,</span> <span class="n">Signal</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Abstract class for lists of functions like trigger, prereq, action&quot;&quot;&quot;</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;rule&#39;</span><span class="p">]</span>
 	<span class="n">_funcstore</span><span class="p">:</span> <span class="n">FunctionStore</span>
@@ -189,27 +191,27 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-<div class="viewcode-block" id="RuleFuncList.insert"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleFuncList.insert">[docs]</a>	<span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
 		<span class="n">l</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get</span><span class="p">())</span>
 		<span class="n">l</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nominate</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-<div class="viewcode-block" id="RuleFuncList.append"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleFuncList.append">[docs]</a>	<span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="n">old</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get</span><span class="p">()</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 			<span class="n">old</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="n">old</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nominate</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="p">))</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-<div class="viewcode-block" id="RuleFuncList.index"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleFuncList.index">[docs]</a>	<span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
 			<span class="n">x</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span></div></div>
+		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="TriggerList"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.TriggerList">[docs]</a><span class="k">class</span> <span class="nc">TriggerList</span><span class="p">(</span><span class="n">RuleFuncList</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">TriggerList</span><span class="p">(</span><span class="n">RuleFuncList</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A list of trigger functions for rules&quot;&quot;&quot;</span>
 
 	<span class="nd">@cached_property</span>
@@ -222,10 +224,10 @@
 
 	<span class="nd">@cached_property</span>
 	<span class="k">def</span> <span class="nf">_setter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rule_triggers</span></div>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rule_triggers</span>
 
 
-<div class="viewcode-block" id="PrereqList"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.PrereqList">[docs]</a><span class="k">class</span> <span class="nc">PrereqList</span><span class="p">(</span><span class="n">RuleFuncList</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">PrereqList</span><span class="p">(</span><span class="n">RuleFuncList</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A list of prereq functions for rules&quot;&quot;&quot;</span>
 
 	<span class="nd">@cached_property</span>
@@ -238,10 +240,10 @@
 
 	<span class="nd">@cached_property</span>
 	<span class="k">def</span> <span class="nf">_setter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rule_prereqs</span></div>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rule_prereqs</span>
 
 
-<div class="viewcode-block" id="ActionList"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.ActionList">[docs]</a><span class="k">class</span> <span class="nc">ActionList</span><span class="p">(</span><span class="n">RuleFuncList</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">ActionList</span><span class="p">(</span><span class="n">RuleFuncList</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A list of action functions for rules&quot;&quot;&quot;</span>
 
 	<span class="nd">@cached_property</span>
@@ -254,10 +256,10 @@
 
 	<span class="nd">@cached_property</span>
 	<span class="k">def</span> <span class="nf">_setter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rule_actions</span></div>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rule_actions</span>
 
 
-<div class="viewcode-block" id="RuleFuncListDescriptor"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleFuncListDescriptor">[docs]</a><span class="k">class</span> <span class="nc">RuleFuncListDescriptor</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">RuleFuncListDescriptor</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Descriptor that lets you get and set a whole RuleFuncList at once&quot;&quot;&quot;</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;cls&#39;</span><span class="p">]</span>
 
@@ -284,7 +286,7 @@
 		<span class="n">flist</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">flist</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__delete__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
-		<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Rules must have their function lists&quot;</span><span class="p">)</span></div>
+		<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Rules must have their function lists&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="Rule"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.Rule">[docs]</a><span class="k">class</span> <span class="nc">Rule</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -393,7 +395,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">triggers</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">truth</span><span class="p">]</span></div></div>
 
 
-<div class="viewcode-block" id="RuleBook"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleBook">[docs]</a><span class="k">class</span> <span class="nc">RuleBook</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">RuleBook</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A list of rules to be followed for some Character, or a part of it</span>
 <span class="sd">	anyway.</span>
 
@@ -436,6 +438,8 @@
 
 	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
 		<span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="s2">&quot;truth&quot;</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Illegal rule name&quot;</span><span class="p">)</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
@@ -451,8 +455,10 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
 
-<div class="viewcode-block" id="RuleBook.insert"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleBook.insert">[docs]</a>	<span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
 		<span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="s2">&quot;truth&quot;</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Illegal rule name&quot;</span><span class="p">)</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
@@ -464,16 +470,16 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_set_cache</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rulebook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">)</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
 
-<div class="viewcode-block" id="RuleBook.index"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleBook.index">[docs]</a>	<span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
 			<span class="k">try</span><span class="p">:</span>
 				<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())</span><span class="o">.</span><span class="n">index</span><span class="p">(</span>
 					<span class="n">v</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
 			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 				<span class="k">raise</span> <span class="ne">ValueError</span>
-		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
@@ -486,10 +492,10 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
 											<span class="n">cache</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="RuleMapping"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleMapping">[docs]</a><span class="k">class</span> <span class="nc">RuleMapping</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">RuleMapping</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Wraps a :class:`RuleBook` so you can get its rules by name.</span>
 
 <span class="sd">	You can access the rules in this either dictionary-style or as</span>
@@ -541,6 +547,8 @@
 		<span class="k">raise</span> <span class="ne">AttributeError</span>
 
 	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s2">&quot;truth&quot;</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Illegal rule name&quot;</span><span class="p">)</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="p">:</span>
 			<span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
 		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">function</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
@@ -577,10 +585,10 @@
 	<span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
 		<span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
 		<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="RuleFollower"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleFollower">[docs]</a><span class="k">class</span> <span class="nc">RuleFollower</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">RuleFollower</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Interface for that which has a rulebook associated, which you can</span>
 <span class="sd">	get a :class:`RuleMapping` into</span>
 
@@ -644,10 +652,10 @@
 <span class="sd">		me.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;_set_rulebook_name&quot;</span><span class="p">)</span></div>
+		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;_set_rulebook_name&quot;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="AllRuleBooks"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.AllRuleBooks">[docs]</a><span class="k">class</span> <span class="nc">AllRuleBooks</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">AllRuleBooks</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;engine&#39;</span><span class="p">,</span> <span class="s1">&#39;_cache&#39;</span><span class="p">]</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
@@ -679,10 +687,10 @@
 		<span class="n">rb</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_del_rulebook</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_del_rulebook</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="AllRules"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.AllRules">[docs]</a><span class="k">class</span> <span class="nc">AllRules</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">AllRules</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A mapping of every rule in the game.</span>
 
 <span class="sd">	You can use this as a decorator to make a rule and not assign it</span>
@@ -747,26 +755,37 @@
 		<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-		<span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+	<span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">always</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 
 			<span class="k">def</span> <span class="nf">r</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+				<span class="k">nonlocal</span> <span class="n">name</span>
+				<span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+					<span class="n">name</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="vm">__name__</span>
 				<span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span>
-				<span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+				<span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+				<span class="k">if</span> <span class="n">always</span><span class="p">:</span>
+					<span class="n">ret</span><span class="o">.</span><span class="n">triggers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;truth&#39;</span><span class="p">)</span>
+				<span class="k">return</span> <span class="n">ret</span>
 
 			<span class="k">return</span> <span class="n">r</span>
 		<span class="n">k</span> <span class="o">=</span> <span class="n">name</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">v</span><span class="o">.</span><span class="vm">__name__</span>
+		<span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s2">&quot;truth&quot;</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Illegal rule name&quot;</span><span class="p">)</span>
 		<span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+		<span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+		<span class="k">if</span> <span class="n">always</span><span class="p">:</span>
+			<span class="n">ret</span><span class="o">.</span><span class="n">triggers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;truth&#39;</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">ret</span>
 
-<div class="viewcode-block" id="AllRules.new_empty"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.AllRules.new_empty">[docs]</a>	<span class="k">def</span> <span class="nf">new_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">new_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Make a new rule with no actions or anything, and return it.&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Already have rule </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
 		<span class="n">new</span> <span class="o">=</span> <span class="n">Rule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">new</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">new</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-		<span class="k">return</span> <span class="n">new</span></div></div>
+		<span class="k">return</span> <span class="n">new</span>
 </pre></div>
 
           </div>
