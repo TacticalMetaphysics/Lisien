@@ -45,12 +45,12 @@ changing things.</p>
 data within the world model is kept in some character or other;
 these will quite frequently represent people, but can be readily
 adapted to represent any kind of data that can be comfortably
-described as a graph or a JSON object. Every change to a character
+described as a graph. Every change to a character
 will be written to the database.</p>
 <p>LiSE tracks history as a series of turns. In each turn, each
 simulation rule is evaluated once for each of the simulated
-entities it’s been applied to. World changes in a given turn are
-remembered together, such that the whole world state can be
+entities it’s been applied to. World changes are
+recorded such that the whole world state can be
 rewound: simply set the properties <code class="docutils literal notranslate"><span class="pre">branch</span></code> and <code class="docutils literal notranslate"><span class="pre">turn</span></code> back to
 what they were just before the change you want to undo.</p>
 <section id="world-modelling">
@@ -59,7 +59,8 @@ what they were just before the change you want to undo.</p>
 <code class="docutils literal notranslate"><span class="pre">name</span></code>.  This will return a character object with the name you
 provided. Now draw a map by calling the method <code class="docutils literal notranslate"><span class="pre">new_place</span></code> with many
 different <code class="docutils literal notranslate"><span class="pre">name</span></code> s, then linking them together with the
-method <code class="docutils literal notranslate"><span class="pre">new_portal(origin,</span> <span class="pre">destination)</span></code>.  To store data pertaining
+method <code class="docutils literal notranslate"><span class="pre">new_portal(origin,</span> <span class="pre">destination)</span></code>.</p>
+<p>To store data pertaining
 to some particular place, retrieve the place from the <code class="docutils literal notranslate"><span class="pre">place</span></code>
 mapping of the character: if the character is <code class="docutils literal notranslate"><span class="pre">world</span></code> and the place
 name is <code class="docutils literal notranslate"><span class="pre">'home'</span></code>, you might do it like
@@ -81,7 +82,8 @@ and schedules movement along it.</p>
 like dictionaries.  If you want to store data in a character, use its
 <code class="docutils literal notranslate"><span class="pre">stat</span></code> property as a dictionary instead. Data stored in these
 objects, and in the <code class="docutils literal notranslate"><span class="pre">universal</span></code> property of the engine, can vary
-over time. The engine’s <code class="docutils literal notranslate"><span class="pre">eternal</span></code> property is not time-sensitive,
+over time, and be rewound by setting <code class="docutils literal notranslate"><span class="pre">turn</span></code> to some time before.
+The engine’s <code class="docutils literal notranslate"><span class="pre">eternal</span></code> property is not time-sensitive,
 and is mainly for storing settings, not simulation data.</p>
 </section>
 <section id="rule-creation">
@@ -94,23 +96,21 @@ entity within the character, even if it didn’t exist when the rule was
 declared.</p>
 <p>All these items have a property <code class="docutils literal notranslate"><span class="pre">rule</span></code> that can be used as a
 decorator. Use this to decorate a function that performs the rule’s
-action by making some change to the world state.  Functions decorated
-this way always get passed the engine as the first argument and the
-character as the second; if the function is more specific than that, a
-particular thing, place, or portal will be the third argument. This
-will get you a rule object of the same name as your action function.</p>
+action by making some change to the world state. The function should take
+only one argument, the item itself.</p>
 <p>At first, the rule object will not have any triggers, meaning the action
-will never happen. If you want it to run on <em>every</em> tick, call its
-<code class="docutils literal notranslate"><span class="pre">always</span></code> method and think no more of it. But if you want to be
+will never happen. If you want it to run on <em>every</em> tick, pass the decorator
+<code class="docutils literal notranslate"><span class="pre">always=True</span></code> and think no more of it. But if you want to be
 more selective, use the rule’s <code class="docutils literal notranslate"><span class="pre">trigger</span></code> decorator on another
 function with the same signature, and have it return <code class="docutils literal notranslate"><span class="pre">True</span></code> if the
-world is in such a state that the rule ought to run. There is nothing
-really stopping you from modifying the rule from inside a trigger, but
-it’s not recommended.</p>
+world is in such a state that the rule ought to run. Triggers must never
+mutate the world or use any randomness.</p>
 <p>If you like, you can also add prerequisites. These are like triggers,
 but use the <code class="docutils literal notranslate"><span class="pre">prereq</span></code> decorator, and should return <code class="docutils literal notranslate"><span class="pre">True</span></code> <em>unless</em>
 the action should <em>not</em> happen; if a single prerequisite returns
-<code class="docutils literal notranslate"><span class="pre">False</span></code>, the action is cancelled.</p>
+<code class="docutils literal notranslate"><span class="pre">False</span></code>, the action is cancelled. Prereqs may involve random elements.
+Use the <code class="docutils literal notranslate"><span class="pre">engine</span></code> property of any LiSE entity to get the engine,
+then use methods such as <code class="docutils literal notranslate"><span class="pre">percent_chance</span></code> and <code class="docutils literal notranslate"><span class="pre">dice_check</span></code>.</p>
 </section>
 <section id="time-control">
 <h2>Time Control<a class="headerlink" href="#time-control" title="Permalink to this heading">¶</a></h2>
@@ -118,11 +118,11 @@ the action should <em>not</em> happen; if a single prerequisite returns
 <code class="docutils literal notranslate"><span class="pre">turn</span></code> properties. In the common case where time is advancing
 forward one tick at a time, it should be done with the engine’s
 <code class="docutils literal notranslate"><span class="pre">next_turn</span></code> method, which polls all the game rules before going to
-the next tick; but you can also change the time whenever you want, as
+the next turn; but you can also change the time whenever you want, as
 long as <code class="docutils literal notranslate"><span class="pre">branch</span></code> is a string and <code class="docutils literal notranslate"><span class="pre">turn</span></code> is an integer. The rules
 will never be followed in response to your changing the time “by
 hand”.</p>
-<p>It is possible–indeed, expected–to change the time as part of the
+<p>It is possible to change the time as part of the
 action of a rule. This is how you would make something happen after a
 delay. Say you want a rule that puts the character <code class="docutils literal notranslate"><span class="pre">alice</span></code> to sleep,
 then wakes her up after eight turns (presumably hour-long).:</p>

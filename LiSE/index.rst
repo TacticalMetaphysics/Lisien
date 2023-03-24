@@ -17,13 +17,13 @@ The top-level data structure within LiSE is the character. Most
 data within the world model is kept in some character or other;
 these will quite frequently represent people, but can be readily
 adapted to represent any kind of data that can be comfortably
-described as a graph or a JSON object. Every change to a character
+described as a graph. Every change to a character
 will be written to the database.
 
 LiSE tracks history as a series of turns. In each turn, each
 simulation rule is evaluated once for each of the simulated
-entities it's been applied to. World changes in a given turn are
-remembered together, such that the whole world state can be
+entities it's been applied to. World changes are
+recorded such that the whole world state can be
 rewound: simply set the properties ``branch`` and ``turn`` back to
 what they were just before the change you want to undo.
 
@@ -34,7 +34,9 @@ Start by calling the engine's ``new_character`` method with a string
 ``name``.  This will return a character object with the name you
 provided. Now draw a map by calling the method ``new_place`` with many
 different ``name`` s, then linking them together with the
-method ``new_portal(origin, destination)``.  To store data pertaining
+method ``new_portal(origin, destination)``.
+
+To store data pertaining
 to some particular place, retrieve the place from the ``place``
 mapping of the character: if the character is ``world`` and the place
 name is ``'home'``, you might do it like
@@ -58,7 +60,8 @@ You can store data in things, places, and portals by treating them
 like dictionaries.  If you want to store data in a character, use its
 ``stat`` property as a dictionary instead. Data stored in these
 objects, and in the ``universal`` property of the engine, can vary
-over time. The engine's ``eternal`` property is not time-sensitive,
+over time, and be rewound by setting ``turn`` to some time before.
+The engine's ``eternal`` property is not time-sensitive,
 and is mainly for storing settings, not simulation data.
 
 Rule Creation
@@ -73,25 +76,23 @@ declared.
 
 All these items have a property ``rule`` that can be used as a
 decorator. Use this to decorate a function that performs the rule's
-action by making some change to the world state.  Functions decorated
-this way always get passed the engine as the first argument and the
-character as the second; if the function is more specific than that, a
-particular thing, place, or portal will be the third argument. This
-will get you a rule object of the same name as your action function.
+action by making some change to the world state. The function should take
+only one argument, the item itself.
 
 At first, the rule object will not have any triggers, meaning the action
-will never happen. If you want it to run on *every* tick, call its
-``always`` method and think no more of it. But if you want to be
+will never happen. If you want it to run on *every* tick, pass the decorator
+``always=True`` and think no more of it. But if you want to be
 more selective, use the rule's ``trigger`` decorator on another
 function with the same signature, and have it return ``True`` if the
-world is in such a state that the rule ought to run. There is nothing
-really stopping you from modifying the rule from inside a trigger, but
-it's not recommended.
+world is in such a state that the rule ought to run. Triggers must never
+mutate the world or use any randomness.
 
 If you like, you can also add prerequisites. These are like triggers,
 but use the ``prereq`` decorator, and should return ``True`` *unless*
 the action should *not* happen; if a single prerequisite returns
-``False``, the action is cancelled.
+``False``, the action is cancelled. Prereqs may involve random elements.
+Use the ``engine`` property of any LiSE entity to get the engine,
+then use methods such as ``percent_chance`` and ``dice_check``.
 
 Time Control
 ------------
@@ -100,12 +101,12 @@ The current time is always accessible from the engine's ``branch`` and
 ``turn`` properties. In the common case where time is advancing
 forward one tick at a time, it should be done with the engine's
 ``next_turn`` method, which polls all the game rules before going to
-the next tick; but you can also change the time whenever you want, as
+the next turn; but you can also change the time whenever you want, as
 long as ``branch`` is a string and ``turn`` is an integer. The rules
 will never be followed in response to your changing the time "by
 hand".
 
-It is possible--indeed, expected--to change the time as part of the
+It is possible to change the time as part of the
 action of a rule. This is how you would make something happen after a
 delay. Say you want a rule that puts the character ``alice`` to sleep,
 then wakes her up after eight turns (presumably hour-long).::
