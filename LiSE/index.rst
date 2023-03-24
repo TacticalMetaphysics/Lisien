@@ -228,15 +228,15 @@ engine
 
 			:return: a pair, of which item 0 is the returned value from a rule if applicable (default: ``[]``),
 				and item 1 is a delta describing changes to the simulation resulting from this call.
-				See the following method, :method:`get_delta`, for a description of the delta format.
+				See the following method, :meth:`get_delta`, for a description of the delta format.
+
+		.. automethod:: get_delta
 
 		.. automethod:: advancing
 
 		.. automethod:: batch
 
 		.. automethod:: plan
-
-		.. automethod:: get_delta
 
 		.. automethod:: snap_keyframe
 
@@ -359,12 +359,7 @@ node
 
 	.. autoclass:: LiSE.node.Node
 
-		.. py:property:: user
-
-			A mapping of the characters that have this node as an avatar.
-
-			When there's only one user, you can use the special sub-property
-			``Node.user.only`` to get it.
+		.. autoproperty:: user
 
 		.. autoproperty:: portal
 

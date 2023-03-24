@@ -33,7 +33,7 @@ from .exc import AmbiguousUserError, TravelException
 
 
 class UserMapping(Mapping):
-	"""A mapping of the characters that have a particular node as an avatar.
+	"""A mapping of the characters that have a particular node as a unit.
 
 	Getting characters from here isn't any better than getting them from
 	the engine direct, but with this you can do things like use the
@@ -82,6 +82,11 @@ class UserMapping(Mapping):
 
 	@property
 	def only(self):
+		"""If there's only one unit, return it.
+
+		Otherwise, raise ``AmbiguousUserError``, a type of ``KeyError``.
+
+		"""
 		if len(self) != 1:
 			raise AmbiguousUserError("No users, or more than one")
 		return next(iter(self.values()))
@@ -257,8 +262,7 @@ class Origs(Mapping):
 
 
 class Node(graph.Node, rule.RuleFollower):
-	"""The fundamental graph component, which edges (in LiSE, "portals")
-	go between.
+	"""The fundamental graph component, which portals go between.
 
 	Every LiSE node is either a thing or a place. They share in common
 	the abilities to follow rules; to be connected by portals; and to
@@ -309,6 +313,7 @@ class Node(graph.Node, rule.RuleFollower):
 
 	@property
 	def user(self):
+		__doc__ = UserMapping.__doc__
 		return UserMapping(self)
 
 	def __init__(self, character, name):
@@ -426,7 +431,7 @@ class Node(graph.Node, rule.RuleFollower):
 		"""Get rid of this, starting now.
 
 		Apart from deleting the node, this also informs all its users
-		that it doesn't exist and therefore can't be their avatar
+		that it doesn't exist and therefore can't be their unit
 		anymore.
 
 		"""

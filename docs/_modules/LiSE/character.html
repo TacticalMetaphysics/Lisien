@@ -54,13 +54,13 @@
 <span class="sd">acts very much like a dictionary, in which you can store game-time-sensitive</span>
 <span class="sd">data for the rules to use.</span>
 
-<span class="sd">You can designate some nodes in one Character as avatars of another,</span>
-<span class="sd">and then assign a rule to run on all of a Character&#39;s avatars. This is</span>
+<span class="sd">You can designate some nodes in one Character as units of another,</span>
+<span class="sd">and then assign a rule to run on all of a Character&#39;s units. This is</span>
 <span class="sd">useful for the common case where someone in your game has a location</span>
 <span class="sd">in the physical world (here, a Character, called &#39;physical&#39;) but also</span>
 <span class="sd">has a behavior flowchart, or a skill tree, that isn&#39;t part of the</span>
 <span class="sd">physical world. In that case, the flowchart is the person&#39;s Character,</span>
-<span class="sd">and their node in the physical world is an avatar of it.</span>
+<span class="sd">and their node in the physical world is a unit of it.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 
@@ -681,30 +681,30 @@
 <span class="sd">	Characters may have units in other Characters. These are just</span>
 <span class="sd">	nodes. You can apply rules to a Character&#39;s units, and thus to</span>
 <span class="sd">	any collection of nodes you want, perhaps in many different</span>
-<span class="sd">	Characters. The `unit` attribute handles this. It is a mapping,</span>
+<span class="sd">	Characters. The ``unit`` attribute handles this. It is a mapping,</span>
 <span class="sd">	keyed by the other Character&#39;s name, then by the name of the node</span>
 <span class="sd">	that is this Character&#39;s unit. In the common case where a</span>
 <span class="sd">	Character has exactly one unit, it may be retrieved as</span>
-<span class="sd">	`unit.only`. When it has more than one unit, but only has</span>
+<span class="sd">	``unit.only``. When it has more than one unit, but only has</span>
 <span class="sd">	any units in a single other Character, you can get the mapping</span>
-<span class="sd">	of units in that Character as `unit.node`. Add units with the</span>
-<span class="sd">	`add_unit` method and remove them with `del_unit`.</span>
+<span class="sd">	of units in that Character as ``unit.node``. Add units with the</span>
+<span class="sd">	``add_unit`` method and remove them with ``del_unit``.</span>
 
-<span class="sd">	You can assign rules to Characters with their `rule` attribute,</span>
-<span class="sd">	typically using it as a decorator (see the documentation for</span>
-<span class="sd">	the `rule` module). You can do the same to some of Character&#39;s</span>
+<span class="sd">	You can assign rules to Characters with their ``rule`` attribute,</span>
+<span class="sd">	typically using it as a decorator (see :mod:`LiSE.rule`). You can do the</span>
+<span class="sd">	same to some of Character&#39;s</span>
 <span class="sd">	attributes:</span>
 
-<span class="sd">	* `thing.rule` to make a rule run on all Things in this Character</span>
+<span class="sd">	* ``thing.rule`` to make a rule run on all Things in this Character</span>
 <span class="sd">	  every turn</span>
-<span class="sd">	* `place.rule` to make a rule run on all Places in this Character</span>
+<span class="sd">	* ``place.rule`` to make a rule run on all Places in this Character</span>
 <span class="sd">	  every turn</span>
-<span class="sd">	* `node.rule` to make a rule run on all Things and Places in this</span>
+<span class="sd">	* ``node.rule`` to make a rule run on all Things and Places in this</span>
 <span class="sd">	  Character every turn</span>
-<span class="sd">	* `unit.rule` to make a rule run on all the units this</span>
+<span class="sd">	* ``unit.rule`` to make a rule run on all the units this</span>
 <span class="sd">	  Character has every turn, regardless of what Character the</span>
 <span class="sd">	  unit is in</span>
-<span class="sd">	* `adj.rule` to make a rule run on all the edges this Character</span>
+<span class="sd">	* ``adj.rule`` to make a rule run on all the edges this Character</span>
 <span class="sd">	  has every turn</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
@@ -1523,7 +1523,7 @@
 <div class="viewcode-block" id="Character.add_portal"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.add_portal">[docs]</a>	<span class="k">def</span> <span class="nf">add_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Connect the origin to the destination with a :class:`Portal`.</span>
 
-<span class="sd">		Keyword arguments are the :class:`Portal`&#39;sattributes.</span>
+<span class="sd">		Keyword arguments are attributes of the :class:`Portal`.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>

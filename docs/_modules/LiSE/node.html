@@ -65,7 +65,7 @@
 
 
 <span class="k">class</span> <span class="nc">UserMapping</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&quot;&quot;&quot;A mapping of the characters that have a particular node as an avatar.</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;A mapping of the characters that have a particular node as a unit.</span>
 
 <span class="sd">	Getting characters from here isn&#39;t any better than getting them from</span>
 <span class="sd">	the engine direct, but with this you can do things like use the</span>
@@ -114,6 +114,11 @@
 
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">only</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;If there&#39;s only one unit, return it.</span>
+
+<span class="sd">		Otherwise, raise ``AmbiguousUserError``, a type of ``KeyError``.</span>
+
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="n">AmbiguousUserError</span><span class="p">(</span><span class="s2">&quot;No users, or more than one&quot;</span><span class="p">)</span>
 		<span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
@@ -289,8 +294,7 @@
 
 
 <div class="viewcode-block" id="Node"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node">[docs]</a><span class="k">class</span> <span class="nc">Node</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">Node</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">RuleFollower</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&quot;&quot;&quot;The fundamental graph component, which edges (in LiSE, &quot;portals&quot;)</span>
-<span class="sd">	go between.</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;The fundamental graph component, which portals go between.</span>
 
 <span class="sd">	Every LiSE node is either a thing or a place. They share in common</span>
 <span class="sd">	the abilities to follow rules; to be connected by portals; and to</span>
@@ -341,6 +345,7 @@
 
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">user</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="vm">__doc__</span> <span class="o">=</span> <span class="n">UserMapping</span><span class="o">.</span><span class="vm">__doc__</span>
 		<span class="k">return</span> <span class="n">UserMapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
@@ -458,7 +463,7 @@
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Get rid of this, starting now.</span>
 
 <span class="sd">		Apart from deleting the node, this also informs all its users</span>
-<span class="sd">		that it doesn&#39;t exist and therefore can&#39;t be their avatar</span>
+<span class="sd">		that it doesn&#39;t exist and therefore can&#39;t be their unit</span>
 <span class="sd">		anymore.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
@@ -837,7 +842,7 @@
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
     </div>
 

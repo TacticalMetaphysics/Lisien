@@ -22,13 +22,13 @@ to run on only some portion of it. Each Character has a ``stat`` property that
 acts very much like a dictionary, in which you can store game-time-sensitive
 data for the rules to use.
 
-You can designate some nodes in one Character as avatars of another,
-and then assign a rule to run on all of a Character's avatars. This is
+You can designate some nodes in one Character as units of another,
+and then assign a rule to run on all of a Character's units. This is
 useful for the common case where someone in your game has a location
 in the physical world (here, a Character, called 'physical') but also
 has a behavior flowchart, or a skill tree, that isn't part of the
 physical world. In that case, the flowchart is the person's Character,
-and their node in the physical world is an avatar of it.
+and their node in the physical world is a unit of it.
 
 """
 
@@ -649,30 +649,30 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 	Characters may have units in other Characters. These are just
 	nodes. You can apply rules to a Character's units, and thus to
 	any collection of nodes you want, perhaps in many different
-	Characters. The `unit` attribute handles this. It is a mapping,
+	Characters. The ``unit`` attribute handles this. It is a mapping,
 	keyed by the other Character's name, then by the name of the node
 	that is this Character's unit. In the common case where a
 	Character has exactly one unit, it may be retrieved as
-	`unit.only`. When it has more than one unit, but only has
+	``unit.only``. When it has more than one unit, but only has
 	any units in a single other Character, you can get the mapping
-	of units in that Character as `unit.node`. Add units with the
-	`add_unit` method and remove them with `del_unit`.
+	of units in that Character as ``unit.node``. Add units with the
+	``add_unit`` method and remove them with ``del_unit``.
 
-	You can assign rules to Characters with their `rule` attribute,
-	typically using it as a decorator (see the documentation for
-	the `rule` module). You can do the same to some of Character's
+	You can assign rules to Characters with their ``rule`` attribute,
+	typically using it as a decorator (see :mod:`LiSE.rule`). You can do the
+	same to some of Character's
 	attributes:
 
-	* `thing.rule` to make a rule run on all Things in this Character
+	* ``thing.rule`` to make a rule run on all Things in this Character
 	  every turn
-	* `place.rule` to make a rule run on all Places in this Character
+	* ``place.rule`` to make a rule run on all Places in this Character
 	  every turn
-	* `node.rule` to make a rule run on all Things and Places in this
+	* ``node.rule`` to make a rule run on all Things and Places in this
 	  Character every turn
-	* `unit.rule` to make a rule run on all the units this
+	* ``unit.rule`` to make a rule run on all the units this
 	  Character has every turn, regardless of what Character the
 	  unit is in
-	* `adj.rule` to make a rule run on all the edges this Character
+	* ``adj.rule`` to make a rule run on all the edges this Character
 	  has every turn
 
 	"""
@@ -1491,7 +1491,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 	def add_portal(self, origin, destination, **kwargs):
 		"""Connect the origin to the destination with a :class:`Portal`.
 
-		Keyword arguments are the :class:`Portal`'sattributes.
+		Keyword arguments are attributes of the :class:`Portal`.
 
 		"""
 		if isinstance(origin, Node):
