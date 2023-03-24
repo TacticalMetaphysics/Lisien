@@ -203,7 +203,7 @@ class Engine(AbstractEngine, gORM):
 		make future startups faster, but could cause database bloat if
 		your game runs few turns per session.
 	:param cache_arranger: Whether to start a background
-		process that indexes the caches to make time travel faster
+		thread that indexes the caches to make time travel faster
 		when it's to points we anticipate. If you use this, you can
 		specify some other point in time to index by putting the
 		``(branch, turn, tick)`` in my ``cache_arrange_queue``.
