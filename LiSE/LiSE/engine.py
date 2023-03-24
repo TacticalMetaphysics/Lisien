@@ -210,7 +210,8 @@ class Engine(AbstractEngine, gORM):
 		Default ``False``.
 	:param enforce_end_of_time: Whether to raise an exception when
 		time travelling to a point after the time that's been simulated.
-		Default ``True``.
+		Default ``True``. You normally want this, but it could cause problems
+		if you're not using the rules engine.
 
 	"""
 	char_cls = Character
