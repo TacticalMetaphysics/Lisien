@@ -1366,6 +1366,15 @@
 
 	<span class="nd">@world_locked</span>
 	<span class="k">def</span> <span class="nf">snap_keyframe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Make a copy of the complete state of the world.</span>
+
+<span class="sd">		You need to do this occasionally in order to keep time travel</span>
+<span class="sd">		performant.</span>
+
+<span class="sd">		The keyframe will be saved to the database at the next call to</span>
+<span class="sd">		``flush``.</span>
+
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
 		<span class="k">if</span> <span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keyframes_times</span><span class="p">:</span>
 			<span class="k">return</span>
@@ -1677,7 +1686,7 @@
 
 	<span class="nd">@world_locked</span>
 	<span class="k">def</span> <span class="nf">unload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove everything from memory we can&quot;&quot;&quot;</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove everything from memory that can be removed.&quot;&quot;&quot;</span>
 		<span class="c1"># find the slices of time that need to stay loaded</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
 		<span class="n">iter_parent_btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iter_parent_btt</span>

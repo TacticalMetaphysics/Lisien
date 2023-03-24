@@ -36,9 +36,9 @@ from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
 from .allegedb.window import update_window, update_backward_window
 from .util import sort_set, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
-from .query import (Query, make_side_sel, StatusAlias, ComparisonQuery,
-					CompoundQuery, QueryResultMidTurn, QueryResult,
-					QueryResultEndTurn, CombinedQueryResult)
+from .query import (Query, _make_side_sel, StatusAlias, ComparisonQuery,
+                    CompoundQuery, QueryResultMidTurn, QueryResult,
+                    QueryResultEndTurn, CombinedQueryResult)
 from .character import Character
 from .node import Place, Thing
 from .portal import Portal
@@ -180,7 +180,7 @@ class Engine(AbstractEngine, gORM):
 		database connection
 	:param schema: a Schema class that determines which changes to allow to
 		the world; used when a player should not be able to change just anything.
-		Defaults to `NullSchema`
+		Defaults to :class:`NullSchema`
 	:param flush_interval: LiSE will put pending changes into the database
 		transaction every ``flush_interval`` turns. If ``None``, only flush
 		on commit. Default ``1``.
@@ -207,7 +207,7 @@ class Engine(AbstractEngine, gORM):
 		when it's to points we anticipate. If you use this, you can
 		specify some other point in time to index by putting the
 		``(branch, turn, tick)`` in my ``cache_arrange_queue``.
-		 Default ``False``.
+		Default ``False``.
 	:param enforce_end_of_time: Whether to raise an exception when
 		time travelling to a point after the time that's been simulated.
 		Default ``True``.
@@ -1413,10 +1413,10 @@ class Engine(AbstractEngine, gORM):
 		left = qry.leftside
 		right = qry.rightside
 		if isinstance(left, StatusAlias) and isinstance(right, StatusAlias):
-			left_sel = make_side_sel(left.entity, left.stat, branches,
-										self.pack, mid_turn)
-			right_sel = make_side_sel(right.entity, right.stat, branches,
-										self.pack, mid_turn)
+			left_sel = _make_side_sel(left.entity, left.stat, branches,
+			                          self.pack, mid_turn)
+			right_sel = _make_side_sel(right.entity, right.stat, branches,
+			                           self.pack, mid_turn)
 			left_data = self.query.execute(left_sel)
 			right_data = self.query.execute(right_sel)
 			if mid_turn:
@@ -1428,8 +1428,8 @@ class Engine(AbstractEngine, gORM):
 											unpack_data_end(right_data),
 											qry.oper, end)
 		elif isinstance(left, StatusAlias):
-			left_sel = make_side_sel(left.entity, left.stat, branches,
-										self.pack, mid_turn)
+			left_sel = _make_side_sel(left.entity, left.stat, branches,
+			                          self.pack, mid_turn)
 			left_data = self.query.execute(left_sel)
 			if mid_turn:
 				return QueryResultMidTurn(unpack_data_mid(left_data),
@@ -1439,8 +1439,8 @@ class Engine(AbstractEngine, gORM):
 				return QueryResultEndTurn(unpack_data_end(left_data),
 											[(0, None, right)], qry.oper, end)
 		elif isinstance(right, StatusAlias):
-			right_sel = make_side_sel(right.entity, right.stat, branches,
-										self.pack, mid_turn)
+			right_sel = _make_side_sel(right.entity, right.stat, branches,
+			                           self.pack, mid_turn)
 			right_data = self.query.execute(right_sel)
 			if mid_turn:
 				return QueryResultMidTurn([(0, 0, None, None, left)],

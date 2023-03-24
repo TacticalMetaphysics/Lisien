@@ -18,18 +18,16 @@ Based on NetworkX DiGraph objects with various additions and
 conveniences.
 
 A Character is a graph that follows rules. Its rules may be assigned
-to run on only some portion of it: just edges (called Portals), just
-nodes, or just nodes of the kind that have a location in another node
-(called Places and Things, respectively). Each Character has a
-``stat`` property that acts very much like a dictionary, in which you
-can store game-relevant data for the rules to use.
+to run on only some portion of it. Each Character has a ``stat`` property that
+acts very much like a dictionary, in which you can store game-time-sensitive
+data for the rules to use.
 
 You can designate some nodes in one Character as avatars of another,
 and then assign a rule to run on all of a Character's avatars. This is
 useful for the common case where someone in your game has a location
 in the physical world (here, a Character, called 'physical') but also
 has a behavior flowchart, or a skill tree, that isn't part of the
-physical world. In that case the flowchart is the person's Character,
+physical world. In that case, the flowchart is the person's Character,
 and their node in the physical world is an avatar of it.
 
 """
@@ -1410,9 +1408,17 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 														repr(self.name))
 
 	def facade(self):
+		"""Return a temporary copy of this Character
+
+		A Facade looks like its :class:`Character`, but doesn't do any of the
+		stuff Characters do to save changes to the database, nor enable
+		time travel. This makes it much speedier to work with.
+
+		"""
 		return Facade(self)
 
 	def add_place(self, node_for_adding, **attr):
+		"""Add a new Place"""
 		self.add_node(node_for_adding, **attr)
 
 	def add_places_from(self, seq, **attrs):
@@ -1420,11 +1426,13 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		super().add_nodes_from(seq, **attrs)
 
 	def remove_place(self, place):
+		"""Remove an existing Place"""
 		if place in self.place:
 			self.remove_node(place)
 		raise KeyError("No such place: {}".format(place))
 
 	def remove_thing(self, thing):
+		"""Remove an existing Thing"""
 		if thing in self.thing:
 			self.remove_node(thing)
 		raise KeyError("No such thing: {}".format(thing))
@@ -1445,6 +1453,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			self._pred[name] = self.adjlist_inner_dict_factory()
 
 	def add_things_from(self, seq, **attrs):
+		"""Make many new Things"""
 		for tup in seq:
 			name = tup[0]
 			location = tup[1]
@@ -1509,7 +1518,17 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			self.add_portal(orig, dest, **kwarrgs)
 
 	def add_unit(self, a, b=None):
-		"""Start keeping track of a unit"""
+		"""Start keeping track of a unit.
+
+		Units are nodes in other characters that are in some sense part of
+		this one. A common example in strategy games is when a general leads
+		an army: the general is one :class:`Character`, with a graph
+		representing the state of its AI; the battle map is another character;
+		and the general's units, though not in the general's
+		:class:`Character`, are still under their command, and therefore
+		follow rules defined on the general's ``unit`` property.
+
+		"""
 		if self.engine._planning:
 			raise NotImplementedError(
 				"Currently can't add units within a plan")

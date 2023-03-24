@@ -677,6 +677,11 @@ class AbstractCharacter(Mapping):
 		self.add_places_from(seq, **attrs)
 
 	def new_place(self, name, **kwargs):
+		"""Add a Place and return it.
+
+		If there's already a Place by that name, put a number on the end.
+
+		"""
 		if name not in self.node:
 			self.add_place(name, **kwargs)
 			return self.place[name]
@@ -700,6 +705,11 @@ class AbstractCharacter(Mapping):
 		pass
 
 	def new_thing(self, name, location, **kwargs):
+		"""Add a Thing and return it.
+
+		If there's already a Thing by that name, put a number on the end.
+
+		"""
 		if name not in self.node:
 			self.add_thing(name, location, **kwargs)
 			return self.thing[name]

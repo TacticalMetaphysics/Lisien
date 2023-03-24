@@ -1334,6 +1334,15 @@ class ORM:
 
 	@world_locked
 	def snap_keyframe(self) -> None:
+		"""Make a copy of the complete state of the world.
+
+		You need to do this occasionally in order to keep time travel
+		performant.
+
+		The keyframe will be saved to the database at the next call to
+		``flush``.
+
+		"""
 		branch, turn, tick = self._btt()
 		if (branch, turn, tick) in self._keyframes_times:
 			return
@@ -1645,7 +1654,7 @@ class ORM:
 
 	@world_locked
 	def unload(self):
-		"""Remove everything from memory we can"""
+		"""Remove everything from memory that can be removed."""
 		# find the slices of time that need to stay loaded
 		branch, turn, tick = self._btt()
 		iter_parent_btt = self._iter_parent_btt

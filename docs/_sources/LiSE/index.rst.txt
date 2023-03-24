@@ -143,7 +143,7 @@ call, then return a menu description like this one.::
 	def wakeup(character):
 		return "Wake up?", [("Yes", character.engine.wake_alice), ("No", None)]
 
-Only methods defined with the ``@engine.method`` decorator may be used in a menu.
+Only methods defined with the ``@engine.method`` function store may be used in a menu.
 
 engine
 ------
@@ -218,28 +218,27 @@ engine
 			their initial action.
 
 		.. py:method:: Engine.next_turn
-			Make time move forward in the simulation.
 
-			Calls ``advance`` repeatedly, returning a list of the rules' return values.
+			Make time move forward in the simulation.
 
 			Stops when the turn has ended, or a rule returns something non-``None``.
 
-			This is also a ``Signal``, so you can register functions to be
-			called when the simulation runs. Pass them to ``Engine.next_turn_connect(..)``.
+			This is also a :class:`blinker.Signal`, so you can register functions to be
+			called when the simulation runs. Pass them to ``Engine.next_turn.connect(..)``.
 
 			:return: a pair, of which item 0 is the returned value from a rule if applicable (default: ``[]``),
 				and item 1 is a delta describing changes to the simulation resulting from this call.
-				See the following method, ``get_delta``, for a description of the delta format.
+				See the following method, :method:`get_delta`, for a description of the delta format.
 
 		.. automethod:: advancing
 
 		.. automethod:: batch
 
+		.. automethod:: plan
+
 		.. automethod:: get_delta
 
 		.. automethod:: snap_keyframe
-
-		.. automethod:: plan
 
 		.. automethod:: delete_plan
 
@@ -310,17 +309,35 @@ character
 
 			Alias: ``pred``
 
-		.. automethod:: add_places_from
+		.. py:property:: unit
+
+			A mapping of this character's units in other characters.
+
+			Units are nodes in other characters that are in some sense part of this one. A common example in strategy
+			games is when a general leads an army: the general is one :class:`Character`, with a graph representing the
+			state of their AI; the battle map is another :class:`Character`; and the general's units, though not in the
+			general's :class:`Character`, are still under their command, and therefore follow rules defined on the
+			general's ``unit.rule`` subproperty.
 
 		.. automethod:: add_portal
+
+		.. automethod:: new_portal
 
 		.. automethod:: add_portals_from
 
 		.. automethod:: add_thing
 
-		.. automethod:: historical
+		.. automethod:: new_thing
 
-		.. automethod:: new_portal
+		.. automethod:: add_things_from
+
+		.. automethod:: add_place
+
+		.. automethod:: add_places_from
+
+		.. automethod:: new_place
+
+		.. automethod:: historical
 
 		.. automethod:: place2thing
 
@@ -333,6 +350,8 @@ character
 		.. automethod:: thing2place
 
 		.. automethod:: units
+
+		.. automethod:: facade
 
 node
 ----
@@ -417,4 +436,5 @@ rule
 query
 -----
 .. automodule:: LiSE.query
-	:members:
+
+	.. autoclass:: QueryResult

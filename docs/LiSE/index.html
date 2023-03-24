@@ -158,7 +158,7 @@ call, then return a menu description like this one.:</p>
         <span class="k">return</span> <span class="s2">&quot;Wake up?&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Yes&quot;</span><span class="p">,</span> <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">wake_alice</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;No&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)]</span>
 </pre></div>
 </div>
-<p>Only methods defined with the <code class="docutils literal notranslate"><span class="pre">&#64;engine.method</span></code> decorator may be used in a menu.</p>
+<p>Only methods defined with the <code class="docutils literal notranslate"><span class="pre">&#64;engine.method</span></code> function store may be used in a menu.</p>
 </section>
 <section id="module-LiSE.engine">
 <span id="engine"></span><h2>engine<a class="headerlink" href="#module-LiSE.engine" title="Permalink to this heading">¶</a></h2>
@@ -190,9 +190,9 @@ mutating it (and possibly the rest of the world)</p></li>
 database connection</p></li>
 <li><p><strong>schema</strong> – a Schema class that determines which changes to allow to
 the world; used when a player should not be able to change just anything.
-Defaults to <cite>NullSchema</cite></p></li>
+Defaults to <code class="xref py py-class docutils literal notranslate"><span class="pre">NullSchema</span></code></p></li>
 <li><p><strong>flush_interval</strong> – LiSE will put pending changes into the database
-transaction every <code class="docutils literal notranslate"><span class="pre">flush_interval</span></code> turns. If <code class="docutils literal notranslate"><span class="pre">None</span></code>), only flush
+transaction every <code class="docutils literal notranslate"><span class="pre">flush_interval</span></code> turns. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, only flush
 on commit. Default <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
 <li><p><strong>keyframe_interval</strong> – How many turns to pass before automatically
 snapping a keyframe, default <code class="docutils literal notranslate"><span class="pre">10</span></code>. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, you’ll need
@@ -212,15 +212,12 @@ Makes the database rather large, but useful for debugging.</p></li>
 engine, default <code class="docutils literal notranslate"><span class="pre">True</span></code>. This is usually what you want, as it will
 make future startups faster, but could cause database bloat if
 your game runs few turns per session.</p></li>
-<li><p><strong>cache_arranger</strong> – <p>Whether to start a background
+<li><p><strong>cache_arranger</strong> – Whether to start a background
 process that indexes the caches to make time travel faster
 when it’s to points we anticipate. If you use this, you can
 specify some other point in time to index by putting the
-<code class="docutils literal notranslate"><span class="pre">(branch,</span> <span class="pre">turn,</span> <span class="pre">tick)</span></code> in my <code class="docutils literal notranslate"><span class="pre">cache_arrange_queue</span></code>.</p>
-<blockquote>
-<div><p>Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
-</div></blockquote>
-</p></li>
+<code class="docutils literal notranslate"><span class="pre">(branch,</span> <span class="pre">turn,</span> <span class="pre">tick)</span></code> in my <code class="docutils literal notranslate"><span class="pre">cache_arrange_queue</span></code>.
+Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
 <li><p><strong>enforce_end_of_time</strong> – Whether to raise an exception when
 time travelling to a point after the time that’s been simulated.
 Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
@@ -325,17 +322,15 @@ their initial action.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="LiSE.Engine.next_turn">
 <span class="sig-name descname"><span class="pre">next_turn</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.Engine.next_turn" title="Permalink to this definition">¶</a></dt>
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">Make</span> <span class="pre">time</span> <span class="pre">move</span> <span class="pre">forward</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">simulation.</span></span></dt>
-<dd><p>Calls <code class="docutils literal notranslate"><span class="pre">advance</span></code> repeatedly, returning a list of the rules’ return values.</p>
+<dd><p>Make time move forward in the simulation.</p>
 <p>Stops when the turn has ended, or a rule returns something non-<code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
-<p>This is also a <code class="docutils literal notranslate"><span class="pre">Signal</span></code>, so you can register functions to be
-called when the simulation runs. Pass them to <code class="docutils literal notranslate"><span class="pre">Engine.next_turn_connect(..)</span></code>.</p>
+<p>This is also a <code class="xref py py-class docutils literal notranslate"><span class="pre">blinker.Signal</span></code>, so you can register functions to be
+called when the simulation runs. Pass them to <code class="docutils literal notranslate"><span class="pre">Engine.next_turn.connect(..)</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>a pair, of which item 0 is the returned value from a rule if applicable (default: <code class="docutils literal notranslate"><span class="pre">[]</span></code>),
 and item 1 is a delta describing changes to the simulation resulting from this call.
-See the following method, <code class="docutils literal notranslate"><span class="pre">get_delta</span></code>, for a description of the delta format.</p>
+See the following method, <a href="#id1"><span class="problematic" id="id2">:method:`get_delta`</span></a>, for a description of the delta format.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -354,6 +349,27 @@ It changes how the caching works, making it more efficient.</p>
 <dd><p>A context manager for when you’re creating lots of state.</p>
 <p>Reads will be much slower in a batch, but writes will be faster.</p>
 <p>You <em>can</em> combine this with <code class="docutils literal notranslate"><span class="pre">advancing</span></code> but it isn’t any faster.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.plan">
+<span class="sig-name descname"><span class="pre">plan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">PlanningContext</span></span></span><a class="headerlink" href="#LiSE.Engine.plan" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager for ‘hypothetical’ edits.</p>
+<p>Start a block of code like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">orm</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<p>and any changes you make to the world state within that block will be
+‘plans,’ meaning that they are used as defaults. The world will
+obey your plan unless you make changes to the same entities outside
+of the plan, in which case the world will obey those, and cancel any
+future plan.</p>
+<p>New branches cannot be started within plans. The <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">orm.forward():</span></code>
+optimization is disabled within a <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">orm.plan():</span></code> block, so
+consider another approach instead of making a very large plan.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">reset=True</span></code> (the default), when the plan block closes,
+the time will reset to when it began.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -393,27 +409,11 @@ and <code class="docutils literal notranslate"><span class="pre">'actions'</span
 <dl class="py method">
 <dt class="sig sig-object py" id="LiSE.Engine.snap_keyframe">
 <span class="sig-name descname"><span class="pre">snap_keyframe</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#LiSE.Engine.snap_keyframe" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="LiSE.Engine.plan">
-<span class="sig-name descname"><span class="pre">plan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">PlanningContext</span></span></span><a class="headerlink" href="#LiSE.Engine.plan" title="Permalink to this definition">¶</a></dt>
-<dd><p>A context manager for ‘hypothetical’ edits.</p>
-<p>Start a block of code like:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">orm</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
-        <span class="o">...</span>
-</pre></div>
-</div>
-<p>and any changes you make to the world state within that block will be
-‘plans,’ meaning that they are used as defaults. The world will
-obey your plan unless you make changes to the same entities outside
-of the plan, in which case the world will obey those, and cancel any
-future plan.</p>
-<p>New branches cannot be started within plans. The <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">orm.forward():</span></code>
-optimization is disabled within a <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">orm.plan():</span></code> block, so
-consider another approach instead of making a very large plan.</p>
-<p>With <code class="docutils literal notranslate"><span class="pre">reset=True</span></code> (the default), when the plan block closes,
-the time will reset to when it began.</p>
+<dd><p>Make a copy of the complete state of the world.</p>
+<p>You need to do this occasionally in order to keep time travel
+performant.</p>
+<p>The keyframe will be saved to the database at the next call to
+<code class="docutils literal notranslate"><span class="pre">flush</span></code>.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -514,7 +514,7 @@ player won’t be running the simulation for a while.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="LiSE.Engine.unload">
 <span class="sig-name descname"><span class="pre">unload</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.Engine.unload" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove everything from memory we can</p>
+<dd><p>Remove everything from memory that can be removed.</p>
 </dd></dl>
 
 </dd></dl>
@@ -526,17 +526,15 @@ player won’t be running the simulation for a while.</p>
 <p>Based on NetworkX DiGraph objects with various additions and
 conveniences.</p>
 <p>A Character is a graph that follows rules. Its rules may be assigned
-to run on only some portion of it: just edges (called Portals), just
-nodes, or just nodes of the kind that have a location in another node
-(called Places and Things, respectively). Each Character has a
-<code class="docutils literal notranslate"><span class="pre">stat</span></code> property that acts very much like a dictionary, in which you
-can store game-relevant data for the rules to use.</p>
+to run on only some portion of it. Each Character has a <code class="docutils literal notranslate"><span class="pre">stat</span></code> property that
+acts very much like a dictionary, in which you can store game-time-sensitive
+data for the rules to use.</p>
 <p>You can designate some nodes in one Character as avatars of another,
 and then assign a rule to run on all of a Character’s avatars. This is
 useful for the common case where someone in your game has a location
 in the physical world (here, a Character, called ‘physical’) but also
 has a behavior flowchart, or a skill tree, that isn’t part of the
-physical world. In that case the flowchart is the person’s Character,
+physical world. In that case, the flowchart is the person’s Character,
 and their node in the physical world is an avatar of it.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="LiSE.character.Character">
@@ -623,10 +621,15 @@ assigning premade rulebooks.</p>
 <p>Alias: <code class="docutils literal notranslate"><span class="pre">pred</span></code></p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="LiSE.character.Character.add_places_from">
-<span class="sig-name descname"><span class="pre">add_places_from</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">attrs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_places_from"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.add_places_from" title="Permalink to this definition">¶</a></dt>
-<dd><p>Take a series of place names and add the lot.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.character.Character.unit">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">unit</span></span><a class="headerlink" href="#LiSE.character.Character.unit" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of this character’s units in other characters.</p>
+<p>Units are nodes in other characters that are in some sense part of this one. A common example in strategy
+games is when a general leads an army: the general is one <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>, with a graph representing the
+state of their AI; the battle map is another <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>; and the general’s units, though not in the
+general’s <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>, are still under their command, and therefore follow rules defined on the
+general’s <code class="docutils literal notranslate"><span class="pre">unit.rule</span></code> subproperty.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -634,6 +637,12 @@ assigning premade rulebooks.</p>
 <span class="sig-name descname"><span class="pre">add_portal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">origin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">destination</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_portal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.add_portal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Connect the origin to the destination with a <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>.</p>
 <p>Keyword arguments are the <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>’sattributes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.new_portal">
+<span class="sig-name descname"><span class="pre">new_portal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">origin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">destination</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.new_portal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.new_portal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a portal and return it</p>
 </dd></dl>
 
 <dl class="py method">
@@ -651,6 +660,38 @@ item is a dictionary of stats for the new <code class="xref py py-class docutils
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.new_thing">
+<span class="sig-name descname"><span class="pre">new_thing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">location</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.character.Character.new_thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a Thing and return it.</p>
+<p>If there’s already a Thing by that name, put a number on the end.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.add_things_from">
+<span class="sig-name descname"><span class="pre">add_things_from</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">attrs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_things_from"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.add_things_from" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make many new Things</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.add_place">
+<span class="sig-name descname"><span class="pre">add_place</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_for_adding</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">attr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_place"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.add_place" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a new Place</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.add_places_from">
+<span class="sig-name descname"><span class="pre">add_places_from</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">attrs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_places_from"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.add_places_from" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take a series of place names and add the lot.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.new_place">
+<span class="sig-name descname"><span class="pre">new_place</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.character.Character.new_place" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a Place and return it.</p>
+<p>If there’s already a Place by that name, put a number on the end.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="LiSE.character.Character.historical">
 <span class="sig-name descname"><span class="pre">historical</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stat</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.historical"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.historical" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get a historical view on the given stat</p>
@@ -658,12 +699,6 @@ item is a dictionary of stats for the new <code class="xref py py-class docutils
 when you time travel. Comparisons performed on the
 historical view can be passed to <code class="docutils literal notranslate"><span class="pre">engine.turns_when</span></code>
 to find out when the comparison held true.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="LiSE.character.Character.new_portal">
-<span class="sig-name descname"><span class="pre">new_portal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">origin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">destination</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.new_portal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.new_portal" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a portal and return it</p>
 </dd></dl>
 
 <dl class="py method">
@@ -701,6 +736,15 @@ to find out when the comparison held true.</p>
 <span class="sig-name descname"><span class="pre">units</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.units"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.units" title="Permalink to this definition">¶</a></dt>
 <dd><p>Iterate over all my units</p>
 <p>Regardless of what character they are in.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.facade">
+<span class="sig-name descname"><span class="pre">facade</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.facade"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.facade" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a temporary copy of this Character</p>
+<p>A Facade looks like its <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>, but doesn’t do any of the
+stuff Characters do to save changes to the database, nor enable
+time travel. This makes it much speedier to work with.</p>
 </dd></dl>
 
 </dd></dl>
@@ -1082,69 +1126,23 @@ name.</p>
 <p>Sometimes you want to know when some stat of a LiSE entity had a particular
 value. To find out, construct a historical query and pass it to
 <code class="docutils literal notranslate"><span class="pre">Engine.turns_when</span></code>, like this:</p>
-<p><code class="docutils literal notranslate"><span class="pre">`</span>
-<span class="pre">physical</span> <span class="pre">=</span> <span class="pre">engine.character['physical']</span>
-<span class="pre">that</span> <span class="pre">=</span> <span class="pre">physical.thing['that']</span>
-<span class="pre">hist_loc</span> <span class="pre">=</span> <span class="pre">that.historical('location')</span>
-<span class="pre">print(list(engine.turns_when(hist_loc</span> <span class="pre">==</span> <span class="pre">'there')))</span>
-<span class="pre">`</span></code></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">physical</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="s1">&#39;physical&#39;</span><span class="p">]</span>
+<span class="n">that</span> <span class="o">=</span> <span class="n">physical</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="s1">&#39;that&#39;</span><span class="p">]</span>
+<span class="n">hist_loc</span> <span class="o">=</span> <span class="n">that</span><span class="o">.</span><span class="n">historical</span><span class="p">(</span><span class="s1">&#39;location&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">turns_when</span><span class="p">(</span><span class="n">hist_loc</span> <span class="o">==</span> <span class="s1">&#39;there&#39;</span><span class="p">)))</span>
+</pre></div>
+</div>
 <p>You’ll get a list of turns when <code class="docutils literal notranslate"><span class="pre">that</span></code> was <code class="docutils literal notranslate"><span class="pre">there</span></code>.</p>
-<p>Other comparison operators like &gt; and &lt; work as well.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="LiSE.query.CombinedQueryResult">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.query.</span></span><span class="sig-name descname"><span class="pre">CombinedQueryResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#LiSE.query.QueryResult" title="LiSE.query.QueryResult"><span class="pre">QueryResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">right</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#LiSE.query.QueryResult" title="LiSE.query.QueryResult"><span class="pre">QueryResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">oper</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#CombinedQueryResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.query.CombinedQueryResult" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
+<p>Other comparison operators like <code class="docutils literal notranslate"><span class="pre">&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;</span></code> work as well.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="LiSE.query.QueryResult">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.query.</span></span><span class="sig-name descname"><span class="pre">QueryResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">windows_l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">windows_r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_of_time</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#QueryResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.query.QueryResult" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="LiSE.query.QueryResultEndTurn">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.query.</span></span><span class="sig-name descname"><span class="pre">QueryResultEndTurn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">windows_l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">windows_r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_of_time</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#QueryResultEndTurn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.query.QueryResultEndTurn" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="LiSE.query.QueryResultMidTurn">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.query.</span></span><span class="sig-name descname"><span class="pre">QueryResultMidTurn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">windows_l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">windows_r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_of_time</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#QueryResultMidTurn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.query.QueryResultMidTurn" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="LiSE.query.intersect2">
-<span class="sig-prename descclassname"><span class="pre">LiSE.query.</span></span><span class="sig-name descname"><span class="pre">intersect2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">left</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#intersect2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.query.intersect2" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return intersection of 2 windows of time</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="LiSE.query.slow_iter_turns_eval_cmp">
-<span class="sig-prename descclassname"><span class="pre">LiSE.query.</span></span><span class="sig-name descname"><span class="pre">slow_iter_turns_eval_cmp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_branch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">engine</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#slow_iter_turns_eval_cmp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.query.slow_iter_turns_eval_cmp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterate over all turns on which a comparison holds.</p>
-<p>This is expensive. It evaluates the query for every turn in history.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="LiSE.query.windows_intersection">
-<span class="sig-prename descclassname"><span class="pre">LiSE.query.</span></span><span class="sig-name descname"><span class="pre">windows_intersection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">windows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.11)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.11)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.11)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.11)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/LiSE/query.html#windows_intersection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.query.windows_intersection" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a list of (beginning, ending), return another describing where they overlap.</p>
-<p>Only ever returns one item, but puts it in a list anyway, to be like
-<code class="docutils literal notranslate"><span class="pre">windows_union</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.11)">list</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="LiSE.query.windows_union">
-<span class="sig-prename descclassname"><span class="pre">LiSE.query.</span></span><span class="sig-name descname"><span class="pre">windows_union</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">windows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.11)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.11)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.11)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.11)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/LiSE/query.html#windows_union"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.query.windows_union" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a list of (beginning, ending), return a minimal version that contains the same ranges.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.11)">list</a></p>
-</dd>
-</dl>
+<dd><p>A slightly lazy tuple-like object holding a history query’s results</p>
+<p>Testing for membership of a turn number in a QueryResult only evaluates
+the predicate for that turn number, and testing for membership of nearby
+turns is fast. Accessing the start or the end of the QueryResult only
+evaluates the initial or final item. Other forms of access cause the whole
+query to be evaluated in parallel.</p>
 </dd></dl>
 
 </section>
@@ -1198,14 +1196,7 @@ value. To find out, construct a historical query and pass it to
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#module-LiSE.query">query</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.query.CombinedQueryResult"><code class="docutils literal notranslate"><span class="pre">CombinedQueryResult</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#LiSE.query.QueryResult"><code class="docutils literal notranslate"><span class="pre">QueryResult</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.query.QueryResultEndTurn"><code class="docutils literal notranslate"><span class="pre">QueryResultEndTurn</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.query.QueryResultMidTurn"><code class="docutils literal notranslate"><span class="pre">QueryResultMidTurn</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.query.intersect2"><code class="docutils literal notranslate"><span class="pre">intersect2()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.query.slow_iter_turns_eval_cmp"><code class="docutils literal notranslate"><span class="pre">slow_iter_turns_eval_cmp()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.query.windows_intersection"><code class="docutils literal notranslate"><span class="pre">windows_intersection()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.query.windows_union"><code class="docutils literal notranslate"><span class="pre">windows_union()</span></code></a></li>
 </ul>
 </li>
 </ul>

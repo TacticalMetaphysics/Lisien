@@ -16,18 +16,17 @@
 
 Sometimes you want to know when some stat of a LiSE entity had a particular
 value. To find out, construct a historical query and pass it to
-``Engine.turns_when``, like this:
+``Engine.turns_when``, like this::
 
-```
-physical = engine.character['physical']
-that = physical.thing['that']
-hist_loc = that.historical('location')
-print(list(engine.turns_when(hist_loc == 'there')))
-```
+	physical = engine.character['physical']
+	that = physical.thing['that']
+	hist_loc = that.historical('location')
+	print(list(engine.turns_when(hist_loc == 'there')))
+
 
 You'll get a list of turns when ``that`` was ``there``.
 
-Other comparison operators like > and < work as well.
+Other comparison operators like ``>`` and ``<`` work as well.
 
 """
 import operator
@@ -52,7 +51,8 @@ import LiSE
 
 
 def windows_union(windows: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
-	"""Given a list of (beginning, ending), return a minimal version that contains the same ranges.
+	"""Given a list of (beginning, ending), return a minimal version that
+	contains the same ranges.
 
 	:rtype: list
 
@@ -155,7 +155,7 @@ def intersect2(left, right):
 
 def windows_intersection(
 		windows: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
-	"""Given a list of (beginning, ending), return another describing where they overlap.
+	"""Given a list of (beginning, ending), describe where they overlap.
 
 	Only ever returns one item, but puts it in a list anyway, to be like
 	``windows_union``.
@@ -287,8 +287,8 @@ def _make_edge_val_select(graph: bytes, orig: bytes, dest: bytes, idx: int,
 					tab.c.tick == ticksel.c.tick)))
 
 
-def make_side_sel(entity, stat, branches: List[str], pack: callable,
-					mid_turn: bool):
+def _make_side_sel(entity, stat, branches: List[str], pack: callable,
+                   mid_turn: bool):
 	from .character import AbstractCharacter
 	from .node import Place
 	from .node import Thing
@@ -326,6 +326,15 @@ def _getcol(alias: "StatusAlias"):
 
 
 class QueryResult(Sequence, Set):
+	"""A slightly lazy tuple-like object holding a history query's results
+
+	Testing for membership of a turn number in a QueryResult only evaluates
+	the predicate for that turn number, and testing for membership of nearby
+	turns is fast. Accessing the start or the end of the QueryResult only
+	evaluates the initial or final item. Other forms of access cause the whole
+	query to be evaluated in parallel.
+
+	"""
 
 	def __init__(self, windows_l, windows_r, oper, end_of_time):
 		self._past_l = windows_l
