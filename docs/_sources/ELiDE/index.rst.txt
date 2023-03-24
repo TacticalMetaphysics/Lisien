@@ -111,6 +111,7 @@ Simple data-driven UI interactions
 menu
 ----
 The menu along the left side of the screen, containing time controls and the stat editor
+
 .. automodule:: ELiDE.menu
     :members:
 

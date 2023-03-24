@@ -1466,14 +1466,61 @@ menu will be populated with buttons that say <code class="docutils literal notra
 </section>
 <section id="menu">
 <h2>menu<a class="headerlink" href="#menu" title="Permalink to this heading">¶</a></h2>
-<p>The menu along the left side of the screen, containing time controls and the stat editor
-.. automodule:: ELiDE.menu</p>
-<blockquote>
-<div><dl class="field-list simple">
-<dt class="field-odd">members<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-</dl>
-</div></blockquote>
+<p>The menu along the left side of the screen, containing time controls and the stat editor</p>
+<span class="target" id="module-ELiDE.menu"></span><dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.menu.DirPicker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">DirPicker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#DirPicker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.DirPicker" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.menu.GeneratorButton">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">GeneratorButton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#GeneratorButton"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.GeneratorButton" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.menu.MenuIntInput">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">MenuIntInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuIntInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuIntInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Special text input for setting the turn or tick</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.menu.MenuIntInput.insert_text">
+<span class="sig-name descname"><span class="pre">insert_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_undo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuIntInput.insert_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuIntInput.insert_text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Natural numbers only.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.menu.MenuTextInput">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">MenuTextInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuTextInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuTextInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Special text input for setting the branch</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.menu.MenuTextInput.on_enter">
+<span class="sig-name descname"><span class="pre">on_enter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuTextInput.on_enter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuTextInput.on_enter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call the setter and blank myself out so that my hint text shows
+up. It will be the same you just entered if everything’s
+working.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.menu.MenuTextInput.on_focus">
+<span class="sig-name descname"><span class="pre">on_focus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuTextInput.on_focus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuTextInput.on_focus" title="Permalink to this definition">¶</a></dt>
+<dd><p>If I’ve lost focus, treat it as if the user hit Enter.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ELiDE.menu.MenuTextInput.on_text_validate">
+<span class="sig-name descname"><span class="pre">on_text_validate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuTextInput.on_text_validate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuTextInput.on_text_validate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Equivalent to hitting Enter.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ELiDE.menu.WorldStartConfigurator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">WorldStartConfigurator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#WorldStartConfigurator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.WorldStartConfigurator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Give options for how to initialize the world state</p>
+</dd></dl>
+
 </section>
 <section id="rulesview">
 <h2>rulesview<a class="headerlink" href="#rulesview" title="Permalink to this heading">¶</a></h2>
@@ -2712,7 +2759,14 @@ set the title in the class as previously stated in the documentation.</p>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.dialog.ScrollableLabel"><code class="docutils literal notranslate"><span class="pre">ScrollableLabel</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#menu">menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#menu">menu</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.menu.DirPicker"><code class="docutils literal notranslate"><span class="pre">DirPicker</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.menu.GeneratorButton"><code class="docutils literal notranslate"><span class="pre">GeneratorButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.menu.MenuIntInput"><code class="docutils literal notranslate"><span class="pre">MenuIntInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.menu.MenuTextInput"><code class="docutils literal notranslate"><span class="pre">MenuTextInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ELiDE.menu.WorldStartConfigurator"><code class="docutils literal notranslate"><span class="pre">WorldStartConfigurator</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#rulesview">rulesview</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.rulesview.CharacterRulesScreen"><code class="docutils literal notranslate"><span class="pre">CharacterRulesScreen</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.rulesview.RuleButton"><code class="docutils literal notranslate"><span class="pre">RuleButton</span></code></a></li>
