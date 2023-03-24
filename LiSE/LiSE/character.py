@@ -679,7 +679,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 	"""
 	_book = "character"
-	remove_portal = getatt('remove_edge')
+
+	def remove_portal(self, origin, destination):
+		__doc__ = self.remove_edge.__doc__
+		super().remove_edge(origin, destination)
 
 	@property
 	def character(self):

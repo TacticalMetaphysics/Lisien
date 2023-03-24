@@ -29,22 +29,24 @@ need to change that.
 
 To add a new rule to a LiSE entity, the easiest thing is to use the
 decorator syntax::
->@entity.rule
->def do_something(entity):
->	...
->
->@do_something.trigger
->def whenever(entity):
->	...
->
->@do_something.trigger
->def forever(entity):
->	....
->
->@do_something.action
->def do_something_else(entity):
->	...
->
+
+	@entity.rule
+	def do_something(entity):
+		...
+
+	@do_something.trigger
+	def whenever(entity):
+		...
+
+	@do_something.trigger
+	def forever(entity):
+		...
+
+	@do_something.action
+	def do_something_else(entity):
+		...
+
+
 
 When run, this code will:
 * copy the `do_something` function to `action.py`, where LiSE knows

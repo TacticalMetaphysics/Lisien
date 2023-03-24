@@ -210,6 +210,13 @@ engine
 
 			A mapping of, and decorator for, generic functions.
 
+		.. py:property:: rule
+
+			A mapping of :class:`LiSE.rule.Rule` objects, whether applied to an entity or not.
+
+			Can also be used as a decorator on functions to make them into new rules, with the decorated function as
+			their initial action.
+
 		.. py:method:: Engine.next_turn
 			Make time move forward in the simulation.
 
@@ -253,6 +260,79 @@ engine
 		.. automethod:: close
 
 		.. automethod:: unload
+
+character
+---------
+.. automodule:: LiSE.character
+
+	.. autoclass:: Character
+
+		.. py:property:: stat
+
+			A mapping of game-time-sensitive data.
+
+		.. py:property:: place
+
+			A mapping of :class:`LiSE.node.Place` objects in this :class:`Character`.
+
+			Has a ``rule`` method for applying new rules to every :class:`Place` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+		.. py:property:: thing
+
+			A mapping of :class:`LiSE.node.Thing` objects in this :class:`Character`.
+
+			Has a ``rule`` method for applying new rules to every :class:`Thing` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+		.. py:property:: node
+
+			A mapping of :class:`LiSE.node.Thing` and :class:`LiSE.node.Place` objects in this :class:`Character`.
+
+			Has a ``rule`` method for applying new rules to every :class:`Node` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+		.. py:property:: portal
+
+			A two-layer mapping of :class:`LiSE.portal.Portal` objects in this :class:`Character`, by origin and destination
+
+			Has a ``rule`` method for applying new rules to every :class:`Portal` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+			Aliases:  ``adj``, ``edge``, ``succ``
+
+		.. py:property:: preportal
+
+			A two-layer mapping of :class:`LiSE.portal.Portal` objects in this :class:`Character`, by destination and origin
+
+			Has a ``rule`` method for applying new rules to every :class:`Portal` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+			Alias: ``pred``
+
+		.. automethod:: add_places_from
+
+		.. automethod:: add_portal
+
+		.. automethod:: add_portals_from
+
+		.. automethod:: add_thing
+
+		.. automethod:: historical
+
+		.. automethod:: new_portal
+
+		.. automethod:: place2thing
+
+		.. automethod:: portals
+
+		.. automethod:: remove_portal
+
+		.. automethod:: remove_unit
+
+		.. automethod:: thing2place
+
+		.. automethod:: units
 
 node
 ----
@@ -302,12 +382,37 @@ node
 portal
 ------
 .. automodule:: LiSE.portal
-	:members:
+
+	.. autoclass:: Portal
+
+		.. py:attribute:: origin
+
+			The :class:`LiSE.node.Place` or :class:`LiSE.node.Thing` that this leads out from
+
+		.. py:attribute:: destination
+
+			The :class:`LiSE.node.Place` or :class:`LiSE.node.Thing` that this leads into
+
+		.. py:property:: character
+
+			The :class:`LiSE.character.Character` that this is in
+
+		.. py:property:: engine
+
+			The :class:`LiSE.engine.Engine` that this is in
+
+		.. autoproperty:: reciprocal
+
+		.. automethod:: historical
+
+		.. automethod:: delete
 
 rule
 ----
 .. automodule:: LiSE.rule
-	:members:
+
+	.. autoclass:: Rule
+		:members:
 
 query
 -----

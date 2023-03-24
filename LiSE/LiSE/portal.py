@@ -35,7 +35,7 @@ class RuleMapping(BaseRuleMapping):
 
 
 class Portal(Edge, RuleFollower):
-	"""Connection between two Places that Things may travel along.
+	"""Connection between two nodes that :class:`LiSE.node.Thing` travel along
 
 	LiSE entities are truthy so long as they exist, falsy if they've
 	been deleted.
@@ -197,6 +197,7 @@ class Portal(Edge, RuleFollower):
 			self.character.portal[self.origin.name], key='dest', val=None)
 
 	def unwrap(self):
+		"""Return a dictionary representation of this entity"""
 		return {
 			k: v.unwrap()
 			if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
