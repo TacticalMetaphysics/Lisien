@@ -182,7 +182,7 @@ class Engine(AbstractEngine, gORM):
 		the world; used when a player should not be able to change just anything.
 		Defaults to `NullSchema`
 	:param flush_interval: LiSE will put pending changes into the database
-		transaction every ``flush_interval`` turns. If ``None``), only flush
+		transaction every ``flush_interval`` turns. If ``None``, only flush
 		on commit. Default ``1``.
 	:param keyframe_interval: How many turns to pass before automatically
 		snapping a keyframe, default ``10``. If ``None``, you'll need
