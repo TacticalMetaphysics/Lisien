@@ -26,7 +26,7 @@ from networkx import shortest_path, shortest_path_length
 
 from .allegedb import graph, HistoricKeyError
 
-from .util import getatt, AbstractCharacter
+from .util import getatt
 from .query import StatusAlias
 from . import rule
 from .exc import AmbiguousUserError, TravelException
