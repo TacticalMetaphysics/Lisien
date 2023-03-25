@@ -976,7 +976,8 @@ class RuleProxy(Signal):
 		self._cache['triggers'] = v
 		self.engine.handle('set_rule_triggers',
 							rule=self.name,
-							triggers=self._nominate(v))
+							triggers=self._nominate(v),
+							branching=True)
 		self.send(self, triggers=v)
 
 	@property
@@ -988,7 +989,8 @@ class RuleProxy(Signal):
 		self._cache['prereqs'] = v
 		self.engine.handle('set_rule_prereqs',
 							rule=self.name,
-							prereqs=self._nominate(v))
+							prereqs=self._nominate(v),
+							branching=True)
 		self.send(self, prereqs=v)
 
 	@property
@@ -1000,7 +1002,8 @@ class RuleProxy(Signal):
 		self._cache['actions'] = v
 		self.engine.handle('set_rule_actions',
 							rule=self.name,
-							actions=self._nominate(v))
+							actions=self._nominate(v),
+							branching=True)
 		self.send(self, actions=v)
 
 	def __init__(self, engine, rulename):
