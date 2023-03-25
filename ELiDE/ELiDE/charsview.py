@@ -19,8 +19,10 @@ from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen
 from kivy.uix.recycleview import RecycleView
-from kivy.properties import ListProperty, ObjectProperty, StringProperty
+from kivy.properties import ListProperty, ObjectProperty, StringProperty, \
+ NumericProperty
 
+from .stores import RecycleToggleButton
 from .util import SelectableRecycleBoxLayout
 
 # TODO: Visual preview
@@ -82,10 +84,16 @@ class CharactersScreen(Screen):
 			yield {'index': i, 'text': name}
 
 	def on_names(self, *args):
-		if not self.charsview:
+		app = App.get_running_app()
+		if not app.character or not self.charsview:
 			Clock.schedule_once(self.on_names, 0)
 			return
 		self.charsview.data = list(self._munge_names(self.names))
+		charname = app.character.name
+		for i, name in enumerate(self.names):
+			if name == charname:
+				self.charsview.children[0].select_node(i)
+				return
 
 	def on_charsview(self, *args):
 		if not self.push_character_name:
