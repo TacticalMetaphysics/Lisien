@@ -907,7 +907,7 @@ class Cache:
 					if store_hint:
 						shallowest[args] = ret
 					return ret
-			for (b, r, t) in self.db._iter_parent_btt(branch):
+			for (b, r, t) in self.db._iter_parent_btt(branch, turn, tick):
 				brancs = branchentk.get(b)
 				if brancs is not None and brancs.rev_gettable(r):
 					if r in brancs and brancs[r].rev_gettable(t):
@@ -1025,7 +1025,7 @@ class Cache:
 						return ret
 					else:
 						return NotInKeyframeError("No value")
-			for (b, r, t) in self.db._iter_parent_btt(branch):
+			for (b, r, t) in self.db._iter_parent_btt(branch, turn, tick):
 				if b in keyframes:
 					kfb = keyframes[b]
 					if r in kfb:
