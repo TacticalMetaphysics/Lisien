@@ -140,7 +140,7 @@ class Portal(Edge, RuleFollower):
 		try:
 			return self.character.portal[self.dest][self.orig]
 		except KeyError:
-			raise KeyError("This portal has no reciprocal")
+			raise AttributeError("This portal has no reciprocal")
 
 	def historical(self, stat: Hashable) -> StatusAlias:
 		"""Return a reference to the values that a stat has had in the past.
