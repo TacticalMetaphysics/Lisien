@@ -14,12 +14,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Directed edges, as used by LiSE."""
 from collections.abc import Mapping
-from typing import Union, List, Tuple, Any
+from typing import Union, List, Tuple, Any, Hashable
 
 from .allegedb.graph import Edge
 from .allegedb import HistoricKeyError
 
-from .util import getatt
+from .util import getatt, AbstractCharacter
 from .query import StatusAlias
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
@@ -47,7 +47,8 @@ class Portal(Edge, RuleFollower):
 	engine = getatt('db')
 	no_unwrap = True
 
-	def __init__(self, graph, orig, dest):
+	def __init__(self, graph: AbstractCharacter, orig: Hashable,
+					dest: Hashable):
 		super().__init__(graph, orig, dest, 0)
 		self.origin = graph.node[orig]
 		self.destination = graph.node[dest]
@@ -130,7 +131,7 @@ class Portal(Edge, RuleFollower):
 				and self.dest in self.character.portal[self.orig])
 
 	@property
-	def reciprocal(self):
+	def reciprocal(self) -> "Portal":
 		"""If there's another Portal connecting the same origin and
 		destination that I do, but going the opposite way, return
 		it. Else raise KeyError.
@@ -141,7 +142,7 @@ class Portal(Edge, RuleFollower):
 		except KeyError:
 			raise KeyError("This portal has no reciprocal")
 
-	def historical(self, stat):
+	def historical(self, stat: Hashable) -> StatusAlias:
 		"""Return a reference to the values that a stat has had in the past.
 
 		You can use the reference in comparisons to make a history
@@ -151,7 +152,9 @@ class Portal(Edge, RuleFollower):
 		"""
 		return StatusAlias(entity=self, stat=stat)
 
-	def update(self, e: Union[Mapping, List[Tuple[Any, Any]]] = None, **f):
+	def update(self,
+				e: Union[Mapping, List[Tuple[Any, Any]]] = None,
+				**f) -> None:
 		"""Works like regular update, but less
 
 		Only actually updates when the new value and the old value differ.
@@ -175,7 +178,7 @@ class Portal(Edge, RuleFollower):
 			if k not in self or self[k] != v:
 				self[k] = v
 
-	def delete(self):
+	def delete(self) -> None:
 		"""Remove myself from my :class:`Character`.
 
 		For symmetry with :class:`Thing` and :class:`Place`.
@@ -196,7 +199,7 @@ class Portal(Edge, RuleFollower):
 		self.character.portal[self.origin.name].send(
 			self.character.portal[self.origin.name], key='dest', val=None)
 
-	def unwrap(self):
+	def unwrap(self) -> dict:
 		"""Return a dictionary representation of this entity"""
 		return {
 			k: v.unwrap()
