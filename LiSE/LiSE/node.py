@@ -19,7 +19,7 @@ have a lot in common.
 
 """
 from collections.abc import Mapping, ValuesView
-from typing import Optional, Hashable, Union
+from typing import Optional, Hashable, Union, Iterator, List
 
 import networkx as nx
 from networkx import shortest_path, shortest_path_length
@@ -312,7 +312,7 @@ class Node(graph.Node, rule.RuleFollower):
 	engine = getatt('db')
 
 	@property
-	def user(self):
+	def user(self) -> UserMapping:
 		__doc__ = UserMapping.__doc__
 		return UserMapping(self)
 
@@ -321,7 +321,7 @@ class Node(graph.Node, rule.RuleFollower):
 		self.db = character.engine
 
 	@property
-	def portal(self):
+	def portal(self) -> Dests:
 		""" A mapping of portals leading out from this node.
 
 		Aliases ``portal``, ``adj``, ``edge``, ``successor``, and ``succ``
@@ -331,7 +331,7 @@ class Node(graph.Node, rule.RuleFollower):
 		return Dests(self)
 
 	@property
-	def preportal(self):
+	def preportal(self) -> Origs:
 		"""A mapping of portals leading to this node.
 
 		Aliases ``preportal``, ``predecessor`` and ``pred`` are available.
@@ -340,11 +340,11 @@ class Node(graph.Node, rule.RuleFollower):
 		return Origs(self)
 
 	@property
-	def content(self):
+	def content(self) -> NodeContent:
 		"""A mapping of ``Thing`` objects that are here"""
 		return NodeContent(self)
 
-	def contents(self):
+	def contents(self) -> NodeContentValues:
 		"""A set-like object containing ``Thing`` objects that are here"""
 		return self.content.values()
 
@@ -353,7 +353,7 @@ class Node(graph.Node, rule.RuleFollower):
 		yield from self._extra_keys
 		return
 
-	def clear(self):
+	def clear(self) -> None:
 		"""Delete all my keys"""
 		for key in super().__iter__():
 			del self[key]
@@ -370,12 +370,12 @@ class Node(graph.Node, rule.RuleFollower):
 		super().__delitem__(k)
 		self.send(self, key=k, val=None)
 
-	def successors(self):
+	def successors(self) -> Iterator["Place"]:
 		"""Iterate over nodes with edges leading from here to there."""
 		for port in self.portal.values():
 			yield port.destination
 
-	def predecessors(self):
+	def predecessors(self) -> Iterator["Place"]:
 		"""Iterate over nodes with edges leading here from there."""
 		for port in self.preportal.values():
 			yield port.origin
@@ -391,7 +391,9 @@ class Node(graph.Node, rule.RuleFollower):
 				return dest
 			raise ValueError("{} not in {}".format(dest, self.character.name))
 
-	def shortest_path_length(self, dest, weight=None):
+	def shortest_path_length(self,
+								dest: Union[Hashable, "Node"],
+								weight: Hashable = None) -> int:
 		"""Return the length of the path from me to ``dest``.
 
 		Raise ``ValueError`` if ``dest`` is not a node in my character
@@ -402,7 +404,9 @@ class Node(graph.Node, rule.RuleFollower):
 		return shortest_path_length(self.character, self.name,
 									self._plain_dest_name(dest), weight)
 
-	def shortest_path(self, dest, weight=None):
+	def shortest_path(self,
+						dest: Union[Hashable, "Node"],
+						weight: Hashable = None) -> List[Hashable]:
 		"""Return a list of node names leading from me to ``dest``.
 
 		Raise ``ValueError`` if ``dest`` is not a node in my character
@@ -412,7 +416,9 @@ class Node(graph.Node, rule.RuleFollower):
 		return shortest_path(self.character, self.name,
 								self._plain_dest_name(dest), weight)
 
-	def path_exists(self, dest, weight=None):
+	def path_exists(self,
+					dest: Union[Hashable, "Node"],
+					weight: Hashable = None) -> bool:
 		"""Return whether there is a path leading from me to ``dest``.
 
 		With ``weight``, only consider edges that have a stat by the
@@ -427,7 +433,7 @@ class Node(graph.Node, rule.RuleFollower):
 		except KeyError:
 			return False
 
-	def delete(self):
+	def delete(self) -> None:
 		"""Get rid of this, starting now.
 
 		Apart from deleting the node, this also informs all its users
@@ -451,17 +457,18 @@ class Node(graph.Node, rule.RuleFollower):
 										turn, tick, False)
 		self.character.node.send(self.character.node, key=self.name, val=None)
 
-	def new_portal(self, other, **stats):
+	def new_portal(self, other: Union[Hashable, "Node"],
+					**stats) -> "LiSE.portal.Portal":
 		"""Connect a portal from here to another node, and return it."""
 		return self.character.new_portal(self.name,
 											getattr(other, 'name', other),
 											**stats)
 
-	def new_thing(self, name, **stats):
+	def new_thing(self, name: Hashable, **stats) -> "Thing":
 		"""Create a new thing, located here, and return it."""
 		return self.character.new_thing(name, self.name, **stats)
 
-	def historical(self, stat):
+	def historical(self, stat: Hashable) -> StatusAlias:
 		"""Return a reference to the values that a stat has had in the past.
 
 		You can use the reference in comparisons to make a history
@@ -508,7 +515,7 @@ class Place(Node):
 		except:
 			return True
 
-	def delete(self):
+	def delete(self) -> None:
 		"""Remove myself from the world model immediately."""
 		super().delete()
 		self.character.place.send(self.character.place,
@@ -605,21 +612,21 @@ class Thing(Node):
 		return "<{}.character['{}'].thing['{}']>".format(
 			self.engine, self.character.name, self.name)
 
-	def delete(self):
+	def delete(self) -> None:
 		super().delete()
 		self._set_loc(None)
 		self.character.thing.send(self.character.thing,
 									key=self.name,
 									val=None)
 
-	def clear(self):
+	def clear(self) -> None:
 		"""Unset everything."""
 		for k in list(self.keys()):
 			if k not in self._extra_keys:
 				del self[k]
 
 	@property
-	def location(self):
+	def location(self) -> Node:
 		"""The ``Thing`` or ``Place`` I'm in."""
 		locn = self['location']
 		if locn is None:
@@ -633,7 +640,7 @@ class Thing(Node):
 		self['location'] = v
 
 	@property
-	def next_location(self):
+	def next_location(self) -> Optional[Node]:
 		branch = self.engine.branch
 		turn = self.engine._things_cache.turn_after(self.character.name,
 													self.name,
