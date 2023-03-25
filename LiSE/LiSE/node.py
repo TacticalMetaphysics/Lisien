@@ -141,7 +141,10 @@ class NodeContentValues(ValuesView):
 			yield nodem[name]
 
 	def __contains__(self, item):
-		return item.location == self._mapping.node
+		try:
+			return item.location == self._mapping.node
+		except AttributeError:
+			return False
 
 
 class NodeContent(Mapping):
