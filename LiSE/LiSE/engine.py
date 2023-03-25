@@ -36,7 +36,7 @@ from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
 from .allegedb.window import update_window, update_backward_window
 from .util import sort_set, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
-from .query import (Query, make_side_sel, StatusAlias, ComparisonQuery,
+from .query import (Query, _make_side_sel, StatusAlias, ComparisonQuery,
 					CompoundQuery, QueryResultMidTurn, QueryResult,
 					QueryResultEndTurn, CombinedQueryResult)
 from .character import Character
@@ -163,39 +163,51 @@ class Engine(AbstractEngine, gORM):
 	"""LiSE, the Life Simulator Engine.
 
 	:param prefix: directory containing the simulation and its code;
-		defaults to the working directory
-	:param string: module storing strings to be used in the game
-	:param function: module containing utility functions
+		defaults to the working directory.
+	:param string: module storing strings to be used in the game; if absent,
+		we'll use a :class:`LiSE.xcollections.StringStore` to keep them in a
+		JSON file in the ``prefix``.
+	:param function: module containing utility functions; if absent, we'll
+		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py
+		file in the ``prefix``
 	:param method: module containing functions taking this engine as
-		first arg
+		first arg; if absent, we'll
+		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py
+		file in the ``prefix``.
 	:param trigger: module containing trigger functions, taking a LiSE
-		entity and returning a boolean for whether to run a rule
+		entity and returning a boolean for whether to run a rule; if absent, we'll
+		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py
+		file in the ``prefix``.
 	:param prereq: module containing prereq functions, taking a LiSE entity and
-		returning a boolean for whether to permit a rule to run
+		returning a boolean for whether to permit a rule to run; if absent, we'll
+		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py
+		file in the ``prefix``.
 	:param action: module containing action functions, taking a LiSE entity and
-		mutating it (and possibly the rest of the world)
+		mutating it (and possibly the rest of the world); if absent, we'll
+		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py
+		file in the ``prefix``.
 	:param connect_string: a rfc1738 URI for a database to connect to. Leave
-		`None` to use the SQLite database in the `prefix`
+		``None`` to use the SQLite database in the ``prefix``.
 	:param connect_args: dictionary of keyword arguments for the
 		database connection
 	:param schema: a Schema class that determines which changes to allow to
-		the world; used when a player should not be able to change just anything.
-		Defaults to `NullSchema`
+		the world; used when a player should not be able to change just
+		anything. Defaults to :class:`NullSchema`.
 	:param flush_interval: LiSE will put pending changes into the database
-		transaction every ``flush_interval`` turns. If ``None``), only flush
+		transaction every ``flush_interval`` turns. If ``None``, only flush
 		on commit. Default ``1``.
 	:param keyframe_interval: How many turns to pass before automatically
 		snapping a keyframe, default ``10``. If ``None``, you'll need
 		to call ``snap_keyframe`` yourself.
 	:param commit_interval: LiSE will commit changes to disk every
 		``commit_interval`` turns. If ``None`` (the default), only commit
-		on close or manual call to ``commit``
-	:param random_seed: a number to initialize the randomizer
+		on close or manual call to ``commit``.
+	:param random_seed: a number to initialize the randomizer.
 	:param logfun: an optional function taking arguments
-		``level, message``, which should log `message` somehow
+		``level, message``, which should log `message` somehow.
 	:param clear: whether to delete *any and all* existing data
-		and code in ``prefix`` and the databse. Use with caution!
-	:param keep_rules_journal: Boolean; if true (default), keep
+		and code in ``prefix`` and the database. Use with caution!
+	:param keep_rules_journal: Boolean; if ``True`` (the default), keep
 		information on the behavior of the rules engine in the database.
 		Makes the database rather large, but useful for debugging.
 	:param keyframe_on_close: Whether to snap a keyframe when closing the
@@ -203,14 +215,15 @@ class Engine(AbstractEngine, gORM):
 		make future startups faster, but could cause database bloat if
 		your game runs few turns per session.
 	:param cache_arranger: Whether to start a background
-		process that indexes the caches to make time travel faster
+		thread that indexes the caches to make time travel faster
 		when it's to points we anticipate. If you use this, you can
 		specify some other point in time to index by putting the
 		``(branch, turn, tick)`` in my ``cache_arrange_queue``.
-		 Default ``False``.
+		Default ``False``.
 	:param enforce_end_of_time: Whether to raise an exception when
 		time travelling to a point after the time that's been simulated.
-		Default ``True``.
+		Default ``True``. You normally want this, but it could cause problems
+		if you're not using the rules engine.
 
 	"""
 	char_cls = Character
@@ -1413,9 +1426,9 @@ class Engine(AbstractEngine, gORM):
 		left = qry.leftside
 		right = qry.rightside
 		if isinstance(left, StatusAlias) and isinstance(right, StatusAlias):
-			left_sel = make_side_sel(left.entity, left.stat, branches,
+			left_sel = _make_side_sel(left.entity, left.stat, branches,
 										self.pack, mid_turn)
-			right_sel = make_side_sel(right.entity, right.stat, branches,
+			right_sel = _make_side_sel(right.entity, right.stat, branches,
 										self.pack, mid_turn)
 			left_data = self.query.execute(left_sel)
 			right_data = self.query.execute(right_sel)
@@ -1428,7 +1441,7 @@ class Engine(AbstractEngine, gORM):
 											unpack_data_end(right_data),
 											qry.oper, end)
 		elif isinstance(left, StatusAlias):
-			left_sel = make_side_sel(left.entity, left.stat, branches,
+			left_sel = _make_side_sel(left.entity, left.stat, branches,
 										self.pack, mid_turn)
 			left_data = self.query.execute(left_sel)
 			if mid_turn:
@@ -1439,7 +1452,7 @@ class Engine(AbstractEngine, gORM):
 				return QueryResultEndTurn(unpack_data_end(left_data),
 											[(0, None, right)], qry.oper, end)
 		elif isinstance(right, StatusAlias):
-			right_sel = make_side_sel(right.entity, right.stat, branches,
+			right_sel = _make_side_sel(right.entity, right.stat, branches,
 										self.pack, mid_turn)
 			right_data = self.query.execute(right_sel)
 			if mid_turn:

@@ -111,6 +111,7 @@ Simple data-driven UI interactions
 menu
 ----
 The menu along the left side of the screen, containing time controls and the stat editor
+
 .. automodule:: ELiDE.menu
     :members:
 
@@ -191,8 +192,9 @@ Editor widgets for strings and Python code.
 
 .. automodule:: ELiDE.stores
     :members:
+
 Python Editor
-````````````
+`````````````
 
 Click the Python button to edit your game code in the IDE if you like.
 In this case, you can't use any of the decorators. Choose the
@@ -201,7 +203,7 @@ function you write will show up in the appropriate part of the rules
 editor.
 
 Strings Editor
-`````````````
+``````````````
 
 The LiSE engine has an attribute ``string`` that is accessed like a
 dictionary and used to store arbitrary strings, such as might be shown

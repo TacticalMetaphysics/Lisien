@@ -873,10 +873,21 @@ class Cache:
 			presettings_turns[turn] = {tick: parent + (entity, key, prev)}
 			settings_turns[turn] = {tick: parent + (entity, key, value)}
 
-	def _base_retrieve(self, args, store_hint=True):
+	def _base_retrieve(self, args, store_hint=True, retrieve_hint=True):
+		"""Hot code.
+
+		Swim up the timestream trying to find a value for the
+		key in the entity that applied at the given (branch, turn, tick).
+		If we hit a keyframe, return the value therein, or KeyError if
+		there is none.
+
+		May *return* an exception, rather than raising it. This is to enable
+		use outside try-blocks, which have some performance overhead.
+
+		"""
 		shallowest = self.shallowest
-		# if args in shallowest:
-		# 	return shallowest[args]
+		if retrieve_hint and args in shallowest:
+			return shallowest[args]
 		entity: tuple = args[:-4]
 		key: Hashable
 		branch: str
@@ -907,7 +918,7 @@ class Cache:
 					if store_hint:
 						shallowest[args] = ret
 					return ret
-			for (b, r, t) in self.db._iter_parent_btt(branch):
+			for (b, r, t) in self.db._iter_parent_btt(branch, turn, tick):
 				brancs = branchentk.get(b)
 				if brancs is not None and brancs.rev_gettable(r):
 					if r in brancs and brancs[r].rev_gettable(t):
@@ -1025,7 +1036,7 @@ class Cache:
 						return ret
 					else:
 						return NotInKeyframeError("No value")
-			for (b, r, t) in self.db._iter_parent_btt(branch):
+			for (b, r, t) in self.db._iter_parent_btt(branch, turn, tick):
 				if b in keyframes:
 					kfb = keyframes[b]
 					if r in kfb:

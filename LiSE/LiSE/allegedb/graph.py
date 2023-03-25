@@ -1047,7 +1047,7 @@ class GraphsMapping(MutableMapping):
 		return len(self.orm._graph_objs)
 
 	def __getitem__(self, item):
-		return self.orm.get_graph(item)
+		return self.orm._graph_objs[item]
 
 	def __setitem__(self, key, value):
 		if isinstance(value, networkx.MultiDiGraph):
@@ -1060,4 +1060,8 @@ class GraphsMapping(MutableMapping):
 			self.orm.new_graph(key, data=value)
 
 	def __delitem__(self, key):
-		self.orm.del_graph(key)
+		if key not in self:
+			raise KeyError("No such graph")
+		self.orm.query.del_graph(key)
+		if key in self.orm._graph_objs:
+			del self.orm._graph_objs[key]

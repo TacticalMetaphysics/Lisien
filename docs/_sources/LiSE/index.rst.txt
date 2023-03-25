@@ -17,13 +17,13 @@ The top-level data structure within LiSE is the character. Most
 data within the world model is kept in some character or other;
 these will quite frequently represent people, but can be readily
 adapted to represent any kind of data that can be comfortably
-described as a graph or a JSON object. Every change to a character
+described as a graph. Every change to a character
 will be written to the database.
 
 LiSE tracks history as a series of turns. In each turn, each
 simulation rule is evaluated once for each of the simulated
-entities it's been applied to. World changes in a given turn are
-remembered together, such that the whole world state can be
+entities it's been applied to. World changes are
+recorded such that the whole world state can be
 rewound: simply set the properties ``branch`` and ``turn`` back to
 what they were just before the change you want to undo.
 
@@ -34,7 +34,9 @@ Start by calling the engine's ``new_character`` method with a string
 ``name``.  This will return a character object with the name you
 provided. Now draw a map by calling the method ``new_place`` with many
 different ``name`` s, then linking them together with the
-method ``new_portal(origin, destination)``.  To store data pertaining
+method ``new_portal(origin, destination)``.
+
+To store data pertaining
 to some particular place, retrieve the place from the ``place``
 mapping of the character: if the character is ``world`` and the place
 name is ``'home'``, you might do it like
@@ -58,7 +60,8 @@ You can store data in things, places, and portals by treating them
 like dictionaries.  If you want to store data in a character, use its
 ``stat`` property as a dictionary instead. Data stored in these
 objects, and in the ``universal`` property of the engine, can vary
-over time. The engine's ``eternal`` property is not time-sensitive,
+over time, and be rewound by setting ``turn`` to some time before.
+The engine's ``eternal`` property is not time-sensitive,
 and is mainly for storing settings, not simulation data.
 
 Rule Creation
@@ -73,25 +76,23 @@ declared.
 
 All these items have a property ``rule`` that can be used as a
 decorator. Use this to decorate a function that performs the rule's
-action by making some change to the world state.  Functions decorated
-this way always get passed the engine as the first argument and the
-character as the second; if the function is more specific than that, a
-particular thing, place, or portal will be the third argument. This
-will get you a rule object of the same name as your action function.
+action by making some change to the world state. The function should take
+only one argument, the item itself.
 
 At first, the rule object will not have any triggers, meaning the action
-will never happen. If you want it to run on *every* tick, call its
-``always`` method and think no more of it. But if you want to be
+will never happen. If you want it to run on *every* tick, pass the decorator
+``always=True`` and think no more of it. But if you want to be
 more selective, use the rule's ``trigger`` decorator on another
 function with the same signature, and have it return ``True`` if the
-world is in such a state that the rule ought to run. There is nothing
-really stopping you from modifying the rule from inside a trigger, but
-it's not recommended.
+world is in such a state that the rule ought to run. Triggers must never
+mutate the world or use any randomness.
 
 If you like, you can also add prerequisites. These are like triggers,
 but use the ``prereq`` decorator, and should return ``True`` *unless*
 the action should *not* happen; if a single prerequisite returns
-``False``, the action is cancelled.
+``False``, the action is cancelled. Prereqs may involve random elements.
+Use the ``engine`` property of any LiSE entity to get the engine,
+then use methods such as ``percent_chance`` and ``dice_check``.
 
 Time Control
 ------------
@@ -100,12 +101,12 @@ The current time is always accessible from the engine's ``branch`` and
 ``turn`` properties. In the common case where time is advancing
 forward one tick at a time, it should be done with the engine's
 ``next_turn`` method, which polls all the game rules before going to
-the next tick; but you can also change the time whenever you want, as
+the next turn; but you can also change the time whenever you want, as
 long as ``branch`` is a string and ``turn`` is an integer. The rules
 will never be followed in response to your changing the time "by
 hand".
 
-It is possible--indeed, expected--to change the time as part of the
+It is possible to change the time as part of the
 action of a rule. This is how you would make something happen after a
 delay. Say you want a rule that puts the character ``alice`` to sleep,
 then wakes her up after eight turns (presumably hour-long).::
@@ -143,7 +144,7 @@ call, then return a menu description like this one.::
 	def wakeup(character):
 		return "Wake up?", [("Yes", character.engine.wake_alice), ("No", None)]
 
-Only methods defined with the ``@engine.method`` decorator may be used in a menu.
+Only methods defined with the ``@engine.method`` function store may be used in a menu.
 
 engine
 ------
@@ -152,6 +153,8 @@ engine
 	.. autoclass:: LiSE.Engine
 
 		.. autoproperty:: LiSE.Engine.branch
+
+		.. automethod:: is_parent_of
 
 		.. autoproperty:: LiSE.Engine.turn
 
@@ -208,21 +211,37 @@ engine
 
 			A mapping of, and decorator for, generic functions.
 
-		.. py:method:: Engine.next_turn
-			Make time move forward in the simulation.
+		.. py:property:: rule
 
-			Calls ``advance`` repeatedly, returning a list of the rules' return values.
+			A mapping of :class:`LiSE.rule.Rule` objects, whether applied to an entity or not.
+
+			Can also be used as a decorator on functions to make them into new rules, with the decorated function as
+			their initial action.
+
+		.. py:method:: Engine.next_turn
+
+			Make time move forward in the simulation.
 
 			Stops when the turn has ended, or a rule returns something non-``None``.
 
-			This is also a ``Signal``, so you can register functions to be
-			called when the simulation runs. Pass them to ``Engine.next_turn_connect(..)``.
+			This is also a :class:`blinker.Signal`, so you can register functions to be
+			called when the simulation runs. Pass them to ``Engine.next_turn.connect(..)``.
 
 			:return: a pair, of which item 0 is the returned value from a rule if applicable (default: ``[]``),
 				and item 1 is a delta describing changes to the simulation resulting from this call.
-				See the following method, ``get_delta``, for a description of the delta format.
+				See the following method, :meth:`get_delta`, for a description of the delta format.
 
 		.. automethod:: get_delta
+
+		.. automethod:: advancing
+
+		.. automethod:: batch
+
+		.. automethod:: plan
+
+		.. automethod:: snap_keyframe
+
+		.. automethod:: delete_plan
 
 		.. automethod:: new_character
 
@@ -240,18 +259,108 @@ engine
 
 		.. automethod:: close
 
+		.. automethod:: unload
+
+character
+---------
+.. automodule:: LiSE.character
+
+	.. autoclass:: Character
+
+		.. py:property:: stat
+
+			A mapping of game-time-sensitive data.
+
+		.. py:property:: place
+
+			A mapping of :class:`LiSE.node.Place` objects in this :class:`Character`.
+
+			Has a ``rule`` method for applying new rules to every :class:`Place` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+		.. py:property:: thing
+
+			A mapping of :class:`LiSE.node.Thing` objects in this :class:`Character`.
+
+			Has a ``rule`` method for applying new rules to every :class:`Thing` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+		.. py:property:: node
+
+			A mapping of :class:`LiSE.node.Thing` and :class:`LiSE.node.Place` objects in this :class:`Character`.
+
+			Has a ``rule`` method for applying new rules to every :class:`Node` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+		.. py:property:: portal
+
+			A two-layer mapping of :class:`LiSE.portal.Portal` objects in this :class:`Character`, by origin and destination
+
+			Has a ``rule`` method for applying new rules to every :class:`Portal` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+			Aliases:  ``adj``, ``edge``, ``succ``
+
+		.. py:property:: preportal
+
+			A two-layer mapping of :class:`LiSE.portal.Portal` objects in this :class:`Character`, by destination and origin
+
+			Has a ``rule`` method for applying new rules to every :class:`Portal` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
+
+			Alias: ``pred``
+
+		.. py:property:: unit
+
+			A mapping of this character's units in other characters.
+
+			Units are nodes in other characters that are in some sense part of this one. A common example in strategy
+			games is when a general leads an army: the general is one :class:`Character`, with a graph representing the
+			state of their AI; the battle map is another :class:`Character`; and the general's units, though not in the
+			general's :class:`Character`, are still under their command, and therefore follow rules defined on the
+			general's ``unit.rule`` subproperty.
+
+		.. automethod:: add_portal
+
+		.. automethod:: new_portal
+
+		.. automethod:: add_portals_from
+
+		.. automethod:: add_thing
+
+		.. automethod:: new_thing
+
+		.. automethod:: add_things_from
+
+		.. automethod:: add_place
+
+		.. automethod:: add_places_from
+
+		.. automethod:: new_place
+
+		.. automethod:: historical
+
+		.. automethod:: place2thing
+
+		.. automethod:: portals
+
+		.. automethod:: remove_portal
+
+		.. automethod:: remove_unit
+
+		.. automethod:: thing2place
+
+		.. automethod:: units
+
+		.. automethod:: facade
+
 node
 ----
 .. automodule:: LiSE.node
 
 	.. autoclass:: LiSE.node.Node
 
-		.. py:property:: user
-
-			A mapping of the characters that have this node as an avatar.
-
-			When there's only one user, you can use the special sub-property
-			``Node.user.only`` to get it.
+		.. autoproperty:: user
 
 		.. autoproperty:: portal
 
@@ -288,95 +397,48 @@ node
 portal
 ------
 .. automodule:: LiSE.portal
-	:members:
+
+	.. autoclass:: Portal
+
+		.. py:attribute:: origin
+
+			The :class:`LiSE.node.Place` or :class:`LiSE.node.Thing` that this leads out from
+
+		.. py:attribute:: destination
+
+			The :class:`LiSE.node.Place` or :class:`LiSE.node.Thing` that this leads into
+
+		.. py:property:: character
+
+			The :class:`LiSE.character.Character` that this is in
+
+		.. py:property:: engine
+
+			The :class:`LiSE.engine.Engine` that this is in
+
+		.. autoproperty:: reciprocal
+
+		.. automethod:: historical
+
+		.. automethod:: delete
 
 rule
 ----
 .. automodule:: LiSE.rule
-	:members:
+
+	.. autoclass:: Rule
+		:members:
 
 query
 -----
 .. automodule:: LiSE.query
-	:members:
 
+	.. autoclass:: QueryResult
 
-allegedb
---------
-State container and object-relational mapper for versioned graphs.
+xcollections
+------------
+.. automodule:: LiSE.xcollections
 
-allegedb serves its own special variant on the networkx
-DiGraph class (with more to come). Every change to them is
-stored in an SQL database.
+	.. autoclass:: StringStore
 
-This means you can keep multiple versions of one set of graphs and
-switch between them without the need to save, load, or run git-checkout.
-Just point the ORM at the correct branch and turn, and all of the
-graphs in the program will change. All the different branches and
-revisions remain in the database to be brought back when needed.
-
-
-usage
-_____
-
-::
-
-	>>> from LiSE.allegedb import ORM
-	>>> orm = ORM('sqlite:///test.db')
-	>>> g = orm.new_digraph('test')
-	>>> g.add_nodes_from(['spam', 'eggs', 'ham'])
-	>>> g.add_edge('spam', 'eggs')
-	>>> g.adj
-	<LiSE.allegedb.graph.DiGraphSuccessorsMapping object containing {'ham': {}, 'eggs': {}, 'spam': {'eggs': {}}}>
-	>>> del g
-	>>> orm.close()
-	>>> del orm
-	>>> orm = ORM('sqlite:///test.db')
-	>>> g = orm.graph['test']
-	>>> g.adj
-	<LiSE.allegedb.graph.DiGraphSuccessorsMapping object containing {'ham': {}, 'eggs': {}, 'spam': {'eggs': {}}}>
-	>>> import networkx as nx
-	>>> red = nx.random_lobster(10, 0.9, 0.9)
-	>>> blue = orm.new_digraph('blue', red)  # initialize with data from the given graph
-	>>> red.adj == blue.adj
-	True
-	>>> orm.turn = 1
-	>>> blue.add_edge(17, 15)
-	>>> red.adj == blue.adj
-	False
-	>>> orm.turn = 0  # undoing what I did when turn=1
-	>>> red.adj == blue.adj
-	True
-	>>> orm.branch = 'test'	# navigating to a branch for the first time creates that branch
-	>>> orm.turn = 1
-	>>> red.adj == blue.adj
-	True
-	>>> orm.branch = 'trunk'
-	>>> red.adj == blue.adj
-	False
-
-ORM
-___
-.. automodule:: LiSE.allegedb
-	:members:
-
-cache
-_____
-.. automodule:: LiSE.allegedb.cache
-	:members:
-
-graph
-_____
-.. automodule:: LiSE.allegedb.graph
-	:members:
-
-query
-_____
-.. automodule:: LiSE.allegedb.query
-	:members:
-
-wrap
-____
-.. automodule:: LiSE.allegedb.wrap
-	:members:
-
+	.. autoclass:: FunctionStore

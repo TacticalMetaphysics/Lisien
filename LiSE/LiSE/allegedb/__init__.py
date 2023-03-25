@@ -1334,6 +1334,15 @@ class ORM:
 
 	@world_locked
 	def snap_keyframe(self) -> None:
+		"""Make a copy of the complete state of the world.
+
+		You need to do this occasionally in order to keep time travel
+		performant.
+
+		The keyframe will be saved to the database at the next call to
+		``flush``.
+
+		"""
 		branch, turn, tick = self._btt()
 		if (branch, turn, tick) in self._keyframes_times:
 			return
@@ -1644,8 +1653,8 @@ class ORM:
 				noderows, edgerows, graphvalrows, nodevalrows, edgevalrows)
 
 	@world_locked
-	def unload(self):
-		"""Remove everything from memory we can"""
+	def unload(self) -> None:
+		"""Remove everything from memory that can be removed."""
 		# find the slices of time that need to stay loaded
 		branch, turn, tick = self._btt()
 		iter_parent_btt = self._iter_parent_btt
@@ -2239,17 +2248,10 @@ class ORM:
 				else:
 					kfd[branch][turn].add(tick)
 
-	def new_graph(self, name, data=None, **attr):
-		"""Return a new instance of type Graph, initialized with the given
-		data if provided.
-
-		:arg name: a name for the graph
-		:arg data: dictionary or NetworkX graph object providing initial state
-
-		"""
-		raise NotImplementedError("Only DiGraph for now")
-
-	def new_digraph(self, name, data=None, **attr) -> DiGraph:
+	def new_digraph(self,
+					name: Hashable,
+					data: dict = None,
+					**attr) -> DiGraph:
 		"""Return a new instance of type DiGraph, initialized with the given
 		data if provided.
 
@@ -2266,38 +2268,6 @@ class ORM:
 			self._init_graph(name, 'DiGraph', data)
 		return DiGraph(self, name)
 
-	def new_multigraph(self, name, data=None, **attr):
-		"""Return a new instance of type MultiGraph
-
-		Initialized with the given data if provided.
-
-		:arg name: a name for the graph
-		:arg data: dictionary or NetworkX graph object providing initial state
-
-		"""
-		raise NotImplementedError("Only DiGraph for now")
-
-	def new_multidigraph(self, name, data=None, **attr):
-		"""Return a new instance of type MultiDiGraph
-
-		Initialized with the givendata if provided.
-
-		:arg name: a name for the graph
-		:arg data: dictionary or NetworkX graph object providing initial state
-
-		"""
-		raise NotImplementedError("Only DiGraph for now")
-
-	def get_graph(self, name) -> Graph:
-		"""Return a graph previously created with ``new_graph``,
-		``new_digraph``, ``new_multigraph``, or
-		``new_multidigraph``
-
-		:arg name: name of an existing graph
-
-		"""
-		return self._graph_objs[name]
-
 	@world_locked
 	def del_graph(self, name: Hashable) -> None:
 		"""Remove all traces of a graph's existence from the database
@@ -2306,7 +2276,7 @@ class ORM:
 
 		"""
 		# make sure the graph exists before deleting anything
-		self.get_graph(name)
+		self.graph[name]
 		self.query.del_graph(name)
 		if name in self._graph_objs:
 			del self._graph_objs[name]

@@ -48,18 +48,17 @@
 
 <span class="sd">Sometimes you want to know when some stat of a LiSE entity had a particular</span>
 <span class="sd">value. To find out, construct a historical query and pass it to</span>
-<span class="sd">``Engine.turns_when``, like this:</span>
+<span class="sd">``Engine.turns_when``, like this::</span>
 
-<span class="sd">```</span>
-<span class="sd">physical = engine.character[&#39;physical&#39;]</span>
-<span class="sd">that = physical.thing[&#39;that&#39;]</span>
-<span class="sd">hist_loc = that.historical(&#39;location&#39;)</span>
-<span class="sd">print(list(engine.turns_when(hist_loc == &#39;there&#39;)))</span>
-<span class="sd">```</span>
+<span class="sd">	physical = engine.character[&#39;physical&#39;]</span>
+<span class="sd">	that = physical.thing[&#39;that&#39;]</span>
+<span class="sd">	hist_loc = that.historical(&#39;location&#39;)</span>
+<span class="sd">	print(list(engine.turns_when(hist_loc == &#39;there&#39;)))</span>
 
-<span class="sd">You&#39;ll get a list of turns when ``that`` was ``there``.</span>
 
-<span class="sd">Other comparison operators like &gt; and &lt; work as well.</span>
+<span class="sd">You&#39;ll get the turns when ``that`` was ``there``.</span>
+
+<span class="sd">Other comparison operators like ``&gt;`` and ``&lt;`` work as well.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">import</span> <span class="nn">operator</span>
@@ -83,8 +82,9 @@
 <span class="kn">import</span> <span class="nn">LiSE</span>
 
 
-<div class="viewcode-block" id="windows_union"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.query.windows_union">[docs]</a><span class="k">def</span> <span class="nf">windows_union</span><span class="p">(</span><span class="n">windows</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
-<span class="w">	</span><span class="sd">&quot;&quot;&quot;Given a list of (beginning, ending), return a minimal version that contains the same ranges.</span>
+<span class="k">def</span> <span class="nf">windows_union</span><span class="p">(</span><span class="n">windows</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Given a list of (beginning, ending), return a minimal version that</span>
+<span class="sd">	contains the same ranges.</span>
 
 <span class="sd">	:rtype: list</span>
 
@@ -132,10 +132,10 @@
 			<span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">window</span><span class="p">)</span>
 			<span class="k">continue</span>
 		<span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">fix_overlap</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">pop</span><span class="p">(),</span> <span class="n">window</span><span class="p">))</span>
-	<span class="k">return</span> <span class="n">res</span></div>
+	<span class="k">return</span> <span class="n">res</span>
 
 
-<div class="viewcode-block" id="intersect2"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.query.intersect2">[docs]</a><span class="k">def</span> <span class="nf">intersect2</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">intersect2</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Return intersection of 2 windows of time&quot;&quot;&quot;</span>
 	<span class="k">if</span> <span class="n">left</span> <span class="o">==</span> <span class="n">right</span><span class="p">:</span>
 		<span class="k">return</span> <span class="n">left</span>
@@ -182,12 +182,12 @@
 			<span class="k">return</span> <span class="n">right</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">left</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 		<span class="k">else</span><span class="p">:</span>
 			<span class="k">return</span> <span class="n">right</span>
-	<span class="k">return</span> <span class="kc">None</span></div>
+	<span class="k">return</span> <span class="kc">None</span>
 
 
-<div class="viewcode-block" id="windows_intersection"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.query.windows_intersection">[docs]</a><span class="k">def</span> <span class="nf">windows_intersection</span><span class="p">(</span>
+<span class="k">def</span> <span class="nf">windows_intersection</span><span class="p">(</span>
 		<span class="n">windows</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
-<span class="w">	</span><span class="sd">&quot;&quot;&quot;Given a list of (beginning, ending), return another describing where they overlap.</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Given a list of (beginning, ending), describe where they overlap.</span>
 
 <span class="sd">	Only ever returns one item, but puts it in a list anyway, to be like</span>
 <span class="sd">	``windows_union``.</span>
@@ -206,7 +206,7 @@
 			<span class="n">done</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
 		<span class="k">else</span><span class="p">:</span>
 			<span class="k">return</span> <span class="n">done</span>
-	<span class="k">return</span> <span class="n">done</span></div>
+	<span class="k">return</span> <span class="n">done</span>
 
 
 <span class="k">def</span> <span class="nf">_the_select</span><span class="p">(</span><span class="n">tab</span><span class="p">:</span> <span class="n">Table</span><span class="p">,</span> <span class="n">val_col</span><span class="o">=</span><span class="s1">&#39;value&#39;</span><span class="p">):</span>
@@ -319,8 +319,8 @@
 					<span class="n">tab</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">tick</span> <span class="o">==</span> <span class="n">ticksel</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">tick</span><span class="p">)))</span>
 
 
-<span class="k">def</span> <span class="nf">make_side_sel</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">stat</span><span class="p">,</span> <span class="n">branches</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">pack</span><span class="p">:</span> <span class="n">callable</span><span class="p">,</span>
-					<span class="n">mid_turn</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_make_side_sel</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">stat</span><span class="p">,</span> <span class="n">branches</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">pack</span><span class="p">:</span> <span class="n">callable</span><span class="p">,</span>
+                   <span class="n">mid_turn</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
 	<span class="kn">from</span> <span class="nn">.character</span> <span class="kn">import</span> <span class="n">AbstractCharacter</span>
 	<span class="kn">from</span> <span class="nn">.node</span> <span class="kn">import</span> <span class="n">Place</span>
 	<span class="kn">from</span> <span class="nn">.node</span> <span class="kn">import</span> <span class="n">Thing</span>
@@ -358,6 +358,15 @@
 
 
 <div class="viewcode-block" id="QueryResult"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.query.QueryResult">[docs]</a><span class="k">class</span> <span class="nc">QueryResult</span><span class="p">(</span><span class="n">Sequence</span><span class="p">,</span> <span class="n">Set</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;A slightly lazy tuple-like object holding a history query&#39;s results</span>
+
+<span class="sd">	Testing for membership of a turn number in a QueryResult only evaluates</span>
+<span class="sd">	the predicate for that turn number, and testing for membership of nearby</span>
+<span class="sd">	turns is fast. Accessing the start or the end of the QueryResult only</span>
+<span class="sd">	evaluates the initial or final item. Other forms of access cause the whole</span>
+<span class="sd">	query to be evaluated in parallel.</span>
+
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">windows_l</span><span class="p">,</span> <span class="n">windows_r</span><span class="p">,</span> <span class="n">oper</span><span class="p">,</span> <span class="n">end_of_time</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_past_l</span> <span class="o">=</span> <span class="n">windows_l</span>
@@ -411,7 +420,7 @@
 				<span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_oper</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_end_of_time</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="QueryResultEndTurn"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.query.QueryResultEndTurn">[docs]</a><span class="k">class</span> <span class="nc">QueryResultEndTurn</span><span class="p">(</span><span class="n">QueryResult</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">QueryResultEndTurn</span><span class="p">(</span><span class="n">QueryResult</span><span class="p">):</span>
 
 	<span class="k">def</span> <span class="nf">_generate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="n">spans</span> <span class="o">=</span> <span class="p">[]</span>
@@ -507,7 +516,7 @@
 			<span class="n">chain</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_past_r</span><span class="p">),</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_future_r</span><span class="p">)),</span>
 			<span class="n">until</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_end_of_time</span><span class="p">):</span>
 			<span class="k">if</span> <span class="n">oper</span><span class="p">(</span><span class="n">l_v</span><span class="p">,</span> <span class="n">r_v</span><span class="p">):</span>
-				<span class="k">return</span> <span class="n">turn_from</span></div>
+				<span class="k">return</span> <span class="n">turn_from</span>
 
 
 <span class="k">def</span> <span class="nf">_yield_intersections</span><span class="p">(</span><span class="n">iter_l</span><span class="p">,</span> <span class="n">iter_r</span><span class="p">,</span> <span class="n">until</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -566,7 +575,7 @@
 			<span class="k">yield</span> <span class="n">intersect2</span><span class="p">((</span><span class="n">l_from</span><span class="p">,</span> <span class="n">l_to</span><span class="p">),</span> <span class="p">(</span><span class="n">r_from</span><span class="p">,</span> <span class="n">r_to</span><span class="p">))</span> <span class="o">+</span> <span class="p">(</span><span class="n">l_v</span><span class="p">,</span> <span class="n">r_v</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="QueryResultMidTurn"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.query.QueryResultMidTurn">[docs]</a><span class="k">class</span> <span class="nc">QueryResultMidTurn</span><span class="p">(</span><span class="n">QueryResult</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">QueryResultMidTurn</span><span class="p">(</span><span class="n">QueryResult</span><span class="p">):</span>
 
 	<span class="k">def</span> <span class="nf">_generate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="n">spans</span> <span class="o">=</span> <span class="p">[]</span>
@@ -676,10 +685,10 @@
 			<span class="n">chain</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_past_r</span><span class="p">),</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_future_r</span><span class="p">)),</span>
 			<span class="n">until</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_end_of_time</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
 			<span class="k">if</span> <span class="n">oper</span><span class="p">(</span><span class="n">l_v</span><span class="p">,</span> <span class="n">r_v</span><span class="p">):</span>
-				<span class="k">return</span> <span class="n">time_from</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+				<span class="k">return</span> <span class="n">time_from</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="CombinedQueryResult"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.query.CombinedQueryResult">[docs]</a><span class="k">class</span> <span class="nc">CombinedQueryResult</span><span class="p">(</span><span class="n">QueryResult</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">CombinedQueryResult</span><span class="p">(</span><span class="n">QueryResult</span><span class="p">):</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">left</span><span class="p">:</span> <span class="n">QueryResult</span><span class="p">,</span> <span class="n">right</span><span class="p">:</span> <span class="n">QueryResult</span><span class="p">,</span> <span class="n">oper</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_left</span> <span class="o">=</span> <span class="n">left</span>
@@ -701,7 +710,7 @@
 	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_set&#39;</span><span class="p">):</span>
 			<span class="k">return</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_oper</span><span class="p">(</span><span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_left</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_right</span><span class="p">)</span></div>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_oper</span><span class="p">(</span><span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_left</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_right</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">Query</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -850,7 +859,7 @@
 		<span class="k">return</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">side</span>
 
 
-<div class="viewcode-block" id="slow_iter_turns_eval_cmp"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.query.slow_iter_turns_eval_cmp">[docs]</a><span class="k">def</span> <span class="nf">slow_iter_turns_eval_cmp</span><span class="p">(</span><span class="n">qry</span><span class="p">,</span> <span class="n">oper</span><span class="p">,</span> <span class="n">start_branch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">slow_iter_turns_eval_cmp</span><span class="p">(</span><span class="n">qry</span><span class="p">,</span> <span class="n">oper</span><span class="p">,</span> <span class="n">start_branch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Iterate over all turns on which a comparison holds.</span>
 
 <span class="sd">	This is expensive. It evaluates the query for every turn in history.</span>
@@ -869,7 +878,7 @@
 			<span class="n">branch</span><span class="p">]</span>
 		<span class="k">for</span> <span class="n">turn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">turn_start</span><span class="p">,</span> <span class="n">fork_turn</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
 			<span class="k">if</span> <span class="n">oper</span><span class="p">(</span><span class="n">leftside</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">),</span> <span class="n">rightside</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">)):</span>
-				<span class="k">yield</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span></div>
+				<span class="k">yield</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span>
 
 
 <span class="k">def</span> <span class="nf">slow_iter_btts_eval_cmp</span><span class="p">(</span><span class="n">qry</span><span class="p">,</span> <span class="n">oper</span><span class="p">,</span> <span class="n">start_branch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -1639,7 +1648,7 @@
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
     </div>
 

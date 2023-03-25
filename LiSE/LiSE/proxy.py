@@ -2018,7 +2018,7 @@ class EngineProxy(AbstractEngine):
 		self._rule_obj_cache = {}
 		self._rulebook_obj_cache = {}
 		self._char_cache = {}
-		self.character = CharacterMapProxy(self)
+		self.character = self.graph = CharacterMapProxy(self)
 		self.eternal = EternalVarProxy(self)
 		self.universal = GlobalVarProxy(self)
 		self.rulebook = AllRuleBooksProxy(self)

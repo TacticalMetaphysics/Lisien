@@ -50,19 +50,17 @@
 <span class="sd">conveniences.</span>
 
 <span class="sd">A Character is a graph that follows rules. Its rules may be assigned</span>
-<span class="sd">to run on only some portion of it: just edges (called Portals), just</span>
-<span class="sd">nodes, or just nodes of the kind that have a location in another node</span>
-<span class="sd">(called Places and Things, respectively). Each Character has a</span>
-<span class="sd">``stat`` property that acts very much like a dictionary, in which you</span>
-<span class="sd">can store game-relevant data for the rules to use.</span>
+<span class="sd">to run on only some portion of it. Each Character has a ``stat`` property that</span>
+<span class="sd">acts very much like a dictionary, in which you can store game-time-sensitive</span>
+<span class="sd">data for the rules to use.</span>
 
-<span class="sd">You can designate some nodes in one Character as avatars of another,</span>
-<span class="sd">and then assign a rule to run on all of a Character&#39;s avatars. This is</span>
+<span class="sd">You can designate some nodes in one Character as units of another,</span>
+<span class="sd">and then assign a rule to run on all of a Character&#39;s units. This is</span>
 <span class="sd">useful for the common case where someone in your game has a location</span>
 <span class="sd">in the physical world (here, a Character, called &#39;physical&#39;) but also</span>
 <span class="sd">has a behavior flowchart, or a skill tree, that isn&#39;t part of the</span>
-<span class="sd">physical world. In that case the flowchart is the person&#39;s Character,</span>
-<span class="sd">and their node in the physical world is an avatar of it.</span>
+<span class="sd">physical world. In that case, the flowchart is the person&#39;s Character,</span>
+<span class="sd">and their node in the physical world is a unit of it.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 
@@ -83,9 +81,7 @@
 <span class="kn">from</span> <span class="nn">.xcollections</span> <span class="kn">import</span> <span class="n">CompositeDict</span>
 <span class="kn">from</span> <span class="nn">.rule</span> <span class="kn">import</span> <span class="n">RuleMapping</span>
 <span class="kn">from</span> <span class="nn">.rule</span> <span class="kn">import</span> <span class="n">RuleFollower</span> <span class="k">as</span> <span class="n">BaseRuleFollower</span>
-<span class="kn">from</span> <span class="nn">.node</span> <span class="kn">import</span> <span class="n">Node</span>
-<span class="kn">from</span> <span class="nn">.thing</span> <span class="kn">import</span> <span class="n">Thing</span>
-<span class="kn">from</span> <span class="nn">.place</span> <span class="kn">import</span> <span class="n">Place</span>
+<span class="kn">from</span> <span class="nn">.node</span> <span class="kn">import</span> <span class="n">Node</span><span class="p">,</span> <span class="n">Place</span><span class="p">,</span> <span class="n">Thing</span>
 <span class="kn">from</span> <span class="nn">.portal</span> <span class="kn">import</span> <span class="n">Portal</span>
 <span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">getatt</span><span class="p">,</span> <span class="n">singleton_get</span><span class="p">,</span> <span class="n">timer</span><span class="p">,</span> <span class="n">AbstractEngine</span><span class="p">,</span> <span class="n">AbstractCharacter</span>
 <span class="kn">from</span> <span class="nn">.exc</span> <span class="kn">import</span> <span class="n">WorldIntegrityError</span>
@@ -543,12 +539,8 @@
 		<span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">location</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span>
 
-	<span class="k">def</span> <span class="nf">add_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">symmetrical</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">add_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">orig</span><span class="p">][</span><span class="n">dest</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span>
-		<span class="k">if</span> <span class="n">symmetrical</span><span class="p">:</span>
-			<span class="n">mirror</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
-			<span class="n">mirror</span><span class="p">[</span><span class="s1">&#39;is_mirror&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">dest</span><span class="p">][</span><span class="n">orig</span><span class="p">]</span> <span class="o">=</span> <span class="n">mirror</span>
 
 	<span class="k">def</span> <span class="nf">remove_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">):</span>
 		<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">origin</span><span class="p">][</span><span class="n">destination</span><span class="p">]</span>
@@ -677,7 +669,7 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">Character</span><span class="p">(</span><span class="n">DiGraph</span><span class="p">,</span> <span class="n">AbstractCharacter</span><span class="p">,</span> <span class="n">RuleFollower</span><span class="p">):</span>
+<div class="viewcode-block" id="Character"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character">[docs]</a><span class="k">class</span> <span class="nc">Character</span><span class="p">(</span><span class="n">DiGraph</span><span class="p">,</span> <span class="n">AbstractCharacter</span><span class="p">,</span> <span class="n">RuleFollower</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A digraph that follows game rules and has a containment hierarchy</span>
 
 <span class="sd">	Nodes in a Character are subcategorized into Things and</span>
@@ -689,35 +681,38 @@
 <span class="sd">	Characters may have units in other Characters. These are just</span>
 <span class="sd">	nodes. You can apply rules to a Character&#39;s units, and thus to</span>
 <span class="sd">	any collection of nodes you want, perhaps in many different</span>
-<span class="sd">	Characters. The `unit` attribute handles this. It is a mapping,</span>
+<span class="sd">	Characters. The ``unit`` attribute handles this. It is a mapping,</span>
 <span class="sd">	keyed by the other Character&#39;s name, then by the name of the node</span>
 <span class="sd">	that is this Character&#39;s unit. In the common case where a</span>
 <span class="sd">	Character has exactly one unit, it may be retrieved as</span>
-<span class="sd">	`unit.only`. When it has more than one unit, but only has</span>
+<span class="sd">	``unit.only``. When it has more than one unit, but only has</span>
 <span class="sd">	any units in a single other Character, you can get the mapping</span>
-<span class="sd">	of units in that Character as `unit.node`. Add units with the</span>
-<span class="sd">	`add_unit` method and remove them with `del_unit`.</span>
+<span class="sd">	of units in that Character as ``unit.node``. Add units with the</span>
+<span class="sd">	``add_unit`` method and remove them with ``del_unit``.</span>
 
-<span class="sd">	You can assign rules to Characters with their `rule` attribute,</span>
-<span class="sd">	typically using it as a decorator (see the documentation for</span>
-<span class="sd">	the `rule` module). You can do the same to some of Character&#39;s</span>
+<span class="sd">	You can assign rules to Characters with their ``rule`` attribute,</span>
+<span class="sd">	typically using it as a decorator (see :mod:`LiSE.rule`). You can do the</span>
+<span class="sd">	same to some of Character&#39;s</span>
 <span class="sd">	attributes:</span>
 
-<span class="sd">	* `thing.rule` to make a rule run on all Things in this Character</span>
+<span class="sd">	* ``thing.rule`` to make a rule run on all Things in this Character</span>
 <span class="sd">	  every turn</span>
-<span class="sd">	* `place.rule` to make a rule run on all Places in this Character</span>
+<span class="sd">	* ``place.rule`` to make a rule run on all Places in this Character</span>
 <span class="sd">	  every turn</span>
-<span class="sd">	* `node.rule` to make a rule run on all Things and Places in this</span>
+<span class="sd">	* ``node.rule`` to make a rule run on all Things and Places in this</span>
 <span class="sd">	  Character every turn</span>
-<span class="sd">	* `unit.rule` to make a rule run on all the units this</span>
+<span class="sd">	* ``unit.rule`` to make a rule run on all the units this</span>
 <span class="sd">	  Character has every turn, regardless of what Character the</span>
 <span class="sd">	  unit is in</span>
-<span class="sd">	* `adj.rule` to make a rule run on all the edges this Character</span>
+<span class="sd">	* ``adj.rule`` to make a rule run on all the edges this Character</span>
 <span class="sd">	  has every turn</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">_book</span> <span class="o">=</span> <span class="s2">&quot;character&quot;</span>
-	<span class="n">remove_portal</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;remove_edge&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Character.remove_portal"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.remove_portal">[docs]</a>	<span class="k">def</span> <span class="nf">remove_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">):</span>
+		<span class="vm">__doc__</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_edge</span><span class="o">.</span><span class="vm">__doc__</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">remove_edge</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">)</span></div>
 
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">character</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -844,7 +839,7 @@
 			<span class="n">charn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
 			<span class="n">planning</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_planning</span>
 			<span class="n">forward</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_forward</span>
-			<span class="k">with</span> <span class="n">timer</span><span class="p">(</span><span class="s2">&quot;seconds spent updating PlaceMapping&quot;</span><span class="p">):</span>
+			<span class="k">with</span> <span class="n">timer</span><span class="p">(</span><span class="s2">&quot;seconds spent updating PlaceMapping&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">debug</span><span class="p">):</span>
 				<span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">chain</span><span class="p">(</span><span class="n">__m</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
 					<span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 						<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">iter_node_keys</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span>
@@ -1087,7 +1082,8 @@
 			<span class="n">iter_edge_keys</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_edge_val_cache</span><span class="o">.</span><span class="n">iter_entity_keys</span>
 			<span class="n">charn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
 			<span class="n">tick</span> <span class="o">=</span> <span class="n">start_tick</span> <span class="o">+</span> <span class="mi">1</span>
-			<span class="k">with</span> <span class="n">timer</span><span class="p">(</span><span class="s2">&quot;seconds spent updating PortalSuccessorsMapping&quot;</span><span class="p">):</span>
+			<span class="k">with</span> <span class="n">timer</span><span class="p">(</span><span class="s2">&quot;seconds spent updating PortalSuccessorsMapping&quot;</span><span class="p">,</span>
+						<span class="n">engine</span><span class="o">.</span><span class="n">debug</span><span class="p">):</span>
 				<span class="k">for</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dests</span> <span class="ow">in</span> <span class="n">chain</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
 					<span class="k">for</span> <span class="n">dest</span><span class="p">,</span> <span class="n">kvs</span> <span class="ow">in</span> <span class="n">dests</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 						<span class="k">if</span> <span class="n">kvs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1444,27 +1440,37 @@
 				<span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.character[</span><span class="si">{}</span><span class="s2">].unit&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">),</span>
 														<span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
 
-	<span class="k">def</span> <span class="nf">facade</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">return</span> <span class="n">Facade</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+<div class="viewcode-block" id="Character.facade"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.facade">[docs]</a>	<span class="k">def</span> <span class="nf">facade</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a temporary copy of this Character</span>
 
-	<span class="k">def</span> <span class="nf">add_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_for_adding</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node_for_adding</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+<span class="sd">		A Facade looks like its :class:`Character`, but doesn&#39;t do any of the</span>
+<span class="sd">		stuff Characters do to save changes to the database, nor enable</span>
+<span class="sd">		time travel. This makes it much speedier to work with.</span>
 
-	<span class="k">def</span> <span class="nf">add_places_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="k">return</span> <span class="n">Facade</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Character.add_place"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.add_place">[docs]</a>	<span class="k">def</span> <span class="nf">add_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_for_adding</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Add a new Place&quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node_for_adding</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Character.add_places_from"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.add_places_from">[docs]</a>	<span class="k">def</span> <span class="nf">add_places_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Take a series of place names and add the lot.&quot;&quot;&quot;</span>
-		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_nodes_from</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">)</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_nodes_from</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">)</span></div>
 
 	<span class="k">def</span> <span class="nf">remove_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove an existing Place&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">place</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">remove_node</span><span class="p">(</span><span class="n">place</span><span class="p">)</span>
 		<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No such place: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">place</span><span class="p">))</span>
 
 	<span class="k">def</span> <span class="nf">remove_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove an existing Thing&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">thing</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">remove_node</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span>
 		<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No such thing: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">thing</span><span class="p">))</span>
 
-	<span class="k">def</span> <span class="nf">add_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="Character.add_thing"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.add_thing">[docs]</a>	<span class="k">def</span> <span class="nf">add_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Make a new Thing and set its location&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="n">WorldIntegrityError</span><span class="p">(</span>
@@ -1477,16 +1483,17 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">starter</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_succ</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_succ</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjlist_inner_dict_factory</span><span class="p">()</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">_pred</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjlist_inner_dict_factory</span><span class="p">()</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_pred</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjlist_inner_dict_factory</span><span class="p">()</span></div>
 
-	<span class="k">def</span> <span class="nf">add_things_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
+<div class="viewcode-block" id="Character.add_things_from"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.add_things_from">[docs]</a>	<span class="k">def</span> <span class="nf">add_things_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Make many new Things&quot;&quot;&quot;</span>
 		<span class="k">for</span> <span class="n">tup</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
 			<span class="n">name</span> <span class="o">=</span> <span class="n">tup</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 			<span class="n">location</span> <span class="o">=</span> <span class="n">tup</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 			<span class="n">kwargs</span> <span class="o">=</span> <span class="n">tup</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tup</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">attrs</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">add_thing</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">add_thing</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
-	<span class="k">def</span> <span class="nf">place2thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">):</span>
+<div class="viewcode-block" id="Character.place2thing"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.place2thing">[docs]</a>	<span class="k">def</span> <span class="nf">place2thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Turn a Place into a Thing with the given location.</span>
 <span class="sd">		</span>
 <span class="sd">		It will keep all its attached Portals.</span>
@@ -1495,14 +1502,14 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_set_thing_loc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">)</span>
 		<span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">:</span>
 			<span class="n">obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">]</span>
-			<span class="n">thing</span> <span class="o">=</span> <span class="n">Thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">clobber</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-			<span class="k">for</span> <span class="n">port</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">portals</span><span class="p">():</span>
+			<span class="n">thing</span> <span class="o">=</span> <span class="n">Thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+			<span class="k">for</span> <span class="n">port</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">portal</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
 				<span class="n">port</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="n">thing</span>
-			<span class="k">for</span> <span class="n">port</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">preportals</span><span class="p">():</span>
+			<span class="k">for</span> <span class="n">port</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">preportal</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
 				<span class="n">port</span><span class="o">.</span><span class="n">destination</span> <span class="o">=</span> <span class="n">thing</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">thing</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">thing</span></div>
 
-	<span class="k">def</span> <span class="nf">thing2place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="Character.thing2place"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.thing2place">[docs]</a>	<span class="k">def</span> <span class="nf">thing2place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Unset a Thing&#39;s location, and thus turn it into a Place.&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_set_thing_loc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 		<span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">:</span>
@@ -1512,58 +1519,49 @@
 				<span class="n">port</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="n">place</span>
 			<span class="k">for</span> <span class="n">port</span> <span class="ow">in</span> <span class="n">thing</span><span class="o">.</span><span class="n">preportals</span><span class="p">():</span>
 				<span class="n">port</span><span class="o">.</span><span class="n">destination</span> <span class="o">=</span> <span class="n">place</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">place</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">place</span></div>
 
-	<span class="k">def</span> <span class="nf">add_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">symmetrical</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="Character.add_portal"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.add_portal">[docs]</a>	<span class="k">def</span> <span class="nf">add_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Connect the origin to the destination with a :class:`Portal`.</span>
 
-<span class="sd">		Keyword arguments are the :class:`Portal`&#39;s</span>
-<span class="sd">		attributes. Exception: if keyword ``symmetrical`` == ``True``,</span>
-<span class="sd">		a mirror-:class:`Portal` will be placed in the opposite</span>
-<span class="sd">		direction between the same nodes. It will always appear to</span>
-<span class="sd">		have the placed :class:`Portal`&#39;s stats, and any change to the</span>
-<span class="sd">		mirror :class:`Portal`&#39;s stats will affect the placed</span>
-<span class="sd">		:class:`Portal`.</span>
+<span class="sd">		Keyword arguments are attributes of the :class:`Portal`.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>
 			<span class="n">origin</span> <span class="o">=</span> <span class="n">origin</span><span class="o">.</span><span class="n">name</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">destination</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>
 			<span class="n">destination</span> <span class="o">=</span> <span class="n">destination</span><span class="o">.</span><span class="n">name</span>
-		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-		<span class="k">if</span> <span class="n">symmetrical</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="n">destination</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">is_mirror</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
-	<span class="k">def</span> <span class="nf">new_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">symmetrical</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>
-			<span class="n">origin</span> <span class="o">=</span> <span class="n">origin</span><span class="o">.</span><span class="n">name</span>
-		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">destination</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>
-			<span class="n">destination</span> <span class="o">=</span> <span class="n">destination</span><span class="o">.</span><span class="n">name</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">symmetrical</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_get_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<div class="viewcode-block" id="Character.new_portal"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.new_portal">[docs]</a>	<span class="k">def</span> <span class="nf">new_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Create a portal and return it&quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_get_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
 
-	<span class="k">def</span> <span class="nf">add_portals_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="n">symmetrical</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Character.add_portals_from"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.add_portals_from">[docs]</a>	<span class="k">def</span> <span class="nf">add_portals_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Make portals for a sequence of (origin, destination) pairs</span>
 
 <span class="sd">		Actually, triples are acceptable too, in which case the third</span>
 <span class="sd">		item is a dictionary of stats for the new :class:`Portal`.</span>
-
-<span class="sd">		If optional argument ``symmetrical`` is set to ``True``, all</span>
-<span class="sd">		the :class:`Portal` instances will have a mirror portal going</span>
-<span class="sd">		in the opposite direction, which will always have the same</span>
-<span class="sd">		stats.</span>
-
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">for</span> <span class="n">tup</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
 			<span class="n">orig</span> <span class="o">=</span> <span class="n">tup</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 			<span class="n">dest</span> <span class="o">=</span> <span class="n">tup</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-			<span class="n">kwargs</span> <span class="o">=</span> <span class="n">tup</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tup</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="p">{}</span>
-			<span class="k">if</span> <span class="n">symmetrical</span><span class="p">:</span>
-				<span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;symmetrical&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+			<span class="n">kwarrgs</span> <span class="o">=</span> <span class="n">tup</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tup</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">kwargs</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwarrgs</span><span class="p">)</span></div>
 
 	<span class="k">def</span> <span class="nf">add_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Start keeping track of a unit&quot;&quot;&quot;</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Start keeping track of a unit.</span>
+
+<span class="sd">		Units are nodes in other characters that are in some sense part of</span>
+<span class="sd">		this one. A common example in strategy games is when a general leads</span>
+<span class="sd">		an army: the general is one :class:`Character`, with a graph</span>
+<span class="sd">		representing the state of its AI; the battle map is another character;</span>
+<span class="sd">		and the general&#39;s units, though not in the general&#39;s</span>
+<span class="sd">		:class:`Character`, are still under their command, and therefore</span>
+<span class="sd">		follow rules defined on the general&#39;s ``unit`` property.</span>
+
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_planning</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
 				<span class="s2">&quot;Currently can&#39;t add units within a plan&quot;</span><span class="p">)</span>
@@ -1600,7 +1598,7 @@
 										<span class="n">turn</span><span class="o">=</span><span class="n">turn</span><span class="p">,</span>
 										<span class="n">tick</span><span class="o">=</span><span class="n">tick</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">remove_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Character.remove_unit"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.remove_unit">[docs]</a>	<span class="k">def</span> <span class="nf">remove_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;This is no longer my unit, though it still exists&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_planning</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
@@ -1615,9 +1613,9 @@
 		<span class="k">else</span><span class="p">:</span>
 			<span class="n">g</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">Character</span><span class="p">)</span> <span class="k">else</span> <span class="n">a</span>
 			<span class="n">n</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">Node</span><span class="p">)</span> <span class="k">else</span> <span class="n">b</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_remember_unitness</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_remember_unitness</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span></div>
 
-	<span class="k">def</span> <span class="nf">portals</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Character.portals"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.portals">[docs]</a>	<span class="k">def</span> <span class="nf">portals</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Iterate over all portals.&quot;&quot;&quot;</span>
 		<span class="n">chara</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span>
 		<span class="n">charn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
@@ -1626,9 +1624,9 @@
 		<span class="n">now</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
 		<span class="k">for</span> <span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span> <span class="ow">in</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">keys</span><span class="p">:</span>
 			<span class="k">if</span> <span class="n">char</span> <span class="o">==</span> <span class="n">charn</span> <span class="ow">and</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">):</span>
-				<span class="k">yield</span> <span class="n">make_edge</span><span class="p">(</span><span class="n">chara</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+				<span class="k">yield</span> <span class="n">make_edge</span><span class="p">(</span><span class="n">chara</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span></div>
 
-	<span class="k">def</span> <span class="nf">units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Character.units"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.units">[docs]</a>	<span class="k">def</span> <span class="nf">units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Iterate over all my units</span>
 
 <span class="sd">		Regardless of what character they are in.</span>
@@ -1641,9 +1639,9 @@
 		<span class="n">makenode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_get_node</span>
 		<span class="k">for</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">charmap</span><span class="p">:</span>
 			<span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">avit</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
-				<span class="k">yield</span> <span class="n">makenode</span><span class="p">(</span><span class="n">charmap</span><span class="p">[</span><span class="n">graph</span><span class="p">],</span> <span class="n">node</span><span class="p">)</span>
+				<span class="k">yield</span> <span class="n">makenode</span><span class="p">(</span><span class="n">charmap</span><span class="p">[</span><span class="n">graph</span><span class="p">],</span> <span class="n">node</span><span class="p">)</span></div>
 
-	<span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
+<div class="viewcode-block" id="Character.historical"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.character.Character.historical">[docs]</a>	<span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Get a historical view on the given stat</span>
 
 <span class="sd">		This functions like the value of the stat, but changes</span>
@@ -1652,7 +1650,7 @@
 <span class="sd">		to find out when the comparison held true.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">return</span> <span class="n">StatusAlias</span><span class="p">(</span><span class="n">entity</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">StatusAlias</span><span class="p">(</span><span class="n">entity</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span></div></div>
 </pre></div>
 
           </div>

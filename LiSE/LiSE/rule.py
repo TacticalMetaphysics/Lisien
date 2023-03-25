@@ -29,38 +29,48 @@ need to change that.
 
 To add a new rule to a LiSE entity, the easiest thing is to use the
 decorator syntax::
->@entity.rule
->def do_something(entity):
->	...
->
->@do_something.trigger
->def whenever(entity):
->	...
->
->@do_something.trigger
->def forever(entity):
->	....
->
->@do_something.action
->def do_something_else(entity):
->	...
->
+
+	@entity.rule
+	def do_something(entity):
+		...
+
+	@do_something.trigger
+	def whenever(entity):
+		...
+
+	@do_something.trigger
+	def forever(entity):
+		...
+
+	@do_something.action
+	def do_something_else(entity):
+		...
+
+
 
 When run, this code will:
-* copy the `do_something` function to `action.py`, where LiSE knows
-to run it when a rule triggers it
-* create a new rule named `'do_something'`
-* set the function `do_something` as the first (and, so far, only) entry
-in the actions list of the rule by that name
-* copy the `whenever` function to `trigger.py`, where LiSE knows to
-call it when a rule has it as a trigger
-* set the function `whenever` as the first entry in the triggers list
-of the rule `'do_something'`
-* append the function `forever` to the same triggers list
-* copy `do_something_else` to `action.py`
-* append `do_something_else` to the actions list of the rule
 
-The `trigger`, `prereq`, and `action` attributes of Rule objects
+	* copy the ``do_something`` function to ``action.py``, where LiSE knows\
+			to run it when a rule triggers it
+
+	* create a new rule named ``'do_something'``
+
+	* set the function ``do_something`` as the first (and, so far, only) entry\
+			in the actions list of the rule by that name
+
+	* copy the ``whenever`` function to ``trigger.py``, where LiSE knows to\
+			call it when a rule has it as a trigger
+
+	* set the function ``whenever`` as the first entry in the triggers list\
+			of the rule ``'do_something'``
+
+	* append the function ``forever`` to the same triggers list
+
+	* copy ``do_something_else`` to ``action.py``
+
+	* append ``do_something_else`` to the actions list of the rule
+
+The ``trigger``, ``prereq``, and ``action`` attributes of Rule objects
 may also be used like lists. You can put functions in them yourself,
 provided they are already present in the correct module. If it's
 inconvenient to get the actual function object, use a string of
@@ -268,7 +278,7 @@ class Rule(object):
 	supplied to the LiSE core at startup. This makes it possible to
 	load the functions on later startups. You may instead use the string
 	name of a function already stored in the module, or use the
-	`trigger`, `prereq`, or `action` decorator on a new function to
+	``trigger``, ``prereq``, or ``action`` decorator on a new function to
 	add it to both the module and the rule.
 
 	"""

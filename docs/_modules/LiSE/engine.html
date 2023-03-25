@@ -68,7 +68,7 @@
 <span class="kn">from</span> <span class="nn">.allegedb.window</span> <span class="kn">import</span> <span class="n">update_window</span><span class="p">,</span> <span class="n">update_backward_window</span>
 <span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">sort_set</span><span class="p">,</span> <span class="n">AbstractEngine</span><span class="p">,</span> <span class="n">final_rule</span>
 <span class="kn">from</span> <span class="nn">.xcollections</span> <span class="kn">import</span> <span class="n">StringStore</span><span class="p">,</span> <span class="n">FunctionStore</span><span class="p">,</span> <span class="n">MethodStore</span>
-<span class="kn">from</span> <span class="nn">.query</span> <span class="kn">import</span> <span class="p">(</span><span class="n">Query</span><span class="p">,</span> <span class="n">make_side_sel</span><span class="p">,</span> <span class="n">StatusAlias</span><span class="p">,</span> <span class="n">ComparisonQuery</span><span class="p">,</span>
+<span class="kn">from</span> <span class="nn">.query</span> <span class="kn">import</span> <span class="p">(</span><span class="n">Query</span><span class="p">,</span> <span class="n">_make_side_sel</span><span class="p">,</span> <span class="n">StatusAlias</span><span class="p">,</span> <span class="n">ComparisonQuery</span><span class="p">,</span>
 					<span class="n">CompoundQuery</span><span class="p">,</span> <span class="n">QueryResultMidTurn</span><span class="p">,</span> <span class="n">QueryResult</span><span class="p">,</span>
 					<span class="n">QueryResultEndTurn</span><span class="p">,</span> <span class="n">CombinedQueryResult</span><span class="p">)</span>
 <span class="kn">from</span> <span class="nn">.character</span> <span class="kn">import</span> <span class="n">Character</span>
@@ -195,39 +195,51 @@
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;LiSE, the Life Simulator Engine.</span>
 
 <span class="sd">	:param prefix: directory containing the simulation and its code;</span>
-<span class="sd">		defaults to the working directory</span>
-<span class="sd">	:param string: module storing strings to be used in the game</span>
-<span class="sd">	:param function: module containing utility functions</span>
+<span class="sd">		defaults to the working directory.</span>
+<span class="sd">	:param string: module storing strings to be used in the game; if absent,</span>
+<span class="sd">		we&#39;ll use a :class:`LiSE.xcollections.StringStore` to keep them in a</span>
+<span class="sd">		JSON file in the ``prefix``.</span>
+<span class="sd">	:param function: module containing utility functions; if absent, we&#39;ll</span>
+<span class="sd">		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py</span>
+<span class="sd">		file in the ``prefix``</span>
 <span class="sd">	:param method: module containing functions taking this engine as</span>
-<span class="sd">		first arg</span>
+<span class="sd">		first arg; if absent, we&#39;ll</span>
+<span class="sd">		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py</span>
+<span class="sd">		file in the ``prefix``.</span>
 <span class="sd">	:param trigger: module containing trigger functions, taking a LiSE</span>
-<span class="sd">		entity and returning a boolean for whether to run a rule</span>
+<span class="sd">		entity and returning a boolean for whether to run a rule; if absent, we&#39;ll</span>
+<span class="sd">		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py</span>
+<span class="sd">		file in the ``prefix``.</span>
 <span class="sd">	:param prereq: module containing prereq functions, taking a LiSE entity and</span>
-<span class="sd">		returning a boolean for whether to permit a rule to run</span>
+<span class="sd">		returning a boolean for whether to permit a rule to run; if absent, we&#39;ll</span>
+<span class="sd">		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py</span>
+<span class="sd">		file in the ``prefix``.</span>
 <span class="sd">	:param action: module containing action functions, taking a LiSE entity and</span>
-<span class="sd">		mutating it (and possibly the rest of the world)</span>
+<span class="sd">		mutating it (and possibly the rest of the world); if absent, we&#39;ll</span>
+<span class="sd">		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py</span>
+<span class="sd">		file in the ``prefix``.</span>
 <span class="sd">	:param connect_string: a rfc1738 URI for a database to connect to. Leave</span>
-<span class="sd">		`None` to use the SQLite database in the `prefix`</span>
+<span class="sd">		``None`` to use the SQLite database in the ``prefix``.</span>
 <span class="sd">	:param connect_args: dictionary of keyword arguments for the</span>
 <span class="sd">		database connection</span>
 <span class="sd">	:param schema: a Schema class that determines which changes to allow to</span>
-<span class="sd">		the world; used when a player should not be able to change just anything.</span>
-<span class="sd">		Defaults to `NullSchema`</span>
+<span class="sd">		the world; used when a player should not be able to change just</span>
+<span class="sd">		anything. Defaults to :class:`NullSchema`.</span>
 <span class="sd">	:param flush_interval: LiSE will put pending changes into the database</span>
-<span class="sd">		transaction every ``flush_interval`` turns. If ``None``), only flush</span>
+<span class="sd">		transaction every ``flush_interval`` turns. If ``None``, only flush</span>
 <span class="sd">		on commit. Default ``1``.</span>
 <span class="sd">	:param keyframe_interval: How many turns to pass before automatically</span>
 <span class="sd">		snapping a keyframe, default ``10``. If ``None``, you&#39;ll need</span>
 <span class="sd">		to call ``snap_keyframe`` yourself.</span>
 <span class="sd">	:param commit_interval: LiSE will commit changes to disk every</span>
 <span class="sd">		``commit_interval`` turns. If ``None`` (the default), only commit</span>
-<span class="sd">		on close or manual call to ``commit``</span>
-<span class="sd">	:param random_seed: a number to initialize the randomizer</span>
+<span class="sd">		on close or manual call to ``commit``.</span>
+<span class="sd">	:param random_seed: a number to initialize the randomizer.</span>
 <span class="sd">	:param logfun: an optional function taking arguments</span>
-<span class="sd">		``level, message``, which should log `message` somehow</span>
+<span class="sd">		``level, message``, which should log `message` somehow.</span>
 <span class="sd">	:param clear: whether to delete *any and all* existing data</span>
-<span class="sd">		and code in ``prefix`` and the databse. Use with caution!</span>
-<span class="sd">	:param keep_rules_journal: Boolean; if true (default), keep</span>
+<span class="sd">		and code in ``prefix`` and the database. Use with caution!</span>
+<span class="sd">	:param keep_rules_journal: Boolean; if ``True`` (the default), keep</span>
 <span class="sd">		information on the behavior of the rules engine in the database.</span>
 <span class="sd">		Makes the database rather large, but useful for debugging.</span>
 <span class="sd">	:param keyframe_on_close: Whether to snap a keyframe when closing the</span>
@@ -235,14 +247,15 @@
 <span class="sd">		make future startups faster, but could cause database bloat if</span>
 <span class="sd">		your game runs few turns per session.</span>
 <span class="sd">	:param cache_arranger: Whether to start a background</span>
-<span class="sd">		process that indexes the caches to make time travel faster</span>
+<span class="sd">		thread that indexes the caches to make time travel faster</span>
 <span class="sd">		when it&#39;s to points we anticipate. If you use this, you can</span>
 <span class="sd">		specify some other point in time to index by putting the</span>
 <span class="sd">		``(branch, turn, tick)`` in my ``cache_arrange_queue``.</span>
-<span class="sd">		 Default ``False``.</span>
+<span class="sd">		Default ``False``.</span>
 <span class="sd">	:param enforce_end_of_time: Whether to raise an exception when</span>
 <span class="sd">		time travelling to a point after the time that&#39;s been simulated.</span>
-<span class="sd">		Default ``True``.</span>
+<span class="sd">		Default ``True``. You normally want this, but it could cause problems</span>
+<span class="sd">		if you&#39;re not using the rules engine.</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">char_cls</span> <span class="o">=</span> <span class="n">Character</span>
@@ -970,10 +983,9 @@
 
 	<span class="k">def</span> <span class="nf">_set_branch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="n">oldrando</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">universal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rando_state&#39;</span><span class="p">)</span>
-		<span class="n">curbranch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_branch</span><span class="p">()</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_set_branch</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 		<span class="k">if</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_turns_completed</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">_turns_completed</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_turns_completed</span><span class="p">[</span><span class="n">curbranch</span><span class="p">]</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_turns_completed</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span>
 		<span class="n">newrando</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">universal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rando_state&#39;</span><span class="p">)</span>
 		<span class="k">if</span> <span class="n">newrando</span> <span class="ow">and</span> <span class="n">newrando</span> <span class="o">!=</span> <span class="n">oldrando</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_rando</span><span class="o">.</span><span class="n">setstate</span><span class="p">(</span><span class="n">newrando</span><span class="p">)</span>
@@ -1446,9 +1458,9 @@
 		<span class="n">left</span> <span class="o">=</span> <span class="n">qry</span><span class="o">.</span><span class="n">leftside</span>
 		<span class="n">right</span> <span class="o">=</span> <span class="n">qry</span><span class="o">.</span><span class="n">rightside</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">StatusAlias</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">right</span><span class="p">,</span> <span class="n">StatusAlias</span><span class="p">):</span>
-			<span class="n">left_sel</span> <span class="o">=</span> <span class="n">make_side_sel</span><span class="p">(</span><span class="n">left</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span> <span class="n">left</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span> <span class="n">branches</span><span class="p">,</span>
+			<span class="n">left_sel</span> <span class="o">=</span> <span class="n">_make_side_sel</span><span class="p">(</span><span class="n">left</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span> <span class="n">left</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span> <span class="n">branches</span><span class="p">,</span>
 										<span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="n">mid_turn</span><span class="p">)</span>
-			<span class="n">right_sel</span> <span class="o">=</span> <span class="n">make_side_sel</span><span class="p">(</span><span class="n">right</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span> <span class="n">right</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span> <span class="n">branches</span><span class="p">,</span>
+			<span class="n">right_sel</span> <span class="o">=</span> <span class="n">_make_side_sel</span><span class="p">(</span><span class="n">right</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span> <span class="n">right</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span> <span class="n">branches</span><span class="p">,</span>
 										<span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="n">mid_turn</span><span class="p">)</span>
 			<span class="n">left_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">left_sel</span><span class="p">)</span>
 			<span class="n">right_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">right_sel</span><span class="p">)</span>
@@ -1461,7 +1473,7 @@
 											<span class="n">unpack_data_end</span><span class="p">(</span><span class="n">right_data</span><span class="p">),</span>
 											<span class="n">qry</span><span class="o">.</span><span class="n">oper</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
 		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">StatusAlias</span><span class="p">):</span>
-			<span class="n">left_sel</span> <span class="o">=</span> <span class="n">make_side_sel</span><span class="p">(</span><span class="n">left</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span> <span class="n">left</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span> <span class="n">branches</span><span class="p">,</span>
+			<span class="n">left_sel</span> <span class="o">=</span> <span class="n">_make_side_sel</span><span class="p">(</span><span class="n">left</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span> <span class="n">left</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span> <span class="n">branches</span><span class="p">,</span>
 										<span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="n">mid_turn</span><span class="p">)</span>
 			<span class="n">left_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">left_sel</span><span class="p">)</span>
 			<span class="k">if</span> <span class="n">mid_turn</span><span class="p">:</span>
@@ -1472,7 +1484,7 @@
 				<span class="k">return</span> <span class="n">QueryResultEndTurn</span><span class="p">(</span><span class="n">unpack_data_end</span><span class="p">(</span><span class="n">left_data</span><span class="p">),</span>
 											<span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">right</span><span class="p">)],</span> <span class="n">qry</span><span class="o">.</span><span class="n">oper</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
 		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">right</span><span class="p">,</span> <span class="n">StatusAlias</span><span class="p">):</span>
-			<span class="n">right_sel</span> <span class="o">=</span> <span class="n">make_side_sel</span><span class="p">(</span><span class="n">right</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span> <span class="n">right</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span> <span class="n">branches</span><span class="p">,</span>
+			<span class="n">right_sel</span> <span class="o">=</span> <span class="n">_make_side_sel</span><span class="p">(</span><span class="n">right</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span> <span class="n">right</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span> <span class="n">branches</span><span class="p">,</span>
 										<span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="n">mid_turn</span><span class="p">)</span>
 			<span class="n">right_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">right_sel</span><span class="p">)</span>
 			<span class="k">if</span> <span class="n">mid_turn</span><span class="p">:</span>
@@ -1628,7 +1640,7 @@
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
     </div>
 

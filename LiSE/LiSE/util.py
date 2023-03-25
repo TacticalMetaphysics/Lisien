@@ -79,10 +79,12 @@ class getnoplan:
 
 
 @contextmanager
-def timer(msg=''):
+def timer(msg='', logfun: callable = None):
+	if logfun is None:
+		logfun = print
 	start = monotonic()
 	yield
-	print("{:,.3f} {}".format(monotonic() - start, msg))
+	logfun("{:,.3f} {}".format(monotonic() - start, msg))
 
 
 def getatt(attribute_name):
@@ -677,6 +679,11 @@ class AbstractCharacter(Mapping):
 		self.add_places_from(seq, **attrs)
 
 	def new_place(self, name, **kwargs):
+		"""Add a Place and return it.
+
+		If there's already a Place by that name, put a number on the end.
+
+		"""
 		if name not in self.node:
 			self.add_place(name, **kwargs)
 			return self.place[name]
@@ -700,6 +707,11 @@ class AbstractCharacter(Mapping):
 		pass
 
 	def new_thing(self, name, location, **kwargs):
+		"""Add a Thing and return it.
+
+		If there's already a Thing by that name, put a number on the end.
+
+		"""
 		if name not in self.node:
 			self.add_thing(name, location, **kwargs)
 			return self.thing[name]

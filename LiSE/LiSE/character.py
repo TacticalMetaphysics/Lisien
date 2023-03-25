@@ -18,19 +18,17 @@ Based on NetworkX DiGraph objects with various additions and
 conveniences.
 
 A Character is a graph that follows rules. Its rules may be assigned
-to run on only some portion of it: just edges (called Portals), just
-nodes, or just nodes of the kind that have a location in another node
-(called Places and Things, respectively). Each Character has a
-``stat`` property that acts very much like a dictionary, in which you
-can store game-relevant data for the rules to use.
+to run on only some portion of it. Each Character has a ``stat`` property that
+acts very much like a dictionary, in which you can store game-time-sensitive
+data for the rules to use.
 
-You can designate some nodes in one Character as avatars of another,
-and then assign a rule to run on all of a Character's avatars. This is
+You can designate some nodes in one Character as units of another,
+and then assign a rule to run on all of a Character's units. This is
 useful for the common case where someone in your game has a location
 in the physical world (here, a Character, called 'physical') but also
 has a behavior flowchart, or a skill tree, that isn't part of the
-physical world. In that case the flowchart is the person's Character,
-and their node in the physical world is an avatar of it.
+physical world. In that case, the flowchart is the person's Character,
+and their node in the physical world is a unit of it.
 
 """
 
@@ -651,35 +649,38 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 	Characters may have units in other Characters. These are just
 	nodes. You can apply rules to a Character's units, and thus to
 	any collection of nodes you want, perhaps in many different
-	Characters. The `unit` attribute handles this. It is a mapping,
+	Characters. The ``unit`` attribute handles this. It is a mapping,
 	keyed by the other Character's name, then by the name of the node
 	that is this Character's unit. In the common case where a
 	Character has exactly one unit, it may be retrieved as
-	`unit.only`. When it has more than one unit, but only has
+	``unit.only``. When it has more than one unit, but only has
 	any units in a single other Character, you can get the mapping
-	of units in that Character as `unit.node`. Add units with the
-	`add_unit` method and remove them with `del_unit`.
+	of units in that Character as ``unit.node``. Add units with the
+	``add_unit`` method and remove them with ``del_unit``.
 
-	You can assign rules to Characters with their `rule` attribute,
-	typically using it as a decorator (see the documentation for
-	the `rule` module). You can do the same to some of Character's
+	You can assign rules to Characters with their ``rule`` attribute,
+	typically using it as a decorator (see :mod:`LiSE.rule`). You can do the
+	same to some of Character's
 	attributes:
 
-	* `thing.rule` to make a rule run on all Things in this Character
+	* ``thing.rule`` to make a rule run on all Things in this Character
 	  every turn
-	* `place.rule` to make a rule run on all Places in this Character
+	* ``place.rule`` to make a rule run on all Places in this Character
 	  every turn
-	* `node.rule` to make a rule run on all Things and Places in this
+	* ``node.rule`` to make a rule run on all Things and Places in this
 	  Character every turn
-	* `unit.rule` to make a rule run on all the units this
+	* ``unit.rule`` to make a rule run on all the units this
 	  Character has every turn, regardless of what Character the
 	  unit is in
-	* `adj.rule` to make a rule run on all the edges this Character
+	* ``adj.rule`` to make a rule run on all the edges this Character
 	  has every turn
 
 	"""
 	_book = "character"
-	remove_portal = getatt('remove_edge')
+
+	def remove_portal(self, origin, destination):
+		__doc__ = self.remove_edge.__doc__
+		super().remove_edge(origin, destination)
 
 	@property
 	def character(self):
@@ -806,7 +807,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			charn = self.character.name
 			planning = engine._planning
 			forward = engine._forward
-			with timer("seconds spent updating PlaceMapping"):
+			with timer("seconds spent updating PlaceMapping", engine.debug):
 				for node, val in chain(__m.items(), kwargs.items()):
 					if val is None:
 						for key in iter_node_keys(charn,
@@ -1049,7 +1050,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			iter_edge_keys = engine._edge_val_cache.iter_entity_keys
 			charn = self.character.name
 			tick = start_tick + 1
-			with timer("seconds spent updating PortalSuccessorsMapping"):
+			with timer("seconds spent updating PortalSuccessorsMapping",
+						engine.debug):
 				for orig, dests in chain(other.items(), kwargs.items()):
 					for dest, kvs in dests.items():
 						if kvs is None:
@@ -1407,9 +1409,17 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 														repr(self.name))
 
 	def facade(self):
+		"""Return a temporary copy of this Character
+
+		A Facade looks like its :class:`Character`, but doesn't do any of the
+		stuff Characters do to save changes to the database, nor enable
+		time travel. This makes it much speedier to work with.
+
+		"""
 		return Facade(self)
 
 	def add_place(self, node_for_adding, **attr):
+		"""Add a new Place"""
 		self.add_node(node_for_adding, **attr)
 
 	def add_places_from(self, seq, **attrs):
@@ -1417,11 +1427,13 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		super().add_nodes_from(seq, **attrs)
 
 	def remove_place(self, place):
+		"""Remove an existing Place"""
 		if place in self.place:
 			self.remove_node(place)
 		raise KeyError("No such place: {}".format(place))
 
 	def remove_thing(self, thing):
+		"""Remove an existing Thing"""
 		if thing in self.thing:
 			self.remove_node(thing)
 		raise KeyError("No such thing: {}".format(thing))
@@ -1442,6 +1454,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			self._pred[name] = self.adjlist_inner_dict_factory()
 
 	def add_things_from(self, seq, **attrs):
+		"""Make many new Things"""
 		for tup in seq:
 			name = tup[0]
 			location = tup[1]
@@ -1479,7 +1492,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 	def add_portal(self, origin, destination, **kwargs):
 		"""Connect the origin to the destination with a :class:`Portal`.
 
-		Keyword arguments are the :class:`Portal`'sattributes.
+		Keyword arguments are attributes of the :class:`Portal`.
 
 		"""
 		if isinstance(origin, Node):
@@ -1506,7 +1519,17 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			self.add_portal(orig, dest, **kwarrgs)
 
 	def add_unit(self, a, b=None):
-		"""Start keeping track of a unit"""
+		"""Start keeping track of a unit.
+
+		Units are nodes in other characters that are in some sense part of
+		this one. A common example in strategy games is when a general leads
+		an army: the general is one :class:`Character`, with a graph
+		representing the state of its AI; the battle map is another character;
+		and the general's units, though not in the general's
+		:class:`Character`, are still under their command, and therefore
+		follow rules defined on the general's ``unit`` property.
+
+		"""
 		if self.engine._planning:
 			raise NotImplementedError(
 				"Currently can't add units within a plan")
