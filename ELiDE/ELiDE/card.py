@@ -1009,7 +1009,7 @@ kv = """
 			outline_color: root.foreground_outline_color
 			texture: root.foreground_texture
 			Label:
-				text: root.text
+				text: root.text.replace('\t', '  ')
 				color: root.text_color
 				markup: root.markup
 				font_name: root.font_name
