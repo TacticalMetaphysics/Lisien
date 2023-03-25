@@ -873,10 +873,10 @@ class Cache:
 			presettings_turns[turn] = {tick: parent + (entity, key, prev)}
 			settings_turns[turn] = {tick: parent + (entity, key, value)}
 
-	def _base_retrieve(self, args, store_hint=True):
+	def _base_retrieve(self, args, store_hint=True, retrieve_hint=True):
 		shallowest = self.shallowest
-		# if args in shallowest:
-		# 	return shallowest[args]
+		if retrieve_hint and args in shallowest:
+			return shallowest[args]
 		entity: tuple = args[:-4]
 		key: Hashable
 		branch: str
