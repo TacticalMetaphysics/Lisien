@@ -37,8 +37,8 @@ from .allegedb.window import update_window, update_backward_window
 from .util import sort_set, AbstractEngine, final_rule
 from .xcollections import StringStore, FunctionStore, MethodStore
 from .query import (Query, _make_side_sel, StatusAlias, ComparisonQuery,
-                    CompoundQuery, QueryResultMidTurn, QueryResult,
-                    QueryResultEndTurn, CombinedQueryResult)
+					CompoundQuery, QueryResultMidTurn, QueryResult,
+					QueryResultEndTurn, CombinedQueryResult)
 from .character import Character
 from .node import Place, Thing
 from .portal import Portal
@@ -1417,9 +1417,9 @@ class Engine(AbstractEngine, gORM):
 		right = qry.rightside
 		if isinstance(left, StatusAlias) and isinstance(right, StatusAlias):
 			left_sel = _make_side_sel(left.entity, left.stat, branches,
-			                          self.pack, mid_turn)
+										self.pack, mid_turn)
 			right_sel = _make_side_sel(right.entity, right.stat, branches,
-			                           self.pack, mid_turn)
+										self.pack, mid_turn)
 			left_data = self.query.execute(left_sel)
 			right_data = self.query.execute(right_sel)
 			if mid_turn:
@@ -1432,7 +1432,7 @@ class Engine(AbstractEngine, gORM):
 											qry.oper, end)
 		elif isinstance(left, StatusAlias):
 			left_sel = _make_side_sel(left.entity, left.stat, branches,
-			                          self.pack, mid_turn)
+										self.pack, mid_turn)
 			left_data = self.query.execute(left_sel)
 			if mid_turn:
 				return QueryResultMidTurn(unpack_data_mid(left_data),
@@ -1443,7 +1443,7 @@ class Engine(AbstractEngine, gORM):
 											[(0, None, right)], qry.oper, end)
 		elif isinstance(right, StatusAlias):
 			right_sel = _make_side_sel(right.entity, right.stat, branches,
-			                           self.pack, mid_turn)
+										self.pack, mid_turn)
 			right_data = self.query.execute(right_sel)
 			if mid_turn:
 				return QueryResultMidTurn([(0, 0, None, None, left)],
