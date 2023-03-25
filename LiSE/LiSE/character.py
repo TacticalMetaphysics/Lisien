@@ -807,7 +807,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			charn = self.character.name
 			planning = engine._planning
 			forward = engine._forward
-			with timer("seconds spent updating PlaceMapping"):
+			with timer("seconds spent updating PlaceMapping", engine.debug):
 				for node, val in chain(__m.items(), kwargs.items()):
 					if val is None:
 						for key in iter_node_keys(charn,
@@ -1050,7 +1050,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			iter_edge_keys = engine._edge_val_cache.iter_entity_keys
 			charn = self.character.name
 			tick = start_tick + 1
-			with timer("seconds spent updating PortalSuccessorsMapping"):
+			with timer("seconds spent updating PortalSuccessorsMapping",
+						engine.debug):
 				for orig, dests in chain(other.items(), kwargs.items()):
 					for dest, kvs in dests.items():
 						if kvs is None:

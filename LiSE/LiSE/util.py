@@ -79,10 +79,12 @@ class getnoplan:
 
 
 @contextmanager
-def timer(msg=''):
+def timer(msg='', logfun: callable = None):
+	if logfun is None:
+		logfun = print
 	start = monotonic()
 	yield
-	print("{:,.3f} {}".format(monotonic() - start, msg))
+	logfun("{:,.3f} {}".format(monotonic() - start, msg))
 
 
 def getatt(attribute_name):
