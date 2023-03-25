@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial
 from collections import defaultdict
 from types import FunctionType, ModuleType
-from typing import Union, Tuple, Any, Set, List, Type, Hashable
+from typing import Union, Tuple, Any, Set, List, Type, Hashable, Optional
 from os import PathLike
 from abc import ABC, abstractmethod
 from random import Random
@@ -248,8 +248,8 @@ class Engine(AbstractEngine, gORM):
 					connect_string: str = None,
 					connect_args: dict = None,
 					schema_cls: Type[AbstractSchema] = NullSchema,
-					flush_interval=1,
-					keyframe_interval=10,
+					flush_interval: Optional[int] = 1,
+					keyframe_interval: Optional[int] = 10,
 					commit_interval: int = None,
 					random_seed: int = None,
 					logfun: FunctionType = None,
