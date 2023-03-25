@@ -1,7 +1,7 @@
 .. ELiDE documentation master file, created by
-   sphinx-quickstart on Mon Feb 19 11:33:00 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+sphinx-quickstart on Mon Feb 19 11:33:00 2018.
+You can adapt this file completely to your liking, but it should at least
+contain the root `toctree` directive.
 
 ELiDE
 =====
@@ -73,6 +73,13 @@ arrow
 Representations of directed edges
 
 .. automodule:: ELiDE.graph.arrow
+    :members:
+
+grid
+----
+Alternate board view for graphs that are shaped like grids
+
+.. automodule:: ELiDE.grid.board
     :members:
 
 screen
