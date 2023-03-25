@@ -630,7 +630,7 @@ class Thing(Node):
 		"""The ``Thing`` or ``Place`` I'm in."""
 		locn = self['location']
 		if locn is None:
-			return
+			raise AttributeError("Not really a Thing")
 		return self.engine._get_node(self.character, locn)
 
 	@location.setter
