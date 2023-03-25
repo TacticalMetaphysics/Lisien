@@ -443,13 +443,12 @@
 			<span class="k">return</span>
 
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="s1">&#39;engine&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">wallpaper_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
-			<span class="s1">&#39;wallpaper&#39;</span><span class="p">,</span> <span class="s1">&#39;wallpape.jpg&#39;</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">wallpaper_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;wallpaper&#39;</span><span class="p">,</span>
+														<span class="s1">&#39;wallpape.jpg&#39;</span><span class="p">)</span>
 		<span class="k">if</span> <span class="s1">&#39;_control&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">stat</span> <span class="ow">or</span> <span class="s1">&#39;wallpaper&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span>
 			<span class="s1">&#39;_control&#39;</span><span class="p">]:</span>
-			<span class="n">control</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;_control&#39;</span><span class="p">,</span> <span class="p">{})</span>
+			<span class="n">control</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;_control&#39;</span><span class="p">,</span> <span class="p">{})</span>
 			<span class="n">control</span><span class="p">[</span><span class="s1">&#39;wallpaper&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;textinput&#39;</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;_control&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">control</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_pull_wallpaper</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">trigger_update</span><span class="p">()</span>
 
@@ -774,7 +773,7 @@
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Already have pawn for Thing: </span><span class="si">{</span><span class="n">thingn</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 		<span class="n">pwn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_pawn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">thingn</span><span class="p">])</span>
 		<span class="n">stacp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span>
-		<span class="n">stacp</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">stacp</span><span class="o">.</span><span class="n">_redraw_bind_uid</span><span class="p">)</span>
+		<span class="n">stacp</span><span class="o">.</span><span class="n">add_datum</span><span class="p">(</span><span class="n">pwn</span><span class="p">)</span>
 
 		<span class="k">if</span> <span class="n">thingn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_add_pawn</span><span class="p">:</span>
 			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_add_pawn</span><span class="p">[</span><span class="n">thingn</span><span class="p">]</span>
@@ -1117,7 +1116,7 @@
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
     </div>
 

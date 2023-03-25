@@ -839,7 +839,7 @@
 			<span class="n">charn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
 			<span class="n">planning</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_planning</span>
 			<span class="n">forward</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_forward</span>
-			<span class="k">with</span> <span class="n">timer</span><span class="p">(</span><span class="s2">&quot;seconds spent updating PlaceMapping&quot;</span><span class="p">):</span>
+			<span class="k">with</span> <span class="n">timer</span><span class="p">(</span><span class="s2">&quot;seconds spent updating PlaceMapping&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">debug</span><span class="p">):</span>
 				<span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">chain</span><span class="p">(</span><span class="n">__m</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
 					<span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 						<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">iter_node_keys</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span>
@@ -1082,7 +1082,8 @@
 			<span class="n">iter_edge_keys</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_edge_val_cache</span><span class="o">.</span><span class="n">iter_entity_keys</span>
 			<span class="n">charn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
 			<span class="n">tick</span> <span class="o">=</span> <span class="n">start_tick</span> <span class="o">+</span> <span class="mi">1</span>
-			<span class="k">with</span> <span class="n">timer</span><span class="p">(</span><span class="s2">&quot;seconds spent updating PortalSuccessorsMapping&quot;</span><span class="p">):</span>
+			<span class="k">with</span> <span class="n">timer</span><span class="p">(</span><span class="s2">&quot;seconds spent updating PortalSuccessorsMapping&quot;</span><span class="p">,</span>
+						<span class="n">engine</span><span class="o">.</span><span class="n">debug</span><span class="p">):</span>
 				<span class="k">for</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dests</span> <span class="ow">in</span> <span class="n">chain</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
 					<span class="k">for</span> <span class="n">dest</span><span class="p">,</span> <span class="n">kvs</span> <span class="ow">in</span> <span class="n">dests</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 						<span class="k">if</span> <span class="n">kvs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

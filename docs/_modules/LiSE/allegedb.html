@@ -1685,7 +1685,7 @@
 				<span class="n">noderows</span><span class="p">,</span> <span class="n">edgerows</span><span class="p">,</span> <span class="n">graphvalrows</span><span class="p">,</span> <span class="n">nodevalrows</span><span class="p">,</span> <span class="n">edgevalrows</span><span class="p">)</span>
 
 	<span class="nd">@world_locked</span>
-	<span class="k">def</span> <span class="nf">unload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">unload</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove everything from memory that can be removed.&quot;&quot;&quot;</span>
 		<span class="c1"># find the slices of time that need to stay loaded</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
@@ -2280,17 +2280,10 @@
 				<span class="k">else</span><span class="p">:</span>
 					<span class="n">kfd</span><span class="p">[</span><span class="n">branch</span><span class="p">][</span><span class="n">turn</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">tick</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">new_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a new instance of type Graph, initialized with the given</span>
-<span class="sd">		data if provided.</span>
-
-<span class="sd">		:arg name: a name for the graph</span>
-<span class="sd">		:arg data: dictionary or NetworkX graph object providing initial state</span>
-
-<span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Only DiGraph for now&quot;</span><span class="p">)</span>
-
-	<span class="k">def</span> <span class="nf">new_digraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DiGraph</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">new_digraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+					<span class="n">name</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
+					<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+					<span class="o">**</span><span class="n">attr</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DiGraph</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a new instance of type DiGraph, initialized with the given</span>
 <span class="sd">		data if provided.</span>
 
@@ -2307,38 +2300,6 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">_init_graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;DiGraph&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">DiGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">new_multigraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a new instance of type MultiGraph</span>
-
-<span class="sd">		Initialized with the given data if provided.</span>
-
-<span class="sd">		:arg name: a name for the graph</span>
-<span class="sd">		:arg data: dictionary or NetworkX graph object providing initial state</span>
-
-<span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Only DiGraph for now&quot;</span><span class="p">)</span>
-
-	<span class="k">def</span> <span class="nf">new_multidigraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a new instance of type MultiDiGraph</span>
-
-<span class="sd">		Initialized with the givendata if provided.</span>
-
-<span class="sd">		:arg name: a name for the graph</span>
-<span class="sd">		:arg data: dictionary or NetworkX graph object providing initial state</span>
-
-<span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Only DiGraph for now&quot;</span><span class="p">)</span>
-
-	<span class="k">def</span> <span class="nf">get_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a graph previously created with ``new_graph``,</span>
-<span class="sd">		``new_digraph``, ``new_multigraph``, or</span>
-<span class="sd">		``new_multidigraph``</span>
-
-<span class="sd">		:arg name: name of an existing graph</span>
-
-<span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph_objs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
-
 	<span class="nd">@world_locked</span>
 	<span class="k">def</span> <span class="nf">del_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove all traces of a graph&#39;s existence from the database</span>
@@ -2347,7 +2308,7 @@
 
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="c1"># make sure the graph exists before deleting anything</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">get_graph</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">del_graph</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph_objs</span><span class="p">:</span>
 			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph_objs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
