@@ -1653,7 +1653,7 @@ class ORM:
 				noderows, edgerows, graphvalrows, nodevalrows, edgevalrows)
 
 	@world_locked
-	def unload(self):
+	def unload(self) -> None:
 		"""Remove everything from memory that can be removed."""
 		# find the slices of time that need to stay loaded
 		branch, turn, tick = self._btt()
@@ -2258,7 +2258,10 @@ class ORM:
 		"""
 		raise NotImplementedError("Only DiGraph for now")
 
-	def new_digraph(self, name, data=None, **attr) -> DiGraph:
+	def new_digraph(self,
+					name: Hashable,
+					data: dict = None,
+					**attr) -> DiGraph:
 		"""Return a new instance of type DiGraph, initialized with the given
 		data if provided.
 
@@ -2297,7 +2300,7 @@ class ORM:
 		"""
 		raise NotImplementedError("Only DiGraph for now")
 
-	def get_graph(self, name) -> Graph:
+	def get_graph(self, name: Hashable) -> Graph:
 		"""Return a graph previously created with ``new_graph``,
 		``new_digraph``, ``new_multigraph``, or
 		``new_multidigraph``
