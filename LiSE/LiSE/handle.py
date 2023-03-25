@@ -524,7 +524,7 @@ class EngineHandle(object):
 			almost_entirely_packed_delta[RULEBOOKS] = rulebooks
 		rules = delta.pop(RULES, None)
 		if rules:
-			almost_entirely_packed_delta[RULEBOOKS] = rules
+			almost_entirely_packed_delta[RULES] = concat_d(rules)
 		return concat_d(almost_entirely_packed_delta)
 
 	@prepacked
@@ -671,7 +671,10 @@ class EngineHandle(object):
 			delta[UNIVERSAL] = unid
 		rud = self.all_rules_delta(btt_from=btt_from, btt_to=btt_to)
 		if rud:
-			delta[RULES] = {rule: pack(stuff) for rule, stuff in rud.items()}
+			delta[RULES] = {
+				pack(rule): pack(stuff)
+				for rule, stuff in rud.items()
+			}
 		rbd = self.all_rulebooks_delta(btt_from=btt_from, btt_to=btt_to)
 		if rbd:
 			delta[RULEBOOKS] = dict(map(self.pack_pair, rbd.items()))
