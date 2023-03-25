@@ -1047,7 +1047,7 @@ class GraphsMapping(MutableMapping):
 		return len(self.orm._graph_objs)
 
 	def __getitem__(self, item):
-		return self.orm.get_graph(item)
+		return self.orm._graph_objs[item]
 
 	def __setitem__(self, key, value):
 		if isinstance(value, networkx.MultiDiGraph):

@@ -2268,16 +2268,6 @@ class ORM:
 			self._init_graph(name, 'DiGraph', data)
 		return DiGraph(self, name)
 
-	def get_graph(self, name: Hashable) -> Graph:
-		"""Return a graph previously created with ``new_graph``,
-		``new_digraph``, ``new_multigraph``, or
-		``new_multidigraph``
-
-		:arg name: name of an existing graph
-
-		"""
-		return self._graph_objs[name]
-
 	@world_locked
 	def del_graph(self, name: Hashable) -> None:
 		"""Remove all traces of a graph's existence from the database
@@ -2286,7 +2276,7 @@ class ORM:
 
 		"""
 		# make sure the graph exists before deleting anything
-		self.get_graph(name)
+		self.graph[name]
 		self.query.del_graph(name)
 		if name in self._graph_objs:
 			del self._graph_objs[name]
