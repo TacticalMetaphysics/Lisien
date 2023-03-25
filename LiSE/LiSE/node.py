@@ -725,7 +725,7 @@ class Thing(Node):
 	def travel_to(self,
 					dest: Union[Node, Hashable],
 					weight: Hashable = None,
-					graph: AbstractCharacter = None) -> int:
+					graph: nx.DiGraph = None) -> int:
 		"""Find the shortest path to the given node from where I am
 		now, and follow it.
 
