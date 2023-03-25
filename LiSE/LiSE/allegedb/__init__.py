@@ -2248,16 +2248,6 @@ class ORM:
 				else:
 					kfd[branch][turn].add(tick)
 
-	def new_graph(self, name, data=None, **attr):
-		"""Return a new instance of type Graph, initialized with the given
-		data if provided.
-
-		:arg name: a name for the graph
-		:arg data: dictionary or NetworkX graph object providing initial state
-
-		"""
-		raise NotImplementedError("Only DiGraph for now")
-
 	def new_digraph(self,
 					name: Hashable,
 					data: dict = None,
@@ -2277,28 +2267,6 @@ class ORM:
 		else:
 			self._init_graph(name, 'DiGraph', data)
 		return DiGraph(self, name)
-
-	def new_multigraph(self, name, data=None, **attr):
-		"""Return a new instance of type MultiGraph
-
-		Initialized with the given data if provided.
-
-		:arg name: a name for the graph
-		:arg data: dictionary or NetworkX graph object providing initial state
-
-		"""
-		raise NotImplementedError("Only DiGraph for now")
-
-	def new_multidigraph(self, name, data=None, **attr):
-		"""Return a new instance of type MultiDiGraph
-
-		Initialized with the givendata if provided.
-
-		:arg name: a name for the graph
-		:arg data: dictionary or NetworkX graph object providing initial state
-
-		"""
-		raise NotImplementedError("Only DiGraph for now")
 
 	def get_graph(self, name: Hashable) -> Graph:
 		"""Return a graph previously created with ``new_graph``,
