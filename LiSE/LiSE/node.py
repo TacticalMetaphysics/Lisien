@@ -752,7 +752,3 @@ class Thing(Node):
 		graph = self.character if graph is None else graph
 		path = nx.shortest_path(graph, self["location"], destn, weight)
 		return self.follow_path(path, weight)
-
-
-def roerror(*args, **kwargs):
-	raise ValueError("Read-only")
