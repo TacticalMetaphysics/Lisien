@@ -47,8 +47,8 @@ class Portal(Edge, RuleFollower):
 	engine = getatt('db')
 	no_unwrap = True
 
-	def __init__(self, graph, orig, dest, idx=0):
-		super().__init__(graph, orig, dest, idx)
+	def __init__(self, graph, orig, dest):
+		super().__init__(graph, orig, dest, 0)
 		self.origin = graph.node[orig]
 		self.destination = graph.node[dest]
 
