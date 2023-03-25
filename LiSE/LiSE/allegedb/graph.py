@@ -1060,4 +1060,8 @@ class GraphsMapping(MutableMapping):
 			self.orm.new_graph(key, data=value)
 
 	def __delitem__(self, key):
-		self.orm.del_graph(key)
+		if key not in self:
+			raise KeyError("No such graph")
+		self.orm.query.del_graph(key)
+		if key in self.orm._graph_objs:
+			del self.orm._graph_objs[key]
