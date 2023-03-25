@@ -687,24 +687,24 @@ class EngineHandle(object):
 			b = kf_to['graph_val'].get(graph, {})
 			for k in a.keys() | b.keys():
 				keys.append(('graph', graph[0], k))
-				values_from.append(pack(a.get(k)) + b'\xc0')
-				values_to.append(pack(b.get(k)) + b'\xc0')
+				values_from.append(pack(a.get(k)) + b'\xc1')
+				values_to.append(pack(b.get(k)) + b'\xc1')
 		for graph, node in kf_from['node_val'].keys() | kf_to['node_val'].keys(
 		):
 			a = kf_from['node_val'].get((graph, node), {})
 			b = kf_to['node_val'].get((graph, node), {})
 			for k in a.keys() | b.keys():
 				keys.append(('node', graph, node, k))
-				values_from.append(pack(a.get(k)) + b'\xc0')
-				values_to.append(pack(b.get(k)) + b'\xc0')
+				values_from.append(pack(a.get(k)) + b'\xc1')
+				values_to.append(pack(b.get(k)) + b'\xc1')
 		for graph, orig, dest, i in kf_from['edge_val'].keys(
 		) | kf_to['edge_val'].keys():
 			a = kf_from['edge_val'].get((graph, orig, dest, i), {})
 			b = kf_to['edge_val'].get((graph, orig, dest, i), {})
 			for k in a.keys() | b.keys():
 				keys.append(('edge', graph, orig, dest, k))
-				values_from.append(pack(a.get(k)) + b'\xc0')
-				values_to.append(pack(b.get(k)) + b'\xc0')
+				values_from.append(pack(a.get(k)) + b'\xc1')
+				values_to.append(pack(b.get(k)) + b'\xc1')
 		values_changed = np.array(values_from) != np.array(values_to)
 		delta = {}
 		for k, v, _ in filter(itemgetter(2),
@@ -714,7 +714,7 @@ class EngineHandle(object):
 				_, graph, node, key = k
 				graph, node, key = map(pack, (graph, node, key))
 				if graph not in delta:
-					delta[graph] = {NODE_VAL: {node: {key: v}}}
+					delta[graph] = {NODE_VAL: {node: {key: v}}, EDGE_VAL: {}}
 				elif node not in delta[graph][NODE_VAL]:
 					delta[graph][NODE_VAL][node] = {key: v}
 				else:
@@ -723,7 +723,16 @@ class EngineHandle(object):
 				_, graph, orig, dest, key = k
 				graph, orig, dest, key = map(pack, (graph, orig, dest, key))
 				if graph not in delta:
-					delta[graph] = {EDGE_VAL: {orig: {dest: {key: v}}}}
+					delta[graph] = {
+						EDGE_VAL: {
+							orig: {
+								dest: {
+									key: v
+								}
+							}
+						},
+						NODE_VAL: {}
+					}
 				elif orig not in delta[graph][EDGE_VAL]:
 					delta[graph][EDGE_VAL][orig] = {dest: {key: v}}
 				elif dest not in delta[graph][EDGE_VAL][orig]:
@@ -737,7 +746,7 @@ class EngineHandle(object):
 				if graph in delta:
 					delta[graph][key] = v
 				else:
-					delta[graph] = {key: v}
+					delta[graph] = {key: v, NODE_VAL: {}, EDGE_VAL: {}}
 		for graph in kf_from['nodes'].keys() & kf_to['nodes'].keys():
 			for node in kf_from['nodes'][graph].keys(
 			) - kf_to['nodes'][graph].keys():
@@ -1957,14 +1966,25 @@ class EngineHandle(object):
 		memo = self._rule_copy_memo
 		if (rule, branch, turn, tick) in memo:
 			return memo[rule, branch, turn, tick]
+		try:
+			triggers = list(
+				self._real._triggers_cache.retrieve(rule, branch, turn, tick))
+		except KeyError:
+			triggers = []
+		try:
+			prereqs = list(
+				self._real._prereqs_cache.retrieve(rule, branch, turn, tick))
+		except KeyError:
+			prereqs = []
+		try:
+			actions = list(
+				self._real._actions_cache.retrieve(rule, branch, turn, tick))
+		except KeyError:
+			actions = []
 		ret = memo[rule, branch, turn, tick] = {
-			'triggers':
-			list(self._real._triggers_cache.retrieve(rule, branch, turn,
-														tick)),
-			'prereqs':
-			list(self._real._prereqs_cache.retrieve(rule, branch, turn, tick)),
-			'actions':
-			list(self._real._actions_cache.retrieve(rule, branch, turn, tick))
+			'triggers': triggers,
+			'prereqs': prereqs,
+			'actions': actions
 		}
 		return ret
 
