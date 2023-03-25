@@ -2268,19 +2268,6 @@ class ORM:
 			self._init_graph(name, 'DiGraph', data)
 		return DiGraph(self, name)
 
-	@world_locked
-	def del_graph(self, name: Hashable) -> None:
-		"""Remove all traces of a graph's existence from the database
-
-		:arg name: name of an existing graph
-
-		"""
-		# make sure the graph exists before deleting anything
-		self.graph[name]
-		self.query.del_graph(name)
-		if name in self._graph_objs:
-			del self._graph_objs[name]
-
 	def _iter_parent_btt(
 		self,
 		branch: str = None,

@@ -1330,16 +1330,6 @@ class Engine(AbstractEngine, gORM):
 		if kwargs:
 			graph_obj.stat.update(kwargs)
 
-	def del_character(self, name: Hashable) -> None:
-		"""Remove the Character from the database entirely.
-
-		This also deletes all its history. You'd better be sure.
-
-		"""
-		self.query.del_character(name)
-		self.del_graph(name)
-		del self.character[name]
-
 	def _is_thing(self, character: Hashable, node: Hashable) -> bool:
 		return self._things_cache.contains_entity(character, node,
 													*self._btt())
