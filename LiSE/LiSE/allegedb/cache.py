@@ -874,6 +874,17 @@ class Cache:
 			settings_turns[turn] = {tick: parent + (entity, key, value)}
 
 	def _base_retrieve(self, args, store_hint=True, retrieve_hint=True):
+		"""Hot code.
+
+		Swim up the timestream trying to find a value for the
+		key in the entity that applied at the given (branch, turn, tick).
+		If we hit a keyframe, return the value therein, or KeyError if
+		there is none.
+
+		May *return* an exception, rather than raising it. This is to enable
+		use outside try-blocks, which have some performance overhead.
+
+		"""
 		shallowest = self.shallowest
 		if retrieve_hint and args in shallowest:
 			return shallowest[args]
