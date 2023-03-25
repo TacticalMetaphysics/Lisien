@@ -1362,8 +1362,6 @@ class Engine(AbstractEngine, gORM):
 										edges: EdgeValDictType,
 										graph_val: StatDictType,
 										copy_to_branch: str = None) -> None:
-		if 'units' not in graph_val:
-			graph_val['units'] = {}
 		super()._snap_keyframe_de_novo_graph(graph, branch, turn, tick, nodes,
 												edges, graph_val)
 		newkf = {}
