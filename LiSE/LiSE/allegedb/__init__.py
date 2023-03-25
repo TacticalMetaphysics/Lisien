@@ -1290,6 +1290,16 @@ class ORM:
 					edge_val_keyframe[graph] = dgev
 			if deltg:
 				if graph in graph_val_keyframe:
+					if 'units' in graph_val_keyframe[
+						graph] and 'units' in deltg:
+						graph_val_keyframe[graph]['units'] = {
+							ggraph: frozenset(
+								unit for unit in graph_val_keyframe[graph]
+								['units'][ggraph]
+								if deltg.get(ggraph, {}).get(unit, True))
+							for ggraph in list(graph_val_keyframe[graph]
+												['units'])
+						}
 					graph_val_keyframe[graph].update(deltg)
 				else:
 					graph_val_keyframe[graph] = deltg
