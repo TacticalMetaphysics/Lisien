@@ -78,7 +78,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 		}
 		assert card_names == {
 			'standing_still', 'aware', 'uncovered', 'sametile', 'breakcover',
-			'kobold_alive'
+			'kobold_alive', 'truth'
 		}
 
 	def test_rule_builder_remove_trigger(self):
@@ -258,7 +258,9 @@ class TestCharRuleBuilder(ELiDEAppTest):
 			card.headline_text
 			for card in builder.children if isinstance(card, Card)
 		}
-		assert card_names == {'similar_neighbors', 'dissimilar_neighbors'}
+		assert card_names == {
+			'similar_neighbors', 'dissimilar_neighbors', 'truth'
+		}
 		for card in builder.children:
 			if not isinstance(card, Card):
 				continue
