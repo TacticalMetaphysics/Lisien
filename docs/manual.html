@@ -116,9 +116,8 @@ can split off from one another. Branches normally don’t affect one
 another, though it’s possible to write rules that change one branch
 when they are run in another.</p>
 </section>
-</section>
-<section id="lise">
-<h1>LiSE<a class="headerlink" href="#lise" title="Permalink to this heading">¶</a></h1>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this heading">¶</a></h2>
 <p>The only LiSE class that you should ever instantiate yourself is
 <code class="docutils literal notranslate"><span class="pre">Engine</span></code>. All the other simulation objects should be
 created and accessed through it. By default, it keeps the simulation
@@ -138,6 +137,7 @@ entities it’s been applied to. World changes are
 recorded such that the whole world state can be
 rewound: simply set the properties <code class="docutils literal notranslate"><span class="pre">branch</span></code> and <code class="docutils literal notranslate"><span class="pre">turn</span></code> back to
 what they were just before the change you want to undo.</p>
+</section>
 <section id="world-modelling">
 <h2>World Modelling<a class="headerlink" href="#world-modelling" title="Permalink to this heading">¶</a></h2>
 <p>Start by calling the engine’s <code class="docutils literal notranslate"><span class="pre">new_character</span></code> method with a string
@@ -270,9 +270,7 @@ call, then return a menu description like this one.:</p>
 <li class="toctree-l2"><a class="reference internal" href="#too-much-world-state">Too much world state</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#too-many-rules">Too many rules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="#lise">LiSE</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#world-modelling">World Modelling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rule-creation">Rule Creation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#time-control">Time Control</a></li>
