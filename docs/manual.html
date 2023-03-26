@@ -117,6 +117,135 @@ another, though it’s possible to write rules that change one branch
 when they are run in another.</p>
 </section>
 </section>
+<section id="lise">
+<h1>LiSE<a class="headerlink" href="#lise" title="Permalink to this heading">¶</a></h1>
+<p>The only LiSE class that you should ever instantiate yourself is
+<code class="docutils literal notranslate"><span class="pre">Engine</span></code>. All the other simulation objects should be
+created and accessed through it. By default, it keeps the simulation
+code and world state in the working directory, but you can pass in another
+directory if you prefer. Either use it with a context manager
+(<code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">Engine()</span> <span class="pre">as</span> <span class="pre">eng:</span></code>) or call its <code class="docutils literal notranslate"><span class="pre">.close()</span></code> method when you’re done
+changing things.</p>
+<p>The top-level data structure within LiSE is the character. Most
+data within the world model is kept in some character or other;
+these will quite frequently represent people, but can be readily
+adapted to represent any kind of data that can be comfortably
+described as a graph. Every change to a character
+will be written to the database.</p>
+<p>LiSE tracks history as a series of turns. In each turn, each
+simulation rule is evaluated once for each of the simulated
+entities it’s been applied to. World changes are
+recorded such that the whole world state can be
+rewound: simply set the properties <code class="docutils literal notranslate"><span class="pre">branch</span></code> and <code class="docutils literal notranslate"><span class="pre">turn</span></code> back to
+what they were just before the change you want to undo.</p>
+<section id="world-modelling">
+<h2>World Modelling<a class="headerlink" href="#world-modelling" title="Permalink to this heading">¶</a></h2>
+<p>Start by calling the engine’s <code class="docutils literal notranslate"><span class="pre">new_character</span></code> method with a string
+<code class="docutils literal notranslate"><span class="pre">name</span></code>.  This will return a character object with the name you
+provided. Now draw a map by calling the method <code class="docutils literal notranslate"><span class="pre">new_place</span></code> with many
+different <code class="docutils literal notranslate"><span class="pre">name</span></code> s, then linking them together with the
+method <code class="docutils literal notranslate"><span class="pre">new_portal(origin,</span> <span class="pre">destination)</span></code>.</p>
+<p>To store data pertaining
+to some particular place, retrieve the place from the <code class="docutils literal notranslate"><span class="pre">place</span></code>
+mapping of the character: if the character is <code class="docutils literal notranslate"><span class="pre">world</span></code> and the place
+name is <code class="docutils literal notranslate"><span class="pre">'home'</span></code>, you might do it like
+<code class="docutils literal notranslate"><span class="pre">home</span> <span class="pre">=</span> <span class="pre">world.place['home']</span></code>. Portals are retrieved from the <code class="docutils literal notranslate"><span class="pre">portal</span></code>
+mapping, where you’ll need the origin and the destination: if there’s
+a portal from <code class="docutils literal notranslate"><span class="pre">'home'</span></code> to <code class="docutils literal notranslate"><span class="pre">'narnia'</span></code>, you can get it like
+<code class="docutils literal notranslate"><span class="pre">wardrobe</span> <span class="pre">=</span> <span class="pre">world.portal['home']['narnia']</span></code>, but if you haven’t also
+made another portal going the other way,
+<code class="docutils literal notranslate"><span class="pre">world.portal['narnia']['home']</span></code> will raise <code class="docutils literal notranslate"><span class="pre">KeyError</span></code>.</p>
+<p>Things, usually being located in places (but possibly in other things),
+are most conveniently created by the <code class="docutils literal notranslate"><span class="pre">new_thing</span></code> method of Place objects:
+<code class="docutils literal notranslate"><span class="pre">alice</span> <span class="pre">=</span> <span class="pre">home.new_thing('alice')</span></code> gets you a new Thing object
+located in <code class="docutils literal notranslate"><span class="pre">home</span></code>. Things can be retrieved like <code class="docutils literal notranslate"><span class="pre">alice</span> <span class="pre">=</span> <span class="pre">world.thing['alice']</span></code>.
+Ultimately, things and places are both just nodes, and both can be
+retrieved in a character’s <code class="docutils literal notranslate"><span class="pre">node</span></code> mapping, but only things have
+methods like <code class="docutils literal notranslate"><span class="pre">travel_to</span></code>, which finds a path to a destination
+and schedules movement along it.</p>
+<p>You can store data in things, places, and portals by treating them
+like dictionaries.  If you want to store data in a character, use its
+<code class="docutils literal notranslate"><span class="pre">stat</span></code> property as a dictionary instead. Data stored in these
+objects, and in the <code class="docutils literal notranslate"><span class="pre">universal</span></code> property of the engine, can vary
+over time, and be rewound by setting <code class="docutils literal notranslate"><span class="pre">turn</span></code> to some time before.
+The engine’s <code class="docutils literal notranslate"><span class="pre">eternal</span></code> property is not time-sensitive,
+and is mainly for storing settings, not simulation data.</p>
+</section>
+<section id="rule-creation">
+<h2>Rule Creation<a class="headerlink" href="#rule-creation" title="Permalink to this heading">¶</a></h2>
+<p>To create a rule, first decide what objects the rule should apply
+to. You can put a rule on a character, thing, place, or portal; and
+you can put a rule on a character’s <code class="docutils literal notranslate"><span class="pre">thing</span></code>, <code class="docutils literal notranslate"><span class="pre">place</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">portal</span></code> mappings, meaning the rule will be applied to <em>every</em> such
+entity within the character, even if it didn’t exist when the rule was
+declared.</p>
+<p>All these items have a property <code class="docutils literal notranslate"><span class="pre">rule</span></code> that can be used as a
+decorator. Use this to decorate a function that performs the rule’s
+action by making some change to the world state. The function should take
+only one argument, the item itself.</p>
+<p>At first, the rule object will not have any triggers, meaning the action
+will never happen. If you want it to run on <em>every</em> tick, pass the decorator
+<code class="docutils literal notranslate"><span class="pre">always=True</span></code> and think no more of it. But if you want to be
+more selective, use the rule’s <code class="docutils literal notranslate"><span class="pre">trigger</span></code> decorator on another
+function with the same signature, and have it return <code class="docutils literal notranslate"><span class="pre">True</span></code> if the
+world is in such a state that the rule ought to run. Triggers must never
+mutate the world or use any randomness.</p>
+<p>If you like, you can also add prerequisites. These are like triggers,
+but use the <code class="docutils literal notranslate"><span class="pre">prereq</span></code> decorator, and should return <code class="docutils literal notranslate"><span class="pre">True</span></code> <em>unless</em>
+the action should <em>not</em> happen; if a single prerequisite returns
+<code class="docutils literal notranslate"><span class="pre">False</span></code>, the action is cancelled. Prereqs may involve random elements.
+Use the <code class="docutils literal notranslate"><span class="pre">engine</span></code> property of any LiSE entity to get the engine,
+then use methods such as <code class="docutils literal notranslate"><span class="pre">percent_chance</span></code> and <code class="docutils literal notranslate"><span class="pre">dice_check</span></code>.</p>
+</section>
+<section id="time-control">
+<h2>Time Control<a class="headerlink" href="#time-control" title="Permalink to this heading">¶</a></h2>
+<p>The current time is always accessible from the engine’s <code class="docutils literal notranslate"><span class="pre">branch</span></code> and
+<code class="docutils literal notranslate"><span class="pre">turn</span></code> properties. In the common case where time is advancing
+forward one tick at a time, it should be done with the engine’s
+<code class="docutils literal notranslate"><span class="pre">next_turn</span></code> method, which polls all the game rules before going to
+the next turn; but you can also change the time whenever you want, as
+long as <code class="docutils literal notranslate"><span class="pre">branch</span></code> is a string and <code class="docutils literal notranslate"><span class="pre">turn</span></code> is an integer. The rules
+will never be followed in response to your changing the time “by
+hand”.</p>
+<p>It is possible to change the time as part of the
+action of a rule. This is how you would make something happen after a
+delay. Say you want a rule that puts the character <code class="docutils literal notranslate"><span class="pre">alice</span></code> to sleep,
+then wakes her up after eight turns (presumably hour-long).:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alice</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="s1">&#39;alice&#39;</span><span class="p">]</span>
+
+<span class="nd">@alice</span><span class="o">.</span><span class="n">rule</span>
+<span class="k">def</span> <span class="nf">sleep</span><span class="p">(</span><span class="n">character</span><span class="p">):</span>
+        <span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;awake&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">start_turn</span> <span class="o">=</span> <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">turn</span>
+        <span class="k">with</span> <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
+                <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">turn</span> <span class="o">+=</span> <span class="mi">8</span>
+                <span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;awake&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+</pre></div>
+</div>
+<p>At the end of a <code class="docutils literal notranslate"><span class="pre">plan():</span></code> block, the game-time will be reset to its
+position at the start of that block.</p>
+</section>
+<section id="input-prompts">
+<h2>Input Prompts<a class="headerlink" href="#input-prompts" title="Permalink to this heading">¶</a></h2>
+<p>LiSE itself doesn’t know what a player is or how to accept input from them,
+but does use some conventions for communicating with a user interface
+such as ELiDE.</p>
+<p>To ask the player to make a decision, first define a method for them to
+call, then return a menu description like this one.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@engine</span><span class="o">.</span><span class="n">method</span>
+<span class="k">def</span> <span class="nf">wake_alice</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="s1">&#39;alice&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;awake&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="n">alice</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="s1">&#39;alice&#39;</span><span class="p">]</span>
+
+<span class="nd">@alice</span><span class="o">.</span><span class="n">rule</span>
+<span class="k">def</span> <span class="nf">wakeup</span><span class="p">(</span><span class="n">character</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Wake up?&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Yes&quot;</span><span class="p">,</span> <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">wake_alice</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;No&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p>Only methods defined with the <code class="docutils literal notranslate"><span class="pre">&#64;engine.method</span></code> function store may be used in a menu.</p>
+</section>
+</section>
 
 
           </div>
@@ -141,6 +270,13 @@ when they are run in another.</p>
 <li class="toctree-l2"><a class="reference internal" href="#too-much-world-state">Too much world state</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#too-many-rules">Too many rules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#lise">LiSE</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#world-modelling">World Modelling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rule-creation">Rule Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#time-control">Time Control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#input-prompts">Input Prompts</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="LiSE/index.html">LiSE</a></li>
