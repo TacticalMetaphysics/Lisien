@@ -96,8 +96,8 @@ can split off from one another. Branches normally don't affect one
 another, though it's possible to write rules that change one branch
 when they are run in another.
 
-LiSE
-====
+Usage
+-----
 The only LiSE class that you should ever instantiate yourself is
 ``Engine``. All the other simulation objects should be
 created and accessed through it. By default, it keeps the simulation
