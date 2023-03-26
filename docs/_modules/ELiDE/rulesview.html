@@ -279,12 +279,11 @@
 		<span class="nb">setattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_</span><span class="si">{}</span><span class="s1">_builder&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">what</span><span class="p">)),</span> <span class="s1">&#39;decks&#39;</span><span class="p">,</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">get_functions_cards</span><span class="p">(</span><span class="n">what</span><span class="p">,</span> <span class="n">allfuncs</span><span class="p">))</span></div>
 
-	<span class="k">def</span> <span class="nf">_pull_functions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">):</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_functions_cards</span><span class="p">(</span>
-			<span class="n">what</span><span class="p">,</span>
-			<span class="nb">list</span><span class="p">(</span>
-				<span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inspect_func</span><span class="p">,</span>
-					<span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">what</span><span class="p">)</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">items</span><span class="p">())))</span>
+	<span class="k">def</span> <span class="nf">_pull_functions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+		<span class="n">it</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inspect_func</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">what</span><span class="p">)</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="n">truth</span><span class="p">:</span>
+			<span class="n">it</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;truth&quot;</span><span class="p">,</span> <span class="n">it</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_functions_cards</span><span class="p">(</span><span class="n">what</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">it</span><span class="p">))</span>
 
 <div class="viewcode-block" id="RulesView.pull_triggers"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.rulesview.RulesView.pull_triggers">[docs]</a>	<span class="k">def</span> <span class="nf">pull_triggers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Refresh the cards in the trigger builder&quot;&quot;&quot;</span>
@@ -294,13 +293,15 @@
 
 <div class="viewcode-block" id="RulesView.pull_prereqs"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.rulesview.RulesView.pull_prereqs">[docs]</a>	<span class="k">def</span> <span class="nf">pull_prereqs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Refresh the cards in the prereq builder&quot;&quot;&quot;</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_prereq_builder</span><span class="o">.</span><span class="n">decks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_functions</span><span class="p">(</span><span class="s1">&#39;prereq&#39;</span><span class="p">)</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_prereq_builder</span><span class="o">.</span><span class="n">decks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_functions</span><span class="p">(</span><span class="s1">&#39;prereq&#39;</span><span class="p">,</span>
+															<span class="n">truth</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
 	<span class="n">_trigger_pull_prereqs</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">pull_prereqs</span><span class="p">)</span>
 
 <div class="viewcode-block" id="RulesView.pull_actions"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.rulesview.RulesView.pull_actions">[docs]</a>	<span class="k">def</span> <span class="nf">pull_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Refresh the cards in the action builder&quot;&quot;&quot;</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_action_builder</span><span class="o">.</span><span class="n">decks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_functions</span><span class="p">(</span><span class="s1">&#39;action&#39;</span><span class="p">)</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_action_builder</span><span class="o">.</span><span class="n">decks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_functions</span><span class="p">(</span><span class="s1">&#39;action&#39;</span><span class="p">,</span>
+															<span class="n">truth</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
 	<span class="n">_trigger_pull_actions</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">pull_actions</span><span class="p">)</span>
 

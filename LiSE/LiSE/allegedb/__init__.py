@@ -20,7 +20,7 @@ import gc
 from queue import Queue
 from threading import RLock, Thread
 from typing import (Callable, Dict, Any, Union, Tuple, Optional, List,
-					Iterator)
+					Iterator, FrozenSet)
 
 from blinker import Signal
 import networkx as nx
@@ -31,7 +31,14 @@ from .graph import (DiGraph, Node, Edge, GraphsMapping)
 from .query import (QueryEngine, TimeError, NodeRowType, EdgeRowType,
 					GraphValRowType, NodeValRowType, EdgeValRowType)
 from .window import HistoricKeyError
-from .util import Key
+
+Key = Union[str, int, float, Tuple["Key"], FrozenSet["Key"]]
+"""Type hint for things LiSE can use as keys
+
+They have to be serializable using LiSE's particular msgpack schema,
+as well as hashable.
+
+"""
 
 Graph = DiGraph  # until I implement other graph types...
 

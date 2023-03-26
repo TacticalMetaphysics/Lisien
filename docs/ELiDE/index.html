@@ -4,7 +4,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>ELiDE &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
@@ -66,457 +66,12 @@ current turn.</p>
 <section id="game">
 <h2>game<a class="headerlink" href="#game" title="Permalink to this heading">¶</a></h2>
 <p>Tools to make it easier to script your own game using the ELiDE widgets.</p>
-<span class="target" id="module-ELiDE.game"></span><dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.game.GameApp">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.game.</span></span><span class="sig-name descname"><span class="pre">GameApp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameApp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameApp" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.game.GameApp.build">
-<span class="sig-name descname"><span class="pre">build</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameApp.build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameApp.build" title="Permalink to this definition">¶</a></dt>
-<dd><p>Initializes the application; it will be called only once.
-If this method returns a widget (tree), it will be used as the root
-widget and added to the window.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None or a root <code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code> instance
-if no self.root exists.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.game.GameApp.on_pause">
-<span class="sig-name descname"><span class="pre">on_pause</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameApp.on_pause"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameApp.on_pause" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sync the database with the current state of the game.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.game.GameApp.on_stop">
-<span class="sig-name descname"><span class="pre">on_stop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">largs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameApp.on_stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameApp.on_stop" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sync the database, wrap up the game, and halt.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.game.GameApp.wait_command">
-<span class="sig-name descname"><span class="pre">wait_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">turns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameApp.wait_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameApp.wait_command" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call <code class="docutils literal notranslate"><span class="pre">start_func</span></code>, and wait to call <code class="docutils literal notranslate"><span class="pre">end_func</span></code> after simulating <code class="docutils literal notranslate"><span class="pre">turns</span></code> (default 1)</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>start_func</strong> – function to call before waiting</p></li>
-<li><p><strong>turns</strong> – number of turns to wait</p></li>
-<li><p><strong>end_func</strong> – function to call after waiting</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.game.GameApp.wait_travel">
-<span class="sig-name descname"><span class="pre">wait_travel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">character</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameApp.wait_travel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameApp.wait_travel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Schedule a thing to travel someplace, then wait for it to finish, and call <code class="docutils literal notranslate"><span class="pre">cb</span></code> if provided</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>character</strong> – name of the character</p></li>
-<li><p><strong>thing</strong> – name of the thing</p></li>
-<li><p><strong>dest</strong> – name of the destination (a place)</p></li>
-<li><p><strong>cb</strong> – function to be called when I’m done</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.game.GameApp.wait_travel_command">
-<span class="sig-name descname"><span class="pre">wait_travel_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">character</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">turns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameApp.wait_travel_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameApp.wait_travel_command" title="Permalink to this definition">¶</a></dt>
-<dd><p>Schedule a thing to travel someplace and do something, then wait for it to finish.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>character</strong> – name of the character</p></li>
-<li><p><strong>thing</strong> – name of the thing</p></li>
-<li><p><strong>dest</strong> – name of the destination (a place)</p></li>
-<li><p><strong>start_func</strong> – function to call when the thing gets to dest</p></li>
-<li><p><strong>turns</strong> – number of turns to wait after start_func before re-enabling input</p></li>
-<li><p><strong>end_func</strong> – optional. Function to call after waiting <code class="docutils literal notranslate"><span class="pre">turns</span></code> after start_func</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.game.GameApp.wait_turns">
-<span class="sig-name descname"><span class="pre">wait_turns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">turns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameApp.wait_turns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameApp.wait_turns" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call <code class="docutils literal notranslate"><span class="pre">self.engine.next_turn()</span></code> <code class="docutils literal notranslate"><span class="pre">n</span></code> times, waiting <code class="docutils literal notranslate"><span class="pre">self.turn_length</span></code> in between</p>
-<p>If provided, call <code class="docutils literal notranslate"><span class="pre">cb</span></code> when done.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>turns</strong> – number of turns to wait</p></li>
-<li><p><strong>dt</strong> – unused, just satisfies the clock</p></li>
-<li><p><strong>cb</strong> – callback function to call when done, optional</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.game.GameScreen">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.game.</span></span><span class="sig-name descname"><span class="pre">GameScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameScreen"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameScreen" title="Permalink to this definition">¶</a></dt>
-<dd><p>A version of <code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.uix.screenmanager.Screen</span></code> that is easier to set up and use with ELiDE</p>
-<p>Should be a child of the <a class="reference internal" href="#ELiDE.game.Screens" title="ELiDE.game.Screens"><code class="xref py py-class docutils literal notranslate"><span class="pre">ELiDE.game.Screens</span></code></a> widget, which will never itself be displayed.
-<code class="docutils literal notranslate"><span class="pre">GameScreen</span></code> instances in it will be added to the screen manager, so that you can switch
-to them with the <code class="docutils literal notranslate"><span class="pre">switch_screen</span></code> method.</p>
-<p>Every <code class="docutils literal notranslate"><span class="pre">GameScreen</span></code> needs a <code class="docutils literal notranslate"><span class="pre">name</span></code>, just like regular <code class="docutils literal notranslate"><span class="pre">Screen</span></code>.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.game.GameScreen.disable_input">
-<span class="sig-name descname"><span class="pre">disable_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameScreen.disable_input"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameScreen.disable_input" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set <code class="docutils literal notranslate"><span class="pre">self.disabled</span></code> to <code class="docutils literal notranslate"><span class="pre">True</span></code>, then call <code class="docutils literal notranslate"><span class="pre">cb</span></code> if provided</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>cb</strong> – callback function for after disabling</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.game.GameScreen.disabled">
-<span class="sig-name descname"><span class="pre">disabled</span></span><a class="headerlink" href="#ELiDE.game.GameScreen.disabled" title="Permalink to this definition">¶</a></dt>
-<dd><p>If you bind your widgets’ <code class="docutils literal notranslate"><span class="pre">disabled</span></code> to this, they will be disabled when a game command is in mid-execution</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.game.GameScreen.enable_input">
-<span class="sig-name descname"><span class="pre">enable_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameScreen.enable_input"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameScreen.enable_input" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call <code class="docutils literal notranslate"><span class="pre">cb</span></code> if provided, then set <code class="docutils literal notranslate"><span class="pre">self.disabled</span></code> to <code class="docutils literal notranslate"><span class="pre">False</span></code></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>cb</strong> – callback function for before enabling</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.game.GameScreen.switch_screen">
-<span class="sig-name descname"><span class="pre">switch_screen</span></span><a class="headerlink" href="#ELiDE.game.GameScreen.switch_screen" title="Permalink to this definition">¶</a></dt>
-<dd><p>Method to set the <code class="docutils literal notranslate"><span class="pre">screen</span></code> attribute of the main <code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.uix.screenmanager.ScreenManager</span></code></p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.game.GameScreen.wait_command">
-<span class="sig-name descname"><span class="pre">wait_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">turns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameScreen.wait_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameScreen.wait_command" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call <code class="docutils literal notranslate"><span class="pre">start_func</span></code>, wait <code class="docutils literal notranslate"><span class="pre">turns</span></code>, and then call <code class="docutils literal notranslate"><span class="pre">end_func</span></code> if provided</p>
-<p>Disables input for the duration.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>start_func</strong> – function to call just after disabling input</p></li>
-<li><p><strong>turns</strong> – number of turns to wait</p></li>
-<li><p><strong>end_func</strong> – function to call just before re-enabling input</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.game.GameScreen.wait_travel">
-<span class="sig-name descname"><span class="pre">wait_travel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">character</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameScreen.wait_travel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameScreen.wait_travel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Schedule a thing to travel someplace, then wait for it to finish.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>character</strong> – name of the character</p></li>
-<li><p><strong>thing</strong> – name of the thing that will travel</p></li>
-<li><p><strong>dest</strong> – name of the place it will travel to</p></li>
-<li><p><strong>cb</strong> – callback function for when it’s done, optional</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.game.GameScreen.wait_travel_command">
-<span class="sig-name descname"><span class="pre">wait_travel_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">character</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">turns=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_func=&lt;function</span> <span class="pre">GameScreen.&lt;lambda&gt;&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameScreen.wait_travel_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameScreen.wait_travel_command" title="Permalink to this definition">¶</a></dt>
-<dd><p>Schedule a thing to travel someplace and do something, then wait for it to finish.</p>
-<p>Input will be disabled for the duration.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>character</strong> – name of the character</p></li>
-<li><p><strong>thing</strong> – name of the thing</p></li>
-<li><p><strong>dest</strong> – name of the destination (a place)</p></li>
-<li><p><strong>start_func</strong> – function to call when the thing gets to dest</p></li>
-<li><p><strong>turns</strong> – number of turns to wait after start_func before re-enabling input</p></li>
-<li><p><strong>end_func</strong> – optional. Function to call after waiting <code class="docutils literal notranslate"><span class="pre">turns</span></code> after start_func</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.game.GameScreen.wait_turns">
-<span class="sig-name descname"><span class="pre">wait_turns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">turns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameScreen.wait_turns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.GameScreen.wait_turns" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call <code class="docutils literal notranslate"><span class="pre">self.app.engine.next_turn()</span></code> <code class="docutils literal notranslate"><span class="pre">n</span></code> times, waiting <code class="docutils literal notranslate"><span class="pre">self.app.turn_length</span></code> in between</p>
-<p>Disables input for the duration.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>turns</strong> – number of turns to wait</p></li>
-<li><p><strong>cb</strong> – function to call when done waiting, optional</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.game.Screens">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.game.</span></span><span class="sig-name descname"><span class="pre">Screens</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#Screens"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.Screens" title="Permalink to this definition">¶</a></dt>
-<dd><p>Children of this widget will be added to the <code class="docutils literal notranslate"><span class="pre">GameApp</span></code>’s <code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.uix.screenmanager.ScreenManager</span></code></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.game.Screens.add_widget">
-<span class="sig-name descname"><span class="pre">add_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#Screens.add_widget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.game.Screens.add_widget" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add a new widget as a child of this widget.</p>
-<blockquote>
-<div><dl class="field-list">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl>
-<dt><cite>widget</cite>: <code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></dt><dd><p>Widget to add to our list of children.</p>
-</dd>
-<dt><cite>index</cite>: int, defaults to 0</dt><dd><p>Index to insert the widget in the list. Notice that the default
-of 0 means the widget is inserted at the beginning of the list
-and will thus be drawn on top of other sibling widgets. For a
-full discussion of the index and widget hierarchy, please see
-the <span class="xref std std-doc">Widgets Programming Guide</span>.</p>
-<div class="versionadded">
-<p><span class="versionmodified added">New in version 1.0.5.</span></p>
-</div>
-</dd>
-<dt><cite>canvas</cite>: str, defaults to None</dt><dd><p>Canvas to add widget’s canvas to. Can be ‘before’, ‘after’ or
-None for the default canvas.</p>
-<div class="versionadded">
-<p><span class="versionmodified added">New in version 1.9.0.</span></p>
-</div>
-</dd>
-</dl>
-</dd>
-</dl>
-</div></blockquote>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">kivy.uix.button</span> <span class="kn">import</span> <span class="n">Button</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">kivy.uix.slider</span> <span class="kn">import</span> <span class="n">Slider</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">root</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">root</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">Button</span><span class="p">())</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">slider</span> <span class="o">=</span> <span class="n">Slider</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">root</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">slider</span><span class="p">)</span>
-</pre></div>
-</div>
-</dd></dl>
-
-</dd></dl>
-
 </section>
 <section id="graph">
 <h2>graph<a class="headerlink" href="#graph" title="Permalink to this heading">¶</a></h2>
 <p>The default view on the state of the world.</p>
-<section id="module-ELiDE.graph.board">
-<span id="board"></span><h3>board<a class="headerlink" href="#module-ELiDE.graph.board" title="Permalink to this heading">¶</a></h3>
-<p>The big widget that shows the graph of the selected Character.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.graph.board.FinalLayout">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.board.</span></span><span class="sig-name descname"><span class="pre">FinalLayout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#FinalLayout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.FinalLayout" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.board.</span></span><span class="sig-name descname"><span class="pre">GraphBoard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard" title="Permalink to this definition">¶</a></dt>
-<dd><p>A graphical view onto a <code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.Character</span></code>, resembling a game
-graph.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.arrows">
-<span class="sig-name descname"><span class="pre">arrows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.arrows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.arrows" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterate over all my arrows.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.arrows_at">
-<span class="sig-name descname"><span class="pre">arrows_at</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.arrows_at"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.arrows_at" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterate over arrows that collide the given point.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.make_pawn">
-<span class="sig-name descname"><span class="pre">make_pawn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thing</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.make_pawn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.make_pawn" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make a <code class="xref py py-class docutils literal notranslate"><span class="pre">Pawn</span></code> to represent a <code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code>, store it, and
-return it.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.make_spot">
-<span class="sig-name descname"><span class="pre">make_spot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">place</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.make_spot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.make_spot" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make a <code class="xref py py-class docutils literal notranslate"><span class="pre">Spot</span></code> to represent a <code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code>, store it, and
-return it.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.on_parent">
-<span class="sig-name descname"><span class="pre">on_parent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.on_parent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.on_parent" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create some subwidgets and trigger the first update.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.on_touch_down">
-<span class="sig-name descname"><span class="pre">on_touch_down</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.on_touch_down"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.on_touch_down" title="Permalink to this definition">¶</a></dt>
-<dd><p>Check for collisions and select an appropriate entity.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.on_touch_move">
-<span class="sig-name descname"><span class="pre">on_touch_move</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.on_touch_move"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.on_touch_move" title="Permalink to this definition">¶</a></dt>
-<dd><p>If an entity is selected, drag it.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.on_touch_up">
-<span class="sig-name descname"><span class="pre">on_touch_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.on_touch_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.on_touch_up" title="Permalink to this definition">¶</a></dt>
-<dd><p>Delegate touch handling if possible, else select something.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.pawns_at">
-<span class="sig-name descname"><span class="pre">pawns_at</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.pawns_at"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.pawns_at" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterate over pawns that collide the given point.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.portal_touch_up">
-<span class="sig-name descname"><span class="pre">portal_touch_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.portal_touch_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.portal_touch_up" title="Permalink to this definition">¶</a></dt>
-<dd><p>Try to create a portal between the spots the user chose.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.rm_arrow">
-<span class="sig-name descname"><span class="pre">rm_arrow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.rm_arrow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.rm_arrow" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove the <code class="xref py py-class docutils literal notranslate"><span class="pre">Arrow</span></code> that goes from <code class="docutils literal notranslate"><span class="pre">orig</span></code> to <code class="docutils literal notranslate"><span class="pre">dest</span></code>.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.rm_pawn">
-<span class="sig-name descname"><span class="pre">rm_pawn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.rm_pawn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.rm_pawn" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove the <code class="xref py py-class docutils literal notranslate"><span class="pre">Pawn</span></code> by the given name.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.rm_spot">
-<span class="sig-name descname"><span class="pre">rm_spot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.rm_spot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.rm_spot" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove the <code class="xref py py-class docutils literal notranslate"><span class="pre">Spot</span></code> by the given name.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.spots_at">
-<span class="sig-name descname"><span class="pre">spots_at</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.spots_at"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.spots_at" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterate over spots that collide the given point.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.update">
-<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.update" title="Permalink to this definition">¶</a></dt>
-<dd><p>Force an update to match the current state of my character.</p>
-<p>This polls every element of the character, and therefore
-causes me to sync with the LiSE core for a long time. Avoid
-when possible.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoard.update_from_delta">
-<span class="sig-name descname"><span class="pre">update_from_delta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoard.update_from_delta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoard.update_from_delta" title="Permalink to this definition">¶</a></dt>
-<dd><p>Apply the changes described in the dict <code class="docutils literal notranslate"><span class="pre">delta</span></code>.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoardScatterPlane">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.board.</span></span><span class="sig-name descname"><span class="pre">GraphBoardScatterPlane</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoardScatterPlane"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoardScatterPlane" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoardScatterPlane.pawn_from_dummy">
-<span class="sig-name descname"><span class="pre">pawn_from_dummy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dummy</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoardScatterPlane.pawn_from_dummy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoardScatterPlane.pawn_from_dummy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make a real thing and its pawn from a dummy pawn.</p>
-<p>Create a new <code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Pawn</span></code> instance, along with the
-underlying <code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.Thing</span></code> instance, and give it the name,
-location, and imagery of the provided dummy.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoardScatterPlane.spot_from_dummy">
-<span class="sig-name descname"><span class="pre">spot_from_dummy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dummy</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoardScatterPlane.spot_from_dummy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoardScatterPlane.spot_from_dummy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make a real place and its spot from a dummy spot.</p>
-<p>Create a new <code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Spot</span></code> instance, along with the
-underlying <code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.Place</span></code> instance, and give it the name,
-position, and imagery of the provided dummy.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.graph.board.GraphBoardView">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.board.</span></span><span class="sig-name descname"><span class="pre">GraphBoardView</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#GraphBoardView"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.GraphBoardView" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.graph.board.KvLayoutBack">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.board.</span></span><span class="sig-name descname"><span class="pre">KvLayoutBack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#KvLayoutBack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.KvLayoutBack" title="Permalink to this definition">¶</a></dt>
-<dd><p>What to show behind the graph.</p>
-<p>By default, shows nothing.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.graph.board.KvLayoutFront">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.graph.board.</span></span><span class="sig-name descname"><span class="pre">KvLayoutFront</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#KvLayoutFront"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.KvLayoutFront" title="Permalink to this definition">¶</a></dt>
-<dd><p>What to show in front of the graph.</p>
-<p>By default, shows nothing.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="ELiDE.graph.board.normalize_layout">
-<span class="sig-prename descclassname"><span class="pre">ELiDE.graph.board.</span></span><span class="sig-name descname"><span class="pre">normalize_layout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">l</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/board.html#normalize_layout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.board.normalize_layout" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make sure all the spots in a layout are where you can click.</p>
-<p>Returns a copy of the layout with all spot coordinates are
-normalized to within (0.0, 0.98).</p>
-</dd></dl>
-
+<section id="board">
+<h3>board<a class="headerlink" href="#board" title="Permalink to this heading">¶</a></h3>
 </section>
 <section id="pawn">
 <h3>pawn<a class="headerlink" href="#pawn" title="Permalink to this heading">¶</a></h3>
@@ -638,160 +193,8 @@ screen they are at the moment.</p>
 <dd></dd></dl>
 
 </section>
-<section id="module-ELiDE.screen">
-<span id="screen"></span><h2>screen<a class="headerlink" href="#module-ELiDE.screen" title="Permalink to this heading">¶</a></h2>
-<p>The big layout that you view all of ELiDE through.</p>
-<p>Handles touch, selection, and time control. Contains a graph, a stat
-grid, the time control panel, and the menu.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.screen.CharMenuContainer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.screen.</span></span><span class="sig-name descname"><span class="pre">CharMenuContainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#CharMenuContainer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.CharMenuContainer" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.screen.KvLayout">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.screen.</span></span><span class="sig-name descname"><span class="pre">KvLayout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#KvLayout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.KvLayout" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.screen.MainScreen">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.screen.</span></span><span class="sig-name descname"><span class="pre">MainScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#MainScreen"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.MainScreen" title="Permalink to this definition">¶</a></dt>
-<dd><p>A master layout that contains one graph and some menus.</p>
-<p>This contains three elements: a scrollview (containing the graph),
-a menu, and the time control panel. This class has some support methods
-for handling interactions with the menu and the character sheet,
-but if neither of those happen, the scrollview handles touches on its
-own.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.screen.MainScreen.manager">
-<span class="sig-name descname"><span class="pre">manager</span></span><a class="headerlink" href="#ELiDE.screen.MainScreen.manager" title="Permalink to this definition">¶</a></dt>
-<dd><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ScreenManager</span></code> object, set when the screen is added to a
-manager.</p>
-<p><a class="reference internal" href="#ELiDE.screen.MainScreen.manager" title="ELiDE.screen.MainScreen.manager"><code class="xref py py-attr docutils literal notranslate"><span class="pre">manager</span></code></a> is an <code class="xref py py-class docutils literal notranslate"><span class="pre">ObjectProperty</span></code> and
-defaults to None, read-only.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.screen.MainScreen.next_turn">
-<span class="sig-name descname"><span class="pre">next_turn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#MainScreen.next_turn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.MainScreen.next_turn" title="Permalink to this definition">¶</a></dt>
-<dd><p>Advance time by one turn, if it’s not blocked.</p>
-<p>Block time by setting <code class="docutils literal notranslate"><span class="pre">engine.universal['block']</span> <span class="pre">=</span> <span class="pre">True</span></code></p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.screen.MainScreen.on_dummies">
-<span class="sig-name descname"><span class="pre">on_dummies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#MainScreen.on_dummies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.MainScreen.on_dummies" title="Permalink to this definition">¶</a></dt>
-<dd><p>Give the dummies numbers such that, when appended to their names,
-they give a unique name for the resulting new
-<code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Pawn</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Spot</span></code>.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.screen.MainScreen.on_play_speed">
-<span class="sig-name descname"><span class="pre">on_play_speed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#MainScreen.on_play_speed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.MainScreen.on_play_speed" title="Permalink to this definition">¶</a></dt>
-<dd><p>Change the interval at which <code class="docutils literal notranslate"><span class="pre">self.play</span></code> is called to match my
-current <code class="docutils literal notranslate"><span class="pre">play_speed</span></code>.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.screen.MainScreen.on_touch_down">
-<span class="sig-name descname"><span class="pre">on_touch_down</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#MainScreen.on_touch_down"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.MainScreen.on_touch_down" title="Permalink to this definition">¶</a></dt>
-<dd><p>Receive a touch down event.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>touch</cite>: <code class="xref py py-class docutils literal notranslate"><span class="pre">MotionEvent</span></code> class</dt><dd><p>Touch received. The touch is in parent coordinates. See
-<code class="xref py py-mod docutils literal notranslate"><span class="pre">relativelayout</span></code> for a discussion on
-coordinate systems.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>bool
-If True, the dispatching of the touch event will stop.
-If False, the event will continue to be dispatched to the rest
-of the widget tree.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.screen.MainScreen.on_touch_up">
-<span class="sig-name descname"><span class="pre">on_touch_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#MainScreen.on_touch_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.MainScreen.on_touch_up" title="Permalink to this definition">¶</a></dt>
-<dd><p>Receive a touch up event. The touch is in parent coordinates.</p>
-<p>See <a class="reference internal" href="#ELiDE.screen.MainScreen.on_touch_down" title="ELiDE.screen.MainScreen.on_touch_down"><code class="xref py py-meth docutils literal notranslate"><span class="pre">on_touch_down()</span></code></a> for more information.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.screen.MainScreen.play">
-<span class="sig-name descname"><span class="pre">play</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#MainScreen.play"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.MainScreen.play" title="Permalink to this definition">¶</a></dt>
-<dd><p>If the ‘play’ button is pressed, advance a turn.</p>
-<p>If you want to disable this, set <code class="docutils literal notranslate"><span class="pre">engine.universal['block']</span> <span class="pre">=</span> <span class="pre">True</span></code></p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.screen.MainScreen.remake_display">
-<span class="sig-name descname"><span class="pre">remake_display</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#MainScreen.remake_display"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.MainScreen.remake_display" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remake any affected widgets after a change in my <code class="docutils literal notranslate"><span class="pre">kv</span></code>.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.screen.OneTurnButton">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.screen.</span></span><span class="sig-name descname"><span class="pre">OneTurnButton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#OneTurnButton"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.OneTurnButton" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.screen.SimulateButton">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.screen.</span></span><span class="sig-name descname"><span class="pre">SimulateButton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#SimulateButton"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.SimulateButton" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.screen.StatListPanel">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.screen.</span></span><span class="sig-name descname"><span class="pre">StatListPanel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#StatListPanel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.StatListPanel" title="Permalink to this definition">¶</a></dt>
-<dd><p>A panel that displays a simple two-column grid showing the stats of
-the selected entity, defaulting to those of the character being
-viewed.</p>
-<p>Has a button on the bottom to open the StatWindow in which
-to add and delete stats, or to change the way they are displayed
-in the StatListPanel.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.screen.TimePanel">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.screen.</span></span><span class="sig-name descname"><span class="pre">TimePanel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#TimePanel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.TimePanel" title="Permalink to this definition">¶</a></dt>
-<dd><p>A panel that lets you to start and stop the game, or browse through
-its history.</p>
-<p>There’s a “simulate” button, which is toggleable. When toggled on, the
-simulation will continue to run until it’s toggled off
-again. Next to this is a “1 turn” button, which will simulate
-exactly one turn and stop. And there are two text fields in which
-you can manually enter a Branch and Tick to go to. Moving through
-time this way doesn’t simulate anything–you’ll only see what
-happened as a result of “simulate,” “1 turn,” or some other way
-the LiSE rules engine has been made to run.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.screen.TurnScroll">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.screen.</span></span><span class="sig-name descname"><span class="pre">TurnScroll</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#TurnScroll"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.TurnScroll" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.screen.TurnScroll.on_touch_move">
-<span class="sig-name descname"><span class="pre">on_touch_move</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#TurnScroll.on_touch_move"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.TurnScroll.on_touch_move" title="Permalink to this definition">¶</a></dt>
-<dd><p>Receive a touch move event. The touch is in parent coordinates.</p>
-<p>See <code class="xref py py-meth docutils literal notranslate"><span class="pre">on_touch_down()</span></code> for more information.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.screen.TurnScroll.on_touch_up">
-<span class="sig-name descname"><span class="pre">on_touch_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#TurnScroll.on_touch_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.TurnScroll.on_touch_up" title="Permalink to this definition">¶</a></dt>
-<dd><p>Receive a touch up event. The touch is in parent coordinates.</p>
-<p>See <code class="xref py py-meth docutils literal notranslate"><span class="pre">on_touch_down()</span></code> for more information.</p>
-</dd></dl>
-
-</dd></dl>
-
+<section id="screen">
+<h2>screen<a class="headerlink" href="#screen" title="Permalink to this heading">¶</a></h2>
 </section>
 <section id="card">
 <h2>card<a class="headerlink" href="#card" title="Permalink to this heading">¶</a></h2>
@@ -1316,50 +719,6 @@ otherwise.</p>
 <section id="charmenu">
 <h2>charmenu<a class="headerlink" href="#charmenu" title="Permalink to this heading">¶</a></h2>
 <p>The menu along the right side of the screen, where you can add things to the character</p>
-<span class="target" id="module-ELiDE.charmenu"></span><dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.charmenu.CharMenu">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.charmenu.</span></span><span class="sig-name descname"><span class="pre">CharMenu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/charmenu.html#CharMenu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.charmenu.CharMenu" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.charmenu.CharMenu.toggle_chars_screen">
-<span class="sig-name descname"><span class="pre">toggle_chars_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/charmenu.html#CharMenu.toggle_chars_screen"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.charmenu.CharMenu.toggle_chars_screen" title="Permalink to this definition">¶</a></dt>
-<dd><p>Display or hide the list you use to switch between characters.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.charmenu.CharMenu.toggle_funcs_editor">
-<span class="sig-name descname"><span class="pre">toggle_funcs_editor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/charmenu.html#CharMenu.toggle_funcs_editor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.charmenu.CharMenu.toggle_funcs_editor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Display or hide the text editing window for functions.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.charmenu.CharMenu.toggle_pawn_cfg">
-<span class="sig-name descname"><span class="pre">toggle_pawn_cfg</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/charmenu.html#CharMenu.toggle_pawn_cfg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.charmenu.CharMenu.toggle_pawn_cfg" title="Permalink to this definition">¶</a></dt>
-<dd><p>Show or hide the pop-over where you can configure the dummy pawn</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.charmenu.CharMenu.toggle_reciprocal">
-<span class="sig-name descname"><span class="pre">toggle_reciprocal</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/charmenu.html#CharMenu.toggle_reciprocal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.charmenu.CharMenu.toggle_reciprocal" title="Permalink to this definition">¶</a></dt>
-<dd><p>Flip my <code class="docutils literal notranslate"><span class="pre">reciprocal_portal</span></code> boolean, and draw (or stop drawing)
-an extra arrow on the appropriate button to indicate the
-fact.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.charmenu.CharMenu.toggle_rules">
-<span class="sig-name descname"><span class="pre">toggle_rules</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/charmenu.html#CharMenu.toggle_rules"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.charmenu.CharMenu.toggle_rules" title="Permalink to this definition">¶</a></dt>
-<dd><p>Display or hide the view for constructing rules out of cards.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.charmenu.CharMenu.toggle_spot_cfg">
-<span class="sig-name descname"><span class="pre">toggle_spot_cfg</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/charmenu.html#CharMenu.toggle_spot_cfg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.charmenu.CharMenu.toggle_spot_cfg" title="Permalink to this definition">¶</a></dt>
-<dd><p>Show the dialog where you select graphics and a name for a place,
-or hide it if already showing.</p>
-</dd></dl>
-
-</dd></dl>
-
 </section>
 <section id="charsview">
 <h2>charsview<a class="headerlink" href="#charsview" title="Permalink to this heading">¶</a></h2>
@@ -1489,60 +848,6 @@ menu will be populated with buttons that say <code class="docutils literal notra
 <section id="menu">
 <h2>menu<a class="headerlink" href="#menu" title="Permalink to this heading">¶</a></h2>
 <p>The menu along the left side of the screen, containing time controls and the stat editor</p>
-<span class="target" id="module-ELiDE.menu"></span><dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.menu.DirPicker">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">DirPicker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#DirPicker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.DirPicker" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.menu.GeneratorButton">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">GeneratorButton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#GeneratorButton"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.GeneratorButton" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.menu.MenuIntInput">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">MenuIntInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuIntInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuIntInput" title="Permalink to this definition">¶</a></dt>
-<dd><p>Special text input for setting the turn or tick</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.menu.MenuIntInput.insert_text">
-<span class="sig-name descname"><span class="pre">insert_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_undo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuIntInput.insert_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuIntInput.insert_text" title="Permalink to this definition">¶</a></dt>
-<dd><p>Natural numbers only.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.menu.MenuTextInput">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">MenuTextInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuTextInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuTextInput" title="Permalink to this definition">¶</a></dt>
-<dd><p>Special text input for setting the branch</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.menu.MenuTextInput.on_enter">
-<span class="sig-name descname"><span class="pre">on_enter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuTextInput.on_enter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuTextInput.on_enter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call the setter and blank myself out so that my hint text shows
-up. It will be the same you just entered if everything’s
-working.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.menu.MenuTextInput.on_focus">
-<span class="sig-name descname"><span class="pre">on_focus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuTextInput.on_focus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuTextInput.on_focus" title="Permalink to this definition">¶</a></dt>
-<dd><p>If I’ve lost focus, treat it as if the user hit Enter.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.menu.MenuTextInput.on_text_validate">
-<span class="sig-name descname"><span class="pre">on_text_validate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#MenuTextInput.on_text_validate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.MenuTextInput.on_text_validate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Equivalent to hitting Enter.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.menu.WorldStartConfigurator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.menu.</span></span><span class="sig-name descname"><span class="pre">WorldStartConfigurator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/menu.html#WorldStartConfigurator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.menu.WorldStartConfigurator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Give options for how to initialize the world state</p>
-</dd></dl>
-
 </section>
 <section id="rulesview">
 <h2>rulesview<a class="headerlink" href="#rulesview" title="Permalink to this heading">¶</a></h2>
@@ -1725,42 +1030,6 @@ as taken by my <code class="docutils literal notranslate"><span class="pre">get_
 <section id="dummy">
 <h3>dummy<a class="headerlink" href="#dummy" title="Permalink to this heading">¶</a></h3>
 <p>The pawn and spot that you can drag to place into the world.</p>
-<span class="target" id="module-ELiDE.dummy"></span><dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.dummy.Dummy">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.dummy.</span></span><span class="sig-name descname"><span class="pre">Dummy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy" title="Permalink to this definition">¶</a></dt>
-<dd><p>A widget that looks like the ones on the graph, which, when dragged
-onto the graph, creates one of them.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.dummy.Dummy.on_paths">
-<span class="sig-name descname"><span class="pre">on_paths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy.on_paths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy.on_paths" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make textures from the images in <code class="docutils literal notranslate"><span class="pre">paths</span></code>, and assign them at the
-same index in my <code class="docutils literal notranslate"><span class="pre">texs</span></code> as in my <code class="docutils literal notranslate"><span class="pre">paths</span></code>.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.dummy.Dummy.on_touch_down">
-<span class="sig-name descname"><span class="pre">on_touch_down</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy.on_touch_down"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy.on_touch_down" title="Permalink to this definition">¶</a></dt>
-<dd><p>If hit, record my starting position, that I may return to it in
-<code class="docutils literal notranslate"><span class="pre">on_touch_up</span></code> after creating a real <code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Spot</span></code> or
-<code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Pawn</span></code> instance.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.dummy.Dummy.on_touch_move">
-<span class="sig-name descname"><span class="pre">on_touch_move</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy.on_touch_move"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy.on_touch_move" title="Permalink to this definition">¶</a></dt>
-<dd><p>Follow the touch</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.dummy.Dummy.on_touch_up">
-<span class="sig-name descname"><span class="pre">on_touch_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">touch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dummy.html#Dummy.on_touch_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.dummy.Dummy.on_touch_up" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return to <code class="docutils literal notranslate"><span class="pre">pos_start</span></code>, but first, save my current <code class="docutils literal notranslate"><span class="pre">pos</span></code> into
-<code class="docutils literal notranslate"><span class="pre">pos_up</span></code>, so that the layout knows where to put the real
-<code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Spot</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">graph.Pawn</span></code> instance.</p>
-</dd></dl>
-
-</dd></dl>
-
 </section>
 <section id="pallet">
 <h3>pallet<a class="headerlink" href="#pallet" title="Permalink to this heading">¶</a></h3>
@@ -2579,127 +1848,6 @@ object otherwise.</p>
 <section id="app">
 <h2>app<a class="headerlink" href="#app" title="Permalink to this heading">¶</a></h2>
 <p>Entry point to ELiDE</p>
-<span class="target" id="module-ELiDE.app"></span><p>Object to configure, start, and stop ELiDE.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.app.ELiDEApp">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.app.</span></span><span class="sig-name descname"><span class="pre">ELiDEApp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/app.html#ELiDEApp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.app.ELiDEApp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Extensible LiSE Development Environment.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.app.ELiDEApp.build">
-<span class="sig-name descname"><span class="pre">build</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/app.html#ELiDEApp.build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.app.ELiDEApp.build" title="Permalink to this definition">¶</a></dt>
-<dd><p>Initializes the application; it will be called only once.
-If this method returns a widget (tree), it will be used as the root
-widget and added to the window.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None or a root <code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code> instance
-if no self.root exists.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.app.ELiDEApp.build_config">
-<span class="sig-name descname"><span class="pre">build_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/app.html#ELiDEApp.build_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.app.ELiDEApp.build_config" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set config defaults</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.app.ELiDEApp.delete_selection">
-<span class="sig-name descname"><span class="pre">delete_selection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/app.html#ELiDEApp.delete_selection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.app.ELiDEApp.delete_selection" title="Permalink to this definition">¶</a></dt>
-<dd><p>Delete both the selected widget and whatever it represents.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.app.ELiDEApp.init_board">
-<span class="sig-name descname"><span class="pre">init_board</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/app.html#ELiDEApp.init_board"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.app.ELiDEApp.init_board" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get the board widgets initialized to display the game state</p>
-<p>Must be called after start_subprocess</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.app.ELiDEApp.new_board">
-<span class="sig-name descname"><span class="pre">new_board</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/app.html#ELiDEApp.new_board"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.app.ELiDEApp.new_board" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make a graph for a character name, and switch to it.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.app.ELiDEApp.on_pause">
-<span class="sig-name descname"><span class="pre">on_pause</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/app.html#ELiDEApp.on_pause"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.app.ELiDEApp.on_pause" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sync the database with the current state of the game.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.app.ELiDEApp.on_stop">
-<span class="sig-name descname"><span class="pre">on_stop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">largs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/app.html#ELiDEApp.on_stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.app.ELiDEApp.on_stop" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sync the database, wrap up the game, and halt.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.app.ELiDEApp.select_character">
-<span class="sig-name descname"><span class="pre">select_character</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">char</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/app.html#ELiDEApp.select_character"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.app.ELiDEApp.select_character" title="Permalink to this definition">¶</a></dt>
-<dd><p>Change my <code class="docutils literal notranslate"><span class="pre">character</span></code> to the selected character object if they
-aren’t the same.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.app.ELiDEApp.set_tick">
-<span class="sig-name descname"><span class="pre">set_tick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/app.html#ELiDEApp.set_tick"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.app.ELiDEApp.set_tick" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set my tick to the given value, cast to an integer.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.app.ELiDEApp.set_turn">
-<span class="sig-name descname"><span class="pre">set_turn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/app.html#ELiDEApp.set_turn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.app.ELiDEApp.set_turn" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set the turn to the given value, cast to an integer</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.app.ELiDEApp.start_subprocess">
-<span class="sig-name descname"><span class="pre">start_subprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/app.html#ELiDEApp.start_subprocess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.app.ELiDEApp.start_subprocess" title="Permalink to this definition">¶</a></dt>
-<dd><p>Start the LiSE core and get a proxy to it</p>
-<p>Must be called before <code class="docutils literal notranslate"><span class="pre">init_board</span></code></p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.app.ELiDEApp.title">
-<span class="sig-name descname"><span class="pre">title</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'ELiDE'</span></em><a class="headerlink" href="#ELiDE.app.ELiDEApp.title" title="Permalink to this definition">¶</a></dt>
-<dd><p>Title of your application. You can set this as follows:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyApp</span><span class="p">(</span><span class="n">App</span><span class="p">):</span>
-    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="s1">&#39;Hello world&#39;</span>
-</pre></div>
-</div>
-<div class="versionadded">
-<p><span class="versionmodified added">New in version 1.0.5.</span></p>
-</div>
-<div class="versionchanged">
-<p><span class="versionmodified changed">Changed in version 1.8.0: </span><cite>title</cite> is now a <code class="xref py py-class docutils literal notranslate"><span class="pre">StringProperty</span></code>. Don’t
-set the title in the class as previously stated in the documentation.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>For Kivy &lt; 1.8.0, you can set this as follows:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyApp</span><span class="p">(</span><span class="n">App</span><span class="p">):</span>
-    <span class="n">title</span> <span class="o">=</span> <span class="s1">&#39;Custom title&#39;</span>
-</pre></div>
-</div>
-<p>If you want to dynamically change the title, you can do:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kivy.base</span> <span class="kn">import</span> <span class="n">EventLoop</span>
-<span class="n">EventLoop</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="s1">&#39;New title&#39;</span>
-</pre></div>
-</div>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.app.ELiDEApp.update_calendar">
-<span class="sig-name descname"><span class="pre">update_calendar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calendar</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">past_turns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">future_turns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/app.html#ELiDEApp.update_calendar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.app.ELiDEApp.update_calendar" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fill in a calendar widget with actual simulation data</p>
-</dd></dl>
-
-</dd></dl>
-
 </section>
 </section>
 
@@ -2725,14 +1873,9 @@ set the title in the class as previously stated in the documentation.</p>
 <li class="toctree-l1"><a class="reference internal" href="../manual.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">ELiDE</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#game">game</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.game.GameApp"><code class="docutils literal notranslate"><span class="pre">GameApp</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.game.GameScreen"><code class="docutils literal notranslate"><span class="pre">GameScreen</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.game.Screens"><code class="docutils literal notranslate"><span class="pre">Screens</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#game">game</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#graph">graph</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#module-ELiDE.graph.board">board</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#board">board</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pawn">pawn</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#spot">spot</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#arrow">arrow</a></li>
@@ -2744,17 +1887,7 @@ set the title in the class as previously stated in the documentation.</p>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.grid.board.GridBoardView"><code class="docutils literal notranslate"><span class="pre">GridBoardView</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.screen">screen</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.CharMenuContainer"><code class="docutils literal notranslate"><span class="pre">CharMenuContainer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.KvLayout"><code class="docutils literal notranslate"><span class="pre">KvLayout</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.MainScreen"><code class="docutils literal notranslate"><span class="pre">MainScreen</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.OneTurnButton"><code class="docutils literal notranslate"><span class="pre">OneTurnButton</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.SimulateButton"><code class="docutils literal notranslate"><span class="pre">SimulateButton</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.StatListPanel"><code class="docutils literal notranslate"><span class="pre">StatListPanel</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.TimePanel"><code class="docutils literal notranslate"><span class="pre">TimePanel</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.screen.TurnScroll"><code class="docutils literal notranslate"><span class="pre">TurnScroll</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#screen">screen</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#card">card</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.card.Card"><code class="docutils literal notranslate"><span class="pre">Card</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.card.ColorTextureBox"><code class="docutils literal notranslate"><span class="pre">ColorTextureBox</span></code></a></li>
@@ -2768,10 +1901,7 @@ set the title in the class as previously stated in the documentation.</p>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.card.get_pos_hint_y"><code class="docutils literal notranslate"><span class="pre">get_pos_hint_y()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#charmenu">charmenu</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.charmenu.CharMenu"><code class="docutils literal notranslate"><span class="pre">CharMenu</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#charmenu">charmenu</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#charsview">charsview</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.charsview.CharactersRecycleBoxLayout"><code class="docutils literal notranslate"><span class="pre">CharactersRecycleBoxLayout</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.charsview.CharactersScreen"><code class="docutils literal notranslate"><span class="pre">CharactersScreen</span></code></a></li>
@@ -2787,14 +1917,7 @@ set the title in the class as previously stated in the documentation.</p>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.dialog.ScrollableLabel"><code class="docutils literal notranslate"><span class="pre">ScrollableLabel</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#menu">menu</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.menu.DirPicker"><code class="docutils literal notranslate"><span class="pre">DirPicker</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.menu.GeneratorButton"><code class="docutils literal notranslate"><span class="pre">GeneratorButton</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.menu.MenuIntInput"><code class="docutils literal notranslate"><span class="pre">MenuIntInput</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.menu.MenuTextInput"><code class="docutils literal notranslate"><span class="pre">MenuTextInput</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.menu.WorldStartConfigurator"><code class="docutils literal notranslate"><span class="pre">WorldStartConfigurator</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#menu">menu</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rulesview">rulesview</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.rulesview.CharacterRulesScreen"><code class="docutils literal notranslate"><span class="pre">CharacterRulesScreen</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.rulesview.RuleButton"><code class="docutils literal notranslate"><span class="pre">RuleButton</span></code></a></li>
@@ -2858,10 +1981,7 @@ set the title in the class as previously stated in the documentation.</p>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.try_load"><code class="docutils literal notranslate"><span class="pre">try_load()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#app">app</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.app.ELiDEApp"><code class="docutils literal notranslate"><span class="pre">ELiDEApp</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#app">app</a></li>
 </ul>
 </li>
 </ul>
@@ -2901,7 +2021,7 @@ set the title in the class as previously stated in the documentation.</p>
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |
       <a href="../_sources/ELiDE/index.rst.txt"
