@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial
 from collections import defaultdict
 from types import FunctionType, ModuleType
-from typing import Union, Tuple, Any, Set, List, Type, Hashable, Optional
+from typing import Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
 from abc import ABC, abstractmethod
 from random import Random
@@ -34,7 +34,7 @@ from .allegedb import ORM as gORM
 from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
 						DeltaType)
 from .allegedb.window import update_window, update_backward_window
-from .util import sort_set, AbstractEngine, final_rule
+from .util import sort_set, AbstractEngine, final_rule, Key
 from .xcollections import StringStore, FunctionStore, MethodStore
 from .query import (Query, _make_side_sel, StatusAlias, ComparisonQuery,
 					CompoundQuery, QueryResultMidTurn, QueryResult,
@@ -537,7 +537,7 @@ class Engine(AbstractEngine, gORM):
 													init_rulebooks=False)
 
 	def _make_node(self, graph: Character,
-					node: Hashable) -> Union[thing_cls, place_cls]:
+					node: Key) -> Union[thing_cls, place_cls]:
 		if self._is_thing(graph.name, node):
 			return self.thing_cls(graph, node)
 		else:
@@ -988,9 +988,8 @@ class Engine(AbstractEngine, gORM):
 		if v > oldtick and newrando and newrando != oldrando:
 			self._rando.setstate(newrando)
 
-	def _handled_char(self, charn: Hashable, rulebook: Hashable,
-						rulen: Hashable, branch: str, turn: int,
-						tick: int) -> None:
+	def _handled_char(self, charn: Key, rulebook: Key, rulen: Key, branch: str,
+						turn: int, tick: int) -> None:
 		try:
 			self._character_rules_handled_cache.store(charn, rulebook, rulen,
 														branch, turn, tick)
@@ -1001,9 +1000,9 @@ class Engine(AbstractEngine, gORM):
 		self.query.handled_character_rule(charn, rulebook, rulen, branch, turn,
 											tick)
 
-	def _handled_av(self, character: Hashable, graph: Hashable,
-					avatar: Hashable, rulebook: Hashable, rule: Hashable,
-					branch: str, turn: int, tick: int) -> None:
+	def _handled_av(self, character: Key, graph: Key, avatar: Key,
+					rulebook: Key, rule: Key, branch: str, turn: int,
+					tick: int) -> None:
 		try:
 			self._unit_rules_handled_cache.store(character, graph, avatar,
 													rulebook, rule, branch,
@@ -1019,9 +1018,9 @@ class Engine(AbstractEngine, gORM):
 		self.query.handled_unit_rule(character, rulebook, rule, graph, avatar,
 										branch, turn, tick)
 
-	def _handled_char_thing(self, character: Hashable, thing: Hashable,
-							rulebook: Hashable, rule: Hashable, branch: str,
-							turn: int, tick: int) -> None:
+	def _handled_char_thing(self, character: Key, thing: Key, rulebook: Key,
+							rule: Key, branch: str, turn: int,
+							tick: int) -> None:
 		try:
 			self._character_thing_rules_handled_cache.store(
 				character, thing, rulebook, rule, branch, turn, tick)
@@ -1032,9 +1031,9 @@ class Engine(AbstractEngine, gORM):
 		self.query.handled_character_thing_rule(character, rulebook, rule,
 												thing, branch, turn, tick)
 
-	def _handled_char_place(self, character: Hashable, place: Hashable,
-							rulebook: Hashable, rule: Hashable, branch: str,
-							turn: int, tick: int) -> None:
+	def _handled_char_place(self, character: Key, place: Key, rulebook: Key,
+							rule: Key, branch: str, turn: int,
+							tick: int) -> None:
 		try:
 			self._character_place_rules_handled_cache.store(
 				character, place, rulebook, rule, branch, turn, tick)
@@ -1045,9 +1044,9 @@ class Engine(AbstractEngine, gORM):
 		self.query.handled_character_place_rule(character, rulebook, rule,
 												place, branch, turn, tick)
 
-	def _handled_char_port(self, character: Hashable, orig: Hashable,
-							dest: Hashable, rulebook: Hashable, rule: Hashable,
-							branch: str, turn: int, tick: int) -> None:
+	def _handled_char_port(self, character: Key, orig: Key, dest: Key,
+							rulebook: Key, rule: Key, branch: str, turn: int,
+							tick: int) -> None:
 		try:
 			self._character_portal_rules_handled_cache.store(
 				character, orig, dest, rulebook, rule, branch, turn, tick)
@@ -1059,9 +1058,8 @@ class Engine(AbstractEngine, gORM):
 													rulebook, rule, branch,
 													turn, tick)
 
-	def _handled_node(self, character: Hashable, node: Hashable,
-						rulebook: Hashable, rule: Hashable, branch: str,
-						turn: int, tick: int) -> None:
+	def _handled_node(self, character: Key, node: Key, rulebook: Key,
+						rule: Key, branch: str, turn: int, tick: int) -> None:
 		try:
 			self._node_rules_handled_cache.store(character, node, rulebook,
 													rule, branch, turn, tick)
@@ -1075,9 +1073,9 @@ class Engine(AbstractEngine, gORM):
 		self.query.handled_node_rule(character, node, rulebook, rule, branch,
 										turn, tick)
 
-	def _handled_portal(self, character: Hashable, orig: Hashable,
-						dest: Hashable, rulebook: Hashable, rule: Hashable,
-						branch: str, turn: int, tick: int) -> None:
+	def _handled_portal(self, character: Key, orig: Key, dest: Key,
+						rulebook: Key, rule: Key, branch: str, turn: int,
+						tick: int) -> None:
 		try:
 			self._portal_rules_handled_cache.store(character, orig, dest,
 													rulebook, rule, branch,
@@ -1301,7 +1299,7 @@ class Engine(AbstractEngine, gORM):
 	#	 return ex
 
 	def new_character(self,
-						name: Hashable,
+						name: Key,
 						data: Graph = None,
 						**kwargs) -> Character:
 		"""Create and return a new :class:`Character`."""
@@ -1310,10 +1308,7 @@ class Engine(AbstractEngine, gORM):
 
 	new_graph = new_character
 
-	def add_character(self,
-						name: Hashable,
-						data: Graph = None,
-						**kwargs) -> None:
+	def add_character(self, name: Key, data: Graph = None, **kwargs) -> None:
 		"""Create a new character.
 
 		You'll be able to access it as a :class:`Character` object by
@@ -1330,7 +1325,7 @@ class Engine(AbstractEngine, gORM):
 		if kwargs:
 			graph_obj.stat.update(kwargs)
 
-	def del_character(self, name: Hashable) -> None:
+	def del_character(self, name: Key) -> None:
 		"""Remove the Character from the database entirely.
 
 		This also deletes all its history. You'd better be sure.
@@ -1340,12 +1335,11 @@ class Engine(AbstractEngine, gORM):
 		self.del_graph(name)
 		del self.character[name]
 
-	def _is_thing(self, character: Hashable, node: Hashable) -> bool:
+	def _is_thing(self, character: Key, node: Key) -> bool:
 		return self._things_cache.contains_entity(character, node,
 													*self._btt())
 
-	def _set_thing_loc(self, character: Hashable, node: Hashable,
-						loc: Hashable) -> None:
+	def _set_thing_loc(self, character: Key, node: Key, loc: Key) -> None:
 		branch, turn, tick = self._nbtt()
 		# make sure the location really exists now
 		if loc is not None:
@@ -1354,7 +1348,7 @@ class Engine(AbstractEngine, gORM):
 		self.query.set_thing_loc(character, node, branch, turn, tick, loc)
 
 	def _snap_keyframe_de_novo_graph(self,
-										graph: Hashable,
+										graph: Key,
 										branch: str,
 										turn: int,
 										tick: int,
@@ -1469,7 +1463,7 @@ class Engine(AbstractEngine, gORM):
 			else:
 				return set()
 
-	def _node_contents(self, character: Hashable, node: Hashable) -> Set:
+	def _node_contents(self, character: Key, node: Key) -> Set:
 		return self._node_contents_cache.retrieve(character, node,
 													*self._btt())
 

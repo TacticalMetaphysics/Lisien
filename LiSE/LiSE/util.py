@@ -25,7 +25,8 @@ from contextlib import contextmanager
 from textwrap import dedent
 from time import monotonic
 from types import MethodType, FunctionType
-from typing import Mapping, Iterable, Union, Callable, Dict, Hashable
+from typing import (Mapping, Iterable, Union, Callable, Dict, Hashable, Tuple,
+					FrozenSet)
 
 from cached_property import cached_property
 
@@ -930,3 +931,12 @@ class AbstractCharacter(Mapping):
 		return self
 
 	cull_edges = cull_portals
+
+
+Key = Union[str, int, float, Tuple["Key"], FrozenSet["Key"]]
+"""Type hint for things LiSE can use as keys
+
+They have to be serializable using LiSE's particular msgpack schema,
+as well as hashable.
+
+"""

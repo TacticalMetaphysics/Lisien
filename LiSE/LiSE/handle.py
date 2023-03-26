@@ -19,13 +19,11 @@ ordinary method calls.
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from operator import itemgetter
 from re import match
-from collections import defaultdict
-from functools import partial, wraps
+from functools import partial
 from importlib import import_module
 from threading import Thread
-from concurrent.futures import ThreadPoolExecutor, as_completed, Future
-from multiprocessing import cpu_count
-from typing import Dict, Tuple, Set, Callable, Union, Any, Hashable, List, Iterable, Optional
+from typing import (Dict, Tuple, Set, Callable, Union, Any, List, Iterable,
+					Optional)
 
 import msgpack
 
@@ -33,7 +31,7 @@ from .allegedb import OutOfTimelineError
 from .engine import Engine
 from .node import Node
 from .portal import Portal
-from .util import MsgpackExtensionType, AbstractCharacter
+from .util import MsgpackExtensionType, AbstractCharacter, Key
 
 EMPTY_DELTA = ({}, {})
 
@@ -314,7 +312,7 @@ class EngineHandle(object):
 		self._real._advance()
 
 	@prepacked
-	def copy_character(self, char: Hashable) -> Dict[bytes, bytes]:
+	def copy_character(self, char: Key) -> Dict[bytes, bytes]:
 		"""Return a mapping describing a character
 
 		It has the keys 'nodes', 'edges', 'units', 'rulebooks', 'node_val',
@@ -356,7 +354,7 @@ class EngineHandle(object):
 		self._real._set_btt(*now)
 		return self._real._get_kf(branch, turn, tick)
 
-	def copy_chars(self, chars: Union[str, Iterable[Hashable]]):
+	def copy_chars(self, chars: Union[str, Iterable[Key]]):
 		"""Return a mapping describing several characters
 
 		See the `copy_character` method for details on the format of
@@ -755,7 +753,7 @@ class EngineHandle(object):
 		self._real.branch = branch
 		return self.pack(branch)
 
-	def add_character(self, char: Hashable, data: dict, attr: dict):
+	def add_character(self, char: Key, data: dict, attr: dict):
 		"""Make a new character, initialized with whatever data"""
 		# Probably not great that I am unpacking and then repacking the stats
 		character = self._real.new_character(char, **attr)
@@ -900,29 +898,27 @@ class EngineHandle(object):
 									('place', chara.place.rulebook.name),
 									('portal', chara.portal.rulebook.name)]))
 
-	def set_character_stat(self, char: Hashable, k: Hashable, v) -> None:
+	def set_character_stat(self, char: Key, k: Key, v) -> None:
 		self._real.character[char].stat[k] = v
 
-	def del_character_stat(self, char: Hashable, k: Hashable) -> None:
+	def del_character_stat(self, char: Key, k: Key) -> None:
 		del self._real.character[char].stat[k]
 
-	def update_character_stats(self, char: Hashable, patch: Dict) -> None:
+	def update_character_stats(self, char: Key, patch: Dict) -> None:
 		self._real.character[char].stat.update(patch)
 
-	def update_character(self, char: Hashable, patch: Dict):
+	def update_character(self, char: Key, patch: Dict):
 		self.update_character_stats(char, patch['character'])
 		self.update_nodes(char, patch['node'])
 		self.update_portals(char, patch['portal'])
 
-	def characters(self) -> List[Hashable]:
+	def characters(self) -> List[Key]:
 		return list(self._real.character.keys())
 
-	def set_node_stat(self, char: Hashable, node: Hashable, k: Hashable,
-						v) -> None:
+	def set_node_stat(self, char: Key, node: Key, k: Key, v) -> None:
 		self._real.character[char].node[node][k] = v
 
-	def del_node_stat(self, char: Hashable, node: Hashable,
-						k: Hashable) -> None:
+	def del_node_stat(self, char: Key, node: Key, k: Key) -> None:
 		del self._real.character[char].node[node][k]
 
 	def _get_btt(self,
@@ -933,8 +929,8 @@ class EngineHandle(object):
 
 	@prepacked
 	def node_stat_copy(self,
-						char: Hashable,
-						node: Hashable,
+						char: Key,
+						node: Key,
 						btt: Tuple[str, int,
 									int] = None) -> Dict[bytes, bytes]:
 		branch, turn, tick = self._get_btt(btt)
@@ -957,8 +953,8 @@ class EngineHandle(object):
 	@prepacked
 	def node_stat_delta(
 			self,
-			char: Hashable,
-			node: Hashable,
+			char: Key,
+			node: Key,
 			*,
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> FormerAndCurrentType:
@@ -972,7 +968,7 @@ class EngineHandle(object):
 
 	def _character_nodes_stat_copy(
 			self,
-			char: Hashable,
+			char: Key,
 			btt: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
 		pack = self._real.pack
 		return {
@@ -980,7 +976,7 @@ class EngineHandle(object):
 			for node in self._real.character[char].node
 		}
 
-	def update_node(self, char: Hashable, node: Hashable, patch: Dict) -> None:
+	def update_node(self, char: Key, node: Key, patch: Dict) -> None:
 		"""Change a node's stats according to a dictionary.
 
 		The ``patch`` dictionary should hold the new values of stats,
@@ -997,7 +993,7 @@ class EngineHandle(object):
 		else:
 			character.node[node].update(patch)
 
-	def update_nodes(self, char: Hashable, patch: Dict, backdate=False):
+	def update_nodes(self, char: Key, patch: Dict, backdate=False):
 		"""Change the stats of nodes in a character according to a
 		dictionary.
 
@@ -1019,7 +1015,7 @@ class EngineHandle(object):
 
 	@prepacked
 	def character_nodes(self,
-						char: Hashable,
+						char: Key,
 						btt: Tuple[str, int, int] = None) -> Set[bytes]:
 		pack = self.pack
 		branch, turn, tick = self._get_btt(btt)
@@ -1036,7 +1032,7 @@ class EngineHandle(object):
 	@prepacked
 	def character_nodes_delta(
 			self,
-			char: Hashable,
+			char: Key,
 			*,
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> FormerAndCurrentType:
@@ -1044,22 +1040,20 @@ class EngineHandle(object):
 		new = self.character_nodes(char, btt=btt_to)
 		return set_delta(old, new)
 
-	def node_predecessors(self, char: Hashable,
-							node: Hashable) -> List[Hashable]:
+	def node_predecessors(self, char: Key, node: Key) -> List[Key]:
 		return list(self._real.character[char].pred[node].keys())
 
-	def character_set_node_predecessors(self, char: Hashable, node: Hashable,
+	def character_set_node_predecessors(self, char: Key, node: Key,
 										preds: Iterable) -> None:
 		self._real.character[char].pred[node] = preds
 
-	def character_del_node_predecessors(self, char: Hashable,
-										node: Hashable) -> None:
+	def character_del_node_predecessors(self, char: Key, node: Key) -> None:
 		del self._real.character[char].pred[node]
 
 	@prepacked
 	def node_successors(self,
-						char: Hashable,
-						node: Hashable,
+						char: Key,
+						node: Key,
 						btt: Tuple[str, int, int] = None) -> Set[bytes]:
 		branch, turn, tick = self._get_btt(btt)
 		origtime = self._real._btt()
@@ -1071,14 +1065,10 @@ class EngineHandle(object):
 			self._real._set_btt(*origtime)
 		return ret
 
-	def nodes_connected(self, char: Hashable, orig: Hashable,
-						dest: Hashable) -> bool:
+	def nodes_connected(self, char: Key, orig: Key, dest: Key) -> bool:
 		return dest in self._real.character[char].portal[orig]
 
-	def init_thing(self,
-					char: Hashable,
-					thing: Hashable,
-					statdict: dict = None) -> None:
+	def init_thing(self, char: Key, thing: Key, statdict: dict = None) -> None:
 		if thing in self._real.character[char].thing:
 			raise KeyError('Already have thing in character {}: {}'.format(
 				char, thing))
@@ -1086,51 +1076,47 @@ class EngineHandle(object):
 			statdict = {}
 		return self.set_thing(char, thing, statdict)
 
-	def set_thing(self, char: Hashable, thing: Hashable,
-					statdict: Dict) -> None:
+	def set_thing(self, char: Key, thing: Key, statdict: Dict) -> None:
 		self._real.character[char].thing[thing] = statdict
 
-	def add_thing(self, char: Hashable, thing: Hashable, loc: Hashable,
+	def add_thing(self, char: Key, thing: Key, loc: Key,
 					statdict: Dict) -> None:
 		self._real.character[char].add_thing(thing, loc, **statdict)
 
-	def place2thing(self, char: Hashable, node: Hashable,
-					loc: Hashable) -> None:
+	def place2thing(self, char: Key, node: Key, loc: Key) -> None:
 		self._real.character[char].place2thing(node, loc)
 
-	def thing2place(self, char: Hashable, node: Hashable) -> None:
+	def thing2place(self, char: Key, node: Key) -> None:
 		self._real.character[char].thing2place(node)
 
-	def add_things_from(self, char: Hashable, seq: Iterable) -> None:
+	def add_things_from(self, char: Key, seq: Iterable) -> None:
 		for thing in seq:
 			self.add_thing(char, *thing)
 
-	def get_thing_location(self, char: Hashable,
-							thing: Hashable) -> Optional[Hashable]:
+	def get_thing_location(self, char: Key, thing: Key) -> Optional[Key]:
 		try:
 			return self._real.character[char].thing[thing]['location']
 		except KeyError:
 			return None
 
-	def set_thing_location(self, char: Hashable, thing: Hashable,
-							loc: Hashable) -> None:
+	def set_thing_location(self, char: Key, thing: Key, loc: Key) -> None:
 		self._real.character[char].thing[thing]['location'] = loc
 
-	def thing_follow_path(self, char: Hashable, thing: Hashable,
-							path: List[Hashable], weight: Hashable) -> int:
+	def thing_follow_path(self, char: Key, thing: Key, path: List[Key],
+							weight: Key) -> int:
 		return self._real.character[char].thing[thing].follow_path(
 			path, weight)
 
-	def thing_go_to_place(self, char: Hashable, thing: Hashable,
-							place: Hashable, weight: Hashable) -> int:
+	def thing_go_to_place(self, char: Key, thing: Key, place: Key,
+							weight: Key) -> int:
 		return self._real.character[char].thing[thing].go_to_place(
 			place, weight)
 
 	def thing_travel_to(self,
-						char: Hashable,
-						thing: Hashable,
-						dest: Hashable,
-						weight: Hashable = None,
+						char: Key,
+						thing: Key,
+						dest: Key,
+						weight: Key = None,
 						graph=None) -> int:
 		"""Make something find a path to ``dest`` and follow it.
 
@@ -1143,10 +1129,7 @@ class EngineHandle(object):
 		return self._real.character[char].thing[thing].travel_to(
 			dest, weight, graph)
 
-	def init_place(self,
-					char: Hashable,
-					place: Hashable,
-					statdict: Dict = None) -> None:
+	def init_place(self, char: Key, place: Key, statdict: Dict = None) -> None:
 		if place in self._real.character[char].place:
 			raise KeyError('Already have place in character {}: {}'.format(
 				char, place))
@@ -1154,17 +1137,16 @@ class EngineHandle(object):
 			statdict = {}
 		return self.set_place(char, place, statdict)
 
-	def set_place(self, char: Hashable, place: Hashable,
-					statdict: Dict) -> None:
+	def set_place(self, char: Key, place: Key, statdict: Dict) -> None:
 		self._real.character[char].place[place] = statdict
 		self._after_ret = partial(self.node_stat_copy, char, place)
 
-	def add_places_from(self, char: Hashable, seq: Iterable) -> None:
+	def add_places_from(self, char: Key, seq: Iterable) -> None:
 		self._real.character[char].add_places_from(seq)
 
 	@prepacked
 	def character_portals(self,
-							char: Hashable,
+							char: Key,
 							btt: Tuple[str, int, int] = None) -> Set[bytes]:
 		pack = self._real.pack
 		branch, turn, tick = self._get_btt(btt)
@@ -1180,31 +1162,29 @@ class EngineHandle(object):
 			self._real._set_btt(*origtime)
 		return r
 
-	def add_portal(self, char: Hashable, orig: Hashable, dest: Hashable,
+	def add_portal(self, char: Key, orig: Key, dest: Key,
 					statdict: Dict) -> None:
 		self._real.character[char].add_portal(orig, dest, **statdict)
 
-	def add_portals_from(self, char: Hashable, seq: Iterable) -> None:
+	def add_portals_from(self, char: Key, seq: Iterable) -> None:
 		self._real.character[char].add_portals_from(seq)
 
-	def del_portal(self, char: Hashable, orig: Hashable,
-					dest: Hashable) -> None:
+	def del_portal(self, char: Key, orig: Key, dest: Key) -> None:
 		self._real.character[char].remove_edge(orig, dest)
 
-	def set_portal_stat(self, char: Hashable, orig: Hashable, dest: Hashable,
-						k: Hashable, v) -> None:
+	def set_portal_stat(self, char: Key, orig: Key, dest: Key, k: Key,
+						v) -> None:
 		self._real.character[char].portal[orig][dest][k] = v
 
-	def del_portal_stat(self, char: Hashable, orig: Hashable, dest: Hashable,
-						k: Hashable) -> None:
+	def del_portal_stat(self, char: Key, orig: Key, dest: Key, k: Key) -> None:
 		del self._real.character[char][orig][dest][k]
 
 	@prepacked
 	def portal_stat_copy(
 			self,
-			char: Hashable,
-			orig: Hashable,
-			dest: Hashable,
+			char: Key,
+			orig: Key,
+			dest: Key,
 			btt: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
 		pack = self._real.pack
 		branch, turn, tick = self._get_btt(btt)
@@ -1224,9 +1204,9 @@ class EngineHandle(object):
 	@prepacked
 	def portal_stat_delta(
 			self,
-			char: Hashable,
-			orig: Hashable,
-			dest: Hashable,
+			char: Key,
+			orig: Key,
+			dest: Key,
 			*,
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> FormerAndCurrentType:
@@ -1240,7 +1220,7 @@ class EngineHandle(object):
 
 	def _character_portals_stat_copy(
 		self,
-		char: Hashable,
+		char: Key,
 		btt: Tuple[str, int, int] = None
 	) -> Dict[bytes, Dict[bytes, Dict[bytes, bytes]]]:
 		pack = self.pack
@@ -1259,7 +1239,7 @@ class EngineHandle(object):
 			r[porig][pdest] = self.portal_stat_copy(char, orig, dest, btt=btt)
 		return r
 
-	def update_portal(self, char: Hashable, orig: Hashable, dest: Hashable,
+	def update_portal(self, char: Key, orig: Key, dest: Key,
 						patch: Dict) -> None:
 		character = self._real.character[char]
 		if patch is None:
@@ -1269,28 +1249,26 @@ class EngineHandle(object):
 		else:
 			character.portal[orig][dest].update(patch)
 
-	def update_portals(self, char: Hashable,
-						patch: Dict[Tuple[Hashable, Hashable], Dict]) -> None:
+	def update_portals(self, char: Key, patch: Dict[Tuple[Key, Key],
+													Dict]) -> None:
 		for ((orig, dest), ppatch) in patch.items():
 			self.update_portal(char, orig, dest, ppatch)
 
-	def add_unit(self, char: Hashable, graph: Hashable,
-					node: Hashable) -> None:
+	def add_unit(self, char: Key, graph: Key, node: Key) -> None:
 		self._real.character[char].add_unit(graph, node)
 
-	def remove_unit(self, char: Hashable, graph: Hashable,
-					node: Hashable) -> None:
+	def remove_unit(self, char: Key, graph: Key, node: Key) -> None:
 		self._real.character[char].remove_unit(graph, node)
 
 	def new_empty_rule(self, rule: str) -> None:
 		self._real.rule.new_empty(rule)
 
-	def new_empty_rulebook(self, rulebook: Hashable) -> list:
+	def new_empty_rulebook(self, rulebook: Key) -> list:
 		self._real.rulebook.__getitem__(rulebook)
 		return []
 
 	def rulebook_copy(self,
-						rulebook: Hashable,
+						rulebook: Key,
 						btt: Tuple[str, int, int] = None) -> List[str]:
 		branch, turn, tick = self._get_btt(btt)
 		return list(self._real.rulebook[rulebook]._get_cache(
@@ -1298,7 +1276,7 @@ class EngineHandle(object):
 
 	def rulebook_delta(
 			self,
-			rulebook: Hashable,
+			rulebook: Key,
 			*,
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> Optional[List[str]]:
@@ -1312,7 +1290,7 @@ class EngineHandle(object):
 			self,
 			*,
 			btt_from: Tuple[str, int, int] = None,
-			btt_to: Tuple[str, int, int] = None) -> Dict[Hashable, List[str]]:
+			btt_to: Tuple[str, int, int] = None) -> Dict[Key, List[str]]:
 		btt_from = self._get_btt(btt_from)
 		btt_to = self._get_btt(btt_to)
 		if btt_from == btt_to:
@@ -1326,9 +1304,9 @@ class EngineHandle(object):
 				ret[rulebook] = delta
 		return ret
 
-	def all_rulebooks_copy(
-			self,
-			btt: Tuple[str, int, int] = None) -> Dict[Hashable, List[str]]:
+	def all_rulebooks_copy(self,
+							btt: Tuple[str, int,
+										int] = None) -> Dict[Key, List[str]]:
 		btt = self._get_btt(btt)
 		origtime = self._real._btt()
 		self._real._set_btt(*btt)
@@ -1339,13 +1317,13 @@ class EngineHandle(object):
 		self._real._set_btt(*origtime)
 		return ret
 
-	def set_rulebook_rule(self, rulebook: Hashable, i: int, rule: str) -> None:
+	def set_rulebook_rule(self, rulebook: Key, i: int, rule: str) -> None:
 		self._real.rulebook[rulebook][i] = rule
 
-	def ins_rulebook_rule(self, rulebook: Hashable, i: int, rule: str) -> None:
+	def ins_rulebook_rule(self, rulebook: Key, i: int, rule: str) -> None:
 		self._real.rulebook[rulebook].insert(i, rule)
 
-	def del_rulebook_rule(self, rulebook: Hashable, i: int) -> None:
+	def del_rulebook_rule(self, rulebook: Key, i: int) -> None:
 		del self._real.rulebook[rulebook][i]
 
 	def set_rule_triggers(self, rule: str, triggers: List[str]) -> None:
@@ -1357,35 +1335,29 @@ class EngineHandle(object):
 	def set_rule_actions(self, rule: str, actions: List[str]) -> None:
 		self._real.rule[rule].actions = actions
 
-	def set_character_rulebook(self, char: Hashable,
-								rulebook: Hashable) -> None:
+	def set_character_rulebook(self, char: Key, rulebook: Key) -> None:
 		self._real.character[char].rulebook = rulebook
 
-	def set_unit_rulebook(self, char: Hashable, rulebook: Hashable) -> None:
+	def set_unit_rulebook(self, char: Key, rulebook: Key) -> None:
 		self._real.character[char].unit.rulebook = rulebook
 
-	def set_character_thing_rulebook(self, char: Hashable,
-										rulebook: Hashable) -> None:
+	def set_character_thing_rulebook(self, char: Key, rulebook: Key) -> None:
 		self._real.character[char].thing.rulebook = rulebook
 
-	def set_character_place_rulebook(self, char: Hashable,
-										rulebook: Hashable) -> None:
+	def set_character_place_rulebook(self, char: Key, rulebook: Key) -> None:
 		self._real.character[char].place.rulebook = rulebook
 
-	def set_character_node_rulebook(self, char: Hashable,
-									rulebook: Hashable) -> None:
+	def set_character_node_rulebook(self, char: Key, rulebook: Key) -> None:
 		self._real.character[char].node.rulebook = rulebook
 
-	def set_character_portal_rulebook(self, char: Hashable,
-										rulebook: Hashable) -> None:
+	def set_character_portal_rulebook(self, char: Key, rulebook: Key) -> None:
 		self._real.character[char].portal.rulebook = rulebook
 
-	def set_node_rulebook(self, char: Hashable, node: Hashable,
-							rulebook: Hashable) -> None:
+	def set_node_rulebook(self, char: Key, node: Key, rulebook: Key) -> None:
 		self._real.character[char].node[node].rulebook = rulebook
 
-	def set_portal_rulebook(self, char: Hashable, orig: Hashable,
-							dest: Hashable, rulebook: Hashable) -> None:
+	def set_portal_rulebook(self, char: Key, orig: Key, dest: Key,
+							rulebook: Key) -> None:
 		self._real.character[char].portal[orig][dest].rulebook = rulebook
 
 	def rule_copy(self,
@@ -1510,8 +1482,8 @@ class EngineHandle(object):
 
 	@staticmethod
 	def get_schedule(entity: Union[AbstractCharacter, Node,
-									Portal], stats: Iterable[Hashable],
-						beginning: int, end: int) -> Dict[Hashable, List]:
+									Portal], stats: Iterable[Key],
+						beginning: int, end: int) -> Dict[Key, List]:
 		ret = {}
 		for stat in stats:
 			ret[stat] = list(
@@ -1519,11 +1491,11 @@ class EngineHandle(object):
 		return ret
 
 	@prepacked
-	def grid_2d_8graph(self, character: Hashable, m: int, n: int) -> bytes:
+	def grid_2d_8graph(self, character: Key, m: int, n: int) -> bytes:
 		raise NotImplementedError
 
 	@prepacked
-	def grid_2d_graph(self, character: Hashable, m: int, n: int,
+	def grid_2d_graph(self, character: Key, m: int, n: int,
 						periodic: bool) -> bytes:
 		raise NotImplementedError
 

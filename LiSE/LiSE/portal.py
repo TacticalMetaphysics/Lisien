@@ -14,12 +14,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Directed edges, as used by LiSE."""
 from collections.abc import Mapping
-from typing import Union, List, Tuple, Any, Hashable
+from typing import Union, List, Tuple, Any
 
 from .allegedb.graph import Edge
 from .allegedb import HistoricKeyError
 
-from .util import getatt, AbstractCharacter
+from .util import getatt, AbstractCharacter, Key
 from .query import StatusAlias
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
@@ -47,8 +47,7 @@ class Portal(Edge, RuleFollower):
 	engine = getatt('db')
 	no_unwrap = True
 
-	def __init__(self, graph: AbstractCharacter, orig: Hashable,
-					dest: Hashable):
+	def __init__(self, graph: AbstractCharacter, orig: Key, dest: Key):
 		super().__init__(graph, orig, dest, 0)
 		self.origin = graph.node[orig]
 		self.destination = graph.node[dest]
@@ -142,7 +141,7 @@ class Portal(Edge, RuleFollower):
 		except KeyError:
 			raise AttributeError("This portal has no reciprocal")
 
-	def historical(self, stat: Hashable) -> StatusAlias:
+	def historical(self, stat: Key) -> StatusAlias:
 		"""Return a reference to the values that a stat has had in the past.
 
 		You can use the reference in comparisons to make a history

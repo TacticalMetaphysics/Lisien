@@ -19,14 +19,14 @@ have a lot in common.
 
 """
 from collections.abc import Mapping, ValuesView
-from typing import Optional, Hashable, Union, Iterator, List
+from typing import Optional, Union, Iterator, List
 
 import networkx as nx
 from networkx import shortest_path, shortest_path_length
 
 from .allegedb import graph, HistoricKeyError
 
-from .util import getatt
+from .util import getatt, Key
 from .query import StatusAlias
 from . import rule
 from .exc import AmbiguousUserError, TravelException
@@ -395,8 +395,8 @@ class Node(graph.Node, rule.RuleFollower):
 			raise ValueError("{} not in {}".format(dest, self.character.name))
 
 	def shortest_path_length(self,
-								dest: Union[Hashable, "Node"],
-								weight: Hashable = None) -> int:
+								dest: Union["Key", "Node"],
+								weight: "Key" = None) -> int:
 		"""Return the length of the path from me to ``dest``.
 
 		Raise ``ValueError`` if ``dest`` is not a node in my character
@@ -408,8 +408,8 @@ class Node(graph.Node, rule.RuleFollower):
 									self._plain_dest_name(dest), weight)
 
 	def shortest_path(self,
-						dest: Union[Hashable, "Node"],
-						weight: Hashable = None) -> List[Hashable]:
+						dest: Union[Key, "Node"],
+						weight: Key = None) -> List[Key]:
 		"""Return a list of node names leading from me to ``dest``.
 
 		Raise ``ValueError`` if ``dest`` is not a node in my character
@@ -420,8 +420,8 @@ class Node(graph.Node, rule.RuleFollower):
 								self._plain_dest_name(dest), weight)
 
 	def path_exists(self,
-					dest: Union[Hashable, "Node"],
-					weight: Hashable = None) -> bool:
+					dest: Union[Key, "Node"],
+					weight: Key = None) -> bool:
 		"""Return whether there is a path leading from me to ``dest``.
 
 		With ``weight``, only consider edges that have a stat by the
@@ -460,18 +460,18 @@ class Node(graph.Node, rule.RuleFollower):
 										turn, tick, False)
 		self.character.node.send(self.character.node, key=self.name, val=None)
 
-	def new_portal(self, other: Union[Hashable, "Node"],
+	def new_portal(self, other: Union[Key, "Node"],
 					**stats) -> "LiSE.portal.Portal":
 		"""Connect a portal from here to another node, and return it."""
 		return self.character.new_portal(self.name,
 											getattr(other, 'name', other),
 											**stats)
 
-	def new_thing(self, name: Hashable, **stats) -> "Thing":
+	def new_thing(self, name: Key, **stats) -> "Thing":
 		"""Create a new thing, located here, and return it."""
 		return self.character.new_thing(name, self.name, **stats)
 
-	def historical(self, stat: Hashable) -> StatusAlias:
+	def historical(self, stat: Key) -> StatusAlias:
 		"""Return a reference to the values that a stat has had in the past.
 
 		You can use the reference in comparisons to make a history
@@ -573,7 +573,7 @@ class Thing(Node):
 		else:
 			raise ValueError("Couldn't find arrival time")
 
-	def _set_loc(self, loc: Optional[Hashable]):
+	def _set_loc(self, loc: Optional[Key]):
 		self.engine._set_thing_loc(self.character.name, self.name, loc)
 		self.send(self, key='location', val=loc)
 
@@ -581,7 +581,7 @@ class Thing(Node):
 
 	_setitem_dispatch = {'name': roerror, 'location': _set_loc}
 
-	def __getitem__(self, key: Hashable):
+	def __getitem__(self, key: Key):
 		"""Return one of my stats stored in the database, or special cases:
 
 		``name``: return the name that uniquely identifies me within
@@ -637,7 +637,7 @@ class Thing(Node):
 		return self.engine._get_node(self.character, locn)
 
 	@location.setter
-	def location(self, v: Union[Node, Hashable]):
+	def location(self, v: Union[Node, Key]):
 		if hasattr(v, 'name'):
 			v = v.name
 		self['location'] = v
@@ -656,9 +656,7 @@ class Thing(Node):
 				self.character.name, self.name, branch, turn,
 				self.engine._turn_end_plan[branch, turn]))
 
-	def go_to_place(self,
-					place: Union[Node, Hashable],
-					weight: Hashable = None) -> int:
+	def go_to_place(self, place: Union[Node, Key], weight: Key = None) -> int:
 		"""Assuming I'm in a node that has a :class:`Portal` direct
 		to the given node, schedule myself to travel to the
 		given :class:`Place`, taking an amount of time indicated by
@@ -681,7 +679,7 @@ class Thing(Node):
 			self['location'] = placen
 		return turns
 
-	def follow_path(self, path: list, weight: Hashable = None) -> int:
+	def follow_path(self, path: list, weight: Key = None) -> int:
 		"""Go to several nodes in succession, deciding how long to
 		spend in each by consulting the ``weight`` stat of the
 		:class:`Portal` connecting the one node to the next,
@@ -726,8 +724,8 @@ class Thing(Node):
 		return turns_total
 
 	def travel_to(self,
-					dest: Union[Node, Hashable],
-					weight: Hashable = None,
+					dest: Union[Node, Key],
+					weight: Key = None,
 					graph: nx.DiGraph = None) -> int:
 		"""Find the shortest path to the given node from where I am
 		now, and follow it.
