@@ -31,8 +31,8 @@ from networkx import Graph
 from blinker import Signal
 
 from .allegedb import ORM as gORM
-from .allegedb import (StatDictType, NodeValDictType, EdgeValDictType,
-						DeltaType)
+from .allegedb import (StatDict, NodeValDict, EdgeValDict,
+                       DeltaDict)
 from .allegedb.window import update_window, update_backward_window
 from .util import sort_set, AbstractEngine, final_rule, Key
 from .xcollections import StringStore, FunctionStore, MethodStore
@@ -74,7 +74,7 @@ class NextTurn(Signal):
 		super().__init__()
 		self.engine = engine
 
-	def __call__(self) -> Tuple[List, DeltaType]:
+	def __call__(self) -> Tuple[List, DeltaDict]:
 		engine = self.engine
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._turns_completed[start_branch]
@@ -551,7 +551,7 @@ class Engine(AbstractEngine, gORM):
 		return self.portal_cls(graph, orig, dest)
 
 	def get_delta(self, branch: str, turn_from: int, tick_from: int,
-					turn_to: int, tick_to: int) -> DeltaType:
+					turn_to: int, tick_to: int) -> DeltaDict:
 		"""Get a dictionary describing changes to the world.
 
 		Most keys will be character names, and their values will be
@@ -723,7 +723,7 @@ class Engine(AbstractEngine, gORM):
 						branch: str = None,
 						turn: int = None,
 						tick: int = None,
-						start_tick=0) -> DeltaType:
+						start_tick=0) -> DeltaDict:
 		"""Get a dictionary of changes to the world within a given turn
 
 		Defaults to the present turn, and stops at the present tick
@@ -1348,14 +1348,14 @@ class Engine(AbstractEngine, gORM):
 		self.query.set_thing_loc(character, node, branch, turn, tick, loc)
 
 	def _snap_keyframe_de_novo_graph(self,
-										graph: Key,
-										branch: str,
-										turn: int,
-										tick: int,
-										nodes: NodeValDictType,
-										edges: EdgeValDictType,
-										graph_val: StatDictType,
-										copy_to_branch: str = None) -> None:
+	                                 graph: Key,
+	                                 branch: str,
+	                                 turn: int,
+	                                 tick: int,
+	                                 nodes: NodeValDict,
+	                                 edges: EdgeValDict,
+	                                 graph_val: StatDict,
+	                                 copy_to_branch: str = None) -> None:
 		super()._snap_keyframe_de_novo_graph(graph, branch, turn, tick, nodes,
 												edges, graph_val)
 		newkf = {}

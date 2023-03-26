@@ -20,7 +20,7 @@ import gc
 from queue import Queue
 from threading import RLock, Thread
 from typing import (Callable, Dict, Any, Union, Tuple, Optional, List,
-					Hashable, Iterator)
+					Iterator)
 
 from blinker import Signal
 import networkx as nx
@@ -31,16 +31,15 @@ from .graph import (DiGraph, Node, Edge, GraphsMapping)
 from .query import (QueryEngine, TimeError, NodeRowType, EdgeRowType,
 					GraphValRowType, NodeValRowType, EdgeValRowType)
 from .window import HistoricKeyError
+from .util import Key
 
 Graph = DiGraph  # until I implement other graph types...
 
-StatDictType = Dict[Hashable, Any]
-NodeValDictType = Dict[Hashable, StatDictType]
-EdgeValDictType = Dict[Hashable, Dict[Hashable, StatDictType]]
-DeltaType = Dict[Hashable, Union[StatDictType, NodeValDictType,
-									EdgeValDictType]]
-KeyframeType = Tuple[Hashable, str, int, int, NodeValDictType, EdgeValDictType,
-						StatDictType]
+StatDict = Dict[Key, Any]
+NodeValDict = Dict[Key, StatDict]
+EdgeValDict = Dict[Key, Dict[Key, StatDict]]
+DeltaDict = Dict[Key, Union[StatDict, NodeValDict, EdgeValDict]]
+KeyframeTuple = Tuple[Key, str, int, int, NodeValDict, EdgeValDict, StatDict]
 
 
 def world_locked(fn: Callable) -> Callable:
@@ -288,8 +287,8 @@ class ORM:
 	illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val']
 	time = TimeSignalDescriptor()
 
-	def _graph_state_hash(self, nodes: NodeValDictType, edges: EdgeValDictType,
-							vals: StatDictType) -> bytes:
+	def _graph_state_hash(self, nodes: NodeValDict, edges: EdgeValDict,
+							vals: StatDict) -> bytes:
 		from hashlib import blake2b
 		qpac = self.query.pack
 
@@ -323,9 +322,9 @@ class ORM:
 		total_hash.update(val_hash.to_bytes(64, 'little'))
 		return total_hash.digest()
 
-	def _kfhash(self, graphn: Hashable, branch: str, turn: int, tick: int,
-				nodes: NodeValDictType, edges: EdgeValDictType,
-				vals: StatDictType) -> bytes:
+	def _kfhash(self, graphn: Key, branch: str, turn: int, tick: int,
+				nodes: NodeValDict, edges: EdgeValDict,
+				vals: StatDict) -> bytes:
 		"""Return a hash digest of a keyframe"""
 		from hashlib import blake2b
 		qpac = self.query.pack
@@ -343,10 +342,10 @@ class ORM:
 		total_hash.update(self._graph_state_hash(nodes, edges, vals))
 		return total_hash.digest()
 
-	def _make_node(self, graph: Hashable, node: Hashable):
+	def _make_node(self, graph: Key, node: Key):
 		return self.node_cls(graph, node)
 
-	def _get_node(self, graph: Union[Hashable, Graph], node: Hashable):
+	def _get_node(self, graph: Union[Key, Graph], node: Key):
 		node_objs, node_exists, make_node = self._get_node_stuff
 		if type(graph) is str:
 			graphn = graph
@@ -493,7 +492,7 @@ class ORM:
 			q.task_done()
 
 	def get_delta(self, branch: str, turn_from: int, tick_from: int,
-					turn_to: int, tick_to: int) -> DeltaType:
+					turn_to: int, tick_to: int) -> DeltaDict:
 		"""Get a dictionary describing changes to all graphs.
 
 		The keys are graph names. Their values are dictionaries of the
@@ -505,19 +504,19 @@ class ORM:
 
 		"""
 
-		def setgraphval(delta: DeltaType, graph: Hashable, key: Hashable,
+		def setgraphval(delta: DeltaDict, graph: Key, key: Key,
 						val: Any) -> None:
 			"""Change a delta to say that a graph stat was set to a certain value"""
 			delta.setdefault(graph, {})[key] = val
 
-		def setnode(delta: DeltaType, graph: Hashable, node: Hashable,
+		def setnode(delta: DeltaDict, graph: Key, node: Key,
 					exists: Optional[bool]) -> None:
 			"""Change a delta to say that a node was created or deleted"""
 			delta.setdefault(graph, {}).setdefault('nodes',
 													{})[node] = bool(exists)
 
-		def setnodeval(delta: DeltaType, graph: Hashable, node: Hashable,
-						key: Hashable, value: Any) -> None:
+		def setnodeval(delta: DeltaDict, graph: Key, node: Key, key: Key,
+						value: Any) -> None:
 			"""Change a delta to say that a node stat was set to a certain value"""
 			if (graph in delta and 'nodes' in delta[graph]
 				and node in delta[graph]['nodes']
@@ -526,8 +525,8 @@ class ORM:
 			delta.setdefault(graph, {}).setdefault('node_val', {}).setdefault(
 				node, {})[key] = value
 
-		def setedge(delta: DeltaType, is_multigraph: Callable, graph: Hashable,
-					orig: Hashable, dest: Hashable, idx: int,
+		def setedge(delta: DeltaDict, is_multigraph: Callable, graph: Key,
+					orig: Key, dest: Key, idx: int,
 					exists: Optional[bool]) -> None:
 			"""Change a delta to say that an edge was created or deleted"""
 			if is_multigraph(graph):
@@ -540,9 +539,9 @@ class ORM:
 													{})[orig,
 														dest] = bool(exists)
 
-		def setedgeval(delta: DeltaType, is_multigraph: Callable,
-						graph: Hashable, orig: Hashable, dest: Hashable,
-						idx: int, key: Hashable, value: Any) -> None:
+		def setedgeval(delta: DeltaDict, is_multigraph: Callable, graph: Key,
+						orig: Key, dest: Key, idx: int, key: Key,
+						value: Any) -> None:
 			"""Change a delta to say that an edge stat was set to a certain value"""
 			if is_multigraph(graph):
 				if (graph in delta and 'edges' in delta[graph]
@@ -617,7 +616,7 @@ class ORM:
 						branch: str = None,
 						turn: int = None,
 						tick_from=0,
-						tick_to: int = None) -> DeltaType:
+						tick_to: int = None) -> DeltaDict:
 		"""Get a dictionary describing changes made on a given turn.
 
 		If ``tick_to`` is not supplied, report all changes after ``tick_from``
@@ -725,18 +724,17 @@ class ORM:
 		edge_cls = self.edge_cls
 		self._where_cached = defaultdict(list)
 		self._node_objs = node_objs = {}
-		self._get_node_stuff: Tuple[dict, Callable[[Hashable, Hashable], bool],
-									Callable[[Hashable, Hashable],
-												node_cls]] = (
-													node_objs,
-													self._node_exists,
-													self._make_node)
+		self._get_node_stuff: Tuple[dict, Callable[[Key, Key], bool],
+									Callable[[Key, Key], node_cls]] = (
+										node_objs, self._node_exists,
+										self._make_node)
 		self._edge_objs = edge_objs = {}
-		self._get_edge_stuff: Tuple[
-			dict, Callable[[Hashable, Hashable, Hashable, int], bool],
-			Callable[[Hashable, Hashable, Hashable, int],
-						edge_cls]] = (edge_objs, self._edge_exists,
-										self._make_edge)
+		self._get_edge_stuff: Tuple[dict, Callable[[Key, Key, Key, int], bool],
+									Callable[[Key, Key, Key, int],
+												edge_cls]] = (
+													edge_objs,
+													self._edge_exists,
+													self._make_edge)
 		self._childbranch = defaultdict(set)
 		"""Immediate children of a branch"""
 		self._branches = {}
@@ -842,27 +840,25 @@ class ORM:
 							self._plan_ticks, self._plan_ticks_uncommitted,
 							self._time_plan, self._branches)
 		self._node_exists_stuff: Tuple[
-			Callable[[Tuple[Hashable, Hashable, str, int, int]], Any],
+			Callable[[Tuple[Key, Key, str, int, int]], Any],
 			Callable[[], Tuple[str, int,
 								int]]] = (self._nodes_cache._base_retrieve,
 											self._btt)
 		self._exist_node_stuff: Tuple[
 			Callable[[], Tuple[str, int, int]],
-			Callable[[Hashable, Hashable, str, int, int, bool], None],
-			Callable[[Hashable, Hashable, str, int, int, Any],
+			Callable[[Key, Key, str, int, int, bool], None],
+			Callable[[Key, Key, str, int, int, Any],
 						None]] = (self._nbtt, self.query.exist_node,
 									self._nodes_cache.store)
-		self._edge_exists_stuff: Tuple[Callable[
-			[Tuple[Hashable, Hashable, Hashable, int, str, int, int]],
-			bool], Callable[[],
-							Tuple[str, int,
-									int]]] = (self._edges_cache._base_retrieve,
-												self._btt)
+		self._edge_exists_stuff: Tuple[
+			Callable[[Tuple[Key, Key, Key, int, str, int, int]], bool],
+			Callable[[], Tuple[str, int,
+								int]]] = (self._edges_cache._base_retrieve,
+											self._btt)
 		self._exist_edge_stuff: Tuple[
 			Callable[[], Tuple[str, int, int]],
-			Callable[[Hashable, Hashable, Hashable, int, str, int, int, bool],
-						None],
-			Callable[[Hashable, Hashable, Hashable, int, str, int, int, Any],
+			Callable[[Key, Key, Key, int, str, int, int, bool], None],
+			Callable[[Key, Key, Key, int, str, int, int, Any],
 						None]] = (self._nbtt, self.query.exist_edge,
 									self._edges_cache.store)
 		self._load_graphs()
@@ -993,11 +989,10 @@ class ORM:
 			else:
 				kfd[branch][turn].add(tick)
 
-	def _snap_keyframe_de_novo_graph(self, graph: Hashable, branch: str,
-										turn: int, tick: int,
-										nodes: NodeValDictType,
-										edges: EdgeValDictType,
-										graph_val: StatDictType) -> None:
+	def _snap_keyframe_de_novo_graph(self, graph: Key, branch: str, turn: int,
+										tick: int, nodes: NodeValDict,
+										edges: EdgeValDict,
+										graph_val: StatDict) -> None:
 		nodes_keyframes_branch_d = self._nodes_cache.keyframe[graph, ][branch]
 		if turn in nodes_keyframes_branch_d:
 			nodes_keyframes_branch_d[turn][tick] = {
@@ -1093,7 +1088,7 @@ class ORM:
 
 	def _snap_keyframe_from_delta(self, then: Tuple[str, int, int],
 									now: Tuple[str, int, int],
-									delta: DeltaType) -> None:
+									delta: DeltaDict) -> None:
 		# may mutate delta
 		assert then[0] == now[0]
 		whens = [now]
@@ -2174,9 +2169,9 @@ class ORM:
 	@world_locked
 	def _init_graph(
 			self,
-			name: Hashable,
+			name: Key,
 			type_s='DiGraph',
-			data: Union[Graph, nx.Graph, dict, KeyframeType] = None) -> None:
+			data: Union[Graph, nx.Graph, dict, KeyframeTuple] = None) -> None:
 		if self.query.have_graph(name):
 			raise GraphNameError("Already have a graph by that name")
 		if name in self.illegal_graph_names:
@@ -2258,10 +2253,7 @@ class ORM:
 				else:
 					kfd[branch][turn].add(tick)
 
-	def new_digraph(self,
-					name: Hashable,
-					data: dict = None,
-					**attr) -> DiGraph:
+	def new_digraph(self, name: Key, data: dict = None, **attr) -> DiGraph:
 		"""Return a new instance of type DiGraph, initialized with the given
 		data if provided.
 
@@ -2279,7 +2271,7 @@ class ORM:
 		return DiGraph(self, name)
 
 	@world_locked
-	def del_graph(self, name: Hashable) -> None:
+	def del_graph(self, name: Key) -> None:
 		"""Remove all traces of a graph's existence from the database
 
 		:arg name: name of an existing graph
@@ -2344,26 +2336,23 @@ class ORM:
 			if parent == branch:
 				yield child
 
-	def _node_exists(self, character: Hashable, node: Hashable) -> bool:
+	def _node_exists(self, character: Key, node: Key) -> bool:
 		retrieve, btt = self._node_exists_stuff
 		args = (character, node) + btt()
 		retrieved = retrieve(args)
 		return retrieved is not None and not isinstance(retrieved, Exception)
 
 	@world_locked
-	def _exist_node(self,
-					character: Hashable,
-					node: Hashable,
-					exist=True) -> None:
+	def _exist_node(self, character: Key, node: Key, exist=True) -> None:
 		nbtt, exist_node, store = self._exist_node_stuff
 		branch, turn, tick = nbtt()
 		exist_node(character, node, branch, turn, tick, exist)
 		store(character, node, branch, turn, tick, exist)
 
 	def _edge_exists(self,
-						character: Hashable,
-						orig: Hashable,
-						dest: Hashable,
+						character: Key,
+						orig: Key,
+						dest: Key,
 						idx=0) -> bool:
 		retrieve, btt = self._edge_exists_stuff
 		args = (character, orig, dest, idx) + btt()
@@ -2372,9 +2361,9 @@ class ORM:
 
 	@world_locked
 	def _exist_edge(self,
-					character: Hashable,
-					orig: Hashable,
-					dest: Hashable,
+					character: Key,
+					orig: Key,
+					dest: Key,
 					idx=0,
 					exist=True) -> None:
 		nbtt, exist_edge, store = self._exist_edge_stuff
