@@ -45,13 +45,14 @@
 <span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
 <span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
 <span class="sd">&quot;&quot;&quot;Directed edges, as used by LiSE.&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Mapping</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Hashable</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span>
 
 <span class="kn">from</span> <span class="nn">.allegedb.graph</span> <span class="kn">import</span> <span class="n">Edge</span>
 <span class="kn">from</span> <span class="nn">.allegedb</span> <span class="kn">import</span> <span class="n">HistoricKeyError</span>
 
-<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">getatt</span><span class="p">,</span> <span class="n">AbstractCharacter</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">getatt</span><span class="p">,</span> <span class="n">AbstractCharacter</span><span class="p">,</span> <span class="n">Key</span>
 <span class="kn">from</span> <span class="nn">.query</span> <span class="kn">import</span> <span class="n">StatusAlias</span>
 <span class="kn">from</span> <span class="nn">.rule</span> <span class="kn">import</span> <span class="n">RuleFollower</span>
 <span class="kn">from</span> <span class="nn">.rule</span> <span class="kn">import</span> <span class="n">RuleMapping</span> <span class="k">as</span> <span class="n">BaseRuleMapping</span>
@@ -79,8 +80,7 @@
 	<span class="n">engine</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;db&#39;</span><span class="p">)</span>
 	<span class="n">no_unwrap</span> <span class="o">=</span> <span class="kc">True</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">AbstractCharacter</span><span class="p">,</span> <span class="n">orig</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
-					<span class="n">dest</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">AbstractCharacter</span><span class="p">,</span> <span class="n">orig</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="n">dest</span><span class="p">:</span> <span class="n">Key</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">node</span><span class="p">[</span><span class="n">orig</span><span class="p">]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">destination</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">node</span><span class="p">[</span><span class="n">dest</span><span class="p">]</span>
@@ -174,7 +174,7 @@
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;This portal has no reciprocal&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Portal.historical"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.portal.Portal.historical">[docs]</a>	<span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StatusAlias</span><span class="p">:</span>
+<div class="viewcode-block" id="Portal.historical"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.portal.Portal.historical">[docs]</a>	<span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">:</span> <span class="n">Key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StatusAlias</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a reference to the values that a stat has had in the past.</span>
 
 <span class="sd">		You can use the reference in comparisons to make a history</span>

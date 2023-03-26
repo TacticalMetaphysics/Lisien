@@ -50,15 +50,16 @@
 <span class="sd">have a lot in common.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">ValuesView</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span>
 
 <span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
 <span class="kn">from</span> <span class="nn">networkx</span> <span class="kn">import</span> <span class="n">shortest_path</span><span class="p">,</span> <span class="n">shortest_path_length</span>
 
 <span class="kn">from</span> <span class="nn">.allegedb</span> <span class="kn">import</span> <span class="n">graph</span><span class="p">,</span> <span class="n">HistoricKeyError</span>
 
-<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">getatt</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">getatt</span><span class="p">,</span> <span class="n">Key</span>
 <span class="kn">from</span> <span class="nn">.query</span> <span class="kn">import</span> <span class="n">StatusAlias</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">rule</span>
 <span class="kn">from</span> <span class="nn">.exc</span> <span class="kn">import</span> <span class="n">AmbiguousUserError</span><span class="p">,</span> <span class="n">TravelException</span>
@@ -427,8 +428,8 @@
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> not in </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
 
 <div class="viewcode-block" id="Node.shortest_path_length"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.shortest_path_length">[docs]</a>	<span class="k">def</span> <span class="nf">shortest_path_length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-								<span class="n">dest</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="s2">&quot;Node&quot;</span><span class="p">],</span>
-								<span class="n">weight</span><span class="p">:</span> <span class="n">Hashable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+								<span class="n">dest</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="s2">&quot;Key&quot;</span><span class="p">,</span> <span class="s2">&quot;Node&quot;</span><span class="p">],</span>
+								<span class="n">weight</span><span class="p">:</span> <span class="s2">&quot;Key&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return the length of the path from me to ``dest``.</span>
 
 <span class="sd">		Raise ``ValueError`` if ``dest`` is not a node in my character</span>
@@ -440,8 +441,8 @@
 									<span class="bp">self</span><span class="o">.</span><span class="n">_plain_dest_name</span><span class="p">(</span><span class="n">dest</span><span class="p">),</span> <span class="n">weight</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Node.shortest_path"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.shortest_path">[docs]</a>	<span class="k">def</span> <span class="nf">shortest_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-						<span class="n">dest</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="s2">&quot;Node&quot;</span><span class="p">],</span>
-						<span class="n">weight</span><span class="p">:</span> <span class="n">Hashable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]:</span>
+						<span class="n">dest</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Key</span><span class="p">,</span> <span class="s2">&quot;Node&quot;</span><span class="p">],</span>
+						<span class="n">weight</span><span class="p">:</span> <span class="n">Key</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Key</span><span class="p">]:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a list of node names leading from me to ``dest``.</span>
 
 <span class="sd">		Raise ``ValueError`` if ``dest`` is not a node in my character</span>
@@ -452,8 +453,8 @@
 								<span class="bp">self</span><span class="o">.</span><span class="n">_plain_dest_name</span><span class="p">(</span><span class="n">dest</span><span class="p">),</span> <span class="n">weight</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Node.path_exists"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.path_exists">[docs]</a>	<span class="k">def</span> <span class="nf">path_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-					<span class="n">dest</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="s2">&quot;Node&quot;</span><span class="p">],</span>
-					<span class="n">weight</span><span class="p">:</span> <span class="n">Hashable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+					<span class="n">dest</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Key</span><span class="p">,</span> <span class="s2">&quot;Node&quot;</span><span class="p">],</span>
+					<span class="n">weight</span><span class="p">:</span> <span class="n">Key</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return whether there is a path leading from me to ``dest``.</span>
 
 <span class="sd">		With ``weight``, only consider edges that have a stat by the</span>
@@ -492,18 +493,18 @@
 										<span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Node.new_portal"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.new_portal">[docs]</a>	<span class="k">def</span> <span class="nf">new_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="s2">&quot;Node&quot;</span><span class="p">],</span>
+<div class="viewcode-block" id="Node.new_portal"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.new_portal">[docs]</a>	<span class="k">def</span> <span class="nf">new_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Key</span><span class="p">,</span> <span class="s2">&quot;Node&quot;</span><span class="p">],</span>
 					<span class="o">**</span><span class="n">stats</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;LiSE.portal.Portal&quot;</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Connect a portal from here to another node, and return it.&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">new_portal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
 											<span class="nb">getattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">other</span><span class="p">),</span>
 											<span class="o">**</span><span class="n">stats</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Node.new_thing"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.new_thing">[docs]</a>	<span class="k">def</span> <span class="nf">new_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span> <span class="o">**</span><span class="n">stats</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Thing&quot;</span><span class="p">:</span>
+<div class="viewcode-block" id="Node.new_thing"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.new_thing">[docs]</a>	<span class="k">def</span> <span class="nf">new_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="o">**</span><span class="n">stats</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Thing&quot;</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Create a new thing, located here, and return it.&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">new_thing</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">stats</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Node.historical"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.historical">[docs]</a>	<span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StatusAlias</span><span class="p">:</span>
+<div class="viewcode-block" id="Node.historical"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Node.historical">[docs]</a>	<span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">:</span> <span class="n">Key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StatusAlias</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a reference to the values that a stat has had in the past.</span>
 
 <span class="sd">		You can use the reference in comparisons to make a history</span>
@@ -605,7 +606,7 @@
 		<span class="k">else</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t find arrival time&quot;</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">_set_loc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]):</span>
+	<span class="k">def</span> <span class="nf">_set_loc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Key</span><span class="p">]):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_set_thing_loc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">loc</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;location&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">loc</span><span class="p">)</span>
 
@@ -613,7 +614,7 @@
 
 	<span class="n">_setitem_dispatch</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">roerror</span><span class="p">,</span> <span class="s1">&#39;location&#39;</span><span class="p">:</span> <span class="n">_set_loc</span><span class="p">}</span>
 
-	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Key</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return one of my stats stored in the database, or special cases:</span>
 
 <span class="sd">		``name``: return the name that uniquely identifies me within</span>
@@ -669,7 +670,7 @@
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_get_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="n">locn</span><span class="p">)</span>
 
 	<span class="nd">@location</span><span class="o">.</span><span class="n">setter</span>
-	<span class="k">def</span> <span class="nf">location</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Node</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">]):</span>
+	<span class="k">def</span> <span class="nf">location</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Node</span><span class="p">,</span> <span class="n">Key</span><span class="p">]):</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">):</span>
 			<span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span>
 		<span class="bp">self</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
@@ -688,9 +689,7 @@
 				<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_turn_end_plan</span><span class="p">[</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">]))</span>
 
-<div class="viewcode-block" id="Thing.go_to_place"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Thing.go_to_place">[docs]</a>	<span class="k">def</span> <span class="nf">go_to_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-					<span class="n">place</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Node</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">],</span>
-					<span class="n">weight</span><span class="p">:</span> <span class="n">Hashable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<div class="viewcode-block" id="Thing.go_to_place"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Thing.go_to_place">[docs]</a>	<span class="k">def</span> <span class="nf">go_to_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Node</span><span class="p">,</span> <span class="n">Key</span><span class="p">],</span> <span class="n">weight</span><span class="p">:</span> <span class="n">Key</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Assuming I&#39;m in a node that has a :class:`Portal` direct</span>
 <span class="sd">		to the given node, schedule myself to travel to the</span>
 <span class="sd">		given :class:`Place`, taking an amount of time indicated by</span>
@@ -713,7 +712,7 @@
 			<span class="bp">self</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">placen</span>
 		<span class="k">return</span> <span class="n">turns</span></div>
 
-<div class="viewcode-block" id="Thing.follow_path"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Thing.follow_path">[docs]</a>	<span class="k">def</span> <span class="nf">follow_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="n">Hashable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<div class="viewcode-block" id="Thing.follow_path"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Thing.follow_path">[docs]</a>	<span class="k">def</span> <span class="nf">follow_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="n">Key</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Go to several nodes in succession, deciding how long to</span>
 <span class="sd">		spend in each by consulting the ``weight`` stat of the</span>
 <span class="sd">		:class:`Portal` connecting the one node to the next,</span>
@@ -758,8 +757,8 @@
 		<span class="k">return</span> <span class="n">turns_total</span></div>
 
 <div class="viewcode-block" id="Thing.travel_to"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Thing.travel_to">[docs]</a>	<span class="k">def</span> <span class="nf">travel_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-					<span class="n">dest</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Node</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">],</span>
-					<span class="n">weight</span><span class="p">:</span> <span class="n">Hashable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+					<span class="n">dest</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Node</span><span class="p">,</span> <span class="n">Key</span><span class="p">],</span>
+					<span class="n">weight</span><span class="p">:</span> <span class="n">Key</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 					<span class="n">graph</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Find the shortest path to the given node from where I am</span>
 <span class="sd">		now, and follow it.</span>
