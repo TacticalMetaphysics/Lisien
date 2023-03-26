@@ -11,7 +11,7 @@ not graphics or physics or anything -- is very large. Like how The
 Sims tracks sims' opinions of one another, their likes and dislikes
 and so forth, even for the ones you never talk to and have shown no
 interest in. If you streamline a life sim to where it doesn't have
-extraneous detail complexity you lose a huge part of what makes it
+extraneous detail, you lose a huge part of what makes it
 lifelike. This causes trouble for developers when even *they* don't
 understand why sims hate each other
 
@@ -38,15 +38,6 @@ Triggers and effects are Actions, and they're both lists of Python
 functions. Actions make some change to the state of the world, while
 Triggers look at the world once-per-turn and return a Boolean to show
 whether their Actions should happen.
-
-The connection between Trigger and Action is arbitrary; you can mix
-and match when you want. If you're doing it in the graphical
-interface, they look sort of like trading cards, so constructing a
-rule is like deckbuilding.  Triggers and Actions exist independent of
-the game world, and can therefore be moved from one game to another
-without much fuss. I intend to include a fair number of them with the
-release version of LiSE, so that you can throw together a toy sim
-without really writing any code.
 
 Architecture
 ------------
@@ -82,55 +73,32 @@ a Thing, Place, or Portal by treating it like a dictionary.
 LiSE's directed graphs are called Characters. Every time something
 about a Character changes, LiSE remembers when it happened -- that is,
 which turn of the simulation. This allows the developer to look up the
-state of the world at some point in the past.
-
-When time moves forward in LiSE, it checks all its rules and allows
-them to change the state of the world. Then, LiSE sets its clock to
-the next turn, and is ready for time to move forward another
-turn. LiSE remembers the entire history of the game, so that you can
-travel back to previous turns and try things a different way.  This is
-also convenient for debugging simulation rules.
-
-LiSE can keep track of multiple timelines, called "branches," which
-can split off from one another. Branches normally don't affect one
-another, though it's possible to write rules that change one branch
-when they are run in another.
+state of the world at some point in the past. This time travel is
+nearly real-time in most cases, to make it convenient to flip
+back and forth between a correct world state and an incorrect one
+and use your intuition to spot exactly what went wrong.
 
 Usage
 -----
 The only LiSE class that you should ever instantiate yourself is
-``Engine``. All the other simulation objects should be
+``Engine``. All simulation objects should be
 created and accessed through it. By default, it keeps the simulation
 code and world state in the working directory, but you can pass in another
 directory if you prefer. Either use it with a context manager
 (``with Engine() as eng:``) or call its ``.close()`` method when you're done
 changing things.
 
-The top-level data structure within LiSE is the character. Most
-data within the world model is kept in some character or other;
-these will quite frequently represent people, but can be readily
-adapted to represent any kind of data that can be comfortably
-described as a graph. Every change to a character
-will be written to the database.
-
-LiSE tracks history as a series of turns. In each turn, each
-simulation rule is evaluated once for each of the simulated
-entities it's been applied to. World changes are
-recorded such that the whole world state can be
-rewound: simply set the properties ``branch`` and ``turn`` back to
-what they were just before the change you want to undo.
-
 World Modelling
 +++++++++++++++
 
 Start by calling the engine's ``new_character`` method with a string
-``name``.  This will return a character object with the name you
-provided. Now draw a map by calling the method ``new_place`` with many
+``name`` to get a character object.
+Draw a graph by calling the method ``new_place`` with many
 different ``name`` s, then linking them together with the
 method ``new_portal(origin, destination)``.
 
 To store data pertaining
-to some particular place, retrieve the place from the ``place``
+to some specific place, retrieve the place from the ``place``
 mapping of the character: if the character is ``world`` and the place
 name is ``'home'``, you might do it like
 ``home = world.place['home']``. Portals are retrieved from the ``portal``
