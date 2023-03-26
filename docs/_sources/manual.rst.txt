@@ -121,7 +121,7 @@ rewound: simply set the properties ``branch`` and ``turn`` back to
 what they were just before the change you want to undo.
 
 World Modelling
----------------
++++++++++++++++
 
 Start by calling the engine's ``new_character`` method with a string
 ``name``.  This will return a character object with the name you
@@ -158,7 +158,7 @@ The engine's ``eternal`` property is not time-sensitive,
 and is mainly for storing settings, not simulation data.
 
 Rule Creation
--------------
++++++++++++++
 
 To create a rule, first decide what objects the rule should apply
 to. You can put a rule on a character, thing, place, or portal; and
@@ -188,7 +188,7 @@ Use the ``engine`` property of any LiSE entity to get the engine,
 then use methods such as ``percent_chance`` and ``dice_check``.
 
 Time Control
-------------
+++++++++++++
 
 The current time is always accessible from the engine's ``branch`` and
 ``turn`` properties. In the common case where time is advancing
@@ -218,7 +218,7 @@ At the end of a ``plan():`` block, the game-time will be reset to its
 position at the start of that block.
 
 Input Prompts
--------------
++++++++++++++
 
 LiSE itself doesn't know what a player is or how to accept input from them,
 but does use some conventions for communicating with a user interface

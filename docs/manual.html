@@ -137,9 +137,8 @@ entities it’s been applied to. World changes are
 recorded such that the whole world state can be
 rewound: simply set the properties <code class="docutils literal notranslate"><span class="pre">branch</span></code> and <code class="docutils literal notranslate"><span class="pre">turn</span></code> back to
 what they were just before the change you want to undo.</p>
-</section>
 <section id="world-modelling">
-<h2>World Modelling<a class="headerlink" href="#world-modelling" title="Permalink to this heading">¶</a></h2>
+<h3>World Modelling<a class="headerlink" href="#world-modelling" title="Permalink to this heading">¶</a></h3>
 <p>Start by calling the engine’s <code class="docutils literal notranslate"><span class="pre">new_character</span></code> method with a string
 <code class="docutils literal notranslate"><span class="pre">name</span></code>.  This will return a character object with the name you
 provided. Now draw a map by calling the method <code class="docutils literal notranslate"><span class="pre">new_place</span></code> with many
@@ -172,7 +171,7 @@ The engine’s <code class="docutils literal notranslate"><span class="pre">eter
 and is mainly for storing settings, not simulation data.</p>
 </section>
 <section id="rule-creation">
-<h2>Rule Creation<a class="headerlink" href="#rule-creation" title="Permalink to this heading">¶</a></h2>
+<h3>Rule Creation<a class="headerlink" href="#rule-creation" title="Permalink to this heading">¶</a></h3>
 <p>To create a rule, first decide what objects the rule should apply
 to. You can put a rule on a character, thing, place, or portal; and
 you can put a rule on a character’s <code class="docutils literal notranslate"><span class="pre">thing</span></code>, <code class="docutils literal notranslate"><span class="pre">place</span></code>, and
@@ -198,7 +197,7 @@ Use the <code class="docutils literal notranslate"><span class="pre">engine</spa
 then use methods such as <code class="docutils literal notranslate"><span class="pre">percent_chance</span></code> and <code class="docutils literal notranslate"><span class="pre">dice_check</span></code>.</p>
 </section>
 <section id="time-control">
-<h2>Time Control<a class="headerlink" href="#time-control" title="Permalink to this heading">¶</a></h2>
+<h3>Time Control<a class="headerlink" href="#time-control" title="Permalink to this heading">¶</a></h3>
 <p>The current time is always accessible from the engine’s <code class="docutils literal notranslate"><span class="pre">branch</span></code> and
 <code class="docutils literal notranslate"><span class="pre">turn</span></code> properties. In the common case where time is advancing
 forward one tick at a time, it should be done with the engine’s
@@ -226,7 +225,7 @@ then wakes her up after eight turns (presumably hour-long).:</p>
 position at the start of that block.</p>
 </section>
 <section id="input-prompts">
-<h2>Input Prompts<a class="headerlink" href="#input-prompts" title="Permalink to this heading">¶</a></h2>
+<h3>Input Prompts<a class="headerlink" href="#input-prompts" title="Permalink to this heading">¶</a></h3>
 <p>LiSE itself doesn’t know what a player is or how to accept input from them,
 but does use some conventions for communicating with a user interface
 such as ELiDE.</p>
@@ -244,6 +243,7 @@ call, then return a menu description like this one.:</p>
 </pre></div>
 </div>
 <p>Only methods defined with the <code class="docutils literal notranslate"><span class="pre">&#64;engine.method</span></code> function store may be used in a menu.</p>
+</section>
 </section>
 </section>
 
@@ -270,11 +270,13 @@ call, then return a menu description like this one.:</p>
 <li class="toctree-l2"><a class="reference internal" href="#too-much-world-state">Too much world state</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#too-many-rules">Too many rules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#world-modelling">World Modelling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#rule-creation">Rule Creation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#time-control">Time Control</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#input-prompts">Input Prompts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#world-modelling">World Modelling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rule-creation">Rule Creation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#time-control">Time Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#input-prompts">Input Prompts</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="LiSE/index.html">LiSE</a></li>
