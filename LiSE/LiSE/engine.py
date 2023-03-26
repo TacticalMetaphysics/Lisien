@@ -31,8 +31,7 @@ from networkx import Graph
 from blinker import Signal
 
 from .allegedb import ORM as gORM
-from .allegedb import (StatDict, NodeValDict, EdgeValDict,
-                       DeltaDict)
+from .allegedb import (StatDict, NodeValDict, EdgeValDict, DeltaDict)
 from .allegedb.window import update_window, update_backward_window
 from .util import sort_set, AbstractEngine, final_rule, Key
 from .xcollections import StringStore, FunctionStore, MethodStore
@@ -1348,14 +1347,14 @@ class Engine(AbstractEngine, gORM):
 		self.query.set_thing_loc(character, node, branch, turn, tick, loc)
 
 	def _snap_keyframe_de_novo_graph(self,
-	                                 graph: Key,
-	                                 branch: str,
-	                                 turn: int,
-	                                 tick: int,
-	                                 nodes: NodeValDict,
-	                                 edges: EdgeValDict,
-	                                 graph_val: StatDict,
-	                                 copy_to_branch: str = None) -> None:
+										graph: Key,
+										branch: str,
+										turn: int,
+										tick: int,
+										nodes: NodeValDict,
+										edges: EdgeValDict,
+										graph_val: StatDict,
+										copy_to_branch: str = None) -> None:
 		super()._snap_keyframe_de_novo_graph(graph, branch, turn, tick, nodes,
 												edges, graph_val)
 		newkf = {}
