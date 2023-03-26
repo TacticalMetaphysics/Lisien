@@ -17,6 +17,7 @@ stores for game data and entities, as well as properties for manipulating the
 flow of time.
 
 """
+from __future__ import annotations
 import os
 from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial

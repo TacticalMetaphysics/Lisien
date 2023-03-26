@@ -18,6 +18,7 @@ Every node that actually exists is either a Place or a Thing, but they
 have a lot in common.
 
 """
+from __future__ import annotations
 from collections.abc import Mapping, ValuesView
 from typing import Optional, Union, Iterator, List
 
