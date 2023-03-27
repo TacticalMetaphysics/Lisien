@@ -28,8 +28,8 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://tactical-metaphysics.github.io/LiSE/"
-"Bug Tracker" = "https://github.com/Tactical-Metaphysics/LiSE/issues"
+"Homepage" = "https://tacticalmetaphysics.github.io/LiSE/"
+"Bug Tracker" = "https://github.com/TacticalMetaphysics/LiSE/issues"
 
 [tool.pytest.ini_options]
 markers = [
