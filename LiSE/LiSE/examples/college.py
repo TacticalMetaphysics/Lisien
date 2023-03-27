@@ -224,6 +224,3 @@ if __name__ == "__main__":
 
 	with Engine(connect_string=":memory:") as eng:
 		install(eng)
-		for i in range(72):
-			eng.next_turn()
-			print(i)
