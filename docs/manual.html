@@ -189,13 +189,16 @@ then wakes her up after eight turns (presumably hour-long).:</p>
 <span class="k">def</span> <span class="nf">sleep</span><span class="p">(</span><span class="n">character</span><span class="p">):</span>
         <span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;awake&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">start_turn</span> <span class="o">=</span> <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">turn</span>
-        <span class="k">with</span> <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
+        <span class="k">with</span> <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">plan</span><span class="p">()</span> <span class="k">as</span> <span class="n">plan_num</span><span class="p">:</span>
                 <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">turn</span> <span class="o">+=</span> <span class="mi">8</span>
                 <span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;awake&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;wake_plan&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">plan_num</span>
 </pre></div>
 </div>
 <p>At the end of a <code class="docutils literal notranslate"><span class="pre">plan():</span></code> block, the game-time will be reset to its
-position at the start of that block.</p>
+position at the start of that block. You can use the plan’s ID number,
+<code class="docutils literal notranslate"><span class="pre">plan_num</span></code> in the above, to cancel it yourself – some other rule
+could call <code class="docutils literal notranslate"><span class="pre">engine.delete_plan(engine.character['alice'].stat['wake_plan'])</span></code>.</p>
 </section>
 <section id="input-prompts">
 <h3>Input Prompts<a class="headerlink" href="#input-prompts" title="Permalink to this heading">¶</a></h3>
