@@ -220,7 +220,8 @@ def install(eng):
 
 
 if __name__ == "__main__":
+	import sys
 	from LiSE.engine import Engine
 
-	with Engine(connect_string=":memory:") as eng:
+	with Engine(sys.argv[-1]) as eng:
 		install(eng)
