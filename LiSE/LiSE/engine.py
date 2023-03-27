@@ -1159,13 +1159,13 @@ class Engine(AbstractEngine, gORM):
 		def get_thing(graphn, thingn):
 			key = (graphn, thingn)
 			if key not in node_objs:
-				node_objs[key] = thing_cls(charmap[graphn], noden)
+				node_objs[key] = thing_cls(charmap[graphn], thingn)
 			return node_objs[key]
 
 		def get_place(graphn, placen):
 			key = (graphn, placen)
 			if key not in node_objs:
-				node_objs[key] = place_cls(charmap[graphn], noden)
+				node_objs[key] = place_cls(charmap[graphn], placen)
 			return node_objs[key]
 
 		for (charn, graphn, avn, rulebook,
