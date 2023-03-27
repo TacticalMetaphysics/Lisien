@@ -12,7 +12,7 @@ authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
 description = "Life Simulator Engine"
-readme = "README.md"
+readme = "../README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.7"
 classifiers = [
