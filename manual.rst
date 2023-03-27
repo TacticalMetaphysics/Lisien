@@ -178,12 +178,15 @@ then wakes her up after eight turns (presumably hour-long).::
 	def sleep(character):
 		character.stat['awake'] = False
 		start_turn = character.engine.turn
-		with character.engine.plan():
+		with character.engine.plan() as plan_num:
 			character.engine.turn += 8
 			character.stat['awake'] = True
+		character.stat['wake_plan'] = plan_num
 
 At the end of a ``plan():`` block, the game-time will be reset to its
-position at the start of that block.
+position at the start of that block. You can use the plan's ID number,
+``plan_num`` in the above, to cancel it yourself -- some other rule
+could call ``engine.delete_plan(engine.character['alice'].stat['wake_plan'])``.
 
 Input Prompts
 +++++++++++++
