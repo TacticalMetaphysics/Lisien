@@ -1162,9 +1162,15 @@ class EngineHandle(object):
 			self._real._set_btt(*origtime)
 		return r
 
-	def add_portal(self, char: Key, orig: Key, dest: Key,
-					statdict: Dict) -> None:
+	def add_portal(self,
+					char: Key,
+					orig: Key,
+					dest: Key,
+					statdict: Dict,
+					symmetrical: bool = False) -> None:
 		self._real.character[char].add_portal(orig, dest, **statdict)
+		if symmetrical:
+			self._real.character[char].add_portal(dest, orig, **statdict)
 
 	def add_portals_from(self, char: Key, seq: Iterable) -> None:
 		self._real.character[char].add_portals_from(seq)

@@ -1433,15 +1433,21 @@ class CharacterProxy(AbstractCharacter):
 							branching=True)
 
 	def add_portal(self, origin, destination, **kwargs):
+		symmetrical = kwargs.pop('symmetrical', False)
 		self.engine.handle(command='add_portal',
 							char=self.name,
 							orig=origin,
 							dest=destination,
+							symmetrical=symmetrical,
 							statdict=kwargs,
 							branching=True)
 		self.engine._character_portals_cache.store(
 			self.name, origin, destination,
 			PortalProxy(self, origin, destination))
+		if symmetrical:
+			self.engine._character_portals_cache.store(
+				self.name, destination, origin,
+				PortalProxy(self, destination, origin))
 		node = self._node
 		placecache = self.place._cache
 
