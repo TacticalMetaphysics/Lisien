@@ -114,7 +114,8 @@ class WorldStartConfigurator(BoxLayout):
 			else:
 				# TODO show error
 				return
-		else:
+		elif not hasattr(self, '_starting'):
+			self._starting = True
 			self.starter()
 			self.init_board()
 			self.toggle()
