@@ -571,6 +571,8 @@ class Stack:
 		stack_plane: TextureStackPlane = self._stack_plane
 		name = self.proxy['name']
 		insts = stack_plane._instructions[name]
+		stack_plane._fbo.bind()
+		stack_plane._fbo.clear_buffer()
 		if v:
 			stack_plane.selected = name
 			if 'color0' in insts:
@@ -594,10 +596,8 @@ class Stack:
 			if stack_plane.selected == self.proxy['name']:
 				stack_plane.selected = None
 			if 'color0' in insts:
-				stack_plane._fbo.bind()
-				stack_plane._fbo.clear_buffer()
 				insts['color0'].rgba = [0., 0., 0., 0.]
-				stack_plane._fbo.release()
+		stack_plane._fbo.release()
 		stack_plane.canvas.ask_update()
 
 	@property
