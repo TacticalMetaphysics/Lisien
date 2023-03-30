@@ -547,10 +547,11 @@ class GraphBoard(RelativeLayout):
 		spot = self.spot.pop(name)
 		if spot in self.selection_candidates:
 			self.selection_candidates.remove(spot)
-		pawns_here = list(spot.children)
+		pawns_here = []
+		for thing in spot.proxy.contents():
+			pawns_here = self.pawn[thing.name]
 		self.rm_arrows_to_and_from(name)
-		self.stack_plane.remove_widget(spot)
-		spot.canvas.clear()
+		self.stack_plane.remove(name)
 		for pawn in pawns_here:
 			self.rm_pawn(pawn.name)
 		if name in self._scheduled_rm_spot:
