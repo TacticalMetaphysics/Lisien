@@ -523,7 +523,7 @@ class GraphBoard(RelativeLayout):
 				self.rm_arrow(name, dest)
 		if name in self.pred_arrow.keys():
 			for orig in list(self.pred_arrow[name].keys()):
-				self._trigger_rm_arrow(orig, name)
+				self.rm_arrow(orig, name)
 
 	def rm_pawn(self, name, *args):
 		"""Remove the :class:`Pawn` by the given name."""
