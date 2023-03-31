@@ -647,6 +647,7 @@ class ArrowPlane(Widget):
 		self.canvas.ask_update()
 
 	def iter_collided_edges(self, x, y):
+		x, y = map(float, (x, y))
 		collider_map = self._colliders_map
 		hits = (self._bot_left_corner_xs <= x) & (
 			self._bot_left_corner_ys <= y
