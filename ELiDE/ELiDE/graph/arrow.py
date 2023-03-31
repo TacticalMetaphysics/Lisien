@@ -633,8 +633,12 @@ class ArrowPlane(Widget):
 		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
 
 	def remove_edge(self, orig, dest):
+		self._fbo.bind()
+		self._fbo.clear_buffer()
 		self._fbo.remove(self._instructions_map[orig, dest]['group'])
 		index = self._port_index[orig, dest]
+		for port in self._port_l[index:]:
+			self._port_index[port] -= 1
 		del self._port_index[orig, dest]
 		del self._instructions_map[orig, dest]
 		del self._colliders_map[orig, dest]
@@ -644,6 +648,7 @@ class ArrowPlane(Widget):
 			dat = list(getattr(self, arr))
 			del dat[index]
 			setattr(self, arr, np.array(dat))
+		self._fbo.release()
 		self.canvas.ask_update()
 
 	def iter_collided_edges(self, x, y):
