@@ -549,7 +549,7 @@ class GraphBoard(RelativeLayout):
 			self.selection_candidates.remove(spot)
 		pawns_here = []
 		for thing in spot.proxy.contents():
-			pawns_here = self.pawn[thing.name]
+			pawns_here.append(self.pawn[thing.name])
 		self.rm_arrows_to_and_from(name)
 		self.stack_plane.remove(name)
 		for pawn in pawns_here:
