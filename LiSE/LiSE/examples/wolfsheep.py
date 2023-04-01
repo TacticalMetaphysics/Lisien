@@ -93,7 +93,6 @@ def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=10, seed=None):
 				if the_sheep.user.only is sheepch:
 					the_sheep.delete()
 					n_del += 1
-			assert n_del
 			return
 		# take a step closer
 		if nearest[0] > my_loc[0]:
