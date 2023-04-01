@@ -457,7 +457,7 @@ class RuleBook(MutableSequence, Signal):
 				return self._get_cache(*self.engine._btt()).index(*args)
 			except KeyError:
 				raise ValueError
-		return super().index(v)
+		return super().index(*args)
 
 	def __delitem__(self, i):
 		branch, turn, tick = self.engine._btt()
