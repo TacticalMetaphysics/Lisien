@@ -594,7 +594,7 @@ class EngineHandle(object):
 				grap, node = map(pack, (graph[0], node))
 				if grap not in delta:
 					delta[grap] = {NODES: {node: TRUE}}
-				elif NODE_VAL not in delta[grap]:
+				elif NODES not in delta[grap]:
 					delta[grap][NODES] = {node: TRUE}
 				else:
 					delta[grap][NODES][node] = TRUE
