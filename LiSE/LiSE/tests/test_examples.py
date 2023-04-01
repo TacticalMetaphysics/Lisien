@@ -2,6 +2,7 @@ import networkx as nx
 import pytest
 
 from LiSE import Engine
+from LiSE.handle import EngineHandle
 from LiSE.examples import college, kobold, polygons, sickle, wolfsheep
 
 
@@ -52,12 +53,19 @@ def test_sickle(engy):
 		engy.next_turn()
 
 
-def test_wolfsheep(engy):
+def test_wolfsheep(engy, tempdir):
 	wolfsheep.install(engy, seed=69105)
-	for i in range(100):
+	for i in range(10):
 		engy.next_turn()
 	engy.turn = 5
 	engy.branch = 'lol'
 	engy.universal['haha'] = 'lol'
-	for i in range(95):
+	for i in range(5):
 		engy.next_turn()
+	engy.turn = 5
+	engy.branch = 'omg'
+	sheep = engy.character['sheep']
+	sheep.rule(engy.action.breed, always=True)
+	engy.close()
+	hand = EngineHandle((tempdir, ))
+	hand.next_turn()
