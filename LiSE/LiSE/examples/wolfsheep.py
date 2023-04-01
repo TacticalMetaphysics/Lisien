@@ -4,7 +4,7 @@ import networkx as nx
 from LiSE import Engine
 
 
-def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=10, seed=None):
+def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=50, seed=None):
 	if seed is not None:
 		random.seed(seed)
 	bare_places = []
