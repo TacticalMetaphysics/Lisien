@@ -4,7 +4,7 @@ import networkx as nx
 from LiSE import Engine
 
 
-def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=50, seed=None):
+def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=25, seed=None):
 	if seed is not None:
 		random.seed(seed)
 	bare_places = []
@@ -66,7 +66,7 @@ def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=50, seed=None):
 													(x, y + 1), (x, y - 1)]))
 		for neighbor in neighbors:
 			neighbor = physical.place[neighbor]
-			if not neighbor['bare']:
+			if not neighbor['bare'] and not neighbor.contents():
 				shep.location = neighbor
 				return
 		shep.location = shep.engine.choice(neighbors)
@@ -115,13 +115,19 @@ def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=50, seed=None):
 		shep.engine.shuffle(units)
 		# pick a sheep that has another sheep next to it
 		for unit in units:
-			for neighbor in unit.successors():
+			for neighbor in unit.location.successors():
 				for here in neighbor.contents():
 					if here.user.only is shep:
-						shep.add_unit(
-							unit.location.new_thing(
-								f'sheep{len(units)}',
-								_image_paths=['atlas://rltiles/dc-mon/sheep']))
+						# pick a place for the new sheep that's different
+						# from where its parents are
+						for there in neighbor.successors():
+							if not there.contents():
+								shep.add_unit(
+									there.new_thing(
+										f'sheep{len(units)}',
+										_image_paths=[
+											'atlas://rltiles/dc-mon/sheep'
+										]))
 						return
 
 
