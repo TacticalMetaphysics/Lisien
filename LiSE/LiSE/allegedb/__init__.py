@@ -974,6 +974,8 @@ class ORM:
 		kfd = self._keyframes_dict
 		kfs = self._keyframes_times
 		nkfs = self._new_keyframes
+		was = self._btt()
+		self._set_btt(branch, turn, tick)
 		for graphn, graph in self.graph.items():
 			nodes = graph._nodes_state()
 			edges = graph._edges_state()
@@ -995,6 +997,7 @@ class ORM:
 				}
 			else:
 				kfd[branch][turn].add(tick)
+		self._set_btt(*was)
 
 	def _snap_keyframe_de_novo_graph(self, graph: Key, branch: str, turn: int,
 										tick: int, nodes: NodeValDict,
