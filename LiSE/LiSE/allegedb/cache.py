@@ -899,25 +899,6 @@ class Cache:
 		entikey = entity + (key, )
 		if entikey in branches:
 			branchentk = branches[entikey]
-			brancs = branchentk.get(branch)
-			if brancs is not None and brancs.rev_gettable(turn):
-				if turn in brancs:
-					if brancs[turn].rev_gettable(tick):
-						ret = brancs[turn][tick]
-						if store_hint:
-							shallowest[args] = ret
-						return ret
-					elif brancs.rev_gettable(turn - 1):
-						b1 = brancs[turn - 1]
-						ret = b1.final()
-						if store_hint:
-							shallowest[args] = ret
-						return ret
-				else:
-					ret = brancs[turn].final()
-					if store_hint:
-						shallowest[args] = ret
-					return ret
 			for (b, r, t) in self.db._iter_parent_btt(branch, turn, tick):
 				brancs = branchentk.get(b)
 				if brancs is not None and brancs.rev_gettable(r):
@@ -1013,29 +994,6 @@ class Cache:
 						else:
 							return NotInKeyframeError("No value")
 		else:
-			if branch in keyframes:
-				kfb = keyframes[branch]
-				if turn in kfb:
-					kfbr = kfb[turn]
-					if kfbr.rev_gettable(tick):
-						kf = kfbr[tick]
-						if key in kf:
-							ret = kf[key]
-							if store_hint:
-								shallowest[args] = ret
-							return ret
-						else:
-							return NotInKeyframeError("No value")
-				if kfb.rev_gettable(turn - 1):
-					kfbr = kfb[turn]
-					kf = kfbr.final()
-					if key in kf:
-						ret = kf[key]
-						if store_hint:
-							shallowest[args] = ret
-						return ret
-					else:
-						return NotInKeyframeError("No value")
 			for (b, r, t) in self.db._iter_parent_btt(branch, turn, tick):
 				if b in keyframes:
 					kfb = keyframes[b]
