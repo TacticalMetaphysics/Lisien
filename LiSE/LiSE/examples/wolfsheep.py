@@ -124,7 +124,7 @@ def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=25, seed=None):
 							if not there.contents():
 								shep.add_unit(
 									there.new_thing(
-										f'sheep{len(units)}',
+										'lamb',
 										_image_paths=[
 											'atlas://rltiles/dc-mon/sheep'
 										]))
