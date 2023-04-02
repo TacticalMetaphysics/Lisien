@@ -53,19 +53,19 @@ def test_sickle(engy):
 		engy.next_turn()
 
 
-def test_wolfsheep(engy, tempdir):
-	wolfsheep.install(engy, seed=69105)
-	for i in range(10):
-		engy.next_turn()
-	engy.turn = 5
-	engy.branch = 'lol'
-	engy.universal['haha'] = 'lol'
-	for i in range(5):
-		engy.next_turn()
-	engy.turn = 5
-	engy.branch = 'omg'
-	sheep = engy.character['sheep']
-	sheep.rule(engy.action.breed, always=True)
-	engy.close()
-	hand = EngineHandle((tempdir, ))
+def test_wolfsheep(tempdir):
+	with Engine(tempdir, random_seed=69105) as engy:
+		wolfsheep.install(engy, seed=69105)
+		for i in range(10):
+			engy.next_turn()
+		engy.turn = 5
+		engy.branch = 'lol'
+		engy.universal['haha'] = 'lol'
+		for i in range(5):
+			engy.next_turn()
+		engy.turn = 5
+		engy.branch = 'omg'
+		sheep = engy.character['sheep']
+		sheep.rule(engy.action.breed, always=True)
+	hand = EngineHandle((tempdir, ), {'random_seed': 69105})
 	hand.next_turn()
