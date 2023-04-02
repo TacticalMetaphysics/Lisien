@@ -276,20 +276,6 @@ class Cache:
 
 	def _valcache_lookup(self, cache: dict, branch: str, turn: int, tick: int):
 		"""Return the value at the given time in ``cache``"""
-		if branch in cache:
-			branc = cache[branch]
-			try:
-				if turn in branc and branc[turn].rev_gettable(tick):
-					return branc[turn][tick]
-				elif branc.rev_gettable(turn - 1):
-					turnd = branc[turn - 1]
-					return turnd.final()
-			except HistoricKeyError as ex:
-				# probably shouldn't ever happen, empty branches
-				# shouldn't be kept in the cache at all...
-				# but it's easy to handle
-				if ex.deleted:
-					raise
 		for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
 			if b in cache:
 				if r in cache[b] and cache[b][r].rev_gettable(t):
