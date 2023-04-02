@@ -85,7 +85,7 @@ class UserMapping(Mapping):
 	def only(self):
 		"""If there's only one unit, return it.
 
-		Otherwise, raise ``AmbiguousUserError``, a type of ``KeyError``.
+		Otherwise, raise ``AmbiguousUserError``, a type of ``AttributeError``.
 
 		"""
 		if len(self) != 1:
