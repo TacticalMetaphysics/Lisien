@@ -18,6 +18,7 @@ flow of time.
 
 """
 from __future__ import annotations
+import sys
 import os
 from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial
@@ -928,8 +929,6 @@ class Engine(AbstractEngine, gORM):
 
 	def close(self) -> None:
 		"""Commit changes and close the database."""
-		import sys
-		import os
 		if hasattr(self, '_closed'):
 			raise RuntimeError("Already closed")
 		self._closed = True
