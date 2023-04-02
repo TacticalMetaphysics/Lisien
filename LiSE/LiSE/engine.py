@@ -930,6 +930,9 @@ class Engine(AbstractEngine, gORM):
 		"""Commit changes and close the database."""
 		import sys
 		import os
+		if hasattr(self, '_closed'):
+			raise RuntimeError("Already closed")
+		self._closed = True
 		if self._keyframe_on_close:
 			self.snap_keyframe()
 		for store in self.stores:
