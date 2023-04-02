@@ -128,7 +128,7 @@ def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=25, seed=None):
 										_image_paths=[
 											'atlas://rltiles/dc-mon/sheep'
 										]))
-						return
+								return
 
 
 if __name__ == '__main__':
