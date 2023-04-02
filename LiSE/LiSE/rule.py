@@ -367,13 +367,12 @@ class Rule(object):
 					list(self.prereqs), list(self.actions))
 
 	def always(self):
-		"""Arrange to be triggered every tick, regardless of circumstance."""
+		"""Arrange to be triggered every turn"""
 		self.triggers = [self.engine.trigger.truth]
 
 
 class RuleBook(MutableSequence, Signal):
 	"""A list of rules to be followed for some Character, or a part of it
-	anyway.
 
 	"""
 
