@@ -931,7 +931,11 @@ class Engine(AbstractEngine, gORM):
 		"""Commit changes and close the database."""
 		if hasattr(self, '_closed'):
 			raise RuntimeError("Already closed")
-		self._closed = True
+		if hasattr(self, 'cache_arrange_queue'):
+			self.cache_arrange_queue.put('shutdown')
+		if self._cache_arrange_thread.is_alive():
+			self._cache_arrange_thread.join()
+		self.flush()
 		if self._keyframe_on_close:
 			self.snap_keyframe()
 		for store in self.stores:
@@ -941,7 +945,9 @@ class Engine(AbstractEngine, gORM):
 			modname = filename[:-3]
 			if modname in sys.modules:
 				del sys.modules[modname]
-		super().close()
+		self.commit()
+		self.query.close()
+		self._closed = True
 
 	def __enter__(self):
 		"""Return myself. For compatibility with ``with`` semantics."""
