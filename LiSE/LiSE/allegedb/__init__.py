@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM"""
-from copy import deepcopy
+
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
 import gc
@@ -1127,8 +1127,8 @@ class ORM:
 			if graph not in node_val_keyframe:
 				node_val_keyframe[graph] = {}
 			try:
-				node_val_keyframe[graph][node] = deepcopy(
-					nvck[graph, node][then[0]][then[1]][then[2]])
+				node_val_keyframe[graph][node] = nvck[graph, node][then[0]][
+					then[1]][then[2]].copy()
 				node_val_keyframe[graph][node]["name"] = node
 			except KeyError:
 				continue
@@ -1149,8 +1149,8 @@ class ORM:
 		for graph, orig, dest, idx in evck:
 			assert idx == 0  # until I get to multigraphs
 			try:
-				val = deepcopy(evck[graph, orig, dest,
-									idx][then[0]][then[1]][then[2]])
+				val = evck[graph, orig, dest,
+							idx][then[0]][then[1]][then[2]].copy()
 			except KeyError:
 				continue
 			if graph in edge_val_keyframe:
@@ -1162,14 +1162,13 @@ class ORM:
 				edge_val_keyframe[graph] = {orig: {dest: val}}
 		for graph in self.graph.keys():
 			try:
-				nodes_keyframe[graph] = deepcopy(self._nodes_cache.keyframe[
-					graph, ][then[0]][then[1]][then[2]])
+				nodes_keyframe[graph] = self._nodes_cache.keyframe[graph, ][
+					then[0]][then[1]][then[2]].copy()
 			except KeyError:
 				nodes_keyframe[graph] = {}
 			try:
-				graph_val_keyframe[graph] = deepcopy(
-					self._graph_val_cache.keyframe[graph, ][then[0]][then[1]][
-						then[2]])
+				graph_val_keyframe[graph] = self._graph_val_cache.keyframe[
+					graph, ][then[0]][then[1]][then[2]].copy()
 			except KeyError:
 				graph_val_keyframe[graph] = {}
 			# apply the delta to the keyframes, then save the keyframes back
