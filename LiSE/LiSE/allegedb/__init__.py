@@ -1344,8 +1344,8 @@ class ORM:
 					(parent, time_from[1], time_from[2]),
 					self.get_delta(parent, turn_from, tick_from, time_from[1],
 									time_from[2]))
-			self._alias_kf(parent, *time_from)
-		return time_from
+			self._alias_kf(parent, time_from[0], turn_from, tick_from)
+		return time_from[0], turn_from, tick_from
 
 	@world_locked
 	def snap_keyframe(self) -> None:
