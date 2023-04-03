@@ -1334,6 +1334,7 @@ class ORM:
 			time_from[0]]
 		if parent is None:
 			self._snap_keyframe_de_novo(*time_from)
+			return time_from
 		else:
 			(parent, turn_from, tick_from) = self._recurse_delta_keyframes(
 				(parent, turn_from, tick_from))
