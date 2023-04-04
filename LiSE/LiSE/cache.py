@@ -12,6 +12,9 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from functools import partial
+from operator import sub, or_
+
 from .allegedb.cache import (Cache, PickyDefaultDict, StructuredDefaultDict,
 								TurnDict, WindowDict, HistoricKeyError)
 from .util import singleton_get, sort_set
@@ -144,37 +147,36 @@ class UnitnessCache(Cache):
 			usershal[turn][tick] = is_unit
 		else:
 			usershal[turn] = {tick: is_unit}
-		charavs = self.char_units[character][branch]
-		graphavs = self.graph_units[(character, graph)][branch]
-		graphs = self.graphs[character][branch]
-		uniqgraph = self.unique_graph[character][branch]
+		charavs = self.char_units[character]
+		graphavs = self.graph_units[(character, graph)]
+		graphs = self.graphs[character]
+		uniqgraph = self.unique_graph[character]
 		soloav = self.solo_unit[(character, graph)][branch]
 		uniqav = self.unique_unit[character][branch]
-		users = self.users[graph, node][branch]
+		users = self.users[graph, node]
 
-		def add_something(cache, what):
-			if turn in cache:
-				nucache = cache[turn][tick].copy()
-				nucache.add(what)
-				cache[turn][tick] = nucache
-			elif cache.rev_gettable(turn):
-				cacheturn = cache[turn]
-				nucache = cacheturn[cacheturn.end].copy()
-				nucache.add(what)
-				cache[turn] = {tick: nucache}
+		def add_or_discard_something(op, cache, what):
+			for (b, r, t) in self.db._iter_parent_btt(branch, turn, tick):
+				if b in cache:
+					cb = cache[b]
+					if r in cb and cb[r].rev_gettable(t):
+						old_cache = cb[r][t]
+						break
+					elif cb.rev_gettable(r - 1):
+						old_cache = cb[r - 1].final()
+						break
 			else:
-				cache[turn] = {tick: {what}}
+				old_cache = frozenset()
+			new_cache = op(old_cache, frozenset((what, )))
+			if turn in cache[branch]:
+				cache[branch][turn][tick] = new_cache
+			elif branch in cache:
+				cache[branch][turn] = {tick: new_cache}
+			else:
+				cache[branch] = {turn: {tick: new_cache}}
 
-		def discard_something(cache, what):
-			if turn in cache:
-				nucache = cache[turn][tick].copy()
-				nucache.remove(what)
-				cache[turn][tick] = nucache
-			elif cache.rev_gettable(turn):
-				cacheturn = cache[turn]
-				nucache = cacheturn[cacheturn.end].copy()
-				nucache.remove(what)
-				cache[turn] = {tick: nucache}
+		add_something = partial(add_or_discard_something, or_)
+		discard_something = partial(add_or_discard_something, sub)
 
 		if is_unit:
 			add_something(graphavs, node)
