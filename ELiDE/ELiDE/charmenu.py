@@ -65,6 +65,8 @@ class CharMenu(BoxLayout):
 	def spot_from_dummy(self, dummy):
 		if self.screen.boardview.parent != self.screen.mainview:
 			return
+		if dummy.collide_widget(self):
+			return
 		name = dummy.name
 		self.screen.boardview.spot_from_dummy(dummy)
 		graphboard = self.screen.graphboards[self.app.character_name]

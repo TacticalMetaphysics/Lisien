@@ -20,6 +20,7 @@ from functools import partial
 from itertools import chain
 
 from LiSE.allegedb import OutOfTimelineError
+from .pawnspot import Stack
 
 if 'KIVY_NO_ARGS' not in os.environ:
 	os.environ['KIVY_NO_ARGS'] = '1'
@@ -34,7 +35,8 @@ from kivy.uix.screenmanager import ScreenManager, NoTransition
 from kivy.properties import (AliasProperty, BooleanProperty, ObjectProperty,
 								NumericProperty, StringProperty)
 import LiSE
-from LiSE.proxy import EngineProcessManager, CharStatProxy
+from LiSE.proxy import EngineProcessManager, CharStatProxy, PlaceProxy, \
+ ThingProxy
 import ELiDE
 import ELiDE.dialog
 import ELiDE.screen
@@ -441,7 +443,7 @@ class ELiDEApp(App):
 				selection.origin.name, selection.destination.name)
 			self.engine.portal[selection.origin.name][
 				selection.destination.name].delete()
-		elif isinstance(selection, GraphSpot):
+		elif isinstance(selection.proxy, PlaceProxy):
 			charn = selection.board.character.name
 			self.mainscreen.graphboards[charn].rm_spot(selection.name)
 			gridb = self.mainscreen.gridboards[charn]
@@ -449,7 +451,7 @@ class ELiDEApp(App):
 				gridb.rm_spot(selection.name)
 			selection.proxy.delete()
 		else:
-			assert isinstance(selection, Pawn)
+			assert isinstance(selection.proxy, ThingProxy)
 			charn = selection.board.character.name
 			self.mainscreen.graphboards[charn].rm_pawn(selection.name)
 			self.mainscreen.gridboards[charn].rm_pawn(selection.name)

@@ -974,6 +974,8 @@ class ORM:
 		kfd = self._keyframes_dict
 		kfs = self._keyframes_times
 		nkfs = self._new_keyframes
+		was = self._btt()
+		self._set_btt(branch, turn, tick)
 		for graphn, graph in self.graph.items():
 			nodes = graph._nodes_state()
 			edges = graph._edges_state()
@@ -995,6 +997,7 @@ class ORM:
 				}
 			else:
 				kfd[branch][turn].add(tick)
+		self._set_btt(*was)
 
 	def _snap_keyframe_de_novo_graph(self, graph: Key, branch: str, turn: int,
 										tick: int, nodes: NodeValDict,
@@ -1331,6 +1334,7 @@ class ORM:
 			time_from[0]]
 		if parent is None:
 			self._snap_keyframe_de_novo(*time_from)
+			return time_from
 		else:
 			(parent, turn_from, tick_from) = self._recurse_delta_keyframes(
 				(parent, turn_from, tick_from))
@@ -1341,8 +1345,8 @@ class ORM:
 					(parent, time_from[1], time_from[2]),
 					self.get_delta(parent, turn_from, tick_from, time_from[1],
 									time_from[2]))
-			self._alias_kf(parent, *time_from)
-		return time_from
+			self._alias_kf(parent, time_from[0], turn_from, tick_from)
+		return time_from[0], turn_from, tick_from
 
 	@world_locked
 	def snap_keyframe(self) -> None:

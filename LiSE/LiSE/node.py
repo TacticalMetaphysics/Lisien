@@ -67,25 +67,24 @@ class UserMapping(Mapping):
 			for (branch, turn, tick) in engine._iter_parent_btt():
 				if branch in cache[user]:
 					branchd = cache[user][branch]
-					try:
-						if turn in branchd:
-							if branchd[turn].get(tick, False):
+					if turn in branchd:
+						if branchd[turn].rev_gettable(tick):
+							if branchd[turn][tick]:
 								yield user
-						elif branchd.rev_gettable(turn):
-							turnd = branchd[turn]
-							if turnd[turnd.end]:
-								yield user
+							seen.add(user)
+							break
+					elif branchd.rev_gettable(turn):
+						turnd = branchd[turn]
+						if turnd.final():
+							yield user
 						seen.add(user)
 						break
-					except HistoricKeyError as ex:
-						if ex.deleted:
-							break
 
 	@property
 	def only(self):
 		"""If there's only one unit, return it.
 
-		Otherwise, raise ``AmbiguousUserError``, a type of ``KeyError``.
+		Otherwise, raise ``AmbiguousUserError``, a type of ``AttributeError``.
 
 		"""
 		if len(self) != 1:

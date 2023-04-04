@@ -367,13 +367,12 @@ class Rule(object):
 					list(self.prereqs), list(self.actions))
 
 	def always(self):
-		"""Arrange to be triggered every tick, regardless of circumstance."""
+		"""Arrange to be triggered every turn"""
 		self.triggers = [self.engine.trigger.truth]
 
 
 class RuleBook(MutableSequence, Signal):
 	"""A list of rules to be followed for some Character, or a part of it
-	anyway.
 
 	"""
 
@@ -449,13 +448,15 @@ class RuleBook(MutableSequence, Signal):
 		self.send(self, i=i, v=v)
 
 	def index(self, v, start=0, stop=None):
+		args = [v, start]
+		if stop is not None:
+			args.append(stop)
 		if isinstance(v, str):
 			try:
-				return self._get_cache(*self.engine._btt()).index(
-					v, start, stop)
+				return self._get_cache(*self.engine._btt()).index(*args)
 			except KeyError:
 				raise ValueError
-		return super().index(v)
+		return super().index(*args)
 
 	def __delitem__(self, i):
 		branch, turn, tick = self.engine._btt()

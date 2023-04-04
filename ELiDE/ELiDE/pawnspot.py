@@ -144,6 +144,7 @@ class TextureStackPlane(Widget):
 		self.unbind_uid('data', self._redraw_bind_uid)
 		fbo = self._fbo
 		fbo.bind()
+		fbo.clear_buffer()
 		grp = self._instructions[name]["group"]
 		fbo.remove(grp)
 		stack_index = self._stack_index

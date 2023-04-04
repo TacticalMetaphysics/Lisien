@@ -31,6 +31,7 @@ from sqlalchemy.exc import ArgumentError, IntegrityError, OperationalError
 from sqlalchemy.pool import NullPool
 
 from . import wrap
+from .wrap import DictWrapper, SetWrapper, ListWrapper
 
 wrappath = os.path.dirname(wrap.__file__)
 
@@ -63,9 +64,21 @@ class GlobalKeyValueStore(MutableMapping):
 		return len(self._cache)
 
 	def __getitem__(self, k):
-		return self._cache[k]
+		ret = self._cache[k]
+		if isinstance(ret, dict):
+			return DictWrapper(lambda: self._cache[k],
+								lambda v: self.__setitem__(k, v), self, k)
+		elif isinstance(ret, list):
+			return ListWrapper(lambda: self._cache[k],
+								lambda v: self.__setitem__(k, v), self, k)
+		elif isinstance(ret, set):
+			return SetWrapper(lambda: self._cache[k],
+								lambda v: self.__setitem__(k, v), self, k)
+		return ret
 
 	def __setitem__(self, k, v):
+		if hasattr(v, 'unwrap'):
+			v = v.unwrap()
 		self.qe.global_set(k, v)
 		self._cache[k] = v
 
@@ -149,7 +162,9 @@ class ConnectionHolder:
 			if inst[0] == 'silent':
 				inst = inst[1:]
 				silent = True
-			if inst[0] == 'one':
+			if inst[0] == 'echo':
+				self.outq.put(inst[1])
+			elif inst[0] == 'one':
 				try:
 					res = self.call_one(inst[1], *inst[2])
 					if not silent:
@@ -244,6 +259,10 @@ class QueryEngine(object):
 		self._btts = set()
 		self._t = Thread(target=self._holder.run, daemon=True)
 		self._t.start()
+
+	def echo(self, string):
+		self._inq.put(('echo', string))
+		return self._outq.get()
 
 	def call_one(self, string, *args, **kwargs):
 		__doc__ = ConnectionHolder.call_one.__doc__
@@ -381,6 +400,7 @@ class QueryEngine(object):
 		revision)
 
 		"""
+		print(key, "=", value)
 		(key, value) = map(self.pack, (key, value))
 		try:
 			return self.call_one('global_insert', key, value)
@@ -788,6 +808,7 @@ class QueryEngine(object):
 	def close(self):
 		"""Commit the transaction, then close the connection"""
 		self.flush()
+		assert self.echo('flushed') == 'flushed'
 		self._inq.put('shutdown')
 		self._holder.existence_lock.acquire()
 		self._holder.existence_lock.release()

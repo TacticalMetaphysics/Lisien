@@ -46,7 +46,7 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
 	"""What turn I'm displaying the stat's value for"""
 	key = ObjectProperty()
 	"""The key to set in the entity"""
-	value = ObjectProperty(allownone=True)
+	val = ObjectProperty(allownone=True)
 	"""The value you want to set the key to"""
 
 	def _update_disabledness(self, *args, **kwargs):
@@ -63,9 +63,9 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
 	def _set_value(self):
 		entity = self.parent.parent.entity
 		entity = getattr(entity, 'stat', entity)
-		entity[self.key] = self.value
+		entity[self.key] = self.val
 
-	def on_value(self, *args):
+	def on_val(self, *args):
 		# do I want to do some validation at this point?
 		# Maybe I should validate on the proxy objects and catch that in Calendar,
 		# display an error message?
@@ -75,8 +75,8 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
 		my_dict = calendar.idx[(self.turn, self.key)]
 		entity = calendar.entity
 		update_mode = calendar.update_mode
-		if my_dict['value'] != self.value:
-			my_dict['value'] = self.value
+		if my_dict['val'] != self.val:
+			my_dict['val'] = self.val
 			if update_mode == 'batch':
 				calendar.changed = True
 			elif update_mode == 'present':
@@ -111,7 +111,15 @@ class CalendarLabel(CalendarWidget, Label):
 
 
 class CalendarSlider(Slider, CalendarWidget):
-	pass
+
+	def on_val(self, *args):
+		try:
+			self.value = float(self.val)
+		except ValueError:
+			self.value = 0.0
+
+	def on_value(self, *args):
+		self.val = self.value
 
 
 class CalendarTextInput(CalendarWidget, TextInput):
@@ -122,7 +130,7 @@ class CalendarTextInput(CalendarWidget, TextInput):
 			v = literal_eval(self.text)
 		except (TypeError, ValueError, SyntaxError):
 			v = self.text
-		self.value = self.hint_text = v
+		self.val = self.hint_text = v
 		self.text = ''
 
 	_trigger_parse_text = trigger(_parse_text)
@@ -180,7 +188,7 @@ class CalendarOptionButton(CalendarWidget, Button):
 		container.size = container.minimum_size
 
 	def _set_value_and_close(self, val, *args):
-		self.value = val
+		self.val = val
 		self.modalview.dismiss()
 
 
@@ -190,8 +198,8 @@ class CalendarToggleButton(CalendarWidget, ToggleButton):
 	false_text = StringProperty('False')
 
 	def on_state(self, *args):
-		self.value = self.state == 'down'
-		self.text = self.true_text if self.value else self.false_text
+		self.val = self.state == 'down'
+		self.text = self.true_text if self.val else self.false_text
 
 
 class CalendarMenuLayout(LayoutSelectionBehavior, RecycleBoxLayout):
@@ -278,7 +286,7 @@ class AbstractCalendar(RecycleView):
 				changes.append(accumulator)
 				accumulator = []
 				last = trn
-			accumulator.append((datum['key'], datum['value']))
+			accumulator.append((datum['key'], datum['val']))
 		changes.append(accumulator)
 		return track
 
@@ -326,13 +334,13 @@ class Agenda(AbstractCalendar):
 			else:
 				config = None
 			for stat in stats:
-				datum = {'key': stat, 'value': next(iters[stat]), 'turn': turn}
+				datum = {'key': stat, 'val': next(iters[stat]), 'turn': turn}
 				if config and stat in config and 'control' in config[stat]:
 					datum.update(config[stat])
 					datum['widget'] = control2wid.get(
 						datum.pop('control', None), 'CalendarLabel')
 					if datum['widget'] == 'CalendarToggleButton':
-						if datum['value']:
+						if datum['val']:
 							datum['text'] = config[stat].get(
 								'true_text', 'True')
 							datum['state'] = 'down'
@@ -341,7 +349,7 @@ class Agenda(AbstractCalendar):
 								'false_text', 'False')
 							datum['state'] = 'normal'
 					elif datum['widget'] == 'CalendarTextInput':
-						datum['hint_text'] = str(datum['value'])
+						datum['hint_text'] = str(datum['val'])
 				else:
 					datum['widget'] = 'CalendarLabel'
 				data.append(datum)
@@ -384,13 +392,13 @@ class Calendar(AbstractCalendar):
 						'text': str(stat),
 						'bold': True
 					})
-				datum = {'key': stat, 'value': next(iters[stat]), 'turn': turn}
+				datum = {'key': stat, 'val': next(iters[stat]), 'turn': turn}
 				if config and stat in config and 'control' in config[stat]:
 					datum.update(config[stat])
 					datum['widget'] = control2wid.get(
 						datum.pop('control', None), 'CalendarLabel')
 					if datum['widget'] == 'CalendarToggleButton':
-						if datum['value']:
+						if datum['val']:
 							datum['text'] = config[stat].get(
 								'true_text', 'True')
 							datum['state'] = 'down'
@@ -399,7 +407,7 @@ class Calendar(AbstractCalendar):
 								'false_text', 'False')
 							datum['state'] = 'normal'
 					elif datum['widget'] == 'CalendarTextInput':
-						datum['hint_text'] = str(datum['value'])
+						datum['hint_text'] = str(datum['val'])
 				else:
 					datum['widget'] = 'CalendarLabel'
 				data.append(datum)
@@ -428,7 +436,7 @@ Builder.load_string("""
 		default_size: dp(84), dp(36)
 		size: self.minimum_size
 <CalendarLabel>:
-	text: str(self.value) if self.value is not None else ''
+	text: str(self.val) if self.val is not None else ''
 <CalendarSlider>:
 	padding: 5
 	Label:
@@ -437,7 +445,7 @@ Builder.load_string("""
 		text: str(root.value)
 		size: self.texture_size
 <CalendarOptionButton>:
-	text: str(self.value)
+	text: str(self.val)
 <CalendarTextInput>:
 	multiline: False
 	on_text_validate: self._trigger_parse_text()

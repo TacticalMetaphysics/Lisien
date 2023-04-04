@@ -160,8 +160,8 @@ class GridBoard(Widget):
 		spot = self.spot.pop(name)
 		if spot in self.selection_candidates:
 			self.selection_candidates.remove(spot)
-		for pwn in spot.children:
-			del self.pawn[pwn.name]
+		for thing in spot.proxy.contents():
+			self.rm_pawn(thing.name)
 		self.spot_plane.remove(name)
 
 	def rm_pawn(self, name):

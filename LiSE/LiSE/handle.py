@@ -26,14 +26,13 @@ from typing import (Dict, Tuple, Set, Callable, Union, Any, List, Iterable,
 					Optional)
 
 import msgpack
+import numpy as np
 
 from .allegedb import OutOfTimelineError
 from .engine import Engine
 from .node import Node
 from .portal import Portal
 from .util import MsgpackExtensionType, AbstractCharacter, Key
-
-EMPTY_DELTA = ({}, {})
 
 SlightlyPackedDeltaType = Dict[bytes, Dict[bytes, Union[bytes, Dict[
 	bytes, Union[bytes, Dict[bytes, Union[bytes, Dict[bytes, bytes]]]]]]]]
@@ -55,6 +54,9 @@ STRINGS: bytes = msgpack.packb('strings')
 RULES: bytes = msgpack.packb('rules')
 LOCATION: bytes = msgpack.packb('location')
 BRANCH: bytes = msgpack.packb('branch')
+SET_CODE: bytes = MsgpackExtensionType.set.value.to_bytes(1,
+															"big",
+															signed=False)
 
 
 def _dict_delta_added(old: Dict[bytes, bytes], new: Dict[bytes, bytes],
@@ -71,33 +73,6 @@ def _dict_delta_removed(old: Dict[bytes, bytes], new: Dict[bytes, bytes],
 	for k in old.keys() - new.keys():
 		former[k] = old[k]
 		current[k] = NONE
-
-
-def _packed_dict_delta_fallback(
-		old: Dict[bytes, bytes], new: Dict[bytes,
-											bytes]) -> FormerAndCurrentType:
-	pre = {}
-	post = {}
-	added_thread = Thread(target=_dict_delta_added, args=(old, new, pre, post))
-	removed_thread = Thread(target=_dict_delta_removed,
-							args=(old, new, pre, post))
-	added_thread.start()
-	removed_thread.start()
-	ks = old.keys() & new.keys()
-	oldv_l = []
-	newv_l = []
-	k_l = []
-	for k in ks:
-		oldv_l.append(old[k])
-		newv_l.append(new[k])
-		k_l.append(k)
-	for k, oldv, newv in zip(k_l, oldv_l, newv_l):
-		if oldv != newv:
-			pre[k] = oldv
-			post[k] = newv
-	added_thread.join()
-	removed_thread.join()
-	return pre, post
 
 
 def _packed_dict_delta(old: Dict[bytes, bytes],
@@ -142,14 +117,6 @@ def _packed_dict_delta(old: Dict[bytes, bytes],
 	return pre, post
 
 
-try:
-	import numpy as np
-	packed_dict_delta = _packed_dict_delta
-except ImportError:
-	packed_dict_delta = _packed_dict_delta_fallback
-	packed_dict_delta.__doc__ = _packed_dict_delta.__doc__
-
-
 def _set_delta_added(old: Set[bytes], new: Set[bytes],
 						former: Dict[bytes, bytes], current: Dict[bytes,
 																	bytes]):
@@ -178,9 +145,6 @@ def concat_d(r: Dict[bytes, bytes]) -> bytes:
 	for k, v in r.items():
 		resp += k + v
 	return resp
-
-
-SET_CODE = MsgpackExtensionType.set.value.to_bytes(1, "big", signed=False)
 
 
 def concat_s(s: Set[bytes]) -> bytes:
@@ -252,16 +216,8 @@ class EngineHandle(object):
 			return pack(k), pack(v)
 
 		self.pack_pair = pack_pair
-		self.unpack = unpack = self._real.unpack
+		self.unpack = self._real.unpack
 
-		def unpack_pair(pair):
-			k, v = pair
-			return unpack(k), unpack(v)
-
-		def unpack_dict(d: dict):
-			return dict(map(unpack_pair, d.items()))
-
-		self.unpack_dict = unpack_dict
 		self._cache_arranger_started = False
 
 	@property
@@ -306,10 +262,6 @@ class EngineHandle(object):
 	def time_locked(self) -> bool:
 		"""Return whether the sim-time has been prevented from advancing"""
 		return hasattr(self._real, 'locktime')
-
-	def advance(self) -> None:
-		"""Run one rule"""
-		self._real._advance()
 
 	@prepacked
 	def copy_character(self, char: Key) -> Dict[bytes, bytes]:
@@ -642,7 +594,7 @@ class EngineHandle(object):
 				grap, node = map(pack, (graph[0], node))
 				if grap not in delta:
 					delta[grap] = {NODES: {node: TRUE}}
-				elif NODE_VAL not in delta[grap]:
+				elif NODES not in delta[grap]:
 					delta[grap][NODES] = {node: TRUE}
 				else:
 					delta[grap][NODES][node] = TRUE
@@ -798,12 +750,6 @@ class EngineHandle(object):
 			lang = self._real.string.language
 		return dict(self._real.string.lang_items(lang))
 
-	def get_string(self, k):
-		return self._real.string[k]
-
-	def have_string(self, k):
-		return k in self._real.string
-
 	def set_string(self, k, v):
 		self._real.string[k] = v
 
@@ -820,15 +766,9 @@ class EngineHandle(object):
 	def del_eternal(self, k):
 		del self._real.eternal[k]
 
-	def have_eternal(self, k):
-		return k in self._real.eternal
-
 	@prepacked
 	def eternal_copy(self):
 		return dict(map(self.pack_pair, self._real.eternal.items()))
-
-	def get_universal(self, k):
-		return self._real.universal[k]
 
 	def set_universal(self, k, v):
 		self._real.universal[k] = v
@@ -855,7 +795,7 @@ class EngineHandle(object):
 		self._real._set_btt(*btt_to)
 		new = self.universal_copy()
 		self._real._set_btt(*now)
-		former, current = packed_dict_delta(old, new)
+		former, current = _packed_dict_delta(old, new)
 		return current
 
 	def init_character(self, char, statdict: dict = None):
@@ -950,22 +890,6 @@ class EngineHandle(object):
 			self._real._set_btt(*origtime)
 		return ret
 
-	@prepacked
-	def node_stat_delta(
-			self,
-			char: Key,
-			node: Key,
-			*,
-			btt_from: Tuple[str, int, int] = None,
-			btt_to: Tuple[str, int, int] = None) -> FormerAndCurrentType:
-		"""Return a dictionary describing changes to a node's stats since the
-		last time you looked at it.
-
-		"""
-		old = self.node_stat_copy(char, node, btt=btt_from)
-		new = self.node_stat_copy(char, node, btt=btt_to)
-		return packed_dict_delta(old, new)
-
 	def _character_nodes_stat_copy(
 			self,
 			char: Key,
@@ -1029,17 +953,6 @@ class EngineHandle(object):
 			self._real.tick = origtime[2]
 		return ret
 
-	@prepacked
-	def character_nodes_delta(
-			self,
-			char: Key,
-			*,
-			btt_from: Tuple[str, int, int] = None,
-			btt_to: Tuple[str, int, int] = None) -> FormerAndCurrentType:
-		old = self.character_nodes(char, btt=btt_from)
-		new = self.character_nodes(char, btt=btt_to)
-		return set_delta(old, new)
-
 	def node_predecessors(self, char: Key, node: Key) -> List[Key]:
 		return list(self._real.character[char].pred[node].keys())
 
@@ -1093,12 +1006,6 @@ class EngineHandle(object):
 		for thing in seq:
 			self.add_thing(char, *thing)
 
-	def get_thing_location(self, char: Key, thing: Key) -> Optional[Key]:
-		try:
-			return self._real.character[char].thing[thing]['location']
-		except KeyError:
-			return None
-
 	def set_thing_location(self, char: Key, thing: Key, loc: Key) -> None:
 		self._real.character[char].thing[thing]['location'] = loc
 
@@ -1120,10 +1027,11 @@ class EngineHandle(object):
 						graph=None) -> int:
 		"""Make something find a path to ``dest`` and follow it.
 
-		Optional argument ``weight`` is the portal stat to use to schedule movement times.
+		Optional argument ``weight`` is the portal stat to use to schedule
+		movement times.
 
-		Optional argument ``graph`` is an alternative graph to use for pathfinding.
-		Should resemble a networkx DiGraph.
+		Optional argument ``graph`` is an alternative graph to use for
+		pathfinding. Should resemble a networkx DiGraph.
 
 		"""
 		return self._real.character[char].thing[thing].travel_to(
@@ -1206,23 +1114,6 @@ class EngineHandle(object):
 		if (branch, turn, tick) != origtime:
 			self._real._set_btt(*origtime)
 		return ret
-
-	@prepacked
-	def portal_stat_delta(
-			self,
-			char: Key,
-			orig: Key,
-			dest: Key,
-			*,
-			btt_from: Tuple[str, int, int] = None,
-			btt_to: Tuple[str, int, int] = None) -> FormerAndCurrentType:
-		btt_from = self._get_btt(btt_from)
-		btt_to = self._get_btt(btt_to)
-		if btt_from == btt_to:
-			return {}, {}
-		old = self.portal_stat_copy(char, orig, dest, btt=btt_from)
-		new = self.portal_stat_copy(char, orig, dest, btt=btt_to)
-		return packed_dict_delta(old, new)
 
 	def _character_portals_stat_copy(
 		self,
