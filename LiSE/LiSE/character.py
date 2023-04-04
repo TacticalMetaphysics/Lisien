@@ -1353,7 +1353,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			try:
 				charn, noden = get_char_only_av(charn, *btt())
 				return get_node(charmap[charn], noden)
-			except KeyError:
+			except (KeyError, TypeError):
 				raise AttributeError("I have no unit, or more than one unit")
 
 		class CharacterUnitMapping(Mapping):
