@@ -400,7 +400,6 @@ class QueryEngine(object):
 		revision)
 
 		"""
-		print(key, "=", value)
 		(key, value) = map(self.pack, (key, value))
 		try:
 			return self.call_one('global_insert', key, value)
