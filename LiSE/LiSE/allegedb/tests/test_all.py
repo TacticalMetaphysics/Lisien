@@ -147,18 +147,20 @@ class AbstractBranchLineageTest(AbstractGraphTest):
         """
 		for graphmaker in self.graphmakers:
 			gmn = graphmaker.__name__
-			self.assertTrue(self.engine.is_parent_of('trunk', gmn))
-			self.assertTrue(self.engine.is_parent_of(gmn, gmn + '_no_edge'))
-			self.assertTrue(self.engine.is_parent_of(gmn, gmn + '_triangle'))
-			self.assertTrue(self.engine.is_parent_of(gmn, gmn + '_nothing'))
+			self.assertTrue(self.engine.is_ancestor_of('trunk', gmn))
+			self.assertTrue(self.engine.is_ancestor_of(gmn, gmn + '_no_edge'))
+			self.assertTrue(self.engine.is_ancestor_of(gmn, gmn + '_triangle'))
+			self.assertTrue(self.engine.is_ancestor_of(gmn, gmn + '_nothing'))
 			self.assertTrue(
-				self.engine.is_parent_of(gmn + '_no_edge', gmn + '_triangle'))
+				self.engine.is_ancestor_of(gmn + '_no_edge',
+											gmn + '_triangle'))
 			self.assertTrue(
-				self.engine.is_parent_of(gmn + '_square', gmn + '_nothing'))
+				self.engine.is_ancestor_of(gmn + '_square', gmn + '_nothing'))
 			self.assertFalse(
-				self.engine.is_parent_of(gmn + '_nothing', 'trunk'))
+				self.engine.is_ancestor_of(gmn + '_nothing', 'trunk'))
 			self.assertFalse(
-				self.engine.is_parent_of(gmn + '_triangle', gmn + '_no_edge'))
+				self.engine.is_ancestor_of(gmn + '_triangle',
+											gmn + '_no_edge'))
 			g = self.engine.graph[gmn]
 			self.engine.branch = gmn
 			self.assertIn(0, g.node)

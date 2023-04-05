@@ -1773,7 +1773,7 @@ class ORM:
 		"""Alias for ``close``"""
 		self.close()
 
-	def is_parent_of(self, parent: str, child: str) -> bool:
+	def is_ancestor_of(self, parent: str, child: str) -> bool:
 		"""Return whether ``child`` is a branch descended from ``parent`` at
 		any remove.
 
@@ -1788,7 +1788,7 @@ class ORM:
 					child))
 		if self._branches[child][0] == parent:
 			return True
-		return self.is_parent_of(parent, self._branches[child][0])
+		return self.is_ancestor_of(parent, self._branches[child][0])
 
 	def _get_branch(self) -> str:
 		return self._obranch

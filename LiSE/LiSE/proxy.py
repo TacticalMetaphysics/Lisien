@@ -2252,8 +2252,8 @@ class EngineProxy(AbstractEngine):
 			self._branches[branch] = parent, turn_from, tick_from, turn, tick
 		self.time.send(self, branch=branch, turn=turn, tick=tick)
 
-	def is_parent_of(self, parent, child):
-		return self.handle('is_parent_of', parent=parent, child=child)
+	def is_ancestor_of(self, parent, child):
+		return self.handle('is_ancestor_of', parent=parent, child=child)
 
 	def pull(self, cb=None):
 		"""Update the state of all my proxy objects from the real objects."""

@@ -14,7 +14,7 @@ engine
 
 		.. autoproperty:: LiSE.Engine.branch
 
-		.. automethod:: is_parent_of
+		.. automethod:: is_ancestor_of
 
 		.. autoproperty:: LiSE.Engine.turn
 

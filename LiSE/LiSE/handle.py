@@ -1366,8 +1366,8 @@ class EngineHandle(object):
 	def do_game_start(self) -> None:
 		self._real.game_start()
 
-	def is_parent_of(self, parent: str, child: str) -> bool:
-		return self._real.is_parent_of(parent, child)
+	def is_ancestor_of(self, parent: str, child: str) -> bool:
+		return self._real.is_ancestor_of(parent, child)
 
 	def apply_choices(
 		self,
