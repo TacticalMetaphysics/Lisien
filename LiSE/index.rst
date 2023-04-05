@@ -46,7 +46,7 @@ engine
 
 			A mapping of arbitrary data that changes over sim-time.
 
-			Each turn, the state of the randomizer is saved here under the key ``'rando_state'``.
+			The state of the randomizer is saved here under the key ``'rando_state'``.
 
 		.. py:property:: Engine.trigger
 
