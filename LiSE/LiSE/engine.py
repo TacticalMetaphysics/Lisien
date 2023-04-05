@@ -907,14 +907,6 @@ class Engine(AbstractEngine, gORM):
 
 	def flush(self):
 		__doc__ = gORM.flush.__doc__
-		try:
-			self.universal['rando_state'] = self._rando.getstate()
-		except exc.OutOfTimelineError:
-			branch, turn, tick = self.branch, self.turn, self.tick
-			self.turn = self._branches[branch][3]
-			self.universal['rando_state'] = self._rando.getstate()
-			self.turn = turn
-			self.tick = tick
 		super().flush()
 		turns_completed_previous = self._turns_completed_previous
 		turns_completed = self._turns_completed

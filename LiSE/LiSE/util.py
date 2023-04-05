@@ -15,12 +15,12 @@
 """Common utility functions and data structures.
 
 """
-from _operator import ge, gt, le, lt, eq
 from abc import ABC, abstractmethod
 from collections.abc import Set
 from enum import Enum
-from operator import attrgetter, add, sub, mul, pow, truediv, floordiv, mod
-from functools import partial
+from operator import (ge, gt, le, lt, eq, attrgetter, add, sub, mul, pow,
+						truediv, floordiv, mod)
+from functools import partial, wraps
 from contextlib import contextmanager
 from textwrap import dedent
 from time import monotonic
@@ -28,9 +28,9 @@ from types import MethodType, FunctionType
 from typing import (Mapping, Iterable, Union, Callable, Dict, Hashable)
 
 from cached_property import cached_property
-
 import msgpack
 import networkx as nx
+
 from . import exc
 from .allegedb import Key
 
@@ -65,18 +65,34 @@ class MsgpackExtensionType(Enum):
 	action = 0x76
 
 
-class getnoplan:
-	"""Attribute getter that raises an exception if in planning mode"""
-	__slots__ = ('_getter', )
+class get_rando:
+	"""Attribute getter for randomization functions
+
+	Aliases functions of a randomizer, wrapped so that they won't run in
+	planning mode, and will save the randomizer's state after every call.
+
+	"""
+	__slots__ = ('_getter', '_wrapfun')
 	_getter: Callable
 
 	def __init__(self, attr, *attrs):
 		self._getter = attrgetter(attr, *attrs)
 
 	def __get__(self, instance, owner) -> Callable:
-		if instance._planning:
-			raise exc.PlanError("Don't use randomization in a plan")
-		return self._getter(instance)
+		if hasattr(self, '_wrapfun'):
+			return self._wrapfun
+		retfun = self._getter(instance)
+
+		@wraps(retfun)
+		def remembering_rando_state(*args, **kwargs):
+			if instance._planning:
+				raise exc.PlanError("Don't use randomization in a plan")
+			ret = retfun(*args, **kwargs)
+			instance.universal['rando_state'] = instance._rando.getstate()
+			return ret
+
+		self._wrapfun = remembering_rando_state
+		return remembering_rando_state
 
 
 @contextmanager
@@ -601,24 +617,24 @@ class AbstractEngine(ABC):
 			return True
 		return pct > self.randint(0, 99)
 
-	betavariate = getnoplan('_rando.betavariate')
-	choice = getnoplan('_rando.choice')
-	expovariate = getnoplan('_rando.expovariate')
-	gammavariate = getnoplan('_rando.gammavariate')
-	gauss = getnoplan('_rando.gauss')
-	getrandbits = getnoplan('_rando.getrandbits')
-	lognormvariate = getnoplan('_rando.lognormvariate')
-	normalvariate = getnoplan('_rando.normalvariate')
-	paretovariate = getnoplan('_rando.paretovariate')
-	randint = getnoplan('_rando.randint')
-	random = getnoplan('_rando.random')
-	randrange = getnoplan('_rando.randrange')
-	sample = getnoplan('_rando.sample')
-	shuffle = getnoplan('_rando.shuffle')
-	triangular = getnoplan('_rando.triangular')
-	uniform = getnoplan('_rando.uniform')
-	vonmisesvariate = getnoplan('_rando.vonmisesvariate')
-	weibullvariate = getnoplan('_rando.weibullvariate')
+	betavariate = get_rando('_rando.betavariate')
+	choice = get_rando('_rando.choice')
+	expovariate = get_rando('_rando.expovariate')
+	gammavariate = get_rando('_rando.gammavariate')
+	gauss = get_rando('_rando.gauss')
+	getrandbits = get_rando('_rando.getrandbits')
+	lognormvariate = get_rando('_rando.lognormvariate')
+	normalvariate = get_rando('_rando.normalvariate')
+	paretovariate = get_rando('_rando.paretovariate')
+	randint = get_rando('_rando.randint')
+	random = get_rando('_rando.random')
+	randrange = get_rando('_rando.randrange')
+	sample = get_rando('_rando.sample')
+	shuffle = get_rando('_rando.shuffle')
+	triangular = get_rando('_rando.triangular')
+	uniform = get_rando('_rando.uniform')
+	vonmisesvariate = get_rando('_rando.vonmisesvariate')
+	weibullvariate = get_rando('_rando.weibullvariate')
 
 
 class SpecialMappingDescriptor:
