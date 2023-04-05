@@ -683,8 +683,11 @@ class WindowDict(MutableMapping):
 		self._keys.remove(rev)
 
 	def __repr__(self) -> str:
-		me = dict(self._past)
-		me.update(self._future)
+		me = {}
+		if self._past:
+			me.update(self._past)
+		if self._future:
+			me.update(self._future)
 		return "{}({})".format(self.__class__.__name__, me)
 
 
