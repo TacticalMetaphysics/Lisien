@@ -150,7 +150,7 @@ class UnitnessCache(Cache):
 		charavs = self.char_units[character]
 		graphavs = self.graph_units[(character, graph)]
 		graphs = self.graphs[character]
-		uniqgraph = self.unique_graph[character]
+		uniqgraph = self.unique_graph[character][branch]
 		soloav = self.solo_unit[(character, graph)][branch]
 		uniqav = self.unique_unit[character][branch]
 		users = self.users[graph, node]
