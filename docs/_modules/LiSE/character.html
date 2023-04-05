@@ -1385,7 +1385,7 @@
 			<span class="k">try</span><span class="p">:</span>
 				<span class="n">charn</span><span class="p">,</span> <span class="n">noden</span> <span class="o">=</span> <span class="n">get_char_only_av</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 				<span class="k">return</span> <span class="n">get_node</span><span class="p">(</span><span class="n">charmap</span><span class="p">[</span><span class="n">charn</span><span class="p">],</span> <span class="n">noden</span><span class="p">)</span>
-			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+			<span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
 				<span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;I have no unit, or more than one unit&quot;</span><span class="p">)</span>
 
 		<span class="k">class</span> <span class="nc">CharacterUnitMapping</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
@@ -1712,7 +1712,7 @@
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

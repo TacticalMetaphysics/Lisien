@@ -50,6 +50,7 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">ThreadPoolExecutor</span><span class="p">,</span> <span class="n">wait</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
@@ -938,14 +939,6 @@
 
 <div class="viewcode-block" id="Engine.flush"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.Engine.flush">[docs]</a>	<span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="vm">__doc__</span> <span class="o">=</span> <span class="n">gORM</span><span class="o">.</span><span class="n">flush</span><span class="o">.</span><span class="vm">__doc__</span>
-		<span class="k">try</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">universal</span><span class="p">[</span><span class="s1">&#39;rando_state&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rando</span><span class="o">.</span><span class="n">getstate</span><span class="p">()</span>
-		<span class="k">except</span> <span class="n">exc</span><span class="o">.</span><span class="n">OutOfTimelineError</span><span class="p">:</span>
-			<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">turn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_branches</span><span class="p">[</span><span class="n">branch</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">universal</span><span class="p">[</span><span class="s1">&#39;rando_state&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rando</span><span class="o">.</span><span class="n">getstate</span><span class="p">()</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">turn</span> <span class="o">=</span> <span class="n">turn</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">tick</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 		<span class="n">turns_completed_previous</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_turns_completed_previous</span>
 		<span class="n">turns_completed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_turns_completed</span>
@@ -960,8 +953,13 @@
 
 <div class="viewcode-block" id="Engine.close"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.Engine.close">[docs]</a>	<span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Commit changes and close the database.&quot;&quot;&quot;</span>
-		<span class="kn">import</span> <span class="nn">sys</span>
-		<span class="kn">import</span> <span class="nn">os</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_closed&#39;</span><span class="p">):</span>
+			<span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Already closed&quot;</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;cache_arrange_queue&#39;</span><span class="p">):</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">cache_arrange_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s1">&#39;shutdown&#39;</span><span class="p">)</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_arrange_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_cache_arrange_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keyframe_on_close</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">snap_keyframe</span><span class="p">()</span>
 		<span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stores</span><span class="p">:</span>
@@ -971,7 +969,9 @@
 			<span class="n">modname</span> <span class="o">=</span> <span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
 			<span class="k">if</span> <span class="n">modname</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">:</span>
 				<span class="k">del</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">modname</span><span class="p">]</span>
-		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_closed</span> <span class="o">=</span> <span class="kc">True</span></div>
 
 	<span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return myself. For compatibility with ``with`` semantics.&quot;&quot;&quot;</span>
@@ -1191,13 +1191,13 @@
 		<span class="k">def</span> <span class="nf">get_thing</span><span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="n">thingn</span><span class="p">):</span>
 			<span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="n">thingn</span><span class="p">)</span>
 			<span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">node_objs</span><span class="p">:</span>
-				<span class="n">node_objs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">thing_cls</span><span class="p">(</span><span class="n">charmap</span><span class="p">[</span><span class="n">graphn</span><span class="p">],</span> <span class="n">noden</span><span class="p">)</span>
+				<span class="n">node_objs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">thing_cls</span><span class="p">(</span><span class="n">charmap</span><span class="p">[</span><span class="n">graphn</span><span class="p">],</span> <span class="n">thingn</span><span class="p">)</span>
 			<span class="k">return</span> <span class="n">node_objs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
 		<span class="k">def</span> <span class="nf">get_place</span><span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="n">placen</span><span class="p">):</span>
 			<span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="n">placen</span><span class="p">)</span>
 			<span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">node_objs</span><span class="p">:</span>
-				<span class="n">node_objs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">place_cls</span><span class="p">(</span><span class="n">charmap</span><span class="p">[</span><span class="n">graphn</span><span class="p">],</span> <span class="n">noden</span><span class="p">)</span>
+				<span class="n">node_objs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">place_cls</span><span class="p">(</span><span class="n">charmap</span><span class="p">[</span><span class="n">graphn</span><span class="p">],</span> <span class="n">placen</span><span class="p">)</span>
 			<span class="k">return</span> <span class="n">node_objs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
 		<span class="k">for</span> <span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">avn</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span>
@@ -1634,7 +1634,7 @@
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

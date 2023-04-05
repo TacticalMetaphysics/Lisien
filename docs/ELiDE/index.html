@@ -4,7 +4,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
     <title>ELiDE &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
@@ -1953,189 +1953,6 @@ user. Autoupdates when there’s a change for any reason.</p>
 
 </dd></dl>
 
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatListView">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statlist.</span></span><span class="sig-name descname"><span class="pre">StatListView</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatListView"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statlist.StatListView" title="Permalink to this definition">¶</a></dt>
-<dd><p>The type of StatListView that shows only stats and their values</p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowLabel">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statlist.</span></span><span class="sig-name descname"><span class="pre">StatRowLabel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowLabel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statlist.StatRowLabel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Display the current value of a stat as text.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItem">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statlist.</span></span><span class="sig-name descname"><span class="pre">StatRowListItem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowListItem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statlist.StatRowListItem" title="Permalink to this definition">¶</a></dt>
-<dd><p>Mixin class for widgets that show a stat’s current value.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItem.config">
-<span class="sig-name descname"><span class="pre">config</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowListItem.config" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dictionary of some parameters for how to present myself.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItem.gett">
-<span class="sig-name descname"><span class="pre">gett</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowListItem.gett" title="Permalink to this definition">¶</a></dt>
-<dd><p>Getter function: takes stat, returns its present value.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItem.key">
-<span class="sig-name descname"><span class="pre">key</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowListItem.key" title="Permalink to this definition">¶</a></dt>
-<dd><p>The stat I am about. Same as in the LiSE entity.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItem.listen">
-<span class="sig-name descname"><span class="pre">listen</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowListItem.listen" title="Permalink to this definition">¶</a></dt>
-<dd><p>Function that takes a function and calls it when the stat changes.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItem.sett">
-<span class="sig-name descname"><span class="pre">sett</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowListItem.sett" title="Permalink to this definition">¶</a></dt>
-<dd><p>Setter function: takes stat and value, sets stat=value.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItem.unlisten">
-<span class="sig-name descname"><span class="pre">unlisten</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowListItem.unlisten" title="Permalink to this definition">¶</a></dt>
-<dd><p>Function that takes a listened function and stops it listening.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItem.value">
-<span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowListItem.value" title="Permalink to this definition">¶</a></dt>
-<dd><p>The present value of the stat.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItemContainer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statlist.</span></span><span class="sig-name descname"><span class="pre">StatRowListItemContainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowListItemContainer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer" title="Permalink to this definition">¶</a></dt>
-<dd><p>The name of a stat followed by a widget representing its value.</p>
-<p>The widget can be</p>
-<ul class="simple">
-<li><p><a class="reference internal" href="#ELiDE.statlist.StatRowLabel" title="ELiDE.statlist.StatRowLabel"><code class="xref py py-class docutils literal notranslate"><span class="pre">StatRowLabel</span></code></a></p></li>
-<li><p><a class="reference internal" href="#ELiDE.statlist.StatRowTextInput" title="ELiDE.statlist.StatRowTextInput"><code class="xref py py-class docutils literal notranslate"><span class="pre">StatRowTextInput</span></code></a></p></li>
-<li><p><a class="reference internal" href="#ELiDE.statlist.StatRowToggleButton" title="ELiDE.statlist.StatRowToggleButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">StatRowToggleButton</span></code></a></p></li>
-<li><p><a class="reference internal" href="#ELiDE.statlist.StatRowSlider" title="ELiDE.statlist.StatRowSlider"><code class="xref py py-class docutils literal notranslate"><span class="pre">StatRowSlider</span></code></a></p></li>
-</ul>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItemContainer.config">
-<span class="sig-name descname"><span class="pre">config</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.config" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dictionary describing the configuration of this stat’s widget.</p>
-<p>The key ‘control’ has the widget type as its value, which may be</p>
-<ul class="simple">
-<li><p>‘readout’</p></li>
-<li><p>‘textinput’</p></li>
-<li><p>‘togglebutton’</p></li>
-<li><p>‘slider’</p></li>
-</ul>
-<p>Other keys are specific to one widget type or another.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItemContainer.gett">
-<span class="sig-name descname"><span class="pre">gett</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.gett" title="Permalink to this definition">¶</a></dt>
-<dd><p>Function to get the current value of stats, taking the stat name as its argument</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItemContainer.key">
-<span class="sig-name descname"><span class="pre">key</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.key" title="Permalink to this definition">¶</a></dt>
-<dd><p>The name of the stat</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItemContainer.listen">
-<span class="sig-name descname"><span class="pre">listen</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.listen" title="Permalink to this definition">¶</a></dt>
-<dd><p>Function to register a listener to a LiSE entity</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItemContainer.remake">
-<span class="sig-name descname"><span class="pre">remake</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowListItemContainer.remake"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.remake" title="Permalink to this definition">¶</a></dt>
-<dd><p>Replace any existing child widget with the one described by my <code class="docutils literal notranslate"><span class="pre">config</span></code>.</p>
-<p>This doesn’t need arguments, but accepts any positional arguments provided,
-so that you can use this in kvlang</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItemContainer.set_value">
-<span class="sig-name descname"><span class="pre">set_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowListItemContainer.set_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.set_value" title="Permalink to this definition">¶</a></dt>
-<dd><p>Use my <code class="docutils literal notranslate"><span class="pre">sett</span></code> function to set my stat (<code class="docutils literal notranslate"><span class="pre">key</span></code>) to my new <code class="docutils literal notranslate"><span class="pre">value</span></code>.</p>
-<p>This doesn’t need arguments, but accepts any positional arguments provided,
-so that you can use this in kvlang</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItemContainer.sett">
-<span class="sig-name descname"><span class="pre">sett</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.sett" title="Permalink to this definition">¶</a></dt>
-<dd><p>Function to set the current value of stats, taking args (key, value)</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowListItemContainer.unlisten">
-<span class="sig-name descname"><span class="pre">unlisten</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.unlisten" title="Permalink to this definition">¶</a></dt>
-<dd><p>Function to unregister a listener from a LiSE entity</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowSlider">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statlist.</span></span><span class="sig-name descname"><span class="pre">StatRowSlider</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowSlider"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statlist.StatRowSlider" title="Permalink to this definition">¶</a></dt>
-<dd><p>Display the current value of a numeric stat and let the user slide it.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowSlider.need_set">
-<span class="sig-name descname"><span class="pre">need_set</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowSlider.need_set" title="Permalink to this definition">¶</a></dt>
-<dd><p>Internal. Usually False, becomes True briefly when the value has changed.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowSlider.on_touch_up">
-<span class="sig-name descname"><span class="pre">on_touch_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowSlider.on_touch_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statlist.StatRowSlider.on_touch_up" title="Permalink to this definition">¶</a></dt>
-<dd><p>Receive a touch up event. The touch is in parent coordinates.</p>
-<p>See <code class="xref py py-meth docutils literal notranslate"><span class="pre">on_touch_down()</span></code> for more information.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowTextInput">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statlist.</span></span><span class="sig-name descname"><span class="pre">StatRowTextInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowTextInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statlist.StatRowTextInput" title="Permalink to this definition">¶</a></dt>
-<dd><p>Display the current value of a stat and accept text input to change it.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowToggleButton">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.statlist.</span></span><span class="sig-name descname"><span class="pre">StatRowToggleButton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowToggleButton"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statlist.StatRowToggleButton" title="Permalink to this definition">¶</a></dt>
-<dd><p>Display the current value of a stat, 0 or 1, and let the user press a button to flip it.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowToggleButton.false_text">
-<span class="sig-name descname"><span class="pre">false_text</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowToggleButton.false_text" title="Permalink to this definition">¶</a></dt>
-<dd><p>String to display when the stat is false.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowToggleButton.on_touch_up">
-<span class="sig-name descname"><span class="pre">on_touch_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowToggleButton.on_touch_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.statlist.StatRowToggleButton.on_touch_up" title="Permalink to this definition">¶</a></dt>
-<dd><p>Receive a touch up event. The touch is in parent coordinates.</p>
-<p>See <code class="xref py py-meth docutils literal notranslate"><span class="pre">on_touch_down()</span></code> for more information.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ELiDE.statlist.StatRowToggleButton.true_text">
-<span class="sig-name descname"><span class="pre">true_text</span></span><a class="headerlink" href="#ELiDE.statlist.StatRowToggleButton.true_text" title="Permalink to this definition">¶</a></dt>
-<dd><p>String to display when the stat is true.</p>
-</dd></dl>
-
-</dd></dl>
-
 <section id="statcfg">
 <h3>statcfg<a class="headerlink" href="#statcfg" title="Permalink to this heading">¶</a></h3>
 <p>Configurator to change stat display modes within ELiDE.</p>
@@ -2723,7 +2540,6 @@ set the title in the class as previously stated in the documentation.</p>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../manual.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../manual.html#lise">LiSE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">ELiDE</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#game">game</a><ul>
@@ -2819,13 +2635,6 @@ set the title in the class as previously stated in the documentation.</p>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#statlist">statlist</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.BaseStatListView"><code class="docutils literal notranslate"><span class="pre">BaseStatListView</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.StatListView"><code class="docutils literal notranslate"><span class="pre">StatListView</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.StatRowLabel"><code class="docutils literal notranslate"><span class="pre">StatRowLabel</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.StatRowListItem"><code class="docutils literal notranslate"><span class="pre">StatRowListItem</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.StatRowListItemContainer"><code class="docutils literal notranslate"><span class="pre">StatRowListItemContainer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.StatRowSlider"><code class="docutils literal notranslate"><span class="pre">StatRowSlider</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.StatRowTextInput"><code class="docutils literal notranslate"><span class="pre">StatRowTextInput</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.statlist.StatRowToggleButton"><code class="docutils literal notranslate"><span class="pre">StatRowToggleButton</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#statcfg">statcfg</a></li>
 </ul>
 </li>
@@ -2902,7 +2711,7 @@ set the title in the class as previously stated in the documentation.</p>
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="../_sources/ELiDE/index.rst.txt"

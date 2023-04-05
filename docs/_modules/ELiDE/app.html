@@ -52,6 +52,7 @@
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
 
 <span class="kn">from</span> <span class="nn">LiSE.allegedb</span> <span class="kn">import</span> <span class="n">OutOfTimelineError</span>
+<span class="kn">from</span> <span class="nn">.pawnspot</span> <span class="kn">import</span> <span class="n">Stack</span>
 
 <span class="k">if</span> <span class="s1">&#39;KIVY_NO_ARGS&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
 	<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;KIVY_NO_ARGS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;1&#39;</span>
@@ -66,7 +67,8 @@
 <span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span><span class="n">AliasProperty</span><span class="p">,</span> <span class="n">BooleanProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span><span class="p">,</span>
 								<span class="n">NumericProperty</span><span class="p">,</span> <span class="n">StringProperty</span><span class="p">)</span>
 <span class="kn">import</span> <span class="nn">LiSE</span>
-<span class="kn">from</span> <span class="nn">LiSE.proxy</span> <span class="kn">import</span> <span class="n">EngineProcessManager</span><span class="p">,</span> <span class="n">CharStatProxy</span>
+<span class="kn">from</span> <span class="nn">LiSE.proxy</span> <span class="kn">import</span> <span class="n">EngineProcessManager</span><span class="p">,</span> <span class="n">CharStatProxy</span><span class="p">,</span> <span class="n">PlaceProxy</span><span class="p">,</span> \
+ <span class="n">ThingProxy</span>
 <span class="kn">import</span> <span class="nn">ELiDE</span>
 <span class="kn">import</span> <span class="nn">ELiDE.dialog</span>
 <span class="kn">import</span> <span class="nn">ELiDE.screen</span>
@@ -473,7 +475,7 @@
 				<span class="n">selection</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">selection</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">selection</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">][</span>
 				<span class="n">selection</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
-		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="n">GraphSpot</span><span class="p">):</span>
+		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">proxy</span><span class="p">,</span> <span class="n">PlaceProxy</span><span class="p">):</span>
 			<span class="n">charn</span> <span class="o">=</span> <span class="n">selection</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">graphboards</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span><span class="o">.</span><span class="n">rm_spot</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 			<span class="n">gridb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">gridboards</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span>
@@ -481,7 +483,7 @@
 				<span class="n">gridb</span><span class="o">.</span><span class="n">rm_spot</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 			<span class="n">selection</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="n">Pawn</span><span class="p">)</span>
+			<span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">proxy</span><span class="p">,</span> <span class="n">ThingProxy</span><span class="p">)</span>
 			<span class="n">charn</span> <span class="o">=</span> <span class="n">selection</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">graphboards</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span><span class="o">.</span><span class="n">rm_pawn</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">gridboards</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span><span class="o">.</span><span class="n">rm_pawn</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -559,7 +561,7 @@
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

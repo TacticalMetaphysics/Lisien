@@ -97,6 +97,8 @@
 	<span class="k">def</span> <span class="nf">spot_from_dummy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dummy</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">parent</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">mainview</span><span class="p">:</span>
 			<span class="k">return</span>
+		<span class="k">if</span> <span class="n">dummy</span><span class="o">.</span><span class="n">collide_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+			<span class="k">return</span>
 		<span class="n">name</span> <span class="o">=</span> <span class="n">dummy</span><span class="o">.</span><span class="n">name</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">spot_from_dummy</span><span class="p">(</span><span class="n">dummy</span><span class="p">)</span>
 		<span class="n">graphboard</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">graphboards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">]</span>
@@ -353,7 +355,7 @@
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 
