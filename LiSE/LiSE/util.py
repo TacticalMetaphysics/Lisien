@@ -72,14 +72,14 @@ class get_rando:
 	planning mode, and will save the randomizer's state after every call.
 
 	"""
-	__slots__ = ('_getter', '_wrapfun')
+	__slots__ = ('_getter', '_wrapfun', '_instance')
 	_getter: Callable
 
 	def __init__(self, attr, *attrs):
 		self._getter = attrgetter(attr, *attrs)
 
 	def __get__(self, instance, owner) -> Callable:
-		if hasattr(self, '_wrapfun'):
+		if hasattr(self, '_wrapfun') and self._instance is instance:
 			return self._wrapfun
 		retfun = self._getter(instance)
 
@@ -92,6 +92,7 @@ class get_rando:
 			return ret
 
 		self._wrapfun = remembering_rando_state
+		self._instance = instance
 		return remembering_rando_state
 
 
