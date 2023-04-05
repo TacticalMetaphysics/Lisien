@@ -1,14 +1,13 @@
 from LiSE import Engine
-from LiSE.examples import kobold
 from .util import ELiDEAppTest, window_with_widget, idle_until
 
 
-class TestPythonEditor(ELiDEAppTest):
+class PythonEditorTest(ELiDEAppTest):
 
 	def setUp(self):
 		super().setUp()
 		with Engine(self.prefix) as eng:
-			kobold.inittest(eng)
+			pass
 
 	def _get_actions_box(self):
 		app = self.app
@@ -25,6 +24,9 @@ class TestPythonEditor(ELiDEAppTest):
 					'Never got StoreList data')
 		return actions_box
 
+
+class TestShowCode(PythonEditorTest):
+
 	def test_show_code(self):
 		app = self.app
 		win = window_with_widget(app.build())
@@ -39,6 +41,9 @@ class TestPythonEditor(ELiDEAppTest):
 					"Never got code editor widget")
 		idle_until(lambda: actions_box.editor.ids.code.text, 100,
 					"Never got source code")
+
+
+class TestCreateAction(PythonEditorTest):
 
 	def test_create_action(self):
 		app = self.app
