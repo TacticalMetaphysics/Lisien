@@ -34,26 +34,1029 @@
             
   <section id="lise">
 <h1>LiSE<a class="headerlink" href="#lise" title="Permalink to this heading">¶</a></h1>
-<section id="engine">
-<h2>engine<a class="headerlink" href="#engine" title="Permalink to this heading">¶</a></h2>
+<section id="module-LiSE.engine">
+<span id="engine"></span><h2>engine<a class="headerlink" href="#module-LiSE.engine" title="Permalink to this heading">¶</a></h2>
+<p>The “engine” of LiSE is an object relational mapper with special
+stores for game data and entities, as well as properties for manipulating the
+flow of time.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="LiSE.Engine">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.</span></span><span class="sig-name descname"><span class="pre">Engine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix:</span> <span class="pre">~os.PathLike</span> <span class="pre">|</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">string:</span> <span class="pre">~LiSE.xcollections.StringStore</span> <span class="pre">|</span> <span class="pre">dict</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trigger:</span> <span class="pre">~LiSE.xcollections.FunctionStore</span> <span class="pre">|</span> <span class="pre">module</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prereq:</span> <span class="pre">~LiSE.xcollections.FunctionStore</span> <span class="pre">|</span> <span class="pre">module</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action:</span> <span class="pre">~LiSE.xcollections.FunctionStore</span> <span class="pre">|</span> <span class="pre">module</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">function:</span> <span class="pre">~LiSE.xcollections.FunctionStore</span> <span class="pre">|</span> <span class="pre">module</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method:</span> <span class="pre">~LiSE.xcollections.MethodStore</span> <span class="pre">|</span> <span class="pre">module</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connect_string:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connect_args:</span> <span class="pre">dict</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema_cls:</span> <span class="pre">~typing.Type[~LiSE.engine.AbstractSchema]</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'LiSE.engine.NullSchema'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_interval:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keyframe_interval:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commit_interval:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfun:</span> <span class="pre">function</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clear:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_rules_journal:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keyframe_on_close:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_arranger:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_end_of_time:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.Engine" title="Permalink to this definition">¶</a></dt>
+<dd><p>LiSE, the Life Simulator Engine.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prefix</strong> – directory containing the simulation and its code;
+defaults to the working directory.</p></li>
+<li><p><strong>string</strong> – module storing strings to be used in the game; if absent,
+we’ll use a <a class="reference internal" href="#LiSE.xcollections.StringStore" title="LiSE.xcollections.StringStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.xcollections.StringStore</span></code></a> to keep them in a
+JSON file in the <code class="docutils literal notranslate"><span class="pre">prefix</span></code>.</p></li>
+<li><p><strong>function</strong> – module containing utility functions; if absent, we’ll
+use a <a class="reference internal" href="#LiSE.xcollections.FunctionStore" title="LiSE.xcollections.FunctionStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.xcollections.FunctionStore</span></code></a> to keep them in a .py
+file in the <code class="docutils literal notranslate"><span class="pre">prefix</span></code></p></li>
+<li><p><strong>method</strong> – module containing functions taking this engine as
+first arg; if absent, we’ll
+use a <a class="reference internal" href="#LiSE.xcollections.FunctionStore" title="LiSE.xcollections.FunctionStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.xcollections.FunctionStore</span></code></a> to keep them in a .py
+file in the <code class="docutils literal notranslate"><span class="pre">prefix</span></code>.</p></li>
+<li><p><strong>trigger</strong> – module containing trigger functions, taking a LiSE
+entity and returning a boolean for whether to run a rule; if absent, we’ll
+use a <a class="reference internal" href="#LiSE.xcollections.FunctionStore" title="LiSE.xcollections.FunctionStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.xcollections.FunctionStore</span></code></a> to keep them in a .py
+file in the <code class="docutils literal notranslate"><span class="pre">prefix</span></code>.</p></li>
+<li><p><strong>prereq</strong> – module containing prereq functions, taking a LiSE entity and
+returning a boolean for whether to permit a rule to run; if absent, we’ll
+use a <a class="reference internal" href="#LiSE.xcollections.FunctionStore" title="LiSE.xcollections.FunctionStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.xcollections.FunctionStore</span></code></a> to keep them in a .py
+file in the <code class="docutils literal notranslate"><span class="pre">prefix</span></code>.</p></li>
+<li><p><strong>action</strong> – module containing action functions, taking a LiSE entity and
+mutating it (and possibly the rest of the world); if absent, we’ll
+use a <a class="reference internal" href="#LiSE.xcollections.FunctionStore" title="LiSE.xcollections.FunctionStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.xcollections.FunctionStore</span></code></a> to keep them in a .py
+file in the <code class="docutils literal notranslate"><span class="pre">prefix</span></code>.</p></li>
+<li><p><strong>connect_string</strong> – a rfc1738 URI for a database to connect to. Leave
+<code class="docutils literal notranslate"><span class="pre">None</span></code> to use the SQLite database in the <code class="docutils literal notranslate"><span class="pre">prefix</span></code>.</p></li>
+<li><p><strong>connect_args</strong> – dictionary of keyword arguments for the
+database connection</p></li>
+<li><p><strong>schema</strong> – a Schema class that determines which changes to allow to
+the world; used when a player should not be able to change just
+anything. Defaults to <code class="xref py py-class docutils literal notranslate"><span class="pre">NullSchema</span></code>.</p></li>
+<li><p><strong>flush_interval</strong> – LiSE will put pending changes into the database
+transaction every <code class="docutils literal notranslate"><span class="pre">flush_interval</span></code> turns. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, only flush
+on commit. Default <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+<li><p><strong>keyframe_interval</strong> – How many turns to pass before automatically
+snapping a keyframe, default <code class="docutils literal notranslate"><span class="pre">10</span></code>. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, you’ll need
+to call <code class="docutils literal notranslate"><span class="pre">snap_keyframe</span></code> yourself.</p></li>
+<li><p><strong>commit_interval</strong> – LiSE will commit changes to disk every
+<code class="docutils literal notranslate"><span class="pre">commit_interval</span></code> turns. If <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default), only commit
+on close or manual call to <code class="docutils literal notranslate"><span class="pre">commit</span></code>.</p></li>
+<li><p><strong>random_seed</strong> – a number to initialize the randomizer.</p></li>
+<li><p><strong>logfun</strong> – an optional function taking arguments
+<code class="docutils literal notranslate"><span class="pre">level,</span> <span class="pre">message</span></code>, which should log <cite>message</cite> somehow.</p></li>
+<li><p><strong>clear</strong> – whether to delete <em>any and all</em> existing data
+and code in <code class="docutils literal notranslate"><span class="pre">prefix</span></code> and the database. Use with caution!</p></li>
+<li><p><strong>keep_rules_journal</strong> – Boolean; if <code class="docutils literal notranslate"><span class="pre">True</span></code> (the default), keep
+information on the behavior of the rules engine in the database.
+Makes the database rather large, but useful for debugging.</p></li>
+<li><p><strong>keyframe_on_close</strong> – Whether to snap a keyframe when closing the
+engine, default <code class="docutils literal notranslate"><span class="pre">True</span></code>. This is usually what you want, as it will
+make future startups faster, but could cause database bloat if
+your game runs few turns per session.</p></li>
+<li><p><strong>cache_arranger</strong> – Whether to start a background
+thread that indexes the caches to make time travel faster
+when it’s to points we anticipate. If you use this, you can
+specify some other point in time to index by putting the
+<code class="docutils literal notranslate"><span class="pre">(branch,</span> <span class="pre">turn,</span> <span class="pre">tick)</span></code> in my <code class="docutils literal notranslate"><span class="pre">cache_arrange_queue</span></code>.
+Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>enforce_end_of_time</strong> – Whether to raise an exception when
+time travelling to a point after the time that’s been simulated.
+Default <code class="docutils literal notranslate"><span class="pre">True</span></code>. You normally want this, but it could cause problems
+if you’re not using the rules engine.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.Engine.branch">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">branch</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></em><a class="headerlink" href="#LiSE.Engine.branch" title="Permalink to this definition">¶</a></dt>
+<dd><p>The fork of the timestream that we’re on.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.is_ancestor_of">
+<span class="sig-name descname"><span class="pre">is_ancestor_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">child</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><span class="pre">bool</span></a></span></span><a class="headerlink" href="#LiSE.Engine.is_ancestor_of" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether <code class="docutils literal notranslate"><span class="pre">child</span></code> is a branch descended from <code class="docutils literal notranslate"><span class="pre">parent</span></code> at
+any remove.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.Engine.turn">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">turn</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></em><a class="headerlink" href="#LiSE.Engine.turn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Units of time that have passed since the sim started.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.Engine.time">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">time</span></span><a class="headerlink" href="#LiSE.Engine.time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Acts like a tuple of (branch, turn) for the most part.</p>
+<p>This wraps a <code class="xref py py-class docutils literal notranslate"><span class="pre">blinker.Signal</span></code>. To set a function to be called whenever the
+branch or turn changes, pass it to the <code class="docutils literal notranslate"><span class="pre">Engine.time.connect</span></code> method.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.Engine.rule">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rule</span></span><a class="headerlink" href="#LiSE.Engine.rule" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of all rules that have been made.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.Engine.rulebook">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rulebook</span></span><a class="headerlink" href="#LiSE.Engine.rulebook" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of lists of rules.</p>
+<p>They are followed in their order. A whole rulebook full of rules may be
+assigned to an entity at once.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.Engine.eternal">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">eternal</span></span><a class="headerlink" href="#LiSE.Engine.eternal" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of arbitrary data, not sensitive to sim-time.</p>
+<p>It’s stored in the database. A good place to keep your game’s settings.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.Engine.universal">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">universal</span></span><a class="headerlink" href="#LiSE.Engine.universal" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of arbitrary data that changes over sim-time.</p>
+<p>The state of the randomizer is saved here under the key <code class="docutils literal notranslate"><span class="pre">'rando_state'</span></code>.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.Engine.trigger">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">trigger</span></span><a class="headerlink" href="#LiSE.Engine.trigger" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of, and decorator for, functions that might trigger a rule.</p>
+<p>Decorated functions get stored in the mapping as well as a file, so they can be
+loaded back in when the game is resumed.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.Engine.prereq">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">prereq</span></span><a class="headerlink" href="#LiSE.Engine.prereq" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of, and decorator for, functions a rule might require to return True for it to run.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.Engine.action">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">action</span></span><a class="headerlink" href="#LiSE.Engine.action" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of, and decorator for, functions that might manipulate the world state as a result of a rule running.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.Engine.method">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">method</span></span><a class="headerlink" href="#LiSE.Engine.method" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of, and decorator for, extension methods to be added to the engine object.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.Engine.function">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">function</span></span><a class="headerlink" href="#LiSE.Engine.function" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of, and decorator for, generic functions.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="id0">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rule</span></span><a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of <a class="reference internal" href="#LiSE.rule.Rule" title="LiSE.rule.Rule"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.rule.Rule</span></code></a> objects, whether applied to an entity or not.</p>
+<p>Can also be used as a decorator on functions to make them into new rules, with the decorated function as
+their initial action.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.next_turn">
+<span class="sig-name descname"><span class="pre">next_turn</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.Engine.next_turn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make time move forward in the simulation.</p>
+<p>Stops when the turn has ended, or a rule returns something non-<code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<p>This is also a <code class="xref py py-class docutils literal notranslate"><span class="pre">blinker.Signal</span></code>, so you can register functions to be
+called when the simulation runs. Pass them to <code class="docutils literal notranslate"><span class="pre">Engine.next_turn.connect(..)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>a pair, of which item 0 is the returned value from a rule if applicable (default: <code class="docutils literal notranslate"><span class="pre">[]</span></code>),
+and item 1 is a delta describing changes to the simulation resulting from this call.
+See the following method, <a class="reference internal" href="#LiSE.Engine.get_delta" title="LiSE.Engine.get_delta"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_delta()</span></code></a>, for a description of the delta format.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.get_delta">
+<span class="sig-name descname"><span class="pre">get_delta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">branch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">turn_from</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tick_from</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">turn_to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tick_to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DeltaDict</span></span></span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.get_delta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.Engine.get_delta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a dictionary describing changes to the world.</p>
+<p>Most keys will be character names, and their values will be
+dictionaries of the character’s stats’ new values, with <code class="docutils literal notranslate"><span class="pre">None</span></code>
+for deleted keys. Characters’ dictionaries have special keys
+‘nodes’ and ‘edges’ which contain booleans indicating whether
+the node or edge exists at the moment, and ‘node_val’ and
+‘edge_val’ for the stats of those entities. For edges (also
+called portals) these dictionaries are two layers deep, keyed
+first by the origin, then by the destination.</p>
+<p>Characters also have special keys for the various rulebooks
+they have:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">'character_rulebook'</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'unit_rulebook'</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'character_thing_rulebook'</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'character_place_rulebook'</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'character_portal_rulebook'</span></code></p></li>
+</ul>
+<p>And each node and edge may have a ‘rulebook’ stat of its own.
+If a node is a thing, it gets a ‘location’; when the ‘location’
+is deleted, that means it’s back to being a place.</p>
+<p>Keys at the top level that are not character names:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">'rulebooks'</span></code>, a dictionary keyed by the name of each changed
+rulebook, the value being a list of rule names</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'rules'</span></code>, a dictionary keyed by the name of each changed rule,
+containing any of the lists <code class="docutils literal notranslate"><span class="pre">'triggers'</span></code>, <code class="docutils literal notranslate"><span class="pre">'prereqs'</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">'actions'</span></code></p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.advancing">
+<span class="sig-name descname"><span class="pre">advancing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.Engine.advancing" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager for when time is moving forward one turn at a time.</p>
+<p>When used in LiSE, this means that the game is being simulated.
+It changes how the caching works, making it more efficient.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.batch">
+<span class="sig-name descname"><span class="pre">batch</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.Engine.batch" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager for when you’re creating lots of state.</p>
+<p>Reads will be much slower in a batch, but writes will be faster.</p>
+<p>You <em>can</em> combine this with <code class="docutils literal notranslate"><span class="pre">advancing</span></code> but it isn’t any faster.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.plan">
+<span class="sig-name descname"><span class="pre">plan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">PlanningContext</span></span></span><a class="headerlink" href="#LiSE.Engine.plan" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager for ‘hypothetical’ edits.</p>
+<p>Start a block of code like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">orm</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<p>and any changes you make to the world state within that block will be
+‘plans,’ meaning that they are used as defaults. The world will
+obey your plan unless you make changes to the same entities outside
+of the plan, in which case the world will obey those, and cancel any
+future plan.</p>
+<p>New branches cannot be started within plans. The <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">orm.forward():</span></code>
+optimization is disabled within a <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">orm.plan():</span></code> block, so
+consider another approach instead of making a very large plan.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">reset=True</span></code> (the default), when the plan block closes,
+the time will reset to when it began.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.snap_keyframe">
+<span class="sig-name descname"><span class="pre">snap_keyframe</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#LiSE.Engine.snap_keyframe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a copy of the complete state of the world.</p>
+<p>You need to do this occasionally in order to keep time travel
+performant.</p>
+<p>The keyframe will be saved to the database at the next call to
+<code class="docutils literal notranslate"><span class="pre">flush</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.delete_plan">
+<span class="sig-name descname"><span class="pre">delete_plan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plan</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#LiSE.Engine.delete_plan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete the portion of a plan that has yet to occur.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>plan</strong> – integer ID of a plan, as given by
+<code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">self.plan()</span> <span class="pre">as</span> <span class="pre">plan:</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.new_character">
+<span class="sig-name descname"><span class="pre">new_character</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Graph</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><span class="pre">Character</span></a></span></span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.new_character"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.Engine.new_character" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create and return a new <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.add_character">
+<span class="sig-name descname"><span class="pre">add_character</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Graph</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.add_character"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.Engine.add_character" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new character.</p>
+<p>You’ll be able to access it as a <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code> object by
+looking up <code class="docutils literal notranslate"><span class="pre">name</span></code> in my <code class="docutils literal notranslate"><span class="pre">character</span></code> property.</p>
+<p><code class="docutils literal notranslate"><span class="pre">data</span></code>, if provided, should be a networkx-compatible graph
+object. Your new character will be a copy of it.</p>
+<p>Any keyword arguments will be set as stats of the new character.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.del_character">
+<span class="sig-name descname"><span class="pre">del_character</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.del_character"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.Engine.del_character" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove the Character from the database entirely.</p>
+<p>This also deletes all its history. You’d better be sure.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.turns_when">
+<span class="sig-name descname"><span class="pre">turns_when</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mid_turn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#LiSE.query.QueryResult" title="LiSE.query.QueryResult"><span class="pre">QueryResult</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.11)"><span class="pre">set</span></a></span></span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.turns_when"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.Engine.turns_when" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the turns when the query held true</p>
+<p>Only the state of the world at the end of the turn is considered.
+To include turns where the query held true at some tick, but
+became false, set <code class="docutils literal notranslate"><span class="pre">mid_turn=True</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>qry</strong> – a Query, likely constructed by comparing the result
+of a call to an entity’s <code class="docutils literal notranslate"><span class="pre">historical</span></code> method with
+the output of <code class="docutils literal notranslate"><span class="pre">self.alias(..)</span></code> or another
+<code class="docutils literal notranslate"><span class="pre">historical(..)</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.apply_choices">
+<span class="sig-name descname"><span class="pre">apply_choices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">choices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.11)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.11)"><span class="pre">dict</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perfectionist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.11)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.11)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.11)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.11)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.11)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.11)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.11)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.11)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.11)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.apply_choices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.Engine.apply_choices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate changes a player wants to make, and apply if acceptable.</p>
+<p>Returns a pair of lists containing acceptance and rejection messages,
+which the UI may present as it sees fit. They are always in a pair
+with the change request as the zeroth item. The message may be None
+or a string.</p>
+<p>Validator functions may return only a boolean indicating acceptance.
+If they instead return a pair, the initial boolean indicates
+acceptance and the following item is the message.</p>
+<p>This function will not actually result in any simulation happening.
+It creates a plan. See my <code class="docutils literal notranslate"><span class="pre">plan</span></code> context manager for the precise
+meaning of this.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">dry_run=True</span></code> just return the acceptances and rejections
+without really planning anything. With <code class="docutils literal notranslate"><span class="pre">perfectionist=True</span></code> apply
+changes if and only if all of them are accepted.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.flush"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.Engine.flush" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write pending changes to disk.</p>
+<p>You can set a <code class="docutils literal notranslate"><span class="pre">flush_interval</span></code> when you instantiate <code class="docutils literal notranslate"><span class="pre">Engine</span></code>
+to call this every so many turns. However, this may cause your game to
+hitch up sometimes, so it’s better to call <code class="docutils literal notranslate"><span class="pre">flush</span></code> when you know the
+player won’t be running the simulation for a while.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.commit">
+<span class="sig-name descname"><span class="pre">commit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#LiSE.Engine.commit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the state of all graphs and commit the transaction.</p>
+<p>Also saves the current branch, turn, and tick.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.Engine.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Commit changes and close the database.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.Engine.unload">
+<span class="sig-name descname"><span class="pre">unload</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#LiSE.Engine.unload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove everything from memory that can be removed.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
-<section id="character">
-<h2>character<a class="headerlink" href="#character" title="Permalink to this heading">¶</a></h2>
+<section id="module-LiSE.character">
+<span id="character"></span><h2>character<a class="headerlink" href="#module-LiSE.character" title="Permalink to this heading">¶</a></h2>
+<p>The top level of the LiSE world model, the Character.</p>
+<p>Based on NetworkX DiGraph objects with various additions and
+conveniences.</p>
+<p>A Character is a graph that follows rules. Its rules may be assigned
+to run on only some portion of it. Each Character has a <code class="docutils literal notranslate"><span class="pre">stat</span></code> property that
+acts very much like a dictionary, in which you can store game-time-sensitive
+data for the rules to use.</p>
+<p>You can designate some nodes in one Character as units of another,
+and then assign a rule to run on all of a Character’s units. This is
+useful for the common case where someone in your game has a location
+in the physical world (here, a Character, called ‘physical’) but also
+has a behavior flowchart, or a skill tree, that isn’t part of the
+physical world. In that case, the flowchart is the person’s Character,
+and their node in the physical world is a unit of it.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="LiSE.character.Character">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.character.</span></span><span class="sig-name descname"><span class="pre">Character</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">attr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character" title="Permalink to this definition">¶</a></dt>
+<dd><p>A digraph that follows game rules and has a containment hierarchy</p>
+<p>Nodes in a Character are subcategorized into Things and
+Places. Things have locations, and those locations may be Places
+or other Things. To get at those, use the <cite>thing</cite> and <cite>place</cite>
+mappings – but in situations where the distinction does not matter,
+you may simply address the Character as a mapping, as in NetworkX.</p>
+<p>Characters may have units in other Characters. These are just
+nodes. You can apply rules to a Character’s units, and thus to
+any collection of nodes you want, perhaps in many different
+Characters. The <code class="docutils literal notranslate"><span class="pre">unit</span></code> attribute handles this. It is a mapping,
+keyed by the other Character’s name, then by the name of the node
+that is this Character’s unit. In the common case where a
+Character has exactly one unit, it may be retrieved as
+<code class="docutils literal notranslate"><span class="pre">unit.only</span></code>. When it has more than one unit, but only has
+any units in a single other Character, you can get the mapping
+of units in that Character as <code class="docutils literal notranslate"><span class="pre">unit.node</span></code>. Add units with the
+<code class="docutils literal notranslate"><span class="pre">add_unit</span></code> method and remove them with <code class="docutils literal notranslate"><span class="pre">del_unit</span></code>.</p>
+<p>You can assign rules to Characters with their <code class="docutils literal notranslate"><span class="pre">rule</span></code> attribute,
+typically using it as a decorator (see <a class="reference internal" href="#module-LiSE.rule" title="LiSE.rule"><code class="xref py py-mod docutils literal notranslate"><span class="pre">LiSE.rule</span></code></a>). You can do the
+same to some of Character’s
+attributes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">thing.rule</span></code> to make a rule run on all Things in this Character
+every turn</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">place.rule</span></code> to make a rule run on all Places in this Character
+every turn</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">node.rule</span></code> to make a rule run on all Things and Places in this
+Character every turn</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unit.rule</span></code> to make a rule run on all the units this
+Character has every turn, regardless of what Character the
+unit is in</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">adj.rule</span></code> to make a rule run on all the edges this Character
+has every turn</p></li>
+</ul>
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.character.Character.stat">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stat</span></span><a class="headerlink" href="#LiSE.character.Character.stat" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of game-time-sensitive data.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.character.Character.place">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">place</span></span><a class="headerlink" href="#LiSE.character.Character.place" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of <a class="reference internal" href="#LiSE.node.Place" title="LiSE.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.node.Place</span></code></a> objects in this <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>.</p>
+<p>Has a <code class="docutils literal notranslate"><span class="pre">rule</span></code> method for applying new rules to every <code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code> here, and a <code class="docutils literal notranslate"><span class="pre">rulebook</span></code> property for
+assigning premade rulebooks.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.character.Character.thing">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">thing</span></span><a class="headerlink" href="#LiSE.character.Character.thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of <a class="reference internal" href="#LiSE.node.Thing" title="LiSE.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.node.Thing</span></code></a> objects in this <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>.</p>
+<p>Has a <code class="docutils literal notranslate"><span class="pre">rule</span></code> method for applying new rules to every <code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code> here, and a <code class="docutils literal notranslate"><span class="pre">rulebook</span></code> property for
+assigning premade rulebooks.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.character.Character.node">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">node</span></span><a class="headerlink" href="#LiSE.character.Character.node" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of <a class="reference internal" href="#LiSE.node.Thing" title="LiSE.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.node.Thing</span></code></a> and <a class="reference internal" href="#LiSE.node.Place" title="LiSE.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.node.Place</span></code></a> objects in this <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>.</p>
+<p>Has a <code class="docutils literal notranslate"><span class="pre">rule</span></code> method for applying new rules to every <code class="xref py py-class docutils literal notranslate"><span class="pre">Node</span></code> here, and a <code class="docutils literal notranslate"><span class="pre">rulebook</span></code> property for
+assigning premade rulebooks.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.character.Character.portal">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">portal</span></span><a class="headerlink" href="#LiSE.character.Character.portal" title="Permalink to this definition">¶</a></dt>
+<dd><p>A two-layer mapping of <a class="reference internal" href="#LiSE.portal.Portal" title="LiSE.portal.Portal"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.portal.Portal</span></code></a> objects in this <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>, by origin and destination</p>
+<p>Has a <code class="docutils literal notranslate"><span class="pre">rule</span></code> method for applying new rules to every <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> here, and a <code class="docutils literal notranslate"><span class="pre">rulebook</span></code> property for
+assigning premade rulebooks.</p>
+<p>Aliases:  <code class="docutils literal notranslate"><span class="pre">adj</span></code>, <code class="docutils literal notranslate"><span class="pre">edge</span></code>, <code class="docutils literal notranslate"><span class="pre">succ</span></code></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.character.Character.preportal">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">preportal</span></span><a class="headerlink" href="#LiSE.character.Character.preportal" title="Permalink to this definition">¶</a></dt>
+<dd><p>A two-layer mapping of <a class="reference internal" href="#LiSE.portal.Portal" title="LiSE.portal.Portal"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.portal.Portal</span></code></a> objects in this <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>, by destination and origin</p>
+<p>Has a <code class="docutils literal notranslate"><span class="pre">rule</span></code> method for applying new rules to every <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> here, and a <code class="docutils literal notranslate"><span class="pre">rulebook</span></code> property for
+assigning premade rulebooks.</p>
+<p>Alias: <code class="docutils literal notranslate"><span class="pre">pred</span></code></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.character.Character.unit">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">unit</span></span><a class="headerlink" href="#LiSE.character.Character.unit" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of this character’s units in other characters.</p>
+<p>Units are nodes in other characters that are in some sense part of this one. A common example in strategy
+games is when a general leads an army: the general is one <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>, with a graph representing the
+state of their AI; the battle map is another <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>; and the general’s units, though not in the
+general’s <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>, are still under their command, and therefore follow rules defined on the
+general’s <code class="docutils literal notranslate"><span class="pre">unit.rule</span></code> subproperty.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.add_portal">
+<span class="sig-name descname"><span class="pre">add_portal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">origin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">destination</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_portal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.add_portal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connect the origin to the destination with a <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>.</p>
+<p>Keyword arguments are attributes of the <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.new_portal">
+<span class="sig-name descname"><span class="pre">new_portal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">origin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">destination</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.new_portal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.new_portal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a portal and return it</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.add_portals_from">
+<span class="sig-name descname"><span class="pre">add_portals_from</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_portals_from"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.add_portals_from" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make portals for a sequence of (origin, destination) pairs</p>
+<p>Actually, triples are acceptable too, in which case the third
+item is a dictionary of stats for the new <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.add_thing">
+<span class="sig-name descname"><span class="pre">add_thing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">location</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_thing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.add_thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a new Thing and set its location</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.new_thing">
+<span class="sig-name descname"><span class="pre">new_thing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">location</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.character.Character.new_thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a Thing and return it.</p>
+<p>If there’s already a Thing by that name, put a number on the end.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.add_things_from">
+<span class="sig-name descname"><span class="pre">add_things_from</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">attrs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_things_from"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.add_things_from" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make many new Things</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.add_place">
+<span class="sig-name descname"><span class="pre">add_place</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_for_adding</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">attr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_place"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.add_place" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a new Place</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.add_places_from">
+<span class="sig-name descname"><span class="pre">add_places_from</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">attrs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_places_from"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.add_places_from" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take a series of place names and add the lot.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.new_place">
+<span class="sig-name descname"><span class="pre">new_place</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.character.Character.new_place" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a Place and return it.</p>
+<p>If there’s already a Place by that name, put a number on the end.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.historical">
+<span class="sig-name descname"><span class="pre">historical</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stat</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.historical"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.historical" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a historical view on the given stat</p>
+<p>This functions like the value of the stat, but changes
+when you time travel. Comparisons performed on the
+historical view can be passed to <code class="docutils literal notranslate"><span class="pre">engine.turns_when</span></code>
+to find out when the comparison held true.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.place2thing">
+<span class="sig-name descname"><span class="pre">place2thing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">location</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.place2thing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.place2thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turn a Place into a Thing with the given location.</p>
+<p>It will keep all its attached Portals.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.portals">
+<span class="sig-name descname"><span class="pre">portals</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.portals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.portals" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over all portals.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.remove_portal">
+<span class="sig-name descname"><span class="pre">remove_portal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">origin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">destination</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.remove_portal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.remove_portal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.remove_unit">
+<span class="sig-name descname"><span class="pre">remove_unit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.remove_unit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.remove_unit" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is no longer my unit, though it still exists</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.thing2place">
+<span class="sig-name descname"><span class="pre">thing2place</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.thing2place"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.thing2place" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unset a Thing’s location, and thus turn it into a Place.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.units">
+<span class="sig-name descname"><span class="pre">units</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.units"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over all my units</p>
+<p>Regardless of what character they are in.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.character.Character.facade">
+<span class="sig-name descname"><span class="pre">facade</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.facade"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.character.Character.facade" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a temporary copy of this Character</p>
+<p>A Facade looks like its <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>, but doesn’t do any of the
+stuff Characters do to save changes to the database, nor enable
+time travel. This makes it much speedier to work with.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
-<section id="node">
-<h2>node<a class="headerlink" href="#node" title="Permalink to this heading">¶</a></h2>
+<section id="module-LiSE.node">
+<span id="node"></span><h2>node<a class="headerlink" href="#module-LiSE.node" title="Permalink to this heading">¶</a></h2>
+<p>The nodes of LiSE’s character graphs.</p>
+<p>Every node that actually exists is either a Place or a Thing, but they
+have a lot in common.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="LiSE.node.Node">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.node.</span></span><span class="sig-name descname"><span class="pre">Node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">character</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node" title="Permalink to this definition">¶</a></dt>
+<dd><p>The fundamental graph component, which portals go between.</p>
+<p>Every LiSE node is either a thing or a place. They share in common
+the abilities to follow rules; to be connected by portals; and to
+contain things.</p>
+<p>This is truthy if it exists, falsy if it’s been deleted.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.node.Node.user">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">user</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">UserMapping</span></em><a class="headerlink" href="#LiSE.node.Node.user" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.node.Node.portal">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">portal</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dests</span></em><a class="headerlink" href="#LiSE.node.Node.portal" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of portals leading out from this node.</p>
+<p>Aliases <code class="docutils literal notranslate"><span class="pre">portal</span></code>, <code class="docutils literal notranslate"><span class="pre">adj</span></code>, <code class="docutils literal notranslate"><span class="pre">edge</span></code>, <code class="docutils literal notranslate"><span class="pre">successor</span></code>, and <code class="docutils literal notranslate"><span class="pre">succ</span></code>
+are available.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.node.Node.preportal">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">preportal</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Origs</span></em><a class="headerlink" href="#LiSE.node.Node.preportal" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of portals leading to this node.</p>
+<p>Aliases <code class="docutils literal notranslate"><span class="pre">preportal</span></code>, <code class="docutils literal notranslate"><span class="pre">predecessor</span></code> and <code class="docutils literal notranslate"><span class="pre">pred</span></code> are available.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.node.Node.content">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">content</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">NodeContent</span></em><a class="headerlink" href="#LiSE.node.Node.content" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mapping of <code class="docutils literal notranslate"><span class="pre">Thing</span></code> objects that are here</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Node.contents">
+<span class="sig-name descname"><span class="pre">contents</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">NodeContentValues</span></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Node.contents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.contents" title="Permalink to this definition">¶</a></dt>
+<dd><p>A set-like object containing <code class="docutils literal notranslate"><span class="pre">Thing</span></code> objects that are here</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Node.successors">
+<span class="sig-name descname"><span class="pre">successors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterator" title="(in Python v3.11)"><span class="pre">Iterator</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#LiSE.node.Place" title="LiSE.node.Place"><span class="pre">Place</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Node.successors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.successors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over nodes with edges leading from here to there.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Node.predecessors">
+<span class="sig-name descname"><span class="pre">predecessors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterator" title="(in Python v3.11)"><span class="pre">Iterator</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#LiSE.node.Place" title="LiSE.node.Place"><span class="pre">Place</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Node.predecessors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.predecessors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over nodes with edges leading here from there.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Node.shortest_path">
+<span class="sig-name descname"><span class="pre">shortest_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#LiSE.node.Node" title="LiSE.node.Node"><span class="pre">Node</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.11)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Key</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Node.shortest_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.shortest_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of node names leading from me to <code class="docutils literal notranslate"><span class="pre">dest</span></code>.</p>
+<p>Raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if <code class="docutils literal notranslate"><span class="pre">dest</span></code> is not a node in my character
+or the name of one.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Node.shortest_path_length">
+<span class="sig-name descname"><span class="pre">shortest_path_length</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#LiSE.node.Node" title="LiSE.node.Node"><span class="pre">Node</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Node.shortest_path_length"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.shortest_path_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the length of the path from me to <code class="docutils literal notranslate"><span class="pre">dest</span></code>.</p>
+<p>Raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if <code class="docutils literal notranslate"><span class="pre">dest</span></code> is not a node in my character
+or the name of one.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Node.path_exists">
+<span class="sig-name descname"><span class="pre">path_exists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#LiSE.node.Node" title="LiSE.node.Node"><span class="pre">Node</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Node.path_exists"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.path_exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether there is a path leading from me to <code class="docutils literal notranslate"><span class="pre">dest</span></code>.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">weight</span></code>, only consider edges that have a stat by the
+given name.</p>
+<p>Raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if <code class="docutils literal notranslate"><span class="pre">dest</span></code> is not a node in my character
+or the name of one.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Node.new_portal">
+<span class="sig-name descname"><span class="pre">new_portal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="s"><span class="pre">'Node'</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">stats</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#LiSE.portal.Portal" title="LiSE.portal.Portal"><span class="pre">LiSE.portal.Portal</span></a></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Node.new_portal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.new_portal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connect a portal from here to another node, and return it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Node.new_thing">
+<span class="sig-name descname"><span class="pre">new_thing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">stats</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#LiSE.node.Thing" title="LiSE.node.Thing"><span class="pre">Thing</span></a></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Node.new_thing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.new_thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new thing, located here, and return it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Node.historical">
+<span class="sig-name descname"><span class="pre">historical</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stat</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">StatusAlias</span></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Node.historical"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.historical" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a reference to the values that a stat has had in the past.</p>
+<p>You can use the reference in comparisons to make a history
+query, and execute the query by calling it, or passing it to
+<code class="docutils literal notranslate"><span class="pre">self.engine.ticks_when</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Node.delete">
+<span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Node.delete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Node.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get rid of this, starting now.</p>
+<p>Apart from deleting the node, this also informs all its users
+that it doesn’t exist and therefore can’t be their unit
+anymore.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="LiSE.node.Place">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.node.</span></span><span class="sig-name descname"><span class="pre">Place</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">character</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Place"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Place" title="Permalink to this definition">¶</a></dt>
+<dd><p>The kind of node where a thing might ultimately be located.</p>
+<p>LiSE entities are truthy so long as they exist, falsy if they’ve
+been deleted.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Place.delete">
+<span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Place.delete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Place.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove myself from the world model immediately.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="LiSE.node.Thing">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.node.</span></span><span class="sig-name descname"><span class="pre">Thing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">character</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Thing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>The sort of item that has a particular location at any given time.</p>
+<p>Things are always in Places or other Things, and may additionally be
+travelling through a Portal.</p>
+<p>LiSE entities are truthy so long as they exist, falsy if they’ve
+been deleted.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Thing.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Thing.clear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Thing.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unset everything.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Thing.delete">
+<span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Thing.delete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Thing.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get rid of this, starting now.</p>
+<p>Apart from deleting the node, this also informs all its users
+that it doesn’t exist and therefore can’t be their unit
+anymore.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Thing.follow_path">
+<span class="sig-name descname"><span class="pre">follow_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.11)"><span class="pre">list</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Thing.follow_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Thing.follow_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Go to several nodes in succession, deciding how long to
+spend in each by consulting the <code class="docutils literal notranslate"><span class="pre">weight</span></code> stat of the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> connecting the one node to the next,
+default 1 turn.</p>
+<p>Return the total number of turns the travel will take. Raise
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TravelException</span></code> if I can’t follow the whole path,
+either because some of its nodes don’t exist, or because I’m
+scheduled to be somewhere else.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Thing.go_to_place">
+<span class="sig-name descname"><span class="pre">go_to_place</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">place</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#LiSE.node.Node" title="LiSE.node.Node"><span class="pre">Node</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Thing.go_to_place"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Thing.go_to_place" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assuming I’m in a node that has a <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> direct
+to the given node, schedule myself to travel to the
+given <a class="reference internal" href="#LiSE.node.Place" title="LiSE.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code></a>, taking an amount of time indicated by
+the <code class="docutils literal notranslate"><span class="pre">weight</span></code> stat on the <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>, if given; else 1
+turn.</p>
+<p>Return the number of turns the travel will take.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.node.Thing.location">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">location</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#LiSE.node.Node" title="LiSE.node.Node"><span class="pre">Node</span></a></em><a class="headerlink" href="#LiSE.node.Thing.location" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <code class="docutils literal notranslate"><span class="pre">Thing</span></code> or <code class="docutils literal notranslate"><span class="pre">Place</span></code> I’m in.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.node.Thing.travel_to">
+<span class="sig-name descname"><span class="pre">travel_to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#LiSE.node.Node" title="LiSE.node.Node"><span class="pre">Node</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">graph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DiGraph</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></span><a class="reference internal" href="../_modules/LiSE/node.html#Thing.travel_to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.node.Thing.travel_to" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the shortest path to the given node from where I am
+now, and follow it.</p>
+<p>If supplied, the <code class="docutils literal notranslate"><span class="pre">weight</span></code> stat of each <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> along
+the path will be used in pathfinding, and for deciding how
+long to stay in each Place along the way.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">graph</span></code> argument may be any NetworkX-style graph. It
+will be used for pathfinding if supplied, otherwise I’ll use
+my <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code>. In either case, however, I will attempt
+to actually follow the path using my <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code>, which
+might not be possible if the supplied <code class="docutils literal notranslate"><span class="pre">graph</span></code> and my
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code> are too different. If it’s not possible,
+I’ll raise a <code class="xref py py-class docutils literal notranslate"><span class="pre">TravelException</span></code>, whose <code class="docutils literal notranslate"><span class="pre">subpath</span></code>
+attribute holds the part of the path that I <em>can</em> follow. To
+make me follow it, pass it to my <code class="docutils literal notranslate"><span class="pre">follow_path</span></code> method.</p>
+<p>Return value is the number of turns the travel will take.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
-<section id="portal">
-<h2>portal<a class="headerlink" href="#portal" title="Permalink to this heading">¶</a></h2>
+<section id="module-LiSE.portal">
+<span id="portal"></span><h2>portal<a class="headerlink" href="#module-LiSE.portal" title="Permalink to this heading">¶</a></h2>
+<p>Directed edges, as used by LiSE.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="LiSE.portal.Portal">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.portal.</span></span><span class="sig-name descname"><span class="pre">Portal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractCharacter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/portal.html#Portal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.portal.Portal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connection between two nodes that <a class="reference internal" href="#LiSE.node.Thing" title="LiSE.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.node.Thing</span></code></a> travel along</p>
+<p>LiSE entities are truthy so long as they exist, falsy if they’ve
+been deleted.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="LiSE.portal.Portal.origin">
+<span class="sig-name descname"><span class="pre">origin</span></span><a class="headerlink" href="#LiSE.portal.Portal.origin" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="#LiSE.node.Place" title="LiSE.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.node.Place</span></code></a> or <a class="reference internal" href="#LiSE.node.Thing" title="LiSE.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.node.Thing</span></code></a> that this leads out from</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="LiSE.portal.Portal.destination">
+<span class="sig-name descname"><span class="pre">destination</span></span><a class="headerlink" href="#LiSE.portal.Portal.destination" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="#LiSE.node.Place" title="LiSE.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.node.Place</span></code></a> or <a class="reference internal" href="#LiSE.node.Thing" title="LiSE.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.node.Thing</span></code></a> that this leads into</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.portal.Portal.character">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">character</span></span><a class="headerlink" href="#LiSE.portal.Portal.character" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.character.Character</span></code></a> that this is in</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.portal.Portal.engine">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">engine</span></span><a class="headerlink" href="#LiSE.portal.Portal.engine" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="#LiSE.Engine" title="LiSE.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.engine.Engine</span></code></a> that this is in</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="LiSE.portal.Portal.reciprocal">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reciprocal</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#LiSE.portal.Portal" title="LiSE.portal.Portal"><span class="pre">Portal</span></a></em><a class="headerlink" href="#LiSE.portal.Portal.reciprocal" title="Permalink to this definition">¶</a></dt>
+<dd><p>If there’s another Portal connecting the same origin and
+destination that I do, but going the opposite way, return
+it. Else raise KeyError.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.portal.Portal.historical">
+<span class="sig-name descname"><span class="pre">historical</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stat</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">StatusAlias</span></span></span><a class="reference internal" href="../_modules/LiSE/portal.html#Portal.historical"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.portal.Portal.historical" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a reference to the values that a stat has had in the past.</p>
+<p>You can use the reference in comparisons to make a history
+query, and execute the query by calling it, or passing it to
+<code class="docutils literal notranslate"><span class="pre">self.engine.ticks_when</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.portal.Portal.delete">
+<span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/LiSE/portal.html#Portal.delete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.portal.Portal.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove myself from my <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code>.</p>
+<p>For symmetry with <code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
-<section id="rule">
-<h2>rule<a class="headerlink" href="#rule" title="Permalink to this heading">¶</a></h2>
+<section id="module-LiSE.rule">
+<span id="rule"></span><h2>rule<a class="headerlink" href="#module-LiSE.rule" title="Permalink to this heading">¶</a></h2>
+<p>The fundamental unit of game logic, the Rule, and structures to
+store and organize them in.</p>
+<p>A Rule is three lists of functions: triggers, prereqs, and actions.
+The actions do something, anything that you need your game to do, but
+probably making a specific change to the world model. The triggers and
+prereqs between them specify when the action should occur: any of its
+triggers can tell it to happen, but then any of its prereqs may stop it
+from happening.</p>
+<p>Rules are assembled into RuleBooks, essentially just lists of Rules
+that can then be assigned to be followed by any game entity –
+but each game entity has its own RuleBook by default, and you never
+need to change that.</p>
+<p>To add a new rule to a LiSE entity, the easiest thing is to use the
+decorator syntax:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@entity</span><span class="o">.</span><span class="n">rule</span>
+<span class="k">def</span> <span class="nf">do_something</span><span class="p">(</span><span class="n">entity</span><span class="p">):</span>
+        <span class="o">...</span>
+
+<span class="nd">@do_something</span><span class="o">.</span><span class="n">trigger</span>
+<span class="k">def</span> <span class="nf">whenever</span><span class="p">(</span><span class="n">entity</span><span class="p">):</span>
+        <span class="o">...</span>
+
+<span class="nd">@do_something</span><span class="o">.</span><span class="n">trigger</span>
+<span class="k">def</span> <span class="nf">forever</span><span class="p">(</span><span class="n">entity</span><span class="p">):</span>
+        <span class="o">...</span>
+
+<span class="nd">@do_something</span><span class="o">.</span><span class="n">action</span>
+<span class="k">def</span> <span class="nf">do_something_else</span><span class="p">(</span><span class="n">entity</span><span class="p">):</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<p>When run, this code will:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>copy the <code class="docutils literal notranslate"><span class="pre">do_something</span></code> function to <code class="docutils literal notranslate"><span class="pre">action.py</span></code>, where LiSE knows                 to run it when a rule triggers it</p></li>
+<li><p>create a new rule named <code class="docutils literal notranslate"><span class="pre">'do_something'</span></code></p></li>
+<li><p>set the function <code class="docutils literal notranslate"><span class="pre">do_something</span></code> as the first (and, so far, only) entry                      in the actions list of the rule by that name</p></li>
+<li><p>copy the <code class="docutils literal notranslate"><span class="pre">whenever</span></code> function to <code class="docutils literal notranslate"><span class="pre">trigger.py</span></code>, where LiSE knows to                 call it when a rule has it as a trigger</p></li>
+<li><p>set the function <code class="docutils literal notranslate"><span class="pre">whenever</span></code> as the first entry in the triggers list                 of the rule <code class="docutils literal notranslate"><span class="pre">'do_something'</span></code></p></li>
+<li><p>append the function <code class="docutils literal notranslate"><span class="pre">forever</span></code> to the same triggers list</p></li>
+<li><p>copy <code class="docutils literal notranslate"><span class="pre">do_something_else</span></code> to <code class="docutils literal notranslate"><span class="pre">action.py</span></code></p></li>
+<li><p>append <code class="docutils literal notranslate"><span class="pre">do_something_else</span></code> to the actions list of the rule</p></li>
+</ul>
+</div></blockquote>
+<p>The <code class="docutils literal notranslate"><span class="pre">trigger</span></code>, <code class="docutils literal notranslate"><span class="pre">prereq</span></code>, and <code class="docutils literal notranslate"><span class="pre">action</span></code> attributes of Rule objects
+may also be used like lists. You can put functions in them yourself,
+provided they are already present in the correct module. If it’s
+inconvenient to get the actual function object, use a string of
+the function’s name.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="LiSE.rule.Rule">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.rule.</span></span><span class="sig-name descname"><span class="pre">Rule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">engine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">triggers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prereqs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/rule.html#Rule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.rule.Rule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stuff that might happen in the simulation under some conditions</p>
+<p>Rules are comprised of three lists of functions:</p>
+<ul class="simple">
+<li><p>actions, which mutate the world state</p></li>
+<li><p>triggers, which make the actions happen</p></li>
+<li><p>prereqs, which prevent the actions from happening when triggered</p></li>
+</ul>
+<p>Each kind of function should be stored in the appropriate module
+supplied to the LiSE core at startup. This makes it possible to
+load the functions on later startups. You may instead use the string
+name of a function already stored in the module, or use the
+<code class="docutils literal notranslate"><span class="pre">trigger</span></code>, <code class="docutils literal notranslate"><span class="pre">prereq</span></code>, or <code class="docutils literal notranslate"><span class="pre">action</span></code> decorator on a new function to
+add it to both the module and the rule.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.rule.Rule.action">
+<span class="sig-name descname"><span class="pre">action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fun</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/rule.html#Rule.action"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.rule.Rule.action" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator to append the function to my actions list.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.rule.Rule.always">
+<span class="sig-name descname"><span class="pre">always</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/rule.html#Rule.always"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.rule.Rule.always" title="Permalink to this definition">¶</a></dt>
+<dd><p>Arrange to be triggered every turn</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.rule.Rule.duplicate">
+<span class="sig-name descname"><span class="pre">duplicate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">newname</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/rule.html#Rule.duplicate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.rule.Rule.duplicate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new rule that’s just like this one, but under a new
+name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.rule.Rule.prereq">
+<span class="sig-name descname"><span class="pre">prereq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fun</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/rule.html#Rule.prereq"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.rule.Rule.prereq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator to append the function to my prereqs list.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="LiSE.rule.Rule.trigger">
+<span class="sig-name descname"><span class="pre">trigger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fun</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/rule.html#Rule.trigger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.rule.Rule.trigger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator to append the function to my triggers list.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
-<section id="query">
-<h2>query<a class="headerlink" href="#query" title="Permalink to this heading">¶</a></h2>
+<section id="module-LiSE.query">
+<span id="query"></span><h2>query<a class="headerlink" href="#module-LiSE.query" title="Permalink to this heading">¶</a></h2>
+<p>Database access and query builder</p>
+<p>Sometimes you want to know when some stat of a LiSE entity had a particular
+value. To find out, construct a historical query and pass it to
+<code class="docutils literal notranslate"><span class="pre">Engine.turns_when</span></code>, like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">physical</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="s1">&#39;physical&#39;</span><span class="p">]</span>
+<span class="n">that</span> <span class="o">=</span> <span class="n">physical</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="s1">&#39;that&#39;</span><span class="p">]</span>
+<span class="n">hist_loc</span> <span class="o">=</span> <span class="n">that</span><span class="o">.</span><span class="n">historical</span><span class="p">(</span><span class="s1">&#39;location&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">turns_when</span><span class="p">(</span><span class="n">hist_loc</span> <span class="o">==</span> <span class="s1">&#39;there&#39;</span><span class="p">)))</span>
+</pre></div>
+</div>
+<p>You’ll get the turns when <code class="docutils literal notranslate"><span class="pre">that</span></code> was <code class="docutils literal notranslate"><span class="pre">there</span></code>.</p>
+<p>Other comparison operators like <code class="docutils literal notranslate"><span class="pre">&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;</span></code> work as well.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="LiSE.query.QueryResult">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.query.</span></span><span class="sig-name descname"><span class="pre">QueryResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">windows_l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">windows_r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_of_time</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#QueryResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.query.QueryResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>A slightly lazy tuple-like object holding a history query’s results</p>
+<p>Testing for membership of a turn number in a QueryResult only evaluates
+the predicate for that turn number, and testing for membership of nearby
+turns is fast. Accessing the start or the end of the QueryResult only
+evaluates the initial or final item. Other forms of access cause the whole
+query to be evaluated in parallel.</p>
+</dd></dl>
+
 </section>
-<section id="xcollections">
-<h2>xcollections<a class="headerlink" href="#xcollections" title="Permalink to this heading">¶</a></h2>
+<section id="module-LiSE.xcollections">
+<span id="xcollections"></span><h2>xcollections<a class="headerlink" href="#module-LiSE.xcollections" title="Permalink to this heading">¶</a></h2>
+<p>Common classes for collections in LiSE</p>
+<p>Notably includes wrappers for mutable objects, allowing them to be stored in
+the database. These simply store the new value.</p>
+<p>Most of these are subclasses of <code class="xref py py-class docutils literal notranslate"><span class="pre">blinker.Signal</span></code>, so you can listen
+for changes using the <code class="docutils literal notranslate"><span class="pre">connect(..)</span></code> method.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="LiSE.xcollections.StringStore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.xcollections.</span></span><span class="sig-name descname"><span class="pre">StringStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lang</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'eng'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/xcollections.html#StringStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.xcollections.StringStore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store strings in database, and format them with one another upon retrieval.</p>
+<p>In any one string, putting the key of another string in curly
+braces will cause the other string to be substituted in.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="LiSE.xcollections.FunctionStore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.xcollections.</span></span><span class="sig-name descname"><span class="pre">FunctionStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/xcollections.html#FunctionStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.xcollections.FunctionStore" title="Permalink to this definition">¶</a></dt>
+<dd><p>A module-like object that lets you alter its code and save your changes.</p>
+<p>Instantiate it with a path to a file that you want to keep the code in.
+Assign functions to its attributes, then call its <code class="docutils literal notranslate"><span class="pre">save()</span></code> method,
+and they’ll be unparsed and written to the file.</p>
+<p>This is a <code class="docutils literal notranslate"><span class="pre">Signal</span></code>, so you can pass a function to its <code class="docutils literal notranslate"><span class="pre">connect</span></code> method,
+and it will be called when a function is added, changed, or deleted.
+The keyword arguments will be <code class="docutils literal notranslate"><span class="pre">attr</span></code>, the name of the function, and <code class="docutils literal notranslate"><span class="pre">val</span></code>,
+the function itself.</p>
+</dd></dl>
+
 </section>
 </section>
 
@@ -78,13 +1081,37 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../manual.html">Introduction</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">LiSE</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#engine">engine</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#character">character</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#node">node</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#portal">portal</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#rule">rule</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#query">query</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#xcollections">xcollections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.engine">engine</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine"><code class="docutils literal notranslate"><span class="pre">Engine</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.character">character</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character"><code class="docutils literal notranslate"><span class="pre">Character</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.node">node</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node"><code class="docutils literal notranslate"><span class="pre">Node</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Place"><code class="docutils literal notranslate"><span class="pre">Place</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Thing"><code class="docutils literal notranslate"><span class="pre">Thing</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.portal">portal</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.portal.Portal"><code class="docutils literal notranslate"><span class="pre">Portal</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.rule">rule</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.rule.Rule"><code class="docutils literal notranslate"><span class="pre">Rule</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.query">query</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.query.QueryResult"><code class="docutils literal notranslate"><span class="pre">QueryResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.xcollections">xcollections</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.xcollections.StringStore"><code class="docutils literal notranslate"><span class="pre">StringStore</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.xcollections.FunctionStore"><code class="docutils literal notranslate"><span class="pre">FunctionStore</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../ELiDE/index.html">ELiDE</a></li>
