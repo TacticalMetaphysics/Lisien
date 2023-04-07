@@ -259,7 +259,7 @@ def tables_for_meta(meta):
 				Column('rule', TEXT, primary_key=True),
 				Column('branch', TEXT, primary_key=True, default='trunk'),
 				Column('turn', INT, primary_key=True),
-				Column('tick', INT),
+				Column('tick', INT, primary_key=True),
 				ForeignKeyConstraint(
 					('character', 'rulebook'),
 					['unit_rulebook.character', 'unit_rulebook.rulebook']),
@@ -409,16 +409,15 @@ def queries(table):
 					things.c.tick >= bindparam('tick_from'))))
 	r['load_things_tick_to_end'] = select(
 		things.c.thing, things.c.turn, things.c.tick,
-			things.c.location).where(things_to_end_clause)
+		things.c.location).where(things_to_end_clause)
 	r['load_things_tick_to_tick'] = select(
-		things.c.thing, things.c.turn, things.c.tick,
-			things.c.location).where(
-				and_(
-					things_to_end_clause,
-					or_(
-						things.c.turn < bindparam('turn_to_a'),
-						and_(things.c.turn == bindparam('turn_to_b'),
-								things.c.tick <= bindparam('tick_to')))))
+		things.c.thing, things.c.turn, things.c.tick, things.c.location).where(
+			and_(
+				things_to_end_clause,
+				or_(
+					things.c.turn < bindparam('turn_to_a'),
+					and_(things.c.turn == bindparam('turn_to_b'),
+							things.c.tick <= bindparam('tick_to')))))
 
 	for handledtab in ('character_rules_handled', 'unit_rules_handled',
 						'character_thing_rules_handled',
