@@ -835,7 +835,7 @@ class GraphBoard(RelativeLayout):
 					spot.y = int(y * self.height)
 				if '_image_paths' in stats:
 					spot.paths = stats[
-						'_image_paths'] or spot.default_image_paths
+						'_image_paths'] or GraphSpot.default_image_paths
 			elif node in self.pawn:
 				pawn = self.pawn[node]
 				if 'location' in stats:
@@ -844,7 +844,7 @@ class GraphBoard(RelativeLayout):
 					pawn.y = int(loc.top)
 				if '_image_paths' in stats:
 					pawn.paths = stats[
-						'_image_paths'] or pawn.default_image_paths
+						'_image_paths'] or Pawn.default_image_paths
 			else:
 				Logger.warning(
 					"Board: diff tried to change stats of node {} "
