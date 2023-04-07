@@ -1504,7 +1504,7 @@ class ORM:
 										and kft < early_tick):
 					loaded[kfb] = kfr, kft, late_turn, late_tick
 			elif kfb == branch_now:
-				if kfr < turn_now or (kfr == turn_now and kft < tick_now):
+				if kfr < turn_now or (kfr == turn_now and kft <= tick_now):
 					loaded[kfb] = (kfr, kft, turn_now, tick_now)
 			else:
 				loaded[kfb] = (kfr, kft, kfr, kft)
