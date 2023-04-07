@@ -267,6 +267,7 @@ class TimeSignalDescriptor:
 				(inst._turn_end_plan[branch_now, turn_now], tick_now))
 			e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
 		e._obranch, e._oturn = val
+		e._load_at(*val, tick_now)
 
 		if not e._planning:
 			if tick_now > e._turn_end[val]:
