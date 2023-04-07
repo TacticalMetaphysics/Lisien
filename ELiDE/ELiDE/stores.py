@@ -706,13 +706,10 @@ Builder.load_string("""
 			_trigger_save: root._trigger_save
 			_trigger_delete: root._trigger_delete
 	BoxLayout:
-		size_hint_y: 0.05
+		size_hint_y: 0.07
 		Button:
 			text: 'Close'
 			on_release: root.dismiss()
-			size_hint_x: 0.2
-		Widget:
-			id: spacer
 <FuncsEdScreen>:
 	name: 'funcs'
 	TabbedPanel:
