@@ -527,6 +527,7 @@ Builder.load_string("""
             id: rulename
             hint_text: 'New rule name'
             write_tab: False
+            multiline: False
         Button:
             text: '+'
             on_release: root.new_rule()
