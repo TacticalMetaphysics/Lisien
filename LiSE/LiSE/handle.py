@@ -458,10 +458,7 @@ class EngineHandle(object):
 				if chardelta[UNITS] == NONE:
 					packd[UNITS] = concat_d({})
 				else:
-					packunitd = {}
-					for graph, unitss in chardelta[UNITS].items():
-						packunitd[graph] = concat_d(unitss)
-					packd[UNITS] = concat_d(packunitd)
+					packd[UNITS] = chardelta[UNITS]
 			if RULEBOOKS in chardelta:
 				packd[RULEBOOKS] = concat_d(chardelta[RULEBOOKS])
 			packd.update(chardelta)
