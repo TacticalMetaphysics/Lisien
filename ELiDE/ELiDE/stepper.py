@@ -12,6 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from kivy.clock import mainthread
 from kivy.properties import (NumericProperty, ObjectProperty, StringProperty)
 from kivy.uix.button import Button
 from kivy.uix.label import Label
@@ -88,6 +89,7 @@ class RuleStepperRuleButton(Button):
 		self.set_tick(self.end_tick)
 		self.tick = self.end_tick
 
+	@mainthread
 	def upd_line(self, *args):
 		if hasattr(self, 'color_inst'):
 			if self.tick == self.end_tick:
