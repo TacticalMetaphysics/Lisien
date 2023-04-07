@@ -288,7 +288,7 @@ def _make_edge_val_select(graph: bytes, orig: bytes, dest: bytes, idx: int,
 
 
 def _make_side_sel(entity, stat, branches: List[str], pack: callable,
-                   mid_turn: bool):
+					mid_turn: bool):
 	from .character import AbstractCharacter
 	from .node import Place
 	from .node import Thing
