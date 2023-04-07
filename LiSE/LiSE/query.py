@@ -974,6 +974,7 @@ class QueryEngine(query.QueryEngine):
 			if getattr(self, attr):
 				put(('silent', 'many', cmd, getattr(self, attr)))
 			setattr(self, attr, [])
+		assert self.echo('flushed') == 'flushed'
 
 	def universals_dump(self):
 		unpack = self.unpack
