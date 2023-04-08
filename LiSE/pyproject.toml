@@ -7,13 +7,13 @@ include-package-data=true
 
 [project]
 name = "LiSE"
-version = "0.13.3"
+version = "0.14.0"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
 description = "Life Simulator Engine"
-readme = "../README.md"
-license = { file = "../LICENSE" }
+readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.7"
 classifiers = [
 	"Programming Language :: Python :: 3",
@@ -24,7 +24,7 @@ classifiers = [
 ]
 dependencies = [
 	"astunparse>=1.6.3,<2",
-	"blinker>=1.4,<2",
+	"blinker>=1.4,<=1.6",
 	"msgpack>=1.0.0",
 	"networkx>=2.4,<2.8",
 	"cached_property>=1.5.2",
