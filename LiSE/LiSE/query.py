@@ -288,7 +288,7 @@ def _make_edge_val_select(graph: bytes, orig: bytes, dest: bytes, idx: int,
 
 
 def _make_side_sel(entity, stat, branches: List[str], pack: callable,
-                   mid_turn: bool):
+					mid_turn: bool):
 	from .character import AbstractCharacter
 	from .node import Place
 	from .node import Thing
@@ -974,6 +974,7 @@ class QueryEngine(query.QueryEngine):
 			if getattr(self, attr):
 				put(('silent', 'many', cmd, getattr(self, attr)))
 			setattr(self, attr, [])
+		assert self.echo('flushed') == 'flushed'
 
 	def universals_dump(self):
 		unpack = self.unpack

@@ -522,7 +522,7 @@ Builder.load_string("""
             size_hint_x: 0.8
     BoxLayout:
         orientation: 'horizontal'
-        size_hint_y: 0.05
+        size_hint_y: 0.07
         TextInput:
             id: rulename
             hint_text: 'New rule name'

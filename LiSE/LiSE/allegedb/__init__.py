@@ -267,6 +267,8 @@ class TimeSignalDescriptor:
 				(inst._turn_end_plan[branch_now, turn_now], tick_now))
 			e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
 		e._obranch, e._oturn = val
+		if not e._time_is_loaded(*val, tick_now):
+			e._load_at(*val, tick_now)
 
 		if not e._planning:
 			if tick_now > e._turn_end[val]:
@@ -1504,7 +1506,7 @@ class ORM:
 										and kft < early_tick):
 					loaded[kfb] = kfr, kft, late_turn, late_tick
 			elif kfb == branch_now:
-				if kfr < turn_now or (kfr == turn_now and kft < tick_now):
+				if kfr < turn_now or (kfr == turn_now and kft <= tick_now):
 					loaded[kfb] = (kfr, kft, turn_now, tick_now)
 			else:
 				loaded[kfb] = (kfr, kft, kfr, kft)

@@ -341,8 +341,7 @@ class RulesHandledCache(object):
 		try:
 			unhandl[turn].remove(rule)
 		except ValueError:
-			if not loading:
-				raise
+			pass
 
 	def fork(self, branch, turn, tick):
 		parent_branch, parent_turn, parent_tick, end_turn, end_tick = self.engine._branches[

@@ -565,7 +565,7 @@ Builder.load_string("""
 	name_wid: stringname
 	orientation: 'vertical'
 	BoxLayout:
-		size_hint_y: 0.05
+		size_hint_y: 0.07
 		Label:
 			id: title
 			text: 'Title: '
@@ -612,20 +612,21 @@ Builder.load_string("""
 			language: root.language
 		BoxLayout:
 			size_hint_y: 0.05
-			Button:
-				text: 'Close'
-				on_release: edbox.dismiss()
 			Label:
 				text_size: self.size
 				halign: 'right'
 				valign: 'middle'
 				text: 'Language: '
+				size_hint_x: 0.2
 			LanguageInput:
 				id: language
 				screen: root
 				hint_text: root.language
 				write_tab: False
 				multiline: False
+			Button:
+				text: 'Close'
+				on_release: edbox.dismiss()
 <Py3CodeInput@CodeInput>:
 	lexer: py3lexer()
 <FuncEditor>:
@@ -705,13 +706,10 @@ Builder.load_string("""
 			_trigger_save: root._trigger_save
 			_trigger_delete: root._trigger_delete
 	BoxLayout:
-		size_hint_y: 0.05
+		size_hint_y: 0.07
 		Button:
 			text: 'Close'
 			on_release: root.dismiss()
-			size_hint_x: 0.2
-		Widget:
-			id: spacer
 <FuncsEdScreen>:
 	name: 'funcs'
 	TabbedPanel:

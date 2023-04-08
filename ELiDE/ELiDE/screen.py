@@ -499,9 +499,11 @@ class CharMenuContainer(BoxLayout):
 			toggle_gridview=self.charmenu.setter('toggle_gridview'),
 			toggle_timestream=self.charmenu.setter('toggle_timestream'))
 		self.stepper = RuleStepper(size_hint_y=0.9)
-		self.button = Button(on_release=self._toggle,
+		self.button = Button(on_release=self._toggle_stepper,
 								text='Rule\nstepper',
 								size_hint_y=0.1)
+		app = App.get_running_app()
+		app.bind(branch=self._switch_to_menu, turn=self._switch_to_menu)
 
 	def on_parent(self, *args):
 		if not self.screen or not hasattr(self, 'charmenu') or not hasattr(
@@ -512,7 +514,7 @@ class CharMenuContainer(BoxLayout):
 		self.add_widget(self.button)
 
 	@trigger
-	def _toggle(self, *args):
+	def _toggle_stepper(self, *args):
 		if self.charmenu in self.children:
 			engine = self.screen.app.engine
 			self.clear_widgets()

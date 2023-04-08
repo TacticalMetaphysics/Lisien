@@ -239,40 +239,40 @@ def tables_for_meta(meta):
 	crh = Table(
 		'character_rules_handled',
 		meta,
-		Column('character', TEXT, primary_key=True),
-		Column('rulebook', TEXT, primary_key=True),
-		Column('rule', TEXT, primary_key=True),
-		Column('branch', TEXT, primary_key=True, default='trunk'),
-		Column('turn', INT, primary_key=True),
+		Column('character', TEXT),
+		Column('rulebook', TEXT),
+		Column('rule', TEXT),
+		Column('branch', TEXT, default='trunk'),
+		Column('turn', INT),
 		Column('tick', INT),
 		ForeignKeyConstraint(
 			('character', 'rulebook'),
 			['character_rulebook.character', 'character_rulebook.rulebook']),
-		sqlite_with_rowid=False)
+		sqlite_with_rowid=True)
 
 	arh = Table('unit_rules_handled',
 				meta,
-				Column('character', TEXT, primary_key=True),
-				Column('graph', TEXT, primary_key=True),
-				Column('unit', TEXT, primary_key=True),
-				Column('rulebook', TEXT, primary_key=True),
-				Column('rule', TEXT, primary_key=True),
-				Column('branch', TEXT, primary_key=True, default='trunk'),
-				Column('turn', INT, primary_key=True),
+				Column('character', TEXT),
+				Column('graph', TEXT),
+				Column('unit', TEXT),
+				Column('rulebook', TEXT),
+				Column('rule', TEXT),
+				Column('branch', TEXT, default='trunk'),
+				Column('turn', INT),
 				Column('tick', INT),
 				ForeignKeyConstraint(
 					('character', 'rulebook'),
 					['unit_rulebook.character', 'unit_rulebook.rulebook']),
-				sqlite_with_rowid=False)
+				sqlite_with_rowid=True)
 
 	ctrh = Table('character_thing_rules_handled',
 					meta,
-					Column('character', TEXT, primary_key=True),
-					Column('thing', TEXT, primary_key=True),
-					Column('rulebook', TEXT, primary_key=True),
-					Column('rule', TEXT, primary_key=True),
-					Column('branch', TEXT, primary_key=True, default='trunk'),
-					Column('turn', INT, primary_key=True),
+					Column('character', TEXT),
+					Column('thing', TEXT),
+					Column('rulebook', TEXT),
+					Column('rule', TEXT),
+					Column('branch', TEXT, default='trunk'),
+					Column('turn', INT),
 					Column('tick', INT),
 					ForeignKeyConstraint(('character', 'rulebook'), [
 						'character_thing_rulebook.character',
@@ -281,16 +281,16 @@ def tables_for_meta(meta):
 					ForeignKeyConstraint(
 						('character', 'thing'),
 						['things.character', 'things.thing']),
-					sqlite_with_rowid=False)
+					sqlite_with_rowid=True)
 
 	cprh = Table('character_place_rules_handled',
 					meta,
-					Column('character', TEXT, primary_key=True),
-					Column('place', TEXT, primary_key=True),
-					Column('rulebook', TEXT, primary_key=True),
-					Column('rule', TEXT, primary_key=True),
-					Column('branch', TEXT, primary_key=True, default='trunk'),
-					Column('turn', INT, primary_key=True),
+					Column('character', TEXT),
+					Column('place', TEXT),
+					Column('rulebook', TEXT),
+					Column('rule', TEXT),
+					Column('branch', TEXT, default='trunk'),
+					Column('turn', INT),
 					Column('tick', INT),
 					ForeignKeyConstraint(('character', 'rulebook'), [
 						'character_place_rulebook.character',
@@ -298,17 +298,17 @@ def tables_for_meta(meta):
 					]),
 					ForeignKeyConstraint(('character', 'place'),
 											['nodes.graph', 'nodes.node']),
-					sqlite_with_rowid=False)
+					sqlite_with_rowid=True)
 
 	cporh = Table('character_portal_rules_handled',
 					meta,
-					Column('character', TEXT, primary_key=True),
-					Column('orig', TEXT, primary_key=True),
-					Column('dest', TEXT, primary_key=True),
-					Column('rulebook', TEXT, primary_key=True),
-					Column('rule', TEXT, primary_key=True),
-					Column('branch', TEXT, primary_key=True, default='trunk'),
-					Column('turn', INT, primary_key=True),
+					Column('character', TEXT),
+					Column('orig', TEXT),
+					Column('dest', TEXT),
+					Column('rulebook', TEXT),
+					Column('rule', TEXT),
+					Column('branch', TEXT, default='trunk'),
+					Column('turn', INT),
 					Column('tick', INT),
 					ForeignKeyConstraint(('character', 'rulebook'), [
 						'character_portal_rulebook.character',
@@ -317,7 +317,7 @@ def tables_for_meta(meta):
 					ForeignKeyConstraint(
 						('character', 'orig', 'dest'),
 						['edges.graph', 'edges.orig', 'edges.dest']),
-					sqlite_with_rowid=False)
+					sqlite_with_rowid=True)
 
 	Table('turns_completed',
 			meta,
@@ -409,16 +409,15 @@ def queries(table):
 					things.c.tick >= bindparam('tick_from'))))
 	r['load_things_tick_to_end'] = select(
 		things.c.thing, things.c.turn, things.c.tick,
-			things.c.location).where(things_to_end_clause)
+		things.c.location).where(things_to_end_clause)
 	r['load_things_tick_to_tick'] = select(
-		things.c.thing, things.c.turn, things.c.tick,
-			things.c.location).where(
-				and_(
-					things_to_end_clause,
-					or_(
-						things.c.turn < bindparam('turn_to_a'),
-						and_(things.c.turn == bindparam('turn_to_b'),
-								things.c.tick <= bindparam('tick_to')))))
+		things.c.thing, things.c.turn, things.c.tick, things.c.location).where(
+			and_(
+				things_to_end_clause,
+				or_(
+					things.c.turn < bindparam('turn_to_a'),
+					and_(things.c.turn == bindparam('turn_to_b'),
+							things.c.tick <= bindparam('tick_to')))))
 
 	for handledtab in ('character_rules_handled', 'unit_rules_handled',
 						'character_thing_rules_handled',

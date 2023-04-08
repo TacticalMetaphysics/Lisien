@@ -894,8 +894,9 @@ class Cache:
 						# keyframe instead
 						if b in keyframes and r in keyframes[b]:
 							kfbr = keyframes[b][r]
-							if brancs[r].rev_before(t) < kfbr.rev_before(
-								t) < t:
+							if kfbr.rev_before(t) is not None and (
+								(brancs[r].rev_before(t) or -float("inf")) <
+								kfbr.rev_before(t) < t):
 								kf = kfbr[t]
 								if key in kf:
 									ret = kf[key]
@@ -911,8 +912,9 @@ class Cache:
 					elif brancs.rev_gettable(r - 1):
 						if b in keyframes and keyframes[b].rev_gettable(r - 1):
 							kfb = keyframes[b]
-							if brancs.rev_before(r - 1) < kfb.rev_before(r -
-																			1):
+							if kfb.rev_before(r - 1) is not None and (
+								(brancs.rev_before(r - 1)
+									or -float("inf")) < kfb.rev_before(r - 1)):
 								kfbr = kfb[r - 1]
 								kf = kfbr.final()
 								if key in kf:
