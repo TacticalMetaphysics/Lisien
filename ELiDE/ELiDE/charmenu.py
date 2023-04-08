@@ -172,6 +172,8 @@ class CharMenu(BoxLayout):
 												origin=self.ids.emptyright,
 												destination=self.ids.emptyleft)
 			self.ids.portaladdbut.add_widget(self.revarrow)
+			self.ids.emptyright.bind(pos=self.revarrow._trigger_repoint)
+			self.ids.emptyleft.bind(pos=self.revarrow._trigger_repoint)
 		else:
 			if hasattr(self, 'revarrow'):
 				self.ids.portaladdbut.remove_widget(self.revarrow)
