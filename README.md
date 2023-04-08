@@ -22,6 +22,7 @@ it, because so much of it seems to operate independently of you.
 Existing games that LiSE seeks to imitate include:
 
 * The Sims
+* SimLife (1992)
 * Redshirt
 * Rimworld
 * Princess Maker
