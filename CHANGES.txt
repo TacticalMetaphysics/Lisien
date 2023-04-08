@@ -1,4 +1,4 @@
-== 0.14.0 | ==
+== 0.14.0 | 2023-04-07 ==
 * Seek bar for time travel in ELiDE, and some other minor UI improvements
 * Vastly improved performance in ELiDE for large worlds
 * History queries no longer require the whole of history to be loaded, and are faster
