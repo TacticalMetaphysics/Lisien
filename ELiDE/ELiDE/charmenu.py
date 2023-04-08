@@ -19,7 +19,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import (BooleanProperty, ObjectProperty,
 								ReferenceListProperty)
 from .graph.arrow import GraphArrowWidget
-from .util import try_load, dummynum
+from .util import try_load, dummynum, trigger
 from LiSE.proxy import CharStatProxy
 
 
@@ -194,6 +194,12 @@ class CharMenu(BoxLayout):
 		if not self.dummything.paths:
 			self.dummything.paths = ["atlas://rltiles/base.atlas/unseen"]
 
+	@trigger
+	def _trigger_deselect(self, *args):
+		if hasattr(self.app.selection, 'selected'):
+			self.app.selection.selected = False
+		self.app.selection = None
+
 
 Builder.load_string("""
 <CharMenu>:
@@ -251,6 +257,7 @@ Builder.load_string("""
 		orientation: 'vertical'
 		ToggleButton:
 			id: portaladdbut
+			on_state: root._trigger_deselect()
 			Widget:
 				id: emptyleft
 				center_x: portaladdbut.x + portaladdbut.width / 3
