@@ -53,12 +53,16 @@ class CharMenu(BoxLayout):
 											origin=self.ids.emptyleft,
 											destination=self.ids.emptyright)
 		self.ids.portaladdbut.add_widget(self.forearrow)
+		self.ids.emptyleft.bind(pos=self.forearrow._trigger_repoint)
+		self.ids.emptyright.bind(pos=self.forearrow._trigger_repoint)
 		if self.reciprocal_portal:
 			assert (self.revarrow is None)
 			self.revarrow = GraphArrowWidget(board=self.screen.boardview.board,
 												origin=self.ids.emptyright,
 												destination=self.ids.emptyleft)
 			self.ids.portaladdbut.add_widget(self.revarrow)
+			self.ids.emptyleft.bind(pos=self.revarrow._trigger_repoint)
+			self.ids.emptyright.bind(pos=self.revarrow._trigger_repoint)
 		self.bind(reciprocal_portal=self.screen.boardview.setter(
 			'reciprocal_portal'))
 
