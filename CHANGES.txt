@@ -1,3 +1,17 @@
+== 0.14.0 | ==
+* Seek bar for time travel in ELiDE, and some other minor UI improvements
+* Vastly improved performance in ELiDE for large worlds
+* History queries no longer require the whole of history to be loaded, and are faster
+	* SQLAlchemy is now a hard dependency
+* Save the state of the randomizer every time you use it, not just on time travel
+* Rule stepper now works when you reopen the sim
+* New example sim, wolfsheep.py
+* `enforce_end_of_time` option, so it's not so trivial to make voids of time by accident
+* Lots of crash fixes
+* yapf formatting, with tabs
+* Improved documentation
+* No longer accept later revisions of the AGPL
+
 ==0.13.2 | 2022-07-31 ==
 * Fix an intermittent error where entity deletion sometimes wouldn't go through all the way
 * Performance improvements
