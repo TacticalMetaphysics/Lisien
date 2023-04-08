@@ -282,7 +282,7 @@ time programmatically, set the properties ``eng.branch`` (to a
 string), ``eng.turn``, and ``eng.tick`` (to integers).
 
 To prevent locking when running `next_turn()`, you might want to run LiSE in a subprocess. This is done by
-instantiating [EngineProcessManager](https://github.com/Tactical-Metaphysics/LiSE/blob/master/LiSE/LiSE/proxy.py#L2575),
+instantiating `LiSE.proxy.EngineProcessManager()`,
 getting a proxy to the engine from its `start()` method, and treating that proxy much as you would an actual LiSE
 engine, except that you can call `next_turn()` in a thread and then do something else in parallel. Call
 `EngineProcessManager.shutdown()` when it's time to quit the game.
