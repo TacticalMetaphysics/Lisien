@@ -1609,7 +1609,7 @@ class StringStoreProxy(Signal):
 
 	def __setattr__(self, k, v):
 		if k in ('_cache', 'engine', 'language', '_language', 'receivers',
-					'_by_receiver', '_by_sender', '_weak_senders'):
+					'_by_receiver', '_by_sender', '_weak_senders', 'is_muted'):
 			super().__setattr__(k, v)
 			return
 		self._cache[k] = v
@@ -1804,7 +1804,8 @@ class FuncStoreProxy(Signal):
 
 	def __setattr__(self, func_name, source):
 		if func_name in ('engine', '_store', '_cache', 'receivers',
-							'_by_sender', '_by_receiver', '_weak_senders'):
+							'_by_sender', '_by_receiver', '_weak_senders',
+							'is_muted'):
 			super().__setattr__(func_name, source)
 			return
 		self.engine.handle(command='store_source',
