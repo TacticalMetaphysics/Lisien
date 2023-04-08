@@ -245,8 +245,9 @@ class GraphBoard(RelativeLayout):
 			destspot = next(self.spots_at(*touch.pos))
 			orig = self.origspot.proxy
 			dest = destspot.proxy
-			if not (orig.name in self.character.portal
-					and dest.name in self.character.portal[orig.name]):
+			if orig != dest and not (orig.name in self.character.portal
+										and dest.name
+										in self.character.portal[orig.name]):
 				symmetrical = hasattr(self, 'protoportal2') and not (
 					orig.name in self.character.preportal
 					and dest.name in self.character.preportal[orig.name])
