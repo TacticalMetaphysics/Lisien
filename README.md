@@ -1,5 +1,7 @@
 LiSE is a tool for developing life simulation games.
 
+[Demo](https://vimeo.com/815795673)
+
 [Documentation](https://tacticalmetaphysics.github.io/LiSE/manual.html)
 
 [Forum](https://www.gamemaking.tools/forum/categories/lise)
