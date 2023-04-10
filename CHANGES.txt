@@ -3,6 +3,7 @@
 * Vastly improved performance in ELiDE for large worlds
 * History queries no longer require the whole of history to be loaded, and are faster
 	* SQLAlchemy is now a hard dependency
+	* numpy is required again
 * Save the state of the randomizer every time you use it, not just on time travel
 * Rule stepper now works when you reopen the sim
 * New example sim, wolfsheep.py
