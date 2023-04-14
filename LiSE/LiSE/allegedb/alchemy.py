@@ -12,15 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""SQLAlchemy code to generate the SQL used by the allegedb ORM
-
-If SQLAlchemy is installed at runtime, this will use it to generate SQL on the fly;
-if it is not, allegedb can use a pregenerated file "sqlite.json" to store graphs in
-a SQLite database. Generate sqlite.json by running this on the command line:
-
-python3 alchemy.py >sqlite.json
-
-"""
 from functools import partial
 from sqlalchemy import (
 	Table,
