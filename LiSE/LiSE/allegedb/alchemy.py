@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from functools import partial
+from json import dumps
+
 from sqlalchemy import (
 	Table,
 	Column,
@@ -26,12 +28,10 @@ from sqlalchemy import (
 	select,
 	func,
 )
+from sqlalchemy.sql import bindparam, and_, or_
 
 BaseColumn = Column
 Column = partial(BaseColumn, nullable=False)
-
-from sqlalchemy.sql import bindparam, and_, or_
-from json import dumps
 
 
 def tables_for_meta(meta):
