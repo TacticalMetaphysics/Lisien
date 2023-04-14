@@ -50,6 +50,12 @@ KeyframeTuple = Tuple[Key, str, int, int, NodeValDict, EdgeValDict, StatDict]
 
 
 def world_locked(fn: Callable) -> Callable:
+	"""Decorator for functions that alter the world state
+
+	They will hold a reentrant lock, preventing more than one function
+	from mutating the world at a time.
+
+	"""
 
 	@wraps(fn)
 	def lockedy(*args, **kwargs):
