@@ -41,7 +41,6 @@ Column = partial(BaseColumn, nullable=False)
 
 from sqlalchemy.sql import bindparam, and_, or_
 from json import dumps
-from functools import partial
 
 
 def tables_for_meta(meta):
