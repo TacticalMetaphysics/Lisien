@@ -34,6 +34,7 @@ from threading import Thread, Lock
 from multiprocessing import Process, Pipe, Queue, ProcessError
 from concurrent.futures import ThreadPoolExecutor
 from queue import Empty
+from time import monotonic
 from typing import Hashable
 
 from blinker import Signal
@@ -2124,11 +2125,13 @@ class EngineProxy(AbstractEngine):
 		cb = kwargs.pop('cb', None)
 		assert not kwargs.get('silent')
 		self.debug(f'EngineProxy: sending {cmd}')
+		start_ts = monotonic()
 		self.send_bytes(self.pack(kwargs))
 		received = self.recv_bytes()
 		command, branch, turn, tick, r = self.unpack(received)
-		self.debug('EngineProxy: received {}'.format(
-			(command, branch, turn, tick)))
+		self.debug('EngineProxy: received {} in {:,.2f} seconds'.format(
+			(command, branch, turn, tick),
+			monotonic() - start_ts))
 		if (branch, turn, tick) != self._btt():
 			self._branch = branch
 			self._turn = turn
