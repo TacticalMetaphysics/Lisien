@@ -32,7 +32,7 @@ from .allegedb import OutOfTimelineError
 from .engine import Engine
 from .node import Node
 from .portal import Portal
-from .util import MsgpackExtensionType, AbstractCharacter, Key
+from .util import MsgpackExtensionType, AbstractCharacter, Key, timer
 
 SlightlyPackedDeltaType = Dict[bytes, Dict[bytes, Union[bytes, Dict[
 	bytes, Union[bytes, Dict[bytes, Union[bytes, Dict[bytes, bytes]]]]]]]]
@@ -914,21 +914,21 @@ class EngineHandle(object):
 		else:
 			character.node[node].update(patch)
 
-	def update_nodes(self, char: Key, patch: Dict, backdate=False):
+	def update_nodes(self, char: Key, patch: Dict):
 		"""Change the stats of nodes in a character according to a
 		dictionary.
 
 		"""
-		# Performance could be improved by preserving the packed values
-		tick_now = self._real.tick
-		if backdate:
-			parbranch, parrev = self._real._parentbranch_rev.get(
-				self._real.branch, ('trunk', 0))
-			self._real.tick = parrev
-		for i, (n, npatch) in enumerate(patch.items(), 1):
-			self.update_node(char, n, npatch)
-		if backdate:
-			self._real.tick = tick_now
+		node = self._real.character[char].node
+		with self._real.batch(), timer("EngineHandle.update_nodes",
+										self.debug):
+			for n, npatch in patch.items():
+				if patch is None:
+					del node[n]
+				elif n not in node:
+					node[n] = npatch
+				else:
+					node[n].update(npatch)
 
 	def del_node(self, char, node):
 		"""Remove a node from a character."""
