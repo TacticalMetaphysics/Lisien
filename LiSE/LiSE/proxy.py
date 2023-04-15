@@ -2123,12 +2123,12 @@ class EngineProxy(AbstractEngine):
 			raise TypeError("No command")
 		cb = kwargs.pop('cb', None)
 		assert not kwargs.get('silent')
-		self.debug('EngineProxy: sending {}'.format(kwargs))
+		self.debug(f'EngineProxy: sending {cmd}')
 		self.send_bytes(self.pack(kwargs))
 		received = self.recv_bytes()
 		command, branch, turn, tick, r = self.unpack(received)
 		self.debug('EngineProxy: received {}'.format(
-			(command, branch, turn, tick, r)))
+			(command, branch, turn, tick)))
 		if (branch, turn, tick) != self._btt():
 			self._branch = branch
 			self._turn = turn
