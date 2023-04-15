@@ -29,13 +29,13 @@ from os import PathLike
 from abc import ABC, abstractmethod
 from random import Random
 
-from networkx import Graph
+from networkx import Graph, spring_layout
 from blinker import Signal
 
 from .allegedb import ORM as gORM
 from .allegedb import (StatDict, NodeValDict, EdgeValDict, DeltaDict)
 from .allegedb.window import update_window, update_backward_window
-from .util import sort_set, AbstractEngine, final_rule, Key
+from .util import sort_set, AbstractEngine, final_rule, Key, normalize_layout
 from .xcollections import StringStore, FunctionStore, MethodStore
 from .query import (Query, _make_side_sel, StatusAlias, ComparisonQuery,
 					CompoundQuery, QueryResultMidTurn, QueryResult,
@@ -1308,7 +1308,11 @@ class Engine(AbstractEngine, gORM):
 
 	new_graph = new_character
 
-	def add_character(self, name: Key, data: Graph = None, **kwargs) -> None:
+	def add_character(self,
+						name: Key,
+						data: Graph = None,
+						arrange: bool = True,
+						**kwargs) -> None:
 		"""Create a new character.
 
 		You'll be able to access it as a :class:`Character` object by
@@ -1317,9 +1321,28 @@ class Engine(AbstractEngine, gORM):
 		``data``, if provided, should be a networkx-compatible graph
 		object. Your new character will be a copy of it.
 
+		With ``arrange=True`` (the default), compute a layout to make the
+		graph show up nicely in ELiDE.
+
 		Any keyword arguments will be set as stats of the new character.
 
 		"""
+		if arrange:
+			nodes = data.nodes()
+			try:
+				layout = normalize_layout({
+					name: name
+					for name, node in nodes.items() if 'location' not in node
+				})
+			except (TypeError, ValueError):
+				layout = normalize_layout(
+					spring_layout([
+						name for name, node in nodes.items()
+						if 'location' not in node
+					]))
+			for k, (x, y) in layout.items():
+				nodes[k]['_x'] = x
+				nodes[k]['_y'] = y
 		self._init_graph(name, 'DiGraph', data)
 		self._graph_objs[name] = graph_obj = self.char_cls(self, name)
 		if kwargs:

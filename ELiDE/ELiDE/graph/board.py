@@ -16,7 +16,6 @@
 from functools import partial
 from time import monotonic
 
-import msgspec.msgpack
 from kivy.properties import (BooleanProperty, ReferenceListProperty,
 								DictProperty, ObjectProperty, NumericProperty,
 								ListProperty, StringProperty)
@@ -30,6 +29,7 @@ from kivy.uix.widget import Widget
 from kivy.vector import Vector
 
 from ELiDE.pawnspot import TextureStackPlane, Stack
+from LiSE.util import normalize_layout
 from .spot import GraphSpot
 from .arrow import GraphArrow, GraphArrowWidget, ArrowPlane, get_points_multi
 from .pawn import Pawn
@@ -37,38 +37,6 @@ from ..dummy import Dummy
 from ..util import trigger
 from ..boardview import BoardView
 from ..boardscatter import BoardScatterPlane
-import numpy as np
-
-
-def normalize_layout(l):
-	"""Make sure all the spots in a layout are where you can click.
-
-	Returns a copy of the layout with all spot coordinates are
-	normalized to within (0.0, 0.98).
-
-	"""
-	xs = []
-	ys = []
-	ks = []
-	for (k, (x, y)) in l.items():
-		xs.append(x)
-		ys.append(y)
-		ks.append(k)
-	minx = np.min(xs)
-	maxx = np.max(xs)
-	if maxx == minx:
-		xnorm = np.array([0.5] * len(xs))
-	else:
-		xco = 0.98 / (maxx - minx)
-		xnorm = np.multiply(np.subtract(xs, [minx] * len(xs)), xco)
-	miny = np.min(ys)
-	maxy = np.max(ys)
-	if miny == maxy:
-		ynorm = np.array([0.5] * len(ys))
-	else:
-		yco = 0.98 / (maxy - miny)
-		ynorm = np.multiply(np.subtract(ys, [miny] * len(ys)), yco)
-	return dict(zip(ks, zip(map(float, xnorm), map(float, ynorm))))
 
 
 class KvLayoutBack(FloatLayout):
