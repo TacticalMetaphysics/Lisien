@@ -1301,9 +1301,10 @@ class Engine(AbstractEngine, gORM):
 	def new_character(self,
 						name: Key,
 						data: Graph = None,
+						layout: bool = True,
 						**kwargs) -> Character:
 		"""Create and return a new :class:`Character`."""
-		self.add_character(name, data, **kwargs)
+		self.add_character(name, data, layout, **kwargs)
 		return self.character[name]
 
 	new_graph = new_character
