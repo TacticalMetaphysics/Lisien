@@ -16,6 +16,7 @@
 from functools import partial
 from time import monotonic
 
+import msgspec.msgpack
 from kivy.properties import (BooleanProperty, ReferenceListProperty,
 								DictProperty, ObjectProperty, NumericProperty,
 								ListProperty, StringProperty)
@@ -662,8 +663,6 @@ class GraphBoard(RelativeLayout):
 					'_image_paths':
 					list(place.get('_image_paths', default_image_paths))
 				}
-		if nodes_patch:
-			self.character.node.patch(nodes_patch)
 		make_spot = self.make_spot
 		spots_posd = []
 		stack_idx = self.stack_plane._stack_index
@@ -675,9 +674,18 @@ class GraphBoard(RelativeLayout):
 				spots_posd.append(spot)
 		if spots_unposd:
 			try:
-				self.grid_layout(spots_unposd)
+				nodes_patch_2 = self.grid_layout(spots_unposd)
 			except (TypeError, ValueError):
-				self.nx_layout(spots_unposd)
+				nodes_patch_2 = self.nx_layout(spots_unposd)
+			for k, v in nodes_patch_2.items():
+				if k in nodes_patch:
+					nodes_patch[k].update(v)
+				else:
+					nodes_patch[k] = v
+		if nodes_patch:
+			self.engine.handle(command='update_nodes',
+								char=self.character.name,
+								patch=nodes_patch)
 		if spots_posd:
 			self.stack_plane.unbind_uid('data',
 										self.stack_plane._redraw_bind_uid)
@@ -896,12 +904,11 @@ class GraphBoard(RelativeLayout):
 			self.stack_plane.redraw()
 			self.stack_plane._redraw_bind_uid = self.stack_plane.fbind(
 				'data', self.stack_plane._trigger_redraw)
-		if node_upd:
-			self.character.node.patch(node_upd)
 		self.spots_unposd = []
+		return node_upd
 
 	def grid_layout(self, spots, *args):
-		self._apply_node_layout(
+		return self._apply_node_layout(
 			normalize_layout({spot['name']: spot['name']
 								for spot in spots}), spots)
 
@@ -912,7 +919,7 @@ class GraphBoard(RelativeLayout):
 		for place in spots_only.place.keys() - set(spot['name']
 													for spot in spots):
 			del spots_only.place[place]
-		self._apply_node_layout(self.graph_layout(spots_only), spots)
+		return self._apply_node_layout(self.graph_layout(spots_only), spots)
 
 	def arrows(self):
 		"""Iterate over all my arrows."""
