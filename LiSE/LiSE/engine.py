@@ -1298,22 +1298,31 @@ class Engine(AbstractEngine, gORM):
 	#	 self._rules_iter = self._follow_rules()
 	#	 return ex
 
-	def new_character(self,
-						name: Key,
-						data: Graph = None,
-						layout: bool = True,
-						**kwargs) -> Character:
+	def new_character(
+			self,
+			name: Key,
+			data: Graph = None,
+			layout: bool = True,
+			place_graphic: Optional[
+				str] = 'atlas://rltiles/floor.atlas/floor-stone',
+			thing_graphic: Optional[str] = 'atlas://rltiles/base.atlas/unseen',
+			**kwargs) -> Character:
 		"""Create and return a new :class:`Character`."""
-		self.add_character(name, data, layout, **kwargs)
+		self.add_character(name, data, layout, place_graphic, thing_graphic,
+							**kwargs)
 		return self.character[name]
 
 	new_graph = new_character
 
-	def add_character(self,
-						name: Key,
-						data: Graph = None,
-						layout: bool = True,
-						**kwargs) -> None:
+	def add_character(
+			self,
+			name: Key,
+			data: Graph = None,
+			layout: bool = True,
+			place_graphic: Optional[
+				str] = 'atlas://rltiles/floor.atlas/floor-stone',
+			thing_graphic: Optional[str] = 'atlas://rltiles/base.atlas/unseen',
+			**kwargs) -> None:
 		"""Create a new character.
 
 		You'll be able to access it as a :class:`Character` object by
@@ -1325,10 +1334,13 @@ class Engine(AbstractEngine, gORM):
 		With ``layout=True`` (the default), compute a layout to make the
 		graph show up nicely in ELiDE.
 
+		``place_graphic`` and ``thing_graphic`` will be used to set the
+		graphics to represent the nodes in ELiDE, if non-``None``.
+
 		Any keyword arguments will be set as stats of the new character.
 
 		"""
-		if layout:
+		if layout and data:
 			nodes = data.nodes()
 			try:
 				layout = normalize_layout({
@@ -1344,6 +1356,12 @@ class Engine(AbstractEngine, gORM):
 			for k, (x, y) in layout.items():
 				nodes[k]['_x'] = x
 				nodes[k]['_y'] = y
+				if place_graphic is not None and '_image_paths' not in nodes[k]:
+					nodes[k]['_image_paths'] = [place_graphic]
+			if thing_graphic is not None:
+				for thing in nodes.keys() - layout.keys():
+					if '_image_paths' not in nodes[thing]:
+						nodes[thing]['_image_paths'] = [thing_graphic]
 		self._init_graph(name, 'DiGraph', data)
 		self._graph_objs[name] = graph_obj = self.char_cls(self, name)
 		if kwargs:
