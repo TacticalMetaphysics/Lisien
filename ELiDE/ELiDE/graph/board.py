@@ -810,7 +810,7 @@ class GraphBoard(RelativeLayout):
 			self.trigger_update()
 			return
 		# remove widgets that don't represent anything anymore
-		Logger.debug("Board: updating")
+		Logger.debug("GraphBoard: updating")
 		start_ts = monotonic()
 		self.remove_absent_pawns()
 		self.remove_absent_spots()
@@ -821,7 +821,7 @@ class GraphBoard(RelativeLayout):
 			self.add_new_arrows()
 		self.add_new_pawns()
 		Logger.debug(
-			f"Board: updated, took {monotonic() - start_ts:,.2f} seconds")
+			f"GraphBoard: updated, took {monotonic() - start_ts:,.2f} seconds")
 
 	trigger_update = trigger(update)
 
