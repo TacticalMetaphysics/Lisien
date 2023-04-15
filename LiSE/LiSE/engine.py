@@ -1311,7 +1311,7 @@ class Engine(AbstractEngine, gORM):
 	def add_character(self,
 						name: Key,
 						data: Graph = None,
-						arrange: bool = True,
+						layout: bool = True,
 						**kwargs) -> None:
 		"""Create a new character.
 
@@ -1321,13 +1321,13 @@ class Engine(AbstractEngine, gORM):
 		``data``, if provided, should be a networkx-compatible graph
 		object. Your new character will be a copy of it.
 
-		With ``arrange=True`` (the default), compute a layout to make the
+		With ``layout=True`` (the default), compute a layout to make the
 		graph show up nicely in ELiDE.
 
 		Any keyword arguments will be set as stats of the new character.
 
 		"""
-		if arrange:
+		if layout:
 			nodes = data.nodes()
 			try:
 				layout = normalize_layout({
