@@ -1,5 +1,6 @@
 from collections import defaultdict
 from functools import partial
+from time import monotonic
 
 from kivy.clock import Clock
 from kivy.logger import Logger
@@ -121,6 +122,8 @@ class GridBoard(Widget):
 		if self.character is None:
 			Clock.schedule_once(self.on_parent, 0)
 			return
+		Logger.debug("GridBoard: on_parent start")
+		start_ts = monotonic()
 		if not hasattr(self, '_pawn_plane'):
 			self.pawn_plane = TextureStackPlane(pos=self.pos, size=self.size)
 			self.spot_plane = TextureStackPlane(pos=self.pos, size=self.size)
@@ -155,6 +158,9 @@ class GridBoard(Widget):
 			self.pawn[pwn["name"]] = self.pawn_cls(board=self,
 													proxy=pwn["proxy"])
 		self.pawn_plane.data = pawn_data
+		Logger.debug(
+			f"GridBoard: on_parent end, took {monotonic() - start_ts:,.2f}"
+			f" seconds")
 
 	def rm_spot(self, name):
 		spot = self.spot.pop(name)

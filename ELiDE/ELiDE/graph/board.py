@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The big widget that shows the graph of the selected Character."""
 from functools import partial
+from time import monotonic
 
 from kivy.properties import (BooleanProperty, ReferenceListProperty,
 								DictProperty, ObjectProperty, NumericProperty,
@@ -646,6 +647,7 @@ class GraphBoard(RelativeLayout):
 	def add_new_spots(self, *args):
 		Logger.debug("Board: adding new spots to {}".format(
 			self.character.name))
+		start_ts = monotonic()
 		places2add = []
 		spots_unposd = []
 		nodes_patch = {}
@@ -683,6 +685,8 @@ class GraphBoard(RelativeLayout):
 			self.stack_plane.redraw()
 			self.stack_plane._redraw_bind_uid = self.stack_plane.fbind(
 				'data', self.stack_plane._trigger_redraw)
+		Logger.debug(f"Board: added new {self.character.name} spots in "
+						f"{monotonic() - start_ts:,.2f} seconds")
 
 	def add_arrow(self, orign, destn, *args):
 		if not (orign in self.character.portal
@@ -799,6 +803,7 @@ class GraphBoard(RelativeLayout):
 			return
 		# remove widgets that don't represent anything anymore
 		Logger.debug("Board: updating")
+		start_ts = monotonic()
 		self.remove_absent_pawns()
 		self.remove_absent_spots()
 		self.remove_absent_arrows()
@@ -807,7 +812,8 @@ class GraphBoard(RelativeLayout):
 		if self.arrow_cls:
 			self.add_new_arrows()
 		self.add_new_pawns()
-		Logger.debug("Board: updated")
+		Logger.debug(
+			f"Board: updated, took {monotonic() - start_ts:,.2f} seconds")
 
 	trigger_update = trigger(update)
 
