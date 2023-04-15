@@ -623,14 +623,14 @@ class GraphBoard(RelativeLayout):
 		placemap = self.character.place
 		spotmap = self.spot
 		default_image_paths = GraphSpot.default_image_paths
-		for place_name in placemap:
+		for place_name, place in placemap.items():
 			if place_name not in spotmap:
 				place = placemap[place_name]
 				places2add.append(place)
-				nodes_patch[place_name] = {
-					'_image_paths':
-					list(place.get('_image_paths', default_image_paths))
-				}
+				if '_image_paths' not in place:
+					nodes_patch[place_name] = {
+						'_image_paths': default_image_paths
+					}
 		make_spot = self.make_spot
 		spots_posd = []
 		stack_idx = self.stack_plane._stack_index
