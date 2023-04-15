@@ -627,10 +627,6 @@ class GraphBoard(RelativeLayout):
 			if place_name not in spotmap:
 				place = placemap[place_name]
 				places2add.append(place)
-				if '_image_paths' not in place:
-					nodes_patch[place_name] = {
-						'_image_paths': default_image_paths
-					}
 		make_spot = self.make_spot
 		spots_posd = []
 		stack_idx = self.stack_plane._stack_index
@@ -816,18 +812,16 @@ class GraphBoard(RelativeLayout):
 					spot.x = int(x * self.width)
 				if y is not None:
 					spot.y = int(y * self.height)
-				if '_image_paths' in stats:
-					spot.paths = stats[
-						'_image_paths'] or GraphSpot.default_image_paths
+				spot.paths = stats.get('_image_paths',
+										GraphSpot.default_image_paths)
 			elif node in self.pawn:
 				pawn = self.pawn[node]
 				if 'location' in stats:
 					loc = self.spot[stats['location']]
 					pawn.x = int(loc.right)
 					pawn.y = int(loc.top)
-				if '_image_paths' in stats:
-					pawn.paths = stats[
-						'_image_paths'] or Pawn.default_image_paths
+				pawn.paths = stats.get('_image_paths',
+										Pawn.default_image_paths)
 			else:
 				Logger.warning(
 					"Board: diff tried to change stats of node {} "
