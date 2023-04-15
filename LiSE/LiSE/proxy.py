@@ -37,6 +37,7 @@ from queue import Empty
 from time import monotonic
 from typing import Hashable
 
+import msgspec.msgpack
 from blinker import Signal
 import lz4.frame
 import msgpack
@@ -1988,6 +1989,7 @@ class EngineProxy(AbstractEngine):
 		self._handle_out_lock = Lock()
 		self._handle_in = handle_in
 		self._handle_in_lock = Lock()
+		self._round_trip_lock = Lock()
 		self._commit_lock = Lock()
 		self.logger = logger
 
@@ -2126,8 +2128,9 @@ class EngineProxy(AbstractEngine):
 		assert not kwargs.get('silent')
 		self.debug(f'EngineProxy: sending {cmd}')
 		start_ts = monotonic()
-		self.send_bytes(self.pack(kwargs))
-		received = self.recv_bytes()
+		with self._round_trip_lock:
+			self.send_bytes(self.pack(kwargs))
+			received = self.recv_bytes()
 		command, branch, turn, tick, r = self.unpack(received)
 		self.debug('EngineProxy: received {} in {:,.2f} seconds'.format(
 			(command, branch, turn, tick),
@@ -2430,6 +2433,8 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 			logq.close()
 			return 0
 		instruction = engine_handle.unpack(inst)
+		if isinstance(instruction, dict) and '__use_msgspec__' in instruction:
+			instruction = msgspec.msgpack.decode(instruction['__real__'])
 		silent = instruction.pop('silent', False)
 		cmd = instruction.pop('command')
 
