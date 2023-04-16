@@ -83,7 +83,7 @@ tester knew to look for it.
 ## Windows
 
 The Microsoft Store version of Python is currently incompatible with ELiDE; please
-use [the python.org version](https://www.python.org/downloads/release/python-3910/)
+use [the python.org version](https://www.python.org/downloads/)
 instead.
 
 ```
