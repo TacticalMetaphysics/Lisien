@@ -78,7 +78,7 @@ tester knew to look for it.
 * Edit state in graph or grid view
 * Edit rule functions with syntax highlighting
 
-# Getting started
+# Setup
 
 ## Windows
 
@@ -121,6 +121,8 @@ git clone https://github.com/TacticalMetaphysics/LiSE.git
 cd LiSE
 export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE  # has to be run once per terminal session
 ```
+
+# Getting started
 
 You could now start the graphical frontend with ``python3 -mELiDE``,
 but this might not be very useful, as you don't have any world state
