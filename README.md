@@ -391,8 +391,10 @@ carries the MIT license.
 The allegedb, LiSE, and ELiDE source files are licensed under the
 terms of the GNU Affero Public License version 3 (and no later).
 If you make a game with it, you have to release any modifications you
-make to LiSE itself under the AGPL, but this doesn't apply to your 
-game code. Game code is that which is loaded into the engine at
+make to ELiDE, allegedb, or LiSE itself under the AGPL, but 
+this doesn't apply to your game code.
+
+Game code is that which is loaded into the engine at
 launch time from modules specified by the following parameters
 to the LiSE engine:
 * ``trigger``
