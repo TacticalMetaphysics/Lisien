@@ -401,8 +401,9 @@ to the LiSE engine:
 * ``function``
 * ``method``
 
-Game code must not alter the function of LiSE itself (no "hot
-patching"). If it does, then it is part of LiSE.
+Or stored in files by those names (plus extensions) inside the game's prefix. 
+Game code must not alter the function of LiSE itself (no "hot patching"). If 
+it does, then it is part of LiSE.
 
 If you write another application (not using any allegedb, LiSE, or
 ELiDE code) that accesses a LiSE server via HTTP(S), it is separate
