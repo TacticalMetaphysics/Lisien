@@ -2433,6 +2433,7 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 			return 0
 		instruction = engine_handle.unpack(inst)
 		if isinstance(instruction, dict) and '__use_msgspec__' in instruction:
+			import msgspec.msgpack
 			instruction = msgspec.msgpack.decode(instruction['__real__'])
 		silent = instruction.pop('silent', False)
 		cmd = instruction.pop('command')
