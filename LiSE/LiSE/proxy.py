@@ -37,7 +37,6 @@ from queue import Empty
 from time import monotonic
 from typing import Hashable
 
-import msgspec.msgpack
 from blinker import Signal
 import lz4.frame
 import msgpack
