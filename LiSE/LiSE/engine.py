@@ -29,7 +29,8 @@ from os import PathLike
 from abc import ABC, abstractmethod
 from random import Random
 
-from networkx import Graph, DiGraph, spring_layout
+from networkx import (Graph, DiGraph, spring_layout, from_dict_of_dicts,
+						from_dict_of_lists)
 from blinker import Signal
 
 from .allegedb import ORM as gORM
@@ -1311,7 +1312,7 @@ class Engine(AbstractEngine, gORM):
 
 	def add_character(self,
 						name: Key,
-						data: Union[Graph, DiGraph] = None,
+						data: Union[Graph, DiGraph, dict] = None,
 						layout: bool = True,
 						**kwargs) -> None:
 		"""Create a new character.
@@ -1321,7 +1322,8 @@ class Engine(AbstractEngine, gORM):
 
 		``data``, if provided, should be a :class:`networkx.Graph`
 		or :class:`networkx.DiGraph` object. The character will be
-		a copy of it.
+		a copy of it. You can use a dictionary instead, and it will
+		be converted to a graph.
 
 		With ``layout=True`` (the default), compute a layout to make the
 		graph show up nicely in ELiDE.
@@ -1330,6 +1332,11 @@ class Engine(AbstractEngine, gORM):
 
 		"""
 		if layout and data:
+			if not hasattr(data, 'nodes'):
+				try:
+					data = from_dict_of_dicts(data)
+				except AttributeError:
+					data = from_dict_of_lists(data)
 			nodes = data.nodes()
 			try:
 				layout = normalize_layout({
