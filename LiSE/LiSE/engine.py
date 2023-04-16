@@ -29,7 +29,7 @@ from os import PathLike
 from abc import ABC, abstractmethod
 from random import Random
 
-from networkx import Graph, spring_layout
+from networkx import Graph, DiGraph, spring_layout
 from blinker import Signal
 
 from .allegedb import ORM as gORM
@@ -1311,7 +1311,7 @@ class Engine(AbstractEngine, gORM):
 
 	def add_character(self,
 						name: Key,
-						data: Graph = None,
+						data: Union[Graph, DiGraph] = None,
 						layout: bool = True,
 						**kwargs) -> None:
 		"""Create a new character.
@@ -1319,8 +1319,9 @@ class Engine(AbstractEngine, gORM):
 		You'll be able to access it as a :class:`Character` object by
 		looking up ``name`` in my ``character`` property.
 
-		``data``, if provided, should be a networkx-compatible graph
-		object. Your new character will be a copy of it.
+		``data``, if provided, should be a :class:`networkx.Graph`
+		or :class:`networkx.DiGraph` object. The character will be
+		a copy of it.
 
 		With ``layout=True`` (the default), compute a layout to make the
 		graph show up nicely in ELiDE.
