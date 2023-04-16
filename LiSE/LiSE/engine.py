@@ -1328,7 +1328,7 @@ class Engine(AbstractEngine, gORM):
 		Any keyword arguments will be set as stats of the new character.
 
 		"""
-		if layout:
+		if layout and data:
 			nodes = data.nodes()
 			try:
 				layout = normalize_layout({
