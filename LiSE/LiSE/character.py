@@ -1192,10 +1192,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 	class UnitGraphMapping(Mapping, RuleFollower):
 		"""A mapping of other characters in which one has a unit.
 
-		Maps to a mapping of the units themselves, unless there's
-		only one other character you have units in, in which case
-		this maps to those.
-
 		"""
 		_book = "unit"
 
