@@ -931,7 +931,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 		character = getatt('graph')
 		engine = getatt('graph.engine')
-		upd_succs_time = 0
 
 		def __init__(self, graph):
 			super().__init__(graph)
