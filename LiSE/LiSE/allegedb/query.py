@@ -380,7 +380,7 @@ class QueryEngine(object):
 	def get_branch(self):
 		v = self.call_one('global_get', self.pack('branch'))[0]
 		if v is None:
-			return self.globl["main_branch"]
+			return 'trunk'
 		return self.unpack(v[0])
 
 	def get_turn(self):
@@ -820,10 +820,8 @@ class QueryEngine(object):
 			if isinstance(ret, Exception):
 				raise ret
 		self.globl = GlobalKeyValueStore(self)
-		if 'main_branch' not in self.globl:
-			self.globl["main_branch"] = "trunk"
 		if 'branch' not in self.globl:
-			self.globl['branch'] = self.globl['main_branch']
+			self.globl['branch'] = 'trunk'
 		if 'turn' not in self.globl:
 			self.globl['turn'] = 0
 		if 'tick' not in self.globl:
