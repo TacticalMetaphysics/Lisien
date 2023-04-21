@@ -47,6 +47,22 @@ class CharactersView(RecycleView):
 		super().__init__(**kwargs)
 
 
+class UsersView(RecycleView):
+	entity = ObjectProperty()
+
+	def on_entity(self, *args):
+		dat = []
+		sel = []
+		users = self.entity.user.keys()
+		for i, char in enumerate(sorted(self.entity.engine.character)):
+			dat.append(char)
+			if char in users:
+				sel.append(i)
+		self.ids.boxl.data = dat
+		for user_idx in sel:
+			self.ids.boxl.select_node(user_idx)
+
+
 class CharactersScreen(Screen):
 	toggle = ObjectProperty()
 	charsview = ObjectProperty()
@@ -103,6 +119,10 @@ class CharactersScreen(Screen):
 		self.bind(character_name=self.push_character_name)
 
 
+class UsersScreen(Screen):
+	toggle = ObjectProperty()
+
+
 Builder.load_string("""
 #: import resource_find kivy.resources.resource_find
 <CharactersView>:
@@ -111,6 +131,16 @@ Builder.load_string("""
 	CharactersRecycleBoxLayout:
 		id: boxl
 		multiselect: False
+		default_size: None, dp(56)
+		default_size_hint: 1, None
+		size_hint_y: None
+		height: self.minimum_height
+		orientation: 'vertical'
+<UsersView>:
+	viewclass: 'RecycleToggleButton'
+	CharactersRecycleBoxLayout:
+		id: boxl
+		multiselect: True
 		default_size: None, dp(56)
 		default_size_hint: 1, None
 		size_hint_y: None
@@ -140,4 +170,6 @@ Builder.load_string("""
 			text: 'Close'
 			on_release: root.toggle()
 			size_hint_y: 0.05
+<UsersScreen>
+	name: 'users'
 """)
