@@ -232,13 +232,6 @@ class GameApp(ELiDEApp):
 	def _pull_time(self, *args, branch, turn, tick):
 		self.branch, self.turn, self.tick = branch, turn, tick
 
-	def _get_worlddb(self):
-		filen = self.world_file or (self.name + 'World.db'
-									if self.name else 'LiSEWorld.db')
-		return resource_find(filen) or filen
-
-	worlddb = AliasProperty(_get_worlddb, lambda self, v: None)
-
 	def build(self):
 		have_world = False
 		try:
