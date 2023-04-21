@@ -795,6 +795,7 @@ class ORM:
 					dbstring,
 					clear=False,
 					connect_args: dict = None,
+					main_branch=None,
 					cache_arranger=False,
 					enforce_end_of_time=False):
 		"""Make a SQLAlchemy engine and begin a transaction
@@ -812,7 +813,7 @@ class ORM:
 		self._no_kc = False
 		self._enforce_end_of_time = enforce_end_of_time
 		# in case this is the first startup
-		self._obranch = 'trunk'
+		self._obranch = main_branch or 'trunk'
 		self._otick = self._oturn = 0
 		self._init_caches()
 		if hasattr(self, '_post_init_cache_hook'):
@@ -823,6 +824,12 @@ class ORM:
 												getattr(self, 'unpack', None))
 		if clear:
 			self.query.truncate_all()
+		if main_branch is not None:
+			self.query.globl["main_branch"] = main_branch
+		elif "main_branch" not in self.query.globl:
+			main_branch = self.query.globl["main_branch"] = "trunk"
+		else:
+			main_branch = self.query.globl["main_branch"]
 		self._edge_val_cache.setdb = self.query.edge_val_set
 		self._edge_val_cache.deldb = self.query.edge_val_del_time
 		self._node_val_cache.setdb = self.query.node_val_set
@@ -847,8 +854,8 @@ class ORM:
 			self._turn_end_plan[branch, turn] = plan_end_tick
 			self._branch_end_plan[branch] = max(
 				(self._branch_end_plan[branch], turn))
-		if 'trunk' not in self._branches:
-			self._branches['trunk'] = None, 0, 0, 0, 0
+		if main_branch not in self._branches:
+			self._branches[main_branch] = None, 0, 0, 0, 0
 		self._new_keyframes = []
 		self._nbtt_stuff = (self._btt, self._branch_end_plan,
 							self._turn_end_plan, self._turn_end,
@@ -1786,9 +1793,9 @@ class ORM:
 		any remove.
 
 		"""
-		if parent == 'trunk':
+		if parent == self._main_branch:
 			return True
-		if child == 'trunk':
+		if child == self._main_branch:
 			return False
 		if child not in self._branches:
 			raise ValueError(
@@ -1811,7 +1818,7 @@ class ORM:
 			return
 		# make sure I'll end up within the revision range of the
 		# destination branch
-		if v != 'trunk' and v in self._branches:
+		if v != self._main_branch and v in self._branches:
 			parturn = self._branches[v][1]
 			if curturn < parturn:
 				raise OutOfTimelineError(
@@ -2146,6 +2153,10 @@ class ORM:
 		self._plans_uncommitted = []
 		self._plan_ticks_uncommitted = []
 
+	@property
+	def _main_branch(self):
+		return self.query.globl["main_branch"]
+
 	@world_locked
 	def commit(self) -> None:
 		"""Write the state of all graphs and commit the transaction.
@@ -2312,7 +2323,7 @@ class ORM:
 						int] = None) -> Iterator[Tuple[str, int, int]]:
 		"""Private use. Iterate over (branch, turn, tick), where the branch is
 		a descendant of the previous (starting with whatever branch is
-		presently active and ending at 'trunk'), and the turn is the
+		presently active and ending at the main branch), and the turn is the
 		latest revision in the branch that matters.
 
 		:arg stoptime: a triple, ``(branch, turn, tick)``. Iteration will
