@@ -188,6 +188,10 @@ class Engine(AbstractEngine, gORM):
 		mutating it (and possibly the rest of the world); if absent, we'll
 		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py
 		file in the ``prefix``.
+	:param main_branch: the string name of the branch to start from. Defaults
+		to "trunk" if not set in some prior session. You should only change
+		this if your game generates new initial conditions for each
+		playthrough.
 	:param connect_string: a rfc1738 URI for a database to connect to. Leave
 		``None`` to use the SQLite database in the ``prefix``.
 	:param connect_args: dictionary of keyword arguments for the
@@ -247,6 +251,7 @@ class Engine(AbstractEngine, gORM):
 					action: Union[FunctionStore, ModuleType] = None,
 					function: Union[FunctionStore, ModuleType] = None,
 					method: Union[MethodStore, ModuleType] = None,
+					main_branch: str = None,
 					connect_string: str = None,
 					connect_args: dict = None,
 					schema_cls: Type[AbstractSchema] = NullSchema,
@@ -319,6 +324,7 @@ class Engine(AbstractEngine, gORM):
 							clear=clear,
 							connect_args=connect_args,
 							cache_arranger=cache_arranger,
+							main_branch=main_branch,
 							enforce_end_of_time=enforce_end_of_time)
 		self._things_cache.setdb = self.query.set_thing_loc
 		self._universal_cache.setdb = self.query.universal_set
@@ -423,8 +429,8 @@ class Engine(AbstractEngine, gORM):
 			for graph in self.graph:
 				build_thingrows(
 					graph,
-					self._build_loading_windows('trunk', 0, 0, branch, turn,
-												tick))
+					self._build_loading_windows(self._main_branch, 0, 0,
+												branch, turn, tick))
 		else:
 			past_branch, past_turn, past_tick = latest_past_keyframe
 			if earliest_future_keyframe is None:

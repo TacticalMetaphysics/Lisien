@@ -931,7 +931,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 		character = getatt('graph')
 		engine = getatt('graph.engine')
-		upd_succs_time = 0
 
 		def __init__(self, graph):
 			super().__init__(graph)
@@ -1192,10 +1191,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 	class UnitGraphMapping(Mapping, RuleFollower):
 		"""A mapping of other characters in which one has a unit.
-
-		Maps to a mapping of the units themselves, unless there's
-		only one other character you have units in, in which case
-		this maps to those.
 
 		"""
 		_book = "unit"

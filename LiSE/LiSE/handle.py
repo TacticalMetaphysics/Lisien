@@ -1361,7 +1361,8 @@ class EngineHandle(object):
 		import_module(module).install(self._real)
 
 	def do_game_start(self) -> None:
-		self._real.game_start()
+		if hasattr(self._real.method, 'game_start'):
+			self._real.game_start()
 
 	def is_ancestor_of(self, parent: str, child: str) -> bool:
 		return self._real.is_ancestor_of(parent, child)
