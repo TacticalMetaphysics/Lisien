@@ -28,7 +28,7 @@ from functools import partial
 from json import dumps
 
 from sqlalchemy import (Table, Column, ForeignKeyConstraint, select, bindparam,
-						func, and_, or_, INT, TEXT, BOOLEAN)
+						func, and_, or_, INT, TEXT, BOOLEAN, FLOAT, BINARY)
 from sqlalchemy import MetaData
 from sqlalchemy.sql.ddl import CreateTable, CreateIndex
 
@@ -61,14 +61,16 @@ def tables_for_meta(meta):
 			sqlite_with_rowid=False)
 
 	# Table grouping rules into lists called rulebooks.
-	Table('rulebooks',
-			meta,
-			Column('rulebook', TEXT, primary_key=True),
-			Column('branch', TEXT, primary_key=True, default='trunk'),
-			Column('turn', INT, primary_key=True, default=0),
-			Column('tick', INT, primary_key=True, default=0),
-			Column('rules', TEXT, default='[]'),
-			sqlite_with_rowid=False)
+	Table(
+		'rulebooks',
+		meta,
+		Column('rulebook', TEXT, primary_key=True),
+		Column('branch', TEXT, primary_key=True, default='trunk'),
+		Column('turn', INT, primary_key=True, default=0),
+		Column('tick', INT, primary_key=True, default=0),
+		Column('rules', BINARY, default=b'\x90'),  # empty array
+		Column('priority', FLOAT, default=0.0),
+		sqlite_with_rowid=False)
 
 	# Table for rules' triggers, those functions that return True only
 	# when their rule should run (or at least check its prereqs).

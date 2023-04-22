@@ -1166,7 +1166,7 @@ class EngineHandle(object):
 						btt: Tuple[str, int, int] = None) -> List[str]:
 		branch, turn, tick = self._get_btt(btt)
 		return list(self._real.rulebook[rulebook]._get_cache(
-			branch, turn, tick))
+			branch, turn, tick)[0])
 
 	def rulebook_delta(
 			self,
