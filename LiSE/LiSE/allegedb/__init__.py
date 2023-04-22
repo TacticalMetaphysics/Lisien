@@ -824,12 +824,6 @@ class ORM:
 												getattr(self, 'unpack', None))
 		if clear:
 			self.query.truncate_all()
-		if main_branch is not None:
-			self.query.globl["main_branch"] = main_branch
-		elif "main_branch" not in self.query.globl:
-			main_branch = self.query.globl["main_branch"] = "trunk"
-		else:
-			main_branch = self.query.globl["main_branch"]
 		self._edge_val_cache.setdb = self.query.edge_val_set
 		self._edge_val_cache.deldb = self.query.edge_val_del_time
 		self._node_val_cache.setdb = self.query.node_val_set
@@ -841,6 +835,12 @@ class ORM:
 		self._graph_val_cache.setdb = self.query.graph_val_set
 		self._graph_val_cache.deldb = self.query.graph_val_del_time
 		self.query.initdb()
+		if main_branch is not None:
+			self.query.globl["main_branch"] = main_branch
+		elif "main_branch" not in self.query.globl:
+			main_branch = self.query.globl["main_branch"] = "trunk"
+		else:
+			main_branch = self.query.globl["main_branch"]
 		self._obranch = self.query.get_branch()
 		self._oturn = self.query.get_turn()
 		self._otick = self.query.get_tick()
