@@ -28,11 +28,11 @@ from typing import (Dict, Tuple, Set, Callable, Union, Any, List, Iterable,
 import msgpack
 import numpy as np
 
-from .allegedb import OutOfTimelineError
+from .allegedb import OutOfTimelineError, Key
 from .engine import Engine
 from .node import Node
 from .portal import Portal
-from .util import MsgpackExtensionType, AbstractCharacter, Key, timer
+from .util import MsgpackExtensionType, AbstractCharacter, timer
 
 SlightlyPackedDeltaType = Dict[bytes, Dict[bytes, Union[bytes, Dict[
 	bytes, Union[bytes, Dict[bytes, Union[bytes, Dict[bytes, bytes]]]]]]]]

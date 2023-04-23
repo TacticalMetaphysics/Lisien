@@ -33,7 +33,6 @@ import msgpack
 import networkx as nx
 
 from . import exc
-from .allegedb import Key
 
 
 class FinalRule:
@@ -326,10 +325,6 @@ class AbstractEngine(ABC):
 	block, in which deserialized entities will be created as needed.
 
 	"""
-
-	def __getattr__(self, item):
-		meth = super().__getattribute__('method').__getattr__(item)
-		return MethodType(meth, self)
 
 	@cached_property
 	def pack(self):

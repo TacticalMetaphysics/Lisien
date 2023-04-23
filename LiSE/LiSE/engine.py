@@ -23,7 +23,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial
 from collections import defaultdict
-from types import FunctionType, ModuleType
+from types import FunctionType, ModuleType, MethodType
 from typing import Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
 from abc import ABC, abstractmethod
@@ -34,9 +34,9 @@ from networkx import (Graph, DiGraph, spring_layout, from_dict_of_dicts,
 from blinker import Signal
 
 from .allegedb import ORM as gORM
-from .allegedb import (StatDict, NodeValDict, EdgeValDict, DeltaDict)
+from .allegedb import (StatDict, NodeValDict, EdgeValDict, DeltaDict, Key)
 from .allegedb.window import update_window, update_backward_window
-from .util import sort_set, AbstractEngine, final_rule, Key, normalize_layout
+from .util import sort_set, AbstractEngine, final_rule, normalize_layout
 from .xcollections import StringStore, FunctionStore, MethodStore
 from .query import (Query, _make_side_sel, StatusAlias, ComparisonQuery,
 					CompoundQuery, QueryResultMidTurn, QueryResult,
@@ -241,6 +241,10 @@ class Engine(AbstractEngine, gORM):
 		'global', 'eternal', 'universal', 'rulebooks', 'rules'
 	]
 	illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val', 'things']
+
+	def __getattr__(self, item):
+		meth = super().__getattribute__('method').__getattr__(item)
+		return MethodType(meth, self)
 
 	def __init__(self,
 					prefix: Union[PathLike, str] = '.',
