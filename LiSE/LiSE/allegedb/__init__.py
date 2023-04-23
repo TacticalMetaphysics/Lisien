@@ -1415,16 +1415,26 @@ class ORM:
 			raise HistoricKeyError("Couldn't build sensible loading windows")
 		return windows
 
-	@world_locked
-	def _load_at(
+	def _updload(self, branch, turn, tick):
+		loaded = self._loaded
+		if branch not in loaded:
+			loaded[branch] = (turn, tick, turn, tick)
+			return
+		(early_turn, early_tick, late_turn, late_tick) = loaded[branch]
+		if turn < early_turn or (turn == early_turn and tick < early_tick):
+			(early_turn, early_tick) = (turn, tick)
+		if turn > late_turn or (turn == late_turn and tick > late_tick):
+			(late_turn, late_tick) = (turn, tick)
+		loaded[branch] = (early_turn, early_tick, late_turn, late_tick)
+
+	def _build_keyframe_window_new(
 		self, branch: str, turn: int, tick: int
-	) -> Tuple[Optional[Tuple[str, int, int]], Optional[Tuple[
-		str, int, int]], dict, List[NodeRowType], List[EdgeRowType],
-				List[GraphValRowType], List[NodeValRowType],
-				List[EdgeValRowType]]:
+	) -> Tuple[Optional[Tuple[str, int, int]], Optional[Tuple[str, int, int]]]:
+		branch_now = branch
+		turn_now = turn
+		tick_now = tick
 		latest_past_keyframe: Optional[Tuple[str, int, int]] = None
 		earliest_future_keyframe: Optional[Tuple[str, int, int]] = None
-		branch_now, turn_now, tick_now = branch, turn, tick
 		branch_parents = self._branch_parents
 		for (branch, turn, tick) in self._keyframes_times:
 			# Figure out the latest keyframe that is earlier than the present
@@ -1481,46 +1491,43 @@ class ORM:
 						latest_past_keyframe = (branch, turn, tick)
 				else:
 					latest_past_keyframe = (branch, turn, tick)
+		return latest_past_keyframe, earliest_future_keyframe
+
+	@world_locked
+	def _load_at(
+		self, branch: str, turn: int, tick: int
+	) -> Tuple[Optional[Tuple[str, int, int]], Optional[Tuple[
+		str, int, int]], dict, List[NodeRowType], List[EdgeRowType],
+				List[GraphValRowType], List[NodeValRowType],
+				List[EdgeValRowType]]:
+		latest_past_keyframe: Optional[Tuple[str, int, int]]
+		earliest_future_keyframe: Optional[Tuple[str, int, int]]
+		branch_now, turn_now, tick_now = branch, turn, tick
+		loaded = self._loaded
+		if branch_now in loaded:
+			turn_from, tick_from, turn_to, tick_to = loaded[branch_now]
+			if turn_now < turn_from or (turn_now == turn_from
+										and tick_now < tick_from):
+				earliest_future_keyframe = (branch_now, turn_from, tick_from)
+				latest_past_keyframe, _ = self._build_keyframe_window_new(
+					branch_now, turn_now, tick_now)
+			elif turn_now > turn_to or (turn_now == turn_to
+										and tick_now > tick_to):
+				latest_past_keyframe = (branch_now, turn_to, tick_to)
+				_, earliest_future_keyframe = self._build_keyframe_window_new(
+					branch_now, turn_now, tick_now)
+			else:
+				latest_past_keyframe = (branch_now, turn_from, tick_from)
+				earliest_future_keyframe = (branch_now, turn_to, tick_to)
+		else:
+			(latest_past_keyframe,
+				earliest_future_keyframe) = self._build_keyframe_window_new(
+					branch_now, turn_now, tick_now)
 		# If branch is a descendant of branch_now, don't load the keyframe
 		# there, because then we'd potentially be loading keyframes from any
 		# number of possible futures, and we're trying to be conservative
 		# about what we load. If neither branch is an ancestor of the other,
 		# we can't use the keyframe for this load.
-		loaded = self._loaded
-		if earliest_future_keyframe:
-			kfb, kfr, kft = earliest_future_keyframe
-			if kfb in loaded:
-				early_turn, early_tick, late_turn, late_tick = loaded[kfb]
-				if kfr > late_turn or (kfr == late_turn and kft > late_tick):
-					loaded[kfb] = early_turn, early_tick, kfr, kft
-			elif kfb == branch_now:
-				if kfr > turn_now or (kfr == turn_now and kft > tick_now):
-					loaded[kfb] = (turn_now, tick_now, kfr, kft)
-			else:
-				loaded[kfb] = (kfr, kft, kfr, kft)
-		if latest_past_keyframe:
-			kfb, kfr, kft = latest_past_keyframe
-			if kfb in loaded:
-				early_turn, early_tick, late_turn, late_tick = loaded[kfb]
-				if kfr < early_turn or (kfr == early_turn
-										and kft < early_tick):
-					loaded[kfb] = kfr, kft, late_turn, late_tick
-			elif kfb == branch_now:
-				if kfr < turn_now or (kfr == turn_now and kft <= tick_now):
-					loaded[kfb] = (kfr, kft, turn_now, tick_now)
-			else:
-				loaded[kfb] = (kfr, kft, kfr, kft)
-		if branch_now in loaded:
-			early_turn, early_tick, late_turn, late_tick = loaded[branch_now]
-			if turn_now < early_turn or (turn_now == early_turn
-											and tick_now < early_tick):
-				early_turn, early_tick = turn_now, tick_now
-			elif turn_now > late_turn or (turn_now == late_turn
-											and tick_now > late_tick):
-				late_turn, late_tick = turn_now, tick_now
-			loaded[branch_now] = early_turn, early_tick, late_turn, late_tick
-		else:
-			loaded[branch_now] = turn_now, tick_now, turn_now, tick_now
 		noderows = []
 		edgerows = []
 		graphvalrows = []
@@ -1532,17 +1539,7 @@ class ORM:
 		load_node_val = self.query.load_node_val
 		load_edge_val = self.query.load_edge_val
 		get_keyframe = self.query.get_keyframe
-
-		def updload(branch, turn, tick):
-			if branch not in loaded:
-				loaded[branch] = (turn, tick, turn, tick)
-				return
-			(early_turn, early_tick, late_turn, late_tick) = loaded[branch]
-			if turn < early_turn or (turn == early_turn and tick < early_tick):
-				(early_turn, early_tick) = (turn, tick)
-			if turn > late_turn or (turn == late_turn and tick > late_tick):
-				(late_turn, late_tick) = (turn, tick)
-			loaded[branch] = (early_turn, early_tick, late_turn, late_tick)
+		updload = self._updload
 
 		if latest_past_keyframe is None:  # happens in very short games
 
@@ -1640,20 +1637,7 @@ class ORM:
 				edgevalrows.extend(
 					load_edge_val(graph, past_branch, past_turn, past_tick,
 									future_turn, future_tick))
-				if branch in loaded:
-					early_turn, early_tick, late_turn, late_tick = loaded[
-						branch]
-					if past_turn < early_turn or (past_turn == early_turn and
-													past_tick < early_tick):
-						early_turn, early_tick = past_turn, past_tick
-					if future_turn > late_turn or (future_turn == late_turn and
-													future_tick > late_tick):
-						late_turn, late_tick = future_turn, future_tick
-					loaded[branch] = (early_turn, early_tick, late_turn,
-										late_tick)
-				else:
-					loaded[branch] = (past_turn, past_tick, future_turn,
-										future_tick)
+				updload(branch, turn, tick)
 				continue
 			load_windows(
 				graph,

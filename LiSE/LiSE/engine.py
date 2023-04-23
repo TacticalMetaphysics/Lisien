@@ -405,6 +405,7 @@ class Engine(AbstractEngine, gORM):
 			edgerows, graphvalrows, nodevalrows,
 			edgevalrows) = super()._load_at(branch, turn, tick)
 		thingrows = []
+		updload = self._updload
 
 		def build_thingrows(graf, windows):
 			if not windows:
@@ -448,6 +449,8 @@ class Engine(AbstractEngine, gORM):
 		if thingrows:
 			with self.batch():
 				self._things_cache.load(thingrows)
+			for chara, branch, turn, tick, thing, loc in thingrows:
+				updload(branch, turn, tick)
 		else:
 			self.debug(f"No thing data at {branch, turn, tick}")
 
