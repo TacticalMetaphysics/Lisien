@@ -412,6 +412,7 @@ class Engine(AbstractEngine, gORM):
 			edgerows, graphvalrows, nodevalrows,
 			edgevalrows) = super()._load_at(branch, turn, tick)
 		thingrows = []
+		updload = self._updload
 
 		def build_thingrows(graf, windows):
 			if not windows:
@@ -455,6 +456,8 @@ class Engine(AbstractEngine, gORM):
 		if thingrows:
 			with self.batch():
 				self._things_cache.load(thingrows)
+			for chara, branch, turn, tick, thing, loc in thingrows:
+				updload(branch, turn, tick)
 		else:
 			self.debug(f"No thing data at {branch, turn, tick}")
 
@@ -1108,11 +1111,11 @@ class Engine(AbstractEngine, gORM):
 		pool = self._trigger_pool
 		todo = defaultdict(list)
 
-		def check_triggers(rulebook, rule, handled_fun, entity):
+		def check_triggers(prio, rulebook, rule, handled_fun, entity):
 			for trigger in rule.triggers:
 				res = trigger(entity)
 				if res:
-					todo[rulebook].append((rule, handled_fun, entity))
+					todo[prio, rulebook].append((rule, handled_fun, entity))
 			else:
 				handled_fun(self.tick)
 
@@ -1138,7 +1141,7 @@ class Engine(AbstractEngine, gORM):
 			return actres
 
 		trig_futs = []
-		for (charactername, rulebook, rulename
+		for (prio, charactername, rulebook, rulename
 				) in self._character_rules_handled_cache.iter_unhandled_rules(
 					branch, turn, tick):
 			if charactername not in charmap:
@@ -1148,7 +1151,8 @@ class Engine(AbstractEngine, gORM):
 								rulename, branch, turn)
 			entity = charmap[charactername]
 			trig_futs.append(
-				pool.submit(check_triggers, rulebook, rule, handled, entity))
+				pool.submit(check_triggers, prio, rulebook, rule, handled,
+							entity))
 
 		avcache_retr = self._unitness_cache._base_retrieve
 		node_exists = self._node_exists
@@ -1175,7 +1179,7 @@ class Engine(AbstractEngine, gORM):
 				node_objs[key] = place_cls(charmap[graphn], placen)
 			return node_objs[key]
 
-		for (charn, graphn, avn, rulebook,
+		for (prio, charn, graphn, avn, rulebook,
 				rulen) in self._unit_rules_handled_cache.iter_unhandled_rules(
 					branch, turn, tick):
 			if not node_exists(graphn, avn) or avcache_retr(
@@ -1186,11 +1190,12 @@ class Engine(AbstractEngine, gORM):
 								rulen, branch, turn)
 			entity = get_node(graphn, avn)
 			trig_futs.append(
-				pool.submit(check_triggers, rulebook, rule, handled, entity))
+				pool.submit(check_triggers, prio, rulebook, rule, handled,
+							entity))
 		is_thing = self._is_thing
 		handled_char_thing = self._handled_char_thing
 		for (
-			charn, thingn, rulebook, rulen
+			prio, charn, thingn, rulebook, rulen
 		) in self._character_thing_rules_handled_cache.iter_unhandled_rules(
 			branch, turn, tick):
 			if not node_exists(charn, thingn) or not is_thing(charn, thingn):
@@ -1200,10 +1205,11 @@ class Engine(AbstractEngine, gORM):
 								rulen, branch, turn)
 			entity = get_thing(charn, thingn)
 			trig_futs.append(
-				pool.submit(check_triggers, rulebook, rule, handled, entity))
+				pool.submit(check_triggers, prio, rulebook, rule, handled,
+							entity))
 		handled_char_place = self._handled_char_place
 		for (
-			charn, placen, rulebook, rulen
+			prio, charn, placen, rulebook, rulen
 		) in self._character_place_rules_handled_cache.iter_unhandled_rules(
 			branch, turn, tick):
 			if not node_exists(charn, placen) or is_thing(charn, placen):
@@ -1213,12 +1219,13 @@ class Engine(AbstractEngine, gORM):
 								rulen, branch, turn)
 			entity = get_place(charn, placen)
 			trig_futs.append(
-				pool.submit(check_triggers, rulebook, rule, handled, entity))
+				pool.submit(check_triggers, prio, rulebook, rule, handled,
+							entity))
 		edge_exists = self._edge_exists
 		get_edge = self._get_edge
 		handled_char_port = self._handled_char_port
 		for (
-			charn, orign, destn, rulebook, rulen
+			prio, charn, orign, destn, rulebook, rulen
 		) in self._character_portal_rules_handled_cache.iter_unhandled_rules(
 			branch, turn, tick):
 			if not edge_exists(charn, orign, destn):
@@ -1228,9 +1235,10 @@ class Engine(AbstractEngine, gORM):
 								rulen, branch, turn)
 			entity = get_edge(charn, orign, destn)
 			trig_futs.append(
-				pool.submit(check_triggers, rulebook, rule, handled, entity))
+				pool.submit(check_triggers, prio, rulebook, rule, handled,
+							entity))
 		handled_node = self._handled_node
-		for (charn, noden, rulebook,
+		for (prio, charn, noden, rulebook,
 				rulen) in self._node_rules_handled_cache.iter_unhandled_rules(
 					branch, turn, tick):
 			if not node_exists(charn, noden):
@@ -1240,10 +1248,11 @@ class Engine(AbstractEngine, gORM):
 								branch, turn)
 			entity = get_node(charn, noden)
 			trig_futs.append(
-				pool.submit(check_triggers, rulebook, rule, handled, entity))
+				pool.submit(check_triggers, prio, rulebook, rule, handled,
+							entity))
 		handled_portal = self._handled_portal
 		for (
-			charn, orign, destn, rulebook,
+			prio, charn, orign, destn, rulebook,
 			rulen) in self._portal_rules_handled_cache.iter_unhandled_rules(
 				branch, turn, tick):
 			if not edge_exists(charn, orign, destn):
@@ -1253,7 +1262,8 @@ class Engine(AbstractEngine, gORM):
 								rulen, branch, turn)
 			entity = get_edge(charn, orign, destn)
 			trig_futs.append(
-				pool.submit(check_triggers, rulebook, rule, handled, entity))
+				pool.submit(check_triggers, prio, rulebook, rule, handled,
+							entity))
 		wait(trig_futs)
 
 		# TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
@@ -1266,8 +1276,8 @@ class Engine(AbstractEngine, gORM):
 				return (f"{entity.character.name}.portal"
 						f"[{entity.origin.name}][{entity.destination.name}]")
 
-		for rulebook in sort_set(todo.keys()):
-			for rule, handled, entity in todo[rulebook]:
+		for prio_rulebook in sort_set(todo.keys()):
+			for rule, handled, entity in todo[prio_rulebook]:
 				if not entity:
 					continue
 				self.debug(

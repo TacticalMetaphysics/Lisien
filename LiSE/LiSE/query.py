@@ -983,9 +983,9 @@ class QueryEngine(query.QueryEngine):
 
 	def rulebooks_dump(self):
 		unpack = self.unpack
-		for rulebook, branch, turn, tick, rules in self.call_one(
+		for rulebook, branch, turn, tick, rules, prio in self.call_one(
 			'rulebooks_dump'):
-			yield unpack(rulebook), branch, turn, tick, unpack(rules)
+			yield unpack(rulebook), branch, turn, tick, (unpack(rules), prio)
 
 	def _rule_dump(self, typ):
 		unpack = self.unpack
@@ -1239,9 +1239,10 @@ class QueryEngine(query.QueryEngine):
 		self.set_rule_prereqs(rule, branch, turn, tick, prereqs or [])
 		self.set_rule_actions(rule, branch, turn, tick, actions or [])
 
-	def set_rulebook(self, name, branch, turn, tick, rules=None):
+	def set_rulebook(self, name, branch, turn, tick, rules=None, prio=0.0):
 		name, rules = map(self.pack, (name, rules or []))
-		self.call_one('rulebooks_insert', name, branch, turn, tick, rules)
+		self.call_one('rulebooks_insert', name, branch, turn, tick, rules,
+						float(prio))
 
 	def _set_rulebook_on_character(self, rbtyp, char, branch, turn, tick, rb):
 		char, rb = map(self.pack, (char, rb))

@@ -384,7 +384,7 @@ class RulesHandledCache(object):
 		rbc = self.engine._rulebooks_cache
 		if not rbc.contains_key(rulebook, branch, turn, tick):
 			return []
-		rulebook_rules = rbc.retrieve(rulebook, branch, turn, tick)
+		rulebook_rules = rbc.retrieve(rulebook, branch, turn, tick)[0]
 		handled_rules = self.handled.setdefault(
 			entity + (rulebook, branch, turn), set())
 		return [rule for rule in rulebook_rules if rule not in handled_rules]
@@ -400,11 +400,16 @@ class CharacterRulesHandledCache(RulesHandledCache):
 			return character, 'character'
 
 	def iter_unhandled_rules(self, branch, turn, tick):
-		for character in sort_set(self.engine.character.keys()):
+		for character in self.engine.character.keys():
 			rb = self.get_rulebook(character, branch, turn, tick)
+			try:
+				prio = self.engine._rulebooks_cache.retrieve(
+					rb, branch, turn, tick)[1]
+			except KeyError:
+				continue
 			for rule in self.unhandled_rulebook_rules(character, rb, branch,
 														turn, tick):
-				yield character, rb, rule
+				yield prio, character, rb, rule
 
 
 class UnitRulesHandledCache(RulesHandledCache):
@@ -420,6 +425,11 @@ class UnitRulesHandledCache(RulesHandledCache):
 		charm = self.engine.character
 		for character in sort_set(charm.keys()):
 			rulebook = self.get_rulebook(character, branch, turn, tick)
+			try:
+				prio = self.engine._rulebooks_cache.retrieve(
+					rulebook, branch, turn, tick)[1]
+			except KeyError:
+				continue
 			charavm = charm[character].unit
 			for graph in sort_set(charavm.keys()):
 				for avatar in sort_set(charavm[graph].keys()):
@@ -430,7 +440,7 @@ class UnitRulesHandledCache(RulesHandledCache):
 					except KeyError:
 						continue
 					for rule in rules:
-						yield character, graph, avatar, rulebook, rule
+						yield prio, character, graph, avatar, rulebook, rule
 
 
 class CharacterThingRulesHandledCache(RulesHandledCache):
@@ -444,18 +454,21 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		charm = self.engine.character
-		for character in sort_set(charm.keys()):
+		for character in charm.keys():
 			rulebook = self.get_rulebook(character, branch, turn, tick)
-			things = sort_set(charm[character].thing.keys())
-			pass
-			for thing in things:
+			try:
+				prio = self.engine._rulebooks_cache.retrieve(
+					rulebook, branch, turn, tick)[1]
+			except KeyError:
+				continue
+			for thing in charm[character].thing.keys():
 				try:
 					rules = self.unhandled_rulebook_rules(
 						character, thing, rulebook, branch, turn, tick)
 				except KeyError:
 					continue
 				for rule in rules:
-					yield character, thing, rulebook, rule
+					yield prio, character, thing, rulebook, rule
 
 
 class CharacterPlaceRulesHandledCache(RulesHandledCache):
@@ -469,16 +482,21 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		charm = self.engine.character
-		for character in sort_set(charm.keys()):
+		for character in charm.keys():
 			rulebook = self.get_rulebook(character, branch, turn, tick)
-			for place in sort_set(charm[character].place.keys()):
+			try:
+				prio = self.engine._rulebooks_cache.retrieve(
+					rulebook, branch, turn, tick)[1]
+			except KeyError:
+				continue
+			for place in charm[character].place.keys():
 				try:
 					rules = self.unhandled_rulebook_rules(
 						character, place, rulebook, branch, turn, tick)
 				except KeyError:
 					continue
 				for rule in rules:
-					yield character, place, rulebook, rule
+					yield prio, character, place, rulebook, rule
 
 
 class CharacterPortalRulesHandledCache(RulesHandledCache):
@@ -498,7 +516,7 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 			except KeyError:
 				continue
 			try:
-				rulebook_rules = self.engine._rulebooks_cache.retrieve(
+				rulebook_rules, prio = self.engine._rulebooks_cache.retrieve(
 					rulebook, branch, turn, tick)
 			except KeyError:
 				continue
@@ -507,10 +525,10 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 			char = charm[character]
 			charn = char.node
 			charp = char.portal
-			for orig in sort_set(charp.keys()):
+			for orig in charp.keys():
 				if orig not in charn:
 					continue
-				for dest in sort_set(charp[orig].keys()):
+				for dest in charp[orig].keys():
 					if dest not in charn:
 						continue
 					try:
@@ -520,7 +538,7 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 					except KeyError:
 						continue
 					for rule in rules:
-						yield character, orig, dest, rulebook, rule
+						yield prio, character, orig, dest, rulebook, rule
 
 
 class NodeRulesHandledCache(RulesHandledCache):
@@ -546,19 +564,20 @@ class NodeRulesHandledCache(RulesHandledCache):
 					for character in charm for node in charm[character].node}
 				& self.engine._rulebooks_cache.branches.keys())
 		}
-		for (character,
-				node) in sort_set(nodes_with_rulebook_changed
+		for (character, node) in (nodes_with_rulebook_changed
 									| nodes_with_filled_default_rulebooks):
 			try:
 				rulebook = self.get_rulebook(character, node, branch, turn,
 												tick)
+				prio = self.engine._rulebooks_cache.retrieve(
+					rulebook, branch, turn, tick)[1]
 				rules = self.unhandled_rulebook_rules(character, node,
 														rulebook, branch, turn,
 														tick)
 			except KeyError:
 				continue
 			for rule in rules:
-				yield character, node, rulebook, rule
+				yield prio, character, node, rulebook, rule
 
 
 class PortalRulesHandledCache(RulesHandledCache):
@@ -592,13 +611,15 @@ class PortalRulesHandledCache(RulesHandledCache):
 			try:
 				rulebook = self.get_rulebook(character, orig, dest, branch,
 												turn, tick)
+				prio = self.engine._rulebooks_cache.retrieve(
+					rulebook, branch, turn, tick)[1]
 				rules = self.unhandled_rulebook_rules(character, orig, dest,
 														rulebook, branch, turn,
 														tick)
 			except KeyError:
 				continue
 			for rule in rules:
-				yield character, orig, dest, rulebook, rule
+				yield prio, character, orig, dest, rulebook, rule
 
 
 class ThingsCache(Cache):

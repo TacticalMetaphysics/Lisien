@@ -383,25 +383,37 @@ class RuleBook(MutableSequence, Signal):
 	def _set_cache(self, branch, turn, tick, v):
 		self.engine._rulebooks_cache.store(self.name, branch, turn, tick, v)
 
-	def __init__(self, engine, name):
+	def __init__(self, engine: "LiSE.Engine", name: str):
 		super().__init__()
 		self.engine = engine
 		self.name = name
 
+	@property
+	def priority(self):
+		return self._get_cache(*self.engine._btt())[1]
+
+	@priority.setter
+	def priority(self, v: float):
+		v = float(v)
+		branch, turn, tick = self.engine._btt()
+		cache, _ = self._get_cache(branch, turn, tick)
+		self._set_cache(branch, turn, tick, (cache, v))
+		self.engine.query.set_rulebook(self.name, branch, turn, tick, cache, v)
+
 	def __contains__(self, v):
-		return getattr(v, 'name', v) in self._get_cache(*self.engine._btt())
+		return getattr(v, 'name', v) in self._get_cache(*self.engine._btt())[0]
 
 	def __iter__(self):
-		return iter(self._get_cache(*self.engine._btt()))
+		return iter(self._get_cache(*self.engine._btt())[0])
 
 	def __len__(self):
 		try:
-			return len(self._get_cache(*self.engine._btt()))
+			return len(self._get_cache(*self.engine._btt())[0])
 		except KeyError:
 			return 0
 
 	def __getitem__(self, i):
-		return self.engine.rule[self._get_cache(*self.engine._btt())[i]]
+		return self.engine.rule[self._get_cache(*self.engine._btt())[0][i]]
 
 	def _coerce_rule(self, v):
 		if isinstance(v, Rule):
@@ -417,16 +429,16 @@ class RuleBook(MutableSequence, Signal):
 			raise ValueError("Illegal rule name")
 		branch, turn, tick = self.engine._nbtt()
 		try:
-			cache = self._get_cache(branch, turn, tick)
+			cache, prio = self._get_cache(branch, turn, tick)
 			cache[i] = v
 		except KeyError:
 			if i != 0:
 				raise IndexError
 			cache = [v]
-			self._set_cache(branch, turn, tick, cache)
-		self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)
-		self.engine._rulebooks_cache.store(self.name, branch, turn, tick,
-											cache)
+			prio = 0.0
+			self._set_cache(branch, turn, tick, (cache, prio))
+		self.engine.query.set_rulebook(self.name, branch, turn, tick, cache,
+										prio)
 		self.engine.rulebook.send(self, i=i, v=v)
 		self.send(self, i=i, v=v)
 
@@ -436,14 +448,16 @@ class RuleBook(MutableSequence, Signal):
 			raise ValueError("Illegal rule name")
 		branch, turn, tick = self.engine._nbtt()
 		try:
-			cache = self._get_cache(branch, turn, tick)
+			cache, prio = self._get_cache(branch, turn, tick)
 			cache.insert(i, v)
 		except KeyError:
 			if i != 0:
 				raise IndexError
 			cache = [v]
-		self._set_cache(branch, turn, tick, cache)
-		self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)
+			prio = 0.0
+		self._set_cache(branch, turn, tick, (cache, prio))
+		self.engine.query.set_rulebook(self.name, branch, turn, tick, cache,
+										prio)
 		self.engine.rulebook.send(self, i=i, v=v)
 		self.send(self, i=i, v=v)
 
@@ -453,7 +467,7 @@ class RuleBook(MutableSequence, Signal):
 			args.append(stop)
 		if isinstance(v, str):
 			try:
-				return self._get_cache(*self.engine._btt()).index(*args)
+				return self._get_cache(*self.engine._btt())[0].index(*args)
 			except KeyError:
 				raise ValueError
 		return super().index(*args)
@@ -461,13 +475,13 @@ class RuleBook(MutableSequence, Signal):
 	def __delitem__(self, i):
 		branch, turn, tick = self.engine._btt()
 		try:
-			cache = self._get_cache(branch, turn, tick)
+			cache, prio = self._get_cache(branch, turn, tick)
 		except KeyError:
 			raise IndexError
 		del cache[i]
-		self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)
-		self.engine._rulebooks_cache.store(self.name, branch, turn, tick,
-											cache)
+		self.engine.query.set_rulebook(self.name, branch, turn, tick, cache,
+										prio)
+		self._set_cache(branch, turn, tick, (cache, prio))
 		self.engine.rulebook.send(self, i=i, v=None)
 		self.send(self, i=i, v=None)
 
