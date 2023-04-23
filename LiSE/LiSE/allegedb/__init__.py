@@ -1553,6 +1553,7 @@ class ORM:
 		load_edge_val = self.query.load_edge_val
 		get_keyframe = self.query.get_keyframe
 		updload = self._updload
+		updload(branch_now, turn_now, tick_now)
 
 		if latest_past_keyframe is None:  # happens in very short games
 
