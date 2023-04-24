@@ -177,7 +177,7 @@ class CalendarOptionButton(CalendarWidget, Button):
 							height=30,
 							text=text,
 							on_release=partial(self._set_value_and_close,
-												text)))
+												value)))
 			else:
 				container.add_widget(
 					Button(text=str(option),
