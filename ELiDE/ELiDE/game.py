@@ -142,15 +142,6 @@ class GameScreen(Screen):
 										partial(self.enable_input, end_func))
 
 
-class Screens(Widget):
-	"""Children of this widget will be added to the ``GameApp``'s :class:`kivy.uix.screenmanager.ScreenManager`"""
-	app = ObjectProperty()
-
-	def add_widget(self, wid, index=0, canvas=None):
-		wid.switch_screen = self.app.screen_manager.setter('screen')
-		super().add_widget(wid, index, canvas)
-
-
 class GameApp(ELiDEApp):
 	modules = []
 	world_file = None
@@ -247,21 +238,11 @@ class GameApp(ELiDEApp):
 											do_game_start=not have_world,
 											install_modules=self.modules)
 		self.screen_manager = ScreenManager()
-		self.screens = Screens(app=self)
-		self.screens.bind(children=self._pull_screens)
-		self._pull_screens()
 		if hasattr(self, 'inspector'):
 			from kivy.core.window import Window
 			from kivy.modules import inspector
 			inspector.create_inspector(Window, self.screen_manager)
 		return self.screen_manager
-
-	@trigger
-	def _pull_screens(self, *args):
-		for screen in reversed(self.screens.children):
-			self.screens.remove_widget(screen)
-			self.screen_manager.add_widget(screen)
-		self.screen_manager.ids.update(self.screens.ids)
 
 	def on_pause(self):
 		"""Sync the database with the current state of the game."""
