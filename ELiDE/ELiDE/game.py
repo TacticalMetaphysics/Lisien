@@ -17,14 +17,9 @@ import os
 from kivy.app import App
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.properties import (AliasProperty, BooleanProperty, ObjectProperty,
-								NumericProperty)
-from kivy.resources import resource_find
-from .app import ELiDEApp
-from kivy.uix.widget import Widget
+from kivy.properties import (BooleanProperty, ObjectProperty, NumericProperty)
 from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
 import LiSE.proxy
-from .util import trigger
 from functools import partial
 
 
@@ -142,7 +137,7 @@ class GameScreen(Screen):
 										partial(self.enable_input, end_func))
 
 
-class GameApp(ELiDEApp):
+class GameApp(App):
 	modules = []
 	turn_length = NumericProperty(0.5)
 
