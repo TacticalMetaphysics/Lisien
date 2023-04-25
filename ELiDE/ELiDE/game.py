@@ -144,7 +144,6 @@ class GameScreen(Screen):
 
 class GameApp(ELiDEApp):
 	modules = []
-	world_file = None
 	turn_length = NumericProperty(0.5)
 
 	def wait_turns(self, turns, dt=None, *, cb=None):
