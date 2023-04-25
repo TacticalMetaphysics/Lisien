@@ -22,7 +22,7 @@ from kivy.properties import (AliasProperty, BooleanProperty, ObjectProperty,
 from kivy.resources import resource_find
 from .app import ELiDEApp
 from kivy.uix.widget import Widget
-from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
 import LiSE.proxy
 from .util import trigger
 from functools import partial
@@ -236,7 +236,7 @@ class GameApp(ELiDEApp):
 												self, 'loglevel', 'debug'),
 											do_game_start=not have_world,
 											install_modules=self.modules)
-		self.screen_manager = ScreenManager()
+		self.screen_manager = ScreenManager(transition=NoTransition())
 		if hasattr(self, 'inspector'):
 			from kivy.core.window import Window
 			from kivy.modules import inspector
