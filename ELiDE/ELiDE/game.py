@@ -24,15 +24,6 @@ from functools import partial
 
 
 class GameScreen(Screen):
-	"""A version of :class:`kivy.uix.screenmanager.Screen` that is easier to set up and use with ELiDE
-
-	Should be a child of the :class:`ELiDE.game.Screens` widget, which will never itself be displayed.
-	``GameScreen`` instances in it will be added to the screen manager, so that you can switch
-	to them with the ``switch_screen`` method.
-
-	Every ``GameScreen`` needs a ``name``, just like regular ``Screen``.
-
-	"""
 	switch_screen = ObjectProperty()
 	"""Method to set the ``screen`` attribute of the main :class:`kivy.uix.screenmanager.ScreenManager`"""
 	disabled = BooleanProperty(False)
