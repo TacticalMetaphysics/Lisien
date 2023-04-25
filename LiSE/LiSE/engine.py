@@ -72,7 +72,7 @@ class NextTurn(Signal):
 
 	"""
 
-	def __init__(self, engine: AbstractEngine):
+	def __init__(self, engine: Engine):
 		super().__init__()
 		self.engine = engine
 
@@ -97,21 +97,25 @@ class NextTurn(Signal):
 		if start_turn == latest_turn:
 			parent, turn_from, tick_from, turn_to, tick_to = engine._branches[
 				start_branch]
-			engine._branches[
-				start_branch] = parent, turn_from, tick_from, engine.turn + 1, 0
+			engine._branches[start_branch] = (parent, turn_from, tick_from,
+												engine.turn + 1, 0)
 			engine.turn += 1
+		results = []
 		with engine.advancing():
 			for res in iter(engine._advance, final_rule):
 				if res:
-					engine.universal['last_result'] = res
-					engine.universal['last_result_idx'] = 0
-					branch, turn, tick = engine._btt()
-					self.send(engine, branch=branch, turn=turn, tick=tick)
-					return res, engine.get_delta(branch=start_branch,
-													turn_from=start_turn,
-													turn_to=turn,
-													tick_from=start_tick,
-													tick_to=tick)
+					if isinstance(res, tuple) and res[0] == "stop":
+						engine.universal['last_result'] = res
+						engine.universal['last_result_idx'] = 0
+						branch, turn, tick = engine._btt()
+						self.send(engine, branch=branch, turn=turn, tick=tick)
+						return res, engine.get_delta(branch=start_branch,
+														turn_from=start_turn,
+														turn_to=turn,
+														tick_from=start_tick,
+														tick_to=tick)
+					else:
+						results.append(res)
 		engine._turns_completed[start_branch] = engine.turn
 		engine.query.complete_turn(
 			start_branch,
@@ -120,9 +124,11 @@ class NextTurn(Signal):
 		kfi = engine.keyframe_interval
 		if kfi and engine.turn % kfi == 0:
 			engine.snap_keyframe()
-		if engine.flush_interval and engine.turn % engine.flush_interval == 0:
+		if (engine.flush_interval is not None
+			and engine.turn % engine.flush_interval == 0):
 			engine.query.flush()
-		if engine.commit_interval and engine.turn % engine.commit_interval == 0:
+		if (engine.commit_interval is not None
+			and engine.turn % engine.commit_interval == 0):
 			engine.query.commit()
 		self.send(self.engine,
 					branch=engine.branch,
@@ -133,7 +139,10 @@ class NextTurn(Signal):
 									turn_to=engine.turn,
 									tick_from=start_tick,
 									tick_to=engine.tick)
-		return [], delta
+		if results:
+			engine.universal["last_result"] = results
+			engine.universal["last_result_idx"] = 0
+		return results, delta
 
 
 class AbstractSchema(ABC):
