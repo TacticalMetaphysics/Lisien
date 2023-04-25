@@ -261,6 +261,7 @@ class GameApp(ELiDEApp):
 		for screen in reversed(self.screens.children):
 			self.screens.remove_widget(screen)
 			self.screen_manager.add_widget(screen)
+		self.screen_manager.ids.update(self.screens.ids)
 
 	def on_pause(self):
 		"""Sync the database with the current state of the game."""
