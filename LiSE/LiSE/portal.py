@@ -18,9 +18,9 @@ from collections.abc import Mapping
 from typing import Union, List, Tuple, Any
 
 from .allegedb.graph import Edge
-from .allegedb import HistoricKeyError
+from .allegedb import HistoricKeyError, Key
 
-from .util import getatt, AbstractCharacter, Key
+from .util import getatt, AbstractCharacter
 from .query import StatusAlias
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping

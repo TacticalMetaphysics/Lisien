@@ -47,6 +47,8 @@ class Collide2DPoly(object):
 	This pure Python version was ported from the kivy.garden.collider
 	package. It is available under the MIT license.
 	'''
+	__slots__ = ('points', 'count', 'constant', 'multiple', 'min_x', 'max_x',
+					'min_y', 'max_y', 'width', 'space')
 
 	def __init__(self, points, cache=False, **kwargs):
 		length = len(points)

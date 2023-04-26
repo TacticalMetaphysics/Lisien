@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The big widget that shows the graph of the selected Character."""
 from functools import partial
+from time import monotonic
 
 from kivy.properties import (BooleanProperty, ReferenceListProperty,
 								DictProperty, ObjectProperty, NumericProperty,
@@ -28,6 +29,7 @@ from kivy.uix.widget import Widget
 from kivy.vector import Vector
 
 from ELiDE.pawnspot import TextureStackPlane, Stack
+from LiSE.util import normalize_layout
 from .spot import GraphSpot
 from .arrow import GraphArrow, GraphArrowWidget, ArrowPlane, get_points_multi
 from .pawn import Pawn
@@ -35,38 +37,6 @@ from ..dummy import Dummy
 from ..util import trigger
 from ..boardview import BoardView
 from ..boardscatter import BoardScatterPlane
-import numpy as np
-
-
-def normalize_layout(l):
-	"""Make sure all the spots in a layout are where you can click.
-
-	Returns a copy of the layout with all spot coordinates are
-	normalized to within (0.0, 0.98).
-
-	"""
-	xs = []
-	ys = []
-	ks = []
-	for (k, (x, y)) in l.items():
-		xs.append(x)
-		ys.append(y)
-		ks.append(k)
-	minx = np.min(xs)
-	maxx = np.max(xs)
-	if maxx == minx:
-		xnorm = np.array([0.5] * len(xs))
-	else:
-		xco = 0.98 / (maxx - minx)
-		xnorm = np.multiply(np.subtract(xs, [minx] * len(xs)), xco)
-	miny = np.min(ys)
-	maxy = np.max(ys)
-	if miny == maxy:
-		ynorm = np.array([0.5] * len(ys))
-	else:
-		yco = 0.98 / (maxy - miny)
-		ynorm = np.multiply(np.subtract(ys, [miny] * len(ys)), yco)
-	return dict(zip(ks, zip(map(float, xnorm), map(float, ynorm))))
 
 
 class KvLayoutBack(FloatLayout):
@@ -646,22 +616,17 @@ class GraphBoard(RelativeLayout):
 	def add_new_spots(self, *args):
 		Logger.debug("Board: adding new spots to {}".format(
 			self.character.name))
+		start_ts = monotonic()
 		places2add = []
 		spots_unposd = []
 		nodes_patch = {}
 		placemap = self.character.place
 		spotmap = self.spot
 		default_image_paths = GraphSpot.default_image_paths
-		for place_name in placemap:
+		for place_name, place in placemap.items():
 			if place_name not in spotmap:
 				place = placemap[place_name]
 				places2add.append(place)
-				nodes_patch[place_name] = {
-					'_image_paths':
-					list(place.get('_image_paths', default_image_paths))
-				}
-		if nodes_patch:
-			self.character.node.patch(nodes_patch)
 		make_spot = self.make_spot
 		spots_posd = []
 		stack_idx = self.stack_plane._stack_index
@@ -673,9 +638,18 @@ class GraphBoard(RelativeLayout):
 				spots_posd.append(spot)
 		if spots_unposd:
 			try:
-				self.grid_layout(spots_unposd)
+				nodes_patch_2 = self.grid_layout(spots_unposd)
 			except (TypeError, ValueError):
-				self.nx_layout(spots_unposd)
+				nodes_patch_2 = self.nx_layout(spots_unposd)
+			for k, v in nodes_patch_2.items():
+				if k in nodes_patch:
+					nodes_patch[k].update(v)
+				else:
+					nodes_patch[k] = v
+		if nodes_patch:
+			self.engine.handle(command='update_nodes',
+								char=self.character.name,
+								patch=nodes_patch)
 		if spots_posd:
 			self.stack_plane.unbind_uid('data',
 										self.stack_plane._redraw_bind_uid)
@@ -683,6 +657,8 @@ class GraphBoard(RelativeLayout):
 			self.stack_plane.redraw()
 			self.stack_plane._redraw_bind_uid = self.stack_plane.fbind(
 				'data', self.stack_plane._trigger_redraw)
+		Logger.debug(f"Board: added new {self.character.name} spots in "
+						f"{monotonic() - start_ts:,.2f} seconds")
 
 	def add_arrow(self, orign, destn, *args):
 		if not (orign in self.character.portal
@@ -798,7 +774,8 @@ class GraphBoard(RelativeLayout):
 			self.trigger_update()
 			return
 		# remove widgets that don't represent anything anymore
-		Logger.debug("Board: updating")
+		Logger.debug("GraphBoard: updating")
+		start_ts = monotonic()
 		self.remove_absent_pawns()
 		self.remove_absent_spots()
 		self.remove_absent_arrows()
@@ -807,7 +784,8 @@ class GraphBoard(RelativeLayout):
 		if self.arrow_cls:
 			self.add_new_arrows()
 		self.add_new_pawns()
-		Logger.debug("Board: updated")
+		Logger.debug(
+			f"GraphBoard: updated, took {monotonic() - start_ts:,.2f} seconds")
 
 	trigger_update = trigger(update)
 
@@ -834,18 +812,16 @@ class GraphBoard(RelativeLayout):
 					spot.x = int(x * self.width)
 				if y is not None:
 					spot.y = int(y * self.height)
-				if '_image_paths' in stats:
-					spot.paths = stats[
-						'_image_paths'] or GraphSpot.default_image_paths
+				spot.paths = stats.get('_image_paths',
+										GraphSpot.default_image_paths)
 			elif node in self.pawn:
 				pawn = self.pawn[node]
 				if 'location' in stats:
 					loc = self.spot[stats['location']]
 					pawn.x = int(loc.right)
 					pawn.y = int(loc.top)
-				if '_image_paths' in stats:
-					pawn.paths = stats[
-						'_image_paths'] or Pawn.default_image_paths
+				pawn.paths = stats.get('_image_paths',
+										Pawn.default_image_paths)
 			else:
 				Logger.warning(
 					"Board: diff tried to change stats of node {} "
@@ -890,12 +866,11 @@ class GraphBoard(RelativeLayout):
 			self.stack_plane.redraw()
 			self.stack_plane._redraw_bind_uid = self.stack_plane.fbind(
 				'data', self.stack_plane._trigger_redraw)
-		if node_upd:
-			self.character.node.patch(node_upd)
 		self.spots_unposd = []
+		return node_upd
 
 	def grid_layout(self, spots, *args):
-		self._apply_node_layout(
+		return self._apply_node_layout(
 			normalize_layout({spot['name']: spot['name']
 								for spot in spots}), spots)
 
@@ -906,7 +881,7 @@ class GraphBoard(RelativeLayout):
 		for place in spots_only.place.keys() - set(spot['name']
 													for spot in spots):
 			del spots_only.place[place]
-		self._apply_node_layout(self.graph_layout(spots_only), spots)
+		return self._apply_node_layout(self.graph_layout(spots_only), spots)
 
 	def arrows(self):
 		"""Iterate over all my arrows."""

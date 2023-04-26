@@ -25,9 +25,9 @@ from typing import Optional, Union, Iterator, List
 import networkx as nx
 from networkx import shortest_path, shortest_path_length
 
-from .allegedb import graph, HistoricKeyError
+from .allegedb import graph, Key, HistoricKeyError
 
-from .util import getatt, Key
+from .util import getatt
 from .query import StatusAlias
 from . import rule
 from .exc import AmbiguousUserError, TravelException
@@ -549,12 +549,11 @@ class Thing(Node):
 		return self.name
 
 	def _getloc(self):
-		try:
-			return self.engine._things_cache.retrieve(self.character.name,
-														self.name,
-														*self.engine._btt())
-		except:
+		ret = self.engine._things_cache._base_retrieve(
+			(self.character.name, self.name, *self.engine._btt()))
+		if ret is None or isinstance(ret, Exception):
 			return None
+		return ret
 
 	def _validate_node_type(self):
 		return self._getloc() is not None

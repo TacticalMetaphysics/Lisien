@@ -1,5 +1,7 @@
 LiSE is a tool for developing life simulation games.
 
+[Demo](https://vimeo.com/815795673)
+
 [Documentation](https://tacticalmetaphysics.github.io/LiSE/manual.html)
 
 [Forum](https://www.gamemaking.tools/forum/categories/lise)
@@ -20,6 +22,7 @@ it, because so much of it seems to operate independently of you.
 Existing games that LiSE seeks to imitate include:
 
 * The Sims
+* SimLife (1992)
 * Redshirt
 * Rimworld
 * Princess Maker
@@ -75,12 +78,12 @@ tester knew to look for it.
 * Edit state in graph or grid view
 * Edit rule functions with syntax highlighting
 
-# Getting started
+# Setup
 
 ## Windows
 
 The Microsoft Store version of Python is currently incompatible with ELiDE; please
-use [the python.org version](https://www.python.org/downloads/release/python-3910/)
+use [the python.org version](https://www.python.org/downloads/)
 instead.
 
 ```
@@ -118,6 +121,8 @@ git clone https://github.com/TacticalMetaphysics/LiSE.git
 cd LiSE
 export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE  # has to be run once per terminal session
 ```
+
+# Getting started
 
 You could now start the graphical frontend with ``python3 -mELiDE``,
 but this might not be very useful, as you don't have any world state
@@ -279,7 +284,7 @@ time programmatically, set the properties ``eng.branch`` (to a
 string), ``eng.turn``, and ``eng.tick`` (to integers).
 
 To prevent locking when running `next_turn()`, you might want to run LiSE in a subprocess. This is done by
-instantiating [EngineProcessManager](https://github.com/Tactical-Metaphysics/LiSE/blob/master/LiSE/LiSE/proxy.py#L2575),
+instantiating `LiSE.proxy.EngineProcessManager()`,
 getting a proxy to the engine from its `start()` method, and treating that proxy much as you would an actual LiSE
 engine, except that you can call `next_turn()` in a thread and then do something else in parallel. Call
 `EngineProcessManager.shutdown()` when it's time to quit the game.
@@ -386,8 +391,10 @@ carries the MIT license.
 The allegedb, LiSE, and ELiDE source files are licensed under the
 terms of the GNU Affero Public License version 3 (and no later).
 If you make a game with it, you have to release any modifications you
-make to LiSE itself under the AGPL, but this doesn't apply to your 
-game code. Game code is that which is loaded into the engine at
+make to ELiDE, allegedb, or LiSE itself under the AGPL, but 
+this doesn't apply to your game code.
+
+Game code is that which is loaded into the engine at
 launch time from modules specified by the following parameters
 to the LiSE engine:
 * ``trigger``
@@ -396,8 +403,9 @@ to the LiSE engine:
 * ``function``
 * ``method``
 
-Game code must not alter the function of LiSE itself (no "hot
-patching"). If it does, then it is part of LiSE.
+Or stored in files by those names (plus extensions) inside the game's prefix. 
+Game code must not alter the function of LiSE itself (no "hot patching"). If 
+it does, then it is part of LiSE.
 
 If you write another application (not using any allegedb, LiSE, or
 ELiDE code) that accesses a LiSE server via HTTP(S), it is separate

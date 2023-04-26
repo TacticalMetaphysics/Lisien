@@ -34,6 +34,7 @@ from threading import Thread, Lock
 from multiprocessing import Process, Pipe, Queue, ProcessError
 from concurrent.futures import ThreadPoolExecutor
 from queue import Empty
+from time import monotonic
 from typing import Hashable
 
 from blinker import Signal
@@ -1987,14 +1988,21 @@ class EngineProxy(AbstractEngine):
 		self._handle_out_lock = Lock()
 		self._handle_in = handle_in
 		self._handle_in_lock = Lock()
+		self._round_trip_lock = Lock()
 		self._commit_lock = Lock()
 		self.logger = logger
-
-		for module in install_modules:
-			self.handle('install_module', module=module)  # not silenced
-		if do_game_start:
-			# not silenced; mustn't do anything before the game has started
-			self.handle('do_game_start')
+		self.character = self.graph = CharacterMapProxy(self)
+		self.eternal = EternalVarProxy(self)
+		self.universal = GlobalVarProxy(self)
+		self.rulebook = AllRuleBooksProxy(self)
+		self.rule = AllRulesProxy(self)
+		self.method = FuncStoreProxy(self, 'method')
+		self.action = FuncStoreProxy(self, 'action')
+		self.prereq = FuncStoreProxy(self, 'prereq')
+		self.trigger = FuncStoreProxy(self, 'trigger')
+		self.function = FuncStoreProxy(self, 'function')
+		self.string = StringStoreProxy(self)
+		self.rando = RandoProxy(self)
 
 		self._node_stat_cache = StructuredDefaultDict(1, UnwrappingDict)
 		self._portal_stat_cache = StructuredDefaultDict(2, UnwrappingDict)
@@ -2028,18 +2036,6 @@ class EngineProxy(AbstractEngine):
 		self._rule_obj_cache = {}
 		self._rulebook_obj_cache = {}
 		self._char_cache = {}
-		self.character = self.graph = CharacterMapProxy(self)
-		self.eternal = EternalVarProxy(self)
-		self.universal = GlobalVarProxy(self)
-		self.rulebook = AllRuleBooksProxy(self)
-		self.rule = AllRulesProxy(self)
-		self.method = FuncStoreProxy(self, 'method')
-		self.action = FuncStoreProxy(self, 'action')
-		self.prereq = FuncStoreProxy(self, 'prereq')
-		self.trigger = FuncStoreProxy(self, 'trigger')
-		self.function = FuncStoreProxy(self, 'function')
-		self.string = StringStoreProxy(self)
-		self.rando = RandoProxy(self)
 		self.send_bytes(self.pack({'command': 'get_btt'}))
 		received = self.unpack(self.recv_bytes())
 		self._branch, self._turn, self._tick = received[-1]
@@ -2062,6 +2058,10 @@ class EngineProxy(AbstractEngine):
 			if char not in self.character:
 				self._char_cache[char] = CharacterProxy(self, char)
 			self.character[char]._apply_delta(delta)
+		for module in install_modules:
+			self.handle('install_module', module=module)
+		if do_game_start:
+			self.handle('do_game_start', cb=self._upd_caches)
 
 	def send_bytes(self, obj, blocking=True, timeout=-1):
 		compressed = lz4.frame.compress(obj)
@@ -2123,12 +2123,15 @@ class EngineProxy(AbstractEngine):
 			raise TypeError("No command")
 		cb = kwargs.pop('cb', None)
 		assert not kwargs.get('silent')
-		self.debug('EngineProxy: sending {}'.format(kwargs))
-		self.send_bytes(self.pack(kwargs))
-		received = self.recv_bytes()
+		self.debug(f'EngineProxy: sending {cmd}')
+		start_ts = monotonic()
+		with self._round_trip_lock:
+			self.send_bytes(self.pack(kwargs))
+			received = self.recv_bytes()
 		command, branch, turn, tick, r = self.unpack(received)
-		self.debug('EngineProxy: received {}'.format(
-			(command, branch, turn, tick, r)))
+		self.debug('EngineProxy: received {} in {:,.2f} seconds'.format(
+			(command, branch, turn, tick),
+			monotonic() - start_ts))
 		if (branch, turn, tick) != self._btt():
 			self._branch = branch
 			self._turn = turn
@@ -2256,11 +2259,11 @@ class EngineProxy(AbstractEngine):
 	def is_ancestor_of(self, parent, child):
 		return self.handle('is_ancestor_of', parent=parent, child=child)
 
-	def pull(self, cb=None):
-		"""Update the state of all my proxy objects from the real objects."""
-		deltas = self.handle('get_char_deltas', cb=self._upd_deltas)
-		if cb:
-			cb(deltas)
+	def apply_choices(self, choices, dry_run=False, perfectionist=False):
+		return self.handle('apply_choices',
+							choices=choices,
+							dry_run=dry_run,
+							perfectionist=perfectionist)
 
 	def _upd_and_cb(self, cb, *args, **kwargs):
 		self._upd_caches(*args, no_del=True, **kwargs)
@@ -2427,6 +2430,9 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 			logq.close()
 			return 0
 		instruction = engine_handle.unpack(inst)
+		if isinstance(instruction, dict) and '__use_msgspec__' in instruction:
+			import msgspec.msgpack
+			instruction = msgspec.msgpack.decode(instruction['__real__'])
 		silent = instruction.pop('silent', False)
 		cmd = instruction.pop('command')
 

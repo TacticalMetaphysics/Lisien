@@ -40,3 +40,4 @@ _build
 .vscode/settings.json
 */.idea
 */.tox
+/.tox/

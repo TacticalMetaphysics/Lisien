@@ -17,27 +17,13 @@ import os
 from kivy.app import App
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.properties import (AliasProperty, BooleanProperty, ObjectProperty,
-								NumericProperty)
-from kivy.resources import resource_find
-from .app import ELiDEApp
-from kivy.uix.widget import Widget
-from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.properties import (BooleanProperty, ObjectProperty, NumericProperty)
+from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
 import LiSE.proxy
-from .util import trigger
 from functools import partial
 
 
 class GameScreen(Screen):
-	"""A version of :class:`kivy.uix.screenmanager.Screen` that is easier to set up and use with ELiDE
-
-	Should be a child of the :class:`ELiDE.game.Screens` widget, which will never itself be displayed.
-	``GameScreen`` instances in it will be added to the screen manager, so that you can switch
-	to them with the ``switch_screen`` method.
-
-	Every ``GameScreen`` needs a ``name``, just like regular ``Screen``.
-
-	"""
 	switch_screen = ObjectProperty()
 	"""Method to set the ``screen`` attribute of the main :class:`kivy.uix.screenmanager.ScreenManager`"""
 	disabled = BooleanProperty(False)
@@ -142,18 +128,8 @@ class GameScreen(Screen):
 										partial(self.enable_input, end_func))
 
 
-class Screens(Widget):
-	"""Children of this widget will be added to the ``GameApp``'s :class:`kivy.uix.screenmanager.ScreenManager`"""
-	app = ObjectProperty()
-
-	def add_widget(self, wid, index=0, canvas=None):
-		wid.switch_screen = self.app.screen_manager.setter('screen')
-		super().add_widget(wid, index, canvas)
-
-
-class GameApp(ELiDEApp):
+class GameApp(App):
 	modules = []
-	world_file = None
 	turn_length = NumericProperty(0.5)
 
 	def wait_turns(self, turns, dt=None, *, cb=None):
@@ -232,42 +208,26 @@ class GameApp(ELiDEApp):
 	def _pull_time(self, *args, branch, turn, tick):
 		self.branch, self.turn, self.tick = branch, turn, tick
 
-	def _get_worlddb(self):
-		filen = self.world_file or (self.name + 'World.db'
-									if self.name else 'LiSEWorld.db')
-		return resource_find(filen) or filen
-
-	worlddb = AliasProperty(_get_worlddb, lambda self, v: None)
-
 	def build(self):
 		have_world = False
 		try:
-			os.stat(self.worlddb)
+			os.stat('world.db')
 			have_world = True
 		except FileNotFoundError:
 			pass
 		self.procman = LiSE.proxy.EngineProcessManager()
-		self.engine = self.procman.start(self.worlddb,
+		self.engine = self.procman.start('.',
 											logger=Logger,
 											loglevel=getattr(
 												self, 'loglevel', 'debug'),
 											do_game_start=not have_world,
 											install_modules=self.modules)
-		self.screen_manager = ScreenManager()
-		self.screens = Screens(app=self)
-		self.screens.bind(children=self._pull_screens)
-		self._pull_screens()
+		self.screen_manager = ScreenManager(transition=NoTransition())
 		if hasattr(self, 'inspector'):
 			from kivy.core.window import Window
 			from kivy.modules import inspector
 			inspector.create_inspector(Window, self.screen_manager)
 		return self.screen_manager
-
-	@trigger
-	def _pull_screens(self, *args):
-		for screen in reversed(self.screens.children):
-			self.screens.remove_widget(screen)
-			self.screen_manager.add_widget(screen)
 
 	def on_pause(self):
 		"""Sync the database with the current state of the game."""

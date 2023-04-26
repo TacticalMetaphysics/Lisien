@@ -27,12 +27,12 @@ from time import monotonic
 from types import MethodType, FunctionType
 from typing import (Mapping, Iterable, Union, Callable, Dict, Hashable)
 
+import numpy as np
 from cached_property import cached_property
 import msgpack
 import networkx as nx
 
 from . import exc
-from .allegedb import Key
 
 
 class FinalRule:
@@ -325,10 +325,6 @@ class AbstractEngine(ABC):
 	block, in which deserialized entities will be created as needed.
 
 	"""
-
-	def __getattr__(self, item):
-		meth = super().__getattribute__('method').__getattr__(item)
-		return MethodType(meth, self)
 
 	@cached_property
 	def pack(self):
@@ -948,3 +944,34 @@ class AbstractCharacter(Mapping):
 		return self
 
 	cull_edges = cull_portals
+
+
+def normalize_layout(l):
+	"""Make sure all the spots in a layout are where you can click.
+
+	Returns a copy of the layout with all spot coordinates are
+	normalized to within (0.0, 0.98).
+
+	"""
+	xs = []
+	ys = []
+	ks = []
+	for (k, (x, y)) in l.items():
+		xs.append(x)
+		ys.append(y)
+		ks.append(k)
+	minx = np.min(xs)
+	maxx = np.max(xs)
+	if maxx == minx:
+		xnorm = np.array([0.5] * len(xs))
+	else:
+		xco = 0.98 / (maxx - minx)
+		xnorm = np.multiply(np.subtract(xs, [minx] * len(xs)), xco)
+	miny = np.min(ys)
+	maxy = np.max(ys)
+	if miny == maxy:
+		ynorm = np.array([0.5] * len(ys))
+	else:
+		yco = 0.98 / (maxy - miny)
+		ynorm = np.multiply(np.subtract(ys, [miny] * len(ys)), yco)
+	return dict(zip(ks, zip(map(float, xnorm), map(float, ynorm))))

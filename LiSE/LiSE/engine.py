@@ -23,19 +23,20 @@ import os
 from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial
 from collections import defaultdict
-from types import FunctionType, ModuleType
+from types import FunctionType, ModuleType, MethodType
 from typing import Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
 from abc import ABC, abstractmethod
 from random import Random
 
-from networkx import Graph
+from networkx import (Graph, DiGraph, spring_layout, from_dict_of_dicts,
+						from_dict_of_lists)
 from blinker import Signal
 
 from .allegedb import ORM as gORM
-from .allegedb import (StatDict, NodeValDict, EdgeValDict, DeltaDict)
+from .allegedb import (StatDict, NodeValDict, EdgeValDict, DeltaDict, Key)
 from .allegedb.window import update_window, update_backward_window
-from .util import sort_set, AbstractEngine, final_rule, Key
+from .util import sort_set, AbstractEngine, final_rule, normalize_layout
 from .xcollections import StringStore, FunctionStore, MethodStore
 from .query import (Query, _make_side_sel, StatusAlias, ComparisonQuery,
 					CompoundQuery, QueryResultMidTurn, QueryResult,
@@ -71,7 +72,7 @@ class NextTurn(Signal):
 
 	"""
 
-	def __init__(self, engine: AbstractEngine):
+	def __init__(self, engine: Engine):
 		super().__init__()
 		self.engine = engine
 
@@ -96,21 +97,25 @@ class NextTurn(Signal):
 		if start_turn == latest_turn:
 			parent, turn_from, tick_from, turn_to, tick_to = engine._branches[
 				start_branch]
-			engine._branches[
-				start_branch] = parent, turn_from, tick_from, engine.turn + 1, 0
+			engine._branches[start_branch] = (parent, turn_from, tick_from,
+												engine.turn + 1, 0)
 			engine.turn += 1
+		results = []
 		with engine.advancing():
 			for res in iter(engine._advance, final_rule):
 				if res:
-					engine.universal['last_result'] = res
-					engine.universal['last_result_idx'] = 0
-					branch, turn, tick = engine._btt()
-					self.send(engine, branch=branch, turn=turn, tick=tick)
-					return res, engine.get_delta(branch=start_branch,
-													turn_from=start_turn,
-													turn_to=turn,
-													tick_from=start_tick,
-													tick_to=tick)
+					if isinstance(res, tuple) and res[0] == "stop":
+						engine.universal['last_result'] = res
+						engine.universal['last_result_idx'] = 0
+						branch, turn, tick = engine._btt()
+						self.send(engine, branch=branch, turn=turn, tick=tick)
+						return res, engine.get_delta(branch=start_branch,
+														turn_from=start_turn,
+														turn_to=turn,
+														tick_from=start_tick,
+														tick_to=tick)
+					else:
+						results.append(res)
 		engine._turns_completed[start_branch] = engine.turn
 		engine.query.complete_turn(
 			start_branch,
@@ -119,9 +124,11 @@ class NextTurn(Signal):
 		kfi = engine.keyframe_interval
 		if kfi and engine.turn % kfi == 0:
 			engine.snap_keyframe()
-		if engine.flush_interval and engine.turn % engine.flush_interval == 0:
+		if (engine.flush_interval is not None
+			and engine.turn % engine.flush_interval == 0):
 			engine.query.flush()
-		if engine.commit_interval and engine.turn % engine.commit_interval == 0:
+		if (engine.commit_interval is not None
+			and engine.turn % engine.commit_interval == 0):
 			engine.query.commit()
 		self.send(self.engine,
 					branch=engine.branch,
@@ -132,7 +139,10 @@ class NextTurn(Signal):
 									turn_to=engine.turn,
 									tick_from=start_tick,
 									tick_to=engine.tick)
-		return [], delta
+		if results:
+			engine.universal["last_result"] = results
+			engine.universal["last_result_idx"] = 0
+		return results, delta
 
 
 class AbstractSchema(ABC):
@@ -187,6 +197,10 @@ class Engine(AbstractEngine, gORM):
 		mutating it (and possibly the rest of the world); if absent, we'll
 		use a :class:`LiSE.xcollections.FunctionStore` to keep them in a .py
 		file in the ``prefix``.
+	:param main_branch: the string name of the branch to start from. Defaults
+		to "trunk" if not set in some prior session. You should only change
+		this if your game generates new initial conditions for each
+		playthrough.
 	:param connect_string: a rfc1738 URI for a database to connect to. Leave
 		``None`` to use the SQLite database in the ``prefix``.
 	:param connect_args: dictionary of keyword arguments for the
@@ -237,6 +251,10 @@ class Engine(AbstractEngine, gORM):
 	]
 	illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val', 'things']
 
+	def __getattr__(self, item):
+		meth = super().__getattribute__('method').__getattr__(item)
+		return MethodType(meth, self)
+
 	def __init__(self,
 					prefix: Union[PathLike, str] = '.',
 					*,
@@ -246,6 +264,7 @@ class Engine(AbstractEngine, gORM):
 					action: Union[FunctionStore, ModuleType] = None,
 					function: Union[FunctionStore, ModuleType] = None,
 					method: Union[MethodStore, ModuleType] = None,
+					main_branch: str = None,
 					connect_string: str = None,
 					connect_args: dict = None,
 					schema_cls: Type[AbstractSchema] = NullSchema,
@@ -318,6 +337,7 @@ class Engine(AbstractEngine, gORM):
 							clear=clear,
 							connect_args=connect_args,
 							cache_arranger=cache_arranger,
+							main_branch=main_branch,
 							enforce_end_of_time=enforce_end_of_time)
 		self._things_cache.setdb = self.query.set_thing_loc
 		self._universal_cache.setdb = self.query.universal_set
@@ -423,8 +443,8 @@ class Engine(AbstractEngine, gORM):
 			for graph in self.graph:
 				build_thingrows(
 					graph,
-					self._build_loading_windows('trunk', 0, 0, branch, turn,
-												tick))
+					self._build_loading_windows(self._main_branch, 0, 0,
+												branch, turn, tick))
 		else:
 			past_branch, past_turn, past_tick = latest_past_keyframe
 			if earliest_future_keyframe is None:
@@ -1104,11 +1124,11 @@ class Engine(AbstractEngine, gORM):
 		pool = self._trigger_pool
 		todo = defaultdict(list)
 
-		def check_triggers(rulebook, rule, handled_fun, entity):
+		def check_triggers(prio, rulebook, rule, handled_fun, entity):
 			for trigger in rule.triggers:
 				res = trigger(entity)
 				if res:
-					todo[rulebook].append((rule, handled_fun, entity))
+					todo[prio, rulebook].append((rule, handled_fun, entity))
 			else:
 				handled_fun(self.tick)
 
@@ -1134,7 +1154,7 @@ class Engine(AbstractEngine, gORM):
 			return actres
 
 		trig_futs = []
-		for (charactername, rulebook, rulename
+		for (prio, charactername, rulebook, rulename
 				) in self._character_rules_handled_cache.iter_unhandled_rules(
 					branch, turn, tick):
 			if charactername not in charmap:
@@ -1144,7 +1164,8 @@ class Engine(AbstractEngine, gORM):
 								rulename, branch, turn)
 			entity = charmap[charactername]
 			trig_futs.append(
-				pool.submit(check_triggers, rulebook, rule, handled, entity))
+				pool.submit(check_triggers, prio, rulebook, rule, handled,
+							entity))
 
 		avcache_retr = self._unitness_cache._base_retrieve
 		node_exists = self._node_exists
@@ -1171,7 +1192,7 @@ class Engine(AbstractEngine, gORM):
 				node_objs[key] = place_cls(charmap[graphn], placen)
 			return node_objs[key]
 
-		for (charn, graphn, avn, rulebook,
+		for (prio, charn, graphn, avn, rulebook,
 				rulen) in self._unit_rules_handled_cache.iter_unhandled_rules(
 					branch, turn, tick):
 			if not node_exists(graphn, avn) or avcache_retr(
@@ -1182,11 +1203,12 @@ class Engine(AbstractEngine, gORM):
 								rulen, branch, turn)
 			entity = get_node(graphn, avn)
 			trig_futs.append(
-				pool.submit(check_triggers, rulebook, rule, handled, entity))
+				pool.submit(check_triggers, prio, rulebook, rule, handled,
+							entity))
 		is_thing = self._is_thing
 		handled_char_thing = self._handled_char_thing
 		for (
-			charn, thingn, rulebook, rulen
+			prio, charn, thingn, rulebook, rulen
 		) in self._character_thing_rules_handled_cache.iter_unhandled_rules(
 			branch, turn, tick):
 			if not node_exists(charn, thingn) or not is_thing(charn, thingn):
@@ -1196,10 +1218,11 @@ class Engine(AbstractEngine, gORM):
 								rulen, branch, turn)
 			entity = get_thing(charn, thingn)
 			trig_futs.append(
-				pool.submit(check_triggers, rulebook, rule, handled, entity))
+				pool.submit(check_triggers, prio, rulebook, rule, handled,
+							entity))
 		handled_char_place = self._handled_char_place
 		for (
-			charn, placen, rulebook, rulen
+			prio, charn, placen, rulebook, rulen
 		) in self._character_place_rules_handled_cache.iter_unhandled_rules(
 			branch, turn, tick):
 			if not node_exists(charn, placen) or is_thing(charn, placen):
@@ -1209,12 +1232,13 @@ class Engine(AbstractEngine, gORM):
 								rulen, branch, turn)
 			entity = get_place(charn, placen)
 			trig_futs.append(
-				pool.submit(check_triggers, rulebook, rule, handled, entity))
+				pool.submit(check_triggers, prio, rulebook, rule, handled,
+							entity))
 		edge_exists = self._edge_exists
 		get_edge = self._get_edge
 		handled_char_port = self._handled_char_port
 		for (
-			charn, orign, destn, rulebook, rulen
+			prio, charn, orign, destn, rulebook, rulen
 		) in self._character_portal_rules_handled_cache.iter_unhandled_rules(
 			branch, turn, tick):
 			if not edge_exists(charn, orign, destn):
@@ -1224,9 +1248,10 @@ class Engine(AbstractEngine, gORM):
 								rulen, branch, turn)
 			entity = get_edge(charn, orign, destn)
 			trig_futs.append(
-				pool.submit(check_triggers, rulebook, rule, handled, entity))
+				pool.submit(check_triggers, prio, rulebook, rule, handled,
+							entity))
 		handled_node = self._handled_node
-		for (charn, noden, rulebook,
+		for (prio, charn, noden, rulebook,
 				rulen) in self._node_rules_handled_cache.iter_unhandled_rules(
 					branch, turn, tick):
 			if not node_exists(charn, noden):
@@ -1236,10 +1261,11 @@ class Engine(AbstractEngine, gORM):
 								branch, turn)
 			entity = get_node(charn, noden)
 			trig_futs.append(
-				pool.submit(check_triggers, rulebook, rule, handled, entity))
+				pool.submit(check_triggers, prio, rulebook, rule, handled,
+							entity))
 		handled_portal = self._handled_portal
 		for (
-			charn, orign, destn, rulebook,
+			prio, charn, orign, destn, rulebook,
 			rulen) in self._portal_rules_handled_cache.iter_unhandled_rules(
 				branch, turn, tick):
 			if not edge_exists(charn, orign, destn):
@@ -1249,7 +1275,8 @@ class Engine(AbstractEngine, gORM):
 								rulen, branch, turn)
 			entity = get_edge(charn, orign, destn)
 			trig_futs.append(
-				pool.submit(check_triggers, rulebook, rule, handled, entity))
+				pool.submit(check_triggers, prio, rulebook, rule, handled,
+							entity))
 		wait(trig_futs)
 
 		# TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
@@ -1262,8 +1289,8 @@ class Engine(AbstractEngine, gORM):
 				return (f"{entity.character.name}.portal"
 						f"[{entity.origin.name}][{entity.destination.name}]")
 
-		for rulebook in sort_set(todo.keys()):
-			for rule, handled, entity in todo[rulebook]:
+		for prio_rulebook in sort_set(todo.keys()):
+			for rule, handled, entity in todo[prio_rulebook]:
 				if not entity:
 					continue
 				self.debug(
@@ -1304,25 +1331,56 @@ class Engine(AbstractEngine, gORM):
 	def new_character(self,
 						name: Key,
 						data: Graph = None,
+						layout: bool = True,
 						**kwargs) -> Character:
 		"""Create and return a new :class:`Character`."""
-		self.add_character(name, data, **kwargs)
+		self.add_character(name, data, layout, **kwargs)
 		return self.character[name]
 
 	new_graph = new_character
 
-	def add_character(self, name: Key, data: Graph = None, **kwargs) -> None:
+	def add_character(self,
+						name: Key,
+						data: Union[Graph, DiGraph, dict] = None,
+						layout: bool = True,
+						**kwargs) -> None:
 		"""Create a new character.
 
 		You'll be able to access it as a :class:`Character` object by
 		looking up ``name`` in my ``character`` property.
 
-		``data``, if provided, should be a networkx-compatible graph
-		object. Your new character will be a copy of it.
+		``data``, if provided, should be a :class:`networkx.Graph`
+		or :class:`networkx.DiGraph` object. The character will be
+		a copy of it. You can use a dictionary instead, and it will
+		be converted to a graph.
+
+		With ``layout=True`` (the default), compute a layout to make the
+		graph show up nicely in ELiDE.
 
 		Any keyword arguments will be set as stats of the new character.
 
 		"""
+		if layout and data:
+			if not hasattr(data, 'nodes'):
+				try:
+					data = from_dict_of_dicts(data)
+				except AttributeError:
+					data = from_dict_of_lists(data)
+			nodes = data.nodes()
+			try:
+				layout = normalize_layout({
+					name: name
+					for name, node in nodes.items() if 'location' not in node
+				})
+			except (TypeError, ValueError):
+				layout = normalize_layout(
+					spring_layout([
+						name for name, node in nodes.items()
+						if 'location' not in node
+					]))
+			for k, (x, y) in layout.items():
+				nodes[k]['_x'] = x
+				nodes[k]['_y'] = y
 		self._init_graph(name, 'DiGraph', data)
 		self._graph_objs[name] = graph_obj = self.char_cls(self, name)
 		if kwargs:
@@ -1478,6 +1536,12 @@ class Engine(AbstractEngine, gORM):
 	) -> Tuple[List[Tuple[Any, Any]], List[Tuple[Any, Any]]]:
 		"""Validate changes a player wants to make, and apply if acceptable.
 
+		Argument ``choices`` is a list of dictionaries, of which each must
+		have values for ``"entity"`` (a LiSE entity) and ``"changes"``
+		-- the later being a list of lists of pairs. Each change list
+		is applied on a successive turn, and each pair ``(key, value)``
+		sets a key on the entity to a value on that turn.
+
 		Returns a pair of lists containing acceptance and rejection messages,
 		which the UI may present as it sees fit. They are always in a pair
 		with the change request as the zeroth item. The message may be None
@@ -1509,11 +1573,12 @@ class Engine(AbstractEngine, gORM):
 				msg = ''
 			if not permissible:
 				for turn, changes in enumerate(track['changes'],
-												start=self.turn):
+												start=self.turn + 1):
 					rejections.extend(
 						((turn, entity, k, v), msg) for (k, v) in changes)
 				continue
-			for turn, changes in enumerate(track['changes'], start=self.turn):
+			for turn, changes in enumerate(track['changes'],
+											start=self.turn + 1):
 				for k, v in changes:
 					ekv = (entity, k, v)
 					parcel = (turn, entity, k, v)

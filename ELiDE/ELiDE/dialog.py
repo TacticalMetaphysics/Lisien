@@ -200,6 +200,11 @@ class DialogLayout(FloatLayout):
 		if diargs is None:
 			Logger.debug("DialogLayout: null dialog")
 			return
+		if isinstance(diargs, tuple) and diargs[0] == "stop":
+			if len(diargs) == 1:
+				Logger.debug("DialogLayout: null dialog")
+				return
+			diargs = diargs[1]
 		dia = self.dialog
 		# Simple text dialogs just tell the player something and let them click OK
 		if isinstance(diargs, str):

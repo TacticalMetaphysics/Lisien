@@ -16,6 +16,7 @@
 from collections import defaultdict
 from functools import partial
 from operator import itemgetter
+from time import monotonic
 
 import numpy as np
 from kivy.core.image import Image
@@ -27,6 +28,7 @@ from kivy.resources import resource_find
 from kivy.uix.layout import Layout
 from kivy.clock import Clock
 from kivy.uix.widget import Widget
+from kivy.logger import Logger
 
 from ELiDE.util import trigger
 from ELiDE.imagestackproxy import ImageStackProxy
@@ -165,6 +167,8 @@ class TextureStackPlane(Widget):
 		if not hasattr(self, '_rectangle'):
 			self._trigger_redraw()
 			return
+		Logger.debug("TextureStackPlane: redrawing")
+		start_ts = monotonic()
 		fbo = self._fbo
 		fbo.bind()
 		fbo.clear_buffer()
@@ -294,6 +298,8 @@ class TextureStackPlane(Widget):
 		self._keys = keys
 		fbo.release()
 		self._rectangle.texture = fbo.texture
+		Logger.debug(f"TextureStackPlane: redrawn in "
+						f"{monotonic() - start_ts:,.2f} seconds")
 
 	def iter_collided_keys(self, x, y):
 		hits = (self._left_xs <= x) & (self._bot_ys <= y) & (

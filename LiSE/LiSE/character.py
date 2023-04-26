@@ -31,7 +31,6 @@ physical world. In that case, the flowchart is the person's Character,
 and their node in the physical world is a unit of it.
 
 """
-
 from abc import abstractmethod, ABC
 from collections.abc import (Mapping, MutableMapping)
 from itertools import chain
@@ -795,77 +794,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		def _get_rulebook_cache(self):
 			return self.engine._characters_places_rulebooks_cache
 
-		def update(self, __m, **kwargs) -> None:
-			engine = self.engine
-			store_node = engine._nodes_cache.store
-			store_node_val = engine._node_val_cache.store
-			iter_node_keys = engine._node_val_cache.iter_keys
-			exist_node = engine.query.exist_node
-			node_val_set = engine.query.node_val_set
-			branch, turn, start_tick = engine._btt()
-			tick = start_tick + 1
-			charn = self.character.name
-			planning = engine._planning
-			forward = engine._forward
-			with timer("seconds spent updating PlaceMapping", engine.debug):
-				for node, val in chain(__m.items(), kwargs.items()):
-					if val is None:
-						for key in iter_node_keys(charn,
-													node,
-													branch,
-													turn,
-													start_tick,
-													forward=forward):
-							store_node_val(charn,
-											node,
-											key,
-											branch,
-											turn,
-											tick,
-											None,
-											planning=planning,
-											forward=forward,
-											loading=True)
-							node_val_set(charn, node, key, branch, turn, tick,
-											None)
-							tick += 1
-						store_node(charn,
-									node,
-									branch,
-									turn,
-									tick,
-									False,
-									planning=planning,
-									forward=forward,
-									loading=True)
-						exist_node(charn, node, branch, turn, tick, False)
-						tick += 1
-					else:
-						store_node(charn,
-									node,
-									branch,
-									turn,
-									tick,
-									True,
-									planning=planning,
-									forward=forward,
-									loading=True)
-						exist_node(charn, node, branch, turn, tick, True)
-						tick += 1
-						for k, v in val.items():
-							store_node_val(charn,
-											node,
-											k,
-											branch,
-											turn,
-											tick,
-											v,
-											planning=planning,
-											forward=forward,
-											loading=True)
-							exist_node(charn, node, k, branch, turn, tick, v)
-							tick += 1
-			engine.tick = tick
+		def update(self, __m: dict, **kwargs) -> None:
+			self.character.node.update(__m, **kwargs)
 
 		def __init__(self, character):
 			"""Store the character."""
@@ -1001,7 +931,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 		character = getatt('graph')
 		engine = getatt('graph.engine')
-		upd_succs_time = 0
 
 		def __init__(self, graph):
 			super().__init__(graph)
@@ -1262,10 +1191,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 	class UnitGraphMapping(Mapping, RuleFollower):
 		"""A mapping of other characters in which one has a unit.
-
-		Maps to a mapping of the units themselves, unless there's
-		only one other character you have units in, in which case
-		this maps to those.
 
 		"""
 		_book = "unit"

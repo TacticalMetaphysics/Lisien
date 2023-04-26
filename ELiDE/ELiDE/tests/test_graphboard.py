@@ -11,6 +11,12 @@ from .util import idle_until, window_with_widget, ELiDEAppTest
 from ..dummy import Dummy
 
 
+class FakeEngineProxy:
+
+	def handle(self, *args, **kwargs):
+		pass
+
+
 class GraphBoardTest(GraphicUnitTest):
 
 	@staticmethod
@@ -26,6 +32,7 @@ class GraphBoardTest(GraphicUnitTest):
 							character=char,
 							stack_plane=spotlayout,
 							arrow_plane=arrowlayout)
+		board.engine = FakeEngineProxy()
 		spotlayout.pos = board.pos
 		board.bind(pos=spotlayout.setter('pos'))
 		spotlayout.size = board.size
