@@ -1992,6 +1992,17 @@ class EngineProxy(AbstractEngine):
 		self._commit_lock = Lock()
 		self.logger = logger
 		self.character = self.graph = CharacterMapProxy(self)
+		self.eternal = EternalVarProxy(self)
+		self.universal = GlobalVarProxy(self)
+		self.rulebook = AllRuleBooksProxy(self)
+		self.rule = AllRulesProxy(self)
+		self.method = FuncStoreProxy(self, 'method')
+		self.action = FuncStoreProxy(self, 'action')
+		self.prereq = FuncStoreProxy(self, 'prereq')
+		self.trigger = FuncStoreProxy(self, 'trigger')
+		self.function = FuncStoreProxy(self, 'function')
+		self.string = StringStoreProxy(self)
+		self.rando = RandoProxy(self)
 
 		for module in install_modules:
 			self.handle('install_module', module=module)  # not silenced
@@ -2031,17 +2042,6 @@ class EngineProxy(AbstractEngine):
 		self._rule_obj_cache = {}
 		self._rulebook_obj_cache = {}
 		self._char_cache = {}
-		self.eternal = EternalVarProxy(self)
-		self.universal = GlobalVarProxy(self)
-		self.rulebook = AllRuleBooksProxy(self)
-		self.rule = AllRulesProxy(self)
-		self.method = FuncStoreProxy(self, 'method')
-		self.action = FuncStoreProxy(self, 'action')
-		self.prereq = FuncStoreProxy(self, 'prereq')
-		self.trigger = FuncStoreProxy(self, 'trigger')
-		self.function = FuncStoreProxy(self, 'function')
-		self.string = StringStoreProxy(self)
-		self.rando = RandoProxy(self)
 		self.send_bytes(self.pack({'command': 'get_btt'}))
 		received = self.unpack(self.recv_bytes())
 		self._branch, self._turn, self._tick = received[-1]
