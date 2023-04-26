@@ -1,3 +1,6 @@
+== 0.14.1 | 2023-04-26 ==
+* Fix a loading error when you make two keyframes and then start the engine before the first
+
 == 0.14.0 | 2023-04-07 ==
 * Seek bar for time travel in ELiDE, and some other minor UI improvements
 * Vastly improved performance in ELiDE for large worlds
@@ -11,6 +14,7 @@
 * Lots of crash fixes
 * yapf formatting, with tabs
 * Improved documentation
+* No longer accept later revisions of the AGPL
 
 ==0.13.2 | 2022-07-31 ==
 * Fix an intermittent error where entity deletion sometimes wouldn't go through all the way

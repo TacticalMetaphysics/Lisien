@@ -7,7 +7,7 @@ include-package-data=true
 
 [project]
 name = "ELiDE"
-version = "0.14.0"
+version = "0.14.1"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
@@ -22,7 +22,7 @@ classifiers = [
 	"Development Status :: 2 - Pre-Alpha"
 ]
 dependencies = [
-	"LiSE[proxy]==0.14.0",
+	"LiSE[proxy]>=0.14.0,<0.15.0",
 	"kivy>=2.0.0,<3",
 	"pygments>=2.7.4"
 ]
