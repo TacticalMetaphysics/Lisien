@@ -2261,12 +2261,6 @@ class EngineProxy(AbstractEngine):
 	def is_ancestor_of(self, parent, child):
 		return self.handle('is_ancestor_of', parent=parent, child=child)
 
-	def pull(self, cb=None):
-		"""Update the state of all my proxy objects from the real objects."""
-		deltas = self.handle('get_char_deltas', cb=self._upd_deltas)
-		if cb:
-			cb(deltas)
-
 	def _upd_and_cb(self, cb, *args, **kwargs):
 		self._upd_caches(*args, no_del=True, **kwargs)
 		self._set_time(*args, no_del=True, **kwargs)
