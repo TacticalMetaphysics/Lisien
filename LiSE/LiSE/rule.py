@@ -377,11 +377,11 @@ class RuleBook(MutableSequence, Signal):
 	"""
 
 	def _get_cache(self, branch, turn, tick):
-		ret = self.engine._rulebooks_cache._base_retrieve(
-			(self.name, branch, turn, tick))
-		if ret is None or isinstance(ret, Exception):
-			return [], 0
-		return ret
+		try:
+			return self.engine._rulebooks_cache.retrieve(
+				self.name, branch, turn, tick)
+		except KeyError:
+			return [], 0.0
 
 	def _set_cache(self, branch, turn, tick, v):
 		self.engine._rulebooks_cache.store(self.name, branch, turn, tick, v)
