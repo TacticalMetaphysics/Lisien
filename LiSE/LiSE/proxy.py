@@ -1991,6 +1991,7 @@ class EngineProxy(AbstractEngine):
 		self._round_trip_lock = Lock()
 		self._commit_lock = Lock()
 		self.logger = logger
+		self.character = self.graph = CharacterMapProxy(self)
 
 		for module in install_modules:
 			self.handle('install_module', module=module)  # not silenced
@@ -2030,7 +2031,6 @@ class EngineProxy(AbstractEngine):
 		self._rule_obj_cache = {}
 		self._rulebook_obj_cache = {}
 		self._char_cache = {}
-		self.character = self.graph = CharacterMapProxy(self)
 		self.eternal = EternalVarProxy(self)
 		self.universal = GlobalVarProxy(self)
 		self.rulebook = AllRuleBooksProxy(self)
