@@ -1573,11 +1573,12 @@ class Engine(AbstractEngine, gORM):
 				msg = ''
 			if not permissible:
 				for turn, changes in enumerate(track['changes'],
-												start=self.turn):
+												start=self.turn + 1):
 					rejections.extend(
 						((turn, entity, k, v), msg) for (k, v) in changes)
 				continue
-			for turn, changes in enumerate(track['changes'], start=self.turn):
+			for turn, changes in enumerate(track['changes'],
+											start=self.turn + 1):
 				for k, v in changes:
 					ekv = (entity, k, v)
 					parcel = (turn, entity, k, v)
