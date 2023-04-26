@@ -2261,6 +2261,12 @@ class EngineProxy(AbstractEngine):
 	def is_ancestor_of(self, parent, child):
 		return self.handle('is_ancestor_of', parent=parent, child=child)
 
+	def apply_choices(self, choices, dry_run=False, perfectionist=False):
+		return self.handle('apply_choices',
+							choices=choices,
+							dry_run=dry_run,
+							perfectionist=perfectionist)
+
 	def _upd_and_cb(self, cb, *args, **kwargs):
 		self._upd_caches(*args, no_del=True, **kwargs)
 		self._set_time(*args, no_del=True, **kwargs)
