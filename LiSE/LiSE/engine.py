@@ -1536,6 +1536,12 @@ class Engine(AbstractEngine, gORM):
 	) -> Tuple[List[Tuple[Any, Any]], List[Tuple[Any, Any]]]:
 		"""Validate changes a player wants to make, and apply if acceptable.
 
+		Argument ``choices`` is a list of dictionaries, of which each must
+		have values for ``"entity"`` (a LiSE entity) and ``"changes"``
+		-- the later being a list of lists of pairs. Each change list
+		is applied on a successive turn, and each pair ``(key, value)``
+		sets a key on the entity to a value on that turn.
+
 		Returns a pair of lists containing acceptance and rejection messages,
 		which the UI may present as it sees fit. They are always in a pair
 		with the change request as the zeroth item. The message may be None
