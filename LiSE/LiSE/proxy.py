@@ -2004,12 +2004,6 @@ class EngineProxy(AbstractEngine):
 		self.string = StringStoreProxy(self)
 		self.rando = RandoProxy(self)
 
-		for module in install_modules:
-			self.handle('install_module', module=module)  # not silenced
-		if do_game_start:
-			# not silenced; mustn't do anything before the game has started
-			self.handle('do_game_start')
-
 		self._node_stat_cache = StructuredDefaultDict(1, UnwrappingDict)
 		self._portal_stat_cache = StructuredDefaultDict(2, UnwrappingDict)
 		self._char_stat_cache = PickyDefaultDict(UnwrappingDict)
@@ -2064,6 +2058,10 @@ class EngineProxy(AbstractEngine):
 			if char not in self.character:
 				self._char_cache[char] = CharacterProxy(self, char)
 			self.character[char]._apply_delta(delta)
+		for module in install_modules:
+			self.handle('install_module', module=module)
+		if do_game_start:
+			self.handle('do_game_start', cb=self._upd_caches)
 
 	def send_bytes(self, obj, blocking=True, timeout=-1):
 		compressed = lz4.frame.compress(obj)

@@ -1360,9 +1360,12 @@ class EngineHandle(object):
 	def install_module(self, module: str) -> None:
 		import_module(module).install(self._real)
 
-	def do_game_start(self) -> None:
+	def do_game_start(self):
+		time_from = self._real._btt()
 		if hasattr(self._real.method, 'game_start'):
 			self._real.game_start()
+		return self._real.get_delta(*time_from, self._real.turn,
+									self._real.tick)
 
 	def is_ancestor_of(self, parent: str, child: str) -> bool:
 		return self._real.is_ancestor_of(parent, child)
