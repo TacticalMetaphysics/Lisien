@@ -1,3 +1,6 @@
+== 0.14.1 | 2023-04-26 ==
+* Fix a loading error when you make two keyframes and then start the engine before the first
+
 == 0.14.0 | 2023-04-07 ==
 * Seek bar for time travel in ELiDE, and some other minor UI improvements
 * Vastly improved performance in ELiDE for large worlds
