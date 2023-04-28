@@ -17,7 +17,6 @@
 * Lots of crash fixes
 * yapf formatting, with tabs
 * Improved documentation
-* No longer accept later revisions of the AGPL
 
 ==0.13.2 | 2022-07-31 ==
 * Fix an intermittent error where entity deletion sometimes wouldn't go through all the way
