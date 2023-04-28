@@ -1566,15 +1566,20 @@ class ORM:
 				updload(branch, turn, tick)
 				edgerows.append((graph, orig, dest, idx, branch, turn, tick, ex
 									or None))
-			for row in self.query.graph_val_dump():
-				updload(*row[2:5])
-				graphvalrows.append(row)
-			for row in self.query.node_val_dump():
-				updload(*row[3:6])
-				nodevalrows.append(row)
-			for row in self.query.edge_val_dump():
-				updload(*row[5:8])
-				edgevalrows.append(row)
+			for (graph, key, branch, turn, tick,
+					value) in self.query.graph_val_dump():
+				updload(branch, turn, tick)
+				graphvalrows.append((graph, key, branch, turn, tick, value))
+			for (graph, node, key, branch, turn, tick,
+					value) in self.query.node_val_dump():
+				updload(branch, turn, tick)
+				nodevalrows.append(
+					(graph, node, key, branch, turn, tick, value))
+			for (graph, orig, dest, idx, key, branch, turn, tick,
+					value) in self.query.edge_val_dump():
+				updload(branch, turn, tick)
+				edgevalrows.append(
+					(graph, orig, dest, idx, key, branch, turn, tick, value))
 			with self.batch():
 				self._nodes_cache.load(noderows)
 				self._edges_cache.load(edgerows)
@@ -1599,15 +1604,21 @@ class ORM:
 						(graph, orig, dest, idx, branch, turn, tick, ex
 							or None))
 					updload(branch, turn, tick)
-				for row in load_graph_val(graph, *window):
-					graphvalrows.append(row)
-					updload(*row[2:5])
-				for row in load_node_val(graph, *window):
-					nodevalrows.append(row)
-					updload(*row[3:6])
-				for row in load_edge_val(graph, *window):
-					edgevalrows.append(row)
-					updload(*row[4:8])
+				for (graph, key, branch, turn, tick,
+						value) in load_graph_val(graph, *window):
+					graphvalrows.append(
+						(graph, key, branch, turn, tick, value))
+					updload(branch, turn, tick)
+				for (graph, node, key, branch, turn, tick,
+						value) in load_node_val(graph, *window):
+					nodevalrows.append(
+						(graph, node, key, branch, turn, tick, value))
+					updload(branch, turn, tick)
+				for (graph, orig, dest, idx, key, branch, turn, tick,
+						value) in load_edge_val(graph, *window):
+					edgevalrows.append((graph, orig, dest, idx, key, branch,
+										turn, tick, value))
+					updload(branch, turn, tick)
 
 		snap_keyframe = self._snap_keyframe_de_novo_graph
 		for graph in self.graph:
