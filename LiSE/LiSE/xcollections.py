@@ -217,6 +217,7 @@ class FunctionStore(Signal):
 
 	def __call__(self, v):
 		setattr(self, v.__name__, v)
+		return v
 
 	def __delattr__(self, k):
 		del self._locl[k]
