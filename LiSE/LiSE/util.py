@@ -31,6 +31,7 @@ import numpy as np
 from cached_property import cached_property
 import msgpack
 import networkx as nx
+from tblib import Traceback
 
 from . import exc
 
@@ -369,7 +370,10 @@ class AbstractEngine(ABC):
 			Exception:
 			lambda exc: msgpack.ExtType(
 				MsgpackExtensionType.exception.value,
-				packer([exc.__class__.__name__] + list(exc.args)))
+				packer([
+					exc.__class__.__name__,
+					Traceback(exc.__traceback__).to_dict()
+				] + list(exc.args)))
 		}
 
 		def pack_handler(obj):
@@ -453,7 +457,9 @@ class AbstractEngine(ABC):
 			data = unpacker(ext)
 			if data[0] not in excs:
 				return Exception(*data)
-			return excs[data[0]](*data[1:])
+			ret = excs[data[0]](*data[2:])
+			ret.__traceback__ = Traceback.from_dict(data[1]).to_traceback()
+			return ret
 
 		def unpack_char(ext):
 			charn = unpacker(ext)
