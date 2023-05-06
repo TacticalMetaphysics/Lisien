@@ -230,7 +230,7 @@ class FunctionStore(Signal):
 		self.send(self, attr=k, val=None)
 
 	def save(self, reimport=True):
-		with open(self._filename, 'w') as outf:
+		with open(self._filename, 'w', encoding='utf-8') as outf:
 			Unparser(self._ast, outf)
 		if reimport:
 			importlib.invalidate_caches()
