@@ -130,6 +130,7 @@ class GameScreen(Screen):
 
 class GameApp(App):
 	modules = []
+	do_game_start = False
 	turn_length = NumericProperty(0.5)
 
 	def wait_turns(self, turns, dt=None, *, cb=None):
@@ -220,7 +221,8 @@ class GameApp(App):
 											logger=Logger,
 											loglevel=getattr(
 												self, 'loglevel', 'debug'),
-											do_game_start=not have_world,
+											do_game_start=self.do_game_start
+											and not have_world,
 											install_modules=self.modules)
 		self.screen_manager = ScreenManager(transition=NoTransition())
 		if hasattr(self, 'inspector'):
