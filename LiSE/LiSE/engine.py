@@ -18,6 +18,8 @@ flow of time.
 
 """
 from __future__ import annotations
+
+import shutil
 import sys
 import os
 from concurrent.futures import ThreadPoolExecutor, wait
@@ -297,9 +299,11 @@ class Engine(AbstractEngine, gORM):
 		if string:
 			self.string = string
 		else:
-			self._string_file = os.path.join(prefix, 'strings.json')
-			if clear and os.path.exists(self._string_file):
-				os.remove(self._string_file)
+			self._string_prefix = os.path.join(prefix, 'strings')
+			if clear and os.path.isdir(self._string_prefix):
+				shutil.rmtree(self._string_prefix)
+			if not os.path.exists(self._string_prefix):
+				os.mkdir(self._string_prefix)
 		if function:
 			self.function = function
 		else:
@@ -343,9 +347,9 @@ class Engine(AbstractEngine, gORM):
 		self._universal_cache.setdb = self.query.universal_set
 		self._rulebooks_cache.setdb = self.query.rulebook_set
 		self.eternal = self.query.globl
-		if hasattr(self, '_string_file'):
+		if hasattr(self, '_string_prefix'):
 			self.string = StringStore(
-				self.query, self._string_file,
+				self.query, self._string_prefix,
 				self.eternal.setdefault('language', 'eng'))
 		self.next_turn = NextTurn(self)
 		self.commit_interval = commit_interval
@@ -956,6 +960,8 @@ class Engine(AbstractEngine, gORM):
 		for store in self.stores:
 			if hasattr(store, 'save'):
 				store.save(reimport=False)
+			if not hasattr(store, '_filename'):
+				continue
 			path, filename = os.path.split(store._filename)
 			modname = filename[:-3]
 			if modname in sys.modules:
