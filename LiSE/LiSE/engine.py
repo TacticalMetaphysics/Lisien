@@ -362,7 +362,18 @@ class Engine(AbstractEngine, gORM):
 			self._rando.setstate(self.universal['rando_state'])
 		else:
 			self._rando.seed(random_seed)
-			self.universal['rando_state'] = self._rando.getstate()
+			rando_state = self._rando.getstate()
+			if self._oturn == self._otick == 0:
+				self._universal_cache.store('rando_state',
+											self.branch,
+											0,
+											0,
+											rando_state,
+											loading=True)
+				self.query.universal_set('rando_state', self.branch, 0, 0,
+											rando_state)
+			else:
+				self.universal['rando_state'] = rando_state
 		if hasattr(self.method, 'init'):
 			self.method.init(self)
 		if cache_arranger:
