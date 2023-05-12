@@ -1387,10 +1387,12 @@ class Engine(AbstractEngine, gORM):
 			for k, (x, y) in layout.items():
 				nodes[k]['_x'] = x
 				nodes[k]['_y'] = y
-		self._init_graph(name, 'DiGraph', data)
-		self._graph_objs[name] = graph_obj = self.char_cls(self, name)
 		if kwargs:
-			graph_obj.stat.update(kwargs)
+			if not data:
+				data = DiGraph()
+			data.graph.update(kwargs)
+		self._init_graph(name, 'DiGraph', data)
+		self._graph_objs[name] = self.char_cls(self, name)
 
 	def del_character(self, name: Key) -> None:
 		"""Remove the Character from the database entirely.
