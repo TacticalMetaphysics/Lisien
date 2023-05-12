@@ -42,7 +42,7 @@ import lz4.frame
 import msgpack
 from cached_property import cached_property
 
-from .allegedb import OutOfTimelineError
+from .allegedb import OutOfTimelineError, Key
 from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
 from .character import Facade
@@ -217,10 +217,11 @@ class NodeProxy(CachingEntityProxy):
 							rulebook=rb,
 							branching=True)
 
-	def __init__(self, character, nodename):
+	def __init__(self, character: "CharacterProxy", nodename: Key, **stats):
 		self.engine = character.engine
 		self._charname = character.name
 		self.name = nodename
+		self._cache.update(stats)
 		super().__init__()
 
 	def __iter__(self):
@@ -311,7 +312,11 @@ class ThingProxy(NodeProxy):
 			raise TypeError("Location must be a node or the name of one")
 		self._set_location(locn)
 
-	def __init__(self, character, name, location=None, **kwargs):
+	def __init__(self,
+					character: 'CharacterProxy',
+					name: Key,
+					location: Key = None,
+					**kwargs):
 		if location is None and getattr(character.engine, '_initialized',
 										True):
 			raise ValueError("Thing must have location")
@@ -1839,11 +1844,11 @@ class PortalObjCache(object):
 		self.successors = StructuredDefaultDict(2, PortalProxy)
 		self.predecessors = StructuredDefaultDict(2, PortalProxy)
 
-	def store(self, char, u, v, obj):
+	def store(self, char: Key, u: Key, v: Key, obj: PortalProxy) -> None:
 		self.successors[char][u][v] = obj
 		self.predecessors[char][v][u] = obj
 
-	def delete(self, char, u, v):
+	def delete(self, char: Key, u: Key, v: Key) -> None:
 		for (mapp, a, b) in [(self.successors, u, v),
 								(self.predecessors, v, u)]:
 			if char not in mapp:
@@ -1858,14 +1863,14 @@ class PortalObjCache(object):
 			if not submap_a:
 				del submap[a]
 
-	def delete_char(self, char):
+	def delete_char(self, char: Key) -> None:
 		del self.successors[char]
 		del self.predecessors[char]
 
 
 class TimeSignal(Signal):
 
-	def __init__(self, engine):
+	def __init__(self, engine: "EngineProxy"):
 		super().__init__()
 		self.engine = engine
 
@@ -1955,6 +1960,58 @@ class EngineProxy(AbstractEngine):
 	time = TimeDescriptor()
 
 	@property
+	def main_branch(self) -> str:
+		return self.handle('main_branch')
+
+	def switch_main_branch(self, branch: str) -> None:
+		if (self.branch != self.main_branch or self.turn != 0
+			or self._tick != 0):
+			raise ValueError("Go to the start of time first")
+		kf = self.handle('switch_main_branch',
+							branch=branch,
+							cb=self._set_time)
+		assert self.branch == branch
+		self._char_stat_cache = PickyDefaultDict(UnwrappingDict)
+		things = self._things_cache = {}
+		places = self._character_places_cache = {}
+		node_stats = self._node_stat_cache = StructuredDefaultDict(
+			1, UnwrappingDict)
+
+		portals = self._character_portals_cache = PortalObjCache()
+		portal_stats = self._portal_stat_cache = StructuredDefaultDict(
+			2, UnwrappingDict)
+		if kf is None:
+			self._char_cache = {}
+			self._universal_cache = {}
+			return
+		self._universal_cache = kf['universal']
+		self._char_cache = chars = {
+			graph: CharacterProxy(self, graph)
+			for (graph, ) in kf['graph_val']
+		}
+		for (graph, ), stats in kf['graph_val'].items():
+			self._char_stat_cache[graph] = stats
+		for (char, node), stats in kf['node_val'].items():
+			if 'location' in stats:
+				if char not in things:
+					things[char] = {}
+				things[char][node] = ThingProxy(chars[char], node,
+												stats.pop('location'))
+			else:
+				if char not in places:
+					places[char] = {}
+				places[char][node] = PlaceProxy(chars[char], node)
+			node_stats[char][node] = stats
+		for (char, ), nodes in kf['nodes'].items():
+			for node in nodes:
+				places[char][node] = PlaceProxy(chars[char], node)
+		for (char, orig, dest), exists in kf['edges'].items():
+			portals.store(char, orig, dest,
+							PortalProxy(chars[char], orig, dest))
+		for (char, orig, dest), stats in kf['edge_val'].items():
+			portal_stats[char][orig][dest] = stats
+
+	@property
 	def branch(self):
 		return self._branch
 
@@ -1969,6 +2026,14 @@ class EngineProxy(AbstractEngine):
 	@turn.setter
 	def turn(self, v):
 		self.time_travel(self.branch, v)
+
+	@property
+	def tick(self):
+		return self._tick
+
+	@tick.setter
+	def tick(self, v: int):
+		self.time_travel(self.branch, self.turn, v)
 
 	def __init__(self,
 					handle_out,

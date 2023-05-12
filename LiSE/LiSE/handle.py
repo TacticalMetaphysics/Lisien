@@ -1428,3 +1428,17 @@ class EngineHandle(object):
 
 	def branches(self) -> Dict[str, Tuple[str, int, int, int, int]]:
 		return self._real._branches
+
+	def main_branch(self) -> str:
+		return self._real.main_branch
+
+	def switch_main_branch(self, branch: str) -> dict:
+		new = branch not in self._real._branches
+		self._real.switch_main_branch(branch)
+		if not new:
+			self._real.snap_keyframe()
+			ret = self._real._get_kf(*self._real._btt())
+			# the following will be unnecessary when universal is a standard
+			# part of keyframes
+			ret['universal'] = dict(self._real.universal)
+			return ret
