@@ -35,7 +35,7 @@ from multiprocessing import Process, Pipe, Queue, ProcessError
 from concurrent.futures import ThreadPoolExecutor
 from queue import Empty
 from time import monotonic
-from typing import Hashable
+from typing import Hashable, Tuple, Optional
 
 from blinker import Signal
 import lz4.frame
@@ -2323,6 +2323,18 @@ class EngineProxy(AbstractEngine):
 
 	def is_ancestor_of(self, parent, child):
 		return self.handle('is_ancestor_of', parent=parent, child=child)
+
+	def branches(self) -> set:
+		return self.handle('branches')
+
+	def branch_start(self, branch: str) -> Tuple[int, int]:
+		return self.handle('branch_start', branch=branch)
+
+	def branch_end(self, branch: str) -> Tuple[int, int]:
+		return self.handle('branch_end', branch=branch)
+
+	def branch_parent(self, branch: str) -> Optional[str]:
+		return self.handle('branch_parent', branch=branch)
 
 	def apply_choices(self, choices, dry_run=False, perfectionist=False):
 		return self.handle('apply_choices',

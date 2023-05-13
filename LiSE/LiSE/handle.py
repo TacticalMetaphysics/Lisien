@@ -1370,6 +1370,18 @@ class EngineHandle(object):
 	def is_ancestor_of(self, parent: str, child: str) -> bool:
 		return self._real.is_ancestor_of(parent, child)
 
+	def branches(self) -> set:
+		return self._real.branches()
+
+	def branch_start(self, branch: str) -> Tuple[int, int]:
+		return self._real.branch_start(branch)
+
+	def branch_end(self, branch: str) -> Tuple[int, int]:
+		return self._real.branch_end(branch)
+
+	def branch_parent(self, branch: str) -> Optional[str]:
+		return self._real.branch_parent(branch)
+
 	def apply_choices(
 		self,
 		choices: List[dict],

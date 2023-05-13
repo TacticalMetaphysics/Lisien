@@ -1801,6 +1801,18 @@ class ORM:
 			return True
 		return self.is_ancestor_of(parent, self._branches[child][0])
 
+	def branches(self) -> set:
+		return set(self._branches)
+
+	def branch_parent(self, branch: str) -> Optional[str]:
+		return self._branches[branch][0]
+
+	def branch_start(self, branch: str) -> Tuple[int, int]:
+		return self._branches[branch][1:3]
+
+	def branch_end(self, branch: str) -> Tuple[int, int]:
+		return self._branches[branch][3:5]
+
 	def _get_branch(self) -> str:
 		return self._obranch
 
