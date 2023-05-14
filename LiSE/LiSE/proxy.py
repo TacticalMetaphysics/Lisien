@@ -1778,13 +1778,13 @@ class FuncProxy(object):
 		self.store = store
 		self.func = func
 
-	def __call__(self, *args, cb=None, **kwargs):
+	def __call__(self, *args, **kwargs):
 		return self.store.engine.handle('call_stored_function',
 										store=self.store._store,
 										func=self.func,
 										args=args,
 										kwargs=kwargs,
-										cb=cb)
+										cb=self.store.engine._upd_caches)
 
 	def __str__(self):
 		return self.store._cache[self.func]

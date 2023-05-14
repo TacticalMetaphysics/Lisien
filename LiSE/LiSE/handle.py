@@ -1346,13 +1346,16 @@ class EngineHandle(object):
 
 	def call_stored_function(self, store: str, func: str, args: Tuple,
 								kwargs: Dict) -> Any:
+		branch, turn, tick = self._real._btt()
 		if store == 'method':
 			args = (self._real, ) + tuple(args)
 		store = getattr(self._real, store)
 		if store not in self._real.stores:
 			raise ValueError("{} is not a function store".format(store))
 		callme = getattr(store, func)
-		return callme(*args, **kwargs)
+		_, turn_now, tick_now = self._real._btt()
+		return callme(*args, **kwargs), self._real.get_delta(
+			branch, turn, tick, turn_now, tick_now)
 
 	def call_randomizer(self, method: str, *args, **kwargs) -> Any:
 		return getattr(self._real._rando, method)(*args, **kwargs)
