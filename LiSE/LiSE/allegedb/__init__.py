@@ -2169,6 +2169,8 @@ class ORM:
 		if (self.branch != self.main_branch or self.turn != 0
 			or self.tick != 0):
 			raise ValueError("Go to the start of time first")
+		if branch in self._branches and self._branches[branch][0] is not None:
+			raise ValueError("Not a main branch")
 		self.query.globl["main_branch"] = self.branch = branch
 
 	@world_locked
