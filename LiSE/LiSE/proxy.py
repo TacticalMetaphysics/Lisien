@@ -2118,15 +2118,15 @@ class EngineProxy(AbstractEngine):
 		self._rulebooks_cache = self.handle('all_rulebooks_copy')
 		self._eternal_cache = self.handle('eternal_copy')
 		self._universal_cache = self.handle('universal_copy')
+		for module in install_modules:
+			self.handle('install_module', module=module)
+		if do_game_start:
+			self.handle('do_game_start', cb=self._upd_caches)
 		deltas = self.handle('copy_chars', chars='all')
 		for char, delta in deltas.items():
 			if char not in self.character:
 				self._char_cache[char] = CharacterProxy(self, char)
 			self.character[char]._apply_delta(delta)
-		for module in install_modules:
-			self.handle('install_module', module=module)
-		if do_game_start:
-			self.handle('do_game_start', cb=self._upd_caches)
 
 	def __getattr__(self, item):
 		return getattr(self.method, item)
