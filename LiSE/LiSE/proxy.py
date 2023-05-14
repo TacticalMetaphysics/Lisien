@@ -1971,6 +1971,9 @@ class EngineProxy(AbstractEngine):
 							branch=branch,
 							cb=self._set_time)
 		assert self.branch == branch
+		self._replace_state_with_kf(kf)
+
+	def _replace_state_with_kf(self, kf):
 		self._char_stat_cache = PickyDefaultDict(UnwrappingDict)
 		things = self._things_cache = {}
 		places = self._character_places_cache = {}
