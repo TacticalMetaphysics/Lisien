@@ -1451,9 +1451,12 @@ class EngineHandle(object):
 		new = branch not in self._real._branches
 		self._real.switch_main_branch(branch)
 		if not new:
-			self._real.snap_keyframe()
-			ret = self._real._get_kf(*self._real._btt())
-			# the following will be unnecessary when universal is a standard
-			# part of keyframes
-			ret['universal'] = dict(self._real.universal)
-			return ret
+			return self.get_kf()
+
+	def get_kf_now(self) -> dict:
+		self._real.snap_keyframe()
+		ret = self._real._get_kf(*self._real._btt())
+		# the following will be unnecessary when universal is a standard
+		# part of keyframes
+		ret['universal'] = dict(self._real.universal)
+		return ret

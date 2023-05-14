@@ -1778,13 +1778,15 @@ class FuncProxy(object):
 		self.store = store
 		self.func = func
 
-	def __call__(self, *args, **kwargs):
+	def __call__(self, *args, cb=None, **kwargs):
 		return self.store.engine.handle('call_stored_function',
 										store=self.store._store,
 										func=self.func,
 										args=args,
 										kwargs=kwargs,
-										cb=self.store.engine._upd_caches)
+										cb=partial(
+											self.store.engine._upd_and_cb,
+											cb=cb))
 
 	def __str__(self):
 		return self.store._cache[self.func]
@@ -2014,6 +2016,9 @@ class EngineProxy(AbstractEngine):
 		for (char, orig, dest), stats in kf['edge_val'].items():
 			portal_stats[char][orig][dest] = stats
 
+	def _pull_kf_now(self, *args, **kwargs):
+		self._replace_state_with_kf(self.handle('get_kf_now'))
+
 	@property
 	def branch(self):
 		return self._branch
@@ -2132,6 +2137,8 @@ class EngineProxy(AbstractEngine):
 			self.character[char]._apply_delta(delta)
 
 	def __getattr__(self, item):
+		if item == 'game_start':
+			return partial(self.method.game_start, cb=self._pull_kf_now)
 		return getattr(self.method, item)
 
 	def send_bytes(self, obj, blocking=True, timeout=-1):
