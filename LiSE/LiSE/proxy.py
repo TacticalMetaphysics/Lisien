@@ -2128,6 +2128,9 @@ class EngineProxy(AbstractEngine):
 		if do_game_start:
 			self.handle('do_game_start', cb=self._upd_caches)
 
+	def __getattr__(self, item):
+		return getattr(self.method, item)
+
 	def send_bytes(self, obj, blocking=True, timeout=-1):
 		compressed = lz4.frame.compress(obj)
 		self._handle_out_lock.acquire(blocking, timeout)
