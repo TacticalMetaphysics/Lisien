@@ -17,7 +17,8 @@ import os
 from kivy.app import App
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.properties import (BooleanProperty, ObjectProperty, NumericProperty)
+from kivy.properties import (BooleanProperty, ObjectProperty, NumericProperty,
+								StringProperty)
 from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
 import LiSE.proxy
 from functools import partial
@@ -132,6 +133,9 @@ class GameApp(App):
 	modules = []
 	do_game_start = False
 	turn_length = NumericProperty(0.5)
+	branch = StringProperty('trunk')
+	turn = NumericProperty(0)
+	tick = NumericProperty(0)
 
 	def wait_turns(self, turns, dt=None, *, cb=None):
 		"""Call ``self.engine.next_turn()`` ``n`` times, waiting ``self.turn_length`` in between
