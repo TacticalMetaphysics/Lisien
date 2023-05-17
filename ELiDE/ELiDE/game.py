@@ -206,10 +206,6 @@ class GameApp(App):
 							cb=partial(self.wait_command, start_func, turns,
 										end_func))
 
-	def on_engine(self, *args):
-		self.branch, self.turn, self.tick = self.engine._btt()
-		self.engine.time.connect(self._pull_time, weak=False)
-
 	def _pull_time(self, *args, branch, turn, tick):
 		self.branch, self.turn, self.tick = branch, turn, tick
 
@@ -228,6 +224,8 @@ class GameApp(App):
 											do_game_start=self.do_game_start
 											and not have_world,
 											install_modules=self.modules)
+		self.branch, self.turn, self.tick = self.engine._btt()
+		self.engine.time.connect(self._pull_time, weak=False)
 		self.screen_manager = ScreenManager(transition=NoTransition())
 		if hasattr(self, 'inspector'):
 			from kivy.core.window import Window
