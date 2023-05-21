@@ -1346,13 +1346,16 @@ class EngineHandle(object):
 
 	def call_stored_function(self, store: str, func: str, args: Tuple,
 								kwargs: Dict) -> Any:
+		branch, turn, tick = self._real._btt()
 		if store == 'method':
 			args = (self._real, ) + tuple(args)
 		store = getattr(self._real, store)
 		if store not in self._real.stores:
 			raise ValueError("{} is not a function store".format(store))
 		callme = getattr(store, func)
-		return callme(*args, **kwargs)
+		_, turn_now, tick_now = self._real._btt()
+		return callme(*args, **kwargs), self._real.get_delta(
+			branch, turn, tick, turn_now, tick_now)
 
 	def call_randomizer(self, method: str, *args, **kwargs) -> Any:
 		return getattr(self._real._rando, method)(*args, **kwargs)
@@ -1369,6 +1372,18 @@ class EngineHandle(object):
 
 	def is_ancestor_of(self, parent: str, child: str) -> bool:
 		return self._real.is_ancestor_of(parent, child)
+
+	def branches(self) -> set:
+		return self._real.branches()
+
+	def branch_start(self, branch: str) -> Tuple[int, int]:
+		return self._real.branch_start(branch)
+
+	def branch_end(self, branch: str) -> Tuple[int, int]:
+		return self._real.branch_end(branch)
+
+	def branch_parent(self, branch: str) -> Optional[str]:
+		return self._real.branch_parent(branch)
 
 	def apply_choices(
 		self,
@@ -1428,3 +1443,20 @@ class EngineHandle(object):
 
 	def branches(self) -> Dict[str, Tuple[str, int, int, int, int]]:
 		return self._real._branches
+
+	def main_branch(self) -> str:
+		return self._real.main_branch
+
+	def switch_main_branch(self, branch: str) -> dict:
+		new = branch not in self._real._branches
+		self._real.switch_main_branch(branch)
+		if not new:
+			return self.get_kf()
+
+	def get_kf_now(self) -> dict:
+		self._real.snap_keyframe()
+		ret = self._real._get_kf(*self._real._btt())
+		# the following will be unnecessary when universal is a standard
+		# part of keyframes
+		ret['universal'] = dict(self._real.universal)
+		return ret

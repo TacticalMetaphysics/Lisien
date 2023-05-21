@@ -18,6 +18,8 @@ flow of time.
 
 """
 from __future__ import annotations
+
+import shutil
 import sys
 import os
 from concurrent.futures import ThreadPoolExecutor, wait
@@ -297,9 +299,11 @@ class Engine(AbstractEngine, gORM):
 		if string:
 			self.string = string
 		else:
-			self._string_file = os.path.join(prefix, 'strings.json')
-			if clear and os.path.exists(self._string_file):
-				os.remove(self._string_file)
+			self._string_prefix = os.path.join(prefix, 'strings')
+			if clear and os.path.isdir(self._string_prefix):
+				shutil.rmtree(self._string_prefix)
+			if not os.path.exists(self._string_prefix):
+				os.mkdir(self._string_prefix)
 		if function:
 			self.function = function
 		else:
@@ -343,9 +347,9 @@ class Engine(AbstractEngine, gORM):
 		self._universal_cache.setdb = self.query.universal_set
 		self._rulebooks_cache.setdb = self.query.rulebook_set
 		self.eternal = self.query.globl
-		if hasattr(self, '_string_file'):
+		if hasattr(self, '_string_prefix'):
 			self.string = StringStore(
-				self.query, self._string_file,
+				self.query, self._string_prefix,
 				self.eternal.setdefault('language', 'eng'))
 		self.next_turn = NextTurn(self)
 		self.commit_interval = commit_interval
@@ -358,7 +362,18 @@ class Engine(AbstractEngine, gORM):
 			self._rando.setstate(self.universal['rando_state'])
 		else:
 			self._rando.seed(random_seed)
-			self.universal['rando_state'] = self._rando.getstate()
+			rando_state = self._rando.getstate()
+			if self._oturn == self._otick == 0:
+				self._universal_cache.store('rando_state',
+											self.branch,
+											0,
+											0,
+											rando_state,
+											loading=True)
+				self.query.universal_set('rando_state', self.branch, 0, 0,
+											rando_state)
+			else:
+				self.universal['rando_state'] = rando_state
 		if hasattr(self.method, 'init'):
 			self.method.init(self)
 		if cache_arranger:
@@ -956,6 +971,8 @@ class Engine(AbstractEngine, gORM):
 		for store in self.stores:
 			if hasattr(store, 'save'):
 				store.save(reimport=False)
+			if not hasattr(store, '_filename'):
+				continue
 			path, filename = os.path.split(store._filename)
 			modname = filename[:-3]
 			if modname in sys.modules:
@@ -1381,10 +1398,12 @@ class Engine(AbstractEngine, gORM):
 			for k, (x, y) in layout.items():
 				nodes[k]['_x'] = x
 				nodes[k]['_y'] = y
-		self._init_graph(name, 'DiGraph', data)
-		self._graph_objs[name] = graph_obj = self.char_cls(self, name)
 		if kwargs:
-			graph_obj.stat.update(kwargs)
+			if not data:
+				data = DiGraph()
+			data.graph.update(kwargs)
+		self._init_graph(name, 'DiGraph', data)
+		self._graph_objs[name] = self.char_cls(self, name)
 
 	def del_character(self, name: Key) -> None:
 		"""Remove the Character from the database entirely.

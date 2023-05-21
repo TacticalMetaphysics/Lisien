@@ -17,7 +17,8 @@ import os
 from kivy.app import App
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.properties import (BooleanProperty, ObjectProperty, NumericProperty)
+from kivy.properties import (BooleanProperty, ObjectProperty, NumericProperty,
+								StringProperty)
 from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
 import LiSE.proxy
 from functools import partial
@@ -130,7 +131,11 @@ class GameScreen(Screen):
 
 class GameApp(App):
 	modules = []
+	do_game_start = False
 	turn_length = NumericProperty(0.5)
+	branch = StringProperty('trunk')
+	turn = NumericProperty(0)
+	tick = NumericProperty(0)
 
 	def wait_turns(self, turns, dt=None, *, cb=None):
 		"""Call ``self.engine.next_turn()`` ``n`` times, waiting ``self.turn_length`` in between
@@ -201,10 +206,6 @@ class GameApp(App):
 							cb=partial(self.wait_command, start_func, turns,
 										end_func))
 
-	def on_engine(self, *args):
-		self.branch, self.turn, self.tick = self.engine._btt()
-		self.engine.time.connect(self._pull_time, weak=False)
-
 	def _pull_time(self, *args, branch, turn, tick):
 		self.branch, self.turn, self.tick = branch, turn, tick
 
@@ -220,8 +221,11 @@ class GameApp(App):
 											logger=Logger,
 											loglevel=getattr(
 												self, 'loglevel', 'debug'),
-											do_game_start=not have_world,
+											do_game_start=self.do_game_start
+											and not have_world,
 											install_modules=self.modules)
+		self.branch, self.turn, self.tick = self.engine._btt()
+		self.engine.time.connect(self._pull_time, weak=False)
 		self.screen_manager = ScreenManager(transition=NoTransition())
 		if hasattr(self, 'inspector'):
 			from kivy.core.window import Window

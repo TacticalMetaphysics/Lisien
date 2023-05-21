@@ -84,46 +84,44 @@ class LanguageDescriptor(AbstractLanguageDescriptor):
 		return inst._language
 
 	def _set_language(self, inst, val):
-		inst._language = val
+		inst._load_language(val)
 		inst.query.global_set('language', val)
 
 
 class StringStore(MutableMapping, Signal):
-	"""Store strings in database, and format them with one another upon retrieval.
-
-	In any one string, putting the key of another string in curly
-	braces will cause the other string to be substituted in.
-
-	"""
 	language = LanguageDescriptor()
 
-	def __init__(self, query, filename, lang='eng'):
+	def __init__(self, query, prefix, lang='eng'):
 		"""Store the engine, the name of the database table to use, and the
 		language code.
 
 		"""
 		super().__init__()
 		self.query = query
-		self._filename = filename
+		self._prefix = prefix
 		self._language = lang
 		try:
-			with open(filename, 'r') as inf:
-				self.cache = json.load(inf)
+			self._load_language(lang)
 		except FileNotFoundError:
-			self.cache = {lang: {}}
+			self._cache = {}
+
+	def _load_language(self, lang):
+		with open(os.path.join(self._prefix, lang + ".json"), 'r') as inf:
+			self._cache = json.load(inf)
+		self._language = lang
 
 	def __iter__(self):
-		return iter(self.cache[self.language])
+		return iter(self._cache)
 
 	def __len__(self):
-		return len(self.cache[self.language])
+		return len(self._cache)
 
 	def __getitem__(self, k):
-		return self.cache[self.language][k]
+		return self._cache[k]
 
 	def __setitem__(self, k, v):
 		"""Set the value of a string for the current language."""
-		self.cache[self.language][k] = v
+		self._cache[k] = v
 		self.send(self, key=k, val=v)
 
 	def __delitem__(self, k):
@@ -131,18 +129,21 @@ class StringStore(MutableMapping, Signal):
 		cache.
 
 		"""
-		del self.cache[self.language][k]
+		del self._cache[k]
 		self.send(self, key=k, val=None)
 
 	def lang_items(self, lang=None):
 		"""Yield pairs of (id, string) for the given language."""
-		if lang is None:
-			lang = self.language
-		yield from self.cache.setdefault(lang, {}).items()
+		if lang is not None and self._language != lang:
+			self._load_language(lang)
+		yield from self._cache.items()
 
 	def save(self, reimport=False):
-		with open(self._filename, 'w') as outf:
-			json.dump(self.cache, outf, indent=4, sort_keys=True)
+		if not os.path.exists(self._prefix):
+			os.mkdir(self._prefix)
+		with open(os.path.join(self._prefix, self._language + ".json"),
+					'w') as outf:
+			json.dump(self._cache, outf, indent=4, sort_keys=True)
 
 
 class FunctionStore(Signal):

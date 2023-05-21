@@ -145,3 +145,27 @@ def test_manip_deleted(engy):
 	assert 1 not in phys
 	assert 0 not in phys.adj
 	assert 1 not in phys.adj
+
+
+class TestSwitchMainBranch(ProxyTest):
+
+	def test_switch_main_branch(self):
+		phys = self.engine.new_character('physical', hello='hi')
+		self.engine.next_turn()
+		phys.stat['hi'] = 'hello'
+		with pytest.raises(ValueError):
+			self.engine.switch_main_branch('tronc')
+		self.engine.turn = 0
+		self.engine.tick = 0
+		self.engine.switch_main_branch('tronc')
+		assert self.engine.branch == 'tronc'
+		assert 'hello' not in phys.stat
+		self.engine.next_turn()
+		phys.stat['hi'] = 'hey there'
+		self.engine.turn = 0
+		self.engine.tick = 0
+		self.engine.switch_main_branch('trunk')
+		assert phys.stat['hello'] == 'hi'
+		self.engine.turn = 1
+		assert phys.stat['hello'] == 'hi'
+		assert phys.stat['hi'] == 'hello'

@@ -1789,9 +1789,9 @@ class ORM:
 		any remove.
 
 		"""
-		if parent == self._main_branch:
+		if parent == self.main_branch:
 			return True
-		if child == self._main_branch:
+		if child == self.main_branch:
 			return False
 		if child not in self._branches:
 			raise ValueError(
@@ -1800,6 +1800,18 @@ class ORM:
 		if self._branches[child][0] == parent:
 			return True
 		return self.is_ancestor_of(parent, self._branches[child][0])
+
+	def branches(self) -> set:
+		return set(self._branches)
+
+	def branch_parent(self, branch: str) -> Optional[str]:
+		return self._branches[branch][0]
+
+	def branch_start(self, branch: str) -> Tuple[int, int]:
+		return self._branches[branch][1:3]
+
+	def branch_end(self, branch: str) -> Tuple[int, int]:
+		return self._branches[branch][3:5]
 
 	def _get_branch(self) -> str:
 		return self._obranch
@@ -1814,7 +1826,7 @@ class ORM:
 			return
 		# make sure I'll end up within the revision range of the
 		# destination branch
-		if v != self._main_branch and v in self._branches:
+		if v != self.main_branch and v in self._branches:
 			parturn = self._branches[v][1]
 			if curturn < parturn:
 				raise OutOfTimelineError(
@@ -2150,8 +2162,16 @@ class ORM:
 		self._plan_ticks_uncommitted = []
 
 	@property
-	def _main_branch(self):
+	def main_branch(self):
 		return self.query.globl["main_branch"]
+
+	def switch_main_branch(self, branch: str) -> None:
+		if (self.branch != self.main_branch or self.turn != 0
+			or self.tick != 0):
+			raise ValueError("Go to the start of time first")
+		if branch in self._branches and self._branches[branch][0] is not None:
+			raise ValueError("Not a main branch")
+		self.query.globl["main_branch"] = self.branch = branch
 
 	@world_locked
 	def commit(self) -> None:
@@ -2205,7 +2225,7 @@ class ORM:
 		self.query.new_graph(name, type_s)
 		branch, turn, tick = self._btt()
 		self._nudge_loaded(branch, turn, tick)
-		if data:
+		if data is not None:
 			if isinstance(data, DiGraph):
 				nodes = data._nodes_state()
 				edges = data._edges_state()
