@@ -548,11 +548,6 @@ class RuleMapping(MutableMapping, Signal):
 		elif isinstance(v, str) and hasattr(self.engine.function, v):
 			v = getattr(self.engine.function, v)
 		if not isinstance(v, Rule) and callable(v):
-			if k in self.engine.rule:
-				raise KeyError(
-					"Already have a rule named {name}. "
-					"If you really mean to replace it, set "
-					"self.rule[{name}] to a new Rule object.".format(name=k))
 			# create a new rule, named k, performing action v
 			self.engine.rule[k] = v
 			v = self.engine.rule[k]
