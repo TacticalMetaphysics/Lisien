@@ -1311,7 +1311,7 @@ class Engine(AbstractEngine, gORM):
 				if not entity:
 					continue
 				self.debug(
-					f"checking prereqs for rule {rule} on entity {fmtent(entity)}"
+					f"checking prereqs for rule {rule.name} on entity {fmtent(entity)}"
 				)
 				if check_prereqs(rule, handled, entity):
 					self.debug(
