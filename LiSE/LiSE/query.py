@@ -1234,7 +1234,10 @@ class QueryEngine(query.QueryEngine):
 					triggers=None,
 					prereqs=None,
 					actions=None):
-		self.call_one('rules_insert', rule)
+		try:
+			self.call_one('rules_insert', rule)
+		except IntegrityError:
+			pass
 		self.set_rule_triggers(rule, branch, turn, tick, triggers or [])
 		self.set_rule_prereqs(rule, branch, turn, tick, prereqs or [])
 		self.set_rule_actions(rule, branch, turn, tick, actions or [])

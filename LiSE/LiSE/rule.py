@@ -719,12 +719,8 @@ class AllRules(MutableMapping, Signal):
 			else:
 				raise ValueError("Unknown function: " + v)
 		if callable(v):
-			if k not in self._cache:
-				self._cache[k] = Rule(self.engine, k, actions=[v])
-				new = self._cache[k]
-			else:
-				new = self._cache[k]
-				new.actions = [v]
+			self._cache[k] = Rule(self.engine, k, actions=[v])
+			new = self._cache[k]
 		elif isinstance(v, Rule):
 			self._cache[k] = v
 			new = v
