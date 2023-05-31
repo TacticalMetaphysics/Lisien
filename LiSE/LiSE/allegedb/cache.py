@@ -245,9 +245,10 @@ class Cache:
 		self._truncate_stuff = (self.parents, self.branches, self.keys,
 								self.settings, self.presettings, self.keycache)
 		self._store_journal_stuff: Tuple[PickyDefaultDict, PickyDefaultDict,
-											callable] = (self.settings,
-															self.presettings,
-															self.retrieve)
+											callable] = (
+												self.settings,
+												self.presettings,
+												self._base_retrieve)
 
 	def load(self, data):
 		"""Add a bunch of data. Must be in chronological order.
@@ -830,7 +831,7 @@ class Cache:
 
 	def _store_journal(self, *args):
 		# overridden in LiSE.cache.InitializedCache
-		(settings, presettings, retrieve) = self._store_journal_stuff
+		(settings, presettings, base_retrieve) = self._store_journal_stuff
 		entity: Hashable
 		key: Hashable
 		branch: str
@@ -840,9 +841,8 @@ class Cache:
 		parent = args[:-6]
 		settings_turns = settings[branch]
 		presettings_turns = presettings[branch]
-		try:
-			prev = retrieve(*args[:-1])
-		except KeyError:
+		prev = base_retrieve(args[:-1])
+		if isinstance(prev, KeyError):
 			prev = None
 		if turn in settings_turns:
 			# These assertions hold for most caches but not for the contents
@@ -859,24 +859,16 @@ class Cache:
 			presettings_turns[turn] = {tick: parent + (entity, key, prev)}
 			settings_turns[turn] = {tick: parent + (entity, key, value)}
 
-	def retrieve(self, *args, store_hint=False, retrieve_hint=False):
-		"""Get a value previously .store(...)'d.
+	def _base_retrieve(self, args, store_hint=True, retrieve_hint=True):
+		"""Hot code.
 
-		Needs at least five arguments. The -1th is the tick
-		within the turn you want,
-		the -2th is that turn, the -3th is the branch,
-		and the -4th is the key. All other arguments identify
-		the entity that the key is in.
-
-		Swims up the timestream trying to find a value for the
+		Swim up the timestream trying to find a value for the
 		key in the entity that applied at the given (branch, turn, tick).
-		If we hit a keyframe, return the value therein.
-		
-		Raises NotInKeyframeError if we hit a keyframe and the value is not
-		present in it, or regular KeyError if we get all the way back to
-		the start of time and there's no value.
+		If we hit a keyframe, return the value therein, or KeyError if
+		there is none.
 
-		Hot code.
+		May *return* an exception, rather than raising it. This is to enable
+		use outside try-blocks, which have some performance overhead.
 
 		"""
 		shallowest = self.shallowest
@@ -912,7 +904,7 @@ class Cache:
 										shallowest[args] = ret
 									return ret
 								else:
-									raise NotInKeyframeError("No value")
+									return NotInKeyframeError("No value")
 						ret = brancs[r][t]
 						if store_hint:
 							shallowest[args] = ret
@@ -931,7 +923,7 @@ class Cache:
 										shallowest[args] = ret
 									return ret
 								else:
-									raise NotInKeyframeError("No value")
+									return NotInKeyframeError("No value")
 							elif brancs.rev_before(r - 1) == kfb.rev_before(r -
 																			1):
 								kfbr = kfb[r - 1]
@@ -944,7 +936,7 @@ class Cache:
 											shallowest[args] = ret
 										return ret
 									else:
-										raise NotInKeyframeError("No value")
+										return NotInKeyframeError("No value")
 						ret = brancs[r - 1].final()
 						if store_hint:
 							shallowest[args] = ret
@@ -957,7 +949,7 @@ class Cache:
 								shallowest[args] = ret
 							return ret
 						else:
-							raise NotInKeyframeError("No value")
+							return NotInKeyframeError("No value")
 					elif b in keyframes and keyframes[b].rev_gettable(r - 1):
 						if key in keyframes[b][r - 1].final():
 							ret = keyframes[b][r - 1].final()[key]
@@ -965,7 +957,7 @@ class Cache:
 								shallowest[args] = ret
 							return ret
 						else:
-							raise NotInKeyframeError("No value")
+							return NotInKeyframeError("No value")
 				elif b in keyframes:
 					kfb = keyframes[b]
 					if r in kfb:
@@ -978,7 +970,7 @@ class Cache:
 									shallowest[args] = ret
 								return ret
 							else:
-								raise NotInKeyframeError("No value")
+								return NotInKeyframeError("No value")
 					if kfb.rev_gettable(r - 1):
 						kfbr = kfb[r]
 						kf = kfbr.final()
@@ -988,7 +980,7 @@ class Cache:
 								shallowest[args] = ret
 							return ret
 						else:
-							raise NotInKeyframeError("No value")
+							return NotInKeyframeError("No value")
 		else:
 			for (b, r, t) in self.db._iter_parent_btt(branch, turn, tick):
 				if b in keyframes:
@@ -1003,7 +995,7 @@ class Cache:
 									shallowest[args] = ret
 								return ret
 							else:
-								raise NotInKeyframeError("No value")
+								return NotInKeyframeError("No value")
 					if kfb.rev_gettable(r - 1):
 						kfbr = kfb[r]
 						kf = kfbr.final()
@@ -1013,8 +1005,25 @@ class Cache:
 								shallowest[args] = ret
 							return ret
 						else:
-							raise NotInKeyframeError("No value")
-		raise KeyError("No value, ever")
+							return NotInKeyframeError("No value")
+		return KeyError("No value, ever")
+
+	def retrieve(self, *args):
+		"""Get a value previously .store(...)'d.
+
+		Needs at least five arguments. The -1th is the tick
+		within the turn you want,
+		the -2th is that turn, the -3th is the branch,
+		and the -4th is the key. All other arguments identify
+		the entity that the key is in.
+
+		"""
+		ret = self._base_retrieve(args)
+		if ret is None:
+			raise HistoricKeyError("Set, then deleted", deleted=True)
+		elif isinstance(ret, Exception):
+			raise ret
+		return ret
 
 	def iter_entities_or_keys(self, *args, forward: bool = None):
 		"""Iterate over the keys an entity has, if you specify an entity.
@@ -1067,10 +1076,8 @@ class Cache:
 		Otherwise check if the entity exists.
 
 		"""
-		try:
-			return self.retrieve(*args) is not None
-		except KeyError:
-			return False
+		retr = self._base_retrieve(args)
+		return retr is not None and not isinstance(retr, Exception)
 
 	contains_entity = contains_key = contains_entity_key = contains_entity_or_key
 
@@ -1215,14 +1222,7 @@ class EdgesCache(Cache):
 											tick: int, graph: Hashable,
 											node: Hashable):
 		# slow and bad.
-		retrieve_core = self.retrieve
-
-		def retrieve(*args):
-			try:
-				return retrieve_core(*args)
-			except KeyError:
-				return None
-
+		retrieve = self._base_retrieve
 		for items in (self.successors[graph, node].items(),
 						self.predecessors[graph, node].items()):
 			for dest, idxs in items:  # dest might really be orig
@@ -1232,12 +1232,12 @@ class EdgesCache(Cache):
 						ticks = brnch[turn]
 						for tck, present in ticks.future(tick).items():
 							if tck > tick and present is not retrieve(
-								graph, node, dest, idx, branch, turn, tick):
+								(graph, node, dest, idx, branch, turn, tick)):
 								yield turn, tck
 					for trn, ticks in brnch.future(turn).items():
 						for tck, present in ticks.items():
-							if present is not retrieve(graph, node, dest, idx,
-														branch, turn, tick):
+							if present is not retrieve(
+								(graph, node, dest, idx, branch, turn, tick)):
 								yield trn, tck
 
 	def _adds_dels_successors(self,

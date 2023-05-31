@@ -1184,14 +1184,7 @@ class Engine(AbstractEngine, gORM):
 				pool.submit(check_triggers, prio, rulebook, rule, handled,
 							entity))
 
-		core_retrieve = self._unitness_cache.retrieve
-
-		def avcache_retr(*args):
-			try:
-				return core_retrieve(*args)
-			except KeyError:
-				return None
-
+		avcache_retr = self._unitness_cache._base_retrieve
 		node_exists = self._node_exists
 		make_node = self._make_node
 		thing_cls = self.thing_cls
@@ -1220,7 +1213,7 @@ class Engine(AbstractEngine, gORM):
 				rulen) in self._unit_rules_handled_cache.iter_unhandled_rules(
 					branch, turn, tick):
 			if not node_exists(graphn, avn) or avcache_retr(
-				charn, graphn, avn, branch, turn, tick) is None:
+				(charn, graphn, avn, branch, turn, tick)) in (KeyError, None):
 				continue
 			rule = rulemap[rulen]
 			handled = partial(self._handled_av, charn, graphn, avn, rulebook,

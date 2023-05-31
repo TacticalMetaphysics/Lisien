@@ -549,12 +549,11 @@ class Thing(Node):
 		return self.name
 
 	def _getloc(self):
-		try:
-			return self.engine._things_cache.retrieve(self.character.name,
-														self.name,
-														*self.engine._btt())
-		except KeyError:
+		ret = self.engine._things_cache._base_retrieve(
+			(self.character.name, self.name, *self.engine._btt()))
+		if ret is None or isinstance(ret, Exception):
 			return None
+		return ret
 
 	def _validate_node_type(self):
 		return self._getloc() is not None

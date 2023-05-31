@@ -448,30 +448,21 @@ class ORM:
 				graph_stats = self._graph_val_cache._get_keycache(
 					(graph, ), branch, turn, tick, forward=False)
 				for stat in graph_stats:
-					try:
-						self._graph_val_cache.retrieve(graph, stat, branch,
-														turn, tick)
-					except KeyError:
-						pass
+					self._graph_val_cache._base_retrieve(
+						(graph, stat, branch, turn, tick))
 				nodes = self._nodes_cache._get_keycache((graph, ),
 														branch,
 														turn,
 														tick,
 														forward=False)
 				for node in nodes:
-					try:
-						self._nodes_cache.retrieve(graph, node, branch, turn,
-													tick)
-					except KeyError:
-						pass
+					self._nodes_cache._base_retrieve(
+						(graph, node, branch, turn, tick))
 					node_stats = self._node_val_cache._get_keycache(
 						(graph, node), branch, turn, tick, forward=False)
 					for stat in node_stats:
-						try:
-							self._node_val_cache.retrieve(
-								graph, node, stat, branch, turn, tick)
-						except KeyError:
-							pass
+						self._node_val_cache._base_retrieve(
+							(graph, node, stat, branch, turn, tick))
 					dests = self._edges_cache._get_destcache(graph,
 																node,
 																branch,
@@ -479,11 +470,8 @@ class ORM:
 																tick,
 																forward=False)
 					for dest in dests:
-						try:
-							self._edges_cache.retrieve(graph, node, dest,
-														branch, turn, tick)
-						except KeyError:
-							pass
+						self._edges_cache._base_retrieve(
+							(graph, node, dest, branch, turn, tick))
 						edge_stats = self._edge_val_cache._get_keycache(
 							(graph, node, dest),
 							branch,
@@ -491,12 +479,8 @@ class ORM:
 							tick,
 							forward=False)
 						for stat in edge_stats:
-							try:
-								self._edge_val_cache.retrieve(
-									graph, node, dest, stat, branch, turn,
-									tick)
-							except KeyError:
-								pass
+							self._edge_val_cache._base_retrieve(
+								(graph, node, dest, stat, branch, turn, tick))
 
 	def _arrange_cache_loop(self) -> None:
 		q = self.cache_arrange_queue
@@ -879,8 +863,9 @@ class ORM:
 							self._time_plan, self._branches)
 		self._node_exists_stuff: Tuple[
 			Callable[[Tuple[Key, Key, str, int, int]], Any],
-			Callable[[], Tuple[str, int, int]]] = (self._nodes_cache.retrieve,
-													self._btt)
+			Callable[[], Tuple[str, int,
+								int]]] = (self._nodes_cache._base_retrieve,
+											self._btt)
 		self._exist_node_stuff: Tuple[
 			Callable[[], Tuple[str, int, int]],
 			Callable[[Key, Key, str, int, int, bool], None],
@@ -889,8 +874,9 @@ class ORM:
 									self._nodes_cache.store)
 		self._edge_exists_stuff: Tuple[
 			Callable[[Tuple[Key, Key, Key, int, str, int, int]], bool],
-			Callable[[], Tuple[str, int, int]]] = (self._edges_cache.retrieve,
-													self._btt)
+			Callable[[], Tuple[str, int,
+								int]]] = (self._edges_cache._base_retrieve,
+											self._btt)
 		self._exist_edge_stuff: Tuple[
 			Callable[[], Tuple[str, int, int]],
 			Callable[[Key, Key, Key, int, str, int, int, bool], None],
@@ -2399,10 +2385,8 @@ class ORM:
 	def _node_exists(self, character: Key, node: Key) -> bool:
 		retrieve, btt = self._node_exists_stuff
 		args = (character, node) + btt()
-		try:
-			return retrieve(*args) is not None
-		except KeyError:
-			return False
+		retrieved = retrieve(args)
+		return retrieved is not None and not isinstance(retrieved, Exception)
 
 	@world_locked
 	def _exist_node(self, character: Key, node: Key, exist=True) -> None:
@@ -2418,10 +2402,8 @@ class ORM:
 						idx=0) -> bool:
 		retrieve, btt = self._edge_exists_stuff
 		args = (character, orig, dest, idx) + btt()
-		try:
-			return retrieve(*args) is not None
-		except KeyError:
-			return False
+		retrieved = retrieve(args)
+		return retrieved is not None and not isinstance(retrieved, Exception)
 
 	@world_locked
 	def _exist_edge(self,
