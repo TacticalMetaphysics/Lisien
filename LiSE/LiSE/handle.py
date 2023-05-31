@@ -1451,7 +1451,7 @@ class EngineHandle(object):
 		new = branch not in self._real._branches
 		self._real.switch_main_branch(branch)
 		if not new:
-			return self.get_kf()
+			return self.get_kf_now()
 
 	def get_kf_now(self) -> dict:
 		self._real.snap_keyframe()
