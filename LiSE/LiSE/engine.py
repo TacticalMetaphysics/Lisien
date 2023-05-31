@@ -458,8 +458,8 @@ class Engine(AbstractEngine, gORM):
 			for graph in self.graph:
 				build_thingrows(
 					graph,
-					self._build_loading_windows(self._main_branch, 0, 0,
-												branch, turn, tick))
+					self._build_loading_windows(self.eternal["main_branch"], 0,
+												0, branch, turn, tick))
 		else:
 			past_branch, past_turn, past_tick = latest_past_keyframe
 			if earliest_future_keyframe is None:
