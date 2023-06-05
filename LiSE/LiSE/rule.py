@@ -548,11 +548,6 @@ class RuleMapping(MutableMapping, Signal):
 		elif isinstance(v, str) and hasattr(self.engine.function, v):
 			v = getattr(self.engine.function, v)
 		if not isinstance(v, Rule) and callable(v):
-			if k in self.engine.rule:
-				raise KeyError(
-					"Already have a rule named {name}. "
-					"If you really mean to replace it, set "
-					"self.rule[{name}] to a new Rule object.".format(name=k))
 			# create a new rule, named k, performing action v
 			self.engine.rule[k] = v
 			v = self.engine.rule[k]
@@ -724,12 +719,8 @@ class AllRules(MutableMapping, Signal):
 			else:
 				raise ValueError("Unknown function: " + v)
 		if callable(v):
-			if k not in self._cache:
-				self._cache[k] = Rule(self.engine, k, actions=[v])
-				new = self._cache[k]
-			else:
-				new = self._cache[k]
-				new.actions = [v]
+			self._cache[k] = Rule(self.engine, k, actions=[v])
+			new = self._cache[k]
 		elif isinstance(v, Rule):
 			self._cache[k] = v
 			new = v
