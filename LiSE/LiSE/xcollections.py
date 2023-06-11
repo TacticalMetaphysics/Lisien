@@ -378,28 +378,11 @@ class CharacterMapping(MutableMapping, Signal):
 		the given value.
 
 		"""
-		from .character import Character
-		if isinstance(value, Character):
-			self.engine._graph_objs[name] = value
-			return
-		if name in self.engine._graph_objs:
-			ch = self.engine._graph_objs[name]
-		else:
-			ch = self.engine._graph_objs[name] = Character(self.engine,
-															name,
-															init_rulebooks=name
-															not in self)
-		ch.stat.clear()
-		if value:
-			ch.stat.update(value)
-		self.send(self, key=name, val=ch)
+		self.engine._init_graph(name, 'DiGraph', value)
+		self.send(self, key=name, val=self.engine._graph_objs[name])
 
 	def __delitem__(self, name):
-		"""Delete the named character from both the cache and the database."""
-		del self.engine._graph_objs[name]
-		self.engine.query.del_graph(name)
-		for cache in self.engine._char_caches:
-			cache.remove_character(name)
+		self.engine.del_graph(name)
 		self.send(self, key=name, val=None)
 
 

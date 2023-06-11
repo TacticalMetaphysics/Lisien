@@ -61,13 +61,18 @@ def tables_for_meta(meta):
 			Column('end_tick', INT),
 			Column('plan_end_tick', INT),
 			sqlite_with_rowid=False)
-	Table('graphs',
-			meta,
-			Column('graph', TEXT, primary_key=True),
-			Column('type', TEXT, default='Graph'),
-			CheckConstraint(
-				"type IN ('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph')"),
-			sqlite_with_rowid=False)
+	Table(
+		'graphs',
+		meta,
+		Column('graph', TEXT, primary_key=True),
+		Column('branch', TEXT, primary_key=True),
+		Column('turn', INT, primary_key=True),
+		Column('tick', INT, primary_key=True),
+		Column('type', TEXT, default='Graph'),
+		CheckConstraint(
+			"type IN "
+			"('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph', 'Deleted')"),
+		sqlite_with_rowid=False)
 	Table('keyframes',
 			meta,
 			Column('graph', TEXT, ForeignKey('graphs.graph'),
@@ -211,9 +216,6 @@ def queries_for_table_dict(table):
 		'graph_type':
 		select(table['graphs'].c.type).where(
 			table['graphs'].c.graph == bindparam('graph')),
-		'del_edge_val_graph':
-		table['edge_val'].delete().where(
-			table['edge_val'].c.graph == bindparam('graph')),
 		'del_edge_val_after':
 		table['edge_val'].delete().where(
 			and_(
@@ -242,9 +244,6 @@ def queries_for_table_dict(table):
 					table['edges'].c.turn > bindparam('turn'),
 					and_(table['edges'].c.turn == bindparam('turn'),
 							table['edges'].c.tick >= bindparam('tick'))))),
-		'del_nodes_graph':
-		table['nodes'].delete().where(
-			table['nodes'].c.graph == bindparam('graph')),
 		'del_nodes_after':
 		table['nodes'].delete().where(
 			and_(
@@ -255,9 +254,6 @@ def queries_for_table_dict(table):
 					table['nodes'].c.turn > bindparam('turn'),
 					and_(table['nodes'].c.turn == bindparam('turn'),
 							table['nodes'].c.tick >= bindparam('tick'))))),
-		'del_node_val_graph':
-		table['node_val'].delete().where(
-			table['node_val'].c.graph == bindparam('graph')),
 		'del_node_val_after':
 		table['node_val'].delete().where(
 			and_(
@@ -269,9 +265,6 @@ def queries_for_table_dict(table):
 					table['node_val'].c.turn > bindparam('turn'),
 					and_(table['node_val'].c.turn == bindparam('turn'),
 							table['node_val'].c.tick >= bindparam('tick'))))),
-		'del_graph':
-		table['graphs'].delete().where(
-			table['graphs'].c.graph == bindparam('graph')),
 		'del_graph_val_after':
 		table['graph_val'].delete().where(
 			and_(

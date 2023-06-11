@@ -290,15 +290,10 @@ class QueryEngine(object):
 			self._inq.put(stmt)
 			return self._outq.get()
 
-	def have_graph(self, graph):
-		"""Return whether I have a graph by this name."""
-		graph = self.pack(graph)
-		return bool(self.call_one('graphs_named', graph)[0][0])
-
-	def new_graph(self, graph, typ):
+	def new_graph(self, graph, branch, turn, tick, typ):
 		"""Declare a new graph by this name of this type."""
 		graph = self.pack(graph)
-		return self.call_one('graphs_insert', graph, typ)
+		return self.call_one('graphs_insert', graph, branch, turn, tick, typ)
 
 	def keyframes_insert(self, graph, branch, turn, tick, nodes, edges,
 							graph_val):
@@ -335,16 +330,6 @@ class QueryEngine(object):
 			return
 		nodes, edges, graph_val = stuff[0]
 		return unpack(nodes), unpack(edges), unpack(graph_val)
-
-	def del_graph(self, graph):
-		"""Delete all records to do with the graph"""
-		g = self.pack(graph)
-		self.call_one('del_edge_val_graph', g)
-		self.call_one('del_node_val_graph', g)
-		self.call_one('del_edge_val_graph', g)
-		self.call_one('del_edges_graph', g)
-		self.call_one('del_nodes_graph', g)
-		self.call_one('del_graph', g)
 
 	def graph_type(self, graph):
 		"""What type of graph is this?"""
@@ -515,6 +500,15 @@ class QueryEngine(object):
 	def graphs_types(self):
 		for (graph, typ) in self.call_one('graphs_types'):
 			yield (self.unpack(graph), typ)
+
+	def graphs_dump(self):
+		unpack = self.unpack
+		for graph, branch, turn, tick, typ in self.call_one('graphs_dump'):
+			yield unpack(graph), branch, turn, tick, typ
+
+	def graphs_insert(self, graph, branch, turn, tick, typ):
+		self.call_one('graphs_insert', self.pack(graph), branch, turn, tick,
+						typ)
 
 	def _flush_nodes(self):
 		if not self._nodes2set:
