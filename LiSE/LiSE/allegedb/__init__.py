@@ -803,8 +803,11 @@ class ORM:
 			turn = self.turn
 		if tick is None:
 			tick = self.tick
-		return self._graph_cache.retrieve(graph, branch, turn,
-											tick) != 'Deleted'
+		try:
+			return self._graph_cache.retrieve(graph, branch, turn,
+												tick) != 'Deleted'
+		except KeyError:
+			return False
 
 	def __init__(self,
 					dbstring,
