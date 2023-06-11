@@ -346,7 +346,11 @@ class CharacterMapping(MutableMapping, Signal):
 
 	def __contains__(self, name):
 		"""Has this character been created?"""
-		return name in self.engine._graph_objs
+		try:
+			return self.engine._graph_cache.retrieve(
+				name, *self.engine._btt()) != 'Deleted'
+		except KeyError:
+			return False
 
 	def __len__(self):
 		"""How many characters have been created?"""
