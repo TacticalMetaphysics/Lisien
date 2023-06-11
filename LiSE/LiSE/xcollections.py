@@ -338,6 +338,10 @@ class CharacterMapping(GraphsMapping, Signal):
 	"""
 	engine = getatt('orm')
 
+	def __init__(self, orm):
+		GraphsMapping.__init__(self, orm)
+		Signal.__init__(self)
+
 	def __getitem__(self, name):
 		"""Return the named character, if it's been created.
 
