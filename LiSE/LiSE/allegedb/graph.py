@@ -1042,10 +1042,26 @@ class GraphsMapping(MutableMapping):
 		self.orm = orm
 
 	def __iter__(self):
-		return iter(self.orm._graph_objs)
+		"""Iterate over every character name."""
+		for name in self.orm._graph_objs:
+			if name in self:
+				yield name
+
+	def __contains__(self, name):
+		"""Has this character been created?"""
+		try:
+			return self.orm._graph_cache.retrieve(
+				name, *self.orm._btt()) != 'Deleted'
+		except KeyError:
+			return False
 
 	def __len__(self):
-		return len(self.orm._graph_objs)
+		"""How many characters have been created?"""
+		n = 0
+		for name in self.orm._graph_objs:
+			if name in self:
+				n += 1
+		return n
 
 	def __getitem__(self, item):
 		if not self.orm._has_graph(item):

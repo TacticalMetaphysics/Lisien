@@ -34,7 +34,8 @@ import sys, os
 from blinker import Signal
 from astunparse import Unparser
 
-from .util import dedent_source
+from .util import dedent_source, getatt
+from .allegedb.graph import GraphsMapping
 
 
 class TabUnparser(Unparser):
@@ -325,7 +326,7 @@ class UniversalMapping(MutableMapping, Signal):
 		self.send(self, key=k, val=None)
 
 
-class CharacterMapping(MutableMapping, Signal):
+class CharacterMapping(GraphsMapping, Signal):
 	"""A mapping by which to access :class:`Character` objects.
 
 	If a character already exists, you can always get its name here to
@@ -335,30 +336,7 @@ class CharacterMapping(MutableMapping, Signal):
 	anything useful anymore.
 
 	"""
-
-	def __init__(self, engine):
-		super().__init__()
-		self.engine = engine
-
-	def __iter__(self):
-		"""Iterate over every character name."""
-		return iter(self.engine._graph_objs)
-
-	def __contains__(self, name):
-		"""Has this character been created?"""
-		try:
-			return self.engine._graph_cache.retrieve(
-				name, *self.engine._btt()) != 'Deleted'
-		except KeyError:
-			return False
-
-	def __len__(self):
-		"""How many characters have been created?"""
-		n = 0
-		for name in self.engine._graph_objs:
-			if name in self:
-				n += 1
-		return n
+	engine = getatt('orm')
 
 	def __getitem__(self, name):
 		"""Return the named character, if it's been created.
