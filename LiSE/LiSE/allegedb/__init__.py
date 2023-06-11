@@ -2344,7 +2344,11 @@ class ORM:
 
 		"""
 		# make sure the graph exists before deleting anything
-		self.graph[name]
+		graph = self.graph[name]
+		for node in list(graph.node):
+			del graph.node[node]
+		for stat in list(graph.graph):
+			del graph.graph[stat]
 		branch, turn, tick = self._nbtt()
 		self.query.graphs_insert(name, branch, turn, tick, 'Deleted')
 		self._graph_cache.store(name, branch, turn, tick, 'Deleted')
