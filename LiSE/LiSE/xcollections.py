@@ -354,7 +354,11 @@ class CharacterMapping(MutableMapping, Signal):
 
 	def __len__(self):
 		"""How many characters have been created?"""
-		return len(self.engine._graph_objs)
+		n = 0
+		for name in self.engine._graph_objs:
+			if name in self:
+				n += 1
+		return n
 
 	def __getitem__(self, name):
 		"""Return the named character, if it's been created.
