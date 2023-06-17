@@ -493,11 +493,12 @@ class Engine(AbstractEngine, gORM):
 		from .xcollections import (FunctionStore, CharacterMapping,
 									UniversalMapping)
 		from .cache import (
-			NodeContentsCache, InitializedCache, EntitylessCache,
-			InitializedEntitylessCache, UnitnessCache, UnitRulesHandledCache,
+			NodeContentsCache, InitializedCache, InitializedEntitylessCache,
+			UnitnessCache, UnitRulesHandledCache,
 			CharacterThingRulesHandledCache, CharacterPlaceRulesHandledCache,
 			CharacterPortalRulesHandledCache, NodeRulesHandledCache,
 			PortalRulesHandledCache, CharacterRulesHandledCache, ThingsCache)
+		from .allegedb.cache import EntitylessCache
 		from .rule import AllRuleBooks, AllRules
 
 		super()._init_caches()
@@ -570,7 +571,8 @@ class Engine(AbstractEngine, gORM):
 		self._char_caches = self._caches + [self._things_cache]
 
 	def _load_graphs(self) -> None:
-		for charn in self.query.characters():
+		for charn, branch, turn, tick, typ in self.query.characters():
+			self._graph_cache.store(charn, branch, turn, tick, typ)
 			self._graph_objs[charn] = self.char_cls(self,
 													charn,
 													init_rulebooks=False)

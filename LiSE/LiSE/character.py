@@ -688,6 +688,13 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 	def _get_rulebook_cache(self):
 		return self.engine._characters_rulebooks_cache
 
+	def __bool__(self):
+		try:
+			return self.engine._graph_cache.retrieve(
+				self.name, *self.engine._btt()) != 'Deleted'
+		except KeyError:
+			return False
+
 	def __repr__(self):
 		return "{}.character[{}]".format(repr(self.engine), repr(self.name))
 

@@ -734,7 +734,7 @@ class ORM:
 
 	def _init_caches(self):
 		from collections import defaultdict
-		from .cache import Cache, NodesCache, EdgesCache
+		from .cache import EntitylessCache, Cache, NodesCache, EdgesCache
 		node_cls = self.node_cls
 		edge_cls = self.edge_cls
 		self._where_cached = defaultdict(list)
@@ -769,6 +769,8 @@ class ORM:
 		self._time_plan = {}
 		self._plans_uncommitted = []
 		self._plan_ticks_uncommitted = []
+		self._graph_cache = EntitylessCache(self)
+		self._graph_cache.name = 'graph_cache'
 		self._graph_val_cache = Cache(self)
 		self._graph_val_cache.name = 'graph_val_cache'
 		self._nodes_cache = NodesCache(self)
@@ -786,10 +788,26 @@ class ORM:
 
 	def _load_graphs(self):
 		self.graph = GraphsMapping(self)
-		for (graph, typ) in self.query.graphs_types():
-			if typ != 'DiGraph':
+		for (graph, branch, turn, tick, typ) in self.query.graphs_dump():
+			self._graph_cache.store(graph, branch, turn, tick, typ)
+			if typ not in {'DiGraph', 'Deleted'}:
 				raise NotImplementedError("Only DiGraph for now")
+			# still create object for deleted graphs, in case you time travel
+			# to when they existed
 			self._graph_objs[graph] = DiGraph(self, graph)
+
+	def _has_graph(self, graph, branch=None, turn=None, tick=None):
+		if branch is None:
+			branch = self.branch
+		if turn is None:
+			turn = self.turn
+		if tick is None:
+			tick = self.tick
+		try:
+			return self._graph_cache.retrieve(graph, branch, turn,
+												tick) != 'Deleted'
+		except KeyError:
+			return False
 
 	def __init__(self,
 					dbstring,
@@ -2218,12 +2236,16 @@ class ORM:
 			name: Key,
 			type_s='DiGraph',
 			data: Union[Graph, nx.Graph, dict, KeyframeTuple] = None) -> None:
-		if self.query.have_graph(name):
-			raise GraphNameError("Already have a graph by that name")
 		if name in self.illegal_graph_names:
 			raise GraphNameError("Illegal name")
-		self.query.new_graph(name, type_s)
 		branch, turn, tick = self._btt()
+		try:
+			self._graph_cache.retrieve(name, branch, turn, tick)
+			branch, turn, tick = self._nbtt()
+		except KeyError:
+			pass
+		self._graph_cache.store(name, branch, turn, tick, type_s)
+		self.query.new_graph(name, branch, turn, tick, type_s)
 		self._nudge_loaded(branch, turn, tick)
 		if data is not None:
 			if isinstance(data, DiGraph):
@@ -2314,7 +2336,8 @@ class ORM:
 								[data._node, data._succ, data.graph])
 		else:
 			self._init_graph(name, 'DiGraph', data)
-		return DiGraph(self, name)
+		ret = self._graph_objs[name] = DiGraph(self, name)
+		return ret
 
 	@world_locked
 	def del_graph(self, name: Key) -> None:
@@ -2324,10 +2347,14 @@ class ORM:
 
 		"""
 		# make sure the graph exists before deleting anything
-		self.graph[name]
-		self.query.del_graph(name)
-		if name in self._graph_objs:
-			del self._graph_objs[name]
+		graph = self.graph[name]
+		for node in list(graph.node):
+			del graph.node[node]
+		for stat in list(graph.graph):
+			del graph.graph[stat]
+		branch, turn, tick = self._nbtt()
+		self.query.graphs_insert(name, branch, turn, tick, 'Deleted')
+		self._graph_cache.store(name, branch, turn, tick, 'Deleted')
 
 	def _iter_parent_btt(
 		self,

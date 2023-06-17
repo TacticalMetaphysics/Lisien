@@ -331,7 +331,6 @@ class DictStorageTest(AllegedTest):
 						'quux': 'quuux'
 					}
 				})
-			self.engine.del_graph('testgraph')
 
 
 class ListStorageTest(AllegedTest):
@@ -381,7 +380,6 @@ class ListStorageTest(AllegedTest):
 				self.assertEqual(entity[0][2], {'baked beans': 'delicious'})
 				self.assertEqual(entity[0][3], ['qux', 'quux', 'quuux'])
 				self.assertEqual(entity[0][4], {'hats', 'shirts', 'pants'})
-			self.engine.del_graph('testgraph')
 
 
 class SetStorageTest(AllegedTest):
@@ -407,7 +405,6 @@ class SetStorageTest(AllegedTest):
 			self.engine.turn = i
 			for entity in g.graph, n, e:
 				self.assertEqual(entity[0], set(range(10)))
-			self.engine.del_graph('testgraph')
 
 
 if __name__ == '__main__':
