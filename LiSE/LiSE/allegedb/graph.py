@@ -863,8 +863,9 @@ class DiGraph(networkx.DiGraph):
 	def __init__(self, db, name):  # user shouldn't instantiate directly
 		self._name = name
 		self.db = db
-		if name not in self.db._graph_objs:
-			self.db._graph_objs[name] = self
+
+	def __bool__(self):
+		return self._name in self.db._graph_objs
 
 	@property
 	def graph(self):
@@ -1041,12 +1042,30 @@ class GraphsMapping(MutableMapping):
 		self.orm = orm
 
 	def __iter__(self):
-		return iter(self.orm._graph_objs)
+		"""Iterate over every character name."""
+		for name in self.orm._graph_objs:
+			if name in self:
+				yield name
+
+	def __contains__(self, name):
+		"""Has this character been created?"""
+		try:
+			return self.orm._graph_cache.retrieve(
+				name, *self.orm._btt()) != 'Deleted'
+		except KeyError:
+			return False
 
 	def __len__(self):
-		return len(self.orm._graph_objs)
+		"""How many characters have been created?"""
+		n = 0
+		for name in self.orm._graph_objs:
+			if name in self:
+				n += 1
+		return n
 
 	def __getitem__(self, item):
+		if not self.orm._has_graph(item):
+			raise KeyError(f"No such graph: {item}", item)
 		return self.orm._graph_objs[item]
 
 	def __setitem__(self, key, value):
@@ -1062,6 +1081,6 @@ class GraphsMapping(MutableMapping):
 	def __delitem__(self, key):
 		if key not in self:
 			raise KeyError("No such graph")
-		self.orm.query.del_graph(key)
+		self.orm.query.del_graph(key, *self.orm._btt())
 		if key in self.orm._graph_objs:
 			del self.orm._graph_objs[key]

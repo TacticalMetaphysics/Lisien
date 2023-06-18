@@ -375,12 +375,6 @@ def queries(table):
 		r[t.name + '_insert'] = t.insert().values(
 			tuple(bindparam(cname) for cname in t.c.keys()))
 		r[t.name + '_count'] = select(func.COUNT('*')).select_from(t)
-
-	r['del_char_things'] = table['things'].delete().where(
-		table['things'].c.character == bindparam('character'))
-
-	r['del_char_units'] = table['units'].delete().where(
-		table['units'].c.character_graph == bindparam('character'))
 	things = table['things']
 	r['del_things_after'] = things.delete().where(
 		and_(

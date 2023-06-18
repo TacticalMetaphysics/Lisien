@@ -1002,13 +1002,7 @@ class QueryEngine(query.QueryEngine):
 	def rule_actions_dump(self):
 		return self._rule_dump('actions')
 
-	def characters_dump(self):
-		unpack = self.unpack
-		for graph, typ in self.call_one('graphs_dump'):
-			if typ == 'DiGraph':
-				yield unpack(graph)
-
-	characters = characters_dump
+	characters = characters_dump = query.QueryEngine.graphs_dump
 
 	def node_rulebook_dump(self):
 		unpack = self.unpack

@@ -1555,3 +1555,46 @@ class EdgesCache(Cache):
 	#	 graph, orig, dest, branch, turn, tick)
 	#	 assert not self.has_predecessor(
 	#	 graph, dest, orig, branch, turn, tick)
+
+
+class EntitylessCache(Cache):
+	__slots__ = ()
+
+	def store(self,
+				key,
+				branch,
+				turn,
+				tick,
+				value,
+				*,
+				planning=None,
+				forward=None,
+				loading=False,
+				contra=True):
+		super().store(None,
+						key,
+						branch,
+						turn,
+						tick,
+						value,
+						planning=planning,
+						forward=forward,
+						loading=loading,
+						contra=contra)
+
+	def iter_entities_or_keys(self, branch, turn, tick, *, forward=None):
+		return super().iter_entities_or_keys(None,
+												branch,
+												turn,
+												tick,
+												forward=forward)
+
+	iter_entities = iter_keys = iter_entities_or_keys
+
+	def contains_entity_or_key(self, ke, branch, turn, tick):
+		return super().contains_entity_or_key(None, ke, branch, turn, tick)
+
+	contains_entity = contains_key = contains_entity_or_key
+
+	def retrieve(self, *args):
+		return super().retrieve(*(None, ) + args)

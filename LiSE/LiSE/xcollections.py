@@ -34,7 +34,8 @@ import sys, os
 from blinker import Signal
 from astunparse import Unparser
 
-from .util import dedent_source
+from .util import dedent_source, getatt
+from .allegedb.graph import GraphsMapping
 
 
 class TabUnparser(Unparser):
@@ -325,7 +326,7 @@ class UniversalMapping(MutableMapping, Signal):
 		self.send(self, key=k, val=None)
 
 
-class CharacterMapping(MutableMapping, Signal):
+class CharacterMapping(GraphsMapping, Signal):
 	"""A mapping by which to access :class:`Character` objects.
 
 	If a character already exists, you can always get its name here to
@@ -335,22 +336,11 @@ class CharacterMapping(MutableMapping, Signal):
 	anything useful anymore.
 
 	"""
+	engine = getatt('orm')
 
-	def __init__(self, engine):
-		super().__init__()
-		self.engine = engine
-
-	def __iter__(self):
-		"""Iterate over every character name."""
-		return iter(self.engine._graph_objs)
-
-	def __contains__(self, name):
-		"""Has this character been created?"""
-		return name in self.engine._graph_objs
-
-	def __len__(self):
-		"""How many characters have been created?"""
-		return len(self.engine._graph_objs)
+	def __init__(self, orm):
+		GraphsMapping.__init__(self, orm)
+		Signal.__init__(self)
 
 	def __getitem__(self, name):
 		"""Return the named character, if it's been created.
@@ -378,28 +368,11 @@ class CharacterMapping(MutableMapping, Signal):
 		the given value.
 
 		"""
-		from .character import Character
-		if isinstance(value, Character):
-			self.engine._graph_objs[name] = value
-			return
-		if name in self.engine._graph_objs:
-			ch = self.engine._graph_objs[name]
-		else:
-			ch = self.engine._graph_objs[name] = Character(self.engine,
-															name,
-															init_rulebooks=name
-															not in self)
-		ch.stat.clear()
-		if value:
-			ch.stat.update(value)
-		self.send(self, key=name, val=ch)
+		self.engine._init_graph(name, 'DiGraph', value)
+		self.send(self, key=name, val=self.engine._graph_objs[name])
 
 	def __delitem__(self, name):
-		"""Delete the named character from both the cache and the database."""
-		del self.engine._graph_objs[name]
-		self.engine.query.del_graph(name)
-		for cache in self.engine._char_caches:
-			cache.remove_character(name)
+		self.engine.del_graph(name)
 		self.send(self, key=name, val=None)
 
 
