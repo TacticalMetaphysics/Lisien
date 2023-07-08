@@ -136,6 +136,7 @@ class GameApp(App):
 	branch = StringProperty('trunk')
 	turn = NumericProperty(0)
 	tick = NumericProperty(0)
+	prefix = StringProperty('.')
 
 	def wait_turns(self, turns, dt=None, *, cb=None):
 		"""Call ``self.engine.next_turn()`` ``n`` times, waiting ``self.turn_length`` in between
@@ -217,7 +218,7 @@ class GameApp(App):
 		except FileNotFoundError:
 			pass
 		self.procman = LiSE.proxy.EngineProcessManager()
-		self.engine = self.procman.start('.',
+		self.engine = self.procman.start(self.prefix,
 											logger=Logger,
 											loglevel=getattr(
 												self, 'loglevel', 'debug'),
