@@ -680,7 +680,7 @@ class PlaceMapProxy(CachingProxy):
 
 	@property
 	def _cache(self):
-		return self.engine._character_places_cache[self.name]
+		return self.engine._character_places_cache.setdefault(self.name, {})
 
 	def __init__(self, engine_proxy, character):
 		self.engine = engine_proxy
