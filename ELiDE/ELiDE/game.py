@@ -13,15 +13,24 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
+from functools import partial
 
 from kivy.app import App
 from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.properties import (BooleanProperty, ObjectProperty, NumericProperty,
 								StringProperty)
+
+from kivy.factory import Factory
 from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
+
 import LiSE.proxy
-from functools import partial
+from .graph.board import GraphBoard, GraphBoardView
+from .grid.board import GridBoard, GridBoardView
+Factory.register("GraphBoard", GraphBoard)
+Factory.register("GridBoard", GridBoard)
+Factory.register("GraphBoardView", GraphBoardView)
+Factory.register("GridBoardView", GridBoardView)
 
 
 class GameScreen(Screen):
