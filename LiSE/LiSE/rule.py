@@ -111,25 +111,7 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 
 	def _nominate(self, v):
 		if callable(v):
-			if hasattr(self._funcstore, v.__name__):
-				if v == getattr(self._funcstore, v.__name__):
-					return v.__name__
-				elif hasattr(self._funcstore, 'get_source'):
-					stored_source = self._funcstore.get_source(v.__name__)
-				else:
-					stored_source = getsource(
-						getattr(self._funcstore, v.__name__))
-				new_source = getsource(v)
-				if roundtrip_dedent(stored_source) != roundtrip_dedent(
-					new_source):
-					raise KeyError(
-						"Already have a {typ} function named {n}. "
-						"If you really mean to replace it, set "
-						"engine.{typ}[{n}]".format(
-							typ=self._funcstore._filename.rstrip('.py'),
-							n=v.__name__))
-			else:
-				self._funcstore(v)
+			self._funcstore(v)
 			v = v.__name__
 		if not hasattr(self._funcstore, v):
 			raise KeyError("No {typ} function named {n}".format(
