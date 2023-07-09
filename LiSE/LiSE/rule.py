@@ -311,8 +311,8 @@ class Rule(object):
 		funcstore = getattr(self.engine, functyp)
 		for v in val:
 			if callable(v):
-				# Overwrites anything already on the funcstore, is that bad?
-				setattr(funcstore, v.__name__, v)
+				if v != getattr(funcstore, v.__name__, None):
+					setattr(funcstore, v.__name__, v)
 				yield v.__name__
 			elif v not in funcstore:
 				raise KeyError("Function {} not present in {}".format(
