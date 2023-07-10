@@ -6,7 +6,7 @@ LiSE is a tool for developing life simulation games.
 
 [Forum](https://www.gamemaking.tools/forum/categories/lise)
 
-<a rel="me" href="https://gamemaking.social/@clayote">Follow on Mastodon</a>
+<a rel="me" href="https://peoplemaking.games/@clayote">Follow on Mastodon</a>
 
 # What is a life simulation game?
 
