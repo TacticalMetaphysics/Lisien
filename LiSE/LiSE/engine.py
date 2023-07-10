@@ -288,6 +288,7 @@ class Engine(AbstractEngine, gORM):
 				getattr(logger, level)(msg)
 
 		self.log = logfun
+		self._prefix = prefix
 		if connect_args is None:
 			connect_args = {}
 		if not os.path.exists(prefix):
@@ -1630,3 +1631,12 @@ class Engine(AbstractEngine, gORM):
 						entity[key] = value
 		self.turn = now
 		return acceptances, rejections
+
+	def game_start(self):
+		import importlib.machinery
+		import importlib.util
+		loader = importlib.machinery.SourceFileLoader('game_start', os.path.join(self._prefix, "game_start.py"))
+		spec = importlib.util.spec_from_loader('game_start', loader)
+		game_start = importlib.util.module_from_spec(spec)
+		loader.exec_module(game_start)
+		game_start.game_start(self)

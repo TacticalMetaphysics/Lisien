@@ -1965,6 +1965,9 @@ class EngineProxy(AbstractEngine):
 	def main_branch(self) -> str:
 		return self.handle('main_branch')
 
+	def game_start(self) -> None:
+		self.handle('game_start', cb=self._upd)
+
 	def switch_main_branch(self, branch: str) -> None:
 		if (self.branch != self.main_branch or self.turn != 0
 			or self._tick != 0):
@@ -2355,9 +2358,12 @@ class EngineProxy(AbstractEngine):
 							dry_run=dry_run,
 							perfectionist=perfectionist)
 
-	def _upd_and_cb(self, cb, *args, **kwargs):
+	def _upd(self, *args, **kwargs):
 		self._upd_caches(*args, no_del=True, **kwargs)
 		self._set_time(*args, no_del=True, **kwargs)
+
+	def _upd_and_cb(self, cb, *args, **kwargs):
+		self._upd(*args, **kwargs)
 		if cb:
 			cb(*args, **kwargs)
 

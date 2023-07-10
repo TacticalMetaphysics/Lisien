@@ -1460,3 +1460,10 @@ class EngineHandle(object):
 		# part of keyframes
 		ret['universal'] = dict(self._real.universal)
 		return ret
+
+	def game_start(self) -> None:
+		branch, turn, tick = self._real._btt()
+		ret = self._real.game_start()
+		_, turn_now, tick_now = self._real._btt()
+		return ret, self._real.get_delta(
+			branch, turn, tick, turn_now, tick_now)
