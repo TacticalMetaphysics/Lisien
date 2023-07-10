@@ -395,7 +395,8 @@ make to ELiDE, allegedb, or LiSE itself under the AGPL, but
 this doesn't apply to your game code.
 
 Game code is that which is loaded into the engine at
-launch time from modules specified by the following parameters
+launch time, either from a file named ``game_start.py`` in the game prefix,
+or from modules specified by the following parameters
 to the LiSE engine:
 * ``trigger``
 * ``prereq``
