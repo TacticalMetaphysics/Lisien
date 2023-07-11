@@ -22,7 +22,7 @@ classifiers = [
 	"Development Status :: 2 - Pre-Alpha"
 ]
 dependencies = [
-	"LiSE[proxy]>=0.14.0,<0.15.0",
+	"LiSE>=0.14.0,<0.15.0",
 	"kivy>=2.0.0,<3",
 	"pygments>=2.7.4"
 ]

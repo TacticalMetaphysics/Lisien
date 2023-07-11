@@ -38,7 +38,7 @@ from time import monotonic
 from typing import Hashable, Tuple, Optional
 
 from blinker import Signal
-import lz4.frame
+import zlib
 import msgpack
 from cached_property import cached_property
 
@@ -2145,7 +2145,7 @@ class EngineProxy(AbstractEngine):
 		return getattr(self.method, item)
 
 	def send_bytes(self, obj, blocking=True, timeout=-1):
-		compressed = lz4.frame.compress(obj)
+		compressed = zlib.compress(obj)
 		self._handle_out_lock.acquire(blocking, timeout)
 		self._handle_out.send_bytes(compressed)
 		self._handle_out_lock.release()
@@ -2154,7 +2154,7 @@ class EngineProxy(AbstractEngine):
 		self._handle_in_lock.acquire(blocking, timeout)
 		data = self._handle_in.recv_bytes()
 		self._handle_in_lock.release()
-		return lz4.frame.decompress(data)
+		return zlib.decompress(data)
 
 	def debug(self, msg):
 		self.logger.debug(msg)
@@ -2514,8 +2514,8 @@ class EngineProxy(AbstractEngine):
 def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 	"""Loop to handle one command at a time and pipe results back"""
 	engine_handle = EngineHandle(args, kwargs, logq, loglevel=loglevel)
-	compress = lz4.frame.compress
-	decompress = lz4.frame.decompress
+	compress = zlib.compress
+	decompress = zlib.decompress
 	pack = engine_handle.pack
 
 	while True:

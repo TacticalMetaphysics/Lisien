@@ -38,8 +38,7 @@ dependencies = [
 
 
 [project.optional-dependencies]
-proxy = ["lz4>=3.1.3"]
-server = ["CherryPy>=18.6.1", "lz4>=3.1.3"]
+server = ["CherryPy>=18.6.1"]
 
 [tool.pytest.ini_options]
 markers = [
