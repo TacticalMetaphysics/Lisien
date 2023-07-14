@@ -29,7 +29,7 @@ import logging
 from abc import abstractmethod
 from random import Random
 from collections.abc import (Mapping, MutableMapping, MutableSequence)
-from functools import partial
+from functools import partial, cached_property
 from threading import Thread, Lock
 from multiprocessing import Process, Pipe, Queue, ProcessError
 from concurrent.futures import ThreadPoolExecutor
@@ -40,7 +40,6 @@ from typing import Hashable, Tuple, Optional
 from blinker import Signal
 import zlib
 import msgpack
-from cached_property import cached_property
 
 from .allegedb import OutOfTimelineError, Key
 from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict

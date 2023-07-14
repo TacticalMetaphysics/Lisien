@@ -20,7 +20,7 @@ from collections.abc import Set
 from enum import Enum
 from operator import (ge, gt, le, lt, eq, attrgetter, add, sub, mul, pow,
 						truediv, floordiv, mod)
-from functools import partial, wraps
+from functools import partial, wraps, cached_property
 from contextlib import contextmanager
 from textwrap import dedent
 from time import monotonic
@@ -28,7 +28,6 @@ from types import MethodType, FunctionType
 from typing import (Mapping, Iterable, Union, Callable, Dict, Hashable)
 
 import numpy as np
-from cached_property import cached_property
 import msgpack
 import networkx as nx
 from tblib import Traceback

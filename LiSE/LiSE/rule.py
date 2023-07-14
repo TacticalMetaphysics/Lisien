@@ -79,14 +79,13 @@ the function's name.
 """
 from collections.abc import (MutableMapping, MutableSequence, Hashable)
 from abc import ABC, abstractmethod
-from functools import partial
+from functools import partial, cached_property
 from inspect import getsource
 from ast import parse
 from typing import Callable
 
 from astunparse import unparse
 from blinker import Signal
-from cached_property import cached_property
 
 from .util import dedent_source, AbstractEngine
 from .xcollections import FunctionStore
