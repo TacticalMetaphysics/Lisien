@@ -984,6 +984,16 @@ class GraphBoardScatterPlane(BoardScatterPlane):
 class GraphBoardView(BoardView):
 	adding_portal = BooleanProperty(False)
 	reciprocal_portal = BooleanProperty(True)
+	engine = ObjectProperty()
+	character_name = StringProperty()
+
+	def on_character_name(self, *args):
+		if (not self.engine or not self.character_name
+				or self.character_name not in self.engine.character):
+			Clock.schedule_once(self.on_character_name, 0)
+			return
+		character = self.engine.character[self.character_name]
+		self.board = GraphBoard(character=character)
 
 
 Builder.load_string("""
