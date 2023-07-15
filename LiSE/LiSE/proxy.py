@@ -613,7 +613,7 @@ class ThingMapProxy(CachingProxy):
 
 	@property
 	def _cache(self):
-		return self.engine._things_cache[self.name]
+		return self.engine._things_cache.setdefault(self.name, {})
 
 	def __init__(self, engine_proxy, charname):
 		self.engine = engine_proxy
