@@ -27,6 +27,7 @@ from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
 import LiSE.proxy
 from .graph.board import GraphBoard, GraphBoardView
 from .grid.board import GridBoard, GridBoardView
+
 Factory.register("GraphBoard", GraphBoard)
 Factory.register("GridBoard", GridBoard)
 Factory.register("GraphBoardView", GraphBoardView)
