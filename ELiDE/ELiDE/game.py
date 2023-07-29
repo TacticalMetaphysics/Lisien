@@ -146,7 +146,7 @@ class GameApp(App):
 	turn = NumericProperty(0)
 	tick = NumericProperty(0)
 	prefix = StringProperty('.')
-	selection = ObjectProperty()
+	selection = ObjectProperty(allownone=True)
 
 	def wait_turns(self, turns, dt=None, *, cb=None):
 		"""Call ``self.engine.next_turn()`` ``n`` times, waiting ``self.turn_length`` in between
