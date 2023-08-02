@@ -230,14 +230,72 @@ def get_points(orig, dest, taillen):
 	return [startx, starty, endx, endy], [x1, y1, endx, endy, x2, y2]
 
 
-def get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2, bgr, fgr):
+def get_quad_vertices(ox,
+						oy,
+						dx,
+						dy,
+						x1,
+						y1,
+						endx,
+						endy,
+						x2,
+						y2,
+						bgr,
+						fgr,
+						label_w=100,
+						label_h=100):
+	slope = (dy - oy) / (dx - ox)
+	# oy == slope * ox + x_intercept
+	# Solve for x_intercept...
+	# oy - x_intercept == slope * ox
+	# -x_intercept == slope * ox - oy
+	# x_intercept == oy - slope * ox
+	x_intercept = oy - slope * ox
+	if dx > ox:
+		if dy > oy:
+			# top == y2
+			# Find a point on the line at y2...
+			# y2 == slope * label_x + x_intercept
+			# Solve for label_x...
+			# y2 - x_intercept == slope * label_x
+			# (y2 - x_intercept) / slope == label_x
+			label_pos = (y2 - x_intercept) / slope, y2 - label_h
+		elif dy < oy:
+			# right == x2
+			# top is wherever x2 intersects the line
+			top = slope * x2 + x_intercept
+			label_pos = x2 - label_w, top - label_h
+		else:
+			label_pos = x2 - label_w, y2 - label_h
+	elif dx < ox:
+		if dy > oy:
+			# top == y1
+			# line is to the right
+			# Find a point on the line at y1...
+			label_pos = (y1 - x_intercept) / slope + label_w, y1 - label_h
+		elif dy < oy:
+			# bot == y2
+			# line is to the right
+			top = y2 + label_h
+			right = (top - x_intercept) / slope
+			label_pos = right - label_w, y2
+		else:
+			label_pos = x2, dy - label_h
+	else:
+		if dy > oy:
+			label_pos = x2 - label_w, dy - label_h
+		elif dy < oy:
+			label_pos = x2, dy
+		else:
+			label_pos = dx, dy
 	return {
 		'shaft_bg': get_thin_rect_vertices(ox, oy, dx, dy, bgr),
 		'shaft_fg': get_thin_rect_vertices(ox, oy, dx, dy, fgr),
 		'left_head_bg': get_thin_rect_vertices(x1, y1, endx, endy, bgr),
 		'right_head_bg': get_thin_rect_vertices(x2, y2, endx, endy, bgr),
 		'left_head_fg': get_thin_rect_vertices(x1, y1, endx, endy, fgr),
-		'right_head_fg': get_thin_rect_vertices(x2, y2, endx, endy, fgr)
+		'right_head_fg': get_thin_rect_vertices(x2, y2, endx, endy, fgr),
+		'label_pos': label_pos
 	}
 
 
