@@ -24,6 +24,7 @@ from operator import itemgetter
 
 import numpy as np
 from kivy.uix.widget import Widget
+from kivy.core.text import Label
 from kivy.graphics.fbo import Fbo
 from kivy.graphics import (Translate, Rectangle, Quad, Color, InstructionGroup)
 from kivy.properties import (NumericProperty, ListProperty, ObjectProperty)
@@ -244,48 +245,25 @@ def get_quad_vertices(ox,
 						fgr,
 						label_w=100,
 						label_h=100):
-	slope = (dy - oy) / (dx - ox)
-	# oy == slope * ox + x_intercept
-	# Solve for x_intercept...
-	# oy - x_intercept == slope * ox
-	# -x_intercept == slope * ox - oy
-	# x_intercept == oy - slope * ox
-	x_intercept = oy - slope * ox
 	if dx > ox:
 		if dy > oy:
-			# top == y2
-			# Find a point on the line at y2...
-			# y2 == slope * label_x + x_intercept
-			# Solve for label_x...
-			# y2 - x_intercept == slope * label_x
-			# (y2 - x_intercept) / slope == label_x
-			label_pos = (y2 - x_intercept) / slope, y2 - label_h
+			label_pos = x2 - label_w, dy - label_h
 		elif dy < oy:
-			# right == x2
-			# top is wherever x2 intersects the line
-			top = slope * x2 + x_intercept
-			label_pos = x2 - label_w, top - label_h
+			label_pos = x1 - label_w, dy
 		else:
 			label_pos = x2 - label_w, y2 - label_h
 	elif dx < ox:
-		if dy > oy:
-			# top == y1
-			# line is to the right
-			# Find a point on the line at y1...
-			label_pos = (y1 - x_intercept) / slope + label_w, y1 - label_h
-		elif dy < oy:
-			# bot == y2
-			# line is to the right
-			top = y2 + label_h
-			right = (top - x_intercept) / slope
-			label_pos = right - label_w, y2
+		if dy < oy:
+			label_pos = x2, y2
+		elif dy > oy:
+			label_pos = x1, y1 - label_h
 		else:
 			label_pos = x2, dy - label_h
 	else:
 		if dy > oy:
 			label_pos = x2 - label_w, dy - label_h
 		elif dy < oy:
-			label_pos = x2, dy
+			label_pos = x2, y2
 		else:
 			label_pos = dx, dy
 	return {
@@ -406,8 +384,9 @@ class GraphArrow:
 		plane = self.board.arrow_plane
 		if (self.origin.name,
 			self.destination.name) in self.board.arrow_plane._instructions_map:
+			label = Label(text='test')
 			verts = get_quad_vertices(*shaft_points, *head_points,
-										r * bg_scale, r)
+										r * bg_scale, r, *label.render())
 			insts = self.board.arrow_plane._instructions_map[
 				self.origin.name, self.destination.name]
 			insts['color0'].rgba = bg_color
@@ -418,6 +397,7 @@ class GraphArrow:
 			insts['shaft_fg'].points = verts['shaft_fg']
 			insts['left_head_fg'].points = verts['left_head_fg']
 			insts['right_head_fg'].points = verts['right_head_fg']
+			insts['label'].pos = verts['label_pos']
 			plane._colliders_map[self.origin.name,
 									self.destination.name] = Collide2DPoly(
 										points=verts['shaft_bg'])
@@ -439,19 +419,47 @@ class GraphArrow:
 		arrow_plane.canvas.ask_update()
 
 
-def get_instructions(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2, bgr, r,
-						bg_color, fg_color):
+def get_instructions(ox,
+						oy,
+						dx,
+						dy,
+						x1,
+						y1,
+						endx,
+						endy,
+						x2,
+						y2,
+						bgr,
+						r,
+						bg_color,
+						fg_color,
+						text='test'):
+	label = Label(text=text)
+	text_size = label.render()
 	quadverts = get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2,
-									bgr, r)
+									bgr, r, *text_size)
+	label.refresh()
 	return {
-		'color0': Color(rgba=bg_color),
-		'shaft_bg': Quad(points=quadverts['shaft_bg']),
-		'left_head_bg': Quad(points=quadverts['left_head_bg']),
-		'right_head_bg': Quad(points=quadverts['right_head_bg']),
-		'color1': Color(rgba=fg_color),
-		'shaft_fg': Quad(points=quadverts['shaft_fg']),
-		'left_head_fg': Quad(points=quadverts['left_head_fg']),
-		'right_head_fg': Quad(points=quadverts['right_head_fg']),
+		'color0':
+		Color(rgba=bg_color),
+		'shaft_bg':
+		Quad(points=quadverts['shaft_bg']),
+		'left_head_bg':
+		Quad(points=quadverts['left_head_bg']),
+		'right_head_bg':
+		Quad(points=quadverts['right_head_bg']),
+		'color1':
+		Color(rgba=fg_color),
+		'shaft_fg':
+		Quad(points=quadverts['shaft_fg']),
+		'left_head_fg':
+		Quad(points=quadverts['left_head_fg']),
+		'right_head_fg':
+		Quad(points=quadverts['right_head_fg']),
+		'label':
+		Rectangle(pos=quadverts['label_pos'],
+					size=text_size,
+					texture=label.texture)
 	}
 
 
@@ -607,6 +615,7 @@ class ArrowPlane(Widget):
 			grp.add(instructions['shaft_fg'])
 			grp.add(instructions['left_head_fg'])
 			grp.add(instructions['right_head_fg'])
+			grp.add(instructions['label'])
 			add(grp)
 			self._instructions_map[port] = instructions
 			if ox < dx:
