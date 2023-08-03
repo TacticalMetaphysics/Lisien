@@ -384,7 +384,8 @@ class GraphArrow:
 		plane = self.board.arrow_plane
 		if (self.origin.name,
 			self.destination.name) in self.board.arrow_plane._instructions_map:
-			label = Label(text='test')
+			portal = self.board.character.portal[self.origin.name][self.destination.name]
+			label = Label(text=str(portal.get(portal['_label_stat'], '') if '_label_stat' in portal else ''))
 			verts = get_quad_vertices(*shaft_points, *head_points,
 										r * bg_scale, r, *label.render())
 			insts = self.board.arrow_plane._instructions_map[
@@ -433,7 +434,7 @@ def get_instructions(ox,
 						r,
 						bg_color,
 						fg_color,
-						text='test'):
+						text=''):
 	label = Label(text=text)
 	text_size = label.render()
 	quadverts = get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2,
