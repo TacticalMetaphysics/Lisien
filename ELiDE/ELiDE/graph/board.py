@@ -481,7 +481,10 @@ class GraphBoard(RelativeLayout):
 			"portal": portal,
 			"origspot": origspot,
 			"destspot": destspot,
-			"label": str(portal.get(portal.get("_label_stat", None), ""))
+			"label_kwargs": {
+				'text': str(portal.get(portal.get("_label_stat", None), "")),
+				**portal.get("_label_kwargs", {})
+			}
 		}
 		if points is not None:
 			r["points"] = points

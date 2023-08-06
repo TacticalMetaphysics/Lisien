@@ -388,14 +388,17 @@ class GraphArrow:
 			self.destination.name]
 		portal_text = str(
 			portal.get(portal['_label_stat'], '') if '_label_stat' in
-			portal else '')
+			portal else None)
+		label_kwargs = dict(portal.get("label_kwargs", ()))
+		if portal_text is not None:
+			label_kwargs['text'] = portal_text
 		try:
 			label = self.board.arrow_plane._labels[self.origin.name][
 				self.destination.name]
 			label.text = portal_text
 		except KeyError:
 			label = self.board.arrow_plane.labels[self.origin.name][
-				self.destination.name] = Label(text=portal_text)
+				self.destination.name] = Label(**label_kwargs)
 		if (self.origin.name,
 			self.destination.name) in self.board.arrow_plane._instructions_map:
 			verts = get_quad_vertices(*shaft_points, *head_points,
@@ -448,12 +451,14 @@ def get_instructions(ox,
 						r,
 						bg_color,
 						fg_color,
-						text='',
+						label_kwargs=None,
 						label=None):
+	if label_kwargs is None:
+		label_kwargs = {'text': ''}
 	if label is None:
-		label = Label(text=text)
+		label = Label(**label_kwargs)
 	else:
-		label.text = text
+		label.text = label_kwargs['text']
 	text_size = label.render()
 	quadverts = get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2,
 									bgr, r, *text_size)
@@ -638,7 +643,7 @@ class ArrowPlane(Widget):
 											x2, y2, bgr, r,
 											bg_color_unselected,
 											fg_color_unselected,
-											datum.get('label', ''),
+											datum.get('label_kwargs', {}),
 											self._labels[port[0]].get(port[1]))
 			instructions['group'] = grp = InstructionGroup()
 			grp.add(instructions['color0'])
@@ -694,8 +699,8 @@ class ArrowPlane(Widget):
 			orig_spot.name, dest_spot.name] = get_instructions(
 				*shaft_points, *head_points, bgr, r,
 				self.bg_color_unselected, self.fg_color_unselected,
-				datum.get('label',
-							''), self._labels[orig_spot.name][dest_spot.name])
+				datum.get('label_kwargs',
+							{}), self._labels[orig_spot.name][dest_spot.name])
 		instructions['group'] = grp = InstructionGroup()
 		grp.add(instructions['color0'])
 		grp.add(instructions['shaft_bg'])
