@@ -415,6 +415,8 @@ class GraphArrow:
 			insts['right_head_fg'].points = verts['right_head_fg']
 			insts['label'].pos = verts['label_pos']
 			insts['label'].size = label.render()
+			label.refresh()
+			insts['label'].texture = label.texture
 			plane._colliders_map[self.origin.name,
 									self.destination.name] = Collide2DPoly(
 										points=verts['shaft_bg'])
