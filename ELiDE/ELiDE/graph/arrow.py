@@ -36,7 +36,8 @@ try:
 	from kivy.garden.collider import Collide2DPoly
 except (KeyError, ImportError):
 	from ..collide import Collide2DPoly
-from ..util import get_thin_rect_vertices, fortyfive
+from ..util import get_thin_rect_vertices, fortyfive, \
+ DEFAULT_ARROW_LABEL_KWARGS
 
 cos45 = cos(fortyfive)
 sin45 = sin(fortyfive)
@@ -398,7 +399,8 @@ class GraphArrow:
 			label.text = portal_text
 		except KeyError:
 			label = self.board.arrow_plane.labels[self.origin.name][
-				self.destination.name] = Label(**label_kwargs)
+				self.destination.name] = Label(**label_kwargs,
+												**DEFAULT_ARROW_LABEL_KWARGS)
 		if (self.origin.name,
 			self.destination.name) in self.board.arrow_plane._instructions_map:
 			verts = get_quad_vertices(*shaft_points, *head_points,
@@ -456,7 +458,7 @@ def get_instructions(ox,
 						label_kwargs=None,
 						label=None):
 	if label_kwargs is None:
-		label_kwargs = {'text': ''}
+		label_kwargs = {'text': '', **DEFAULT_ARROW_LABEL_KWARGS}
 	if label is None:
 		label = Label(**label_kwargs)
 	else:

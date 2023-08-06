@@ -25,6 +25,8 @@ ninety = pi / 2
 fortyfive = pi / 4
 """pi / 4"""
 
+DEFAULT_ARROW_LABEL_KWARGS = {"font_size": 16, "bold": True}
+
 
 class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior,
 									RecycleBoxLayout):

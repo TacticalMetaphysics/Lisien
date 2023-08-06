@@ -34,7 +34,7 @@ from .spot import GraphSpot
 from .arrow import GraphArrow, GraphArrowWidget, ArrowPlane, get_points_multi
 from .pawn import Pawn
 from ..dummy import Dummy
-from ..util import trigger
+from ..util import trigger, DEFAULT_ARROW_LABEL_KWARGS
 from ..boardview import BoardView
 from ..boardscatter import BoardScatterPlane
 
@@ -483,7 +483,8 @@ class GraphBoard(RelativeLayout):
 			"destspot": destspot,
 			"label_kwargs": {
 				'text': str(portal.get(portal.get("_label_stat", None), "")),
-				**portal.get("_label_kwargs", {})
+				**portal.get("_label_kwargs", {}),
+				**DEFAULT_ARROW_LABEL_KWARGS
 			}
 		}
 		if points is not None:
