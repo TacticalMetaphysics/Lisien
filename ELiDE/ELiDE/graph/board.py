@@ -480,12 +480,11 @@ class GraphBoard(RelativeLayout):
 			"board": self,
 			"portal": portal,
 			"origspot": origspot,
-			"destspot": destspot
+			"destspot": destspot,
+			"label": str(portal.get(portal.get("_label_stat", None), ""))
 		}
 		if points is not None:
 			r["points"] = points
-		orign = portal["origin"]
-		destn = portal["destination"]
 		return r
 
 	def rm_arrows_to_and_from(self, name):
@@ -989,7 +988,7 @@ class GraphBoardView(BoardView):
 
 	def on_character_name(self, *args):
 		if (not self.engine or not self.character_name
-				or self.character_name not in self.engine.character):
+			or self.character_name not in self.engine.character):
 			Clock.schedule_once(self.on_character_name, 0)
 			return
 		character = self.engine.character[self.character_name]
