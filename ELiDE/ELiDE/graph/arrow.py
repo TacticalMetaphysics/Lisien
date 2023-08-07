@@ -399,8 +399,8 @@ class GraphArrow:
 			label.text = portal_text
 		except KeyError:
 			label = self.board.arrow_plane.labels[self.origin.name][
-				self.destination.name] = Label(**label_kwargs,
-												**DEFAULT_ARROW_LABEL_KWARGS)
+				self.destination.name] = Label(**DEFAULT_ARROW_LABEL_KWARGS,
+												**label_kwargs)
 		if (self.origin.name,
 			self.destination.name) in self.board.arrow_plane._instructions_map:
 			verts = get_quad_vertices(*shaft_points, *head_points,
@@ -459,6 +459,11 @@ def get_instructions(ox,
 						label=None):
 	if label_kwargs is None:
 		label_kwargs = {'text': '', **DEFAULT_ARROW_LABEL_KWARGS}
+	else:
+		label_kwargs = dict(label_kwargs)
+		for k, v in DEFAULT_ARROW_LABEL_KWARGS.items():
+			if k not in label_kwargs:
+				label_kwargs[k] = v
 	if label is None:
 		label = Label(**label_kwargs)
 	else:
