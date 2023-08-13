@@ -47,3 +47,8 @@ class BoardView(StencilView):
 
 	def pawn_from_dummy(self, dummy):
 		self.plane.pawn_from_dummy(dummy)
+
+	def on_touch_down(self, touch):
+		if not self.collide_point(*touch.pos):
+			return
+		return super().on_touch_down(touch)
