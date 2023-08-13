@@ -1523,8 +1523,12 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		edges_cache = self.engine._edges_cache
 		now = self.engine._btt()
 		for (char, orig, dest) in edges_cache.keys:
-			if char == charn and edges_cache.retrieve(char, orig, dest, *now):
-				yield make_edge(chara, orig, dest)
+			if char == charn:
+				try:
+					edges_cache.retrieve(char, orig, dest, *now)
+					yield make_edge(chara, orig, dest)
+				except KeyError:
+					continue
 
 	def units(self):
 		"""Iterate over all my units
