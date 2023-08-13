@@ -112,7 +112,10 @@ class GraphBoard(RelativeLayout):
 		"""Check for collisions and select an appropriate entity."""
 		if hasattr(self, '_lasttouch') and self._lasttouch == touch:
 			return
+		touch.push()
+		touch.apply_transform_2d(self.to_local)
 		if not self.collide_point(*touch.pos):
+			touch.pop()
 			return
 		touch.push()
 		touch.apply_transform_2d(self.to_local)
