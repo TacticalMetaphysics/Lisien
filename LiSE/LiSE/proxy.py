@@ -816,6 +816,7 @@ class CharSuccessorsMappingProxy(CachingProxy):
 			cache = self._cache[o]
 			for d, stats in ds.items():
 				cache[d]._apply_delta(stats)
+				self.send(self.character, orig=o, dest=d, stats=stats)
 
 	def _set_item(self, orig, val):
 		self.engine.handle(command='character_set_node_successors',
@@ -1196,6 +1197,7 @@ class CharacterProxy(AbstractCharacter):
 						self, orig, dest)
 					self.engine._portal_stat_cache[
 						self.name][orig][dest] = edge
+				self.portal.send(self, orig=orig, dest=dest, stats=dict(edge))
 
 	def thing2place(self, name):
 		# TODO

@@ -23,6 +23,9 @@ class BoardView(StencilView):
 	scale_min = NumericProperty(allownone=True)
 	scale_max = NumericProperty(allownone=True)
 
+	# TODO: Boards should really update themselves in response to
+	#       changes in the simulation, whenever those happen to be reported.
+
 	def on_pos(self, *args):
 		if self.board and self.children:
 			self.children[0].pos = self.pos

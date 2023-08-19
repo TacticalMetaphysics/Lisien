@@ -66,6 +66,14 @@ class FinalLayout(FloatLayout):
 	_trigger_finalize_all = trigger(finalize_all)
 
 
+def get_label_kwargs_from_portal(portal):
+	return {
+		'text': str(portal.get(portal.get("_label_stat", None), "")),
+		**portal.get("_label_kwargs", {}),
+		**DEFAULT_ARROW_LABEL_KWARGS
+	}
+
+
 class GraphBoard(RelativeLayout):
 	"""A graphical view onto a :class:`LiSE.Character`, resembling a game
 	graph.
@@ -117,8 +125,6 @@ class GraphBoard(RelativeLayout):
 		if not self.collide_point(*touch.pos):
 			touch.pop()
 			return
-		touch.push()
-		touch.apply_transform_2d(self.to_local)
 		if self.app.selection:
 			if self.app.selection.collide_point(*touch.pos) and hasattr(
 				self.app.selection, '__self__'):
@@ -391,12 +397,14 @@ class GraphBoard(RelativeLayout):
 			'_control']:
 			control = self.character.stat.get('_control', {})
 			control['wallpaper'] = 'textinput'
-		self.character.stat.connect(self._trigger_pull_wallpaper)
-		self.trigger_update()
-
-	def pull_wallpaper(self, *args):
 		self.wallpaper_path = self.character.stat.setdefault(
 			'wallpaper', 'wallpape.jpg')
+		self.character.stat.connect(self.trigger_update_from_stat)
+		self.trigger_update()
+
+	def update_from_stat(self, sender, *, k, v):
+		if k == 'wallpaper':
+			self.wallpaper_path = v
 
 	def _trigger_pull_wallpaper(self, *args, **kwargs):
 		if kwargs['key'] != 'wallpaper':
@@ -469,26 +477,15 @@ class GraphBoard(RelativeLayout):
 			and portal["destination"] in self.arrow[portal["origin"]]):
 			raise KeyError("Already have an Arrow for this Portal")
 		return self._core_make_arrow(portal, self.spot[portal['origin']],
-										self.spot[portal['destination']],
-										self.arrow, self.pred_arrow)
+										self.spot[portal['destination']])
 
-	def _core_make_arrow(self,
-							portal,
-							origspot,
-							destspot,
-							arrowmap,
-							pred_arrowmap,
-							points=None):
+	def _core_make_arrow(self, portal, origspot, destspot, points=None):
 		r = {
 			"board": self,
 			"portal": portal,
 			"origspot": origspot,
 			"destspot": destspot,
-			"label_kwargs": {
-				'text': str(portal.get(portal.get("_label_stat", None), "")),
-				**portal.get("_label_kwargs", {}),
-				**DEFAULT_ARROW_LABEL_KWARGS
-			}
+			"label_kwargs": get_label_kwargs_from_portal(portal)
 		}
 		if points is not None:
 			r["points"] = points
@@ -714,9 +711,18 @@ class GraphBoard(RelativeLayout):
 			(origspot, destspot, 10) for (portal, origspot, destspot) in todo)
 		for portal, origspot, destspot in todo:
 			append_to_arrow_plane(
-				core_make_arrow(portal, origspot, destspot, arrowmap,
-								pred_arrowmap, points[origspot.name,
-														destspot.name]))
+				core_make_arrow(portal, origspot, destspot,
+								points[origspot.name, destspot.name]))
+
+	def update_arrow_labels(self, *args):
+		portmap = self.character.portal
+		arrow_plane = self.arrow_plane
+		for datum in arrow_plane.data:
+			portal = portmap[datum["origspot"].name][datum["destspot"].name]
+			new_kwargs = get_label_kwargs_from_portal(portal)
+			if new_kwargs != datum['label_kwargs']:
+				arrow_plane.update_portal(datum["origspot"].name,
+											datum["destspot"].name, new_kwargs)
 
 	def add_pawn(self, thingn, *args):
 		if thingn not in self.character.thing:
@@ -789,6 +795,7 @@ class GraphBoard(RelativeLayout):
 		self.add_new_spots()
 		if self.arrow_cls:
 			self.add_new_arrows()
+			self.update_arrow_labels()
 		self.add_new_pawns()
 		Logger.debug(
 			f"GraphBoard: updated, took {monotonic() - start_ts:,.2f} seconds")
@@ -840,6 +847,18 @@ class GraphBoard(RelativeLayout):
 				elif not extant and orig in self.arrow and dest in self.arrow[
 					orig]:
 					self.rm_arrow(orig, dest)
+		for (orig, dests) in delta.get('edge_val', {}).items():
+			for (dest, kvs) in dests.items():
+				if (orig, dest) not in self.arrow_plane._port_index:
+					self.arrow_plane.add_new_portal(
+						self._core_make_arrow(
+							self.character.portal[orig][dest], self.spot[orig],
+							self.spot[dest]))
+					continue
+				label_kwargs = kvs.get("_label_kwargs", {})
+				if "_label_stat" in kvs:
+					label_kwargs["text"] = str(kvs[kvs["_label_stat"]])
+				self.arrow_plane.update_portal(orig, dest, label_kwargs)
 
 	def trigger_update_from_delta(self, delta, *args):
 		part = partial(self.update_from_delta, delta)

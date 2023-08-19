@@ -396,9 +396,8 @@ class GraphArrow:
 		try:
 			label = self.board.arrow_plane._labels[self.origin.name][
 				self.destination.name]
-			label.text = portal_text
 		except KeyError:
-			label = self.board.arrow_plane.labels[self.origin.name][
+			label = self.board.arrow_plane._labels[self.origin.name][
 				self.destination.name] = Label(**DEFAULT_ARROW_LABEL_KWARGS,
 												**label_kwargs)
 		if (self.origin.name,
@@ -415,10 +414,10 @@ class GraphArrow:
 			insts['shaft_fg'].points = verts['shaft_fg']
 			insts['left_head_fg'].points = verts['left_head_fg']
 			insts['right_head_fg'].points = verts['right_head_fg']
-			insts['label'].pos = verts['label_pos']
-			insts['label'].size = label.render()
+			insts['label_rect'].pos = verts['label_pos']
+			insts['label_rect'].size = label.render()
 			label.refresh()
-			insts['label'].texture = label.texture
+			insts['label_rect'].texture = label.texture
 			plane._colliders_map[self.origin.name,
 									self.destination.name] = Collide2DPoly(
 										points=verts['shaft_bg'])
@@ -489,10 +488,12 @@ def get_instructions(ox,
 		Quad(points=quadverts['left_head_fg']),
 		'right_head_fg':
 		Quad(points=quadverts['right_head_fg']),
-		'label':
+		'label_rect':
 		Rectangle(pos=quadverts['label_pos'],
 					size=text_size,
-					texture=label.texture)
+					texture=label.texture),
+		'core_label':
+		label
 	}
 
 
@@ -564,10 +565,10 @@ class GraphArrowWidget(Widget, GraphArrow):
 		insts['shaft_fg'].points = verts['shaft_fg']
 		insts['left_head_fg'].points = verts['left_head_fg']
 		insts['right_head_fg'].points = verts['right_head_fg']
-		insts['label'].pos = verts['label_pos']
-		insts['label'].size = label_size
+		insts['label_rect'].pos = verts['label_pos']
+		insts['label_rect'].size = label_size
 		label.refresh()
-		insts['label'].texture = label.texture
+		insts['label_rect'].texture = label.texture
 
 
 class ArrowPlane(Widget):
@@ -582,6 +583,7 @@ class ArrowPlane(Widget):
 	fg_color_selected = ListProperty([1.0, 1.0, 1.0, 1.0])
 
 	def __init__(self, **kwargs):
+		self._label_rects = defaultdict(dict)
 		self._labels = defaultdict(dict)
 		self._trigger_redraw = Clock.create_trigger(self.redraw)
 		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
@@ -663,10 +665,10 @@ class ArrowPlane(Widget):
 			grp.add(instructions['shaft_fg'])
 			grp.add(instructions['left_head_fg'])
 			grp.add(instructions['right_head_fg'])
-			grp.add(instructions['label'])
+			grp.add(instructions['label_rect'])
 			add(grp)
 			self._instructions_map[port] = instructions
-			self._labels[port[0]][port[1]] = instructions['label']
+			self._label_rects[port[0]][port[1]] = instructions['label_rect']
 			if ox < dx:
 				leftx = ox
 				rightx = dx
@@ -706,10 +708,9 @@ class ArrowPlane(Widget):
 		bgr = r * self.bg_scale_unselected
 		instructions = self._instructions_map[
 			orig_spot.name, dest_spot.name] = get_instructions(
-				*shaft_points, *head_points, bgr, r,
-				self.bg_color_unselected, self.fg_color_unselected,
-				datum.get('label_kwargs',
-							{}), self._labels[orig_spot.name][dest_spot.name])
+				*shaft_points, *head_points, bgr, r, self.bg_color_unselected,
+				self.fg_color_unselected, datum.get('label_kwargs', {}),
+				self._label_rects[orig_spot.name][dest_spot.name])
 		instructions['group'] = grp = InstructionGroup()
 		grp.add(instructions['color0'])
 		grp.add(instructions['shaft_bg'])
@@ -719,8 +720,9 @@ class ArrowPlane(Widget):
 		grp.add(instructions['shaft_fg'])
 		grp.add(instructions['left_head_fg'])
 		grp.add(instructions['right_head_fg'])
-		grp.add(instructions['label'])
-		self._labels[orig_spot.name][dest_spot.name] = instructions['label']
+		grp.add(instructions['label_rect'])
+		self._label_rects[orig_spot.name][
+			dest_spot.name] = instructions['label_rect']
 		self._fbo.add(grp)
 		ox, oy, dx, dy = shaft_points
 		if ox < dx:
@@ -749,6 +751,26 @@ class ArrowPlane(Widget):
 			points=instructions['shaft_bg'].points)
 		self.canvas.ask_update()
 		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+
+	def update_portal(self, orig, dest, label_kwargs):
+		# Might support recoloring or bending the portal someday
+		print("updating portal from", orig, "to", dest, "with", label_kwargs)
+		instructions = self._instructions_map[orig, dest]
+		idx = self._port_index[orig, dest]
+		datum = self.data[idx]
+		datum['label_kwargs'] = label_kwargs
+		label = self._labels[orig][dest] = Label(**label_kwargs)
+		label.refresh()
+		old_rect = instructions['label_rect']
+		# Currently, there is no way for a label's formatting to affect its
+		# position, but this could be desirable
+		instructions['group'].remove(old_rect)
+		rect = self._label_rects[orig][dest] = instructions[
+			'label_rect'] = Rectangle(pos=old_rect.pos,
+										size=label.render(),
+										texture=label.texture)
+		instructions['group'].add(rect)
+		self.canvas.ask_update()
 
 	def remove_edge(self, orig, dest):
 		self._fbo.bind()
