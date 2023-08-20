@@ -798,6 +798,8 @@ class GraphBoard(RelativeLayout):
 		Logger.debug(
 			f"GraphBoard: updated, took {monotonic() - start_ts:,.2f} seconds")
 
+	trigger_update = trigger(update)
+
 	def disconnect_proxy_objects(self):
 		char = self.character
 		char.stat.disconnect(self.update_from_character_stat)
@@ -825,6 +827,12 @@ class GraphBoard(RelativeLayout):
 			elif node.name not in self.spot:
 				self.add_spot(node.name)
 
+	def update_spot_display(self):
+		pass
+
+	def update_pawn_display(self):
+		pass
+
 	def update_from_character_edge(self, edge, key, value):
 		if edge:
 			if not self.arrow_plane.have_arrow(edge.origin.name, edge.destination.name):
@@ -842,7 +850,8 @@ class GraphBoard(RelativeLayout):
 			self.arrow_plane.remove_edge(edge.origin.name, edge.destination.name)
 
 
-	trigger_update = trigger(update)
+	def update_arrow_display(self):
+		pass
 
 	def update_from_delta(self, delta, *args):
 		"""Apply the changes described in the dict ``delta``."""
