@@ -817,11 +817,7 @@ class CharSuccessorsMappingProxy(CachingProxy):
 		for o, ds in delta.items():
 			cache = self._cache[o]
 			for d, stats in ds.items():
-				if d in cache:
-					cache[d]._apply_delta(stats)
-				else:
-					cache[d] = prox = PortalProxy(self.character, o, d)
-					prox._apply_delta(stats)
+				cache[d]._apply_delta(stats)
 
 	def _set_item(self, orig, val):
 		self.engine.handle(command='character_set_node_successors',
