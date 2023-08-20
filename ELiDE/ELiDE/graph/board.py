@@ -797,7 +797,6 @@ class GraphBoard(RelativeLayout):
 		self.update_spot_display()
 		if self.arrow_cls:
 			self.add_new_arrows()
-			self.update_arrow_display()
 		self.add_new_pawns()
 		self.update_pawn_display()
 		self.connect_proxy_objects()
