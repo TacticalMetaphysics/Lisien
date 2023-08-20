@@ -468,6 +468,7 @@ class PortalProxy(CachingEntityProxy):
 							k=k,
 							v=v,
 							branching=True)
+		self.engine.portal.send(self, k=k, v=v)
 
 	def _del_item(self, k):
 		self.engine_handle(command='del_portal_stat',
@@ -476,6 +477,7 @@ class PortalProxy(CachingEntityProxy):
 							dest=self._destination,
 							k=k,
 							branching=True)
+		self.engine.portal.send(self, k=k, v=None)
 
 	def __init__(self, character, origname, destname):
 		self.engine = character.engine
@@ -815,7 +817,11 @@ class CharSuccessorsMappingProxy(CachingProxy):
 		for o, ds in delta.items():
 			cache = self._cache[o]
 			for d, stats in ds.items():
-				cache[d]._apply_delta(stats)
+				if d in cache:
+					cache[d]._apply_delta(stats)
+				else:
+					cache[d] = prox = PortalProxy(self.character, o, d)
+					prox._apply_delta(stats)
 				self.send(self.character, orig=o, dest=d, stats=stats)
 
 	def _set_item(self, orig, val):
@@ -1181,13 +1187,10 @@ class CharacterProxy(AbstractCharacter):
 		for node, nodeval in g.nodes.items():
 			if node not in self.node:
 				if nodeval and 'location' in nodeval:
-					self.thing._cache[node] = prox = ThingProxy(
+					self.thing._cache[node] = ThingProxy(
 						self, node, nodeval['location'])
-					self.thing.send(self.thing, key=node, value=prox)
 				else:
-					self.place._cache[node] = prox = PlaceProxy(self, node)
-					self.place.send(self.place, key=node, value=prox)
-				self.node.send(self.node, key=node, value=prox)
+					self.place._cache[node] = PlaceProxy(self, node)
 		for orig in g.adj:
 			for dest, edge in g.adj[orig].items():
 				if orig in self.portal and dest in self.portal[orig]:
@@ -1272,29 +1275,33 @@ class CharacterProxy(AbstractCharacter):
 					else:
 						self.place._cache[node] = prox = PlaceProxy(self, node)
 						self.place.send(self.place, key=node, value=prox)
-					self.node.send(self.node, key=node, value=prox)
+					self.node.send(prox, key=None, value=True)
 			else:
+				prox = self.node[node]
 				if node in self.place._cache:
 					del self.place._cache[node]
-					self.place.send(self.place, key=node, value=None)
+					self.place.send(prox, key=None, value=False)
 				elif node in self.thing._cache:
 					del self.thing._cache[node]
-					self.thing.send(self.thing, key=node, value=None)
+					self.thing.send(prox, key=None, value=False)
 				else:
 					self.engine.warning(
 						"Diff deleted {} but it was never created here".format(
 							node))
-				self.node.send(self.node, key=node, value=None)
+				self.node.send(prox, key=None, value=False)
 		for (orig, dest), ex in delta.pop('edges', {}).items():
 			if ex:
 				self.engine._character_portals_cache.store(
 					self.name, orig, dest, PortalProxy(self, orig, dest))
+				self.portal.send(self.portal[orig][dest], key=None, value=True)
 			else:
+				prox = self.portal[orig][dest]
 				try:
 					self.engine._character_portals_cache.delete(
 						self.name, orig, dest)
 				except KeyError:
 					pass
+				self.portal.send(prox, key=None, value=False)
 		self.portal._apply_delta(delta.pop('edge_val', {}))
 		nodemap = self.node
 		name = self.name
