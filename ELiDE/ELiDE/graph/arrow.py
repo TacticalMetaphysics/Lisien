@@ -607,6 +607,9 @@ class ArrowPlane(Widget):
 										texture=self._fbo.texture)
 		self._trigger_redraw()
 
+	def have_arrow(self, orig, dest):
+		return (orig, dest) in self._port_index
+
 	def redraw(self, *args):
 		if not hasattr(self, '_rectangle'):
 			self._trigger_redraw()
@@ -768,6 +771,13 @@ class ArrowPlane(Widget):
 			setattr(self, arr, np.array(dat))
 		self._fbo.release()
 		self.canvas.ask_update()
+
+	def update_portal_label(self, orig, dest, text):
+		rect = self._instructions_map[orig, dest]['label']
+		label = self._labels[orig][dest]
+		label.text = text
+		label.refresh()
+		rect.texture = label.texture
 
 	def iter_collided_edges(self, x, y):
 		x, y = map(float, (x, y))

@@ -782,16 +782,65 @@ class GraphBoard(RelativeLayout):
 		# remove widgets that don't represent anything anymore
 		Logger.debug("GraphBoard: updating")
 		start_ts = monotonic()
+		self.disconnect_proxy_objects()
 		self.remove_absent_pawns()
 		self.remove_absent_spots()
 		self.remove_absent_arrows()
 		# add widgets to represent new stuff
 		self.add_new_spots()
+		self.update_spot_display()
 		if self.arrow_cls:
 			self.add_new_arrows()
+			self.update_arrow_display()
 		self.add_new_pawns()
+		self.update_pawn_display()
+		self.connect_proxy_objects()
 		Logger.debug(
 			f"GraphBoard: updated, took {monotonic() - start_ts:,.2f} seconds")
+
+	def disconnect_proxy_objects(self):
+		char = self.character
+		char.stat.disconnect(self.update_from_character_stat)
+		char.node.disconnect(self.update_from_character_node)
+		char.portal.disconnect(self.update_from_character_edge)
+
+	def connect_proxy_objects(self):
+		char = self.character
+		char.stat.connect(self.update_from_character_stat)
+		char.node.connect(self.update_from_character_node)
+		char.portal.connect(self.update_from_character_edge)
+
+	def update_from_character_stat(self, character, key, value):
+		pass
+
+	def update_from_character_node(self, node, key, value):
+		if hasattr(node, 'location'):
+			if not node:
+				self.rm_pawn(node.name)
+			elif node.name not in self.pawn:
+				self.add_pawn(node.name)
+		else:
+			if not node:
+				self.rm_spot(node.name)
+			elif node.name not in self.spot:
+				self.add_spot(node.name)
+
+	def update_from_character_edge(self, edge, key, value):
+		if edge:
+			if not self.arrow_plane.have_arrow(edge.origin.name, edge.destination.name):
+				label_kwargs = DEFAULT_ARROW_LABEL_KWARGS.copy()
+				if '_label_stat' in edge:
+					label_kwargs['text'] = str(edge.get(edge['label_stat'], ''))
+				self.arrow_plane.add_new_portal({
+					'origspot': self.spot[edge.origin.name],
+					'destspot': self.spot[edge.destination.name],
+					'label_kwargs': label_kwargs
+				})
+			if key == edge.get('_label_stat'):
+				self.arrow_plane.update_portal_label(edge.origin.name, edge.destination.name, str(value))
+		else:
+			self.arrow_plane.remove_edge(edge.origin.name, edge.destination.name)
+
 
 	trigger_update = trigger(update)
 
