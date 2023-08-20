@@ -379,7 +379,7 @@ class EngineHandle(object):
 			if 'edges' in chardelta:
 				ed = chard[EDGES] = {
 					pack(origdest): pack(ex)
-					for origdest, ex in chardelta.pop('edges')
+					for origdest, ex in chardelta.pop('edges').items()
 				}
 				packd[EDGES] = concat_d(ed)
 			if 'edge_val' in chardelta:
