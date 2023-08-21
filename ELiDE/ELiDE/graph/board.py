@@ -399,7 +399,6 @@ class GraphBoard(RelativeLayout):
 			control['wallpaper'] = 'textinput'
 		self.wallpaper_path = self.character.stat.setdefault(
 			'wallpaper', 'wallpape.jpg')
-		self.character.stat.connect(self.trigger_update_from_stat)
 		self.trigger_update()
 
 	def update_from_stat(self, sender, *, k, v):
@@ -841,20 +840,27 @@ class GraphBoard(RelativeLayout):
 
 	def update_from_character_edge(self, edge, key, value):
 		if edge:
-			if not self.arrow_plane.have_arrow(edge.origin.name, edge.destination.name):
+			if not self.arrow_plane.have_arrow(edge.origin.name,
+												edge.destination.name):
 				label_kwargs = DEFAULT_ARROW_LABEL_KWARGS.copy()
 				if '_label_stat' in edge:
-					label_kwargs['text'] = str(edge.get(edge['label_stat'], ''))
+					label_kwargs['text'] = str(edge.get(
+						edge['label_stat'], ''))
 				self.arrow_plane.add_new_portal({
-					'origspot': self.spot[edge.origin.name],
-					'destspot': self.spot[edge.destination.name],
-					'label_kwargs': label_kwargs
+					'origspot':
+					self.spot[edge.origin.name],
+					'destspot':
+					self.spot[edge.destination.name],
+					'label_kwargs':
+					label_kwargs
 				})
 			if key == edge.get('_label_stat'):
-				self.arrow_plane.update_portal_label(edge.origin.name, edge.destination.name, str(value))
+				self.arrow_plane.update_portal_label(edge.origin.name,
+														edge.destination.name,
+														str(value))
 		else:
-			self.arrow_plane.remove_edge(edge.origin.name, edge.destination.name)
-
+			self.arrow_plane.remove_edge(edge.origin.name,
+											edge.destination.name)
 
 	def update_arrow_display(self):
 		pass
