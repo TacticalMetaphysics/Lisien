@@ -90,42 +90,45 @@ class TextureStackPlane(Widget):
 			y *= self.height
 		self.unbind_uid('data', self._redraw_bind_uid)
 		fbo = self._fbo
-		fbo.bind()
-		instructions = self._instructions
-		left_xs = list(self._left_xs)
-		right_xs = list(self._right_xs)
-		top_ys = list(self._top_ys)
-		bot_ys = list(self._bot_ys)
-		rects = []
-		wide = datum.get("width", 0)
-		tall = datum.get("height", 0)
-		for tex in texs:
-			if isinstance(tex, str):
-				tex = Image.load(resource_find(tex)).texture
-				w, h = tex.size
-				if "width" not in datum and w > wide:
-					wide = w
-				if "height" not in datum and h > tall:
-					tall = h
-			rects.append(Rectangle(texture=tex, pos=(x, y), size=(wide, tall)))
-		instructions[name] = {"rectangles": rects, "group": InstructionGroup()}
-		grp = instructions[name]["group"]
-		for rect in rects:
-			grp.add(rect)
-		fbo.add(instructions[name]["group"])
-		left_xs.append(x)
-		bot_ys.append(y)
-		top_ys.append(y + tall)
-		right_xs.append(x + wide)
-		self._stack_index[name] = len(self._keys)
-		self._left_xs = np.array(left_xs)
-		self._bot_ys = np.array(bot_ys)
-		self._top_ys = np.array(top_ys)
-		self._right_xs = np.array(right_xs)
-		self._keys.append(name)
-		self.data.append(datum)
-		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
-		fbo.release()
+		with fbo:
+			instructions = self._instructions
+			left_xs = list(self._left_xs)
+			right_xs = list(self._right_xs)
+			top_ys = list(self._top_ys)
+			bot_ys = list(self._bot_ys)
+			rects = []
+			wide = datum.get("width", 0)
+			tall = datum.get("height", 0)
+			for tex in texs:
+				if isinstance(tex, str):
+					tex = Image.load(resource_find(tex)).texture
+					w, h = tex.size
+					if "width" not in datum and w > wide:
+						wide = w
+					if "height" not in datum and h > tall:
+						tall = h
+				rects.append(
+					Rectangle(texture=tex, pos=(x, y), size=(wide, tall)))
+			instructions[name] = {
+				"rectangles": rects,
+				"group": InstructionGroup()
+			}
+			grp = instructions[name]["group"]
+			for rect in rects:
+				grp.add(rect)
+			fbo.add(instructions[name]["group"])
+			left_xs.append(x)
+			bot_ys.append(y)
+			top_ys.append(y + tall)
+			right_xs.append(x + wide)
+			self._stack_index[name] = len(self._keys)
+			self._left_xs = np.array(left_xs)
+			self._bot_ys = np.array(bot_ys)
+			self._top_ys = np.array(top_ys)
+			self._right_xs = np.array(right_xs)
+			self._keys.append(name)
+			self.data.append(datum)
+			self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
 
 	def remove(self, name_or_idx):
 
@@ -145,23 +148,22 @@ class TextureStackPlane(Widget):
 			name = self._keys[idx]
 		self.unbind_uid('data', self._redraw_bind_uid)
 		fbo = self._fbo
-		fbo.bind()
-		fbo.clear_buffer()
-		grp = self._instructions[name]["group"]
-		fbo.remove(grp)
-		stack_index = self._stack_index
-		del self._instructions[name]
-		del stack_index[name]
-		del self._keys[idx]
-		for key in self._keys[idx:]:
-			stack_index[key] -= 1
-		self._left_xs = delarr(self._left_xs, idx)
-		self._bot_ys = delarr(self._bot_ys, idx)
-		self._top_ys = delarr(self._top_ys, idx)
-		self._right_xs = delarr(self._right_xs, idx)
-		del self.data[idx]
-		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
-		fbo.release()
+		with fbo:
+			fbo.clear_buffer()
+			grp = self._instructions[name]["group"]
+			fbo.remove(grp)
+			stack_index = self._stack_index
+			del self._instructions[name]
+			del stack_index[name]
+			del self._keys[idx]
+			for key in self._keys[idx:]:
+				stack_index[key] -= 1
+			self._left_xs = delarr(self._left_xs, idx)
+			self._bot_ys = delarr(self._bot_ys, idx)
+			self._top_ys = delarr(self._top_ys, idx)
+			self._right_xs = delarr(self._right_xs, idx)
+			del self.data[idx]
+			self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
 
 	def redraw(self, *args):
 		if not hasattr(self, '_rectangle'):
@@ -170,133 +172,133 @@ class TextureStackPlane(Widget):
 		Logger.debug("TextureStackPlane: redrawing")
 		start_ts = monotonic()
 		fbo = self._fbo
-		fbo.bind()
-		fbo.clear_buffer()
-		fbo_add = fbo.add
-		instructions = self._instructions
-		stack_index = self._stack_index
-		keys = list(self._keys)
-		left_xs = list(self._left_xs)
-		right_xs = list(self._right_xs)
-		top_ys = list(self._top_ys)
-		bot_ys = list(self._bot_ys)
-		self_width = self.width
-		self_height = self.height
-		selected = self.selected
-		color_selected = self.color_selected
-		for datum in self.data:
-			name = datum['name']
-			texs = datum['textures']
-			if isinstance(datum['x'], float):
-				x = datum['x'] * self_width
-			else:
-				if not isinstance(datum['x'], int):
-					raise TypeError("need int or float for pos")
-				x = datum['x']
-			if isinstance(datum['y'], float):
-				y = datum['y'] * self_height
-			else:
-				if not isinstance(datum['y'], int):
-					raise TypeError("need int or float for pos")
-				y = datum['y']
-			if name in stack_index:
-				inst = instructions[name]
-				grp = inst['group']
-				rects = inst['rectangles']
-				if len(rects) < len(texs):
-					for rect in rects[len(texs):]:
-						grp.remove(rect)
-					rects = rects[:len(texs)]
-				elif len(rects) > len(texs):
-					for texture in texs[len(rects):]:
-						rect = Rectangle(pos=(x, y),
-											size=texture.size,
-											texture=texture)
+		with fbo:
+			fbo.clear_buffer()
+			fbo_add = fbo.add
+			instructions = self._instructions
+			stack_index = self._stack_index
+			keys = list(self._keys)
+			left_xs = list(self._left_xs)
+			right_xs = list(self._right_xs)
+			top_ys = list(self._top_ys)
+			bot_ys = list(self._bot_ys)
+			self_width = self.width
+			self_height = self.height
+			selected = self.selected
+			color_selected = self.color_selected
+			for datum in self.data:
+				name = datum['name']
+				texs = datum['textures']
+				if isinstance(datum['x'], float):
+					x = datum['x'] * self_width
+				else:
+					if not isinstance(datum['x'], int):
+						raise TypeError("need int or float for pos")
+					x = datum['x']
+				if isinstance(datum['y'], float):
+					y = datum['y'] * self_height
+				else:
+					if not isinstance(datum['y'], int):
+						raise TypeError("need int or float for pos")
+					y = datum['y']
+				if name in stack_index:
+					inst = instructions[name]
+					grp = inst['group']
+					rects = inst['rectangles']
+					if len(rects) < len(texs):
+						for rect in rects[len(texs):]:
+							grp.remove(rect)
+						rects = rects[:len(texs)]
+					elif len(rects) > len(texs):
+						for texture in texs[len(rects):]:
+							rect = Rectangle(pos=(x, y),
+												size=texture.size,
+												texture=texture)
+							grp.add(rect)
+							rects.append(rect)
+					width = datum.get("width", 0)
+					height = datum.get("height", 0)
+					for texture, rect in zip(texs, rects):
+						if isinstance(texture, str):
+							try:
+								texture = Image.load(
+									resource_find(texture)).texture
+							except Exception:
+								texture = Image.load(
+									self.default_image_path).texture
+						w, h = texture.size
+						if "width" in datum:
+							w = width
+						elif w > width:
+							width = w
+						if "height" in datum:
+							h = height
+						elif h > height:
+							height = h
+						rect.texture = texture
+						assert w > 0 and h > 0
+						rect.size = (w, h)
+					idx = stack_index[name]
+					right = x + width
+					left_xs[idx] = x
+					right_xs[idx] = right
+					bot_ys[idx] = y
+					top = y + height
+					top_ys[idx] = top
+				else:
+					stack_index[name] = len(keys)
+					keys.append(name)
+					width = datum.get('width', 0)
+					height = datum.get('height', 0)
+					rects = []
+					for texture in datum['textures']:
+						if isinstance(texture, str):
+							try:
+								texture = Image.load(
+									resource_find(texture)).texture
+							except Exception:
+								texture = Image.load(
+									self.default_image_path).texture
+						w, h = texture.size
+						if "width" in datum:
+							w = width
+						elif w > width:
+							width = w
+						if "height" in datum:
+							h = height
+						elif h > height:
+							height = h
+						assert w > 0 and h > 0
+						rects.append(
+							Rectangle(pos=(x, y), size=(w, h),
+										texture=texture))
+					right = x + width
+					left_xs.append(x)
+					right_xs.append(right)
+					bot_ys.append(y)
+					top = y + height
+					top_ys.append(top)
+					grp = InstructionGroup()
+					for rect in rects:
 						grp.add(rect)
-						rects.append(rect)
-				width = datum.get("width", 0)
-				height = datum.get("height", 0)
-				for texture, rect in zip(texs, rects):
-					if isinstance(texture, str):
-						try:
-							texture = Image.load(
-								resource_find(texture)).texture
-						except Exception:
-							texture = Image.load(
-								self.default_image_path).texture
-					w, h = texture.size
-					if "width" in datum:
-						w = width
-					elif w > width:
-						width = w
-					if "height" in datum:
-						h = height
-					elif h > height:
-						height = h
-					rect.texture = texture
-					assert w > 0 and h > 0
-					rect.size = (w, h)
-				idx = stack_index[name]
-				right = x + width
-				left_xs[idx] = x
-				right_xs[idx] = right
-				bot_ys[idx] = y
-				top = y + height
-				top_ys[idx] = top
-			else:
-				stack_index[name] = len(keys)
-				keys.append(name)
-				width = datum.get('width', 0)
-				height = datum.get('height', 0)
-				rects = []
-				for texture in datum['textures']:
-					if isinstance(texture, str):
-						try:
-							texture = Image.load(
-								resource_find(texture)).texture
-						except Exception:
-							texture = Image.load(
-								self.default_image_path).texture
-					w, h = texture.size
-					if "width" in datum:
-						w = width
-					elif w > width:
-						width = w
-					if "height" in datum:
-						h = height
-					elif h > height:
-						height = h
-					assert w > 0 and h > 0
-					rects.append(
-						Rectangle(pos=(x, y), size=(w, h), texture=texture))
-				right = x + width
-				left_xs.append(x)
-				right_xs.append(right)
-				bot_ys.append(y)
-				top = y + height
-				top_ys.append(top)
-				grp = InstructionGroup()
-				for rect in rects:
-					grp.add(rect)
-				instructions[name] = {'rectangles': rects, 'group': grp}
-				if name == selected:
-					colr = Color(rgba=color_selected)
-					grp.add(colr)
-					instructions['color0'] = colr
-					line = Line(
-						points=[x, y, right, y, right, top, x, top, x, y])
-					instructions['line'] = line
-					grp.add(line)
-					coler = Color(rgba=[1, 1, 1, 1])
-					instructions['color1'] = coler
-					grp.add(coler)
-				fbo_add(grp)
-		self._left_xs = np.array(left_xs)
-		self._right_xs = np.array(right_xs)
-		self._top_ys = np.array(top_ys)
-		self._bot_ys = np.array(bot_ys)
-		self._keys = keys
-		fbo.release()
+					instructions[name] = {'rectangles': rects, 'group': grp}
+					if name == selected:
+						colr = Color(rgba=color_selected)
+						grp.add(colr)
+						instructions['color0'] = colr
+						line = Line(
+							points=[x, y, right, y, right, top, x, top, x, y])
+						instructions['line'] = line
+						grp.add(line)
+						coler = Color(rgba=[1, 1, 1, 1])
+						instructions['color1'] = coler
+						grp.add(coler)
+					fbo_add(grp)
+			self._left_xs = np.array(left_xs)
+			self._right_xs = np.array(right_xs)
+			self._top_ys = np.array(top_ys)
+			self._bot_ys = np.array(bot_ys)
+			self._keys = keys
 		self._rectangle.texture = fbo.texture
 		Logger.debug(f"TextureStackPlane: redrawn in "
 						f"{monotonic() - start_ts:,.2f} seconds")
@@ -548,26 +550,26 @@ class Stack:
 		insts = plane._instructions[name]
 		rects = insts['rectangles']
 		group = insts['group']
-		plane._fbo.bind()
-		for rect in rects:
-			group.remove(rect)
-		rects = insts['rectangles'] = []
-		wide = datum.get("width", 0)
-		tall = datum.get("height", 0)
-		for path in v:
-			if not isinstance(path, str):
-				raise TypeError("paths must be strings")
-			tex = Image.load(path).texture
-			w, h = tex.size
-			if "width" not in datum and w > wide:
-				wide = w
-			if "height" not in datum and h > tall:
-				tall = h
-			rect = Rectangle(texture=tex, pos=self.pos, size=(wide, tall))
-			rects.append(rect)
-			group.add(rect)
-		plane._redraw_bind_uid = plane.fbind('data', plane._trigger_redraw)
-		plane._fbo.release()
+		fbo = plane._fbo
+		with fbo:
+			for rect in rects:
+				group.remove(rect)
+			rects = insts['rectangles'] = []
+			wide = datum.get("width", 0)
+			tall = datum.get("height", 0)
+			for path in v:
+				if not isinstance(path, str):
+					raise TypeError("paths must be strings")
+				tex = Image.load(path).texture
+				w, h = tex.size
+				if "width" not in datum and w > wide:
+					wide = w
+				if "height" not in datum and h > tall:
+					tall = h
+				rect = Rectangle(texture=tex, pos=self.pos, size=(wide, tall))
+				rects.append(rect)
+				group.add(rect)
+			plane._redraw_bind_uid = plane.fbind('data', plane._trigger_redraw)
 
 	@property
 	def selected(self):
@@ -578,33 +580,33 @@ class Stack:
 		stack_plane: TextureStackPlane = self._stack_plane
 		name = self.proxy['name']
 		insts = stack_plane._instructions[name]
-		stack_plane._fbo.bind()
-		stack_plane._fbo.clear_buffer()
-		if v:
-			stack_plane.selected = name
-			if 'color0' in insts:
-				insts['color0'].rgba = stack_plane.color_selected
+		fbo = stack_plane._fbo
+		with fbo:
+			fbo.clear_buffer()
+			if v:
+				stack_plane.selected = name
+				if 'color0' in insts:
+					insts['color0'].rgba = stack_plane.color_selected
+				else:
+					idx = stack_plane._stack_index[name]
+					left = stack_plane._left_xs[idx]
+					bot = stack_plane._bot_ys[idx]
+					right = stack_plane._right_xs[idx]
+					top = stack_plane._top_ys[idx]
+					grp = insts['group']
+					insts['color0'] = Color(rgba=stack_plane.color_selected)
+					grp.add(insts['color0'])
+					insts['line'] = Line(points=[
+						left, bot, right, bot, right, top, left, top, left, bot
+					])
+					grp.add(insts['line'])
+					insts['color1'] = Color(rgba=[1., 1., 1., 1.])
+					grp.add(insts['color1'])
 			else:
-				idx = stack_plane._stack_index[name]
-				left = stack_plane._left_xs[idx]
-				bot = stack_plane._bot_ys[idx]
-				right = stack_plane._right_xs[idx]
-				top = stack_plane._top_ys[idx]
-				grp = insts['group']
-				insts['color0'] = Color(rgba=stack_plane.color_selected)
-				grp.add(insts['color0'])
-				insts['line'] = Line(points=[
-					left, bot, right, bot, right, top, left, top, left, bot
-				])
-				grp.add(insts['line'])
-				insts['color1'] = Color(rgba=[1., 1., 1., 1.])
-				grp.add(insts['color1'])
-		else:
-			if stack_plane.selected == self.proxy['name']:
-				stack_plane.selected = None
-			if 'color0' in insts:
-				insts['color0'].rgba = [0., 0., 0., 0.]
-		stack_plane._fbo.release()
+				if stack_plane.selected == self.proxy['name']:
+					stack_plane.selected = None
+				if 'color0' in insts:
+					insts['color0'].rgba = [0., 0., 0., 0.]
 		stack_plane.canvas.ask_update()
 
 	@property
@@ -634,13 +636,13 @@ class Stack:
 		stack_plane._bot_ys[idx] = y
 		stack_plane._top_ys[idx] = t
 		stack_plane._right_xs[idx] = r
-		stack_plane._fbo.bind()
-		stack_plane._fbo.clear_buffer()
-		for rect in insts['rectangles']:
-			rect.pos = xy
-		if 'line' in insts:
-			insts['line'].points = [x, y, r, y, r, t, x, t, x, y]
-		stack_plane._fbo.release()
+		fbo = stack_plane._fbo
+		with fbo:
+			fbo.clear_buffer()
+			for rect in insts['rectangles']:
+				rect.pos = xy
+			if 'line' in insts:
+				insts['line'].points = [x, y, r, y, r, t, x, t, x, y]
 		stack_plane.data[idx]['pos'] = xy
 		stack_plane._redraw_bind_uid = stack_plane.fbind(
 			'data', stack_plane._trigger_redraw)
