@@ -147,23 +147,20 @@ class TextureStackPlane(Widget):
 			idx = name_or_idx
 			name = self._keys[idx]
 		self.unbind_uid('data', self._redraw_bind_uid)
-		fbo = self._fbo
-		with fbo:
-			fbo.clear_buffer()
-			grp = self._instructions[name]["group"]
-			fbo.remove(grp)
-			stack_index = self._stack_index
-			del self._instructions[name]
-			del stack_index[name]
-			del self._keys[idx]
-			for key in self._keys[idx:]:
-				stack_index[key] -= 1
-			self._left_xs = delarr(self._left_xs, idx)
-			self._bot_ys = delarr(self._bot_ys, idx)
-			self._top_ys = delarr(self._top_ys, idx)
-			self._right_xs = delarr(self._right_xs, idx)
-			del self.data[idx]
-			self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+		grp = self._instructions[name]["group"]
+		self._fbo.remove(grp)
+		stack_index = self._stack_index
+		del self._instructions[name]
+		del stack_index[name]
+		del self._keys[idx]
+		for key in self._keys[idx:]:
+			stack_index[key] -= 1
+		self._left_xs = delarr(self._left_xs, idx)
+		self._bot_ys = delarr(self._bot_ys, idx)
+		self._top_ys = delarr(self._top_ys, idx)
+		self._right_xs = delarr(self._right_xs, idx)
+		del self.data[idx]
+		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
 
 	def redraw(self, *args):
 		if not hasattr(self, '_rectangle'):
