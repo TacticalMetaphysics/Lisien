@@ -241,7 +241,7 @@ class GridBoard(Widget):
 		if thing:
 			if thing.name not in self.pawn:
 				self.add_pawn(thing.name)
-			elif key == 'location':
+			elif key == 'location' and value in self.spot:
 				loc = self.spot[value]
 				pwn = self.pawn[thing.name]
 				pwn.pos = loc.pos
