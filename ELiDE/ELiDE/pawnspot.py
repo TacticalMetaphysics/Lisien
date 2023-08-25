@@ -636,12 +636,10 @@ class Stack:
 		stack_plane._bot_ys[idx] = y
 		stack_plane._top_ys[idx] = t
 		stack_plane._right_xs[idx] = r
-		fbo = stack_plane._fbo
-		with fbo:
-			for rect in insts['rectangles']:
-				rect.pos = xy
-			if 'line' in insts:
-				insts['line'].points = [x, y, r, y, r, t, x, t, x, y]
+		for rect in insts['rectangles']:
+			rect.pos = xy
+		if 'line' in insts:
+			insts['line'].points = [x, y, r, y, r, t, x, t, x, y]
 		stack_plane.data[idx]['pos'] = xy
 		stack_plane._redraw_bind_uid = stack_plane.fbind(
 			'data', stack_plane._trigger_redraw)
