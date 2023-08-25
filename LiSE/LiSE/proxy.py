@@ -233,6 +233,9 @@ class NodeProxy(CachingEntityProxy):
 				and self._charname == other._charname
 				and self.name == other.name)
 
+	def __bool__(self):
+		return self.name in self.character.node
+
 	def __contains__(self, k):
 		if k in ('character', 'name'):
 			return True
