@@ -547,15 +547,19 @@ class GraphArrowWidget(Widget, GraphArrow):
 		shaft_points, head_points = get_points(self.origin, self.destination,
 												self.arrowhead_size)
 		r = self.arrow_width / 2
-		portal = self.board.character.portal[self.origin.name][
-			self.destination.name]
-		portal_text = str(portal.get(portal.get('_label_stat', None), ''))
-		if hasattr(self, '_label'):
-			label = self._label
-			label.text = portal_text
-		else:
-			label = self._label = Label(text=portal_text)
-		label_size = label.render()
+		try:
+			portal = self.board.character.portal[self.origin.name][
+				self.destination.name]
+			portal_text = str(portal.get(portal.get('_label_stat', None), ''))
+			if hasattr(self, '_label'):
+				label = self._label
+				label.text = portal_text
+			else:
+				label = self._label = Label(text=portal_text)
+				label_size = label.render()
+		except AttributeError:
+			label = None
+			label_size = 0, 0
 		verts = get_quad_vertices(*shaft_points, *head_points,
 									r * self.bg_scale, r, *label_size)
 		insts = self._instructions
@@ -569,8 +573,9 @@ class GraphArrowWidget(Widget, GraphArrow):
 		insts['right_head_fg'].points = verts['right_head_fg']
 		insts['label_rect'].pos = verts['label_pos']
 		insts['label_rect'].size = label_size
-		label.refresh()
-		insts['label_rect'].texture = label.texture
+		if label is not None:
+			label.refresh()
+			insts['label_rect'].texture = label.texture
 
 
 class ArrowPlane(Widget):
