@@ -638,7 +638,6 @@ class Stack:
 		stack_plane._right_xs[idx] = r
 		fbo = stack_plane._fbo
 		with fbo:
-			fbo.clear_buffer()
 			for rect in insts['rectangles']:
 				rect.pos = xy
 			if 'line' in insts:
