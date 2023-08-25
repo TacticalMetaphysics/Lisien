@@ -26,7 +26,7 @@ from kivy.graphics import (InstructionGroup, Translate, PopMatrix, PushMatrix,
 							Color, Line, Rectangle)
 from kivy.resources import resource_find
 from kivy.uix.layout import Layout
-from kivy.clock import Clock
+from kivy.clock import Clock, mainthread
 from kivy.uix.widget import Widget
 from kivy.logger import Logger
 
@@ -617,6 +617,7 @@ class Stack:
 			stack_plane._bot_ys[idx])
 
 	@pos.setter
+	@mainthread
 	def pos(self, xy):
 		x, y = xy
 		stack_plane = self._stack_plane
