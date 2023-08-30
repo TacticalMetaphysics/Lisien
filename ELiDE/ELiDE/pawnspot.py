@@ -64,21 +64,18 @@ class TextureStackPlane(Widget):
 		self.bind(pos=self._trigger_redraw, size=self._trigger_redraw)
 		self._trigger_redraw()
 
-	@mainthread
 	def on_pos(self, *args):
 		if not hasattr(self, '_translate'):
 			return
 		self._translate.x, self._translate.y = self.pos
 		self.canvas.ask_update()
 
-	@mainthread
 	def on_size(self, *args):
 		if not hasattr(self, '_rectangle') or not hasattr(self, '_fbo'):
 			return
 		self._rectangle.size = self._fbo.size = self.size
 		self.redraw()
 
-	@mainthread
 	def add_datum(self, datum):
 		name = datum["name"]
 		if "pos" in datum:
@@ -133,7 +130,6 @@ class TextureStackPlane(Widget):
 			self.data.append(datum)
 			self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
 
-	@mainthread
 	def remove(self, name_or_idx):
 
 		def delarr(arr, i):
@@ -166,7 +162,6 @@ class TextureStackPlane(Widget):
 		del self.data[idx]
 		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
 
-	@mainthread
 	def redraw(self, *args):
 		if not hasattr(self, '_rectangle'):
 			self._trigger_redraw()
@@ -402,7 +397,6 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 	def _trigger_push_offys(self, *args):
 		self.proxy['_offys'] = list(self.offys)
 
-	@mainthread
 	def on_linecolor(self, *args):
 		"""If I don't yet have the instructions for drawing the selection box
 		in my canvas, put them there. In any case, set the
@@ -435,7 +429,6 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		boxgrp.add(Color(1., 1., 1.))
 		boxgrp.add(PopMatrix())
 
-	@mainthread
 	def on_board(self, *args):
 		if not (hasattr(self, 'group') and hasattr(self, 'boxgrp')):
 			Clock.schedule_once(self.on_board, 0)
@@ -523,7 +516,6 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 			offx, offy = getattr(child, 'rel_pos', (0, 0))
 			child.pos = x + offx, y + offy
 
-	@mainthread
 	def on_selected(self, *args):
 		if self.selected:
 			self.linecolor = self.selected_outline_color
@@ -546,7 +538,6 @@ class Stack:
 		return datum['textures']
 
 	@paths.setter
-	@mainthread
 	def paths(self, v):
 		name = self.proxy['name']
 		plane = self._stack_plane
@@ -582,7 +573,6 @@ class Stack:
 		return self._stack_plane.selected == self.proxy['name']
 
 	@selected.setter
-	@mainthread
 	def selected(self, v: bool):
 		stack_plane: TextureStackPlane = self._stack_plane
 		name = self.proxy['name']
@@ -689,7 +679,6 @@ class Stack:
 		return float(right - left), float(top - bot)
 
 	@size.setter
-	@mainthread
 	def size(self, wh):
 		w, h = wh
 		stack_plane = self.board.stack_plane
