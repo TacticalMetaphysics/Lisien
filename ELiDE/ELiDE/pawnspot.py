@@ -130,6 +130,7 @@ class TextureStackPlane(Widget):
 			self.data.append(datum)
 			self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
 
+	@mainthread
 	def remove(self, name_or_idx):
 
 		def delarr(arr, i):
