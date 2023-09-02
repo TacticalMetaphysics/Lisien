@@ -76,6 +76,7 @@ class TextureStackPlane(Widget):
 		self._rectangle.size = self._fbo.size = self.size
 		self.redraw()
 
+	@mainthread
 	def add_datum(self, datum):
 		name = datum["name"]
 		if "pos" in datum:
