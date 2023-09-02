@@ -176,6 +176,41 @@ class TextureStackPlane(Widget):
 		self._remove_upd_fbo(name)
 
 	def redraw(self, *args):
+
+		def get_rects(datum):
+			width = datum.get('width', 0)
+			height = datum.get('height', 0)
+			rects = []
+			for texture in datum['textures']:
+				if isinstance(texture, str):
+					try:
+						texture = Image.load(resource_find(texture)).texture
+					except Exception:
+						texture = Image.load(self.default_image_path).texture
+				w, h = texture.size
+				if "width" in datum:
+					w = width
+				elif w > width:
+					width = w
+				if "height" in datum:
+					h = height
+				elif h > height:
+					height = h
+				assert w > 0 and h > 0
+				rects.append(
+					Rectangle(pos=(x, y), size=(w, h), texture=texture))
+			return rects
+
+		def get_lines_and_colors():
+			instructions = {}
+			colr = Color(rgba=color_selected)
+			instructions['color0'] = colr
+			line = Line(points=[x, y, right, y, right, top, x, top, x, y])
+			instructions['line'] = line
+			coler = Color(rgba=[1, 1, 1, 1])
+			instructions['color1'] = coler
+			return instructions
+
 		if not hasattr(self, '_rectangle'):
 			self._trigger_redraw()
 			return
@@ -212,20 +247,37 @@ class TextureStackPlane(Widget):
 						raise TypeError("need int or float for pos")
 					y = datum['y']
 				if name in stack_index:
-					inst = instructions[name]
-					grp = inst['group']
-					rects = inst['rectangles']
-					if len(rects) < len(texs):
-						for rect in rects[len(texs):]:
-							grp.remove(rect)
-						rects = rects[:len(texs)]
-					elif len(rects) > len(texs):
-						for texture in texs[len(rects):]:
-							rect = Rectangle(pos=(x, y),
-												size=texture.size,
-												texture=texture)
+					if name in instructions:
+						inst = instructions[name]
+						grp = inst['group']
+						rects = inst['rectangles']
+						if len(rects) < len(texs):
+							for rect in rects[len(texs):]:
+								grp.remove(rect)
+							rects = rects[:len(texs)]
+						elif len(rects) > len(texs):
+							for texture in texs[len(rects):]:
+								rect = Rectangle(pos=(x, y),
+													size=texture.size,
+													texture=texture)
+								grp.add(rect)
+								rects.append(rect)
+					else:
+						rects = get_rects(datum)
+						grp = InstructionGroup()
+						for rect in rects:
 							grp.add(rect)
-							rects.append(rect)
+						if name == selected:
+							insts = get_lines_and_colors()
+							grp.add(instructions["color0"])
+							grp.add(instructions["line"])
+							grp.add(instructions["color1"])
+						else:
+							insts = {}
+						fbo_add(grp)
+						insts['rectangles'] = rects
+						insts['group'] = grp
+						instructions[name] = insts
 					width = datum.get("width", 0)
 					height = datum.get("height", 0)
 					for texture, rect in zip(texs, rects):
@@ -258,30 +310,7 @@ class TextureStackPlane(Widget):
 				else:
 					stack_index[name] = len(keys)
 					keys.append(name)
-					width = datum.get('width', 0)
-					height = datum.get('height', 0)
-					rects = []
-					for texture in datum['textures']:
-						if isinstance(texture, str):
-							try:
-								texture = Image.load(
-									resource_find(texture)).texture
-							except Exception:
-								texture = Image.load(
-									self.default_image_path).texture
-						w, h = texture.size
-						if "width" in datum:
-							w = width
-						elif w > width:
-							width = w
-						if "height" in datum:
-							h = height
-						elif h > height:
-							height = h
-						assert w > 0 and h > 0
-						rects.append(
-							Rectangle(pos=(x, y), size=(w, h),
-										texture=texture))
+					rects = get_rects(datum)
 					right = x + width
 					left_xs.append(x)
 					right_xs.append(right)
@@ -291,18 +320,15 @@ class TextureStackPlane(Widget):
 					grp = InstructionGroup()
 					for rect in rects:
 						grp.add(rect)
-					instructions[name] = {'rectangles': rects, 'group': grp}
+					instructions[name] = insts = {
+						'rectangles': rects,
+						'group': grp
+					}
 					if name == selected:
-						colr = Color(rgba=color_selected)
-						grp.add(colr)
-						instructions['color0'] = colr
-						line = Line(
-							points=[x, y, right, y, right, top, x, top, x, y])
-						instructions['line'] = line
-						grp.add(line)
-						coler = Color(rgba=[1, 1, 1, 1])
-						instructions['color1'] = coler
-						grp.add(coler)
+						insts.update(get_lines_and_colors())
+						grp.add(insts['color0'])
+						grp.add(insts['line'])
+						grp.add(insts['color1'])
 					fbo_add(grp)
 			self._left_xs = np.array(left_xs)
 			self._right_xs = np.array(right_xs)
