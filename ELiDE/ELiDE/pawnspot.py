@@ -77,26 +77,14 @@ class TextureStackPlane(Widget):
 		self.redraw()
 
 	@mainthread
-	def add_datum(self, datum):
+	def _add_datum_upd_fbo(self, **datum):
 		name = datum["name"]
-		if "pos" in datum:
-			x, y = datum["pos"]
-		else:
-			x = datum["x"]
-			y = datum["y"]
 		texs = datum["textures"]
-		if isinstance(x, float):
-			x *= self.width
-		if isinstance(y, float):
-			y *= self.height
-		self.unbind_uid('data', self._redraw_bind_uid)
+		x = datum["x"]
+		y = datum["y"]
 		fbo = self._fbo
 		with fbo:
 			instructions = self._instructions
-			left_xs = list(self._left_xs)
-			right_xs = list(self._right_xs)
-			top_ys = list(self._top_ys)
-			bot_ys = list(self._bot_ys)
 			rects = []
 			wide = datum.get("width", 0)
 			tall = datum.get("height", 0)
@@ -118,18 +106,38 @@ class TextureStackPlane(Widget):
 			for rect in rects:
 				grp.add(rect)
 			fbo.add(instructions[name]["group"])
-			left_xs.append(x)
-			bot_ys.append(y)
-			top_ys.append(y + tall)
-			right_xs.append(x + wide)
-			self._stack_index[name] = len(self._keys)
-			self._left_xs = np.array(left_xs)
-			self._bot_ys = np.array(bot_ys)
-			self._top_ys = np.array(top_ys)
-			self._right_xs = np.array(right_xs)
-			self._keys.append(name)
-			self.data.append(datum)
-			self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+
+	def add_datum(self, datum):
+		name = datum["name"]
+		if "pos" in datum:
+			x, y = datum.pop("pos")
+		else:
+			x = datum["x"]
+			y = datum["y"]
+		if isinstance(x, float):
+			x *= self.width
+		if isinstance(y, float):
+			y *= self.height
+		left_xs = list(self._left_xs)
+		right_xs = list(self._right_xs)
+		top_ys = list(self._top_ys)
+		bot_ys = list(self._bot_ys)
+		left_xs.append(x)
+		bot_ys.append(y)
+		wide = datum.get("width", 0)
+		tall = datum.get("height", 0)
+		top_ys.append(y + tall)
+		right_xs.append(x + wide)
+		self._left_xs = np.array(left_xs)
+		self._bot_ys = np.array(bot_ys)
+		self._top_ys = np.array(top_ys)
+		self._right_xs = np.array(right_xs)
+		self._stack_index[name] = len(self._keys)
+		self._keys.append(name)
+		self.unbind_uid('data', self._redraw_bind_uid)
+		self.data.append(datum)
+		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+		self._add_datum_upd_fbo(**datum)
 
 	@mainthread
 	def remove(self, name_or_idx):
