@@ -140,6 +140,10 @@ class TextureStackPlane(Widget):
 		self._add_datum_upd_fbo(**datum)
 
 	@mainthread
+	def _remove_upd_fbo(self, name):
+		grp = self._instructions[name]["group"]
+		self._fbo.remove(grp)
+
 	def remove(self, name_or_idx):
 
 		def delarr(arr, i):
@@ -156,9 +160,6 @@ class TextureStackPlane(Widget):
 		else:
 			idx = name_or_idx
 			name = self._keys[idx]
-		self.unbind_uid('data', self._redraw_bind_uid)
-		grp = self._instructions[name]["group"]
-		self._fbo.remove(grp)
 		stack_index = self._stack_index
 		del self._instructions[name]
 		del stack_index[name]
@@ -169,8 +170,10 @@ class TextureStackPlane(Widget):
 		self._bot_ys = delarr(self._bot_ys, idx)
 		self._top_ys = delarr(self._top_ys, idx)
 		self._right_xs = delarr(self._right_xs, idx)
+		self.unbind_uid('data', self._redraw_bind_uid)
 		del self.data[idx]
 		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+		self._remove_upd_fbo(name)
 
 	def redraw(self, *args):
 		if not hasattr(self, '_rectangle'):
