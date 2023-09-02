@@ -185,6 +185,8 @@ class ScreenTest(ELiDEAppTest):
 		idle_until(
 			lambda: almost(graphpawn.x, locspot0.right) and almost(
 				graphpawn.y, locspot0.top), 100,
-			"Never returned to 0's top-right")
+			f"Never returned to 0's top-right "
+			f"(stuck at {graphpawn.pos}, should be "
+			f"{locspot0.right, locspot0.top})")
 		idle_until(lambda: almost(gridpawn.pos, gridspot0.pos), 100,
 					"Never returned to grid 0, 0")
