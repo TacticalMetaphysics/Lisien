@@ -369,6 +369,8 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 			v = self._make(k, v)
 		self._patch[k] = v
 		self.send(self, key=k, value=v)
+		if self is not self.facade.node:
+			self.facade.node.send(self, key=k, value=v)
 
 	def __delitem__(self, k):
 		if k not in self:
