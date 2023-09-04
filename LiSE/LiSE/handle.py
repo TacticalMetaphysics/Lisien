@@ -934,6 +934,10 @@ class EngineHandle(object):
 		"""Remove a node from a character."""
 		del self._real.character[char].node[node]
 
+	def del_nodes(self, nodes):
+		for char, node in nodes:
+			del self._real.character[char].node[node]
+
 	@prepacked
 	def character_nodes(self,
 						char: Key,
@@ -1465,5 +1469,5 @@ class EngineHandle(object):
 		branch, turn, tick = self._real._btt()
 		ret = self._real.game_start()
 		_, turn_now, tick_now = self._real._btt()
-		return ret, self._real.get_delta(
-			branch, turn, tick, turn_now, tick_now)
+		return ret, self._real.get_delta(branch, turn, tick, turn_now,
+											tick_now)

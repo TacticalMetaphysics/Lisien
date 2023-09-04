@@ -1403,6 +1403,10 @@ class CharacterProxy(AbstractCharacter):
 			raise KeyError("No such node: {}".format(node))
 		name = self.name
 		self.engine.handle('del_node', char=name, node=node, branching=True)
+		self._decache_node(node)
+
+	def _decache_node(self, node):
+		name = self.name
 		placecache = self.place._cache
 		thingcache = self.thing._cache
 		if node in placecache:
@@ -1419,6 +1423,17 @@ class CharacterProxy(AbstractCharacter):
 			del portscache.successors[name][node]
 		if node in portscache.predecessors[name]:
 			del portscache.predecessors[name][node]
+
+	def remove_nodes_from(self, seq):
+		for node in seq:
+			if node not in self.node:
+				raise KeyError("No such node: {}".format(node))
+		name = self.name
+		self.engine.handle('del_nodes',
+							nodes=[(name, node) for node in seq],
+							branching=True)
+		for node in seq:
+			self._decache_node(node)
 
 	def remove_place(self, place):
 		placemap = self.place
