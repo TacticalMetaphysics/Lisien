@@ -1061,12 +1061,9 @@ class GraphBoardScatterPlane(BoardScatterPlane):
 				thereto = Vector(*thereat.center).distance(dummy_center)
 				if thereto < dist:
 					whereat, dist = thereat, thereto
-		self.board.stack_plane.add_datum(
-			self.board.make_pawn(
-				self.board.character.new_thing(dummy.name,
-												whereat.proxy.name,
-												_image_paths=list(
-													dummy.paths))))
+		self.board.character.new_thing(dummy.name,
+										whereat.proxy.name,
+										_image_paths=list(dummy.paths))
 		dummy.num += 1
 
 	def on_board(self, *args):
