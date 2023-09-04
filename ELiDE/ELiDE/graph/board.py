@@ -830,6 +830,16 @@ class GraphBoard(RelativeLayout):
 				loc = self.spot[value]
 				thing = self.pawn[node.name]
 				thing.pos = loc.right, loc.top
+		elif node is self.character.node or node is self.character.place:
+			if value and key not in self.spot:
+				self.add_spot(key)
+			elif not value and key in self.spot:
+				self.rm_spot(key)
+		elif node is self.character.thing:
+			if value and key not in self.pawn:
+				self.add_pawn(key)
+			elif not value and key not in self.pawn:
+				self.rm_pawn(key)
 		else:
 			if not node:
 				self.rm_spot(node.name)
