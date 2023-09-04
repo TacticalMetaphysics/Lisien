@@ -308,6 +308,8 @@ class TextureStackPlane(Widget):
 					top = y + height
 					top_ys[idx] = top
 				else:
+					width = datum.get("width", 0)
+					height = datum.get("height", 0)
 					stack_index[name] = len(keys)
 					keys.append(name)
 					rects = get_rects(datum)
