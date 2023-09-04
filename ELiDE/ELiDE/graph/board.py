@@ -429,7 +429,7 @@ class GraphBoard(RelativeLayout):
 
 	def make_pawn(self, thing):
 		"""Make a :class:`Pawn` to represent a :class:`Thing`, store it, and
-		return it.
+		return a dict suitable for `StackPlane.add_datum`
 
 		"""
 		if thing["name"] in self.pawn:
@@ -450,7 +450,7 @@ class GraphBoard(RelativeLayout):
 
 	def make_spot(self, place):
 		"""Make a :class:`Spot` to represent a :class:`Place`, store it, and
-		return it.
+		return a dict suitable for `StackPlane.add_datum`
 
 		"""
 		if place["name"] in self.spot:
