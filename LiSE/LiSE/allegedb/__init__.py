@@ -1164,10 +1164,11 @@ class ORM:
 			except KeyError:
 				continue
 		eck = self._edges_cache.keyframe
-		for graph, orig, dest in eck:
-			try:
-				exists = eck[graph, orig, dest][then[0]][then[1]][then[2]][0]
-			except KeyError:
+		for (graph, orig, dest), eckgrod in eck.items():
+			if then[0] in eckgrod and then[1] in eckgrod[
+				then[0]] and then[2] in eckgrod[then[0]][then[1]]:
+				exists = eckgrod[then[0]][then[1]][then[2]][0]
+			else:
 				continue
 			if graph in edges_keyframe:
 				if orig in edges_keyframe[graph]:
@@ -1177,12 +1178,12 @@ class ORM:
 			else:
 				edges_keyframe[graph] = {orig: {dest: exists}}
 		evck = self._edge_val_cache.keyframe
-		for graph, orig, dest, idx in evck:
+		for (graph, orig, dest, idx), evckgrod in evck.items():
 			assert idx == 0  # until I get to multigraphs
-			try:
-				val = evck[graph, orig, dest,
-							idx][then[0]][then[1]][then[2]].copy()
-			except KeyError:
+			if then[0] in evckgrod and then[1] in evckgrod[
+				then[0]] and then[2] in evckgrod[then[0]][then[1]]:
+				val = evckgrod[then[0]][then[1]][then[2]].copy()
+			else:
 				continue
 			if graph in edge_val_keyframe:
 				if orig in edge_val_keyframe:
@@ -1191,16 +1192,22 @@ class ORM:
 					edge_val_keyframe[graph][orig] = {dest: val}
 			else:
 				edge_val_keyframe[graph] = {orig: {dest: val}}
+		nck = self._nodes_cache.keyframe
+		gvck = self._graph_val_cache.keyframe
 		for graph in self.graph.keys():
-			try:
-				nodes_keyframe[graph] = self._nodes_cache.keyframe[graph, ][
-					then[0]][then[1]][then[2]].copy()
-			except KeyError:
+			if (graph, ) in nck and then[0] in nck[graph, ] and then[1] in nck[
+				graph, ][then[0]] and then[2] in nck[graph, ][then[0]][
+					then[1]]:
+				nodes_keyframe[graph] = nck[graph, ][then[0]][then[1]][
+					then[2]].copy()
+			else:
 				nodes_keyframe[graph] = {}
-			try:
+			if (graph, ) in gvck and then[0] in gvck[
+				graph, ] and then[1] in gvck[graph, ][
+					then[0]] and then[2] in gvck[graph, ][then[0]][then[1]]:
 				graph_val_keyframe[graph] = self._graph_val_cache.keyframe[
 					graph, ][then[0]][then[1]][then[2]].copy()
-			except KeyError:
+			else:
 				graph_val_keyframe[graph] = {}
 			# apply the delta to the keyframes, then save the keyframes back
 			# into the caches, and possibly copy them to another branch as well
