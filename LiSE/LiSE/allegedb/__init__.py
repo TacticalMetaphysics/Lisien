@@ -928,38 +928,33 @@ class ORM:
 		gvck = self._graph_val_cache.keyframe
 		gv = ret['graph_val']
 		for k in gvck:
-			try:
+			if branch in gvck[k] and turn in gvck[k][branch] and tick in gvck[
+				k][branch][turn]:
 				gv[k] = gvck[k][branch][turn][tick]
-			except KeyError:
-				pass
 		nck = self._nodes_cache.keyframe
 		n = ret['nodes']
 		for k in nck:
-			try:
+			if branch in nck[k] and turn in nck[k][branch] and tick in nck[k][
+				branch][turn]:
 				n[k] = nck[k][branch][turn][tick]
-			except KeyError:
-				pass
 		nvck = self._node_val_cache.keyframe
 		nv = ret['node_val']
 		for k in nvck:
-			try:
+			if branch in nvck[k] and turn in nvck[k][branch] and tick in nvck[
+				k][branch][turn]:
 				nv[k] = nvck[k][branch][turn][tick]
-			except KeyError:
-				pass
 		eck = self._edges_cache.keyframe
 		e = ret['edges']
 		for k in eck:
-			try:
+			if branch in eck[k] and turn in eck[k][branch] and tick in eck[k][
+				branch][turn]:
 				e[k] = eck[k][branch][turn][tick]
-			except KeyError:
-				pass
 		evck = self._edge_val_cache.keyframe
 		ev = ret['edge_val']
 		for k in evck:
-			try:
+			if branch in evck[k] and turn in evck[k][branch] and tick in evck[
+				k][branch][turn]:
 				ev[k] = evck[k][branch][turn][tick]
-			except KeyError:
-				pass
 		return ret
 
 	def _init_load(self) -> None:
