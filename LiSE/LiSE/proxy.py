@@ -1519,8 +1519,8 @@ class CharacterProxy(AbstractCharacter):
 				self, origin, destination)
 
 	def portals(self):
-		yield from self.engine.handle(command='character_portals',
-										char=self.name)
+		for dests in self.portal.values():
+			yield from dests._cache.values()
 
 	def add_unit(self, graph, node=None):
 		# TODO: cache
