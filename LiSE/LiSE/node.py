@@ -506,9 +506,8 @@ class Place(Node):
 
 	def __repr__(self):
 		return "<{}.character[{}].place[{}]>".format(repr(self.engine),
-														repr(
-															self['character']),
-														repr(self['name']))
+														self.character.name,
+														self.name)
 
 	def _validate_node_type(self):
 		try:
