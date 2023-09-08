@@ -613,10 +613,12 @@ class Facade(AbstractCharacter, nx.DiGraph):
 			return n
 
 		def __contains__(self, k):
+			if k in self._patch:
+				return self._patch[k] is not None
 			if hasattr(self.facade.character,
 						'graph') and k in self.facade.character.graph:
 				return True
-			return k in self._patch and self._patch[k] is not None
+			return False
 
 		def __getitem__(self, k):
 			if k not in self._patch and hasattr(self.facade.character,
