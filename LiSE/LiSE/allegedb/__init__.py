@@ -1080,9 +1080,10 @@ class ORM:
 	def _alias_kf(self, branch_from, branch_to, turn, tick):
 		gvck = self._graph_val_cache.keyframe
 		for gvckg in gvck.values():
-			try:
+			if branch_from in gvckg and turn in gvckg[
+				branch_from] and tick in gvckg[branch_from][turn]:
 				vals = gvckg[branch_from][turn][tick]
-			except KeyError:
+			else:
 				continue
 			if turn not in gvckg[branch_to]:
 				gvckg[branch_to][turn] = {tick: vals}
@@ -1090,9 +1091,10 @@ class ORM:
 				gvckg[branch_to][turn][tick] = vals
 		nck = self._nodes_cache.keyframe
 		for nckg in nck.values():
-			try:
+			if branch_from in nckg and turn in nckg[
+				branch_from] and tick in nckg[branch_from][turn]:
 				nodes = nckg[branch_from][turn][tick]
-			except KeyError:
+			else:
 				continue
 			if turn not in nckg[branch_to]:
 				nckg[branch_to][turn] = {tick: nodes}
@@ -1100,9 +1102,10 @@ class ORM:
 				nckg[branch_to][turn][tick] = nodes
 		nvck = self._node_val_cache.keyframe
 		for gn in nvck.values():
-			try:
+			if branch_from in gn and turn in gn[branch_from] and tick in gn[
+				branch_from][turn]:
 				vals = gn[branch_from][turn][tick]
-			except KeyError:
+			else:
 				continue
 			if turn not in gn[branch_to]:
 				gn[branch_to][turn] = {tick: vals}
@@ -1110,9 +1113,10 @@ class ORM:
 				gn[branch_to][turn][tick] = vals
 		eck = self._edges_cache.keyframe
 		for gorigdest in eck.values():
-			try:
+			if branch_from in gorigdest and turn in gorigdest[
+				branch_from] and tick in gorigdest[branch_from][turn]:
 				edge = gorigdest[branch_from][turn][tick]
-			except KeyError:
+			else:
 				continue
 			if turn not in gorigdest[branch_to]:
 				gorigdest[branch_to][turn] = {tick: edge}
@@ -1120,9 +1124,10 @@ class ORM:
 				gorigdest[branch_to][turn][tick] = edge
 		evck = self._edge_val_cache.keyframe
 		for godi in evck.values():
-			try:
+			if branch_from in godi and turn in godi[
+				branch_from] and tick in godi[branch_from][turn]:
 				vals = godi[branch_from][turn][tick]
-			except KeyError:
+			else:
 				continue
 			if turn not in godi[branch_to]:
 				godi[branch_to][turn] = {tick: vals}
