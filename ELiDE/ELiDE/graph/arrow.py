@@ -569,10 +569,10 @@ class GraphArrowWidget(Widget, GraphArrow):
 		insts['shaft_fg'].points = verts['shaft_fg']
 		insts['left_head_fg'].points = verts['left_head_fg']
 		insts['right_head_fg'].points = verts['right_head_fg']
-		insts['label_rect'].pos = verts['label_pos']
-		insts['label_rect'].size = label_size
+		insts['label'].pos = verts['label_pos']
+		insts['label'].size = label_size
 		label.refresh()
-		insts['label_rect'].texture = label.texture
+		insts['label'].texture = label.texture
 
 
 class ArrowPlane(Widget):
