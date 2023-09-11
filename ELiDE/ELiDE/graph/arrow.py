@@ -19,6 +19,8 @@ points from the origin to the destination, regardless of where on the
 screen they are at the moment.
 
 """
+from collections import defaultdict
+
 from math import cos, sin, atan, pi
 from operator import itemgetter
 
@@ -27,7 +29,7 @@ from kivy.uix.widget import Widget
 from kivy.core.text import Label
 from kivy.graphics.fbo import Fbo
 from kivy.graphics import (Translate, Rectangle, Quad, Color, InstructionGroup)
-from kivy.properties import (NumericProperty, ListProperty)
+from kivy.properties import (NumericProperty, ListProperty, ObjectProperty)
 from kivy.clock import Clock
 
 try:
@@ -382,6 +384,7 @@ class GraphArrow:
 			bg_scale = arrow_plane.bg_scale_unselected
 			bg_color = arrow_plane.bg_color_unselected
 			fg_color = arrow_plane.fg_color_unselected
+		plane = self.board.arrow_plane
 		portal = self.board.character.portal[self.origin.name][
 			self.destination.name]
 		portal_text = str(
@@ -391,19 +394,19 @@ class GraphArrow:
 		if portal_text is not None:
 			label_kwargs['text'] = portal_text
 		try:
-			label = arrow_plane._labels[self.origin.name,
-										self.destination.name]
+			label = self.board.arrow_plane._labels[self.origin.name][
+				self.destination.name]
+			label.text = portal_text
 		except KeyError:
-			label = arrow_plane._labels[self.origin.name,
-										self.destination.name] = Label(
-											**DEFAULT_ARROW_LABEL_KWARGS,
-											**label_kwargs)
+			label = self.board.arrow_plane.labels[self.origin.name][
+				self.destination.name] = Label(**DEFAULT_ARROW_LABEL_KWARGS,
+												**label_kwargs)
 		if (self.origin.name,
-			self.destination.name) in arrow_plane._instructions_map:
+			self.destination.name) in self.board.arrow_plane._instructions_map:
 			verts = get_quad_vertices(*shaft_points, *head_points,
 										r * bg_scale, r, *label.render())
-			insts = arrow_plane._instructions_map[self.origin.name,
-													self.destination.name]
+			insts = self.board.arrow_plane._instructions_map[
+				self.origin.name, self.destination.name]
 			insts['color0'].rgba = bg_color
 			insts['color1'].rgba = fg_color
 			insts['shaft_bg'].points = verts['shaft_bg']
@@ -416,24 +419,23 @@ class GraphArrow:
 			insts['label_rect'].size = label.render()
 			label.refresh()
 			insts['label_rect'].texture = label.texture
-			arrow_plane._colliders_map[self.origin.name,
-										self.destination.name] = Collide2DPoly(
-											points=verts['shaft_bg'])
+			plane._colliders_map[self.origin.name,
+									self.destination.name] = Collide2DPoly(
+										points=verts['shaft_bg'])
 		else:
-			arrow_plane._instructions_map = insts = get_instructions(
+			plane._instructions_map = insts = get_instructions(
 				*shaft_points, *head_points, bg_color, fg_color,
 				*label.render(), label)
-			arrow_plane._colliders_map[
+			plane._colliders_map[
 				self.origin.name,
 				self.destination.name].points = Collide2DPoly(
 					points=insts['shaft_bg'].points)
-		myidx = arrow_plane._port_index[self.origin.name,
-										self.destination.name]
+		myidx = plane._port_index[self.origin.name, self.destination.name]
 		(ox, oy, dx, dy) = shaft_points
-		arrow_plane._bot_left_corner_xs[myidx] = min((ox, dx))
-		arrow_plane._bot_left_corner_ys[myidx] = min((oy, dy))
-		arrow_plane._top_right_corner_xs[myidx] = max((ox, dx))
-		arrow_plane._top_right_corner_ys[myidx] = max((oy, dy))
+		plane._bot_left_corner_xs[myidx] = min((ox, dx))
+		plane._bot_left_corner_ys[myidx] = min((oy, dy))
+		plane._top_right_corner_xs[myidx] = max((ox, dx))
+		plane._top_right_corner_ys[myidx] = max((oy, dy))
 		fbo.release()
 		fbo.ask_update()
 		arrow_plane.canvas.ask_update()
@@ -464,11 +466,8 @@ def get_instructions(ox,
 				label_kwargs[k] = v
 	if label is None:
 		label = Label(**label_kwargs)
-	elif not isinstance(label, Label):
-		raise TypeError("not a core Label object", label)
 	else:
-		for k, v in label_kwargs.items():
-			setattr(label, k, v)
+		label.text = label_kwargs['text']
 	text_size = label.render()
 	quadverts = get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy, x2, y2,
 									bgr, r, *text_size)
@@ -494,7 +493,7 @@ def get_instructions(ox,
 		Rectangle(pos=quadverts['label_pos'],
 					size=text_size,
 					texture=label.texture),
-		'core_label':
+		'label':
 		label
 	}
 
@@ -547,19 +546,15 @@ class GraphArrowWidget(Widget, GraphArrow):
 		shaft_points, head_points = get_points(self.origin, self.destination,
 												self.arrowhead_size)
 		r = self.arrow_width / 2
-		try:
-			portal = self.board.character.portal[self.origin.name][
-				self.destination.name]
-			portal_text = str(portal.get(portal.get('_label_stat', None), ''))
-			if hasattr(self, '_label'):
-				label = self._label
-				label.text = portal_text
-			else:
-				label = self._label = Label(text=portal_text)
-				label_size = label.render()
-		except AttributeError:
-			label = None
-			label_size = 0, 0
+		portal = self.board.character.portal[self.origin.name][
+			self.destination.name]
+		portal_text = str(portal.get(portal.get('_label_stat', None), ''))
+		if hasattr(self, '_label'):
+			label = self._label
+			label.text = portal_text
+		else:
+			label = self._label = Label(text=portal_text)
+		label_size = label.render()
 		verts = get_quad_vertices(*shaft_points, *head_points,
 									r * self.bg_scale, r, *label_size)
 		insts = self._instructions
@@ -571,11 +566,10 @@ class GraphArrowWidget(Widget, GraphArrow):
 		insts['shaft_fg'].points = verts['shaft_fg']
 		insts['left_head_fg'].points = verts['left_head_fg']
 		insts['right_head_fg'].points = verts['right_head_fg']
-		insts['label_rect'].pos = verts['label_pos']
-		insts['label_rect'].size = label_size
-		if label is not None:
-			label.refresh()
-			insts['label_rect'].texture = label.texture
+		insts['label'].pos = verts['label_pos']
+		insts['label'].size = label_size
+		label.refresh()
+		insts['label'].texture = label.texture
 
 
 class ArrowPlane(Widget):
@@ -590,8 +584,7 @@ class ArrowPlane(Widget):
 	fg_color_selected = ListProperty([1.0, 1.0, 1.0, 1.0])
 
 	def __init__(self, **kwargs):
-		self._label_rects = {}
-		self._labels = {}
+		self._labels = defaultdict(dict)
 		self._trigger_redraw = Clock.create_trigger(self.redraw)
 		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
 		self.bind(arrowhead_size=self._trigger_redraw)
@@ -665,7 +658,7 @@ class ArrowPlane(Widget):
 											bg_color_unselected,
 											fg_color_unselected,
 											datum.get('label_kwargs', {}),
-											self._labels.get(port))
+											self._labels[port[0]].get(port[1]))
 			instructions['group'] = grp = InstructionGroup()
 			grp.add(instructions['color0'])
 			grp.add(instructions['shaft_bg'])
@@ -678,8 +671,7 @@ class ArrowPlane(Widget):
 			grp.add(instructions['label_rect'])
 			add(grp)
 			self._instructions_map[port] = instructions
-			self._label_rects[port] = instructions['label_rect']
-			self._labels[port] = instructions['core_label']
+			self._labels[port[0]][port[1]] = instructions['label']
 			if ox < dx:
 				leftx = ox
 				rightx = dx
@@ -719,9 +711,10 @@ class ArrowPlane(Widget):
 		bgr = r * self.bg_scale_unselected
 		instructions = self._instructions_map[
 			orig_spot.name, dest_spot.name] = get_instructions(
-				*shaft_points, *head_points, bgr, r, self.bg_color_unselected,
-				self.fg_color_unselected, datum.get('label_kwargs', {}),
-				self._label_rects[orig_spot.name, dest_spot.name])
+				*shaft_points, *head_points, bgr, r,
+				self.bg_color_unselected, self.fg_color_unselected,
+				datum.get('label_kwargs',
+							{}), self._labels[orig_spot.name][dest_spot.name])
 		instructions['group'] = grp = InstructionGroup()
 		grp.add(instructions['color0'])
 		grp.add(instructions['shaft_bg'])
@@ -731,9 +724,8 @@ class ArrowPlane(Widget):
 		grp.add(instructions['shaft_fg'])
 		grp.add(instructions['left_head_fg'])
 		grp.add(instructions['right_head_fg'])
-		grp.add(instructions['label_rect'])
-		self._label_rects[orig_spot.name,
-							dest_spot.name] = instructions['label_rect']
+		grp.add(instructions['label'])
+		self._labels[orig_spot.name][dest_spot.name] = instructions['label']
 		self._fbo.add(grp)
 		ox, oy, dx, dy = shaft_points
 		if ox < dx:
@@ -763,25 +755,6 @@ class ArrowPlane(Widget):
 		self.canvas.ask_update()
 		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
 
-	def update_portal(self, orig, dest, label_kwargs):
-		# Might support recoloring or bending the portal someday
-		print("updating portal from", orig, "to", dest, "with", label_kwargs)
-		instructions = self._instructions_map[orig, dest]
-		idx = self._port_index[orig, dest]
-		datum = self.data[idx]
-		datum['label_kwargs'] = label_kwargs
-		label = self._labels[orig, dest] = Label(**label_kwargs)
-		label.refresh()
-		old_rect = instructions['label_rect']
-		# Currently, there is no way for a label's formatting to affect its
-		# position, but this could be desirable
-		instructions['group'].remove(old_rect)
-		rect = self._label_rects[
-			orig, dest] = instructions['label_rect'] = Rectangle(
-				pos=old_rect.pos, size=label.render(), texture=label.texture)
-		instructions['group'].add(rect)
-		self.canvas.ask_update()
-
 	def remove_edge(self, orig, dest):
 		self._fbo.bind()
 		self._fbo.clear_buffer()
@@ -802,8 +775,8 @@ class ArrowPlane(Widget):
 		self.canvas.ask_update()
 
 	def update_portal_label(self, orig, dest, text):
-		rect = self._instructions_map[orig, dest]['label_rect']
-		label = self._labels[orig, dest]
+		rect = self._instructions_map[orig, dest]['label']
+		label = self._labels[orig][dest]
 		label.text = text
 		label.refresh()
 		rect.texture = label.texture
