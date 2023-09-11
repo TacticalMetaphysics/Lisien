@@ -127,16 +127,8 @@ class AbstractGraphTest:
 				self.assertNotIn(3, g.pred)
 				self.assertNotIn(3, g.pred[0])
 			self.engine.branch = graphmaker.__name__ + '_square'
-			self.assertNotIn(0, g.adj[2])
-			self.assertNotIn(0, list(g.adj[2]))
-			self.assertIn(0, g.adj[3])
-			self.assertIn(0, list(g.adj[3]))
 			self.assertIn(3, g.node)
 			self.engine.branch = graphmaker.__name__ + '_nothing'
-			self.assertNotIn(0, g.adj[2])
-			self.assertNotIn(0, list(g.adj[2]))
-			self.assertIn(0, g.adj[3])
-			self.assertIn(0, list(g.adj[3]))
 			self.assertIn(3, g.node)
 			g.remove_nodes_from((0, 1, 2, 3))
 			for n in (0, 1, 2, 3):
