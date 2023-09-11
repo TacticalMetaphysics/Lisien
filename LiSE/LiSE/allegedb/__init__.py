@@ -929,35 +929,35 @@ class ORM:
 		gv = ret['graph_val']
 		for k in gvck:
 			try:
-				gv[k] = gvck[k][branch][turn][tick]
+				gv[k] = gvck[k][branch].retrieve_exact(turn, tick)
 			except KeyError:
 				pass
 		nck = self._nodes_cache.keyframe
 		n = ret['nodes']
 		for k in nck:
 			try:
-				n[k] = nck[k][branch][turn][tick]
+				n[k] = nck[k][branch].retrieve_exact(turn, tick)
 			except KeyError:
 				pass
 		nvck = self._node_val_cache.keyframe
 		nv = ret['node_val']
 		for k in nvck:
 			try:
-				nv[k] = nvck[k][branch][turn][tick]
+				nv[k] = nvck[k][branch].retrieve_exact(turn, tick)
 			except KeyError:
 				pass
 		eck = self._edges_cache.keyframe
 		e = ret['edges']
 		for k in eck:
 			try:
-				e[k] = eck[k][branch][turn][tick]
+				e[k] = eck[k][branch].retrieve_exact(turn, tick)
 			except KeyError:
 				pass
 		evck = self._edge_val_cache.keyframe
 		ev = ret['edge_val']
 		for k in evck:
 			try:
-				ev[k] = evck[k][branch][turn][tick]
+				ev[k] = evck[k][branch].retrieve_exact(turn, tick)
 			except KeyError:
 				pass
 		return ret
