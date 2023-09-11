@@ -1036,66 +1036,103 @@ class ORM:
 										tick: int, nodes: NodeValDict,
 										edges: EdgeValDict,
 										graph_val: StatDict) -> None:
-		self._nodes_cache.keyframe[graph, ][branch].store_at(
-			turn, tick, {node: True
-							for node in nodes})
+		nodes_keyframes_branch_d = self._nodes_cache.keyframe[graph, ][branch]
+		if turn in nodes_keyframes_branch_d:
+			nodes_keyframes_branch_d[turn][tick] = {
+				node: True
+				for node in nodes
+			}
+		else:
+			nodes_keyframes_branch_d[turn] = {
+				tick: {node: True
+						for node in nodes}
+			}
 		nvck = self._node_val_cache.keyframe
 		for node, vals in nodes.items():
-			nvck[graph, node][branch].store_at(turn, tick, vals)
+			node_val_keyframe_branch_d = nvck[graph, node][branch]
+			if turn in node_val_keyframe_branch_d:
+				node_val_keyframe_branch_d[turn][tick] = vals
+			else:
+				node_val_keyframe_branch_d[turn] = {tick: vals}
 		eck = self._edges_cache.keyframe
 		evck = self._edge_val_cache.keyframe
 		for orig, dests in edges.items():
 			for dest, vals in dests.items():
 				edge_val_keyframe_branch_d = evck[graph, orig, dest, 0][branch]
 				edges_keyframe_branch_d = eck[graph, orig, dest][branch]
-				edges_keyframe_branch_d.store_at(turn, tick, {0: True})
+				if turn in edges_keyframe_branch_d:
+					edges_keyframe_branch_d[turn][tick] = {}
+				else:
+					edges_keyframe_branch_d[turn] = {tick: {}}
+				ekbdrt = edges_keyframe_branch_d[turn][tick]
+				ekbdrt[0] = True
 				assert edges_keyframe_branch_d[turn][tick][0]
-				edge_val_keyframe_branch_d.store_at(turn, tick, vals)
+				if turn in edge_val_keyframe_branch_d:
+					edge_val_keyframe_branch_d[turn][tick] = vals
+				else:
+					edge_val_keyframe_branch_d[turn] = {tick: vals}
 		gvkb = self._graph_val_cache.keyframe[graph, ][branch]
-		gvkb.store_at(turn, tick, graph_val)
+		if turn in gvkb:
+			gvkb[turn][tick] = graph_val
+		else:
+			gvkb[turn] = {tick: graph_val}
 
 	def _alias_kf(self, branch_from, branch_to, turn, tick):
-		"""Copy a keyframe from one branch to another
-
-		This aliases the data, rather than really copying. Keyframes don't
-		change, so it should be fine.
-
-		"""
 		gvck = self._graph_val_cache.keyframe
 		for gvckg in gvck.values():
-			try:
-				vals = gvckg[branch_from].retrieve_exact(turn, tick)
-			except KeyError:
+			if branch_from in gvckg and turn in gvckg[
+				branch_from] and tick in gvckg[branch_from][turn]:
+				vals = gvckg[branch_from][turn][tick]
+			else:
 				continue
-			gvckg[branch_to].store_at(turn, tick, vals)
+			if turn not in gvckg[branch_to]:
+				gvckg[branch_to][turn] = {tick: vals}
+			else:
+				gvckg[branch_to][turn][tick] = vals
 		nck = self._nodes_cache.keyframe
 		for nckg in nck.values():
-			try:
-				nodes = nckg[branch_from].retrieve_exact(turn, tick)
-			except KeyError:
+			if branch_from in nckg and turn in nckg[
+				branch_from] and tick in nckg[branch_from][turn]:
+				nodes = nckg[branch_from][turn][tick]
+			else:
 				continue
-			nckg[branch_to].store_at(turn, tick, nodes)
+			if turn not in nckg[branch_to]:
+				nckg[branch_to][turn] = {tick: nodes}
+			else:
+				nckg[branch_to][turn][tick] = nodes
 		nvck = self._node_val_cache.keyframe
 		for gn in nvck.values():
-			try:
-				vals = gn[branch_from].retrieve_exact(turn, tick)
-			except KeyError:
+			if branch_from in gn and turn in gn[branch_from] and tick in gn[
+				branch_from][turn]:
+				vals = gn[branch_from][turn][tick]
+			else:
 				continue
-			gn[branch_to].store_at(turn, tick, vals)
+			if turn not in gn[branch_to]:
+				gn[branch_to][turn] = {tick: vals}
+			else:
+				gn[branch_to][turn][tick] = vals
 		eck = self._edges_cache.keyframe
 		for gorigdest in eck.values():
-			try:
-				edge = gorigdest[branch_from].retrieve_exact(turn, tick)
-			except KeyError:
+			if branch_from in gorigdest and turn in gorigdest[
+				branch_from] and tick in gorigdest[branch_from][turn]:
+				edge = gorigdest[branch_from][turn][tick]
+			else:
 				continue
-			gorigdest[branch_to].store_at(turn, tick, edge)
+			if turn not in gorigdest[branch_to]:
+				gorigdest[branch_to][turn] = {tick: edge}
+			else:
+				gorigdest[branch_to][turn][tick] = edge
 		evck = self._edge_val_cache.keyframe
 		for godi in evck.values():
-			try:
-				vals = godi[branch_from].retrieve_exact
-			except KeyError:
+			if branch_from in godi and turn in godi[
+				branch_from] and tick in godi[branch_from][turn]:
+				vals = godi[branch_from][turn][tick]
+			else:
 				continue
-			godi[branch_to].store_at(turn, tick, vals)
+			if turn not in godi[branch_to]:
+				godi[branch_to][turn] = {tick: vals}
+			else:
+				godi[branch_to][turn][tick] = vals
 
 	def _snap_keyframe_from_delta(self, then: Tuple[str, int, int],
 									now: Tuple[str, int, int],
@@ -1131,16 +1168,15 @@ class ORM:
 			if graph not in node_val_keyframe:
 				node_val_keyframe[graph] = {}
 			try:
-				node_val_keyframe[graph][node] = nvck[graph, node][
-					then[0]].retrieve_exact(then[1], then[2]).copy()
+				node_val_keyframe[graph][node] = nvck[graph, node][then[0]][
+					then[1]][then[2]].copy()
 				node_val_keyframe[graph][node]["name"] = node
 			except KeyError:
 				continue
 		eck = self._edges_cache.keyframe
 		for graph, orig, dest in eck:
 			try:
-				exists = eck[graph, orig, dest][then[0]].retrieve_exact(
-					then[1], then[2])[0]
+				exists = eck[graph, orig, dest][then[0]][then[1]][then[2]][0]
 			except KeyError:
 				continue
 			if graph in edges_keyframe:
@@ -1155,8 +1191,7 @@ class ORM:
 			assert idx == 0  # until I get to multigraphs
 			try:
 				val = evck[graph, orig, dest,
-							idx][then[0]].retrieve_exact(then[1],
-															then[2]).copy()
+							idx][then[0]][then[1]][then[2]].copy()
 			except KeyError:
 				continue
 			if graph in edge_val_keyframe:
@@ -1169,12 +1204,12 @@ class ORM:
 		for graph in self.graph.keys():
 			try:
 				nodes_keyframe[graph] = self._nodes_cache.keyframe[graph, ][
-					then[0]].retrieve_exact(then[1], then[2]).copy()
+					then[0]][then[1]][then[2]].copy()
 			except KeyError:
 				nodes_keyframe[graph] = {}
 			try:
 				graph_val_keyframe[graph] = self._graph_val_cache.keyframe[
-					graph, ][then[0]].retrieve_exact(then[1], then[2]).copy()
+					graph, ][then[0]][then[1]][then[2]].copy()
 			except KeyError:
 				graph_val_keyframe[graph] = {}
 			# apply the delta to the keyframes, then save the keyframes back
@@ -1203,7 +1238,10 @@ class ORM:
 					node_val_keyframe[graph] = {}
 				nvkg = node_val_keyframe[graph]
 				nckg = self._nodes_cache.keyframe[graph, ]
-				nckg[now[0]].store_at(now[1], now[2], nodes_keyframe[graph])
+				if now[1] in nckg[now[0]]:
+					nckg[now[0]][now[1]][now[2]] = nodes_keyframe[graph]
+				else:
+					nckg[now[0]][now[1]] = {now[2]: nodes_keyframe[graph]}
 				for node, ex in nodes_keyframe[graph].items():
 					if ex and node not in nvkg:
 						nvkg[node] = {"name": node}
@@ -1229,7 +1267,10 @@ class ORM:
 			if graph in node_val_keyframe:
 				nvck = self._node_val_cache.keyframe
 				for node, val in node_val_keyframe[graph].items():
-					nvck[graph, node][now[0]].store_at(now[1], now[2], val)
+					if now[1] in nvck[graph, node][now[0]]:
+						nvck[graph, node][now[0]][now[1]][now[2]] = val
+					else:
+						nvck[graph, node][now[0]][now[1]] = {now[2]: val}
 			if 'edges' in deltg:
 				dge = deltg.pop('edges')
 				ekg = edges_keyframe.setdefault(graph, {})
@@ -1248,8 +1289,13 @@ class ORM:
 			if graph in edge_val_keyframe:
 				for orig, dests in edge_val_keyframe[graph].items():
 					for dest, val in dests.items():
-						evck[graph, orig, dest,
-								0][now[0]].store_at(now[1], now[2], val)
+						if now[1] in evck[graph, orig, dest, 0][now[0]]:
+							evck[graph, orig, dest,
+									0][now[0]][now[1]][now[2]] = val
+						else:
+							evck[graph, orig, dest, 0][now[0]][now[1]] = {
+								now[2]: val
+							}
 			if graph in edges_keyframe:
 				if graph not in edge_val_keyframe:
 					edge_val_keyframe[graph] = {}
@@ -1257,8 +1303,16 @@ class ORM:
 					if orig not in edge_val_keyframe[graph]:
 						edge_val_keyframe[graph][orig] = {}
 					for dest, ex in dests.items():
-						eck[graph, orig,
-							dest][now[0]].store_at(now[1], now[2], {0: ex})
+						if now[1] in eck[graph, orig, dest][now[0]]:
+							eck[graph, orig, dest][now[0]][now[1]][now[2]] = {
+								0: ex
+							}
+						else:
+							eck[graph, orig, dest][now[0]][now[1]] = {
+								now[2]: {
+									0: ex
+								}
+							}
 						if ex and dest not in edge_val_keyframe[graph][orig]:
 							edge_val_keyframe[graph][orig][dest] = {}
 			if 'edge_val' in deltg:
@@ -1294,8 +1348,10 @@ class ORM:
 					graph_val_keyframe[graph] = deltg
 			if graph in graph_val_keyframe:
 				gvckg = self._graph_val_cache.keyframe[graph, ]
-				gvckg[now[0]].store_at(now[1], now[2],
-										graph_val_keyframe[graph])
+				if now[1] in gvckg[now[0]]:
+					gvckg[now[0]][now[1]][now[2]] = graph_val_keyframe[graph]
+				else:
+					gvckg[now[0]][now[1]] = {now[2]: graph_val_keyframe[graph]}
 			for when in whens:
 				nkfs.append((graph, *when, node_val_keyframe.get(graph, {}),
 								edge_val_keyframe.get(graph, {}),

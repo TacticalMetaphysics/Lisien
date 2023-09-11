@@ -736,13 +736,6 @@ class TurnDict(FuturistWindowDict):
 
 
 class SettingsTurnDict(WindowDict):
-	"""A WindowDict that contains a span of time, indexed as turns and ticks
-
-	Each turn is a series of ticks. Once a value is set at some turn and tick,
-	it's in effect at every tick in the turn after that one, and every
-	further turn.
-
-	"""
 	__slots__ = ('_future', '_past')
 	_future: List[Tuple[int, Any]]
 	_past: List[Tuple[int, Any]]
@@ -752,31 +745,3 @@ class SettingsTurnDict(WindowDict):
 		if type(value) is not WindowDict:
 			value = WindowDict(value)
 		WindowDict.__setitem__(self, turn, value)
-
-	def retrieve(self, turn: int, tick: int) -> Any:
-		"""Retrieve the value that was in effect at this turn and tick
-
-		Whether or not it was *set* at this turn and tick
-
-		"""
-		if self.rev_gettable(turn):
-			if self[turn].rev_gettable(tick):
-				return self[turn][tick]
-			elif self.rev_gettable(turn - 1):
-				return self[turn - 1].final()
-		raise KeyError(f"Can't retrieve turn {turn}, tick {tick}")
-
-	def retrieve_exact(self, turn: int, tick: int) -> Any:
-		"""Retrieve the value only if it was set at this exact turn and tick"""
-		if turn not in self:
-			raise KeyError(f"No data in turn {turn}")
-		if tick not in self[turn]:
-			raise KeyError(f"No data for tick {tick} in turn {turn}")
-		return self[turn][tick]
-
-	def store_at(self, turn: int, tick: int, value: Any) -> None:
-		"""Set a value at a time, creating the turn if needed"""
-		if turn in self:
-			self[turn][tick] = value
-		else:
-			self[turn] = {tick: value}
