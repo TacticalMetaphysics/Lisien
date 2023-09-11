@@ -233,9 +233,6 @@ class NodeProxy(CachingEntityProxy):
 				and self._charname == other._charname
 				and self.name == other.name)
 
-	def __bool__(self):
-		return self.name in self.character.node
-
 	def __contains__(self, k):
 		if k in ('character', 'name'):
 			return True
@@ -340,13 +337,13 @@ class ThingProxy(NodeProxy):
 			if v is None:
 				if k in self._cache:
 					del self._cache[k]
+					self.send(self, key=k, value=None)
 			elif k == 'location':
 				self._location = v
+				self.send(self, key=k, value=v)
 			elif k not in self._cache or self._cache[k] != v:
 				self._cache[k] = v
-			self.send(self, key=k, value=v)
-			self.character.thing.send(self, key=k, value=v)
-			self.character.node.send(self, key=k, value=v)
+				self.send(self, key=k, value=v)
 
 	def _set_location(self, v):
 		self._location = v
@@ -471,7 +468,7 @@ class PortalProxy(CachingEntityProxy):
 							k=k,
 							v=v,
 							branching=True)
-		self.character.portal.send(self, key=k, value=v)
+		self.character.portal.send(self, k=k, v=v)
 
 	def _del_item(self, k):
 		self.engine_handle(command='del_portal_stat',
@@ -480,7 +477,7 @@ class PortalProxy(CachingEntityProxy):
 							dest=self._destination,
 							k=k,
 							branching=True)
-		self.character.portal.send(self, key=k, value=None)
+		self.character.portal.send(self, k=k, v=None)
 
 	def __init__(self, character, origname, destname):
 		self.engine = character.engine
@@ -820,13 +817,7 @@ class CharSuccessorsMappingProxy(CachingProxy):
 		for o, ds in delta.items():
 			cache = self._cache[o]
 			for d, stats in ds.items():
-				if d in cache:
-					prox = cache[d]
-				else:
-					cache[d] = prox = PortalProxy(self.character, o, d)
-				prox._apply_delta(stats)
-				for k, v in stats.items():
-					self.send(prox, key=k, value=v)
+				cache[d]._apply_delta(stats)
 
 	def _set_item(self, orig, val):
 		self.engine.handle(command='character_set_node_successors',
@@ -1204,7 +1195,6 @@ class CharacterProxy(AbstractCharacter):
 						self, orig, dest)
 					self.engine._portal_stat_cache[
 						self.name][orig][dest] = edge
-				self.portal.send(self, orig=orig, dest=dest, stats=dict(edge))
 
 	def thing2place(self, name):
 		# TODO
@@ -1403,10 +1393,6 @@ class CharacterProxy(AbstractCharacter):
 			raise KeyError("No such node: {}".format(node))
 		name = self.name
 		self.engine.handle('del_node', char=name, node=node, branching=True)
-		self._decache_node(node)
-
-	def _decache_node(self, node):
-		name = self.name
 		placecache = self.place._cache
 		thingcache = self.thing._cache
 		if node in placecache:
@@ -1423,17 +1409,6 @@ class CharacterProxy(AbstractCharacter):
 			del portscache.successors[name][node]
 		if node in portscache.predecessors[name]:
 			del portscache.predecessors[name][node]
-
-	def remove_nodes_from(self, seq):
-		for node in seq:
-			if node not in self.node:
-				raise KeyError("No such node: {}".format(node))
-		name = self.name
-		self.engine.handle('del_nodes',
-							nodes=[(name, node) for node in seq],
-							branching=True)
-		for node in seq:
-			self._decache_node(node)
 
 	def remove_place(self, place):
 		placemap = self.place
@@ -1519,8 +1494,8 @@ class CharacterProxy(AbstractCharacter):
 				self, origin, destination)
 
 	def portals(self):
-		for dests in self.portal.values():
-			yield from dests._cache.values()
+		yield from self.engine.handle(command='character_portals',
+										char=self.name)
 
 	def add_unit(self, graph, node=None):
 		# TODO: cache
