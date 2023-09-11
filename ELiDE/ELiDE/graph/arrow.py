@@ -546,9 +546,12 @@ class GraphArrowWidget(Widget, GraphArrow):
 		shaft_points, head_points = get_points(self.origin, self.destination,
 												self.arrowhead_size)
 		r = self.arrow_width / 2
-		portal = self.board.character.portal[self.origin.name][
-			self.destination.name]
-		portal_text = str(portal.get(portal.get('_label_stat', None), ''))
+		try:
+			portal = self.board.character.portal[self.origin.name][
+				self.destination.name]
+			portal_text = str(portal.get(portal.get('_label_stat', None), ''))
+		except (KeyError, AttributeError):
+			portal_text = ''
 		if hasattr(self, '_label'):
 			label = self._label
 			label.text = portal_text
