@@ -1092,7 +1092,7 @@ class ORM:
 		evck = self._edge_val_cache.keyframe
 		for godi in evck.values():
 			try:
-				vals = godi[branch_from].retrieve_exact(turn, tick)
+				vals = godi[branch_from].retrieve_exact
 			except KeyError:
 				continue
 			godi[branch_to].store_at(turn, tick, vals)
