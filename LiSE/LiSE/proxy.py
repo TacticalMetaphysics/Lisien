@@ -468,7 +468,7 @@ class PortalProxy(CachingEntityProxy):
 							k=k,
 							v=v,
 							branching=True)
-		self.character.portal.send(self, k=k, v=v)
+		self.engine.portal.send(self, k=k, v=v)
 
 	def _del_item(self, k):
 		self.engine_handle(command='del_portal_stat',
@@ -477,7 +477,7 @@ class PortalProxy(CachingEntityProxy):
 							dest=self._destination,
 							k=k,
 							branching=True)
-		self.character.portal.send(self, k=k, v=None)
+		self.engine.portal.send(self, k=k, v=None)
 
 	def __init__(self, character, origname, destname):
 		self.engine = character.engine
