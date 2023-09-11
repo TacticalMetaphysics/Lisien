@@ -376,12 +376,12 @@ class CharacterMapping(GraphsMapping, Signal):
 		self.send(self, key=name, val=None)
 
 
-class CompositeDict(Signal, MutableMapping):
+class CompositeDict(MutableMapping):
 	"""Combine two dictionaries into one"""
+	__slots__ = ['d1', 'd2']
 
 	def __init__(self, d1, d2):
 		"""Store dictionaries"""
-		super().__init__()
 		self.d1 = d1
 		self.d2 = d2
 
@@ -405,7 +405,6 @@ class CompositeDict(Signal, MutableMapping):
 
 	def __setitem__(self, key, value):
 		self.d1[key] = value
-		self.send(self, key=key, value=value)
 
 	def __delitem__(self, key):
 		deleted = False
@@ -417,7 +416,6 @@ class CompositeDict(Signal, MutableMapping):
 			del self.d1[key]
 		if not deleted:
 			raise KeyError("{} is in neither of my wrapped dicts".format(key))
-		self.send(self, key=key, value=None)
 
 	def patch(self, d):
 		"""Recursive update"""
