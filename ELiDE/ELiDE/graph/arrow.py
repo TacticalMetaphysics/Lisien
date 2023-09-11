@@ -415,10 +415,10 @@ class GraphArrow:
 			insts['shaft_fg'].points = verts['shaft_fg']
 			insts['left_head_fg'].points = verts['left_head_fg']
 			insts['right_head_fg'].points = verts['right_head_fg']
-			insts['label_rect'].pos = verts['label_pos']
-			insts['label_rect'].size = label.render()
+			insts['label'].pos = verts['label_pos']
+			insts['label'].size = label.render()
 			label.refresh()
-			insts['label_rect'].texture = label.texture
+			insts['label'].texture = label.texture
 			plane._colliders_map[self.origin.name,
 									self.destination.name] = Collide2DPoly(
 										points=verts['shaft_bg'])
@@ -489,12 +489,10 @@ def get_instructions(ox,
 		Quad(points=quadverts['left_head_fg']),
 		'right_head_fg':
 		Quad(points=quadverts['right_head_fg']),
-		'label_rect':
+		'label':
 		Rectangle(pos=quadverts['label_pos'],
 					size=text_size,
-					texture=label.texture),
-		'label':
-		label
+					texture=label.texture)
 	}
 
 
@@ -668,7 +666,7 @@ class ArrowPlane(Widget):
 			grp.add(instructions['shaft_fg'])
 			grp.add(instructions['left_head_fg'])
 			grp.add(instructions['right_head_fg'])
-			grp.add(instructions['label_rect'])
+			grp.add(instructions['label'])
 			add(grp)
 			self._instructions_map[port] = instructions
 			self._labels[port[0]][port[1]] = instructions['label']
