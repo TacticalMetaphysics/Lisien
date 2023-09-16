@@ -441,9 +441,18 @@ class GraphBoard(RelativeLayout):
 			texs = list(thing["_image_paths"])
 		else:
 			texs = list(Pawn.default_image_paths)
+		width = height = 0.
+		for tex in texs:
+			wide, high = Image(source=tex).texture_size
+			if wide > width:
+				width = wide
+			if high > height:
+				height = high
 		return {  # need to lay out multiple pawns per spot properly
 			"x": locspot.right / self.width,
 			"y": locspot.top / self.height,
+			"width": width,
+			"height": height,
 			"name": thing["name"],
 			"textures": texs
 		}
@@ -460,9 +469,18 @@ class GraphBoard(RelativeLayout):
 			texs = list(place["_image_paths"])
 		else:
 			texs = list(GraphSpot.default_image_paths)
+		width = height = 0.
+		for tex in texs:
+			wide, high = Image(source=tex).texture_size
+			if wide > width:
+				width = wide
+			if high > height:
+				height = high
 		return {
 			"x": place.get("_x", 0.5),
 			"y": place.get("_y", 0.5),
+			"width": width,
+			"height": height,
 			"name": place["name"],
 			"textures": texs
 		}
