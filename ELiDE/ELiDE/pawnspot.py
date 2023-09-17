@@ -271,9 +271,9 @@ class TextureStackPlane(Widget):
 							grp.add(rect)
 						if name == selected:
 							insts = get_lines_and_colors()
-							grp.add(instructions["color0"])
-							grp.add(instructions["line"])
-							grp.add(instructions["color1"])
+							grp.add(insts["color0"])
+							grp.add(insts["line"])
+							grp.add(insts["color1"])
 						else:
 							insts = {}
 						fbo_add(grp)
