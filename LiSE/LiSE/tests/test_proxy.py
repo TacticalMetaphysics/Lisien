@@ -38,6 +38,7 @@ class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
 		shutil.rmtree(self.tempdir)
 
 
+@pytest.mark.test_proxy_graph_objects_create_delete
 class ProxyGraphTest(LiSE.allegedb.tests.test_all.AbstractGraphTest,
 						ProxyTest):
 	pass

@@ -415,10 +415,10 @@ class GraphArrow:
 			insts['shaft_fg'].points = verts['shaft_fg']
 			insts['left_head_fg'].points = verts['left_head_fg']
 			insts['right_head_fg'].points = verts['right_head_fg']
-			insts['label'].pos = verts['label_pos']
-			insts['label'].size = label.render()
+			insts['label_rect'].pos = verts['label_pos']
+			insts['label_rect'].size = label.render()
 			label.refresh()
-			insts['label'].texture = label.texture
+			insts['label_rect'].texture = label.texture
 			plane._colliders_map[self.origin.name,
 									self.destination.name] = Collide2DPoly(
 										points=verts['shaft_bg'])
@@ -489,10 +489,12 @@ def get_instructions(ox,
 		Quad(points=quadverts['left_head_fg']),
 		'right_head_fg':
 		Quad(points=quadverts['right_head_fg']),
-		'label':
+		'label_rect':
 		Rectangle(pos=quadverts['label_pos'],
 					size=text_size,
-					texture=label.texture)
+					texture=label.texture),
+		'label':
+		label
 	}
 
 
@@ -544,9 +546,12 @@ class GraphArrowWidget(Widget, GraphArrow):
 		shaft_points, head_points = get_points(self.origin, self.destination,
 												self.arrowhead_size)
 		r = self.arrow_width / 2
-		portal = self.board.character.portal[self.origin.name][
-			self.destination.name]
-		portal_text = str(portal.get(portal.get('_label_stat', None), ''))
+		try:
+			portal = self.board.character.portal[self.origin.name][
+				self.destination.name]
+			portal_text = str(portal.get(portal.get('_label_stat', None), ''))
+		except (KeyError, AttributeError):
+			portal_text = ''
 		if hasattr(self, '_label'):
 			label = self._label
 			label.text = portal_text
@@ -564,10 +569,10 @@ class GraphArrowWidget(Widget, GraphArrow):
 		insts['shaft_fg'].points = verts['shaft_fg']
 		insts['left_head_fg'].points = verts['left_head_fg']
 		insts['right_head_fg'].points = verts['right_head_fg']
-		insts['label'].pos = verts['label_pos']
-		insts['label'].size = label_size
+		insts['label_rect'].pos = verts['label_pos']
+		insts['label_rect'].size = label_size
 		label.refresh()
-		insts['label'].texture = label.texture
+		insts['label_rect'].texture = label.texture
 
 
 class ArrowPlane(Widget):
@@ -666,7 +671,7 @@ class ArrowPlane(Widget):
 			grp.add(instructions['shaft_fg'])
 			grp.add(instructions['left_head_fg'])
 			grp.add(instructions['right_head_fg'])
-			grp.add(instructions['label'])
+			grp.add(instructions['label_rect'])
 			add(grp)
 			self._instructions_map[port] = instructions
 			self._labels[port[0]][port[1]] = instructions['label']

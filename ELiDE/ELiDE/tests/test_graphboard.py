@@ -178,6 +178,8 @@ class GraphBoardTest(GraphicUnitTest):
 		view.pawn_from_dummy(dummy2)
 		idle_until(lambda: dummy2_name in char.thing, 100,
 					"Dummy 2 didn't add thing")
+		idle_until(lambda: dummy2_name in board.pawn, 100,
+		           "Board didn't add pawn for dummy 2")
 		spot = board.spot[dummy_name]
 		idle_until(
 			lambda: board.pawn[dummy2_name].pos == (spot.right, spot.top), 100,
@@ -188,6 +190,7 @@ class GraphBoardTest(GraphicUnitTest):
 		char = Facade()
 		app = ELiDEApp()
 		board = GraphBoard(app=app, character=char)
+		board.connect_proxy_objects()
 		boardview = GraphBoardView(board=board)
 		win = window_with_widget(boardview)
 		idle_until(lambda: board.stack_plane)
@@ -198,8 +201,10 @@ class GraphBoardTest(GraphicUnitTest):
 		idle_until(lambda: 'that' in board.pawn, 100, "Didn't make pawn")
 		that = board.pawn['that']
 		one = board.spot[1]
-		idle_until(lambda: getattr(that, 'pos', None) == (one.right, one.top),
-					100, "pawn did not locate within 100 ticks")
+		idle_until(
+			lambda: getattr(that, 'pos', None) == (one.right, one.top), 100,
+			f"pawn did not locate within 100 ticks. "
+			f"Should be at {one.right, one.top}, is at {that.pos}")
 
 
 class SwitchGraphTest(ELiDEAppTest):

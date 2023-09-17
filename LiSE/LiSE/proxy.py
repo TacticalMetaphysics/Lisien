@@ -90,19 +90,9 @@ class CachingProxy(MutableMapping, Signal):
 		del self._cache[k]
 		self.send(self, key=k, value=None)
 
+	@abstractmethod
 	def _apply_delta(self, delta):
-		for (k, v) in delta.items():
-			if k == 'rulebook':
-				if k != self.rulebook.name:
-					self._set_rulebook_proxy(k)
-				continue
-			if v is None:
-				if k in self._cache:
-					del self._cache[k]
-					self.send(self, key=k, value=None)
-			elif k not in self._cache or self._cache[k] != v:
-				self._cache[k] = v
-				self.send(self, key=k, value=v)
+		raise NotImplementedError("_apply_delta")
 
 	def _cache_get_munge(self, k, v):
 		return v
@@ -215,6 +205,7 @@ class NodeProxy(CachingEntityProxy):
 							node=self.name,
 							rulebook=rb,
 							branching=True)
+		self._set_rulebook_proxy(rb)
 
 	def __init__(self, character: "CharacterProxy", nodename: Key, **stats):
 		self.engine = character.engine
@@ -287,6 +278,27 @@ class PlaceProxy(NodeProxy):
 														repr(self.name),
 														id(self))
 
+	def _apply_delta(self, delta):
+		for (k, v) in delta.items():
+			if k == 'rulebook':
+				if k != self.rulebook.name:
+					self._set_rulebook_proxy(k)
+					self.send(self, key='rulebook', value=v)
+					self.character.place.send(self, key='rulebook', value=v)
+					self.character.node.send(self, key='rulebook', value=v)
+				continue
+			if v is None:
+				if k in self._cache:
+					del self._cache[k]
+					self.send(self, key=k, value=None)
+					self.character.place.send(self, key=k, value=None)
+					self.character.node.send(self, key=k, value=None)
+			elif k not in self._cache or self._cache[k] != v:
+				self._cache[k] = v
+				self.send(self, key=k, value=v)
+				self.character.place.send(self, key=k, value=v)
+				self.character.node.send(self, key=k, value=v)
+
 
 Place.register(PlaceProxy)
 
@@ -334,16 +346,28 @@ class ThingProxy(NodeProxy):
 
 	def _apply_delta(self, delta):
 		for (k, v) in delta.items():
-			if v is None:
+			if k == 'rulebook':
+				if v != self.rulebook.name:
+					self._set_rulebook_proxy(k)
+					self.send(self, key='rulebook', value=v)
+					self.character.thing.send(self, key='rulebook', value=v)
+					self.character.node.send(self, key='rulebook', value=v)
+			elif v is None:
 				if k in self._cache:
 					del self._cache[k]
 					self.send(self, key=k, value=None)
+					self.character.thing.send(self, key=k, value=None)
+					self.character.node.send(self, key=k, value=None)
 			elif k == 'location':
 				self._location = v
 				self.send(self, key=k, value=v)
+				self.character.thing.send(self, key=k, value=v)
+				self.character.node.send(self, key=k, value=v)
 			elif k not in self._cache or self._cache[k] != v:
 				self._cache[k] = v
 				self.send(self, key=k, value=v)
+				self.character.thing.send(self, key=k, value=v)
+				self.character.node.send(self, key=k, value=v)
 
 	def _set_location(self, v):
 		self._location = v
@@ -352,13 +376,17 @@ class ThingProxy(NodeProxy):
 							thing=self.name,
 							loc=v,
 							branching=True)
-		self.send(self, key='location', value=v)
 
 	def __setitem__(self, k, v):
 		if k == 'location':
 			self._set_location(v)
+		elif k == 'rulebook':
+			self._set_rulebook(v)
 		else:
 			super().__setitem__(k, v)
+		self.send(self, key=k, value=v)
+		self.character.thing.send(self, key=k, value=v)
+		self.character.node.send(self, key=k, value=v)
 
 	def __repr__(self):
 		return "<proxy to {}.thing[{}]@{} at {}>".format(
@@ -411,6 +439,22 @@ Thing.register(ThingProxy)
 
 class PortalProxy(CachingEntityProxy):
 	rulebook = RulebookProxyDescriptor()
+
+	def _apply_delta(self, delta):
+		for (k, v) in delta.items():
+			if k == 'rulebook':
+				if k != self.rulebook.name:
+					self._set_rulebook_proxy(k)
+				continue
+			if v is None:
+				if k in self._cache:
+					del self._cache[k]
+					self.send(self, key=k, value=None)
+					self.character.portal.send(self, key=k, value=None)
+			elif k not in self._cache or self._cache[k] != v:
+				self._cache[k] = v
+				self.send(self, key=k, value=v)
+				self.character.portal.send(self, key=k, value=None)
 
 	def _get_default_rulebook_name(self):
 		return self._charname, self._origin, self._destination
@@ -468,7 +512,8 @@ class PortalProxy(CachingEntityProxy):
 							k=k,
 							v=v,
 							branching=True)
-		self.engine.portal.send(self, k=k, v=v)
+		self.send(self, k=k, v=v)
+		self.character.portal.send(self, k=k, v=v)
 
 	def _del_item(self, k):
 		self.engine_handle(command='del_portal_stat',
@@ -477,7 +522,8 @@ class PortalProxy(CachingEntityProxy):
 							dest=self._destination,
 							k=k,
 							branching=True)
-		self.engine.portal.send(self, k=k, v=None)
+		self.character.portal.send(self, k=k, v=None)
+		self.send(self, k=k, v=v)
 
 	def __init__(self, character, origname, destname):
 		self.engine = character.engine
@@ -609,6 +655,9 @@ class ThingMapProxy(CachingProxy):
 							rulebook=rb,
 							branching=True)
 
+	def _apply_delta(self, delta):
+		raise NotImplementedError("_apply_delta")
+
 	@property
 	def character(self):
 		return self.engine.character[self.name]
@@ -674,6 +723,9 @@ class PlaceMapProxy(CachingProxy):
 							char=self.name,
 							rulebook=rb,
 							branching=True)
+
+	def _apply_delta(self, delta):
+		raise NotImplementedError("_apply_delta")
 
 	@property
 	def character(self):
@@ -955,6 +1007,20 @@ class CharStatProxy(CachingEntityProxy):
 							char=self.name,
 							k=k,
 							branching=True)
+
+	def _apply_delta(self, delta):
+		for (k, v) in delta.items():
+			if k == 'rulebook':
+				if k != self.rulebook.name:
+					self._set_rulebook_proxy(k)
+				continue
+			if v is None:
+				if k in self._cache:
+					del self._cache[k]
+					self.send(self, key=k, value=None)
+			elif k not in self._cache or self._cache[k] != v:
+				self._cache[k] = v
+				self.send(self, key=k, value=v)
 
 
 class RuleProxy(Signal):

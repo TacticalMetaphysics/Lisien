@@ -196,11 +196,11 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 		if hasattr(v, 'unwrap'):
 			v = v.unwrap()
 		self._patch[k] = v
-		self.send(self, key=k, val=v)
+		self.send(self, key=k, value=v)
 
 	def __delitem__(self, k):
 		self._patch[k] = None
-		self.send(self, key=k, val=None)
+		self.send(self, key=k, value=None)
 
 
 class FacadeNode(FacadeEntity, ABC):
@@ -368,13 +368,15 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 		if not isinstance(v, self.facadecls):
 			v = self._make(k, v)
 		self._patch[k] = v
-		self.send(self, key=k, val=v)
+		self.send(self, key=k, value=v)
+		if self is not self.facade.node:
+			self.facade.node.send(self, key=k, value=v)
 
 	def __delitem__(self, k):
 		if k not in self:
 			raise KeyError("{} not present".format(k))
 		self._patch[k] = None
-		self.send(self, key=k, val=None)
+		self.send(self, key=k, value=None)
 
 
 class FacadePortalSuccessors(FacadeEntityMapping):
@@ -611,10 +613,12 @@ class Facade(AbstractCharacter, nx.DiGraph):
 			return n
 
 		def __contains__(self, k):
+			if k in self._patch:
+				return self._patch[k] is not None
 			if hasattr(self.facade.character,
 						'graph') and k in self.facade.character.graph:
 				return True
-			return k in self._patch and self._patch[k] is not None
+			return False
 
 		def __getitem__(self, k):
 			if k not in self._patch and hasattr(self.facade.character,
@@ -629,11 +633,11 @@ class Facade(AbstractCharacter, nx.DiGraph):
 
 		def __setitem__(self, k, v):
 			self._patch[k] = v
-			self.send(self, key=k, val=v)
+			self.send(self, key=k, value=v)
 
 		def __delitem__(self, k):
 			self._patch[k] = None
-			self.send(self, key=k, val=None)
+			self.send(self, key=k, value=None)
 
 
 class Character(DiGraph, AbstractCharacter, RuleFollower):
@@ -871,7 +875,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 					place,
 					type(pl).__name__))
 			pl.update(v)
-			self.send(self, key=place, val=v)
+			self.send(self, key=place, value=v)
 
 		def __delitem__(self, place):
 			self[place].delete()
@@ -960,7 +964,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 		def __delitem__(self, orig):
 			super().__delitem__(orig)
-			self.send(self, key=orig, val=None)
+			self.send(self, key=orig, value=None)
 
 		def update(self, other, **kwargs):
 			"""Recursively update the stats of all portals
@@ -1103,7 +1107,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 									tick, v)
 					edge_val_cache_store(charn, orig, dest, 0, k, branch, turn,
 											tick, v)
-				self.send(self, key=dest, val=value)
+				self.send(self, key=dest, value=value)
 
 			def __delitem__(self, dest):
 				if dest not in self:

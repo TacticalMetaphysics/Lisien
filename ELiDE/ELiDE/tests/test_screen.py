@@ -173,7 +173,8 @@ class ScreenTest(ELiDEAppTest):
 		idle_until(
 			lambda: almost(graphpawn.x, locspot9.right) and almost(
 				graphpawn.y, locspot9.top), 100,
-			"Never positioned pawn to 9's top-right")
+			f"Never positioned pawn to 9's top-right, "
+			f"it's at {graphpawn.pos} not {locspot9.right, locspot9.top}")
 		app.mainscreen.next_turn()
 		idle_until(lambda: not app.edit_locked, 100, "Never unlocked")
 		idle_until(
@@ -184,6 +185,8 @@ class ScreenTest(ELiDEAppTest):
 		idle_until(
 			lambda: almost(graphpawn.x, locspot0.right) and almost(
 				graphpawn.y, locspot0.top), 100,
-			"Never returned to 0's top-right")
+			f"Never returned to 0's top-right "
+			f"(stuck at {graphpawn.pos}, should be "
+			f"{locspot0.right, locspot0.top})")
 		idle_until(lambda: almost(gridpawn.pos, gridspot0.pos), 100,
 					"Never returned to grid 0, 0")

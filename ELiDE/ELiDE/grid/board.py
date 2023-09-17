@@ -158,6 +158,7 @@ class GridBoard(Widget):
 			self.pawn[pwn["name"]] = self.pawn_cls(board=self,
 													proxy=pwn["proxy"])
 		self.pawn_plane.data = pawn_data
+		self.character.thing.connect(self.update_from_thing)
 		Logger.debug(
 			f"GridBoard: on_parent end, took {monotonic() - start_ts:,.2f}"
 			f" seconds")
@@ -235,6 +236,21 @@ class GridBoard(Widget):
 		part = partial(self.update_from_delta, delta)
 		Clock.unschedule(part)
 		Clock.schedule_once(part, 0)
+
+	def update_from_thing(self, thing, key, value):
+		if thing:
+			if thing.name not in self.pawn:
+				self.add_pawn(thing.name)
+			elif key == 'location':
+				if value in self.spot:
+					loc = self.spot[value]
+					pwn = self.pawn[thing.name]
+					pwn.pos = loc.pos
+				elif thing.name in self.pawn:
+					self.rm_pawn(thing.name)
+		else:
+			if thing.name in self.pawn:
+				self.rm_pawn(thing.name)
 
 
 class GridBoardScatterPlane(BoardScatterPlane):

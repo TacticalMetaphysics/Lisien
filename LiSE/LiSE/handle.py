@@ -934,6 +934,10 @@ class EngineHandle(object):
 		"""Remove a node from a character."""
 		del self._real.character[char].node[node]
 
+	def del_nodes(self, nodes):
+		for char, node in nodes:
+			del self._real.character[char].node[node]
+
 	@prepacked
 	def character_nodes(self,
 						char: Key,
@@ -1048,24 +1052,6 @@ class EngineHandle(object):
 
 	def add_places_from(self, char: Key, seq: Iterable) -> None:
 		self._real.character[char].add_places_from(seq)
-
-	@prepacked
-	def character_portals(self,
-							char: Key,
-							btt: Tuple[str, int, int] = None) -> Set[bytes]:
-		pack = self._real.pack
-		branch, turn, tick = self._get_btt(btt)
-		r = set()
-		portal = self._real.character[char].portal
-		origtime = self._real._btt()
-		if (branch, turn, tick) != origtime:
-			self._real._set_btt(branch, turn, tick)
-		for o in portal:
-			for d in portal[o]:
-				r.add(pack((o, d)))
-		if (branch, turn, tick) != origtime:
-			self._real._set_btt(*origtime)
-		return r
 
 	def add_portal(self,
 					char: Key,
@@ -1465,5 +1451,5 @@ class EngineHandle(object):
 		branch, turn, tick = self._real._btt()
 		ret = self._real.game_start()
 		_, turn_now, tick_now = self._real._btt()
-		return ret, self._real.get_delta(
-			branch, turn, tick, turn_now, tick_now)
+		return ret, self._real.get_delta(branch, turn, tick, turn_now,
+											tick_now)

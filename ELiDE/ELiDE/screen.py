@@ -377,15 +377,7 @@ class MainScreen(Screen):
 		self.app.branch = branch
 		self.app.turn = turn
 		self.app.tick = tick
-		chardelta = delta.get(self.boardview.board.character.name, {})
-		for unwanted in ('character_rulebook', 'avatar_rulebook',
-							'character_thing_rulebook',
-							'character_place_rulebook',
-							'character_portal_rulebook'):
-			if unwanted in chardelta:
-				del chardelta[unwanted]
-		self.boardview.board.trigger_update_from_delta(chardelta)
-		self.gridview.board.trigger_update_from_delta(chardelta)
+		# deleted board updates; now to make the boards update themselves
 		self.statpanel.statlist.mirror = dict(self.app.selected_proxy)
 
 	def play(self, *args):
