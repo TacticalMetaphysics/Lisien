@@ -574,6 +574,7 @@ class Stack:
 		return datum['textures']
 
 	@paths.setter
+	@mainthread
 	def paths(self, v):
 		name = self.proxy['name']
 		plane = self._stack_plane
@@ -583,64 +584,63 @@ class Stack:
 		insts = plane._instructions[name]
 		rects = insts['rectangles']
 		group = insts['group']
-		fbo = plane._fbo
-		with fbo:
-			for rect in rects:
-				group.remove(rect)
-			rects = insts['rectangles'] = []
-			wide = datum.get("width", 0)
-			tall = datum.get("height", 0)
-			for path in v:
-				if not isinstance(path, str):
-					raise TypeError("paths must be strings")
-				tex = Image.load(path).texture
-				w, h = tex.size
-				if "width" not in datum and w > wide:
-					wide = w
-				if "height" not in datum and h > tall:
-					tall = h
-				rect = Rectangle(texture=tex, pos=self.pos, size=(wide, tall))
-				rects.append(rect)
-				group.add(rect)
-			plane._redraw_bind_uid = plane.fbind('data', plane._trigger_redraw)
+		for rect in rects:
+			group.remove(rect)
+		rects = insts['rectangles'] = []
+		wide = datum.get("width", 0)
+		tall = datum.get("height", 0)
+		for path in v:
+			if not isinstance(path, str):
+				raise TypeError("paths must be strings")
+			tex = Image.load(path).texture
+			w, h = tex.size
+			if "width" not in datum and w > wide:
+				wide = w
+			if "height" not in datum and h > tall:
+				tall = h
+			rect = Rectangle(texture=tex, pos=self.pos, size=(wide, tall))
+			rects.append(rect)
+			group.add(rect)
+		plane._redraw_bind_uid = plane.fbind('data', plane._trigger_redraw)
 
 	@property
 	def selected(self):
 		return self._stack_plane.selected == self.proxy['name']
 
 	@selected.setter
+	@mainthread
 	def selected(self, v: bool):
 		stack_plane: TextureStackPlane = self._stack_plane
 		name = self.proxy['name']
 		insts = stack_plane._instructions[name]
 		fbo = stack_plane._fbo
-		with fbo:
-			fbo.clear_buffer()
-			if v:
-				stack_plane.selected = name
-				if 'color0' in insts:
-					insts['color0'].rgba = stack_plane.color_selected
-				else:
-					idx = stack_plane._stack_index[name]
-					left = stack_plane._left_xs[idx]
-					bot = stack_plane._bot_ys[idx]
-					right = stack_plane._right_xs[idx]
-					top = stack_plane._top_ys[idx]
-					grp = insts['group']
-					insts['color0'] = Color(rgba=stack_plane.color_selected)
-					grp.add(insts['color0'])
-					insts['line'] = Line(points=[
-						left, bot, right, bot, right, top, left, top, left, bot
-					])
-					grp.add(insts['line'])
-					insts['color1'] = Color(rgba=[1., 1., 1., 1.])
-					grp.add(insts['color1'])
+		fbo.bind()
+		fbo.clear_buffer()
+		if v:
+			stack_plane.selected = name
+			if 'color0' in insts:
+				insts['color0'].rgba = stack_plane.color_selected
 			else:
-				if stack_plane.selected == self.proxy['name']:
-					stack_plane.selected = None
-				if 'color0' in insts:
-					insts['color0'].rgba = [0., 0., 0., 0.]
-		stack_plane.canvas.ask_update()
+				idx = stack_plane._stack_index[name]
+				left = stack_plane._left_xs[idx]
+				bot = stack_plane._bot_ys[idx]
+				right = stack_plane._right_xs[idx]
+				top = stack_plane._top_ys[idx]
+				grp = insts['group']
+				insts['color0'] = Color(rgba=stack_plane.color_selected)
+				grp.add(insts['color0'])
+				insts['line'] = Line(points=[
+					left, bot, right, bot, right, top, left, top, left, bot
+				])
+				grp.add(insts['line'])
+				insts['color1'] = Color(rgba=[1., 1., 1., 1.])
+				grp.add(insts['color1'])
+		else:
+			if stack_plane.selected == self.proxy['name']:
+				stack_plane.selected = None
+			if 'color0' in insts:
+				insts['color0'].rgba = [0., 0., 0., 0.]
+		fbo.release()
 
 	@property
 	def pos(self):
