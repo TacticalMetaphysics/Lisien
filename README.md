@@ -112,13 +112,12 @@ export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE  # has to be run once per terminal sessio
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 # if you don't have python 3 installed: 
 brew install python pip3
-# install the Kivy app framework
+# install LiSE the ELiDE frontend, and the Kivy app framework
 brew install cython
-# ELiDE doesn't play movies, so disable gstreamer
-USE_GSTREAMER=0 python -m pip install --user kivy pygments -r LiSE/requirements.txt
-# install LiSE and the ELiDE frontend
 git clone https://github.com/TacticalMetaphysics/LiSE.git
 cd LiSE
+# ELiDE doesn't play movies, so disable gstreamer
+USE_GSTREAMER=0 python -m pip install --user kivy pygments -r LiSE/requirements.txt
 export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE  # has to be run once per terminal session
 ```
 
