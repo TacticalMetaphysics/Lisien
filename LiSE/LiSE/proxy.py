@@ -1444,7 +1444,9 @@ class CharacterProxy(AbstractCharacter):
 							loc=location,
 							statdict=kwargs,
 							branching=True)
-		self.thing._cache[name] = ThingProxy(self, name, location, **kwargs)
+		self.thing._cache[name] = thing = ThingProxy(self, name, location, **kwargs)
+		self.thing.send(thing, key=None, value=True)
+		self.node.send(thing, key=None, value=True)
 
 	def add_things_from(self, seq, **attrs):
 		self.engine.handle(command='add_things_from',
@@ -1452,7 +1454,9 @@ class CharacterProxy(AbstractCharacter):
 							seq=list(seq),
 							branching=True)
 		for name, location in seq:
-			self.thing._cache[name] = ThingProxy(self, name, location)
+			self.thing._cache[name] = thing = ThingProxy(self, name, location)
+			self.thing.send(thing, key=None, value=True)
+			self.node.send(thing, key=None, value=True)
 
 	def remove_node(self, node):
 		if node not in self.node:
@@ -1462,9 +1466,16 @@ class CharacterProxy(AbstractCharacter):
 		placecache = self.place._cache
 		thingcache = self.thing._cache
 		if node in placecache:
+			it = placecache[node]
+			it.send(it, key=None, value=False)
+			self.place.send(it, key=None, value=False)
 			del placecache[node]
 		else:
+			it = thingcache[node]
+			it.send(it, key=None, value=False)
+			self.thing.send(it, key=None, value=False)
 			del thingcache[node]
+		self.node.send(it, key=None, value=False)
 		portscache = self.engine._character_portals_cache
 		to_del = {(node, dest) for dest in portscache.successors[name][node]}
 		to_del.update(

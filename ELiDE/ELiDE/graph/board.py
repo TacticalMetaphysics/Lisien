@@ -449,8 +449,8 @@ class GraphBoard(RelativeLayout):
 			if high > height:
 				height = high
 		return {  # need to lay out multiple pawns per spot properly
-			"x": locspot.right / self.width,
-			"y": locspot.top / self.height,
+			"x": int(locspot.right),
+			"y": int(locspot.top),
 			"width": width,
 			"height": height,
 			"name": thing["name"],
@@ -627,8 +627,9 @@ class GraphBoard(RelativeLayout):
 
 	def add_spot(self, placen, *args):
 		if (placen in self.character.place and placen not in self.spot):
-			self.stack_plane.add_datum(
-				self.make_spot(self.character.place[placen]))
+			spotten = self.make_spot(self.character.place[placen])
+			self.stack_plane.add_datum(spotten)
+			self.spot[placen].pos = spotten['x'] * self.width, spotten['y'] * self.height
 
 	def _trigger_add_spot(self, placen):
 		Clock.schedule_once(partial(self.add_spot, placen), 0)
@@ -749,6 +750,7 @@ class GraphBoard(RelativeLayout):
 		pwn = self.make_pawn(self.character.thing[thingn])
 		stacp = self.stack_plane
 		stacp.add_datum(pwn)
+		self.pawn[thingn].pos = pwn['x'], pwn['y']
 
 		if thingn in self._scheduled_add_pawn:
 			del self._scheduled_add_pawn[thingn]
@@ -773,8 +775,6 @@ class GraphBoard(RelativeLayout):
 		for thing in things2add:
 			pwn = make_pawn(thing)
 			nodes_patch[thing['name']] = {
-				'_x': float(pwn['x']),
-				'_y': float(pwn['y']),
 				'_image_paths': list(pwn['textures'])
 			}
 			pawns_added.append(pwn)
@@ -1046,13 +1046,11 @@ class GraphBoardScatterPlane(BoardScatterPlane):
 		(x, y) = self.to_local(*dummy.pos_up)
 		x /= self.board.width
 		y /= self.board.height
-		self.board.stack_plane.add_datum(
-			self.board.make_spot(
-				self.board.character.new_place(dummy.name,
-												_x=x,
-												_y=y,
-												_image_paths=list(
-													dummy.paths))))
+		self.board.character.new_place(dummy.name,
+										_x=x,
+										_y=y,
+										_image_paths=list(
+											dummy.paths))
 		dummy.num += 1
 
 	def pawn_from_dummy(self, dummy):
