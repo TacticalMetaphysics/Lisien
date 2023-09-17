@@ -1046,13 +1046,11 @@ class GraphBoardScatterPlane(BoardScatterPlane):
 		(x, y) = self.to_local(*dummy.pos_up)
 		x /= self.board.width
 		y /= self.board.height
-		self.board.stack_plane.add_datum(
-			self.board.make_spot(
-				self.board.character.new_place(dummy.name,
-												_x=x,
-												_y=y,
-												_image_paths=list(
-													dummy.paths))))
+		self.board.character.new_place(dummy.name,
+										_x=x,
+										_y=y,
+										_image_paths=list(
+											dummy.paths))
 		dummy.num += 1
 
 	def pawn_from_dummy(self, dummy):
