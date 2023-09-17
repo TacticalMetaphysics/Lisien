@@ -141,6 +141,8 @@ class TextureStackPlane(Widget):
 
 	@mainthread
 	def _remove_upd_fbo(self, name):
+		if name not in self._instructions:
+			return
 		grp = self._instructions[name]["group"]
 		self._fbo.remove(grp)
 

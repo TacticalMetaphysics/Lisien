@@ -338,12 +338,18 @@ class ThingProxy(NodeProxy):
 				if k in self._cache:
 					del self._cache[k]
 					self.send(self, key=k, value=None)
+					self.character.thing.send(self, key=k, value=None)
+					self.character.node.send(self, key=k, value=None)
 			elif k == 'location':
 				self._location = v
 				self.send(self, key=k, value=v)
+				self.character.thing.send(self, key=k, value=v)
+				self.character.node.send(self, key=k, value=v)
 			elif k not in self._cache or self._cache[k] != v:
 				self._cache[k] = v
 				self.send(self, key=k, value=v)
+				self.character.thing.send(self, key=k, value=v)
+				self.character.node.send(self, key=k, value=v)
 
 	def _set_location(self, v):
 		self._location = v
