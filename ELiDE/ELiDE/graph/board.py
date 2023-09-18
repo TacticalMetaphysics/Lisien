@@ -865,10 +865,10 @@ class GraphBoard(RelativeLayout):
 				self.add_spot(node.name)
 
 	def update_spot_display(self):
-		pass
+		"""Change spot graphics to match the state of their place"""
 
 	def update_pawn_display(self):
-		pass
+		"""Change pawn graphics to match the state of their thing"""
 
 	def update_from_character_edge(self, edge, key, value):
 		if edge:
@@ -895,7 +895,7 @@ class GraphBoard(RelativeLayout):
 											edge.destination.name)
 
 	def update_arrow_display(self):
-		pass
+		"""Change arrow graphics to match the state of their portal"""
 
 	def update_from_delta(self, delta, *args):
 		"""Apply the changes described in the dict ``delta``."""
