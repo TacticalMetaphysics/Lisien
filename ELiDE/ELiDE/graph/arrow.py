@@ -340,6 +340,7 @@ class GraphArrow:
 
 	@selected.setter
 	def selected(self, b):
+		self.board.app.selection = self
 		self.repoint(b)
 
 	def __init__(self, *, board, origin, destination):
