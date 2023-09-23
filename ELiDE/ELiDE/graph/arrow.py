@@ -30,7 +30,7 @@ from kivy.core.text import Label
 from kivy.graphics.fbo import Fbo
 from kivy.graphics import (Translate, Rectangle, Quad, Color, InstructionGroup)
 from kivy.properties import (NumericProperty, ListProperty, ObjectProperty)
-from kivy.clock import Clock
+from kivy.clock import Clock, mainthread
 
 try:
 	from kivy.garden.collider import Collide2DPoly
@@ -368,6 +368,7 @@ class GraphArrow:
 		ydist = (dy - oy) * pct
 		return ox + xdist, oy + ydist
 
+	@mainthread
 	def repoint(self, selected=None):
 		arrow_plane = self.board.arrow_plane
 		fbo = arrow_plane._fbo
