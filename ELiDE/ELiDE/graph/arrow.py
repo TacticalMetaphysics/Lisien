@@ -400,7 +400,7 @@ class GraphArrow:
 				self.destination.name] = Label(**DEFAULT_ARROW_LABEL_KWARGS,
 												**label_kwargs)
 		if (self.origin.name,
-			self.destination.name) in self.board.arrow_plane._instructions_map:
+			self.destination.name) in plane._instructions_map:
 			verts = get_quad_vertices(*shaft_points, *head_points,
 										r * bg_scale, r, *label.render())
 			insts = self.board.arrow_plane._instructions_map[
@@ -421,9 +421,11 @@ class GraphArrow:
 									self.destination.name] = Collide2DPoly(
 										points=verts['shaft_bg'])
 		else:
-			plane._instructions_map = insts = get_instructions(
-				*shaft_points, *head_points, bg_color, fg_color,
-				*label.render(), label)
+			plane._instructions_map[
+				self.origin.name,
+				self.destination.name] = insts = get_instructions(
+					*shaft_points, *head_points, bg_color, fg_color,
+					*label.render(), label)
 			plane._colliders_map[
 				self.origin.name,
 				self.destination.name].points = Collide2DPoly(
