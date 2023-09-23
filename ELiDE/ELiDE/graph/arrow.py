@@ -387,9 +387,7 @@ class GraphArrow:
 		plane = self.board.arrow_plane
 		portal = self.board.character.portal[self.origin.name][
 			self.destination.name]
-		portal_text = str(
-			portal.get(portal['_label_stat'], '') if '_label_stat' in
-			portal else None)
+		portal_text = str(portal.get(portal.get('_label_stat', None), ''))
 		label_kwargs = dict(portal.get("label_kwargs", ()))
 		if portal_text is not None:
 			label_kwargs['text'] = portal_text
