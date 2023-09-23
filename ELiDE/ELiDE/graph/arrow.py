@@ -23,6 +23,7 @@ from collections import defaultdict
 
 from math import cos, sin, atan, pi
 from operator import itemgetter
+from typing import Optional, Tuple, Iterator
 
 import numpy as np
 from kivy.uix.widget import Widget
@@ -286,7 +287,7 @@ eight0s = tuple([0] * 8)
 class GraphArrow:
 
 	@property
-	def slope(self):
+	def slope(self) -> float:
 		"""Return a float of the increase in y divided by the increase in x,
 		both from left to right.
 
@@ -309,7 +310,7 @@ class GraphArrow:
 			return rise / run
 
 	@property
-	def y_intercept(self):
+	def y_intercept(self) -> Optional[float]:
 		"""Return my Y-intercept.
 
 		I probably don't really hit the left edge of the window, but
@@ -326,7 +327,8 @@ class GraphArrow:
 		return (y_numerator - x_numerator), denominator
 
 	@property
-	def reciprocal(self):
+	def reciprocal(self) -> Optional["GraphArrow"]:
+		"""The arrow connecting the same spots in the opposite direction"""
 		if self.destination.name not in self.board.pred_arrow:
 			return
 		if self.origin.name not in self.board.pred_arrow[
@@ -335,11 +337,11 @@ class GraphArrow:
 		return self.board.pred_arrow[self.destination.name][self.origin.name]
 
 	@property
-	def selected(self):
+	def selected(self) -> bool:
 		return self is self.board.app.selection
 
 	@selected.setter
-	def selected(self, b):
+	def selected(self, b: bool):
 		self.board.app.selection = self
 		self.repoint(b)
 
@@ -348,11 +350,11 @@ class GraphArrow:
 		self.origin = origin
 		self.destination = destination
 
-	def collide_point(self, x, y):
+	def collide_point(self, x: float, y: float) -> bool:
 		return self.board.arrow_plane._colliders_map[
 			self.origin.name, self.destination.name].collide_point(x, y)
 
-	def pos_along(self, pct):
+	def pos_along(self, pct: float) -> Tuple[float, float]:
 		"""Return coordinates for where a Pawn should be if it has travelled
 		along ``pct`` of my length (between 0 and 1).
 
@@ -370,7 +372,7 @@ class GraphArrow:
 		return ox + xdist, oy + ydist
 
 	@mainthread
-	def repoint(self, selected=None):
+	def repoint(self, selected: bool = None) -> None:
 		arrow_plane = self.board.arrow_plane
 		fbo = arrow_plane._fbo
 		fbo.bind()
@@ -443,22 +445,22 @@ class GraphArrow:
 		arrow_plane.canvas.ask_update()
 
 
-def get_instructions(ox,
-						oy,
-						dx,
-						dy,
-						x1,
-						y1,
-						endx,
-						endy,
-						x2,
-						y2,
-						bgr,
-						r,
-						bg_color,
-						fg_color,
-						label_kwargs=None,
-						label=None):
+def get_instructions(ox: float,
+						oy: float,
+						dx: float,
+						dy: float,
+						x1: float,
+						y1: float,
+						endx: float,
+						endy: float,
+						x2: float,
+						y2: float,
+						bgr: float,
+						r: float,
+						bg_color: Tuple[float, float, float, float],
+						fg_color: Tuple[float, float, float, float],
+						label_kwargs: dict = None,
+						label: Label = None) -> dict:
 	if label_kwargs is None:
 		label_kwargs = {'text': '', **DEFAULT_ARROW_LABEL_KWARGS}
 	else:
@@ -705,7 +707,7 @@ class ArrowPlane(Widget):
 		self._top_right_corner_xs = np.array(top_right_corner_xs)
 		self._top_right_corner_ys = np.array(top_right_corner_ys)
 
-	def add_new_portal(self, datum):
+	def add_new_portal(self, datum: dict) -> None:
 		orig_spot = datum['origspot']
 		dest_spot = datum['destspot']
 		shaft_points, head_points = get_points(orig_spot, dest_spot,
@@ -786,7 +788,7 @@ class ArrowPlane(Widget):
 		label.refresh()
 		rect.texture = label.texture
 
-	def iter_collided_edges(self, x, y):
+	def iter_collided_edges(self, x: float, y: float) -> Iterator:
 		x, y = map(float, (x, y))
 		collider_map = self._colliders_map
 		hits = (self._bot_left_corner_xs <= x) & (
