@@ -533,7 +533,6 @@ class GraphBoard(RelativeLayout):
 
 	def rm_spot(self, name, *args):
 		"""Remove the :class:`Spot` by the given name."""
-		# TODO: this doesn't delete the graphic
 		if name not in self.spot:
 			raise KeyError("No Spot named {}".format(name))
 		spot = self.spot.pop(name)
