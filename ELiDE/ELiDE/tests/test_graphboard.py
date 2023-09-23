@@ -150,6 +150,7 @@ class GraphBoardTest(GraphicUnitTest):
 		char = Facade()
 		app = ELiDEApp()
 		board = GraphBoard(app=app, character=char)
+		board.connect_proxy_objects()
 		view = GraphBoardView(board=board)
 		idle_until(lambda: view.plane is not None, 100,
 					"Never made BoardScatterPlane")
@@ -179,7 +180,7 @@ class GraphBoardTest(GraphicUnitTest):
 		idle_until(lambda: dummy2_name in char.thing, 100,
 					"Dummy 2 didn't add thing")
 		idle_until(lambda: dummy2_name in board.pawn, 100,
-		           "Board didn't add pawn for dummy 2")
+					"Board didn't add pawn for dummy 2")
 		spot = board.spot[dummy_name]
 		idle_until(
 			lambda: board.pawn[dummy2_name].pos == (spot.right, spot.top), 100,

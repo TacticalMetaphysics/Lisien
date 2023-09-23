@@ -144,7 +144,15 @@ class TextureStackPlane(Widget):
 		if name not in self._instructions:
 			return
 		grp = self._instructions[name]["group"]
-		self._fbo.remove(grp)
+		grp.clear()
+		fbo = self._fbo
+		fbo.bind()
+		fbo.remove(grp)
+		fbo.ask_update()
+		fbo.clear_buffer()
+		fbo.release()
+		self._rectangle.texture = fbo.texture
+		del self._instructions[name]
 
 	def remove(self, name_or_idx):
 
@@ -163,7 +171,6 @@ class TextureStackPlane(Widget):
 			idx = name_or_idx
 			name = self._keys[idx]
 		stack_index = self._stack_index
-		del self._instructions[name]
 		del stack_index[name]
 		del self._keys[idx]
 		for key in self._keys[idx:]:
@@ -180,20 +187,18 @@ class TextureStackPlane(Widget):
 	@mainthread
 	def _redraw_upd_fbo(self, changed_instructions):
 		fbo = self._fbo
-		with fbo:
-			for insts in changed_instructions:
-				group = insts['group']
-				group.clear()
-				for rect in insts['rectangles']:
-					group.add(rect)
-				if 'color0' in insts:
-					group.add(insts['color0'])
-					group.add(insts['line'])
-					group.add(insts['color1'])
-				if group not in fbo.children:
-					fbo.add(group)
+		for insts in changed_instructions:
+			group = insts['group']
+			group.clear()
+			for rect in insts['rectangles']:
+				group.add(rect)
+			if 'color0' in insts:
+				group.add(insts['color0'])
+				group.add(insts['line'])
+				group.add(insts['color1'])
+			if group not in fbo.children:
+				fbo.add(group)
 		self._rectangle.texture = fbo.texture
-
 
 	def redraw(self, *args):
 
