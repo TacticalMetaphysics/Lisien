@@ -533,6 +533,7 @@ class GraphBoard(RelativeLayout):
 
 	def rm_spot(self, name, *args):
 		"""Remove the :class:`Spot` by the given name."""
+		# TODO: this doesn't delete the graphic
 		if name not in self.spot:
 			raise KeyError("No Spot named {}".format(name))
 		spot = self.spot.pop(name)
@@ -629,7 +630,8 @@ class GraphBoard(RelativeLayout):
 		if (placen in self.character.place and placen not in self.spot):
 			spotten = self.make_spot(self.character.place[placen])
 			self.stack_plane.add_datum(spotten)
-			self.spot[placen].pos = spotten['x'] * self.width, spotten['y'] * self.height
+			self.spot[placen].pos = spotten['x'] * self.width, spotten[
+				'y'] * self.height
 
 	def _trigger_add_spot(self, placen):
 		Clock.schedule_once(partial(self.add_spot, placen), 0)
@@ -1049,8 +1051,7 @@ class GraphBoardScatterPlane(BoardScatterPlane):
 		self.board.character.new_place(dummy.name,
 										_x=x,
 										_y=y,
-										_image_paths=list(
-											dummy.paths))
+										_image_paths=list(dummy.paths))
 		dummy.num += 1
 
 	def pawn_from_dummy(self, dummy):
