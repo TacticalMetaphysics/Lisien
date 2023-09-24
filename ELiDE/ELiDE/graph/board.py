@@ -892,8 +892,8 @@ class GraphBoard(RelativeLayout):
 														edge.destination.name,
 														str(value))
 		else:
-			self.arrow_plane.remove_edge(edge.origin.name,
-											edge.destination.name)
+			self.arrow_plane.remove_edge(edge._origin,
+											edge._destination)
 
 	def update_arrow_display(self):
 		"""Change arrow graphics to match the state of their portal"""
