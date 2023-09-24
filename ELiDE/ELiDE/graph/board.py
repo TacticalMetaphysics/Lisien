@@ -873,8 +873,8 @@ class GraphBoard(RelativeLayout):
 
 	def update_from_character_edge(self, edge, key, value):
 		if edge:
-			if not self.arrow_plane.have_arrow(edge.origin.name,
-												edge.destination.name):
+			if not self.arrow_plane.have_arrow(edge._origin,
+												edge._destination):
 				label_kwargs = DEFAULT_ARROW_LABEL_KWARGS.copy()
 				if '_label_stat' in edge:
 					label_kwargs['text'] = str(edge.get(
