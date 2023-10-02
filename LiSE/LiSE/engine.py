@@ -1299,7 +1299,6 @@ class Engine(AbstractEngine, gORM):
 							entity))
 		wait(trig_futs)
 
-		# TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
 		def fmtent(entity):
 			if isinstance(entity, self.char_cls):
 				return entity.name
