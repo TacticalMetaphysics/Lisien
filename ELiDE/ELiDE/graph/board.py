@@ -866,15 +866,15 @@ class GraphBoard(RelativeLayout):
 				self.add_spot(node.name)
 
 	def update_spot_display(self):
-		pass
+		"""Change spot graphics to match the state of their place"""
 
 	def update_pawn_display(self):
-		pass
+		"""Change pawn graphics to match the state of their thing"""
 
 	def update_from_character_edge(self, edge, key, value):
 		if edge:
-			if not self.arrow_plane.have_arrow(edge.origin.name,
-												edge.destination.name):
+			if not self.arrow_plane.have_arrow(edge._origin,
+												edge._destination):
 				label_kwargs = DEFAULT_ARROW_LABEL_KWARGS.copy()
 				if '_label_stat' in edge:
 					label_kwargs['text'] = str(edge.get(
@@ -892,11 +892,11 @@ class GraphBoard(RelativeLayout):
 														edge.destination.name,
 														str(value))
 		else:
-			self.arrow_plane.remove_edge(edge.origin.name,
-											edge.destination.name)
+			self.arrow_plane.remove_edge(edge._origin,
+											edge._destination)
 
 	def update_arrow_display(self):
-		pass
+		"""Change arrow graphics to match the state of their portal"""
 
 	def update_from_delta(self, delta, *args):
 		"""Apply the changes described in the dict ``delta``."""

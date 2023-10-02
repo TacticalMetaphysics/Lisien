@@ -631,10 +631,10 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 		if key in self:
 			sucs = self[key]
 			created = False
+			sucs.clear()
 		else:
 			sucs = self._cache[key] = self.Successors(self, key)
 			created = True
-			sucs.clear()
 		if val:
 			sucs.update(val)
 		if created:
