@@ -523,7 +523,7 @@ class PortalProxy(CachingEntityProxy):
 							k=k,
 							branching=True)
 		self.character.portal.send(self, k=k, v=None)
-		self.send(self, k=k, v=v)
+		self.send(self, k=k, v=None)
 
 	def __init__(self, character, origname, destname):
 		self.engine = character.engine
@@ -1446,7 +1446,8 @@ class CharacterProxy(AbstractCharacter):
 							loc=location,
 							statdict=kwargs,
 							branching=True)
-		self.thing._cache[name] = thing = ThingProxy(self, name, location, **kwargs)
+		self.thing._cache[name] = thing = ThingProxy(self, name, location,
+														**kwargs)
 		self.thing.send(thing, key=None, value=True)
 		self.node.send(thing, key=None, value=True)
 
