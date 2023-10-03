@@ -1451,5 +1451,10 @@ class EngineHandle(object):
 		branch, turn, tick = self._real._btt()
 		ret = self._real.game_start()
 		_, turn_now, tick_now = self._real._btt()
-		return ret, self._real.get_delta(branch, turn, tick, turn_now,
-											tick_now)
+		delt = self._real.get_delta(branch, turn, tick, turn_now, tick_now)
+		functions = dict(self._real.function.iterplain())
+		methods = dict(self._real.method.iterplain())
+		triggers = dict(self._real.trigger.iterplain())
+		prereqs = dict(self._real.prereq.iterplain())
+		actions = dict(self._real.action.iterplain())
+		return ret, delt, functions, methods, triggers, prereqs, actions

@@ -245,8 +245,8 @@ class FunctionStore(Signal):
 		self._need_save = False
 
 	def iterplain(self):
-		for funcdef in self._ast.body:
-			yield funcdef.name, unparse(funcdef)
+		for name, idx in self._ast_idx.items():
+			yield name, unparse(self._ast.body[idx])
 
 	def store_source(self, v, name=None):
 		self._need_save = True

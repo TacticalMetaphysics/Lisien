@@ -2048,7 +2048,16 @@ class EngineProxy(AbstractEngine):
 		return self.handle('main_branch')
 
 	def game_start(self) -> None:
-		self.handle('game_start', cb=self._upd)
+		self.handle('game_start', cb=self._upd_from_game_start)
+
+	def _upd_from_game_start(self, command, branch, turn, tick, result):
+		start_ret, start_delta, functions, methods, triggers, prereqs, actions = result
+		self.function._cache = functions
+		self.method._cache = methods
+		self.trigger._cache = triggers
+		self.prereq._cache = prereqs
+		self.action._cache = actions
+		self._upd(command, branch, turn, tick, (start_ret, start_delta))
 
 	def switch_main_branch(self, branch: str) -> None:
 		if (self.branch != self.main_branch or self.turn != 0
