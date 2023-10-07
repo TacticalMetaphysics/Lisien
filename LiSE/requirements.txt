@@ -2,7 +2,6 @@ astunparse>=1.6.3,<2
 blinker>=1.4,<2
 msgpack>=1.0.0
 networkx>=2.4,<2.6
-cached_property>=1.5.2
 sqlalchemy>=1.4,<3
 numpy>=1.19.5,<2
 tblib>=1.7.0,<2
