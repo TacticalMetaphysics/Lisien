@@ -24,6 +24,8 @@ classifiers = [
 dependencies = [
 	"LiSE>=0.14.0,<0.15.0",
 	"kivy>=2.0.0,<3",
+	"kivy-deps.glew ; sys_platform == 'win32'",
+	"kivy-deps.sdl2 ; sys_platform == 'win32'",
 	"pygments>=2.7.4"
 ]
 
