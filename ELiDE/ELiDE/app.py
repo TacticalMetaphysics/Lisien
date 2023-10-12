@@ -17,10 +17,8 @@ import sys
 import os
 import json
 from functools import partial
-from itertools import chain
 
 from LiSE.allegedb import OutOfTimelineError
-from .pawnspot import Stack
 
 if 'KIVY_NO_ARGS' not in os.environ:
 	os.environ['KIVY_NO_ARGS'] = '1'
@@ -48,8 +46,6 @@ import ELiDE.charsview
 import ELiDE.timestream
 from ELiDE.graph.board import GraphBoard
 from ELiDE.graph.arrow import GraphArrow
-from ELiDE.graph.spot import GraphSpot
-from ELiDE.graph.pawn import Pawn
 from ELiDE.grid.board import GridBoard
 from .util import trigger
 
