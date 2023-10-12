@@ -83,6 +83,7 @@ class DialogMenu(Box):
 			self.bind(size=self._set_sv_size, pos=self._set_sv_pos)
 			layout = BoxLayout(orientation='vertical')
 			self._sv.add_widget(layout)
+			self.add_widget(self._sv)
 		else:
 			layout = self._sv.children[0]
 			layout.clear_widgets()
