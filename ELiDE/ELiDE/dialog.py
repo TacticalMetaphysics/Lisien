@@ -68,6 +68,8 @@ class DialogMenu(Box):
 	"""
 	options = ListProperty()
 	"""List of pairs of (button_text, callable)"""
+	ok = ObjectProperty()
+	"""Callable to close the DialogMenu"""
 
 	def _set_sv_size(self, *args):
 		self._sv.width = self.width - self.padding[0] - self.padding[2]
@@ -92,7 +94,7 @@ class DialogMenu(Box):
 				raise TypeError("Menu options must be callable")
 			layout.add_widget(
 				Button(text=txt,
-						on_release=part,
+						on_release=partial(self.ok, cb=part),
 						font_name=self.font_name,
 						font_size=self.font_size))
 
@@ -108,6 +110,7 @@ class Dialog(BoxLayout):
 	"""
 	message_kwargs = DictProperty({})
 	menu_kwargs = DictProperty({})
+	ok = ObjectProperty()
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -136,6 +139,15 @@ class Dialog(BoxLayout):
 			'atlas://data/images/defaulttheme/vkeyboard_background')
 		for k, v in kw.items():
 			setattr(self.ids.menu, k, v)
+		if self.ok is not None:
+			self.ids.menu.ok = self.ok
+
+	def on_ok(self, *args):
+		if self.ok is not None:
+			if 'menu' not in self.ids:
+				Clock.schedule_once(self.on_ok, 0)
+				return
+			self.ids.menu.ok = self.ok
 
 
 class DialogLayout(FloatLayout):
@@ -165,7 +177,7 @@ class DialogLayout(FloatLayout):
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
-		self.dialog = Dialog()
+		self.dialog = Dialog(ok=self._trigger_ok)
 
 	def on_engine(self, *args):
 		todo = self.engine.universal.get('last_result')
