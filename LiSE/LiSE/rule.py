@@ -108,6 +108,9 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 		super().__init__()
 		self.rule = rule
 
+	def __repr__(self):
+		return f"<class 'LiSE.rule.{self.__class__.__name__}' [{', '.join(self._get())}]>"
+
 	def _nominate(self, v):
 		if callable(v):
 			self._funcstore(v)
