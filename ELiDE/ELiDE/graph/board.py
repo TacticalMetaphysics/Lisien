@@ -888,8 +888,8 @@ class GraphBoard(RelativeLayout):
 					label_kwargs
 				})
 			if key == edge.get('_label_stat'):
-				self.arrow_plane.update_portal_label(edge.origin.name,
-														edge.destination.name,
+				self.arrow_plane.update_portal_label(edge._origin,
+														edge._destination,
 														str(value))
 		else:
 			self.arrow_plane.remove_edge(edge._origin,
