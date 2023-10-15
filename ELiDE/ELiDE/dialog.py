@@ -171,9 +171,10 @@ class DialogLayout(FloatLayout):
 	dialog = ObjectProperty()
 	engine = ObjectProperty()
 	todo = ListProperty()
-	idx = NumericProperty()
+	idx = NumericProperty(0)
 	usermod = StringProperty('user')
 	userpkg = StringProperty(None, allownone=True)
+	after_ok = ObjectProperty()
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -200,11 +201,13 @@ class DialogLayout(FloatLayout):
 		lidx = self.engine.universal.get('last_result_idx')
 		if lidx is not None and lidx != self.idx:
 			self.engine.universal['last_result_idx'] = self.idx
+		Logger.debug(f"DialogLayout.idx = {self.idx}")
 
 	def advance_dialog(self, *args):
 		"""Try to display the next dialog described in my ``todo``."""
 		self.clear_widgets()
 		try:
+			Logger.debug(f"About to update dialog at idx = {self.idx}")
 			self._update_dialog(self.todo[self.idx])
 		except IndexError:
 			pass
@@ -264,7 +267,8 @@ class DialogLayout(FloatLayout):
 		if cb:
 			cb()
 		self.idx += 1
-		self.advance_dialog()
+		if self.after_ok is not None:
+			self.after_ok()
 
 	def _trigger_ok(self, *args, cb=None):
 		part = partial(self.ok, cb=cb)
