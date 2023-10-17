@@ -1149,8 +1149,10 @@ class Engine(AbstractEngine, gORM):
 				res = trigger(entity)
 				if res:
 					todo[prio, rulebook].append((rule, handled_fun, entity))
+					return True
 			else:
 				handled_fun(self.tick)
+				return False
 
 		def check_prereqs(rule, handled_fun, entity):
 			if not entity:
