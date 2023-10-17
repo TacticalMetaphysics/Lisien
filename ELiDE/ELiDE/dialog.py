@@ -68,8 +68,6 @@ class DialogMenu(Box):
 	"""
 	options = ListProperty()
 	"""List of pairs of (button_text, callable)"""
-	ok = ObjectProperty()
-	"""Callable to close the DialogMenu"""
 
 	def _set_sv_size(self, *args):
 		self._sv.width = self.width - self.padding[0] - self.padding[2]
@@ -94,7 +92,7 @@ class DialogMenu(Box):
 				raise TypeError("Menu options must be callable")
 			layout.add_widget(
 				Button(text=txt,
-						on_release=partial(self.ok, cb=part),
+						on_release=part,
 						font_name=self.font_name,
 						font_size=self.font_size))
 
@@ -110,7 +108,6 @@ class Dialog(BoxLayout):
 	"""
 	message_kwargs = DictProperty({})
 	menu_kwargs = DictProperty({})
-	ok = ObjectProperty()
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -139,15 +136,6 @@ class Dialog(BoxLayout):
 			'atlas://data/images/defaulttheme/vkeyboard_background')
 		for k, v in kw.items():
 			setattr(self.ids.menu, k, v)
-		if self.ok is not None:
-			self.ids.menu.ok = self.ok
-
-	def on_ok(self, *args):
-		if self.ok is not None:
-			if 'menu' not in self.ids:
-				Clock.schedule_once(self.on_ok, 0)
-				return
-			self.ids.menu.ok = self.ok
 
 
 class DialogLayout(FloatLayout):
@@ -171,14 +159,12 @@ class DialogLayout(FloatLayout):
 	dialog = ObjectProperty()
 	engine = ObjectProperty()
 	todo = ListProperty()
-	idx = NumericProperty(0)
 	usermod = StringProperty('user')
 	userpkg = StringProperty(None, allownone=True)
-	after_ok = ObjectProperty()
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
-		self.dialog = Dialog(ok=self._trigger_ok)
+		self.dialog = Dialog()
 
 	def on_engine(self, *args):
 		todo = self.engine.universal.get('last_result')
@@ -203,16 +189,22 @@ class DialogLayout(FloatLayout):
 			self.engine.universal['last_result_idx'] = self.idx
 		Logger.debug(f"DialogLayout.idx = {self.idx}")
 
-	def advance_dialog(self, *args):
-		"""Try to display the next dialog described in my ``todo``."""
+	def advance_dialog(self, after_ok=None, *args):
+		"""Try to display the next dialog described in my ``todo``.
+
+		:param after_ok: An optional callable. Will be called after the user clicks
+		a dialog option--as well as after any game-specific code for that option
+		has run.
+
+		"""
 		self.clear_widgets()
 		try:
-			Logger.debug(f"About to update dialog at idx = {self.idx}")
-			self._update_dialog(self.todo[self.idx])
+			Logger.debug(f"About to update dialog: {self.todo[0]}")
+			self._update_dialog(self.todo.pop(0), after_ok)
 		except IndexError:
-			pass
+			after_ok()
 
-	def _update_dialog(self, diargs, **kwargs):
+	def _update_dialog(self, diargs, after_ok, **kwargs):
 		if diargs is None:
 			Logger.debug("DialogLayout: null dialog")
 			return
@@ -225,13 +217,13 @@ class DialogLayout(FloatLayout):
 		# Simple text dialogs just tell the player something and let them click OK
 		if isinstance(diargs, str):
 			dia.message_kwargs = {'text': diargs}
-			dia.menu_kwargs = {'options': [('OK', self._trigger_ok)]}
+			dia.menu_kwargs = {'options': [('OK', partial(self.ok, cb2=after_ok))]}
 		# List dialogs are for when you need the player to make a choice and don't care much
 		# about presentation
 		elif isinstance(diargs, list):
 			dia.message_kwargs = {'text': 'Select from the following:'}
 			dia.menu_kwargs = {
-				'options': list(map(self._munge_menu_option, diargs))
+				'options': list(map(partial(self._munge_menu_option, after_ok), diargs))
 			}
 		# For real control of the dialog, you need a pair of dicts --
 		# the 0th describes the message shown to the player, the 1th
@@ -249,11 +241,11 @@ class DialogLayout(FloatLayout):
 				raise TypeError("Message must be dict or str")
 			if isinstance(mnukwargs, dict):
 				mnukwargs['options'] = list(
-					map(self._munge_menu_option, mnukwargs['options']))
+					map(partial(self._munge_menu_option, after_ok), mnukwargs['options']))
 				dia.menu_kwargs = mnukwargs
 			elif isinstance(mnukwargs, (list, tuple)):
 				dia.menu_kwargs['options'] = list(
-					map(self._munge_menu_option, mnukwargs))
+					map(partial(self._munge_menu_option, after_ok), mnukwargs))
 			else:
 				raise TypeError("Menu must be dict or list")
 		else:
@@ -261,20 +253,13 @@ class DialogLayout(FloatLayout):
 				type(diargs)))
 		self.add_widget(dia)
 
-	def ok(self, *args, cb=None):
-		"""Clear dialog widgets, call ``cb`` if provided, and advance the dialog queue"""
+	def ok(self, *args, cb=None, cb2=None):
+		"""Clear dialog widgets, call ``cb``s if provided, and advance the dialog queue"""
 		self.clear_widgets()
 		if cb:
 			cb()
-		self.idx += 1
-		if self.after_ok is not None:
-			self.after_ok()
-
-	def _trigger_ok(self, *args, cb=None):
-		part = partial(self.ok, cb=cb)
-		if hasattr(self, '_scheduled_ok'):
-			Clock.unschedule(self._scheduled_ok)
-		self._scheduled_ok = Clock.schedule_once(part)
+		if cb2:
+			cb2()
 
 	def _lookup_func(self, funcname):
 		from importlib import import_module
@@ -282,14 +267,14 @@ class DialogLayout(FloatLayout):
 			self._usermod = import_module(self.usermod, self.userpkg)
 		return getattr(self.usermod, funcname)
 
-	def _munge_menu_option(self, option):
+	def _munge_menu_option(self, after_ok, option):
 		if not isinstance(option, tuple):
 			raise TypeError
 		name, func = option
 		if func is None:
-			return name, self._trigger_ok
+			return name, partial(self.ok, cb2=after_ok)
 		if callable(func):
-			return name, partial(self._trigger_ok, cb=func)
+			return name, partial(self.ok, cb=func, cb2=after_ok)
 		if isinstance(func, tuple):
 			fun = func[0]
 			if isinstance(fun, str):
@@ -302,7 +287,7 @@ class DialogLayout(FloatLayout):
 				func = partial(fun, *args)
 		if isinstance(func, str):
 			func = self._lookup_func(func)
-		return name, partial(self._trigger_ok, cb=func)
+		return name, partial(self.ok, cb=func, cb2=after_ok)
 
 
 Builder.load_string("""
