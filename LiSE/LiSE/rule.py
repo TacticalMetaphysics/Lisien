@@ -354,6 +354,14 @@ class Rule(object):
 		"""Arrange to be triggered every turn"""
 		self.triggers = [self.engine.trigger.truth]
 
+	def once(self):
+		"""Disconnect the triggers when I've run successfully once"""
+		disco_str = f"""
+		@self.action
+		def _disconnect_{self.name}(obj):
+			obj.engine.rule['{self.name}'].triggers = []"""
+		exec(disco_str, globals(), locals())
+
 
 class RuleBook(MutableSequence, Signal):
 	"""A list of rules to be followed for some Character, or a part of it
@@ -541,7 +549,7 @@ class RuleMapping(MutableMapping, Signal):
 		else:
 			self.rulebook.append(v)
 
-	def __call__(self, v=None, name=None, always=False):
+	def __call__(self, v=None, name=None, always=False, once=False):
 
 		def wrap(name, always, v):
 			name = name if name is not None else v.__name__
@@ -549,6 +557,8 @@ class RuleMapping(MutableMapping, Signal):
 			r = self[name]
 			if always:
 				r.always()
+			if once:
+				r.once()
 			return r
 
 		if v is None:
@@ -724,7 +734,7 @@ class AllRules(MutableMapping, Signal):
 		del self._cache[k]
 		self.send(self, key=k, rule=None)
 
-	def __call__(self, v=None, name=None, always=False):
+	def __call__(self, v=None, name=None, always=False, once=False):
 		if v is None:
 
 			def r(f):
@@ -734,7 +744,9 @@ class AllRules(MutableMapping, Signal):
 				self[name] = f
 				ret = self[name]
 				if always:
-					ret.triggers.append('truth')
+					ret.always()
+				if once:
+					ret.once()
 				return ret
 
 			return r
