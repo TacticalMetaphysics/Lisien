@@ -90,11 +90,14 @@ class DialogMenu(Box):
 		for txt, part in self.options:
 			if not callable(part):
 				raise TypeError("Menu options must be callable")
-			layout.add_widget(
-				Button(text=txt,
-						on_release=part,
-						font_name=self.font_name,
-						font_size=self.font_size))
+			butn = Button(text=txt,
+							on_release=part,
+							font_name=self.font_name,
+							font_size=self.font_size,
+							valign='center',
+							halign='center')
+			butn.bind(size=butn.setter('text_size'))
+			layout.add_widget(butn)
 
 
 class Dialog(BoxLayout):
@@ -217,13 +220,16 @@ class DialogLayout(FloatLayout):
 		# Simple text dialogs just tell the player something and let them click OK
 		if isinstance(diargs, str):
 			dia.message_kwargs = {'text': diargs}
-			dia.menu_kwargs = {'options': [('OK', partial(self.ok, cb2=after_ok))]}
+			dia.menu_kwargs = {
+				'options': [('OK', partial(self.ok, cb2=after_ok))]
+			}
 		# List dialogs are for when you need the player to make a choice and don't care much
 		# about presentation
 		elif isinstance(diargs, list):
 			dia.message_kwargs = {'text': 'Select from the following:'}
 			dia.menu_kwargs = {
-				'options': list(map(partial(self._munge_menu_option, after_ok), diargs))
+				'options':
+				list(map(partial(self._munge_menu_option, after_ok), diargs))
 			}
 		# For real control of the dialog, you need a pair of dicts --
 		# the 0th describes the message shown to the player, the 1th
@@ -241,7 +247,8 @@ class DialogLayout(FloatLayout):
 				raise TypeError("Message must be dict or str")
 			if isinstance(mnukwargs, dict):
 				mnukwargs['options'] = list(
-					map(partial(self._munge_menu_option, after_ok), mnukwargs['options']))
+					map(partial(self._munge_menu_option, after_ok),
+						mnukwargs['options']))
 				dia.menu_kwargs = mnukwargs
 			elif isinstance(mnukwargs, (list, tuple)):
 				dia.menu_kwargs['options'] = list(
