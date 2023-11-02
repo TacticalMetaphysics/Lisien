@@ -454,7 +454,7 @@ class PortalProxy(CachingEntityProxy):
 			elif k not in self._cache or self._cache[k] != v:
 				self._cache[k] = v
 				self.send(self, key=k, value=v)
-				self.character.portal.send(self, key=k, value=None)
+				self.character.portal.send(self, key=k, value=v)
 
 	def _get_default_rulebook_name(self):
 		return self._charname, self._origin, self._destination
@@ -793,7 +793,8 @@ class SuccessorsProxy(CachingProxy):
 
 	def _get_state(self):
 		return {
-			node: self._cache[node] if node in self._cache else PortalProxy(
+			node:
+			self._cache[node] if node in self._cache else PortalProxy(
 				self.engine, self._charname, self._orig, node)
 			for node in self.engine.handle(command='node_successors',
 											char=self._charname,
@@ -2495,12 +2496,14 @@ class EngineProxy(AbstractEngine):
 		if not isinstance(data, dict):
 			# it's a networkx graph
 			data = {
-				'place':
-				{k: v
-					for k, v in data._node.items() if 'location' not in v},
-				'thing':
-				{k: v
-					for k, v in data._node.items() if 'location' in v},
+				'place': {
+					k: v
+					for k, v in data._node.items() if 'location' not in v
+				},
+				'thing': {
+					k: v
+					for k, v in data._node.items() if 'location' in v
+				},
 				'edge': data._adj
 			}
 		self._char_cache[char] = character = CharacterProxy(self, char)
