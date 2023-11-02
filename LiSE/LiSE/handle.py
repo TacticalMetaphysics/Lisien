@@ -335,11 +335,15 @@ class EngineHandle(object):
 				},
 			}
 			if (char, ) in kf['graph_val']:
-				char_d.update(kf['graph_val'][char, ])
+				char_d.update(kf['graph_val'][
+					char,
+				])
 			if (char, ) in kf['nodes']:
 				char_d['nodes'] = {
 					node: ex
-					for (node, ex) in kf['nodes'][char, ].items() if ex
+					for (node, ex) in kf['nodes'][
+						char,
+					].items() if ex
 				}
 		for (char, node), val in kf['node_val'].items():
 			ret.setdefault(char, {}).setdefault('node_val', {})[node] = val
@@ -651,8 +655,8 @@ class EngineHandle(object):
 												turn, tick)
 			else:
 				if (turn, tick) < (turn_from, tick_from) or (
-					self._real._enforce_end_of_time and (turn, tick) >
-					(turn_to, tick_to)):
+					self._real._enforce_end_of_time and
+					(turn, tick) > (turn_to, tick_to)):
 					raise OutOfTimelineError("Out of bounds",
 												*self._real._btt(), branch,
 												turn, tick)
@@ -813,7 +817,8 @@ class EngineHandle(object):
 			raise KeyError("no such character")
 		pack = self.pack
 		return {
-			pack(k): pack(v.unwrap()) if hasattr(v, 'unwrap')
+			pack(k):
+			pack(v.unwrap()) if hasattr(v, 'unwrap')
 			and not hasattr(v, 'no_unwrap') else pack(v)
 			for (k, v) in self._real.character[char].stat.items()
 		}
@@ -878,7 +883,8 @@ class EngineHandle(object):
 		noden = node
 		node = self._real.character[char].node[noden]
 		ret = {
-			pack(k): pack(v.unwrap()) if hasattr(v, 'unwrap')
+			pack(k):
+			pack(v.unwrap()) if hasattr(v, 'unwrap')
 			and not hasattr(v, 'no_unwrap') else pack(v)
 			for (k, v) in node.items() if k not in
 			{'character', 'name', 'arrival_time', 'next_arrival_time'}
@@ -1089,7 +1095,8 @@ class EngineHandle(object):
 		if (branch, turn, tick) != origtime:
 			self._real._set_btt(branch, turn, tick)
 		ret = {
-			pack(k): pack(v.unwrap())
+			pack(k):
+			pack(v.unwrap())
 			if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
 			for (
 				k, v) in self._real.character[char].portal[orig][dest].items()
@@ -1339,9 +1346,10 @@ class EngineHandle(object):
 		if store not in self._real.stores:
 			raise ValueError("{} is not a function store".format(store))
 		callme = getattr(store, func)
+		res = callme(*args, **kwargs)
 		_, turn_now, tick_now = self._real._btt()
-		return callme(*args, **kwargs), self._real.get_delta(
-			branch, turn, tick, turn_now, tick_now)
+		delta = self._real.get_delta(branch, turn, tick, turn_now, tick_now)
+		return res, delta
 
 	def call_randomizer(self, method: str, *args, **kwargs) -> Any:
 		return getattr(self._real._rando, method)(*args, **kwargs)
