@@ -1036,9 +1036,10 @@ class ORM:
 										tick: int, nodes: NodeValDict,
 										edges: EdgeValDict,
 										graph_val: StatDict) -> None:
-		self._nodes_cache.keyframe[graph, ][branch].store_at(
-			turn, tick, {node: True
-							for node in nodes})
+		self._nodes_cache.keyframe[
+			graph,
+		][branch].store_at(turn, tick, {node: True
+										for node in nodes})
 		nvck = self._node_val_cache.keyframe
 		for node, vals in nodes.items():
 			nvck[graph, node][branch].store_at(turn, tick, vals)
@@ -1051,7 +1052,9 @@ class ORM:
 				edges_keyframe_branch_d.store_at(turn, tick, {0: True})
 				assert edges_keyframe_branch_d[turn][tick][0]
 				edge_val_keyframe_branch_d.store_at(turn, tick, vals)
-		gvkb = self._graph_val_cache.keyframe[graph, ][branch]
+		gvkb = self._graph_val_cache.keyframe[
+			graph,
+		][branch]
 		gvkb.store_at(turn, tick, graph_val)
 
 	def _alias_kf(self, branch_from, branch_to, turn, tick):
@@ -1168,13 +1171,15 @@ class ORM:
 				edge_val_keyframe[graph] = {orig: {dest: val}}
 		for graph in self.graph.keys():
 			try:
-				nodes_keyframe[graph] = self._nodes_cache.keyframe[graph, ][
-					then[0]].retrieve_exact(then[1], then[2]).copy()
+				nodes_keyframe[graph] = self._nodes_cache.keyframe[
+					graph,
+				][then[0]].retrieve_exact(then[1], then[2]).copy()
 			except KeyError:
 				nodes_keyframe[graph] = {}
 			try:
 				graph_val_keyframe[graph] = self._graph_val_cache.keyframe[
-					graph, ][then[0]].retrieve_exact(then[1], then[2]).copy()
+					graph,
+				][then[0]].retrieve_exact(then[1], then[2]).copy()
 			except KeyError:
 				graph_val_keyframe[graph] = {}
 			# apply the delta to the keyframes, then save the keyframes back
@@ -1202,7 +1207,9 @@ class ORM:
 				if graph not in node_val_keyframe:
 					node_val_keyframe[graph] = {}
 				nvkg = node_val_keyframe[graph]
-				nckg = self._nodes_cache.keyframe[graph, ]
+				nckg = self._nodes_cache.keyframe[
+					graph,
+				]
 				nckg[now[0]].store_at(now[1], now[2], nodes_keyframe[graph])
 				for node, ex in nodes_keyframe[graph].items():
 					if ex and node not in nvkg:
@@ -1282,7 +1289,8 @@ class ORM:
 					if 'units' in graph_val_keyframe[
 						graph] and 'units' in deltg:
 						graph_val_keyframe[graph]['units'] = {
-							ggraph: frozenset(
+							ggraph:
+							frozenset(
 								unit for unit in graph_val_keyframe[graph]
 								['units'][ggraph]
 								if deltg.get(ggraph, {}).get(unit, True))
@@ -1293,7 +1301,9 @@ class ORM:
 				else:
 					graph_val_keyframe[graph] = deltg
 			if graph in graph_val_keyframe:
-				gvckg = self._graph_val_cache.keyframe[graph, ]
+				gvckg = self._graph_val_cache.keyframe[
+					graph,
+				]
 				gvckg[now[0]].store_at(now[1], now[2],
 										graph_val_keyframe[graph])
 			for when in whens:
