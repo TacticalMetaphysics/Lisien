@@ -22,7 +22,7 @@ import os
 import shutil
 import tempfile
 
-pytestmark = [pytest.mark.slow]
+pytestmark = [pytest.mark.slow, pytest.mark.big]
 
 
 @pytest.fixture(scope='module')

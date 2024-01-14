@@ -1,8 +1,10 @@
+import pytest
 from LiSE.examples.polygons import install
 from LiSE import Engine
 
 
 # TODO: use a test sim that does everything in every cache
+@pytest.mark.big
 def test_resume(tempdir):
 	with Engine(tempdir, keyframe_on_close=False) as eng:
 		install(eng)

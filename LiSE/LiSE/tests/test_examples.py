@@ -5,6 +5,8 @@ from LiSE import Engine
 from LiSE.handle import EngineHandle
 from LiSE.examples import college, kobold, polygons, sickle, wolfsheep
 
+pytestmark = [pytest.mark.big]
+
 
 @pytest.mark.slow
 def test_college(engy):
