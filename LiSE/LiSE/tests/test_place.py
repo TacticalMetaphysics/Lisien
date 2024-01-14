@@ -91,3 +91,16 @@ def test_deletion_after_keyframe(engy):
 		engy.next_turn()
 	assert (5, 5) not in phys.place
 	assert (5, 5) not in list(phys.place)
+
+
+def test_clear(engy):
+	phys = engy.new_character('physical')
+	place = phys.new_place('here')
+	place['a'] = 1
+	place['b'] = 2
+	assert place['a'] == 1
+	assert place['b'] == 2
+	place.clear()
+	assert 'a' not in place
+	with pytest.raises(KeyError):
+		print(place['b'])
