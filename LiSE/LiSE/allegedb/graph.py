@@ -55,35 +55,6 @@ class AllegedMapping(MutableMappingUnwrapper, ABC):
 	"""Common amenities for mappings"""
 	__slots__ = ()
 
-	def connect(self, func):
-		"""Arrange to call this function whenever something changes here.
-
-		The arguments will be this object, the key changed, and the value set.
-
-		"""
-		l = _alleged_receivers[id(self)]
-		if func not in l:
-			l.append(func)
-
-	def disconnect(self, func):
-		"""No longer call the function when something changes here."""
-		if id(self) not in _alleged_receivers:
-			return
-		l = _alleged_receivers[id(self)]
-		try:
-			l.remove(func)
-		except ValueError:
-			return
-		if not l:
-			del _alleged_receivers[id(self)]
-
-	def send(self, sender, **kwargs):
-		"""Internal. Call connected functions."""
-		if id(self) not in _alleged_receivers:
-			return
-		for func in _alleged_receivers[id(self)]:
-			func(sender, **kwargs)
-
 	def clear(self):
 		"""Delete everything"""
 		for k in list(self.keys()):
@@ -162,13 +133,11 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 		except KeyError:
 			self._set_cache(key, branch, turn, tick, value)
 		self._set_db(key, branch, turn, tick, value)
-		self.send(self, key=key, value=value)
 
 	def __delitem__(self, key):
 		branch, turn, tick = self.db._nbtt()
 		self._del_cache(key, branch, turn, tick)
 		self._del_db(key, branch, turn, tick)
-		self.send(self, key=key, value=None)
 
 
 class GraphMapping(AbstractEntityMapping):
@@ -245,7 +214,8 @@ class GraphMapping(AbstractEntityMapping):
 
 	def unwrap(self):
 		return {
-			k: v.unwrap()
+			k:
+			v.unwrap()
 			if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
 			for (k, v) in self.items()
 		}
@@ -458,8 +428,6 @@ class GraphNodeMapping(AllegedMapping):
 		n = db._get_node(graph, node)
 		n.clear()
 		n.update(dikt)
-		if created:
-			self.send(self, node_name=node, exists=True)
 
 	def __delitem__(self, node):
 		"""Indicate that the given node no longer exists"""
@@ -477,7 +445,6 @@ class GraphNodeMapping(AllegedMapping):
 		key = (self.graph.name, node)
 		if node in self.db._node_objs:
 			del self.db._node_objs[key]
-		self.send(self, node_name=node, exists=False)
 
 
 class GraphEdgeMapping(AllegedMapping):
@@ -580,8 +547,6 @@ class AbstractSuccessors(GraphEdgeMapping):
 		e = self[real_dest]
 		e.clear()
 		e.update(value)
-		if created:
-			self.send(self, orig=orig, dest=dest, idx=0, exists=True)
 
 	def __delitem__(self, dest):
 		"""Remove the edge between my orig and the given dest"""
@@ -591,7 +556,6 @@ class AbstractSuccessors(GraphEdgeMapping):
 									tick, False)
 		self.db._edges_cache.store(self.graph.name, orig, dest, 0, branch,
 									turn, tick, None)
-		self.send(self, orig=orig, dest=dest, idx=0, exists=False)
 
 	def __repr__(self):
 		cls = self.__class__
@@ -637,14 +601,11 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 			created = True
 		if val:
 			sucs.update(val)
-		if created:
-			self.send(self, key=key, val=val)
 
 	def __delitem__(self, key):
 		"""Wipe out edges emanating from orig"""
 		self[key].clear()
 		del self._cache[key]
-		self.send(self, key=key, val=None)
 
 	def __iter__(self):
 		return iter(self.graph.node)
@@ -659,8 +620,10 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 		cls = self.__class__
 		return "<{}.{} object containing {}>".format(
 			cls.__module__, cls.__name__, {
-				k: {k2: dict(v2)
-					for (k2, v2) in v.items()}
+				k: {
+					k2: dict(v2)
+					for (k2, v2) in v.items()
+				}
 				for (k, v) in self.items()
 			})
 
@@ -704,15 +667,12 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 		preds = self._cache[key]
 		preds.clear()
 		preds.update(val)
-		if created:
-			self.send(self, key=key, val=val)
 
 	def __delitem__(self, key):
 		"""Delete all edges ending at ``dest``"""
 		it = self[key]
 		it.clear()
 		del self._cache[key]
-		self.send(self, key=key, val=None)
 
 	def __iter__(self):
 		return iter(self.graph.node)
@@ -771,7 +731,6 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 			e.update(value)
 			self.db._edges_cache.store(self.graph.name, orig, self.dest, 0,
 										branch, turn, tick, True)
-			self.send(self, key=orig, val=value)
 
 		def __delitem__(self, orig):
 			"""Unset the existence of the edge from the given node to mine"""
@@ -783,7 +742,6 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 					self.db._edges_cache.store(self.graph.name, orig,
 												self.dest, idx, branch, turn,
 												tick, False)
-					self.send(self, key=orig, val=None)
 					return
 				else:
 					raise KeyError("No edges from {}".format(orig))
@@ -791,7 +749,6 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 										branch, turn, tick, False)
 			self.db._edges_cache.store(self.graph.name, orig, self.dest, 0,
 										branch, turn, tick, None)
-			self.send(self, key=orig, val=None)
 
 
 def unwrapped_dict(d):

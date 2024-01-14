@@ -196,13 +196,12 @@ class Portal(Edge, RuleFollower):
 			del self.engine._edge_objs[(self.graph.name, self.orig, self.dest)]
 		except KeyError:
 			pass
-		self.character.portal[self.origin.name].send(
-			self.character.portal[self.origin.name], key='dest', val=None)
 
 	def unwrap(self) -> dict:
 		"""Return a dictionary representation of this entity"""
 		return {
-			k: v.unwrap()
+			k:
+			v.unwrap()
 			if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
 			for (k, v) in self.items()
 		}

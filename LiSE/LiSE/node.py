@@ -367,11 +367,9 @@ class Node(graph.Node, rule.RuleFollower):
 
 	def __setitem__(self, k, v):
 		super().__setitem__(k, v)
-		self.send(self, key=k, val=v)
 
 	def __delitem__(self, k):
 		super().__delitem__(k)
-		self.send(self, key=k, val=None)
 
 	def successors(self) -> Iterator["Place"]:
 		"""Iterate over nodes with edges leading from here to there."""
@@ -573,7 +571,6 @@ class Thing(Node):
 
 	def _set_loc(self, loc: Optional[Key]):
 		self.engine._set_thing_loc(self.character.name, self.name, loc)
-		self.send(self, key='location', val=loc)
 
 	_getitem_dispatch = {'name': _getname, 'location': _getloc}
 
