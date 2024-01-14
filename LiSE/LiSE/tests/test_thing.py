@@ -73,3 +73,14 @@ def test_travel(engy):
 	engy.turn = 14
 	assert thing1.location == phys.place[7, 7]
 	assert thing2.location == phys.place[0, 7]
+	assert thing1.next_location is None
+	assert thing2.next_location is None
+	thing1.go_to_place(phys.place[6, 7])
+	thing2.go_to_place(phys.place[1, 7])
+	assert thing1.next_location == phys.place[6, 7]
+	assert thing2.next_location == phys.place[1, 7]
+	engy.turn = 15
+	assert thing1.location == phys.place[6, 7]
+	assert thing1.next_location is None
+	assert thing2.location == phys.place[1, 7]
+	assert thing2.next_location is None
