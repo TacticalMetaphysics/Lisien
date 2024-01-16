@@ -205,7 +205,8 @@ class DialogLayout(FloatLayout):
 			Logger.debug(f"About to update dialog: {self.todo[0]}")
 			self._update_dialog(self.todo.pop(0), after_ok)
 		except IndexError:
-			after_ok()
+			if after_ok is not None:
+				after_ok()
 
 	def _update_dialog(self, diargs, after_ok, **kwargs):
 		if diargs is None:
