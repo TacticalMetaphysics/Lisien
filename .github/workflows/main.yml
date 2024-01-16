@@ -1,0 +1,17 @@
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  tests311:
+    name: python 3.11 tests
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: |
+          python -m pip install -r test_requirements.txt
+          pytest .
