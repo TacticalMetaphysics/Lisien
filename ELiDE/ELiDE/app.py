@@ -59,7 +59,7 @@ class ELiDEApp(App):
 	"""
 	title = 'ELiDE'
 
-	engine = None
+	engine = ObjectProperty()
 	branch = StringProperty('trunk')
 	turn = NumericProperty(0)
 	tick = NumericProperty(0)
