@@ -372,6 +372,7 @@ class AbstractEngine(ABC):
 				packer([
 					exc.__class__.__name__,
 					Traceback(exc.__traceback__).to_dict()
+					if hasattr(exc, "__traceback__") else None
 				] + list(exc.args)))
 		}
 
@@ -457,7 +458,8 @@ class AbstractEngine(ABC):
 			if data[0] not in excs:
 				return Exception(*data)
 			ret = excs[data[0]](*data[2:])
-			ret.__traceback__ = Traceback.from_dict(data[1]).to_traceback()
+			if data[1] is not None:
+				ret.__traceback__ = Traceback.from_dict(data[1]).to_traceback()
 			return ret
 
 		def unpack_char(ext):
