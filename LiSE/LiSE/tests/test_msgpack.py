@@ -40,3 +40,16 @@ def test_serialize_function(tempdir):
 	funcprox = engprox.function.foo
 	assert funcprox("foo", "bar") == "foobar is correct"
 	procm.shutdown()
+
+
+def test_serialize_method(tempdir):
+	with Engine(tempdir, random_seed=69105, enforce_end_of_time=False) as eng:
+
+		@eng.method
+		def foo(self, bar: str, bas: str) -> str:
+			return bar + bas + " is correct"
+
+	procm = EngineProcessManager()
+	engprox = procm.start(tempdir)
+	assert engprox.foo("bar", "bas") == "barbas is correct"
+	procm.shutdown()
