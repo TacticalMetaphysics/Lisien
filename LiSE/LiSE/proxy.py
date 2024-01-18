@@ -1869,7 +1869,7 @@ class FuncProxy(object):
 										kwargs=kwargs,
 										cb=partial(
 											self.store.engine._upd_and_cb,
-											cb=cb))
+											cb=cb))[0]
 
 	def __str__(self):
 		return self.store._cache[self.func]
