@@ -60,9 +60,6 @@ class MsgpackExtensionType(Enum):
 	final_rule = 0x7b
 	function = 0x7a
 	method = 0x79
-	trigger = 0x78
-	prereq = 0x77
-	action = 0x76
 
 
 class get_rando:
@@ -325,9 +322,19 @@ class AbstractEngine(ABC):
 	block, in which deserialized entities will be created as needed.
 
 	"""
+	portal_cls: type
+	thing_cls: type
+	place_cls: type
+	portal_cls: type
+	char_cls: type
 
 	@cached_property
 	def pack(self):
+		try:
+			from lise_ormsgpack import packb
+			return packb
+		except ImportError:
+			pass
 		handlers = {
 			self.char_cls:
 			lambda char: msgpack.ExtType(MsgpackExtensionType.character.value,
@@ -400,9 +407,6 @@ class AbstractEngine(ABC):
 		place_cls = self.place_cls
 		thing_cls = self.thing_cls
 		portal_cls = self.portal_cls
-		trigger = self.trigger
-		prereq = self.prereq
-		action = self.action
 		function = self.function
 		method = self.method
 		excs = {
@@ -522,12 +526,6 @@ class AbstractEngine(ABC):
 			lambda ext: frozenset(unpacker(ext)),
 			MsgpackExtensionType.set.value:
 			lambda ext: set(unpacker(ext)),
-			MsgpackExtensionType.trigger.value:
-			lambda ext: getattr(trigger, unpacker(ext)),
-			MsgpackExtensionType.prereq.value:
-			lambda ext: getattr(prereq, unpacker(ext)),
-			MsgpackExtensionType.action.value:
-			lambda ext: getattr(action, unpacker(ext)),
 			MsgpackExtensionType.function.value:
 			lambda ext: getattr(function, unpacker(ext)),
 			MsgpackExtensionType.method.value:
