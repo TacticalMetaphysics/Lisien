@@ -26,7 +26,7 @@ def windd():
 
 def test_keys(windd):
 	keys = windd.keys()
-	windd.seek(50)
+	windd._seek(50)
 	assert list(range(100)) == list(keys)
 	for i in range(100):
 		assert i in windd
@@ -42,7 +42,7 @@ def test_items(windd):
 
 def test_past(windd):
 	assert list(reversed(range(100))) == list(windd.past())
-	windd.seek(50)
+	windd._seek(50)
 	assert list(reversed(range(51))) == list(windd.past())
 	unseen = testdata[51:]
 	seen = testdata[:51]
@@ -64,11 +64,11 @@ def test_past(windd):
 
 def test_future(windd):
 	assert [] == list(windd.future())
-	windd.seek(-1)
+	windd._seek(-1)
 	assert list(range(100)) == list(windd.future())
 	for item in testdata:
 		assert item in windd.future().items()
-	windd.seek(50)
+	windd._seek(50)
 	assert list(range(51, 100)) == list(windd.future())
 	unseen = testdata[51:]
 	seen = testdata[:51]
