@@ -194,5 +194,7 @@ def sickle_cell_test(engine,
 
 
 if __name__ == '__main__':
-	with Engine(random_seed=69106, clear=True) as engine:
-		sickle_cell_test(engine)
+	import tempfile
+	with tempfile.TemporaryDirectory() as d:
+		with Engine(d, random_seed=69106, clear=True) as engine:
+			sickle_cell_test(engine)

@@ -235,17 +235,19 @@ class Cache:
 		self.time_entity = {}
 		self._kc_lru = OrderedDict()
 		self._lock = Lock()
-		self._store_stuff = (self._lock, self.parents, self.branches, self.keys,
-								db.delete_plan, db._time_plan,
+		self._store_stuff = (self._lock, self.parents, self.branches,
+								self.keys, db.delete_plan, db._time_plan,
 								self._iter_future_contradictions, db._branches,
 								db._turn_end, self._store_journal,
 								self.time_entity, db._where_cached,
 								self.keycache, db, self._update_keycache)
-		self._remove_stuff = (self.time_entity, self.parents, self.branches,
+		self._remove_stuff = (self._lock, self.time_entity, self.parents,
+								self.branches, self.keys, self.settings,
+								self.presettings, self._remove_keycache,
+								self.keycache)
+		self._truncate_stuff = (self._lock, self.parents, self.branches,
 								self.keys, self.settings, self.presettings,
 								self._remove_keycache, self.keycache)
-		self._truncate_stuff = (self.parents, self.branches, self.keys,
-								self.settings, self.presettings, self.keycache)
 		self._store_journal_stuff: Tuple[PickyDefaultDict, PickyDefaultDict,
 											callable] = (
 												self.settings,
@@ -564,8 +566,8 @@ class Cache:
 			if planning:
 				if turn in turns and tick < turns[turn].end:
 					raise HistoricKeyError(
-						"Already have some ticks after {} in turn {} of branch {}".
-						format(tick, turn, branch))
+						"Already have some ticks after {} in turn {} of branch {}"
+						.format(tick, turn, branch))
 			if contra:
 				contras = list(
 					self_iter_future_contradictions(entity, key, turns, branch,
@@ -573,9 +575,11 @@ class Cache:
 				if contras:
 					self.shallowest = OrderedDict()
 				for contra_turn, contra_tick in contras:
-					if (branch, contra_turn, contra_tick
-						) in time_plan:  # could've been deleted in this very loop
-						delete_plan(time_plan[branch, contra_turn, contra_tick])
+					if (
+						branch, contra_turn, contra_tick
+					) in time_plan:  # could've been deleted in this very loop
+						delete_plan(time_plan[branch, contra_turn,
+												contra_tick])
 				if not turns:  # turns may be mutated in delete_plan
 					branches[branch] = turns
 				if parentikey not in self_branches:
@@ -611,11 +615,11 @@ class Cache:
 				thiskeycache.truncate(turn)
 				if not thiskeycache:
 					del keycache[keycache_key]
-			if not db._no_kc:
-				update_keycache(*args, forward=forward)
+		if not db._no_kc:
+			update_keycache(*args, forward=forward)
 
 	def remove_character(self, character):
-		(time_entity, parents, branches, keys, settings, presettings,
+		(lock, time_entity, parents, branches, keys, settings, presettings,
 			remove_keycache, keycache) = self._remove_stuff
 		todel = {(branch, turn, tick, parent, entity, key)
 					for ((branch, turn, tick), (parent, entity,
@@ -623,29 +627,34 @@ class Cache:
 					if (parent and parent[0] == character) or (
 						not parent and entity == character)}
 		todel_shallow = {k for k in self.shallowest if k[0] == character}
-		for k in todel_shallow:
-			del self.shallowest[k]
-		for (branch, turn, tick, parent, entity, key) in todel:
-			self._remove_btt_parentikey(branch, turn, tick, parent, entity,
-										key)
+		with lock:
+			for k in todel_shallow:
+				del self.shallowest[k]
+			for (branch, turn, tick, parent, entity, key) in todel:
+				self._remove_btt_parentikey(branch, turn, tick, parent, entity,
+											key)
 
 	def remove_branch(self, branch: str):
-		(time_entity, parents, branches, keys, settings, presettings,
+		(lock, time_entity, parents, branches, keys, settings, presettings,
 			remove_keycache, keycache) = self._remove_stuff
 		todel = {(branc, turn, tick, parent, entity, key)
 					for ((branc, turn, tick), (parent, entity,
 												key)) in time_entity.items()
 					if branc == branch}
 		todel_shallow = {k for k in self.shallowest if k[-2] == branch}
-		for k in todel_shallow:
-			del self.shallowest[k]
-		for branc, turn, tick, parent, entity, key in todel:
-			self._remove_btt_parentikey(branc, turn, tick, parent, entity, key)
-			if (*parent, entity, key, branc, turn, tick) in self.shallowest:
-				del self.shallowest[(*parent, entity, key, branc, turn, tick)]
+		with lock:
+			for k in todel_shallow:
+				del self.shallowest[k]
+			for branc, turn, tick, parent, entity, key in todel:
+				self._remove_btt_parentikey(branc, turn, tick, parent, entity,
+											key)
+				if (*parent, entity, key, branc, turn,
+					tick) in self.shallowest:
+					del self.shallowest[(*parent, entity, key, branc, turn,
+											tick)]
 
 	def _remove_btt_parentikey(self, branch, turn, tick, parent, entity, key):
-		(time_entity, parents, branches, keys, settings, presettings,
+		(_, time_entity, parents, branches, keys, settings, presettings,
 			remove_keycache, keycache) = self._remove_stuff
 		try:
 			del time_entity[branch][turn][tick]
@@ -686,80 +695,81 @@ class Cache:
 
 	def remove(self, branch: str, turn: int, tick: int):
 		"""Delete all data from a specific tick"""
-		(time_entity, parents, branches, keys, settings, presettings,
+		(lock, time_entity, parents, branches, keys, settings, presettings,
 			remove_keycache, keycache) = self._remove_stuff
 		parent, entity, key = time_entity[branch, turn, tick]
 		branchkey = parent + (entity, key)
 		keykey = parent + (entity, )
-		if parent in parents:
-			parentt = parents[parent]
-			if entity in parentt:
-				entty = parentt[entity]
-				if key in entty:
-					kee = entty[key]
-					if branch in kee:
-						branhc = kee[branch]
-						if turn in branhc:
-							trn = branhc[turn]
-							del trn[tick]
-							if not trn:
-								del branhc[turn]
-							if not branhc:
-								del kee[branch]
-					if not kee:
-						del entty[key]
-				if not entty:
-					del parentt[entity]
-			if not parentt:
-				del parents[parent]
-		if branchkey in branches:
-			entty = branches[branchkey]
-			if branch in entty:
-				branhc = entty[branch]
-				if turn in branhc:
-					trn = branhc[turn]
-					if tick in trn:
-						del trn[tick]
-					if not trn:
-						del branhc[turn]
-				if not branhc:
-					del entty[branch]
-			if not entty:
-				del branches[branchkey]
-		if keykey in keys:
-			entty = keys[keykey]
-			if key in entty:
-				kee = entty[key]
-				if branch in kee:
-					branhc = kee[branch]
+		with lock:
+			if parent in parents:
+				parentt = parents[parent]
+				if entity in parentt:
+					entty = parentt[entity]
+					if key in entty:
+						kee = entty[key]
+						if branch in kee:
+							branhc = kee[branch]
+							if turn in branhc:
+								trn = branhc[turn]
+								del trn[tick]
+								if not trn:
+									del branhc[turn]
+								if not branhc:
+									del kee[branch]
+						if not kee:
+							del entty[key]
+					if not entty:
+						del parentt[entity]
+				if not parentt:
+					del parents[parent]
+			if branchkey in branches:
+				entty = branches[branchkey]
+				if branch in entty:
+					branhc = entty[branch]
 					if turn in branhc:
-						trn = entty[turn]
+						trn = branhc[turn]
 						if tick in trn:
 							del trn[tick]
 						if not trn:
 							del branhc[turn]
 					if not branhc:
-						del kee[branch]
-				if not kee:
-					del entty[key]
-			if not entty:
-				del keys[keykey]
-		branhc = settings[branch]
-		pbranhc = presettings[branch]
-		trn = branhc[turn]
-		ptrn = pbranhc[turn]
-		if tick in trn:
-			del trn[tick]
-		if tick in ptrn:
-			del ptrn[tick]
-		if not ptrn:
-			del pbranhc[turn]
-			del branhc[turn]
-		if not pbranhc:
-			del settings[branch]
-			del presettings[branch]
-		self.shallowest = OrderedDict()
-		remove_keycache(parent + (entity, branch), turn, tick)
+						del entty[branch]
+				if not entty:
+					del branches[branchkey]
+			if keykey in keys:
+				entty = keys[keykey]
+				if key in entty:
+					kee = entty[key]
+					if branch in kee:
+						branhc = kee[branch]
+						if turn in branhc:
+							trn = entty[turn]
+							if tick in trn:
+								del trn[tick]
+							if not trn:
+								del branhc[turn]
+						if not branhc:
+							del kee[branch]
+					if not kee:
+						del entty[key]
+				if not entty:
+					del keys[keykey]
+			branhc = settings[branch]
+			pbranhc = presettings[branch]
+			trn = branhc[turn]
+			ptrn = pbranhc[turn]
+			if tick in trn:
+				del trn[tick]
+			if tick in ptrn:
+				del ptrn[tick]
+			if not ptrn:
+				del pbranhc[turn]
+				del branhc[turn]
+			if not pbranhc:
+				del settings[branch]
+				del presettings[branch]
+			self.shallowest = OrderedDict()
+			remove_keycache(parent + (entity, branch), turn, tick)
 
 	def _remove_keycache(self, entity_branch: tuple, turn: int, tick: int):
 		"""Remove the future of a given entity from a branch in the keycache"""
@@ -780,7 +790,7 @@ class Cache:
 	def truncate(self, branch: str, turn: int, tick: int, direction='forward'):
 		if direction not in {'forward', 'backward'}:
 			raise ValueError("Illegal direction")
-		(parents, branches, keys, settings, presettings,
+		(lock, parents, branches, keys, settings, presettings,
 			keycache) = self._truncate_stuff
 
 		def truncate_branhc(branhc):
@@ -793,27 +803,28 @@ class Cache:
 			else:
 				branhc.truncate(turn, direction)
 
-		for entities in parents.values():
-			for keys in entities.values():
+		with lock:
+			for entities in parents.values():
+				for keys in entities.values():
+					for branches in keys.values():
+						if branch not in branches:
+							continue
+						truncate_branhc(branches[branch])
+			for branches in branches.values():
+				if branch not in branches:
+					continue
+				truncate_branhc(branches[branch])
+			for keys in keys.values():
 				for branches in keys.values():
 					if branch not in branches:
 						continue
 					truncate_branhc(branches[branch])
-		for branches in branches.values():
-			if branch not in branches:
-				continue
-			truncate_branhc(branches[branch])
-		for keys in keys.values():
-			for branches in keys.values():
-				if branch not in branches:
-					continue
-				truncate_branhc(branches[branch])
-		truncate_branhc(settings[branch])
-		truncate_branhc(presettings[branch])
-		self.shallowest = OrderedDict()
-		for entity_branch in keycache:
-			if entity_branch[-1] == branch:
-				truncate_branhc(keycache[entity_branch])
+			truncate_branhc(settings[branch])
+			truncate_branhc(presettings[branch])
+			self.shallowest = OrderedDict()
+			for entity_branch in keycache:
+				if entity_branch[-1] == branch:
+					truncate_branhc(keycache[entity_branch])
 
 	@staticmethod
 	def _iter_future_contradictions(entity: Hashable, key: Hashable,
