@@ -19,6 +19,7 @@ from typing import Tuple, Hashable, Optional
 from .window import WindowDict, HistoricKeyError, FuturistWindowDict, \
  TurnDict, SettingsTurnDict
 from collections import OrderedDict, defaultdict, deque
+from threading import Lock
 
 
 class NotInKeyframeError(KeyError):
@@ -187,7 +188,7 @@ class Cache:
 					'settings', 'presettings', 'time_entity', '_kc_lru',
 					'_store_stuff', '_remove_stuff', '_truncate_stuff',
 					'setdb', 'deldb', 'keyframe', 'name',
-					'_store_journal_stuff')
+					'_store_journal_stuff', '_lock')
 
 	def __init__(self, db, kfkvs=None):
 		super().__init__()
@@ -249,6 +250,7 @@ class Cache:
 												self.settings,
 												self.presettings,
 												self._base_retrieve)
+		self._lock = Lock()
 
 	def load(self, data):
 		"""Add a bunch of data. Must be in chronological order.
@@ -301,93 +303,95 @@ class Cache:
 		If I can't, generate one, store it, and return it.
 
 		"""
-		keycache_key = parentity + (branch, )
-		keycache2 = keycache3 = None
-		if keycache_key in keycache:
-			keycache2 = keycache[keycache_key]
-			if turn in keycache2:
-				keycache3 = keycache2[turn]
-				if tick in keycache3:
-					return keycache3[tick]
-		if forward:
-			# Take valid values from the past of a keycache and copy them
-			# forward, into the present. Assumes that time is only moving
-			# forward, never backward, never skipping any turns or ticks,
-			# and any changes to the world state are happening through
-			# allegedb proper, meaning they'll all get cached. In LiSE this
-			# means every change to the world state should happen inside of
-			# a call to ``Engine.next_turn`` in a rule.
-			if keycache2 and keycache2.rev_gettable(turn):
-				# there's a keycache from a prior turn in this branch. Get it
-				if turn not in keycache2:
-					# since it's not this *exact* turn, there might be changes
-					old_turn = keycache2.rev_before(turn)
-					old_turn_kc = keycache2[turn]
-					added, deleted = get_adds_dels(
-						parentity,
-						branch,
-						turn,
-						tick,
-						stoptime=(branch, old_turn, old_turn_kc.end),
-						cache=keys)
-					try:
-						ret = old_turn_kc.final().union(added).difference(
-							deleted)
-					except KeyError:
-						ret = frozenset()
-					# assert ret == get_adds_dels(
-					# keys[parentity], branch, turn, tick)[0]  # slow
-					new_turn_kc = WindowDict()
-					new_turn_kc[tick] = ret
-					keycache2[turn] = new_turn_kc
-					return ret
-				if not keycache3:
+		with self._lock:
+			keycache_key = parentity + (branch, )
+			keycache2 = keycache3 = None
+			if keycache_key in keycache:
+				keycache2 = keycache[keycache_key]
+				if turn in keycache2:
 					keycache3 = keycache2[turn]
-				if tick not in keycache3:
-					if keycache3.rev_gettable(tick):
+					if tick in keycache3:
+						return keycache3[tick]
+			if forward:
+				# Take valid values from the past of a keycache and copy them
+				# forward, into the present. Assumes that time is only moving
+				# forward, never backward, never skipping any turns or ticks,
+				# and any changes to the world state are happening through
+				# allegedb proper, meaning they'll all get cached. In LiSE this
+				# means every change to the world state should happen inside of
+				# a call to ``Engine.next_turn`` in a rule.
+				if keycache2 and keycache2.rev_gettable(turn):
+					# there's a keycache from a prior turn in this branch. Get it
+					if turn not in keycache2:
+						# since it's not this *exact* turn, there might be changes
+						old_turn = keycache2.rev_before(turn)
+						old_turn_kc = keycache2[turn]
 						added, deleted = get_adds_dels(
 							parentity,
 							branch,
 							turn,
 							tick,
-							stoptime=(branch, turn,
-										keycache3.rev_before(tick)),
+							stoptime=(branch, old_turn, old_turn_kc.end),
 							cache=keys)
-						ret = keycache3[tick].union(added).difference(deleted)
+						try:
+							ret = old_turn_kc.final().union(added).difference(
+								deleted)
+						except KeyError:
+							ret = frozenset()
 						# assert ret == get_adds_dels(
 						# keys[parentity], branch, turn, tick)[0]  # slow
-						keycache3[tick] = ret
+						new_turn_kc = WindowDict()
+						new_turn_kc[tick] = ret
+						keycache2[turn] = new_turn_kc
 						return ret
-					else:
-						turn_before = keycache2.rev_before(turn)
-						tick_before = keycache2[turn_before].end
-						keys_before = keycache2[turn_before][tick_before]
-						added, deleted = get_adds_dels(
-							parentity,
-							branch,
-							turn,
-							tick,
-							stoptime=(branch, turn_before, tick_before),
-							cache=keys)
-						ret = keycache3[tick] = keys_before.union(
-							added).difference(deleted)
-						# assert ret == get_adds_dels(
-						# keys[parentity], branch, turn, tick)[0]  # slow
-						return ret
-				# assert kcturn[tick] == get_adds_dels(
-				# keys[parentity], branch, turn, tick)[0]  # slow
-				return keycache3[tick]
-		ret = frozenset(get_adds_dels(parentity, branch, turn, tick)[0])
-		if keycache2:
-			if keycache3:
-				keycache3[tick] = ret
+					if not keycache3:
+						keycache3 = keycache2[turn]
+					if tick not in keycache3:
+						if keycache3.rev_gettable(tick):
+							added, deleted = get_adds_dels(
+								parentity,
+								branch,
+								turn,
+								tick,
+								stoptime=(branch, turn,
+											keycache3.rev_before(tick)),
+								cache=keys)
+							ret = keycache3[tick].union(added).difference(
+								deleted)
+							# assert ret == get_adds_dels(
+							# keys[parentity], branch, turn, tick)[0]  # slow
+							keycache3[tick] = ret
+							return ret
+						else:
+							turn_before = keycache2.rev_before(turn)
+							tick_before = keycache2[turn_before].end
+							keys_before = keycache2[turn_before][tick_before]
+							added, deleted = get_adds_dels(
+								parentity,
+								branch,
+								turn,
+								tick,
+								stoptime=(branch, turn_before, tick_before),
+								cache=keys)
+							ret = keycache3[tick] = keys_before.union(
+								added).difference(deleted)
+							# assert ret == get_adds_dels(
+							# keys[parentity], branch, turn, tick)[0]  # slow
+							return ret
+					# assert kcturn[tick] == get_adds_dels(
+					# keys[parentity], branch, turn, tick)[0]  # slow
+					return keycache3[tick]
+			ret = frozenset(get_adds_dels(parentity, branch, turn, tick)[0])
+			if keycache2:
+				if keycache3:
+					keycache3[tick] = ret
+				else:
+					keycache2[turn] = {tick: ret}
 			else:
-				keycache2[turn] = {tick: ret}
-		else:
-			kcc = SettingsTurnDict()
-			kcc[turn] = {tick: ret}
-			keycache[keycache_key] = kcc
-		return ret
+				kcc = SettingsTurnDict()
+				kcc[turn] = {tick: ret}
+				keycache[keycache_key] = kcc
+			return ret
 
 	def _get_keycache(self, parentity: tuple, branch: str, turn: int,
 						tick: int, *, forward: bool):
