@@ -630,7 +630,7 @@ class WindowDict(MutableMapping):
 		return item in self._keys
 
 	def __len__(self) -> int:
-		return len(self._past) + len(self._future)
+		return len(self._keys)
 
 	def __getitem__(self, rev: int) -> Any:
 		if isinstance(rev, slice):
