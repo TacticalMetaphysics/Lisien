@@ -331,7 +331,8 @@ class Cache:
 						stoptime=(branch, old_turn, old_turn_kc.end),
 						cache=keys)
 					try:
-						ret = old_turn_kc.final().union(added).difference(deleted)
+						ret = old_turn_kc.final().union(added).difference(
+							deleted)
 					except KeyError:
 						ret = frozenset()
 					# assert ret == get_adds_dels(
@@ -551,7 +552,9 @@ class Cache:
 				turns = branches[branch]
 			else:
 				branches = self_branches[entikey]
-				self_keys[entity, ][key] = branches
+				self_keys[
+					entity,
+				][key] = branches
 				turns = branches[branch]
 		if planning:
 			if turn in turns and tick < turns[turn].end:
@@ -916,8 +919,8 @@ class Cache:
 						if b in keyframes and keyframes[b].rev_gettable(r - 1):
 							kfb = keyframes[b]
 							if kfb.rev_before(r - 1) is not None and (
-								brancs.rev_before(r - 1) <
-								kfb.rev_before(r - 1)):
+								brancs.rev_before(r - 1)
+								< kfb.rev_before(r - 1)):
 								kfbr = kfb[r - 1]
 								kf = kfbr.final()
 								if key in kf:
