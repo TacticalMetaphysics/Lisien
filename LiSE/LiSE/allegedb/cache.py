@@ -303,15 +303,15 @@ class Cache:
 		If I can't, generate one, store it, and return it.
 
 		"""
+		keycache_key = parentity + (branch, )
+		keycache2 = keycache3 = None
+		if keycache_key in keycache:
+			keycache2 = keycache[keycache_key]
+			if turn in keycache2:
+				keycache3 = keycache2[turn]
+				if tick in keycache3:
+					return keycache3[tick]
 		with self._lock:
-			keycache_key = parentity + (branch, )
-			keycache2 = keycache3 = None
-			if keycache_key in keycache:
-				keycache2 = keycache[keycache_key]
-				if turn in keycache2:
-					keycache3 = keycache2[turn]
-					if tick in keycache3:
-						return keycache3[tick]
 			if forward:
 				# Take valid values from the past of a keycache and copy them
 				# forward, into the present. Assumes that time is only moving
