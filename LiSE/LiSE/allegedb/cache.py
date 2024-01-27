@@ -330,7 +330,10 @@ class Cache:
 						tick,
 						stoptime=(branch, old_turn, old_turn_kc.end),
 						cache=keys)
-					ret = old_turn_kc.final().union(added).difference(deleted)
+					try:
+						ret = old_turn_kc.final().union(added).difference(deleted)
+					except KeyError:
+						ret = frozenset()
 					# assert ret == get_adds_dels(
 					# keys[parentity], branch, turn, tick)[0]  # slow
 					new_turn_kc = WindowDict()
