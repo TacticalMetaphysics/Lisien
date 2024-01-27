@@ -234,7 +234,8 @@ class Cache:
 		"""The values prior to ``entity[key] = value`` settings on some turn"""
 		self.time_entity = {}
 		self._kc_lru = OrderedDict()
-		self._store_stuff = (self.parents, self.branches, self.keys,
+		self._lock = Lock()
+		self._store_stuff = (self._lock, self.parents, self.branches, self.keys,
 								db.delete_plan, db._time_plan,
 								self._iter_future_contradictions, db._branches,
 								db._turn_end, self._store_journal,
@@ -250,7 +251,6 @@ class Cache:
 												self.settings,
 												self.presettings,
 												self._base_retrieve)
-		self._lock = Lock()
 
 	def load(self, data):
 		"""Add a bunch of data. Must be in chronological order.
@@ -524,7 +524,7 @@ class Cache:
 		of the ends of branches and turns.
 
 		"""
-		(self_parents, self_branches, self_keys, delete_plan, time_plan,
+		(lock, self_parents, self_branches, self_keys, delete_plan, time_plan,
 			self_iter_future_contradictions, db_branches, db_turn_end,
 			self_store_journal, self_time_entity, db_where_cached, keycache,
 			db, update_keycache) = self._store_stuff
@@ -541,77 +541,78 @@ class Cache:
 		parent = args[:-6]
 		entikey = (entity, key)
 		parentikey = parent + (entity, key)
-		if parent:
-			parentity = self_parents[parent][entity]
-			if key in parentity:
-				branches = parentity[key]
-				turns = branches[branch]
+		with lock:
+			if parent:
+				parentity = self_parents[parent][entity]
+				if key in parentity:
+					branches = parentity[key]
+					turns = branches[branch]
+				else:
+					branches = self_branches[parentikey] = self_keys[
+						parent + (entity, )][key] = parentity[key]
+					turns = branches[branch]
 			else:
-				branches = self_branches[parentikey] = self_keys[
-					parent + (entity, )][key] = parentity[key]
-				turns = branches[branch]
-		else:
-			if entikey in self_branches:
-				branches = self_branches[entikey]
-				turns = branches[branch]
+				if entikey in self_branches:
+					branches = self_branches[entikey]
+					turns = branches[branch]
+				else:
+					branches = self_branches[entikey]
+					self_keys[
+						entity,
+					][key] = branches
+					turns = branches[branch]
+			if planning:
+				if turn in turns and tick < turns[turn].end:
+					raise HistoricKeyError(
+						"Already have some ticks after {} in turn {} of branch {}".
+						format(tick, turn, branch))
+			if contra:
+				contras = list(
+					self_iter_future_contradictions(entity, key, turns, branch,
+													turn, tick, value))
+				if contras:
+					self.shallowest = OrderedDict()
+				for contra_turn, contra_tick in contras:
+					if (branch, contra_turn, contra_tick
+						) in time_plan:  # could've been deleted in this very loop
+						delete_plan(time_plan[branch, contra_turn, contra_tick])
+				if not turns:  # turns may be mutated in delete_plan
+					branches[branch] = turns
+				if parentikey not in self_branches:
+					self_branches[parentikey] = branches
+			if not loading and not planning:
+				parbranch, turn_start, tick_start, turn_end, tick_end = db_branches[
+					branch]
+				if (turn, tick) > (turn_end, tick_end):
+					db_branches[
+						branch] = parbranch, turn_start, tick_start, turn, tick
+				if tick > db_turn_end[branch, turn]:
+					db_turn_end[branch, turn] = tick
+			self_store_journal(*args)
+			self.shallowest[parent + (entity, key, branch, turn, tick)] = value
+			if turn in turns:
+				the_turn = turns[turn]
+				the_turn.truncate(tick)
+				the_turn[tick] = value
 			else:
-				branches = self_branches[entikey]
-				self_keys[
-					entity,
-				][key] = branches
-				turns = branches[branch]
-		if planning:
-			if turn in turns and tick < turns[turn].end:
-				raise HistoricKeyError(
-					"Already have some ticks after {} in turn {} of branch {}".
-					format(tick, turn, branch))
-		if contra:
-			contras = list(
-				self_iter_future_contradictions(entity, key, turns, branch,
-												turn, tick, value))
-			if contras:
-				self.shallowest = OrderedDict()
-			for contra_turn, contra_tick in contras:
-				if (branch, contra_turn, contra_tick
-					) in time_plan:  # could've been deleted in this very loop
-					delete_plan(time_plan[branch, contra_turn, contra_tick])
-			if not turns:  # turns may be mutated in delete_plan
-				branches[branch] = turns
-			if parentikey not in self_branches:
-				self_branches[parentikey] = branches
-		if not loading and not planning:
-			parbranch, turn_start, tick_start, turn_end, tick_end = db_branches[
-				branch]
-			if (turn, tick) > (turn_end, tick_end):
-				db_branches[
-					branch] = parbranch, turn_start, tick_start, turn, tick
-			if tick > db_turn_end[branch, turn]:
-				db_turn_end[branch, turn] = tick
-		self_store_journal(*args)
-		self.shallowest[parent + (entity, key, branch, turn, tick)] = value
-		if turn in turns:
-			the_turn = turns[turn]
-			the_turn.truncate(tick)
-			the_turn[tick] = value
-		else:
-			new = FuturistWindowDict()
-			new[tick] = value
-			turns[turn] = new
-		self_time_entity[branch, turn, tick] = parent, entity, key
-		where_cached = db_where_cached[args[-4:-1]]
-		if self not in where_cached:
-			where_cached.append(self)
-		# if we're editing the past, have to invalidate the keycache
-		keycache_key = parent + (entity, branch)
-		if keycache_key in keycache:
-			thiskeycache = keycache[keycache_key]
-			if turn in thiskeycache:
-				del thiskeycache[turn]
-			thiskeycache.truncate(turn)
-			if not thiskeycache:
-				del keycache[keycache_key]
-		if not db._no_kc:
-			update_keycache(*args, forward=forward)
+				new = FuturistWindowDict()
+				new[tick] = value
+				turns[turn] = new
+			self_time_entity[branch, turn, tick] = parent, entity, key
+			where_cached = db_where_cached[args[-4:-1]]
+			if self not in where_cached:
+				where_cached.append(self)
+			# if we're editing the past, have to invalidate the keycache
+			keycache_key = parent + (entity, branch)
+			if keycache_key in keycache:
+				thiskeycache = keycache[keycache_key]
+				if turn in thiskeycache:
+					del thiskeycache[turn]
+				thiskeycache.truncate(turn)
+				if not thiskeycache:
+					del keycache[keycache_key]
+			if not db._no_kc:
+				update_keycache(*args, forward=forward)
 
 	def remove_character(self, character):
 		(time_entity, parents, branches, keys, settings, presettings,
