@@ -19,7 +19,7 @@ from typing import Tuple, Hashable, Optional
 from .window import WindowDict, HistoricKeyError, FuturistWindowDict, \
  TurnDict, SettingsTurnDict
 from collections import OrderedDict, defaultdict, deque
-from threading import Lock
+from threading import RLock
 
 
 class NotInKeyframeError(KeyError):
@@ -234,7 +234,7 @@ class Cache:
 		"""The values prior to ``entity[key] = value`` settings on some turn"""
 		self.time_entity = {}
 		self._kc_lru = OrderedDict()
-		self._lock = Lock()
+		self._lock = RLock()
 		self._store_stuff = (self._lock, self.parents, self.branches,
 								self.keys, db.delete_plan, db._time_plan,
 								self._iter_future_contradictions, db._branches,
@@ -575,6 +575,12 @@ class Cache:
 													turn, tick, value))
 				if contras:
 					self.shallowest = OrderedDict()
+				for contra_turn, contra_tick in contras:
+					if (
+						branch, contra_turn, contra_tick
+					) in time_plan:  # could've been deleted in this very loop
+						delete_plan(time_plan[branch, contra_turn,
+												contra_tick])
 				if not turns:  # turns may be mutated in delete_plan
 					branches[branch] = turns
 				if parentikey not in self_branches:
@@ -610,13 +616,8 @@ class Cache:
 				thiskeycache.truncate(turn)
 				if not thiskeycache:
 					del keycache[keycache_key]
-
-		for contra_turn, contra_tick in contras:
-			if (branch, contra_turn, contra_tick
-				) in time_plan:  # could've been deleted in this very loop
-				delete_plan(time_plan[branch, contra_turn, contra_tick])
-		if not db._no_kc:
-			update_keycache(*args, forward=forward)
+			if not db._no_kc:
+				update_keycache(*args, forward=forward)
 
 	def remove_character(self, character):
 		(lock, time_entity, parents, branches, keys, settings, presettings,
