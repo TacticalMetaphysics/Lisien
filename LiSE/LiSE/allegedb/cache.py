@@ -246,8 +246,7 @@ class Cache:
 								self.presettings, self._remove_keycache,
 								self.keycache)
 		self._truncate_stuff = (self._lock, self.parents, self.branches,
-								self.keys, self.settings, self.presettings,
-								self._remove_keycache, self.keycache)
+								self.keys, self.settings, self.presettings, self.keycache)
 		self._store_journal_stuff: Tuple[PickyDefaultDict, PickyDefaultDict,
 											callable] = (
 												self.settings,
@@ -791,8 +790,7 @@ class Cache:
 	def truncate(self, branch: str, turn: int, tick: int, direction='forward'):
 		if direction not in {'forward', 'backward'}:
 			raise ValueError("Illegal direction")
-		(lock, parents, branches, keys, settings, presettings,
-			keycache) = self._truncate_stuff
+		(lock, parents, branches, keys, settings, presettings, keycache) = self._truncate_stuff
 
 		def truncate_branhc(branhc):
 			if turn in branhc:
