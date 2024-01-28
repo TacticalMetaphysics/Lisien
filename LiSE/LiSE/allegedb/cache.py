@@ -543,6 +543,7 @@ class Cache:
 		parent = args[:-6]
 		entikey = (entity, key)
 		parentikey = parent + (entity, key)
+		contras = []
 		with lock:
 			if parent:
 				parentity = self_parents[parent][entity]
@@ -574,12 +575,6 @@ class Cache:
 													turn, tick, value))
 				if contras:
 					self.shallowest = OrderedDict()
-				for contra_turn, contra_tick in contras:
-					if (
-						branch, contra_turn, contra_tick
-					) in time_plan:  # could've been deleted in this very loop
-						delete_plan(time_plan[branch, contra_turn,
-												contra_tick])
 				if not turns:  # turns may be mutated in delete_plan
 					branches[branch] = turns
 				if parentikey not in self_branches:
@@ -615,6 +610,11 @@ class Cache:
 				thiskeycache.truncate(turn)
 				if not thiskeycache:
 					del keycache[keycache_key]
+
+		for contra_turn, contra_tick in contras:
+			if (branch, contra_turn, contra_tick
+				) in time_plan:  # could've been deleted in this very loop
+				delete_plan(time_plan[branch, contra_turn, contra_tick])
 		if not db._no_kc:
 			update_keycache(*args, forward=forward)
 
