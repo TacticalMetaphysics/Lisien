@@ -301,29 +301,6 @@ class RulesHandledCache(object):
 		except ValueError:
 			pass
 
-	def fork(self, branch, turn, tick):
-		parent_branch, parent_turn, parent_tick, end_turn, end_tick = self.engine._branches[
-			branch]
-		unhandl = self.unhandled
-		handl = self.handled
-		rbcache = self.engine._rulebooks_cache
-		unhandrr = self.unhandled_rulebook_rules
-		getrb = self.get_rulebook
-		for entity in unhandl:
-			rulebook = getrb(*entity + (branch, turn, tick))
-			if entity + (rulebook, branch, turn) in handl:
-				raise HistoricKeyError(
-					"Tried to fork history in a RulesHandledCache, "
-					"but it seems like rules have already been run where we're "
-					"forking to")
-			rules = set(rbcache.retrieve(rulebook, branch, turn, tick))
-			unhandled_rules = unhandrr(entity, rulebook, parent_branch,
-										parent_turn, tick)
-			unhandled_rules_set = set(unhandled_rules)
-			handl[entity + (rulebook, branch,
-							turn)] = rules.difference(unhandled_rules_set)
-			unhandl[entity][rulebook][branch][turn] = unhandled_rules
-
 	def retrieve(self, *args):
 		return self.handled[args]
 
@@ -686,43 +663,13 @@ class NodeContentsCache(Cache):
 		return self.db._things_cache._iter_future_contradictions(
 			entity, key, turns, branch, turn, tick, value)
 
-	def slow_iter_contents(self, character, place, branch, turn, tick):
-		branch_now, turn_now, tick_now = self.db._btt()
-		self.db.time = branch, turn
-		self.db.tick = tick
-		for thing in self.db.character[character].thing.values():
-			if thing['location'] == place:
-				yield thing.name
-		self.db.time = branch_now, turn_now
-		self.db.tick = tick_now
-
 	def remove(self, branch, turn, tick):
 		"""Delete data on or after this tick
 
 		On the assumption that the future has been invalidated.
 
 		"""
-		for parent, entitys in list(self.parents.items()):
-			for entity, keys in list(entitys.items()):
-				for key, branchs in list(keys.items()):
-					if branch in branchs:
-						branhc = branchs[branch]
-						if turn in branhc:
-							trun = branhc[turn]
-							if tick in trun:
-								del trun[tick]
-							trun.truncate(tick)
-							if not trun:
-								del branhc[turn]
-						branhc.truncate(turn)
-						if not branhc:
-							del branchs[branch]
-					if not branchs:
-						del keys[key]
-				if not keys:
-					del entitys[entity]
-			if not entitys:
-				del self.parents[parent]
+		assert not self.parents  # not how stuff is stored in this cache
 		for branchkey, branches in list(self.branches.items()):
 			if branch in branches:
 				branhc = branches[branch]
@@ -792,56 +739,3 @@ class NodeContentsCache(Cache):
 				if not kc:
 					del self.keycache[entity, brnch]
 		self.shallowest = OrderedDict()
-
-	def truncate_loc(self, character, location, branch, turn, tick):
-		"""Remove future data about a particular location
-
-		Return True if I deleted anything, False otherwise.
-
-		"""
-		r = False
-		branches_turns = self.branches[character, location][branch]
-		branches_turns.truncate(turn)
-		if turn in branches_turns:
-			bttrn = branches_turns[turn]
-			if bttrn.future(tick):
-				bttrn.truncate(tick)
-				r = True
-		keyses = self.keys[character, location]
-		for keysbranches in keyses.values():
-			if branch not in keysbranches:
-				continue
-			keysbranch = keysbranches[branch]
-			if keysbranch.future(turn):
-				keysbranch.truncate(turn)
-				r = True
-			if turn in keysbranch:
-				keysbranchturn = keysbranch[turn]
-				if keysbranchturn.future(tick):
-					keysbranchturn.truncate(tick)
-					r = True
-		if branch in self.settings:
-			for sets in (self.settings, self.presettings):
-				sets_branch = sets[branch]
-				if turn in sets_branch:
-					sets_turn = sets_branch[turn]
-					for tic, setting in list(sets_turn.future(tick).items()):
-						if setting[:2] == (character, location):
-							del sets_turn[tic]
-							r = True
-					if not sets_turn:
-						del sets_branch[turn]
-						assert r, "Found an empty cache when I didn't delete anything"
-				for trn, tics in list(sets_branch.future(turn).items()):
-					for tic, setting in list(tics.future(tick).items()):
-						if setting[:2] == (character, location):
-							del tics[tic]
-							r = True
-					if not tics:
-						del sets_branch[trn]
-						assert r, "Found an empty cache when I didn't delete anything"
-				if not sets_branch:
-					del sets[branch]
-					assert r, "Found an empty cache when I didn't delete anything"
-		self.shallowest = OrderedDict()
-		return r
