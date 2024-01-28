@@ -660,7 +660,7 @@ class ThingsCache(Cache):
 											node_contents_cache.retrieve(
 												character, location, branch,
 												trn, tck).union({thing}),
-											planning=False,
+											planning=planning,
 											contra=False,
 											loading=True)
 
