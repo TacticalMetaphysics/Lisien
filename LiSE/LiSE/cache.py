@@ -519,7 +519,8 @@ class NodeRulesHandledCache(RulesHandledCache):
 			(character, node)
 			for (_, (character, node)) in (
 				{(None, (character, node))
-					for character in charm for node in charm[character].node}
+					for character in charm
+					for node in charm[character].node}
 				& self.engine._rulebooks_cache.branches.keys())
 		}
 		for (character, node) in (nodes_with_rulebook_changed
@@ -750,7 +751,7 @@ class NodeContentsCache(Cache):
 							del branhc[turn]
 					branhc.truncate(turn)
 					if not branhc:
-						del branches[branch]
+						del branchs[branch]
 				if not branchs:
 					del keys[key]
 			if not keys:
