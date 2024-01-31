@@ -637,7 +637,7 @@ class ThingsCache(Cache):
 											node_contents_cache.retrieve(
 												character, location, branch,
 												trn, tck).union({thing}),
-											planning=planning,
+											planning=False,
 											contra=False,
 											loading=True)
 
