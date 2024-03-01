@@ -560,6 +560,14 @@ class RuleMapping(MutableMapping, Signal):
 		del self.rulebook[i]
 		self.send(self, key=k, val=None)
 
+	@property
+	def priority(self):
+		return self.rulebook.priority
+
+	@priority.setter
+	def priority(self, v: float):
+		self.rulebook.priority = v
+
 
 class RuleFollower(ABC):
 	"""Interface for that which has a rulebook associated, which you can

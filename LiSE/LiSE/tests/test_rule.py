@@ -149,3 +149,31 @@ def test_portal_dot_rule(engy):
 	port = character.new_portal(0, 1)
 	rule = something_dot_rule_test(port, engy)
 	assert port.rulebook[0] == rule
+
+
+def test_rule_priority(engy):
+	"""Test that rules run in the order given in their priorities"""
+	firstchar = engy.new_character('first')
+	secondchar = engy.new_character('second')
+	engy.universal['list'] = []
+
+	@firstchar.rule(always=True)
+	def first(ch):
+		ch.engine.universal['list'].append('first')
+
+	@secondchar.rule(always=True)
+	def second(ch):
+		ch.engine.universal['list'].append('second')
+
+	firstchar.rule.priority = 1
+	secondchar.rule.priority = 2
+
+	engy.next_turn()
+
+	assert engy.universal['list'] == ['first', 'second']
+
+	firstchar.rule.priority = 3
+
+	engy.next_turn()
+
+	assert engy.universal['list'] == ['first', 'second', 'second', 'first']
