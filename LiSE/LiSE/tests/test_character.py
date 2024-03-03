@@ -269,3 +269,26 @@ def test_facade(character_updates):
 		for d in character.edge[o]:
 			end_edge.setdefault(o, {})[d] = dict(character.edge[o][d])
 	assert start_edge == end_edge
+
+
+def test_set_rulebook(engy):
+	engy.universal['list'] = []
+	ch = engy.new_character('physical')
+
+	@ch.rule(always=True)
+	def rule0(cha):
+		cha.engine.universal['list'].append(0)
+
+	@engy.rule(always=True)
+	def rule1(who):
+		who.engine.universal['list'].append(1)
+
+	engy.rulebook['rb1'] = [rule1]
+	engy.next_turn()
+	assert engy.universal['list'] == [0]
+	ch.rulebook = 'rb1'
+	engy.next_turn()
+	assert engy.universal['list'] == [0, 1]
+	ch.rulebook = engy.rulebook['physical', 'character']
+	engy.next_turn()
+	assert engy.universal['list'] == [0, 1, 0]
