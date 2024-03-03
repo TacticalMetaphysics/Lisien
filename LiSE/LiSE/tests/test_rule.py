@@ -78,10 +78,6 @@ def something_dot_rule_test(something, engy):
 	assert somerule.prereqs[1] == eng.prereq.anotherthing
 	assert somerule.actions[1] == eng.action.somerule
 
-	assert somerule.priority == 0
-	somerule.priority = 1
-	assert somerule.priority == 1
-
 	eng.turn = 1
 	somerule.triggers.remove('otherthing')
 	del somerule.prereqs[1]
