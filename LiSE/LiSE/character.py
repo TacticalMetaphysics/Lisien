@@ -1505,18 +1505,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 	def portals(self):
 		"""Iterate over all portals."""
-		chara = self.character
-		charn = self.character.name
-		make_edge = self.engine._get_edge
-		edges_cache = self.engine._edges_cache
-		now = self.engine._btt()
-		for (char, orig, dest) in edges_cache.keys:
-			if char == charn:
-				try:
-					edges_cache.retrieve(char, orig, dest, *now)
-					yield make_edge(chara, orig, dest)
-				except KeyError:
-					continue
+		for o in self.adj.values():
+			yield from o.values()
 
 	def units(self):
 		"""Iterate over all my units

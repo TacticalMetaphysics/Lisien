@@ -292,3 +292,16 @@ def test_set_rulebook(engy):
 	ch.rulebook = engy.rulebook['physical', 'character']
 	engy.next_turn()
 	assert engy.universal['list'] == [0, 1, 0]
+
+
+def test_iter_portals(engy):
+	from LiSE.character import grid_2d_8graph
+	ch = engy.new_character('physical', grid_2d_8graph(4, 4))
+	portal_abs = {(portal.origin.name, portal.destination.name)
+					for portal in ch.portals()}
+	for a, ayes in ch.adj.items():
+		for b in ayes:
+			assert (a, b) in portal_abs
+	for (a, b) in portal_abs:
+		assert a in ch.edge
+		assert b in ch.edge[a]
