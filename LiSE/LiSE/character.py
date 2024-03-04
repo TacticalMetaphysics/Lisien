@@ -1348,13 +1348,15 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		"""Remove an existing Place"""
 		if place in self.place:
 			self.remove_node(place)
-		raise KeyError("No such place: {}".format(place))
+		else:
+			raise KeyError("No such place: {}".format(place))
 
 	def remove_thing(self, thing):
 		"""Remove an existing Thing"""
 		if thing in self.thing:
 			self.remove_node(thing)
-		raise KeyError("No such thing: {}".format(thing))
+		else:
+			raise KeyError("No such thing: {}".format(thing))
 
 	def add_thing(self, name, location, **kwargs):
 		"""Make a new Thing and set its location"""
