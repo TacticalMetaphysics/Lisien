@@ -170,3 +170,24 @@ class TestSwitchMainBranch(ProxyTest):
 		self.engine.turn = 1
 		assert phys.stat['hello'] == 'hi'
 		assert phys.stat['hi'] == 'hello'
+
+
+def test_updnoderb(handle):
+	engine = handle._real
+	char0 = engine.new_character('0')
+	node0 = char0.new_place('0')
+
+	@node0.rule(always=True)
+	def change_rulebook(node):
+		node.rulebook = 'haha'
+
+	delta = engine.unpack(handle.next_turn()[1])
+
+	assert '0' in delta and 'node_val' in delta['0'] and '0' in delta['0'][
+		'node_val'] and '0' in delta['0']['node_val'] and 'rulebook' in delta[
+			'0']['node_val']['0'] and delta['0']['node_val']['0'][
+				'rulebook'] == 'haha'
+
+
+def test_updedgerb(handle):
+	raise NotImplementedError
