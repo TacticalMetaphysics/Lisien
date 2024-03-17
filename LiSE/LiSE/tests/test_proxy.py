@@ -181,7 +181,9 @@ def test_updnoderb(handle):
 	def change_rulebook(node):
 		node.rulebook = 'haha'
 
-	delta = engine.unpack(handle.next_turn()[1])
+	a, b = handle.next_turn()
+
+	delta = engine.unpack(b)
 
 	assert '0' in delta and 'node_val' in delta['0'] and '0' in delta['0'][
 		'node_val'] and '0' in delta['0']['node_val'] and 'rulebook' in delta[

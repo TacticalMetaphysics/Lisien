@@ -33,7 +33,7 @@ class InitializedCache(Cache):
 		try:
 			prev = self.retrieve(*args[:-1])
 		except KeyError:
-			return  # because you can't rewind past this
+			prev = None
 		if prev == value:
 			return  # not much point reporting on a non-change in a diff
 		if turn in settings_turns or turn in settings_turns.future():
