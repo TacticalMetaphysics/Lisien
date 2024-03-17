@@ -86,7 +86,7 @@ class Portal(Edge, RuleFollower):
 			return (self.character.name, self.orig, self.dest)
 
 	def _set_rulebook_name(self, rulebook):
-		character = self.character
+		character = self.character.name
 		orig = self.orig
 		dest = self.dest
 		cache = self.engine._portals_rulebooks_cache

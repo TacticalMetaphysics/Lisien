@@ -192,4 +192,18 @@ def test_updnoderb(handle):
 
 
 def test_updedgerb(handle):
-	raise NotImplementedError
+	engine = handle._real
+	char0 = engine.new_character('0')
+	node0 = char0.new_place('0')
+	node1 = char0.new_place('1')
+	edge = node0.new_portal(node1)
+
+	@edge.rule(always=True)
+	def change_rulebook(edge):
+		edge.rulebook = 'haha'
+
+	a, b = handle.next_turn()
+
+	delta = engine.unpack(b)
+
+	assert '0' in delta and 'edge_val' in delta['0'] and '0' in delta['0']['edge_val'] and '1' in delta['0']['edge_val']['0'] and 'rulebook' in delta['0']['edge_val']['0']['1'] and delta['0']['edge_val']['0']['1']['rulebook'] == 'haha'
