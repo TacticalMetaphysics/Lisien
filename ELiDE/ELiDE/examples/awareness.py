@@ -30,7 +30,8 @@ kv = """
 		BoxLayout:
 			id: sidebar
 			orientation: 'vertical'
-			size_hint_x: 0.5
+			width: 333
+			size_hint_x: None
 			BoxLayout:
 				id: controls
 				orientation: 'vertical'
