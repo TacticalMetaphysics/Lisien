@@ -5,11 +5,10 @@ from inspect import getsource
 from kivy.lang.builder import Builder
 from kivy.properties import BooleanProperty
 
-from LiSE import Engine
-from ELiDE.game import GameApp, GameScreen
+from ELiDE.game import GameApp, GameScreen, GridBoard
 
 
-def game_start(engine: Engine) -> None:
+def game_start(engine) -> None:
 	import networkx as nx
 
 	# ensure we're on a fresh branch
@@ -38,7 +37,7 @@ def game_start(engine: Engine) -> None:
 	for turtle in range(engine.eternal.setdefault("people", 60)):
 		initworld.add_node("turtle" + str(turtle), location=locs.pop())
 
-	for center in range(engine.eternal.setdefalut("centers", 20)):
+	for center in range(engine.eternal.setdefault("centers", 20)):
 		initworld.add_node("center" + str(center), location=locs.pop())
 
 	phys = engine.new_character("physical", initworld)
@@ -47,7 +46,9 @@ def game_start(engine: Engine) -> None:
 
 
 class MainGame(GameScreen):
-	pass
+	def on_parent(self, *args):
+		AwarenessApp.get_running_app().set_up()
+		self.ids.game.board = GridBoard(character=self.engine.character['physical'])
 
 
 class AwarenessApp(GameApp):
@@ -56,7 +57,7 @@ class AwarenessApp(GameApp):
 
 	def set_up(self):
 		"""Regenerate the whole map"""
-		raise NotImplementedError
+		self.engine.game_start()
 
 
 kv = """
@@ -120,8 +121,13 @@ kv = """
 			Widget:
 				id: filler
 		Widget:
-			id: game
+			id: gamebox
 			size_hint_x: 0.7
+			GridBoardView:
+				id: game
+				character: root.engine.character['physical'] if root.engine and 'physical' in root.engine.character else None		
+				pos: gamebox.pos
+				size: gamebox.size
 """
 
 Builder.load_string(kv)
