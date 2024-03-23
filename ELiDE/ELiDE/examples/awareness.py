@@ -1,10 +1,49 @@
 from tempfile import mkdtemp
 from multiprocessing import freeze_support
+from inspect import getsource
 
 from kivy.lang.builder import Builder
 from kivy.properties import BooleanProperty
 
+from LiSE import Engine
 from ELiDE.game import GameApp, GameScreen
+
+
+def game_start(engine: Engine) -> None:
+	import networkx as nx
+
+	# ensure we're on a fresh branch
+	if engine.turn != 0 or engine.tick != 0:
+		if engine.branch == 'trunk':
+			new_branch_name = 'trunk0'
+		else:
+			new_branch_num = int(engine.branch[5:])
+			new_branch_name = 'trunk' + str(new_branch_num)
+		engine.turn = 0
+		engine.tick = 0
+		engine.switch_main_branch(new_branch_name)
+
+	wide = engine.eternal.setdefault("max-pxcor", 36)
+	high = engine.eternal.setdefault("max-pycor", 37)
+	initworld = nx.grid_2d_graph(wide, high)
+	# world wraps vertically
+	for x in range(wide):
+		initworld.add_edge((x, high-1), (x, 0))
+	# world wraps horizontally
+	for y in range(high):
+		initworld.add_edge((wide-1, y), (0, y))
+
+	locs = set(initworld.nodes.keys())
+
+	for turtle in range(engine.eternal.setdefault("people", 60)):
+		initworld.add_node("turtle" + str(turtle), location=locs.pop())
+
+	for center in range(engine.eternal.setdefalut("centers", 20)):
+		initworld.add_node("center" + str(center), location=locs.pop())
+
+	phys = engine.new_character("physical", initworld)
+
+
 
 
 class MainGame(GameScreen):
@@ -91,5 +130,7 @@ Builder.load_string(kv)
 if __name__ == "__main__":
 	freeze_support()
 	d = mkdtemp()
+	with open(d + '/game_start.py', 'w', encoding='utf-8') as outf:
+		outf.write(getsource(game_start))
 	AwarenessApp(prefix=d).run()
 	print("Files are in " + d)
