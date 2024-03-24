@@ -2,6 +2,7 @@ from tempfile import mkdtemp
 from multiprocessing import freeze_support
 from inspect import getsource
 
+from kivy.clock import Clock
 from kivy.lang.builder import Builder
 from kivy.properties import BooleanProperty
 
@@ -47,6 +48,9 @@ def game_start(engine) -> None:
 
 class MainGame(GameScreen):
 	def on_parent(self, *args):
+		if 'game' not in self.ids:
+			Clock.schedule_once(self.on_parent, 0)
+			return
 		AwarenessApp.get_running_app().set_up()
 		self.ids.game.board = GridBoard(character=self.engine.character['physical'])
 
