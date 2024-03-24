@@ -980,3 +980,43 @@ def normalize_layout(l):
 		yco = 0.98 / (maxy - miny)
 		ynorm = np.multiply(np.subtract(ys, [miny] * len(ys)), yco)
 	return dict(zip(ks, zip(map(float, xnorm), map(float, ynorm))))
+
+
+def kf2delta(kf) -> dict:
+	ret = {}
+	for ((charn,), kvs) in kf['graph_val'].items():
+		ret[charn] = kvs
+	for ((charn,), existences) in kf['nodes'].items():
+		if charn in ret:
+			ret[charn]['nodes'] = existences
+		else:
+			ret[charn] = {'nodes': existences}
+	for ((charn, noden), kvs) in kf['node_val'].items():
+		if charn in ret:
+			if 'node_val' in ret[charn]:
+				ret[charn]['node_val'][noden] = kvs
+			else:
+				ret[charn]['node_val'] = {noden: kvs}
+		else:
+			ret[charn] = {'node_val': {noden: kvs}}
+	for ((charn, orign, destn), existence) in kf['edges'].items():
+		ex = existence[0]
+		if charn in ret:
+			if 'edges' in ret[charn]:
+				ret[charn]['edges'][orign, destn] = ex
+			else:
+				ret[charn]['edges'] = {(orign, destn): ex}
+		else:
+			ret[charn] = {'edges': {(orign, destn): ex}}
+	for ((charn, orign, destn, _), kvs) in kf['edge_val'].items():
+		if charn in ret:
+			if 'edge_val' in ret[charn]:
+				if orign in ret[charn]['edge_val']:
+					ret[charn]['edge_val'][orign][destn] = kvs
+				else:
+					ret[charn]['edge_val'][orign] = {destn: kvs}
+			else:
+				ret[charn]['edge_val'] = {orign: {destn: kvs}}
+		else:
+			ret[charn] = {'edge_val': {orign: {destn: kvs}}}
+	return ret
