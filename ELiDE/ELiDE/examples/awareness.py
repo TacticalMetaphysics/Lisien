@@ -59,12 +59,16 @@ class MainGame(GameScreen):
 
 
 class AwarenessApp(GameApp):
+	play = BooleanProperty(False)
 	placing_centers = BooleanProperty(False)
 	inspector = True
 
 	def set_up(self):
 		"""Regenerate the whole map"""
 		self.engine.game_start()
+
+	def on_play(self, *args):
+		print("play", self.play)
 
 
 kv = """
@@ -127,6 +131,11 @@ kv = """
 							y: nonusage.y
 			Widget:
 				id: filler
+			ToggleButton:
+				id: play
+				size_hint_y: 0.2
+				text: 'Go'
+				on_state: app.play = self.state == 'down'
 		Widget:
 			id: gamebox
 			size_hint_x: 0.7
