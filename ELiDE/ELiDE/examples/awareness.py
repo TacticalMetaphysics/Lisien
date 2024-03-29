@@ -28,10 +28,10 @@ def game_start(engine) -> None:
 	initworld = nx.grid_2d_graph(wide, high)
 	# world wraps vertically
 	for x in range(wide):
-		initworld.add_edge((x, high-1), (x, 0))
+		initworld.add_edge((x, high - 1), (x, 0))
 	# world wraps horizontally
 	for y in range(high):
-		initworld.add_edge((wide-1, y), (0, y))
+		initworld.add_edge((wide - 1, y), (0, y))
 
 	locs = set(initworld.nodes.keys())
 
@@ -39,20 +39,23 @@ def game_start(engine) -> None:
 		initworld.add_node("turtle" + str(turtle), location=locs.pop())
 
 	for center in range(engine.eternal.setdefault("centers", 20)):
-		initworld.add_node("center" + str(center), location=locs.pop())
+		initworld.add_node(
+			"center" + str(center),
+			location=locs.pop(),
+			_image_paths=["atlas://rltiles/dungeon/dngn_altar_xom"])
 
 	phys = engine.new_character("physical", initworld)
 
 
-
-
 class MainGame(GameScreen):
+
 	def on_parent(self, *args):
 		if 'game' not in self.ids:
 			Clock.schedule_once(self.on_parent, 0)
 			return
 		AwarenessApp.get_running_app().set_up()
-		self.ids.game.board = GridBoard(character=self.engine.character['physical'])
+		self.ids.game.board = GridBoard(
+			character=self.engine.character['physical'])
 
 
 class AwarenessApp(GameApp):
@@ -135,7 +138,6 @@ kv = """
 """
 
 Builder.load_string(kv)
-
 
 if __name__ == "__main__":
 	freeze_support()
