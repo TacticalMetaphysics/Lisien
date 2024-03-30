@@ -53,9 +53,16 @@ class MainGame(GameScreen):
 		if 'game' not in self.ids:
 			Clock.schedule_once(self.on_parent, 0)
 			return
-		AwarenessApp.get_running_app().set_up()
+		self.set_up()
 		self.ids.game.board = GridBoard(
 			character=self.engine.character['physical'])
+
+	def set_up(self):
+		"""Regenerate the whole map"""
+		self.engine.game_start()
+		app = GameApp.get_running_app()
+		self.ids.people.value = app.engine.eternal["people"]
+		# self.ids.centers.value = app.engine.eternal["centers"]
 
 
 class AwarenessApp(GameApp):
@@ -63,12 +70,18 @@ class AwarenessApp(GameApp):
 	placing_centers = BooleanProperty(False)
 	inspector = True
 
-	def set_up(self):
-		"""Regenerate the whole map"""
-		self.engine.game_start()
-
 	def on_play(self, *args):
-		print("play", self.play)
+		if self.play:
+			self._scheduled = Clock.schedule_interval(self._next_turn,
+														self.turn_length)
+			print(self._scheduled)
+		elif self._scheduled:
+			Clock.unschedule(self._next_turn)
+			del self._scheduled
+
+	def _next_turn(self, *args):
+		self.engine.next_turn()
+		print(self.engine.turn)
 
 
 kv = """
@@ -114,28 +127,43 @@ kv = """
 						text: 'place centers'
 						on_release: root.placing_centers = self.state
 				BoxLayout:
-					id: midrow
+					id: midrow	
+					ToggleButton:
+						id: play
+						text: 'Go'
+						on_state: app.play = self.state == 'down'
 					Slider:
-						id: nonusage
+						id: centers
 						min: 0
-						max: 500
+						max: 100
 						step: 1
 						Label:
-							text: 'non-usage limit'
+							text: 'centers'
 							size: self.texture_size
-							pos: nonusage.pos
+							pos: self.parent.pos
 						Label:
-							text: '{:d} ticks'.format(int(nonusage.value))
+							text: str(int(self.parent.value))
 							size: self.texture_size
-							x: nonusage.right - self.texture_size[0]
-							y: nonusage.y
+							center_x: self.parent.center_x
+							y: self.parent.y
+					Widget:
+						id: filler0
+				Slider:
+					id: nonusage
+					min: 0
+					max: 500
+					step: 1
+					Label:
+						text: 'non-usage limit'
+						size: self.texture_size
+						pos: nonusage.pos
+					Label:
+						text: '{:d} ticks'.format(int(nonusage.value))
+						size: self.texture_size
+						x: nonusage.right - self.texture_size[0]
+						y: nonusage.y
 			Widget:
 				id: filler
-			ToggleButton:
-				id: play
-				size_hint_y: 0.2
-				text: 'Go'
-				on_state: app.play = self.state == 'down'
 		Widget:
 			id: gamebox
 			size_hint_x: 0.7
