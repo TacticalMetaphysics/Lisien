@@ -1,3 +1,4 @@
+import random
 from tempfile import mkdtemp
 from multiprocessing import freeze_support
 from inspect import getsource
@@ -10,6 +11,7 @@ from ELiDE.game import GameApp, GameScreen, GridBoard
 
 
 def game_start(engine) -> None:
+	from random import randint, shuffle
 	import networkx as nx
 
 	# ensure we're on a fresh branch
@@ -23,6 +25,7 @@ def game_start(engine) -> None:
 		engine.tick = 0
 		engine.switch_main_branch(new_branch_name)
 
+	engine.eternal["nonusage-limit"] = 100
 	wide = engine.eternal.setdefault("max-pxcor", 36)
 	high = engine.eternal.setdefault("max-pycor", 37)
 	initworld = nx.grid_2d_graph(wide, high)
@@ -33,18 +36,141 @@ def game_start(engine) -> None:
 	for y in range(high):
 		initworld.add_edge((wide - 1, y), (0, y))
 
-	locs = set(initworld.nodes.keys())
+	locs = list(initworld.nodes.keys())
+	shuffle(locs)
 
 	for turtle in range(engine.eternal.setdefault("people", 60)):
-		initworld.add_node("turtle" + str(turtle), location=locs.pop())
+		initworld.add_node("turtle" + str(turtle),
+							awareness=0,
+							facing=randint(0, 3),
+							location=locs.pop(),
+							_image_paths=[
+								"atlas://rltiles/base/unknown",
+								"atlas://rltiles/body/robe_black"
+							])
 
 	for center in range(engine.eternal.setdefault("centers", 20)):
 		initworld.add_node(
 			"center" + str(center),
 			location=locs.pop(),
+			nonusage=0,
 			_image_paths=["atlas://rltiles/dungeon/dngn_altar_xom"])
 
 	phys = engine.new_character("physical", initworld)
+	peep = engine.new_character("people")
+	lit = engine.new_character("literature")
+	# there really ought to be a way to specify a character's units in its starting data
+	for node in phys.thing.values():
+		if node.name.startswith("turtle"):
+			peep.add_unit(node)
+		elif node.name.startswith("center"):
+			lit.add_unit(node)
+
+	@peep.unit.rule(always=True)
+	def wander(person):
+		x, y = person.location.name
+		if person["facing"] == 0:
+			y += 1
+		elif person["facing"] == 1:
+			x += 1
+		elif person["facing"] == 2:
+			y -= 1
+		elif person["facing"] == 3:
+			x -= 1
+		x %= person.engine.eternal["max-pxcor"]
+		y %= person.engine.eternal["max-pycor"]
+		person["location"] = (x, y)
+		person["facing"] = (person["facing"] + person.engine.randint(0, 1) -
+							person.engine.randint(0, 1))
+
+	@engine.function
+	def has_literature(person):
+		for contained in person.location.contents():
+			if contained.name.startswith("flyer") or contained.name.startswith(
+				"center"):
+				return True
+		return False
+
+	@peep.unit.rule
+	def learn(person):
+		person["awareness"] = (person["awareness"] + 1) % 15
+		if person["awareness"] < 5:
+			image_paths = [
+				"atlas://rltiles/base/unknown",
+				"atlas://rltiles/body/robe_black"
+			]
+		elif person["awareness"] < 10:
+			image_paths = [
+				"atlas://rltiles/base/unknown",
+				"atlas://rltiles/body/robe_green"
+			]
+		elif person["awareness"] < 15:
+			image_paths = [
+				"atlas://rltiles/base/unknown",
+				"atlas://rltiles/body/robe_white_green"
+			]
+		else:
+			image_paths = [
+				"atlas://rltiles/base/unknown",
+				"atlas://rltiles/body/robe_green_gold"
+			]
+		if person["_image_paths"] != image_paths:
+			person["_image_paths"] = image_paths
+		person["last_learned"] = person.engine.turn
+		for contained in person.location.contents():
+			if contained.name.startswith("flyer") or contained.name.startswith(
+				"center"):
+				contained["last_read"] = person.engine.turn
+
+	# this would be more pleasant as something like a partial
+	@learn.trigger
+	def literature_here(person):
+		return person.engine.function.has_literature(person)
+
+	@peep.unit.rule
+	def unlearn(person):
+		person["awareness"] = max((person["awareness"] - 1, 0))
+
+	@unlearn.trigger
+	def no_literature_here(person):
+		return not person.engine.function.has_literature(person)
+
+	@peep.unit.rule
+	def write(person):
+		lit_ = person.engine.character["literature"]
+		maxnum = 0
+		for unit in lit_.units():
+			if unit.name.startswith("flyer"):
+				maxnum = max((int(unit.name.removeprefix("flyer")), maxnum))
+		scroll = person.location.new_thing(
+			f"flyer{maxnum:02}",
+			nonusage=0,
+			_image_paths=["atlas://rltiles/scroll/scroll-0"])
+		lit_.add_unit(scroll)
+
+	@write.trigger
+	def activist(person):
+		return person["awareness"] >= 15
+
+	@peep.unit.rule
+	def preach(person):
+		for that in person.location.contents():
+			if that != person and that.name.startswith("turtle"):
+				that["awareness"] = (that["awareness"] + 1) % 15
+
+	@preach.trigger
+	def well_informed(person):
+		return person["awareness"] >= 10
+
+	@lit.unit.rule
+	def disappear(ctr):
+		ctr.delete()
+
+	@disappear.trigger
+	def unused(ctr):
+		return ctr.get(
+			"last_read", ctr.engine.turn
+		) - ctr.engine.turn > ctr.engine.eternal["nonusage-limit"]
 
 
 class MainGame(GameScreen):
@@ -59,10 +185,20 @@ class MainGame(GameScreen):
 
 	def set_up(self):
 		"""Regenerate the whole map"""
+		branch = self.engine.branch
+		try:
+			branchidx = int(branch.removeprefix("branch")) + 1
+			branch = f"branch{branchidx:02}"
+		except ValueError:
+			branch = f"branch01"
+		self.engine.turn = 0
+		self.engine.tick = 0
+		self.engine.switch_main_branch(branch)
 		self.engine.game_start()
 		app = GameApp.get_running_app()
 		self.ids.people.value = app.engine.eternal["people"]
-		# self.ids.centers.value = app.engine.eternal["centers"]
+		self.ids.centers.value = app.engine.eternal["centers"]
+		self.ids.nonusage.value = app.engine.eternal["nonusage-limit"]
 
 
 class AwarenessApp(GameApp):
