@@ -203,9 +203,18 @@ class MainGame(GameScreen):
 		self.engine.switch_main_branch(branch)
 		self.engine.game_start()
 		app = GameApp.get_running_app()
+		self._push_character()
 		self.ids.people.value = app.engine.eternal["people"]
 		self.ids.centers.value = app.engine.eternal["centers"]
 		self.ids.nonusage.value = app.engine.eternal["nonusage-limit"]
+
+	def _push_character(self, *args):
+		if not self.ids.game.board:
+			Clock.schedule_once(self._push_character, 0)
+			return
+		app = AwarenessApp.get_running_app()
+		self.ids.game.board.character = app.engine.character['physical']
+		self.ids.game.board.update()
 
 
 class AwarenessApp(GameApp):
@@ -319,8 +328,7 @@ kv = """
 				id: gamebox
 				size_hint_x: 0.7
 				GridBoardView:
-					id: game
-					character: root.engine.character['physical'] if root.engine and 'physical' in root.engine.character else None		
+					id: game		
 					pos: gamebox.pos
 					size: gamebox.size
 		Slider:

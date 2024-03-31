@@ -337,6 +337,9 @@ class TextureStackPlane(Widget):
 		self._top_ys = np.array(top_ys)
 		self._bot_ys = np.array(bot_ys)
 		self._keys = keys
+		self._fbo.bind()
+		self._fbo.clear_buffer()
+		self._fbo.release()
 		self._redraw_upd_fbo(todo)
 		Logger.debug(f"TextureStackPlane: redrawn in "
 						f"{monotonic() - start_ts:,.2f} seconds")

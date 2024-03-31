@@ -47,6 +47,16 @@ class GridBoard(Widget):
 		self.contained = defaultdict(set)
 		super().__init__(**kwargs)
 
+	def update(self):
+		make_spot = self.make_spot
+		make_pawn = self.make_pawn
+		self.spot_plane.data = list(
+			map(make_spot, self.character.place.values()))
+		self.pawn_plane.data = list(
+			map(make_pawn, self.character.thing.values()))
+		self.spot_plane.redraw()
+		self.pawn_plane.redraw()
+
 	def add_spot(self, placen, *args):
 		if placen not in self.character.place:
 			raise KeyError(f"No such place for spot: {placen}")

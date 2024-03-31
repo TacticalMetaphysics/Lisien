@@ -32,7 +32,7 @@ from .allegedb import OutOfTimelineError, Key
 from .engine import Engine
 from .node import Node
 from .portal import Portal
-from .util import MsgpackExtensionType, AbstractCharacter, timer, kf2delta
+from .util import MsgpackExtensionType, AbstractCharacter, timer
 
 SlightlyPackedDeltaType = Dict[bytes, Dict[bytes, Union[bytes, Dict[
 	bytes, Union[bytes, Dict[bytes, Union[bytes, Dict[bytes, bytes]]]]]]]]
@@ -1458,17 +1458,13 @@ class EngineHandle(object):
 	def game_start(self) -> None:
 		branch, turn, tick = self._real._btt()
 		if (turn, tick) != (0, 0):
-			raise Exception("You tried to start a game when it wasn't the start of time")
+			raise Exception(
+				"You tried to start a game when it wasn't the start of time")
 		ret = self._real.game_start()
 		kf = self.get_kf_now()
-		delt = kf2delta(kf)
-		delt['eternal'] = dict(self._real.eternal)
-		delt['universal'] = dict(self._real.universal)
-		delt['rules'] = {rule: self.rule_copy(rule, (branch, turn, tick)) for rule in self._real.rule}
-		delt['rulebooks'] = {rulebook: self.rulebook_copy(rulebook, (branch, turn, tick)) for rulebook in self._real.rulebook}
 		functions = dict(self._real.function.iterplain())
 		methods = dict(self._real.method.iterplain())
 		triggers = dict(self._real.trigger.iterplain())
 		prereqs = dict(self._real.prereq.iterplain())
 		actions = dict(self._real.action.iterplain())
-		return ret, delt, functions, methods, triggers, prereqs, actions
+		return ret, kf, self._real.eternal, functions, methods, triggers, prereqs, actions
