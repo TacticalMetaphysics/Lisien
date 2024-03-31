@@ -5,7 +5,7 @@ from inspect import getsource
 
 from kivy.clock import Clock
 from kivy.lang.builder import Builder
-from kivy.properties import BooleanProperty
+from kivy.properties import BooleanProperty, NumericProperty
 
 from ELiDE.game import GameApp, GameScreen, GridBoard
 
@@ -182,6 +182,13 @@ class MainGame(GameScreen):
 		self.set_up()
 		self.ids.game.board = GridBoard(
 			character=self.engine.character['physical'])
+		AwarenessApp.get_running_app().bind(turn=self._get_turn)
+
+	def _get_turn(self, *args):
+		app = AwarenessApp.get_running_app()
+		if app.turn > app.end_turn:
+			app.end_turn = app.turn
+		self.ids.timeslider.value = app.turn
 
 	def set_up(self):
 		"""Regenerate the whole map"""
@@ -204,6 +211,7 @@ class MainGame(GameScreen):
 class AwarenessApp(GameApp):
 	play = BooleanProperty(False)
 	placing_centers = BooleanProperty(False)
+	end_turn = NumericProperty(0)
 	inspector = True
 
 	def on_play(self, *args):
@@ -219,6 +227,11 @@ class AwarenessApp(GameApp):
 		self.engine.next_turn()
 		print(self.engine.turn)
 
+	def on_turn(self, *args):
+		turn = int(self.turn)
+		if turn != self.engine.turn:
+			self.engine.turn = turn
+
 
 kv = """
 <ScreenManager>:
@@ -226,88 +239,100 @@ kv = """
 		name: 'play'
 <MainGame>:
 	BoxLayout:
-		orientation: 'horizontal'
+		orientation: 'vertical'
 		BoxLayout:
-			id: sidebar
-			orientation: 'vertical'
-			width: 333
-			size_hint_x: None
+			orientation: 'horizontal'
 			BoxLayout:
-				id: controls
+				id: sidebar
 				orientation: 'vertical'
-				size_hint_y: 0.3
+				width: 333
+				size_hint_x: None
 				BoxLayout:
-					id: toprow
-					Button:
-						id: setup
-						text: 'setup'
-						on_release: root.set_up()
+					id: controls
+					orientation: 'vertical'
+					size_hint_y: 0.3
+					BoxLayout:
+						id: toprow
+						Button:
+							id: setup
+							text: 'setup'
+							on_release: root.set_up()
+						Slider:
+							id: people
+							min: 0
+							max: 300
+							step: 1
+							Label:
+								text: 'people'
+								x: people.x
+								y: people.y
+								size: self.texture_size
+								size_hint: None, None
+							Label:
+								text: str(int(people.value))
+								x: people.right - self.texture_size[0]
+								y: people.y
+								size: self.texture_size
+								size_hint: None, None
+						ToggleButton:
+							text: 'place centers'
+							on_release: root.placing_centers = self.state
+					BoxLayout:
+						id: midrow	
+						ToggleButton:
+							id: play
+							text: 'Go'
+							on_state: app.play = self.state == 'down'
+						Slider:
+							id: centers
+							min: 0
+							max: 100
+							step: 1
+							Label:
+								text: 'centers'
+								size: self.texture_size
+								pos: self.parent.pos
+							Label:
+								text: str(int(self.parent.value))
+								size: self.texture_size
+								center_x: self.parent.center_x
+								y: self.parent.y
+						Widget:
+							id: filler0
 					Slider:
-						id: people
+						id: nonusage
 						min: 0
-						max: 300
+						max: 500
 						step: 1
 						Label:
-							text: 'people'
-							x: people.x
-							y: people.y
+							text: 'non-usage limit'
 							size: self.texture_size
-							size_hint: None, None
+							pos: nonusage.pos
 						Label:
-							text: str(int(people.value))
-							x: people.right - self.texture_size[0]
-							y: people.y
+							text: '{:d} ticks'.format(int(nonusage.value))
 							size: self.texture_size
-							size_hint: None, None
-					ToggleButton:
-						text: 'place centers'
-						on_release: root.placing_centers = self.state
-				BoxLayout:
-					id: midrow	
-					ToggleButton:
-						id: play
-						text: 'Go'
-						on_state: app.play = self.state == 'down'
-					Slider:
-						id: centers
-						min: 0
-						max: 100
-						step: 1
-						Label:
-							text: 'centers'
-							size: self.texture_size
-							pos: self.parent.pos
-						Label:
-							text: str(int(self.parent.value))
-							size: self.texture_size
-							center_x: self.parent.center_x
-							y: self.parent.y
-					Widget:
-						id: filler0
-				Slider:
-					id: nonusage
-					min: 0
-					max: 500
-					step: 1
-					Label:
-						text: 'non-usage limit'
-						size: self.texture_size
-						pos: nonusage.pos
-					Label:
-						text: '{:d} ticks'.format(int(nonusage.value))
-						size: self.texture_size
-						x: nonusage.right - self.texture_size[0]
-						y: nonusage.y
+							x: nonusage.right - self.texture_size[0]
+							y: nonusage.y
+				Widget:
+					id: filler
 			Widget:
-				id: filler
-		Widget:
-			id: gamebox
-			size_hint_x: 0.7
-			GridBoardView:
-				id: game
-				character: root.engine.character['physical'] if root.engine and 'physical' in root.engine.character else None		
-				pos: gamebox.pos
-				size: gamebox.size
+				id: gamebox
+				size_hint_x: 0.7
+				GridBoardView:
+					id: game
+					character: root.engine.character['physical'] if root.engine and 'physical' in root.engine.character else None		
+					pos: gamebox.pos
+					size: gamebox.size
+		Slider:
+			id: timeslider
+			x: 0
+			y: 0
+			height: 50
+			size_hint_y: None
+			min: 0
+			max: app.end_turn
+			step: 1
+			on_value: app.turn = self.value
 """
 
 Builder.load_string(kv)
