@@ -1,4 +1,3 @@
-import random
 from tempfile import mkdtemp
 from multiprocessing import freeze_support
 from inspect import getsource
