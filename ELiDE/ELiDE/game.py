@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 from functools import partial
+from threading import Thread
 
 from kivy.app import App
 from kivy.logger import Logger
@@ -151,8 +152,8 @@ class GameApp(App):
 	prefix = StringProperty('.')
 	selection = ObjectProperty(allownone=True)
 
-	def wait_turns(self, turns, dt=None, *, cb=None):
-		"""Call ``self.engine.next_turn()`` ``n`` times, waiting ``self.turn_length`` in between
+	def wait_turns(self, turns, *, cb=None):
+		"""Call ``self.engine.next_turn()`` ``turns`` times, waiting ``self.turn_length`` in between
 
 		If provided, call ``cb`` when done.
 
@@ -166,7 +167,7 @@ class GameApp(App):
 			if cb:
 				cb()
 			return
-		self.engine.next_turn()
+		self.next_turn()
 		turns -= 1
 		Clock.schedule_once(partial(self.wait_turns, turns, cb=cb),
 							self.turn_length)
@@ -256,3 +257,15 @@ class GameApp(App):
 		"""Sync the database, wrap up the game, and halt."""
 		self.procman.shutdown()
 		self.config.write()
+
+	def trigger_next_turn(self):
+		if hasattr(self, '_scheduled_next_turn'):
+			return
+		Clock.schedule_once(self.next_turn, 0)
+		self._scheduled_next_turn = True
+
+	def next_turn(self, *args):
+		if hasattr(self, '_next_turn_thread'):
+			self._next_turn_thread.join()
+		self._next_turn_thread = Thread(target=self.engine.next_turn)
+		self._next_turn_thread.start()

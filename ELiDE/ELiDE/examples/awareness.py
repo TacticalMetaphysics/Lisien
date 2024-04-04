@@ -234,17 +234,11 @@ class AwarenessApp(GameApp):
 
 	def on_play(self, *args):
 		if self.play:
-			self._scheduled = Clock.schedule_interval(self._next_turn,
-														self.turn_length)
-		elif self._scheduled:
-			Clock.unschedule(self._next_turn)
-			del self._scheduled
-
-	def _next_turn(self, *args):
-		if hasattr(self, '_next_turn_thread'):
-			self._next_turn_thread.join()
-		self._next_turn_thread = Thread(target=self.engine.next_turn)
-		self._next_turn_thread.start()
+			Clock.schedule_interval(self.next_turn, self.turn_length)
+			self._scheduled_next_turn = True
+		elif hasattr(self, '_scheduled_next_turn'):
+			Clock.unschedule(self.next_turn)
+			del self._scheduled_next_turn
 
 	def on_turn(self, *args):
 		turn = int(self.turn)
