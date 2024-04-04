@@ -200,12 +200,18 @@ class MainGame(GameScreen):
 		self.engine.turn = 0
 		self.engine.tick = 0
 		self.engine.switch_main_branch(branch)
+		if hasattr(self, 'ran_once'):
+			self.engine.eternal["people"] = int(self.ids.people.value)
+			self.engine.eternal["centers"] = int(self.ids.centers.value)
+			self.engine.eternal["nonusage-limit"] = int(self.ids.nonusage.value)
 		self.engine.game_start()
 		app = GameApp.get_running_app()
 		self._push_character()
-		self.ids.people.value = app.engine.eternal["people"]
-		self.ids.centers.value = app.engine.eternal["centers"]
-		self.ids.nonusage.value = app.engine.eternal["nonusage-limit"]
+		if not hasattr(self, 'ran_once'):
+			self.ids.people.value = app.engine.eternal["people"]
+			self.ids.centers.value = app.engine.eternal["centers"]
+			self.ids.nonusage.value = app.engine.eternal["nonusage-limit"]
+			self.ran_once = True
 
 	def _push_character(self, *args):
 		board = self.ids.game.board
