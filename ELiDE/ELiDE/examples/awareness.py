@@ -1,6 +1,7 @@
 from tempfile import mkdtemp
 from multiprocessing import freeze_support
 from inspect import getsource
+from threading import Thread
 
 from kivy.clock import Clock
 from kivy.lang.builder import Builder
@@ -241,8 +242,10 @@ class AwarenessApp(GameApp):
 			del self._scheduled
 
 	def _next_turn(self, *args):
-		self.engine.next_turn()
-		print(self.engine.turn)
+		if hasattr(self, '_next_turn_thread'):
+			self._next_turn_thread.join()
+		self._next_turn_thread = Thread(target=self.engine.next_turn)
+		self._next_turn_thread.start()
 
 	def on_turn(self, *args):
 		turn = int(self.turn)
