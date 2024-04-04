@@ -18,7 +18,7 @@ from threading import Thread
 
 from kivy.app import App
 from kivy.logger import Logger
-from kivy.clock import Clock
+from kivy.clock import Clock, triggered
 from kivy.properties import (BooleanProperty, ObjectProperty, NumericProperty,
 								StringProperty)
 
@@ -258,13 +258,6 @@ class GameApp(App):
 		self.procman.shutdown()
 		self.config.write()
 
-	def trigger_next_turn(self):
-		"""Smoothly advance to the next tun, unless we're already doing that"""
-		if hasattr(self, '_scheduled_next_turn'):
-			return
-		Clock.schedule_once(self.next_turn, 0)
-		self._scheduled_next_turn = True
-
 	def next_turn(self, *args):
 		"""Smoothly advance to the next turn in the simulation
 
@@ -276,3 +269,5 @@ class GameApp(App):
 			self._next_turn_thread.join()
 		self._next_turn_thread = Thread(target=self.engine.next_turn)
 		self._next_turn_thread.start()
+
+	trigger_next_turn = triggered(next_turn)
