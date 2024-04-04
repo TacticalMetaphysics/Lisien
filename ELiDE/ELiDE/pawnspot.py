@@ -205,6 +205,18 @@ class TextureStackPlane(Widget):
 		def get_rects(datum):
 			width = datum.get('width', 0)
 			height = datum.get('height', 0)
+			if isinstance(datum['x'], float):
+				x = datum['x'] * self_width
+			else:
+				if not isinstance(datum['x'], int):
+					raise TypeError("need int or float for pos")
+				x = datum['x']
+			if isinstance(datum['y'], float):
+				y = datum['y'] * self_height
+			else:
+				if not isinstance(datum['y'], int):
+					raise TypeError("need int or float for pos")
+				y = datum['y']
 			rects = []
 			for texture in datum['textures']:
 				if isinstance(texture, str):
@@ -226,7 +238,23 @@ class TextureStackPlane(Widget):
 					Rectangle(pos=(x, y), size=(w, h), texture=texture))
 			return rects
 
-		def get_lines_and_colors() -> dict:
+		def get_lines_and_colors(datum) -> dict:
+			width = datum.get('width', 0)
+			height = datum.get('height', 0)
+			if isinstance(datum['x'], float):
+				x = datum['x'] * self_width
+			else:
+				if not isinstance(datum['x'], int):
+					raise TypeError("need int or float for pos")
+				x = datum['x']
+			if isinstance(datum['y'], float):
+				y = datum['y'] * self_height
+			else:
+				if not isinstance(datum['y'], int):
+					raise TypeError("need int or float for pos")
+				y = datum['y']
+			right = x + width
+			top = y + height
 			instructions = {}
 			colr = Color(rgba=color_selected)
 			instructions['color0'] = colr
@@ -271,7 +299,7 @@ class TextureStackPlane(Widget):
 			if name in stack_index:
 				rects = get_rects(datum)
 				if name == selected:
-					insts = get_lines_and_colors()
+					insts = get_lines_and_colors(datum)
 				else:
 					insts = {}
 				insts['rectangles'] = rects
