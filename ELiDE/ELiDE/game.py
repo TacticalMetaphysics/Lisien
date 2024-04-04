@@ -259,12 +259,19 @@ class GameApp(App):
 		self.config.write()
 
 	def trigger_next_turn(self):
+		"""Smoothly advance to the next tun, unless we're already doing that"""
 		if hasattr(self, '_scheduled_next_turn'):
 			return
 		Clock.schedule_once(self.next_turn, 0)
 		self._scheduled_next_turn = True
 
 	def next_turn(self, *args):
+		"""Smoothly advance to the next turn in the simulation
+
+		This uses a subthread to wait for LiSE to finish simulating
+		the turn and report the changes. The interface will remain responsive.
+
+		"""
 		if hasattr(self, '_next_turn_thread'):
 			self._next_turn_thread.join()
 		self._next_turn_thread = Thread(target=self.engine.next_turn)
