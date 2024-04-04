@@ -2324,8 +2324,18 @@ class EngineProxy(AbstractEngine):
 			raise RuntimeError(
 				f"Sent command {cmd}, but received results for {command}")
 		if cb:
-			cb(command=command, branch=branch, turn=turn, tick=tick, result=r)
+			self._call_back(cb, command=command, branch=branch, turn=turn, tick=tick, result=r)
 		return r
+
+	def _call_back(self, cb, *args, **kwargs):
+		if hasattr(self, '_cb_thread'):
+			self._cb_thread.join()
+		self._cb_thread = Thread(
+			target=cb,
+			args=args,
+			kwargs=kwargs
+		)
+		self._cb_thread.start()
 
 	def _unpack_recv(self):
 		ret = self.unpack(self.recv_bytes())
@@ -2347,7 +2357,7 @@ class EngineProxy(AbstractEngine):
 			self.warning(
 				"{} raised by command {}, trying to run callback {} with it".
 				format(repr(ex), command, cb))
-		cb(command=command, branch=branch, turn=turn, tick=tick, result=res)
+		self._call_back(cb, command=command, branch=branch, turn=turn, tick=tick, result=res)
 		return command, branch, turn, tick, res
 
 	def _branching(self, cb=None):
@@ -2360,29 +2370,10 @@ class EngineProxy(AbstractEngine):
 			self._tick = tick
 			self.time.send(self, branch=branch, turn=turn, tick=tick)
 			if hasattr(self, 'branching_cb'):
-				self.branching_cb(command=command,
-									branch=branch,
-									turn=turn,
-									tick=tick,
-									result=r)
+				self._call_back(self.branching_cb, command=command, branch=branch, turn=turn, tick=tick, result=r)
 		if cb:
-			cb(command=command, branch=branch, turn=turn, tick=tick, result=r)
+			self._call_back(cb, command=command, branch=branch, turn=turn, tick=tick, result=r)
 		return command, branch, turn, tick, r
-
-	def _call_with_recv(self, *cbs, **kwargs):
-		cmd, branch, turn, tick, received = self.unpack(self.recv_bytes())
-		self.debug('EngineProxy: received {}'.format(
-			(cmd, branch, turn, tick, received)))
-		if isinstance(received, Exception):
-			raise received
-		for cb in cbs:
-			cb(command=cmd,
-				branch=branch,
-				turn=turn,
-				tick=tick,
-				result=received,
-				**kwargs)
-		return received
 
 	def _upd_caches(self, command, branch, turn, tick, result, no_del=False):
 		deleted = set(self.character.keys())
@@ -2435,7 +2426,18 @@ class EngineProxy(AbstractEngine):
 			branch, (None, turn, tick, turn, tick))
 		if branch not in self._branches or (turn, tick) > (turn_to, tick_to):
 			self._branches[branch] = parent, turn_from, tick_from, turn, tick
-		self.time.send(self, branch=branch, turn=turn, tick=tick)
+		if hasattr(self, '_time_send_thread'):
+			self._time_send_thread.join()
+		self._time_send_thread = Thread(
+			target=self.time.send,
+			args=(self,),
+			kwargs={
+				'branch': branch,
+				'turn': turn,
+				'tick': tick
+			}
+		)
+		self._time_send_thread.start()
 
 	def is_ancestor_of(self, parent, child):
 		return self.handle('is_ancestor_of', parent=parent, child=child)
@@ -2465,7 +2467,7 @@ class EngineProxy(AbstractEngine):
 	def _upd_and_cb(self, cb, *args, **kwargs):
 		self._upd(*args, **kwargs)
 		if cb:
-			cb(*args, **kwargs)
+			self._call_back(cb, *args, **kwargs)
 
 	# TODO: make this into a Signal, like it is in the LiSE core
 	def next_turn(self, cb=None):
