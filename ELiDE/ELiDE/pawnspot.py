@@ -200,6 +200,12 @@ class TextureStackPlane(Widget):
 				fbo.add(group)
 		self._rectangle.texture = fbo.texture
 
+	@mainthread
+	def _redraw_remove_fbo(self, removed_instructions):
+		fbo = self._fbo
+		for insts in removed_instructions:
+			fbo.remove(insts['group'])
+
 	def redraw(self, *args):
 
 		def get_rects(datum):
@@ -281,8 +287,10 @@ class TextureStackPlane(Widget):
 		selected = self.selected
 		color_selected = self.color_selected
 		todo = []
+		observed = set()
 		for datum in self.data:
 			name = datum['name']
+			observed.add(name)
 			texs = datum['textures']
 			if isinstance(datum['x'], float):
 				x = datum['x'] * self_width
@@ -360,6 +368,10 @@ class TextureStackPlane(Widget):
 				if name == selected:
 					insts.update(get_lines_and_colors())
 				todo.append(insts)
+		unobserved = instructions.keys() - observed
+		get_rid = []
+		for gone in unobserved:
+			get_rid.append(instructions.pop(gone))
 		self._left_xs = np.array(left_xs)
 		self._right_xs = np.array(right_xs)
 		self._top_ys = np.array(top_ys)
@@ -369,6 +381,7 @@ class TextureStackPlane(Widget):
 		self._fbo.clear_buffer()
 		self._fbo.release()
 		self._redraw_upd_fbo(todo)
+		self._redraw_remove_fbo(get_rid)
 		Logger.debug(f"TextureStackPlane: redrawn in "
 						f"{monotonic() - start_ts:,.2f} seconds")
 
