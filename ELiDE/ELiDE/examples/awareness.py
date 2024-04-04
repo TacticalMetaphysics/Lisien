@@ -44,7 +44,7 @@ def game_start(engine) -> None:
 							facing=randint(0, 3),
 							location=locs.pop(),
 							_image_paths=[
-								"atlas://rltiles/base/unknown",
+								"atlas://rltiles/base/unseen",
 								"atlas://rltiles/body/robe_black"
 							])
 
@@ -95,22 +95,22 @@ def game_start(engine) -> None:
 		person["awareness"] = (person["awareness"] + 1) % 15
 		if person["awareness"] < 5:
 			image_paths = [
-				"atlas://rltiles/base/unknown",
+				"atlas://rltiles/base/unseen",
 				"atlas://rltiles/body/robe_black"
 			]
 		elif person["awareness"] < 10:
 			image_paths = [
-				"atlas://rltiles/base/unknown",
+				"atlas://rltiles/base/unseen",
 				"atlas://rltiles/body/robe_green"
 			]
 		elif person["awareness"] < 15:
 			image_paths = [
-				"atlas://rltiles/base/unknown",
+				"atlas://rltiles/base/unseen",
 				"atlas://rltiles/body/robe_white_green"
 			]
 		else:
 			image_paths = [
-				"atlas://rltiles/base/unknown",
+				"atlas://rltiles/base/unseen",
 				"atlas://rltiles/body/robe_green_gold"
 			]
 		if person["_image_paths"] != image_paths:
