@@ -208,12 +208,15 @@ class MainGame(GameScreen):
 		self.ids.nonusage.value = app.engine.eternal["nonusage-limit"]
 
 	def _push_character(self, *args):
-		if not self.ids.game.board:
+		board = self.ids.game.board
+		if not board:
 			Clock.schedule_once(self._push_character, 0)
 			return
-		app = AwarenessApp.get_running_app()
-		self.ids.game.board.character = app.engine.character['physical']
-		self.ids.game.board.update()
+		board.character.thing.disconnect(board.update_from_thing)
+		phys = AwarenessApp.get_running_app().engine.character['physical']
+		board.character = phys
+		board.update()
+		phys.thing.connect(board.update_from_thing)
 
 
 class AwarenessApp(GameApp):
