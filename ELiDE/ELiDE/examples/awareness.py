@@ -236,7 +236,6 @@ class AwarenessApp(GameApp):
 		if self.play:
 			self._scheduled = Clock.schedule_interval(self._next_turn,
 														self.turn_length)
-			print(self._scheduled)
 		elif self._scheduled:
 			Clock.unschedule(self._next_turn)
 			del self._scheduled
