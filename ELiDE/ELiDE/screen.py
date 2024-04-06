@@ -565,15 +565,10 @@ class TurnScroll(Slider):
 			app = App.get_running_app()
 			app.mainscreen.timepanel.ids.turnfield.hint_text = str(
 				int(self.value))
-		return super().on_touch_move(touch)
-
-	def on_touch_up(self, touch):
-		if touch.grab_current == self:
-			app = App.get_running_app()
 			app.engine.time.disconnect(self._receive_time)
-			Logger.debug(f"TurnScroll: about to travel to {self.value}")
 			app.time_travel(app.engine.branch, int(self.value))
 			app.engine.time.connect(self._receive_time)
+		return super().on_touch_move(touch)
 
 
 Builder.load_string("""
