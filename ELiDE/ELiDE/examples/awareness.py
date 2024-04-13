@@ -247,6 +247,7 @@ class AwarenessApp(GameApp):
 
 
 kv = """
+# kv_start
 <ScreenManager>:
 	MainGame:
 		name: 'play'
@@ -345,6 +346,7 @@ kv = """
 			max: app.end_turn
 			step: 1
 			on_value: app.turn = self.value
+# kv_end
 """
 
 Builder.load_string(kv)
