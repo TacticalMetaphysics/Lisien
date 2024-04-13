@@ -264,7 +264,7 @@ class GameApp(App):
 		This uses a subthread to wait for LiSE to finish simulating
 		the turn and report the changes. The interface will remain responsive.
 
-		If you're wiring up the interface yourself, consider binding user
+		If you're wiring up the interface, consider binding user
 		input to `trigger_next_turn` instead, so that the user doesn't
 		mistakenly go two or three turns into the future.
 
