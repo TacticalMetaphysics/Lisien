@@ -272,20 +272,18 @@ class GridBoardScatterPlane(BoardScatterPlane):
 		half_wide = self.board.tile_width / 2
 		half_high = self.board.tile_height / 2
 		if candidates:
-			whereat_center = whereat_d["x"] + half_wide, whereat_d[
-				"y"] + half_high
+			whereat_center = whereat_d.x + half_wide, whereat_d.y + half_high
 			dist = Vector(*whereat_center).distance(dummy_center)
 			while candidates:
 				thereat_d = self.board.spot[candidates.pop()]
-				thereat_center = thereat_d["x"] + half_wide, thereat_d[
-					"y"] + half_high
+				thereat_center = thereat_d.x + half_wide, thereat_d.y + half_high
 				thereto = Vector(*thereat_center).distance(dummy_center)
 				if thereto < dist:
 					whereat_d, dist = thereat_d, thereto
 		self.board.pawn_plane.add_datum(
 			self.board.make_pawn(
 				self.board.character.new_thing(dummy.name,
-												whereat_d["name"],
+												whereat_d.name,
 												_image_paths=list(
 													dummy.paths))))
 		dummy.num += 1
