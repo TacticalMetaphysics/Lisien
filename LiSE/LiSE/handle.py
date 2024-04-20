@@ -1465,8 +1465,14 @@ class EngineHandle(object):
 		delt = kf2delta(kf)
 		delt['eternal'] = dict(self._real.eternal)
 		delt['universal'] = dict(self._real.universal)
-		delt['rules'] = {rule: self.rule_copy(rule, (branch, turn, tick)) for rule in self._real.rule}
-		delt['rulebooks'] = {rulebook: self.rulebook_copy(rulebook, (branch, turn, tick)) for rulebook in self._real.rulebook}
+		delt['rules'] = {
+			rule: self.rule_copy(rule, (branch, turn, tick))
+			for rule in self._real.rule
+		}
+		delt['rulebooks'] = {
+			rulebook: self.rulebook_copy(rulebook, (branch, turn, tick))
+			for rulebook in self._real.rulebook
+		}
 		functions = dict(self._real.function.iterplain())
 		methods = dict(self._real.method.iterplain())
 		triggers = dict(self._real.trigger.iterplain())
