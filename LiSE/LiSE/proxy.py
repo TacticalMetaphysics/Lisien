@@ -270,6 +270,12 @@ class NodeProxy(CachingEntityProxy):
 	def contents(self):
 		return self.content.values()
 
+	def add_thing(self, name, **kwargs):
+		return self.character.add_thing(name, self.name, **kwargs)
+
+	def new_thing(self, name, **kwargs):
+		return self.character.new_thing(name, self.name, **kwargs)
+
 
 class PlaceProxy(NodeProxy):
 

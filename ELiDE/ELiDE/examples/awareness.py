@@ -1,7 +1,6 @@
 from tempfile import mkdtemp
 from multiprocessing import freeze_support
 from inspect import getsource
-from threading import Thread
 
 from kivy.clock import Clock
 from kivy.lang.builder import Builder
@@ -173,6 +172,25 @@ def game_start(engine) -> None:
 		) - ctr.engine.turn > ctr.engine.eternal["nonusage-limit"]
 
 
+class AwarenessGridBoard(GridBoard):
+
+	def on_selection(self, *args):
+		if not GameApp.get_running_app().placing_centers or not isinstance(
+			self.selection, self.spot_cls):
+			return
+		prox = self.selection.proxy
+		for contained in prox.contents():
+			if contained.name.startswith("center"):
+				return
+		name = f"""center{max(
+			int(name.removeprefix('center')) for name in self.character.thing.keys()
+			if isinstance(name, str) and name.startswith('center')) + 1}"""
+		prox.add_thing(
+			name,
+			nonusage=0,
+			_image_paths=["atlas://rltiles/dungeon/dngn_altar_xom"])
+
+
 class MainGame(GameScreen):
 
 	def on_parent(self, *args):
@@ -180,7 +198,7 @@ class MainGame(GameScreen):
 			Clock.schedule_once(self.on_parent, 0)
 			return
 		self.set_up()
-		self.ids.game.board = GridBoard(
+		self.ids.game.board = AwarenessGridBoard(
 			character=self.engine.character['physical'])
 		AwarenessApp.get_running_app().bind(turn=self._get_turn)
 
@@ -204,7 +222,8 @@ class MainGame(GameScreen):
 		if hasattr(self, 'ran_once'):
 			self.engine.eternal["people"] = int(self.ids.people.value)
 			self.engine.eternal["centers"] = int(self.ids.centers.value)
-			self.engine.eternal["nonusage-limit"] = int(self.ids.nonusage.value)
+			self.engine.eternal["nonusage-limit"] = int(
+				self.ids.nonusage.value)
 		self.engine.game_start()
 		app = GameApp.get_running_app()
 		self._push_character()
@@ -290,7 +309,7 @@ kv = """
 								size_hint: None, None
 						ToggleButton:
 							text: 'place centers'
-							on_release: root.placing_centers = self.state
+							on_release: app.placing_centers = self.state == 'down'
 					BoxLayout:
 						id: midrow	
 						ToggleButton:
