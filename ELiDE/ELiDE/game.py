@@ -14,10 +14,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 from functools import partial
+from threading import Thread
 
 from kivy.app import App
 from kivy.logger import Logger
-from kivy.clock import Clock
+from kivy.clock import Clock, triggered
 from kivy.properties import (BooleanProperty, ObjectProperty, NumericProperty,
 								StringProperty)
 
@@ -151,8 +152,8 @@ class GameApp(App):
 	prefix = StringProperty('.')
 	selection = ObjectProperty(allownone=True)
 
-	def wait_turns(self, turns, dt=None, *, cb=None):
-		"""Call ``self.engine.next_turn()`` ``n`` times, waiting ``self.turn_length`` in between
+	def wait_turns(self, turns, *, cb=None):
+		"""Call ``self.engine.next_turn()`` ``turns`` times, waiting ``self.turn_length`` in between
 
 		If provided, call ``cb`` when done.
 
@@ -166,7 +167,7 @@ class GameApp(App):
 			if cb:
 				cb()
 			return
-		self.engine.next_turn()
+		self.next_turn()
 		turns -= 1
 		Clock.schedule_once(partial(self.wait_turns, turns, cb=cb),
 							self.turn_length)
@@ -256,3 +257,21 @@ class GameApp(App):
 		"""Sync the database, wrap up the game, and halt."""
 		self.procman.shutdown()
 		self.config.write()
+
+	def next_turn(self, *args):
+		"""Smoothly advance to the next turn in the simulation
+
+		This uses a subthread to wait for LiSE to finish simulating
+		the turn and report the changes. The interface will remain responsive.
+
+		If you're wiring up the interface, consider binding user
+		input to `trigger_next_turn` instead, so that the user doesn't
+		mistakenly go two or three turns into the future.
+
+		"""
+		if hasattr(self, '_next_turn_thread'):
+			self._next_turn_thread.join()
+		self._next_turn_thread = Thread(target=self.engine.next_turn)
+		self._next_turn_thread.start()
+
+	trigger_next_turn = triggered(next_turn)

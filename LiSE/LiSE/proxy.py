@@ -270,6 +270,12 @@ class NodeProxy(CachingEntityProxy):
 	def contents(self):
 		return self.content.values()
 
+	def add_thing(self, name, **kwargs):
+		return self.character.add_thing(name, self.name, **kwargs)
+
+	def new_thing(self, name, **kwargs):
+		return self.character.new_thing(name, self.name, **kwargs)
+
 
 class PlaceProxy(NodeProxy):
 
@@ -2052,13 +2058,14 @@ class EngineProxy(AbstractEngine):
 		self.handle('game_start', cb=self._upd_from_game_start)
 
 	def _upd_from_game_start(self, command, branch, turn, tick, result):
-		start_ret, start_delta, functions, methods, triggers, prereqs, actions = result
+		start_ret, start_kf, eternal, functions, methods, triggers, prereqs, actions = result
+		self._eternal_cache = eternal
 		self.function._cache = functions
 		self.method._cache = methods
 		self.trigger._cache = triggers
 		self.prereq._cache = prereqs
 		self.action._cache = actions
-		self._upd(command, branch, turn, tick, (start_ret, start_delta))
+		self._replace_state_with_kf(start_kf)
 
 	def switch_main_branch(self, branch: str) -> None:
 		if (self.branch != self.main_branch or self.turn != 0
@@ -2103,12 +2110,19 @@ class EngineProxy(AbstractEngine):
 				places[char][node] = PlaceProxy(chars[char], node)
 			node_stats[char][node] = stats
 		for (char, ), nodes in kf['nodes'].items():
-			for node in nodes:
-				places[char][node] = PlaceProxy(chars[char], node)
+			if char not in places:
+				places[char] = charplaces = {}
+				for node in nodes:
+					charplaces[node] = PlaceProxy(chars[char], node)
+			else:
+				for node in nodes:
+					if not ((char in things and node in things[char]) or
+							(char in places and node in places[char])):
+						places[char][node] = PlaceProxy(chars[char], node)
 		for (char, orig, dest), exists in kf['edges'].items():
 			portals.store(char, orig, dest,
 							PortalProxy(chars[char], orig, dest))
-		for (char, orig, dest), stats in kf['edge_val'].items():
+		for (char, orig, dest, _), stats in kf['edge_val'].items():
 			portal_stats[char][orig][dest] = stats
 
 	def _pull_kf_now(self, *args, **kwargs):

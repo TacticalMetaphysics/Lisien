@@ -200,11 +200,29 @@ class TextureStackPlane(Widget):
 				fbo.add(group)
 		self._rectangle.texture = fbo.texture
 
+	@mainthread
+	def _redraw_remove_fbo(self, removed_instructions):
+		fbo = self._fbo
+		for insts in removed_instructions:
+			fbo.remove(insts['group'])
+
 	def redraw(self, *args):
 
 		def get_rects(datum):
 			width = datum.get('width', 0)
 			height = datum.get('height', 0)
+			if isinstance(datum['x'], float):
+				x = datum['x'] * self_width
+			else:
+				if not isinstance(datum['x'], int):
+					raise TypeError("need int or float for pos")
+				x = datum['x']
+			if isinstance(datum['y'], float):
+				y = datum['y'] * self_height
+			else:
+				if not isinstance(datum['y'], int):
+					raise TypeError("need int or float for pos")
+				y = datum['y']
 			rects = []
 			for texture in datum['textures']:
 				if isinstance(texture, str):
@@ -226,7 +244,23 @@ class TextureStackPlane(Widget):
 					Rectangle(pos=(x, y), size=(w, h), texture=texture))
 			return rects
 
-		def get_lines_and_colors() -> dict:
+		def get_lines_and_colors(datum) -> dict:
+			width = datum.get('width', 0)
+			height = datum.get('height', 0)
+			if isinstance(datum['x'], float):
+				x = datum['x'] * self_width
+			else:
+				if not isinstance(datum['x'], int):
+					raise TypeError("need int or float for pos")
+				x = datum['x']
+			if isinstance(datum['y'], float):
+				y = datum['y'] * self_height
+			else:
+				if not isinstance(datum['y'], int):
+					raise TypeError("need int or float for pos")
+				y = datum['y']
+			right = x + width
+			top = y + height
 			instructions = {}
 			colr = Color(rgba=color_selected)
 			instructions['color0'] = colr
@@ -253,8 +287,10 @@ class TextureStackPlane(Widget):
 		selected = self.selected
 		color_selected = self.color_selected
 		todo = []
+		observed = set()
 		for datum in self.data:
 			name = datum['name']
+			observed.add(name)
 			texs = datum['textures']
 			if isinstance(datum['x'], float):
 				x = datum['x'] * self_width
@@ -271,7 +307,7 @@ class TextureStackPlane(Widget):
 			if name in stack_index:
 				rects = get_rects(datum)
 				if name == selected:
-					insts = get_lines_and_colors()
+					insts = get_lines_and_colors(datum)
 				else:
 					insts = {}
 				insts['rectangles'] = rects
@@ -332,12 +368,20 @@ class TextureStackPlane(Widget):
 				if name == selected:
 					insts.update(get_lines_and_colors())
 				todo.append(insts)
+		unobserved = instructions.keys() - observed
+		get_rid = []
+		for gone in unobserved:
+			get_rid.append(instructions.pop(gone))
 		self._left_xs = np.array(left_xs)
 		self._right_xs = np.array(right_xs)
 		self._top_ys = np.array(top_ys)
 		self._bot_ys = np.array(bot_ys)
 		self._keys = keys
+		self._fbo.bind()
+		self._fbo.clear_buffer()
+		self._fbo.release()
 		self._redraw_upd_fbo(todo)
+		self._redraw_remove_fbo(get_rid)
 		Logger.debug(f"TextureStackPlane: redrawn in "
 						f"{monotonic() - start_ts:,.2f} seconds")
 
@@ -711,8 +755,12 @@ class Stack:
 		self.pos = self.x, y
 
 	@property
+	def _stack_plane(self):
+		return self.board.stack_plane
+
+	@property
 	def size(self):
-		stack_plane = self.board.stack_plane
+		stack_plane = self._stack_plane
 		name = self.proxy['name']
 		idx = stack_plane._stack_index[name]
 		left = stack_plane._left_xs[idx]
@@ -724,7 +772,7 @@ class Stack:
 	@size.setter
 	def size(self, wh):
 		w, h = wh
-		stack_plane = self.board.stack_plane
+		stack_plane = self._stack_plane
 		stack_plane.unbind_uid('data', stack_plane._redraw_bind_uid)
 		name = self.proxy['name']
 		insts = stack_plane._instructions[name]
