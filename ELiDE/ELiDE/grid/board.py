@@ -1,5 +1,6 @@
 from collections import defaultdict
 from functools import partial
+from itertools import chain
 from time import monotonic
 
 from kivy.clock import Clock
@@ -261,6 +262,42 @@ class GridBoard(Widget):
 		else:
 			if thing.name in self.pawn:
 				self.rm_pawn(thing.name)
+
+	def on_touch_down(self, touch):
+		self.selection_candidates.extend(chain(
+			map(self.pawn.get, self.pawn_plane.iter_collided_keys(*touch.pos)),
+			map(self.spot.get, self.spot_plane.iter_collided_keys(*touch.pos))
+		))
+		return super().on_touch_down(touch)
+
+	def on_touch_up(self, touch):
+		touched = {candidate for candidate in self.selection_candidates if candidate.collide_point(*touch.pos)}
+		if not touched:
+			self.selection_candidates = []
+			return super().on_touch_up(touch)
+		if len(touched) == 1:
+			self.selection = touched.pop()
+			self.selection_candidates = []
+			return super().on_touch_up(touch)
+		pawns_touched = {node for node in touched if isinstance(node, self.pawn_cls)}
+		if len(pawns_touched) == 1:
+			self.selection = pawns_touched.pop()
+			self.selection_candidates = []
+			return super().on_touch_up(touch)
+		elif pawns_touched:
+			# TODO: Repeatedly touching a spot with multiple pawns on it
+			# 		should cycle through the pawns, and then finally the spot.
+			self.selection = pawns_touched.pop()
+			self.selection_candidates = []
+			return super().on_touch_up(touch)
+		spots_touched = touched - pawns_touched
+		if len(spots_touched) == 1:
+			self.selection = spots_touched.pop()
+			self.selection_candidates = []
+			return super().on_touch_up(touch)
+		assert not spots_touched, "How do you have overlapping spots on a GridBoard??"
+		self.selection_candidates = []
+		return super().on_touch_up(touch)
 
 
 class GridBoardScatterPlane(BoardScatterPlane):

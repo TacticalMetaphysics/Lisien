@@ -755,8 +755,12 @@ class Stack:
 		self.pos = self.x, y
 
 	@property
+	def _stack_plane(self):
+		return self.board.stack_plane
+
+	@property
 	def size(self):
-		stack_plane = self.board.stack_plane
+		stack_plane = self._stack_plane
 		name = self.proxy['name']
 		idx = stack_plane._stack_index[name]
 		left = stack_plane._left_xs[idx]
@@ -768,7 +772,7 @@ class Stack:
 	@size.setter
 	def size(self, wh):
 		w, h = wh
-		stack_plane = self.board.stack_plane
+		stack_plane = self._stack_plane
 		stack_plane.unbind_uid('data', stack_plane._redraw_bind_uid)
 		name = self.proxy['name']
 		insts = stack_plane._instructions[name]
