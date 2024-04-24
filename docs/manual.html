@@ -1,17 +1,16 @@
-
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" data-content_root="./">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>Introduction &#8212; LiSE 0.14.0a documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/sphinx_highlight.js"></script>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <script src="_static/documentation_options.js?v=fbc7b204"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="LiSE" href="LiSE/index.html" />
@@ -19,8 +18,9 @@
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
+
   
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+  
 
   </head><body>
   
@@ -33,10 +33,10 @@
           <div class="body" role="main">
             
   <section id="introduction">
-<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading">¶</a></h1>
+<h1>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">¶</a></h1>
 <p>Life sims all seem to have two problems in common:</p>
 <section id="too-much-world-state">
-<h2>Too much world state<a class="headerlink" href="#too-much-world-state" title="Permalink to this heading">¶</a></h2>
+<h2>Too much world state<a class="headerlink" href="#too-much-world-state" title="Link to this heading">¶</a></h2>
 <p>The number of variables the game is tracking – just for game logic,
 not graphics or physics or anything – is very large. Like how The
 Sims tracks sims’ opinions of one another, their likes and dislikes
@@ -55,7 +55,7 @@ you to know about it, they can send you their database, and you’ll
 know everything they did and everything that happened in their game.</p>
 </section>
 <section id="too-many-rules">
-<h2>Too many rules<a class="headerlink" href="#too-many-rules" title="Permalink to this heading">¶</a></h2>
+<h2>Too many rules<a class="headerlink" href="#too-many-rules" title="Link to this heading">¶</a></h2>
 <p>Fans of life sims tend to appreciate complexity. Developers are best
 served by reducing complexity as much as possible. So LiSE makes it
 easy to compartmentalize complexity and choose what of it you want to
@@ -68,7 +68,7 @@ Triggers look at the world once-per-turn and return a Boolean to show
 whether their Actions should happen.</p>
 </section>
 <section id="architecture">
-<h2>Architecture<a class="headerlink" href="#architecture" title="Permalink to this heading">¶</a></h2>
+<h2>Architecture<a class="headerlink" href="#architecture" title="Link to this heading">¶</a></h2>
 <p>LiSE is a tool for constructing turn-based simulations following rules
 in a directed graph-based world model. It has special affordances for
 the kinds of things you might need to simulate in the life simulation
@@ -102,7 +102,7 @@ back and forth between a correct world state and an incorrect one
 and use your intuition to spot exactly what went wrong.</p>
 </section>
 <section id="usage">
-<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this heading">¶</a></h2>
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
 <p>The only LiSE class that you should ever instantiate yourself is
 <code class="docutils literal notranslate"><span class="pre">Engine</span></code>. All simulation objects should be
 created and accessed through it. By default, it keeps the simulation
@@ -111,7 +111,7 @@ directory if you prefer. Either use it with a context manager
 (<code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">Engine()</span> <span class="pre">as</span> <span class="pre">eng:</span></code>) or call its <code class="docutils literal notranslate"><span class="pre">.close()</span></code> method when you’re done
 changing things.</p>
 <section id="world-modelling">
-<h3>World Modelling<a class="headerlink" href="#world-modelling" title="Permalink to this heading">¶</a></h3>
+<h3>World Modelling<a class="headerlink" href="#world-modelling" title="Link to this heading">¶</a></h3>
 <p>Start by calling the engine’s <code class="docutils literal notranslate"><span class="pre">new_character</span></code> method with a string
 <code class="docutils literal notranslate"><span class="pre">name</span></code> to get a character object.
 Draw a graph by calling the method <code class="docutils literal notranslate"><span class="pre">new_place</span></code> with many
@@ -144,7 +144,7 @@ The engine’s <code class="docutils literal notranslate"><span class="pre">eter
 and is mainly for storing settings, not simulation data.</p>
 </section>
 <section id="rule-creation">
-<h3>Rule Creation<a class="headerlink" href="#rule-creation" title="Permalink to this heading">¶</a></h3>
+<h3>Rule Creation<a class="headerlink" href="#rule-creation" title="Link to this heading">¶</a></h3>
 <p>To create a rule, first decide what objects the rule should apply
 to. You can put a rule on a character, thing, place, or portal; and
 you can put a rule on a character’s <code class="docutils literal notranslate"><span class="pre">thing</span></code>, <code class="docutils literal notranslate"><span class="pre">place</span></code>, and
@@ -170,7 +170,7 @@ Use the <code class="docutils literal notranslate"><span class="pre">engine</spa
 then use methods such as <code class="docutils literal notranslate"><span class="pre">percent_chance</span></code> and <code class="docutils literal notranslate"><span class="pre">dice_check</span></code>.</p>
 </section>
 <section id="time-control">
-<h3>Time Control<a class="headerlink" href="#time-control" title="Permalink to this heading">¶</a></h3>
+<h3>Time Control<a class="headerlink" href="#time-control" title="Link to this heading">¶</a></h3>
 <p>The current time is always accessible from the engine’s <code class="docutils literal notranslate"><span class="pre">branch</span></code> and
 <code class="docutils literal notranslate"><span class="pre">turn</span></code> properties. In the common case where time is advancing
 forward one tick at a time, it should be done with the engine’s
@@ -201,7 +201,7 @@ position at the start of that block. You can use the plan’s ID number,
 could call <code class="docutils literal notranslate"><span class="pre">engine.delete_plan(engine.character['alice'].stat['wake_plan'])</span></code>.</p>
 </section>
 <section id="input-prompts">
-<h3>Input Prompts<a class="headerlink" href="#input-prompts" title="Permalink to this heading">¶</a></h3>
+<h3>Input Prompts<a class="headerlink" href="#input-prompts" title="Link to this heading">¶</a></h3>
 <p>LiSE itself doesn’t know what a player is or how to accept input from them,
 but does use some conventions for communicating with a user interface
 such as ELiDE.</p>
@@ -268,7 +268,7 @@ call, then return a menu description like this one.:</p>
   </ul></li>
 </ul>
 </div>
-<div id="searchbox" style="display: none" role="search">
+<search id="searchbox" style="display: none" role="search">
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
@@ -276,7 +276,7 @@ call, then return a menu description like this one.:</p>
       <input type="submit" value="Go" />
     </form>
     </div>
-</div>
+</search>
 <script>document.getElementById('searchbox').style.display = "block"</script>
 
 
@@ -291,11 +291,11 @@ call, then return a menu description like this one.:</p>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;Zachary Spector.
+      &#169;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
       
       |
       <a href="_sources/manual.rst.txt"
