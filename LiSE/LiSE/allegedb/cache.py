@@ -505,7 +505,7 @@ class Cache:
 				planning: bool = None,
 				forward: bool = None,
 				loading=False,
-				contra=True):
+				contra=None):
 		"""Put a value in various dictionaries for later .retrieve(...).
 
 		Needs at least five arguments, of which the -1th is the value
@@ -534,6 +534,8 @@ class Cache:
 			planning = db._planning
 		if forward is None:
 			forward = db._forward
+		if contra is None:
+			contra = not loading
 		entity: Hashable
 		key: Hashable
 		branch: str
