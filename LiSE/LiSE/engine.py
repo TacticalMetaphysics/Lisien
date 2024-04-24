@@ -123,9 +123,6 @@ class NextTurn(Signal):
 			start_branch,
 			engine.turn,
 			discard_rules=not engine.keep_rules_journal)
-		kfi = engine.keyframe_interval
-		if kfi and engine.turn % kfi == 0:
-			engine.snap_keyframe()
 		if (engine.flush_interval is not None
 			and engine.turn % engine.flush_interval == 0):
 			engine.query.flush()
@@ -213,8 +210,8 @@ class Engine(AbstractEngine, gORM):
 	:param flush_interval: LiSE will put pending changes into the database
 		transaction every ``flush_interval`` turns. If ``None``, only flush
 		on commit. Default ``1``.
-	:param keyframe_interval: How many turns to pass before automatically
-		snapping a keyframe, default ``10``. If ``None``, you'll need
+	:param keyframe_interval: How many records to let through before automatically
+		snapping a keyframe, default ``1000``. If ``None``, you'll need
 		to call ``snap_keyframe`` yourself.
 	:param commit_interval: LiSE will commit changes to disk every
 		``commit_interval`` turns. If ``None`` (the default), only commit
@@ -271,7 +268,7 @@ class Engine(AbstractEngine, gORM):
 					connect_args: dict = None,
 					schema_cls: Type[AbstractSchema] = NullSchema,
 					flush_interval: Optional[int] = 1,
-					keyframe_interval: Optional[int] = 10,
+					keyframe_interval: Optional[int] = 1000,
 					commit_interval: int = None,
 					random_seed: int = None,
 					logfun: FunctionType = None,
@@ -354,7 +351,8 @@ class Engine(AbstractEngine, gORM):
 				self.eternal.setdefault('language', 'eng'))
 		self.next_turn = NextTurn(self)
 		self.commit_interval = commit_interval
-		self.keyframe_interval = keyframe_interval
+		self.query.keyframe_interval = keyframe_interval
+		self.query.snap_keyframe = self.snap_keyframe
 		self.flush_interval = flush_interval
 		self._trigger_pool = ThreadPoolExecutor()
 		self._rules_iter = self._follow_rules()
@@ -1456,12 +1454,16 @@ class Engine(AbstractEngine, gORM):
 					name,
 				}
 		contents_keyframes = self._node_contents_cache.keyframe
-		contkfs = contents_keyframes[graph, ][branch]
+		contkfs = contents_keyframes[
+			graph,
+		][branch]
 		if turn not in contkfs:
 			contkfs[turn] = {tick: contkf}
 		else:
 			contkfs[turn][tick] = contkf
-		kfs = self._things_cache.keyframe[graph, ][branch]
+		kfs = self._things_cache.keyframe[
+			graph,
+		][branch]
 		if turn not in kfs:
 			kfs[turn] = {tick: newkf}
 		else:
@@ -1636,7 +1638,8 @@ class Engine(AbstractEngine, gORM):
 	def game_start(self):
 		import importlib.machinery
 		import importlib.util
-		loader = importlib.machinery.SourceFileLoader('game_start', os.path.join(self._prefix, "game_start.py"))
+		loader = importlib.machinery.SourceFileLoader(
+			'game_start', os.path.join(self._prefix, "game_start.py"))
 		spec = importlib.util.spec_from_loader('game_start', loader)
 		game_start = importlib.util.module_from_spec(spec)
 		loader.exec_module(game_start)

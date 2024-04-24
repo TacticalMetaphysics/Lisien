@@ -932,6 +932,10 @@ class QueryEngine(query.QueryEngine):
 							pack,
 							unpack,
 							gather=gather_sql)
+
+		self._records = 0
+		self.keyframe_interval = None
+		self.snap_keyframe = lambda: None
 		self._char_rules_handled = []
 		self._unit_rules_handled = []
 		self._char_thing_rules_handled = []
@@ -941,6 +945,25 @@ class QueryEngine(query.QueryEngine):
 		self._portal_rules_handled = []
 		self._unitness = []
 		self._location = []
+
+	def _increc(self):
+		self._records += 1
+		if self.keyframe_interval is not None and self._records % self.keyframe_interval == 0:
+			self.snap_keyframe()
+
+	def graph_val_set(self, graph, key, branch, turn, tick, value):
+		super().graph_val_set(graph, key, branch, turn, tick, value)
+		self._increc()
+
+	def node_val_set(self, graph, node, key, branch, turn, tick, value):
+		super().node_val_set(graph, node, key, branch, turn, tick, value)
+		self._increc()
+
+	def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick,
+						value):
+		super().edge_val_set(graph, orig, dest, idx, key, branch, turn, tick,
+								value)
+		self._increc()
 
 	def flush(self):
 		super().flush()
@@ -1185,10 +1208,12 @@ class QueryEngine(query.QueryEngine):
 	def universal_set(self, key, branch, turn, tick, val):
 		key, val = map(self.pack, (key, val))
 		self.call_one('universals_insert', key, branch, turn, tick, val)
+		self._increc()
 
 	def universal_del(self, key, branch, turn, tick):
 		key = self.pack(key)
 		self.call_one('universals_insert', key, branch, turn, tick, None)
+		self._increc()
 
 	def comparison(self,
 					entity0,
@@ -1213,8 +1238,9 @@ class QueryEngine(query.QueryEngine):
 
 	def _set_rule_something(self, what, rule, branch, turn, tick, flist):
 		flist = self.pack(flist)
-		return self.call_one('rule_{}_insert'.format(what), rule, branch, turn,
-								tick, flist)
+		self.call_one('rule_{}_insert'.format(what), rule, branch, turn, tick,
+						flist)
+		self._increc()
 
 	set_rule_triggers = partialmethod(_set_rule_something, 'triggers')
 	set_rule_prereqs = partialmethod(_set_rule_something, 'prereqs')
@@ -1230,6 +1256,7 @@ class QueryEngine(query.QueryEngine):
 					actions=None):
 		try:
 			self.call_one('rules_insert', rule)
+			self._increc()
 		except IntegrityError:
 			pass
 		self.set_rule_triggers(rule, branch, turn, tick, triggers or [])
@@ -1240,10 +1267,12 @@ class QueryEngine(query.QueryEngine):
 		name, rules = map(self.pack, (name, rules or []))
 		self.call_one('rulebooks_insert', name, branch, turn, tick, rules,
 						float(prio))
+		self._increc()
 
 	def _set_rulebook_on_character(self, rbtyp, char, branch, turn, tick, rb):
 		char, rb = map(self.pack, (char, rb))
 		self.call_one(rbtyp + '_rulebook_insert', char, branch, turn, tick, rb)
+		self._increc()
 
 	set_character_rulebook = partialmethod(_set_rulebook_on_character,
 											'character')
@@ -1261,6 +1290,7 @@ class QueryEngine(query.QueryEngine):
 
 	def exist_node(self, character, node, branch, turn, tick, extant):
 		super().exist_node(character, node, branch, turn, tick, extant)
+		self._increc()
 
 	def exist_edge(self,
 					character,
@@ -1278,25 +1308,29 @@ class QueryEngine(query.QueryEngine):
 		super().exist_edge(character, orig, dest, idx, branch, turn, tick,
 							extant)
 		QueryEngine.exist_edge_t += monotonic() - start
+		self._increc()
 
 	def set_node_rulebook(self, character, node, branch, turn, tick, rulebook):
 		(character, node, rulebook) = map(self.pack,
 											(character, node, rulebook))
-		return self.call_one('node_rulebook_insert', character, node, branch,
-								turn, tick, rulebook)
+		self.call_one('node_rulebook_insert', character, node, branch, turn,
+						tick, rulebook)
+		self._increc()
 
 	def set_portal_rulebook(self, character, orig, dest, branch, turn, tick,
 							rulebook):
 		(character, orig, dest,
 			rulebook) = map(self.pack, (character, orig, dest, rulebook))
-		return self.call_one('portal_rulebook_insert', character, orig, dest,
-								branch, turn, tick, rulebook)
+		self.call_one('portal_rulebook_insert', character, orig, dest, branch,
+						turn, tick, rulebook)
+		self._increc()
 
 	def handled_character_rule(self, character, rulebook, rule, branch, turn,
 								tick):
 		(character, rulebook) = map(self.pack, (character, rulebook))
 		self._char_rules_handled.append(
 			(character, rulebook, rule, branch, turn, tick))
+		self._increc()
 
 	def _flush_char_rules_handled(self):
 		if not self._char_rules_handled:
@@ -1311,6 +1345,7 @@ class QueryEngine(query.QueryEngine):
 			self.pack, (character, graph, unit, rulebook))
 		self._unit_rules_handled.append(
 			(character, graph, unit, rulebook, rule, branch, turn, tick))
+		self._increc()
 
 	def _flush_unit_rules_handled(self):
 		if not self._unit_rules_handled:
@@ -1324,6 +1359,7 @@ class QueryEngine(query.QueryEngine):
 											(character, thing, rulebook))
 		self._char_thing_rules_handled.append(
 			(character, thing, rulebook, rule, branch, turn, tick))
+		self._increc()
 
 	def _flush_char_thing_rules_handled(self):
 		if not self._char_thing_rules_handled:
@@ -1338,6 +1374,7 @@ class QueryEngine(query.QueryEngine):
 											(character, rulebook, place))
 		self._char_place_rules_handled.append(
 			(character, place, rulebook, rule, branch, turn, tick))
+		self._increc()
 
 	def _flush_char_place_rules_handled(self):
 		if not self._char_place_rules_handled:
@@ -1352,6 +1389,7 @@ class QueryEngine(query.QueryEngine):
 			self.pack, (character, rulebook, orig, dest))
 		self._char_portal_rules_handled.append(
 			(character, orig, dest, rulebook, rule, branch, turn, tick))
+		self._increc()
 
 	def _flush_char_portal_rules_handled(self):
 		if not self._char_portal_rules_handled:
@@ -1366,6 +1404,7 @@ class QueryEngine(query.QueryEngine):
 											(character, node, rulebook))
 		self._node_rules_handled.append(
 			(character, node, rulebook, rule, branch, turn, tick))
+		self._increc()
 
 	def _flush_node_rules_handled(self):
 		if not self._node_rules_handled:
@@ -1379,6 +1418,7 @@ class QueryEngine(query.QueryEngine):
 			rulebook) = map(self.pack, (character, orig, dest, rulebook))
 		self._portal_rules_handled.append(
 			(character, orig, dest, rulebook, rule, branch, turn, tick))
+		self._increc()
 
 	def _flush_portal_rules_handled(self):
 		if not self._portal_rules_handled:
@@ -1398,11 +1438,13 @@ class QueryEngine(query.QueryEngine):
 		(character, thing) = map(self.pack, (character, thing))
 		loc = self.pack(loc)
 		self._location.append((character, thing, branch, turn, tick, loc))
+		self._increc()
 
 	def unit_set(self, character, graph, node, branch, turn, tick, isav):
 		(character, graph, node) = map(self.pack, (character, graph, node))
 		self._unitness.append(
 			(character, graph, node, branch, turn, tick, isav))
+		self._increc()
 
 	def rulebooks_rules(self):
 		for (rulebook, rule) in self.call_one('rulebooks_rules'):
@@ -1420,6 +1462,7 @@ class QueryEngine(query.QueryEngine):
 		try:
 			self.call_one('rulebooks_insert', rulebook, branch, turn, tick,
 							rules)
+			self._increc()
 		except IntegrityError:
 			self.call_one('rulebooks_update', rules, rulebook, branch, turn,
 							tick)
@@ -1440,6 +1483,7 @@ class QueryEngine(query.QueryEngine):
 			self.call_one('turns_completed_insert', branch, turn)
 		except IntegrityError:
 			self.call_one('turns_completed_update', turn, branch)
+		self._increc()
 		if discard_rules:
 			self._char_rules_handled = []
 			self._unit_rules_handled = []
