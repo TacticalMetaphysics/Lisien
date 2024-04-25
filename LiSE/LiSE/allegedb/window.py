@@ -569,10 +569,14 @@ class WindowDict(MutableMapping):
 			elif direction == 'backward':
 				if not self._past:
 					return
-				self._keys.difference_update(map(get0, self._past[:-1]))
-				self._past = [self._past[-1]]
-				if not self._future:
-					self.beginning = self.end = None
+				if self._past[-1][0] == rev:
+					self._keys.difference_update(map(get0, self._past[:-1]))
+					self._past = [self._past[-1]]
+				else:
+					self._keys.difference_update(map(get0, self._past))
+					self._past = []
+					if not self._future:
+						self.beginning = self.end = None
 			else:
 				raise ValueError("Need direction 'forward' or 'backward'")
 
