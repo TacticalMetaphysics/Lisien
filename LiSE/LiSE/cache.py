@@ -559,6 +559,7 @@ class PortalRulesHandledCache(RulesHandledCache):
 
 
 class ThingsCache(Cache):
+	name = 'things_cache'
 
 	def __init__(self, db):
 		Cache.__init__(self, db)
@@ -657,6 +658,7 @@ class ThingsCache(Cache):
 
 
 class NodeContentsCache(Cache):
+	name = 'node_contents_cache'
 
 	def _iter_future_contradictions(self, entity, key, turns, branch, turn,
 									tick, value):
