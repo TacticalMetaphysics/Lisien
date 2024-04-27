@@ -1086,15 +1086,19 @@ class Engine(AbstractEngine, gORM):
 											})['character_portal_rulebook']
 			delt = delta.pop(graph, {})
 			if (graph, ) in self._things_cache.keyframe:
-				locs = self._things_cache.keyframe[
-					graph,
-				][b][r][t].copy()
-				conts = {
-					key: set(value)
-					for (key, value) in self._node_contents_cache.keyframe[
+				try:
+					locs = self._things_cache.keyframe[
 						graph,
-					][b][r][t].items()
-				}
+					][b][r][t].copy()
+				except KeyError:
+					locs = {}
+				try:
+					kf = self._node_contents_cache.keyframe[
+						graph,
+					][b][r][t]
+					conts = {key: set(value) for (key, value) in kf.items()}
+				except KeyError:
+					conts = {}
 			else:
 				locs = {}
 				conts = {}
