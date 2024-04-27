@@ -375,5 +375,5 @@ if __name__ == "__main__":
 	d = mkdtemp()
 	with open(d + '/game_start.py', 'w', encoding='utf-8') as outf:
 		outf.write(getsource(game_start))
-	AwarenessApp(prefix=d, engine_kwargs={'commit_interval': 10}).run()
+	AwarenessApp(prefix=d).run()
 	print("Files are in " + d)
