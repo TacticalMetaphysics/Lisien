@@ -20,7 +20,7 @@ from kivy.app import App
 from kivy.logger import Logger
 from kivy.clock import Clock, triggered
 from kivy.properties import (BooleanProperty, ObjectProperty, NumericProperty,
-								StringProperty)
+								StringProperty, DictProperty)
 
 from kivy.factory import Factory
 from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
@@ -151,6 +151,7 @@ class GameApp(App):
 	tick = NumericProperty(0)
 	prefix = StringProperty('.')
 	selection = ObjectProperty(allownone=True)
+	engine_kwargs = DictProperty({})
 
 	def wait_turns(self, turns, *, cb=None):
 		"""Call ``self.engine.next_turn()`` ``turns`` times, waiting ``self.turn_length`` in between
@@ -238,7 +239,8 @@ class GameApp(App):
 												self, 'loglevel', 'debug'),
 											do_game_start=self.do_game_start
 											and not have_world,
-											install_modules=self.modules)
+											install_modules=self.modules,
+											**self.engine_kwargs)
 		self.branch, self.turn, self.tick = self.engine._btt()
 		self.engine.time.connect(self._pull_time, weak=False)
 		self.screen_manager = ScreenManager(transition=NoTransition())
