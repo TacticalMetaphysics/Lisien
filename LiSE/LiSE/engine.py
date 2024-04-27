@@ -1079,7 +1079,7 @@ class Engine(AbstractEngine, gORM):
 			try:
 				portrb = self._characters_portals_rulebooks_cache.retrieve(
 					graph, b, r, t)
-			except:
+			except KeyError:
 				portrb = (graph, 'portrb')
 			portrbs[graph] = delta.pop((graph, 'portal'),
 										{'character_portal_rulebook': portrb
