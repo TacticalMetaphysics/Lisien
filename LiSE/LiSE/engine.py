@@ -1010,6 +1010,11 @@ class Engine(AbstractEngine, gORM):
 			][b][r][t].copy()
 		except KeyError:
 			rbs = {}
+			for rule in self._rulebooks_cache.iter_keys(b, r, t):
+				try:
+					rbs[rule] = self._rulebooks_cache.retrieve(rule, b, r, t)
+				except KeyError:
+					rbs[rule] = rule
 		rbs.update(delta.pop('rulebooks', {}))
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
 		try:
@@ -1018,18 +1023,24 @@ class Engine(AbstractEngine, gORM):
 			][b][r][t].copy()
 		except KeyError:
 			trigs = {}
+			for rule in self._triggers_cache.iter_keys(b, r, t):
+				trigs[rule] = self._triggers_cache.retrieve(rule, b, r, t)
 		try:
 			preqs = self._prereqs_cache.keyframe[
 				None,
 			][b][r][t].copy()
 		except KeyError:
 			preqs = {}
+			for rule in self._prereqs_cache.iter_keys(b, r, t):
+				preqs[rule] = self._prereqs_cache.retrieve(rule, b, r, t)
 		try:
 			acts = self._actions_cache.keyframe[
 				None,
 			][b][r][t].copy()
 		except KeyError:
 			acts = {}
+			for rule in self._actions_cache.iter_keys(b, r, t):
+				acts[rule] = self._actions_cache.retrieve(rule, b, r, t)
 		for rule, funcs in delta.pop('rules', {}).items():
 			trigs[rule] = funcs['triggers']
 			preqs[rule] = funcs['prereqs']
@@ -1583,6 +1594,19 @@ class Engine(AbstractEngine, gORM):
 			for rbname in rbnames
 		}
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
+		rulenames = list(self._rules_cache)
+		trigs = {}
+		preqs = {}
+		acts = {}
+		for rule in rulenames:
+			trigs[rule] = self._triggers_cache.retrieve(
+				rule, branch, turn, tick)
+			preqs[rule] = self._prereqs_cache.retrieve(rule, branch, turn,
+														tick)
+			acts[rule] = self._actions_cache.retrieve(rule, branch, turn, tick)
+		self._triggers_cache.set_keyframe(branch, turn, tick, trigs)
+		self._prereqs_cache.set_keyframe(branch, turn, tick, preqs)
+		self._actions_cache.set_keyframe(branch, turn, tick, acts)
 		super()._snap_keyframe_de_novo(branch, turn, tick)
 
 	def _snap_keyframe_de_novo_graph(self,
