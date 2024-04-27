@@ -1002,6 +1002,9 @@ class Engine(AbstractEngine, gORM):
 	def _snap_keyframe_from_delta(self, then: Tuple[str, int, int],
 									now: Tuple[str, int, int],
 									delta: DeltaDict) -> None:
+		# TODO: This and _snap_keyframe_de_novo should both put the rulebooks and stuff into the query engine,
+		#       to be written to the database.
+		#       For which I will also need to amend the keyframe loader...
 		b, r, t = then
 		branch, turn, tick = now
 		try:
