@@ -128,7 +128,7 @@ class NextTurn(Signal):
 			engine.query.flush()
 		if (engine.commit_interval is not None
 			and engine.turn % engine.commit_interval == 0):
-			engine.query.commit()
+			engine.commit()
 		self.send(self.engine,
 					branch=engine.branch,
 					turn=engine.turn,
@@ -985,31 +985,126 @@ class Engine(AbstractEngine, gORM):
 	def _snap_keyframe_from_delta(self, then: Tuple[str, int, int],
 									now: Tuple[str, int, int],
 									delta: DeltaDict) -> None:
-		for graph, delt in delta.items():
+		b, r, t = then
+		branch, turn, tick = now
+		try:
+			rbs = self._rulebooks_cache.keyframe[
+				None,
+			][b][r][t].copy()
+		except KeyError:
+			rbs = {}
+		rbs.update(delta.pop('rulebooks', {}))
+		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
+		try:
+			trigs = self._triggers_cache.keyframe[
+				None,
+			][b][r][t].copy()
+		except KeyError:
+			trigs = {}
+		try:
+			preqs = self._prereqs_cache.keyframe[
+				None,
+			][b][r][t].copy()
+		except KeyError:
+			preqs = {}
+		try:
+			acts = self._actions_cache.keyframe[
+				None,
+			][b][r][t].copy()
+		except KeyError:
+			acts = {}
+		for rule, funcs in delta.pop('rules', {}).items():
+			trigs[rule] = funcs['triggers']
+			preqs[rule] = funcs['prereqs']
+			acts[rule] = funcs['actions']
+		self._triggers_cache.set_keyframe(branch, turn, tick, trigs)
+		self._prereqs_cache.set_keyframe(branch, turn, tick, preqs)
+		self._actions_cache.set_keyframe(branch, turn, tick, acts)
+		charrbs = {}
+		unitrbs = {}
+		thingrbs = {}
+		placerbs = {}
+		portrbs = {}
+		for graph in self.graph.keys():
+			# Seems not great that I have to double-retrieve like this but I can't
+			# be bothered to dig into the delta logic
+			# Zack 2024-04-27
+			try:
+				charrb = self._characters_rulebooks_cache.retrieve(
+					graph, b, r, t)
+			except KeyError:
+				charrb = (graph, 'character')
+			charrbs[graph] = delta.pop(
+				(graph, 'character'),
+				{'character_rulebook': charrb})['character_rulebook']
+			try:
+				unitrb = self._units_rulebooks_cache.retrieve(graph, b, r, t)
+			except KeyError:
+				unitrb = (graph, 'unit')
+			unitrbs[graph] = delta.pop(
+				(graph, 'unit'), {'unit_rulebook': unitrb})['unit_rulebook']
+			try:
+				thingrb = self._characters_things_rulebooks_cache.retrieve(
+					graph, b, r, t)
+			except KeyError:
+				thingrb = (graph, 'thing')
+			thingrbs[graph] = delta.pop((graph, 'thing'),
+										{'character_thing_rulebook': thingrb
+											})['character_thing_rulebook']
+			try:
+				placerb = self._characters_places_rulebooks_cache.retrieve(
+					graph, b, r, t)
+			except KeyError:
+				placerb = (graph, 'place')
+			placerbs[graph] = delta.pop((graph, 'place'),
+										{'character_place_rulebook': placerb
+											})['character_place_rulebook']
+			try:
+				portrb = self._characters_portals_rulebooks_cache.retrieve(
+					graph, b, r, t)
+			except:
+				portrb = (graph, 'portrb')
+			portrbs[graph] = delta.pop((graph, 'portal'),
+										{'character_portal_rulebook': portrb
+											})['character_portal_rulebook']
+			delt = delta.pop(graph, {})
 			if (graph, ) in self._things_cache.keyframe:
 				locs = self._things_cache.keyframe[
 					graph,
-				][then[0]][then[1]][then[2]].copy()
+				][b][r][t].copy()
+				conts = {
+					key: set(value)
+					for (key, value) in self._node_contents_cache.keyframe[
+						graph,
+					][b][r][t].items()
+				}
 			else:
 				locs = {}
+				conts = {}
 			if 'node_val' in delt:
 				for node, val in delt['node_val'].items():
 					if 'location' in val:
-						locs[node] = val.pop('location')
-			if not locs:
-				continue
-			kfg = self._things_cache.keyframe[
-				graph,
-			]
-			branch, turn, tick = now
-			if branch in kfg:
-				kfgb = kfg[branch]
-				if turn in kfgb:
-					kfgb[turn][tick] = locs
-				else:
-					kfgb[turn] = {tick: locs}
-			else:
-				kfg[branch] = {turn: {tick: locs}}
+						locs[node] = loc = val.pop('location')
+						if loc in conts:
+							conts[loc].add(node)
+						else:
+							conts[loc] = {node}
+			if locs:
+				conts = {
+					key: frozenset(value)
+					for (key, value) in conts.items()
+				}
+				self._things_cache.set_keyframe(graph, *now, locs)
+				self._node_contents_cache.set_keyframe(graph, *now, conts)
+		self._characters_rulebooks_cache.set_keyframe(branch, turn, tick,
+														charrbs)
+		self._units_rulebooks_cache.set_keyframe(branch, turn, tick, unitrbs)
+		self._characters_things_rulebooks_cache.set_keyframe(
+			branch, turn, tick, thingrbs)
+		self._characters_places_rulebooks_cache.set_keyframe(
+			branch, turn, tick, placerbs)
+		self._characters_portals_rulebooks_cache.set_keyframe(
+			branch, turn, tick, portrbs)
 		super()._snap_keyframe_from_delta(then, now, delta)
 
 	def __enter__(self):
@@ -1459,6 +1554,16 @@ class Engine(AbstractEngine, gORM):
 		self._things_cache.store(character, node, branch, turn, tick, loc)
 		self.query.set_thing_loc(character, node, branch, turn, tick, loc)
 
+	def _snap_keyframe_de_novo(self, branch: str, turn: int,
+								tick: int) -> None:
+		rbnames = list(self._rulebooks_cache.iter_keys(branch, turn, tick))
+		rbs = {
+			rbname: self._rulebooks_cache.retrieve(branch, turn, tick, rbname)
+			for rbname in rbnames
+		}
+		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
+		super()._snap_keyframe_de_novo(branch, turn, tick)
+
 	def _snap_keyframe_de_novo_graph(self,
 										graph: Key,
 										branch: str,
@@ -1498,6 +1603,15 @@ class Engine(AbstractEngine, gORM):
 			kfs[turn] = {tick: newkf}
 		else:
 			kfs[turn][tick] = newkf
+		assert (
+			graph,
+		) in self._things_cache.keyframe and branch in self._things_cache.keyframe[
+			graph,
+		] and turn in self._things_cache.keyframe[
+			graph,
+		][branch] and tick in self._things_cache.keyframe[
+			graph,
+		][branch][turn]
 
 	def turns_when(self,
 					qry: Query,

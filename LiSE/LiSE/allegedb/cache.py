@@ -254,6 +254,21 @@ class Cache:
 												self.presettings,
 												self._base_retrieve)
 
+	def set_keyframe(self, graph, branch, turn, tick, keyframe):
+		kfg = self.keyframe[
+			graph,
+		]
+		if branch in kfg:
+			kfgb = kfg[branch]
+			if turn in kfgb:
+				kfgb[turn][tick] = keyframe
+			else:
+				kfgb[turn] = {tick: keyframe}
+		else:
+			d = SettingsTurnDict()
+			d[turn] = {tick: keyframe}
+			kfg[branch] = d
+
 	def load(self, data):
 		"""Add a bunch of data. Must be in chronological order.
 
@@ -1606,6 +1621,9 @@ class EntitylessCache(Cache):
 						forward=forward,
 						loading=loading,
 						contra=contra)
+
+	def set_keyframe(self, branch, turn, tick, keyframe):
+		super().set_keyframe(None, branch, turn, tick, keyframe)
 
 	def iter_entities_or_keys(self, branch, turn, tick, *, forward=None):
 		return super().iter_entities_or_keys(None,
