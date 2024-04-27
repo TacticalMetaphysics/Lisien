@@ -982,6 +982,36 @@ class Engine(AbstractEngine, gORM):
 		self.query.close()
 		self._closed = True
 
+	def _snap_keyframe_from_delta(self, then: Tuple[str, int, int],
+									now: Tuple[str, int, int],
+									delta: DeltaDict) -> None:
+		for graph, delt in delta.items():
+			if (graph, ) in self._things_cache.keyframe:
+				locs = self._things_cache.keyframe[
+					graph,
+				][then[0]][then[1]][then[2]].copy()
+			else:
+				locs = {}
+			if 'node_val' in delt:
+				for node, val in delt['node_val'].items():
+					if 'location' in val:
+						locs[node] = val.pop('location')
+			if not locs:
+				continue
+			kfg = self._things_cache.keyframe[
+				graph,
+			]
+			branch, turn, tick = now
+			if branch in kfg:
+				kfgb = kfg[branch]
+				if turn in kfgb:
+					kfgb[turn][tick] = locs
+				else:
+					kfgb[turn] = {tick: locs}
+			else:
+				kfg[branch] = {turn: {tick: locs}}
+		super()._snap_keyframe_from_delta(then, now, delta)
+
 	def __enter__(self):
 		"""Return myself. For compatibility with ``with`` semantics."""
 		return self
