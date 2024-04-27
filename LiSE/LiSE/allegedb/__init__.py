@@ -2167,6 +2167,7 @@ class ORM:
 						tick_end)
 		self.flush()
 		self.query.commit()
+		self.unload()
 
 	def close(self) -> None:
 		"""Write changes to database and close the connection"""

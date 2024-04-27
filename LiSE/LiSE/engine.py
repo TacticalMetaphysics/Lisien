@@ -567,7 +567,24 @@ class Engine(AbstractEngine, gORM):
 			self.method = FunctionStore(self._method_file)
 		self.rule = AllRules(self)
 		self.rulebook = AllRuleBooks(self)
-		self._char_caches = self._caches + [self._things_cache]
+		self._caches += [
+			self._things_cache,
+			self._node_contents_cache,
+			self._universal_cache,
+			self._rulebooks_cache,
+			self._characters_rulebooks_cache,
+			self._units_rulebooks_cache,
+			self._characters_things_rulebooks_cache,
+			self._characters_places_rulebooks_cache,
+			self._characters_portals_rulebooks_cache,
+			self._nodes_rulebooks_cache,
+			self._portals_rulebooks_cache,
+			self._triggers_cache,
+			self._prereqs_cache,
+			self._actions_cache,
+			# rules handled caches not here because they don't really unload
+			self._unitness_cache,
+		]
 
 	def _load_graphs(self) -> None:
 		for charn, branch, turn, tick, typ in self.query.characters():
