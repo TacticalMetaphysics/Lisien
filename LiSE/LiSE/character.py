@@ -835,8 +835,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				charn, branch, turn, tick)
 
 		def __contains__(self, place):
-			# TODO: maybe a special cache just for places and not just
-			# nodes in general
 			nodes_contains, things_contains, charn, btt = self._contains_stuff
 			branch, turn, tick = btt()
 			return (nodes_contains(charn, place, branch, turn, tick)
