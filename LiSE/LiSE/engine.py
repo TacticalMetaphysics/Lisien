@@ -1027,7 +1027,10 @@ class Engine(AbstractEngine, gORM):
 		except KeyError:
 			trigs = {}
 			for rule in self._triggers_cache.iter_keys(b, r, t):
-				trigs[rule] = self._triggers_cache.retrieve(rule, b, r, t)
+				try:
+					trigs[rule] = self._triggers_cache.retrieve(rule, b, r, t)
+				except KeyError:
+					trigs[rule] = tuple()
 		try:
 			preqs = self._prereqs_cache.keyframe[
 				None,
@@ -1035,7 +1038,10 @@ class Engine(AbstractEngine, gORM):
 		except KeyError:
 			preqs = {}
 			for rule in self._prereqs_cache.iter_keys(b, r, t):
-				preqs[rule] = self._prereqs_cache.retrieve(rule, b, r, t)
+				try:
+					preqs[rule] = self._prereqs_cache.retrieve(rule, b, r, t)
+				except KeyError:
+					preqs[rule] = tuple()
 		try:
 			acts = self._actions_cache.keyframe[
 				None,
@@ -1043,7 +1049,10 @@ class Engine(AbstractEngine, gORM):
 		except KeyError:
 			acts = {}
 			for rule in self._actions_cache.iter_keys(b, r, t):
-				acts[rule] = self._actions_cache.retrieve(rule, b, r, t)
+				try:
+					acts[rule] = self._actions_cache.retrieve(rule, b, r, t)
+				except KeyError:
+					acts[rule] = tuple()
 		for rule, funcs in delta.pop('rules', {}).items():
 			trigs[rule] = funcs['triggers']
 			preqs[rule] = funcs['prereqs']
