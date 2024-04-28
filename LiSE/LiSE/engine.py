@@ -1054,9 +1054,9 @@ class Engine(AbstractEngine, gORM):
 				except KeyError:
 					acts[rule] = tuple()
 		for rule, funcs in delta.pop('rules', {}).items():
-			trigs[rule] = funcs['triggers']
-			preqs[rule] = funcs['prereqs']
-			acts[rule] = funcs['actions']
+			trigs[rule] = funcs.get('triggers', tuple())
+			preqs[rule] = funcs.get('prereqs', tuple())
+			acts[rule] = funcs.get('actions', tuple())
 		self._triggers_cache.set_keyframe(branch, turn, tick, trigs)
 		self._prereqs_cache.set_keyframe(branch, turn, tick, preqs)
 		self._actions_cache.set_keyframe(branch, turn, tick, acts)
