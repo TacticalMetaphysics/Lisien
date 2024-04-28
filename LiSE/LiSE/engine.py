@@ -1601,21 +1601,34 @@ class Engine(AbstractEngine, gORM):
 	def _snap_keyframe_de_novo(self, branch: str, turn: int,
 								tick: int) -> None:
 		rbnames = list(self._rulebooks_cache.iter_keys(branch, turn, tick))
-		rbs = {
-			rbname: self._rulebooks_cache.retrieve(branch, turn, tick, rbname)
-			for rbname in rbnames
-		}
+		rbs = {}
+		for rbname in rbnames:
+			try:
+				rbs[rbname] = self._rulebooks_cache.retrieve(
+					branch, turn, tick)
+			except KeyError:
+				rbs[rbname] = tuple()
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
 		rulenames = list(self._rules_cache)
 		trigs = {}
 		preqs = {}
 		acts = {}
 		for rule in rulenames:
-			trigs[rule] = self._triggers_cache.retrieve(
-				rule, branch, turn, tick)
-			preqs[rule] = self._prereqs_cache.retrieve(rule, branch, turn,
-														tick)
-			acts[rule] = self._actions_cache.retrieve(rule, branch, turn, tick)
+			try:
+				trigs[rule] = self._triggers_cache.retrieve(
+					rule, branch, turn, tick)
+			except KeyError:
+				trigs[rule] = tuple()
+			try:
+				preqs[rule] = self._prereqs_cache.retrieve(
+					rule, branch, turn, tick)
+			except KeyError:
+				preqs[rule] = tuple()
+			try:
+				acts[rule] = self._actions_cache.retrieve(
+					rule, branch, turn, tick)
+			except KeyError:
+				acts[rule] = tuple()
 		self._triggers_cache.set_keyframe(branch, turn, tick, trigs)
 		self._prereqs_cache.set_keyframe(branch, turn, tick, preqs)
 		self._actions_cache.set_keyframe(branch, turn, tick, acts)
