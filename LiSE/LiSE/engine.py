@@ -1607,7 +1607,7 @@ class Engine(AbstractEngine, gORM):
 				rbs[rbname] = self._rulebooks_cache.retrieve(
 					branch, turn, tick)
 			except KeyError:
-				rbs[rbname] = tuple()
+				rbs[rbname] = (tuple(), 0.0)
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
 		rulenames = list(self._rules_cache)
 		trigs = {}
