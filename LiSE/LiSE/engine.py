@@ -1107,7 +1107,7 @@ class Engine(AbstractEngine, gORM):
 			portrbs[graph] = delta.pop((graph, 'portal'),
 										{'character_portal_rulebook': portrb
 											})['character_portal_rulebook']
-			delt = delta.pop(graph, {})
+			delt = delta.get(graph, {})
 			if (graph, ) in self._things_cache.keyframe:
 				try:
 					locs = self._things_cache.keyframe[
