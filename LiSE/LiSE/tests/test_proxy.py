@@ -206,4 +206,7 @@ def test_updedgerb(handle):
 
 	delta = engine.unpack(b)
 
-	assert '0' in delta and 'edge_val' in delta['0'] and '0' in delta['0']['edge_val'] and '1' in delta['0']['edge_val']['0'] and 'rulebook' in delta['0']['edge_val']['0']['1'] and delta['0']['edge_val']['0']['1']['rulebook'] == 'haha'
+	assert '0' in delta and 'edge_val' in delta['0'] and '0' in delta['0'][
+		'edge_val'] and '1' in delta['0']['edge_val'][
+			'0'] and 'rulebook' in delta['0']['edge_val']['0']['1'] and delta[
+				'0']['edge_val']['0']['1']['rulebook'] == 'haha'
