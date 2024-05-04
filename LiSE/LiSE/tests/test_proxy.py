@@ -210,3 +210,18 @@ def test_updedgerb(handle):
 		'edge_val'] and '1' in delta['0']['edge_val'][
 			'0'] and 'rulebook' in delta['0']['edge_val']['0']['1'] and delta[
 				'0']['edge_val']['0']['1']['rulebook'] == 'haha'
+
+
+def test_thing_place_iter():
+	# set up some world state with things and places, before starting the proxy
+	with tempfile.TemporaryDirectory() as tempdir:
+		with LiSE.Engine(tempdir) as eng:
+			kobold.inittest(eng)
+		manager = EngineProcessManager()
+		engine = manager.start(tempdir)
+		phys = engine.character['physical']
+		for place_name in phys.place:
+			assert isinstance(place_name, tuple)
+		for thing_name in phys.thing:
+			assert isinstance(thing_name, str)
+		manager.shutdown()
