@@ -1657,7 +1657,7 @@ class ORM:
 				noderows, edgerows, graphvalrows, nodevalrows, edgevalrows)
 
 	@world_locked
-	def unload(self) -> None:
+	def _unload(self) -> None:
 		"""Remove everything from memory that can be removed."""
 		# find the slices of time that need to stay loaded
 		branch, turn, tick = self._btt()
@@ -2151,10 +2151,13 @@ class ORM:
 		self.query.globl["main_branch"] = self.branch = branch
 
 	@world_locked
-	def commit(self) -> None:
+	def commit(self, unload=True) -> None:
 		"""Write the state of all graphs and commit the transaction.
 
 		Also saves the current branch, turn, and tick.
+
+		With `unload=False`, committed data will stay in memory, keeping time
+		travel smooth.
 
 		"""
 		self.query.globl['branch'] = self._obranch
@@ -2167,7 +2170,8 @@ class ORM:
 						tick_end)
 		self.flush()
 		self.query.commit()
-		self.unload()
+		if unload:
+			self._unload()
 
 	def close(self) -> None:
 		"""Write changes to database and close the connection"""
