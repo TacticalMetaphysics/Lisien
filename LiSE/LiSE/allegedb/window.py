@@ -456,15 +456,28 @@ class WindowDict(MutableMapping):
 	even if you don't supply a step. That will get you values in reverse order.
 
 	"""
-	__slots__ = ('_future', '_past', '_keys', 'beginning', 'end', '_last',
-					'_lock')
+	__slots__ = ('_future', '_past', '_keys', '_last', '_lock')
 
 	_past: List[Tuple[int, Any]]
 	_future: List[Tuple[int, Any]]
 	_keys: Set[int]
 	_last: Optional[int]
-	beginning: Optional[int]
-	end: Optional[int]
+
+	@property
+	def beginning(self) -> Optional[int]:
+		if not self._past:
+			if not self._future:
+				return None
+			return self._future[-1][0]
+		return self._past[0][0]
+
+	@property
+	def end(self) -> Optional[int]:
+		if not self._future:
+			if not self._past:
+				return None
+			return self._past[-1][0]
+		return self._future[0][0]
 
 	def future(self, rev: int = None) -> WindowDictFutureView:
 		"""Return a Mapping of items after the given revision.
@@ -564,8 +577,6 @@ class WindowDict(MutableMapping):
 			if direction == 'forward':
 				self._keys.difference_update(map(get0, self._future))
 				self._future = []
-				if not self._past:
-					self.beginning = self.end = None
 			elif direction == 'backward':
 				if not self._past:
 					return
@@ -575,8 +586,6 @@ class WindowDict(MutableMapping):
 				else:
 					self._keys.difference_update(map(get0, self._past))
 					self._past = []
-					if not self._future:
-						self.beginning = self.end = None
 			else:
 				raise ValueError("Need direction 'forward' or 'backward'")
 
@@ -618,8 +627,6 @@ class WindowDict(MutableMapping):
 			self._past.sort()
 			self._future = []
 			self._keys = set(map(get0, self._past))
-			self.beginning = None if not self._past else self._past[0][0]
-			self.end = None if not self._past else self._past[-1][0]
 			self._last = None
 
 	def __iter__(self) -> Iterable[Any]:
@@ -661,13 +668,8 @@ class WindowDict(MutableMapping):
 						past.append((rev, v))
 				else:
 					past.append((rev, v))
-					self.beginning = rev
-				end = self.end
-				if end is None or rev > end:
-					self.end = rev
 			else:
 				past.append((rev, v))
-				self.beginning = self.end = self._last = rev
 			self._keys.add(rev)
 
 	def __delitem__(self, rev: int) -> None:
@@ -690,17 +692,9 @@ class WindowDict(MutableMapping):
 		with self._lock:
 			self._seek(rev)
 			past = self._past
-			future = self._future
 			if not past or past[-1][0] != rev:
 				raise HistoricKeyError("Rev not present: {}".format(rev))
 			del past[-1]
-			if not past:
-				if future:
-					self.beginning = future[-1][0]
-				else:
-					self.beginning = self.end = None
-			elif not future:
-				self.end = past[-1][0]
 			self._keys.remove(rev)
 
 	def __repr__(self) -> str:
@@ -714,10 +708,12 @@ class WindowDict(MutableMapping):
 
 class FuturistWindowDict(WindowDict):
 	"""A WindowDict that does not let you rewrite the past."""
-	__slots__ = ('_future', '_past', 'beginning')
+	__slots__ = (
+		'_future',
+		'_past',
+	)
 	_future: List[Tuple[int, Any]]
 	_past: List[Tuple[int, Any]]
-	beginning: Optional[int]
 
 	def __setitem__(self, rev: int, v: Any) -> None:
 		if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
@@ -730,7 +726,6 @@ class FuturistWindowDict(WindowDict):
 				raise HistoricKeyError(
 					"Already have some history after {}".format(rev))
 			if not past:
-				self.beginning = rev
 				past.append((rev, v))
 			elif rev > past[-1][0]:
 				past.append((rev, v))
@@ -740,8 +735,6 @@ class FuturistWindowDict(WindowDict):
 				raise HistoricKeyError(
 					"Already have some history after {} "
 					"(and my seek function is broken?)".format(rev))
-			if self.end is None or rev > self.end:
-				self.end = rev
 			self._keys.add(rev)
 
 
