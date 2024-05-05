@@ -1128,7 +1128,7 @@ class Engine(AbstractEngine, gORM):
 			if 'node_val' in delt:
 				for node, val in delt['node_val'].items():
 					if 'location' in val:
-						locs[node] = loc = val.pop('location')
+						locs[node] = loc = val['location']
 						if loc in conts:
 							conts[loc].add(node)
 						else:
