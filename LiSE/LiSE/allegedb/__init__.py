@@ -2151,10 +2151,13 @@ class ORM:
 		self.query.globl["main_branch"] = self.branch = branch
 
 	@world_locked
-	def commit(self) -> None:
+	def commit(self, unload=True) -> None:
 		"""Write the state of all graphs and commit the transaction.
 
 		Also saves the current branch, turn, and tick.
+
+		Call with ``unload=False`` if you want to keep the written state
+		(and all other state apart from the present) in memory.
 
 		"""
 		self.query.globl['branch'] = self._obranch
@@ -2167,7 +2170,8 @@ class ORM:
 						tick_end)
 		self.flush()
 		self.query.commit()
-		self.unload()
+		if unload:
+			self.unload()
 
 	def close(self) -> None:
 		"""Write changes to database and close the connection"""
