@@ -274,7 +274,7 @@ class TimeSignalDescriptor:
 			e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
 		e._obranch, e._oturn = val
 		if not e._time_is_loaded(*val, tick_now):
-			e._load_at(*val, tick_now)
+			e.load_at(*val, tick_now)
 
 		if not e._planning:
 			if tick_now > e._turn_end[val]:
@@ -977,7 +977,7 @@ class ORM:
 				else:
 					keyframes_dict_branch[turn].add(tick)
 			keyframes_times.add((branch, turn, tick))
-		self._load_at(*self._btt())
+		self.load_at(*self._btt())
 
 		last_plan = -1
 		plans = self._plans
@@ -1484,7 +1484,7 @@ class ORM:
 		return latest_past_keyframe, earliest_future_keyframe
 
 	@world_locked
-	def _load_at(
+	def load_at(
 		self, branch: str, turn: int, tick: int
 	) -> Tuple[Optional[Tuple[str, int, int]], Optional[Tuple[
 		str, int, int]], dict, List[NodeRowType], List[EdgeRowType],
@@ -1830,14 +1830,14 @@ class ORM:
 			loaded[v] = (curturn, tick, curturn, tick)
 			return
 		elif v not in loaded:
-			self._load_at(v, curturn, tick)
+			self.load_at(v, curturn, tick)
 			return
 		(start_turn, start_tick, end_turn, end_tick) = loaded[v]
 		if (curturn > end_turn or
 			(curturn == end_turn and tick > end_tick)) or (
 				curturn < start_turn or
 				(curturn == start_turn and tick < start_tick)):
-			self._load_at(v, curturn, tick)
+			self.load_at(v, curturn, tick)
 
 	@world_locked
 	def _copy_plans(self, branch_from: str, turn_from: int,
@@ -1942,7 +1942,7 @@ class ORM:
 			(start_turn, start_tick, end_turn, end_tick) = loaded[branch]
 			if v > end_turn or (v == end_turn and tick > end_tick):
 				if (branch, v, tick) in self._keyframes_times:
-					self._load_at(branch, v, tick)
+					self.load_at(branch, v, tick)
 				else:
 					loaded[branch] = (start_turn, start_tick, end_turn, tick)
 			return
@@ -1970,7 +1970,7 @@ class ORM:
 				tick = self._turn_end_plan[branch, v]
 			else:
 				tick = 0
-			self._load_at(branch, v, tick)
+			self.load_at(branch, v, tick)
 		else:
 			(start_turn, start_tick, end_turn, end_tick) = loaded[branch]
 			if (branch, v) in self._turn_end_plan:
@@ -1979,11 +1979,11 @@ class ORM:
 				self._turn_end_plan[(branch, v)] = tick = 0
 			if v > end_turn or (v == end_turn and tick > end_tick):
 				if (branch, v, tick) in self._keyframes_times:
-					self._load_at(branch, v, tick)
+					self.load_at(branch, v, tick)
 				else:
 					loaded[branch] = (start_turn, start_tick, v, tick)
 			elif v < start_turn or (v == start_turn and tick < start_tick):
-				self._load_at(branch, v, tick)
+				self.load_at(branch, v, tick)
 		self._branch_end_plan[self.branch] = max(
 			(self._branch_end_plan[self.branch], v))
 		self._otick = tick
@@ -2023,16 +2023,16 @@ class ORM:
 		self._otick = v
 		loaded = self._loaded
 		if branch not in loaded:
-			self._load_at(branch, turn, v)
+			self.load_at(branch, turn, v)
 			return
 		(start_turn, start_tick, end_turn, end_tick) = loaded[branch]
 		if turn > end_turn or (turn == end_turn and v > end_tick):
 			if (branch, end_turn, end_tick) in self._keyframes_times:
-				self._load_at(branch, turn, v)
+				self.load_at(branch, turn, v)
 				return
 			loaded[branch] = (start_turn, start_tick, turn, v)
 		elif turn < start_turn or (turn == start_turn and v < start_tick):
-			self._load_at(branch, turn, v)
+			self.load_at(branch, turn, v)
 
 	# easier to override things this way
 	@property

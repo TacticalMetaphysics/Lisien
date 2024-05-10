@@ -434,10 +434,16 @@ class Engine(AbstractEngine, gORM):
 			for name in q.rules_dump()
 		}
 
-	def _load_at(self, branch: str, turn: int, tick: int) -> None:
+	def load_at(self, branch: str, turn: int, tick: int) -> None:
+		"""Load history data at the given time
+
+		Will load the keyframe prior to that timee, and all history
+		data following, up to (but not including) the keyframe thereafter.
+
+		"""
 		(latest_past_keyframe, earliest_future_keyframe, keyframed, noderows,
 			edgerows, graphvalrows, nodevalrows,
-			edgevalrows) = super()._load_at(branch, turn, tick)
+			edgevalrows) = super().load_at(branch, turn, tick)
 		thingrows = []
 		updload = self._updload
 

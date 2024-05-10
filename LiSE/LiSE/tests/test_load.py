@@ -40,27 +40,51 @@ def test_multi_keyframe(tempdir):
 	eng.snap_keyframe()
 	tick1 = eng.tick
 	assert ('physical', ) in eng._nodes_cache.keyframe
-	assert 'trunk' in eng._nodes_cache.keyframe['physical', ]
-	assert 1 in eng._nodes_cache.keyframe['physical', ]['trunk']
-	assert tick1 in eng._nodes_cache.keyframe['physical', ]['trunk'][1]
-	assert (1, 1) in eng._nodes_cache.keyframe['physical', ]['trunk'][1][tick1]
-	assert (
-		3, 3) not in eng._nodes_cache.keyframe['physical', ]['trunk'][1][tick1]
+	assert 'trunk' in eng._nodes_cache.keyframe[
+		'physical',
+	]
+	assert 1 in eng._nodes_cache.keyframe[
+		'physical',
+	]['trunk']
+	assert tick1 in eng._nodes_cache.keyframe[
+		'physical',
+	]['trunk'][1]
+	assert (1, 1) in eng._nodes_cache.keyframe[
+		'physical',
+	]['trunk'][1][tick1]
+	assert (3, 3) not in eng._nodes_cache.keyframe[
+		'physical',
+	]['trunk'][1][tick1]
 	eng.close()
 	eng = Engine(tempdir, keyframe_on_close=False)
-	assert 1 in eng._nodes_cache.keyframe['physical', ]['trunk']
-	assert tick1 in eng._nodes_cache.keyframe['physical', ]['trunk'][1]
-	eng._load_at('trunk', 0, tick0)
+	assert 1 in eng._nodes_cache.keyframe[
+		'physical',
+	]['trunk']
+	assert tick1 in eng._nodes_cache.keyframe[
+		'physical',
+	]['trunk'][1]
+	eng.load_at('trunk', 0, tick0)
 	assert eng._time_is_loaded('trunk', 0, tick0)
 	assert eng._time_is_loaded('trunk', 0, tick0 + 1)
 	assert eng._time_is_loaded('trunk', 1, tick1 - 1)
 	assert eng._time_is_loaded('trunk', 1, tick1)
-	assert 0 in eng._nodes_cache.keyframe['physical', ]['trunk']
-	assert tick0 in eng._nodes_cache.keyframe['physical', ]['trunk'][0]
-	assert 1 in eng._nodes_cache.keyframe['physical', ]['trunk']
-	assert tick1 in eng._nodes_cache.keyframe['physical', ]['trunk'][1]
-	assert eng._nodes_cache.keyframe['physical', ]['trunk'][0][
-		tick0] != eng._nodes_cache.keyframe['physical', ]['trunk'][1][tick1]
+	assert 0 in eng._nodes_cache.keyframe[
+		'physical',
+	]['trunk']
+	assert tick0 in eng._nodes_cache.keyframe[
+		'physical',
+	]['trunk'][0]
+	assert 1 in eng._nodes_cache.keyframe[
+		'physical',
+	]['trunk']
+	assert tick1 in eng._nodes_cache.keyframe[
+		'physical',
+	]['trunk'][1]
+	assert eng._nodes_cache.keyframe[
+		'physical',
+	]['trunk'][0][tick0] != eng._nodes_cache.keyframe[
+		'physical',
+	]['trunk'][1][tick1]
 	eng.close()
 
 
