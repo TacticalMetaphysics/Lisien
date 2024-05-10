@@ -36,7 +36,8 @@ from networkx import (Graph, DiGraph, spring_layout, from_dict_of_dicts,
 from blinker import Signal
 
 from .allegedb import ORM as gORM
-from .allegedb import (StatDict, NodeValDict, EdgeValDict, DeltaDict, Key)
+from .allegedb import (StatDict, NodeValDict, EdgeValDict, DeltaDict, Key,
+						world_locked)
 from .allegedb.window import update_window, update_backward_window
 from .util import sort_set, AbstractEngine, final_rule, normalize_layout
 from .xcollections import StringStore, FunctionStore, MethodStore
@@ -434,6 +435,7 @@ class Engine(AbstractEngine, gORM):
 			for name in q.rules_dump()
 		}
 
+	@world_locked
 	def load_at(self, branch: str, turn: int, tick: int) -> None:
 		"""Load history data at the given time
 
