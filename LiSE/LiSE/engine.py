@@ -210,7 +210,7 @@ class Engine(AbstractEngine, gORM):
 		anything. Defaults to :class:`NullSchema`.
 	:param flush_interval: LiSE will put pending changes into the database
 		transaction every ``flush_interval`` turns. If ``None``, only flush
-		on commit. Default ``1``.
+		on commit. Default ``None``.
 	:param keyframe_interval: How many records to let through before automatically
 		snapping a keyframe, default ``1000``. If ``None``, you'll need
 		to call ``snap_keyframe`` yourself.
@@ -268,7 +268,7 @@ class Engine(AbstractEngine, gORM):
 					connect_string: str = None,
 					connect_args: dict = None,
 					schema_cls: Type[AbstractSchema] = NullSchema,
-					flush_interval: Optional[int] = 1,
+					flush_interval: Optional[int] = None,
 					keyframe_interval: Optional[int] = 1000,
 					commit_interval: int = None,
 					random_seed: int = None,
