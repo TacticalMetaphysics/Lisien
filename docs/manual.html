@@ -67,8 +67,8 @@ functions. Actions make some change to the state of the world, while
 Triggers look at the world once-per-turn and return a Boolean to show
 whether their Actions should happen.</p>
 </section>
-<section id="architecture">
-<h2>Architecture<a class="headerlink" href="#architecture" title="Link to this heading">¶</a></h2>
+<section id="concepts">
+<h2>Concepts<a class="headerlink" href="#concepts" title="Link to this heading">¶</a></h2>
 <p>LiSE is a tool for constructing turn-based simulations following rules
 in a directed graph-based world model. It has special affordances for
 the kinds of things you might need to simulate in the life simulation
@@ -104,12 +104,11 @@ and use your intuition to spot exactly what went wrong.</p>
 <section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
 <p>The only LiSE class that you should ever instantiate yourself is
-<code class="docutils literal notranslate"><span class="pre">Engine</span></code>. All simulation objects should be
+<a class="reference internal" href="LiSE/index.html#LiSE.Engine" title="LiSE.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.engine.Engine</span></code></a>. All simulation objects should be
 created and accessed through it. By default, it keeps the simulation
 code and world state in the working directory, but you can pass in another
 directory if you prefer. Either use it with a context manager
-(<code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">Engine()</span> <span class="pre">as</span> <span class="pre">eng:</span></code>) or call its <code class="docutils literal notranslate"><span class="pre">.close()</span></code> method when you’re done
-changing things.</p>
+(<code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">Engine()</span> <span class="pre">as</span> <span class="pre">eng:</span></code>) or call its <code class="docutils literal notranslate"><span class="pre">.close()</span></code> method when you’re done.</p>
 <section id="world-modelling">
 <h3>World Modelling<a class="headerlink" href="#world-modelling" title="Link to this heading">¶</a></h3>
 <p>Start by calling the engine’s <code class="docutils literal notranslate"><span class="pre">new_character</span></code> method with a string
@@ -245,7 +244,7 @@ call, then return a menu description like this one.:</p>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#too-much-world-state">Too much world state</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#too-many-rules">Too many rules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#concepts">Concepts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#world-modelling">World Modelling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rule-creation">Rule Creation</a></li>

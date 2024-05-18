@@ -984,7 +984,11 @@ class Engine(AbstractEngine, gORM):
 		self._turns_completed_previous = turns_completed.copy()
 
 	def close(self) -> None:
-		"""Commit changes and close the database."""
+		"""Commit changes and close the database
+
+		This will be useless thereafter.
+
+		"""
 		if hasattr(self, '_closed'):
 			raise RuntimeError("Already closed")
 		if hasattr(self, 'cache_arrange_queue'):

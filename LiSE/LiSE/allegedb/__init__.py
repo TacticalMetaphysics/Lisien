@@ -2156,8 +2156,7 @@ class ORM:
 
 		Also saves the current branch, turn, and tick.
 
-		Call with ``unload=False`` if you want to keep the written state
-		(and all other state apart from the present) in memory.
+		Call with ``unload=False`` if you want to keep the written state in memory.
 
 		"""
 		self.query.globl['branch'] = self._obranch

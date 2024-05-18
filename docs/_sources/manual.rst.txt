@@ -39,8 +39,8 @@ functions. Actions make some change to the state of the world, while
 Triggers look at the world once-per-turn and return a Boolean to show
 whether their Actions should happen.
 
-Architecture
-------------
+Concepts
+--------
 
 LiSE is a tool for constructing turn-based simulations following rules
 in a directed graph-based world model. It has special affordances for
@@ -81,12 +81,11 @@ and use your intuition to spot exactly what went wrong.
 Usage
 -----
 The only LiSE class that you should ever instantiate yourself is
-``Engine``. All simulation objects should be
+:class:`LiSE.engine.Engine`. All simulation objects should be
 created and accessed through it. By default, it keeps the simulation
 code and world state in the working directory, but you can pass in another
 directory if you prefer. Either use it with a context manager
-(``with Engine() as eng:``) or call its ``.close()`` method when you're done
-changing things.
+(``with Engine() as eng:``) or call its ``.close()`` method when you're done.
 
 World Modelling
 +++++++++++++++
