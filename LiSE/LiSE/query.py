@@ -14,6 +14,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Database access and query builder
 
+The main class here is :class:`QueryEngine`, which mostly just runs
+SQL on demand -- but, for the most common insert commands, it keeps
+a queue of data to insert, which is then serialized and inserted
+with a call to ``flush``.
+
 Sometimes you want to know when some stat of a LiSE entity had a particular
 value. To find out, construct a historical query and pass it to
 ``Engine.turns_when``, like this::
