@@ -385,7 +385,7 @@ class QueryResult(Sequence, Set):
 
 	def __repr__(self):
 		return (f"<{self.__class__.__name__}({self._past_l}, {self._past_r},"
-				f"{self._oper}, {self._end_of_time})")
+				f"{self._oper}, {self._end_of_time})>")
 
 
 class QueryResultEndTurn(QueryResult):
