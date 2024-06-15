@@ -37,6 +37,9 @@ game
 ----
 Tools to make it easier to script your own game using the ELiDE widgets.
 
+For an example of how to build a game with these, see
+`the Awareness sim <https://github.com/TacticalMetaphysics/LiSE/blob/main/ELiDE/ELiDE/examples/awareness.py>`_.
+
 .. automodule:: ELiDE.game
     :members:
 
