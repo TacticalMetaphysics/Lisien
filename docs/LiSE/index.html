@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>LiSE &#8212; LiSE 0.14.0a documentation</title>
+    <title>engine &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
     <script src="../_static/documentation_options.js?v=fbc7b204"></script>
@@ -14,7 +14,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="ELiDE" href="../ELiDE/index.html" />
-    <link rel="prev" title="Introduction" href="../manual.html" />
+    <link rel="prev" title="Design" href="design.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
   
@@ -32,16 +32,14 @@
 
           <div class="body" role="main">
             
-  <section id="lise">
-<h1>LiSE<a class="headerlink" href="#lise" title="Link to this heading">¶</a></h1>
-<section id="module-LiSE.engine">
-<span id="engine"></span><h2>engine<a class="headerlink" href="#module-LiSE.engine" title="Link to this heading">¶</a></h2>
+  <section id="module-LiSE.engine">
+<span id="engine"></span><h1>engine<a class="headerlink" href="#module-LiSE.engine" title="Link to this heading">¶</a></h1>
 <p>The “engine” of LiSE is an object relational mapper with special
 stores for game data and entities, as well as properties for manipulating the
 flow of time.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="LiSE.Engine">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.</span></span><span class="sig-name descname"><span class="pre">Engine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix:</span> <span class="pre">~os.PathLike</span> <span class="pre">|</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">string:</span> <span class="pre">~LiSE.xcollections.StringStore</span> <span class="pre">|</span> <span class="pre">dict</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trigger:</span> <span class="pre">~LiSE.xcollections.FunctionStore</span> <span class="pre">|</span> <span class="pre">~types.ModuleType</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prereq:</span> <span class="pre">~LiSE.xcollections.FunctionStore</span> <span class="pre">|</span> <span class="pre">~types.ModuleType</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action:</span> <span class="pre">~LiSE.xcollections.FunctionStore</span> <span class="pre">|</span> <span class="pre">~types.ModuleType</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">function:</span> <span class="pre">~LiSE.xcollections.FunctionStore</span> <span class="pre">|</span> <span class="pre">~types.ModuleType</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method:</span> <span class="pre">~LiSE.xcollections.MethodStore</span> <span class="pre">|</span> <span class="pre">~types.ModuleType</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">main_branch:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connect_string:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connect_args:</span> <span class="pre">dict</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema_cls:</span> <span class="pre">~typing.Type[~LiSE.engine.AbstractSchema]</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'LiSE.engine.NullSchema'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_interval:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keyframe_interval:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commit_interval:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfun:</span> <span class="pre">~types.LambdaType</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clear:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_rules_journal:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keyframe_on_close:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_arranger:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_end_of_time:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.Engine" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">LiSE.</span></span><span class="sig-name descname"><span class="pre">Engine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix:</span> <span class="pre">~os.PathLike</span> <span class="pre">|</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">string:</span> <span class="pre">~LiSE.xcollections.StringStore</span> <span class="pre">|</span> <span class="pre">dict</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trigger:</span> <span class="pre">~LiSE.xcollections.FunctionStore</span> <span class="pre">|</span> <span class="pre">~types.ModuleType</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prereq:</span> <span class="pre">~LiSE.xcollections.FunctionStore</span> <span class="pre">|</span> <span class="pre">~types.ModuleType</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action:</span> <span class="pre">~LiSE.xcollections.FunctionStore</span> <span class="pre">|</span> <span class="pre">~types.ModuleType</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">function:</span> <span class="pre">~LiSE.xcollections.FunctionStore</span> <span class="pre">|</span> <span class="pre">~types.ModuleType</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method:</span> <span class="pre">~LiSE.xcollections.MethodStore</span> <span class="pre">|</span> <span class="pre">~types.ModuleType</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">main_branch:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connect_string:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connect_args:</span> <span class="pre">dict</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema_cls:</span> <span class="pre">~typing.Type[~LiSE.engine.AbstractSchema]</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'LiSE.engine.NullSchema'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_interval:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keyframe_interval:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commit_interval:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfun:</span> <span class="pre">~types.LambdaType</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clear:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_rules_journal:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keyframe_on_close:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_arranger:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_end_of_time:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.Engine" title="Link to this definition">¶</a></dt>
 <dd><p>LiSE, the Life Simulator Engine.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -83,7 +81,7 @@ the world; used when a player should not be able to change just
 anything. Defaults to <code class="xref py py-class docutils literal notranslate"><span class="pre">NullSchema</span></code>.</p></li>
 <li><p><strong>flush_interval</strong> – LiSE will put pending changes into the database
 transaction every <code class="docutils literal notranslate"><span class="pre">flush_interval</span></code> turns. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, only flush
-on commit. Default <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+on commit. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
 <li><p><strong>keyframe_interval</strong> – How many records to let through before automatically
 snapping a keyframe, default <code class="docutils literal notranslate"><span class="pre">1000</span></code>. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, you’ll need
 to call <code class="docutils literal notranslate"><span class="pre">snap_keyframe</span></code> yourself.</p></li>
@@ -409,7 +407,8 @@ player won’t be running the simulation for a while.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="LiSE.Engine.close">
 <span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#LiSE.Engine.close" title="Link to this definition">¶</a></dt>
-<dd><p>Commit changes and close the database.</p>
+<dd><p>Commit changes and close the database</p>
+<p>This will be useless thereafter.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -422,7 +421,7 @@ player won’t be running the simulation for a while.</p>
 
 </section>
 <section id="module-LiSE.character">
-<span id="character"></span><h2>character<a class="headerlink" href="#module-LiSE.character" title="Link to this heading">¶</a></h2>
+<span id="character"></span><h1>character<a class="headerlink" href="#module-LiSE.character" title="Link to this heading">¶</a></h1>
 <p>The top level of the LiSE world model, the Character.</p>
 <p>Based on NetworkX DiGraph objects with various additions and
 conveniences.</p>
@@ -652,7 +651,7 @@ time travel. This makes it much speedier to work with.</p>
 
 </section>
 <section id="module-LiSE.node">
-<span id="node"></span><h2>node<a class="headerlink" href="#module-LiSE.node" title="Link to this heading">¶</a></h2>
+<span id="node"></span><h1>node<a class="headerlink" href="#module-LiSE.node" title="Link to this heading">¶</a></h1>
 <p>The nodes of LiSE’s character graphs.</p>
 <p>Every node that actually exists is either a Place or a Thing, but they
 have a lot in common.</p>
@@ -857,7 +856,7 @@ make me follow it, pass it to my <code class="docutils literal notranslate"><spa
 
 </section>
 <section id="module-LiSE.portal">
-<span id="portal"></span><h2>portal<a class="headerlink" href="#module-LiSE.portal" title="Link to this heading">¶</a></h2>
+<span id="portal"></span><h1>portal<a class="headerlink" href="#module-LiSE.portal" title="Link to this heading">¶</a></h1>
 <p>Directed edges, as used by LiSE.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="LiSE.portal.Portal">
@@ -917,7 +916,7 @@ query, and execute the query by calling it, or passing it to
 
 </section>
 <section id="module-LiSE.rule">
-<span id="rule"></span><h2>rule<a class="headerlink" href="#module-LiSE.rule" title="Link to this heading">¶</a></h2>
+<span id="rule"></span><h1>rule<a class="headerlink" href="#module-LiSE.rule" title="Link to this heading">¶</a></h1>
 <p>The fundamental unit of game logic, the Rule, and structures to
 store and organize them in.</p>
 <p>A Rule is three lists of functions: triggers, prereqs, and actions.
@@ -1018,8 +1017,12 @@ name.</p>
 
 </section>
 <section id="module-LiSE.query">
-<span id="query"></span><h2>query<a class="headerlink" href="#module-LiSE.query" title="Link to this heading">¶</a></h2>
+<span id="query"></span><h1>query<a class="headerlink" href="#module-LiSE.query" title="Link to this heading">¶</a></h1>
 <p>Database access and query builder</p>
+<p>The main class here is <code class="xref py py-class docutils literal notranslate"><span class="pre">QueryEngine</span></code>, which mostly just runs
+SQL on demand – but, for the most common insert commands, it keeps
+a queue of data to insert, which is then serialized and inserted
+with a call to <code class="docutils literal notranslate"><span class="pre">flush</span></code>.</p>
 <p>Sometimes you want to know when some stat of a LiSE entity had a particular
 value. To find out, construct a historical query and pass it to
 <code class="docutils literal notranslate"><span class="pre">Engine.turns_when</span></code>, like this:</p>
@@ -1044,7 +1047,7 @@ query to be evaluated in parallel.</p>
 
 </section>
 <section id="module-LiSE.xcollections">
-<span id="xcollections"></span><h2>xcollections<a class="headerlink" href="#module-LiSE.xcollections" title="Link to this heading">¶</a></h2>
+<span id="xcollections"></span><h1>xcollections<a class="headerlink" href="#module-LiSE.xcollections" title="Link to this heading">¶</a></h1>
 <p>Common classes for collections in LiSE</p>
 <p>Notably includes wrappers for mutable objects, allowing them to be stored in
 the database. These simply store the new value.</p>
@@ -1069,7 +1072,6 @@ the function itself.</p>
 </dd></dl>
 
 </section>
-</section>
 
 
           </div>
@@ -1091,38 +1093,137 @@ the function itself.</p>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../manual.html">Introduction</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">LiSE</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.engine">engine</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine"><code class="docutils literal notranslate"><span class="pre">Engine</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="design.html">Design</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">engine</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#LiSE.Engine"><code class="docutils literal notranslate"><span class="pre">Engine</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.branch"><code class="docutils literal notranslate"><span class="pre">Engine.branch</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.is_ancestor_of"><code class="docutils literal notranslate"><span class="pre">Engine.is_ancestor_of()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.turn"><code class="docutils literal notranslate"><span class="pre">Engine.turn</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.time"><code class="docutils literal notranslate"><span class="pre">Engine.time</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.rule"><code class="docutils literal notranslate"><span class="pre">Engine.rule</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.rulebook"><code class="docutils literal notranslate"><span class="pre">Engine.rulebook</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.eternal"><code class="docutils literal notranslate"><span class="pre">Engine.eternal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.universal"><code class="docutils literal notranslate"><span class="pre">Engine.universal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.trigger"><code class="docutils literal notranslate"><span class="pre">Engine.trigger</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.prereq"><code class="docutils literal notranslate"><span class="pre">Engine.prereq</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.action"><code class="docutils literal notranslate"><span class="pre">Engine.action</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.method"><code class="docutils literal notranslate"><span class="pre">Engine.method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.function"><code class="docutils literal notranslate"><span class="pre">Engine.function</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">Engine.rule</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.next_turn"><code class="docutils literal notranslate"><span class="pre">Engine.next_turn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.get_delta"><code class="docutils literal notranslate"><span class="pre">Engine.get_delta()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.advancing"><code class="docutils literal notranslate"><span class="pre">Engine.advancing()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.batch"><code class="docutils literal notranslate"><span class="pre">Engine.batch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.plan"><code class="docutils literal notranslate"><span class="pre">Engine.plan()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.snap_keyframe"><code class="docutils literal notranslate"><span class="pre">Engine.snap_keyframe()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.delete_plan"><code class="docutils literal notranslate"><span class="pre">Engine.delete_plan()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.new_character"><code class="docutils literal notranslate"><span class="pre">Engine.new_character()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.add_character"><code class="docutils literal notranslate"><span class="pre">Engine.add_character()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.del_character"><code class="docutils literal notranslate"><span class="pre">Engine.del_character()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.turns_when"><code class="docutils literal notranslate"><span class="pre">Engine.turns_when()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.apply_choices"><code class="docutils literal notranslate"><span class="pre">Engine.apply_choices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.flush"><code class="docutils literal notranslate"><span class="pre">Engine.flush()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.commit"><code class="docutils literal notranslate"><span class="pre">Engine.commit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.close"><code class="docutils literal notranslate"><span class="pre">Engine.close()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.Engine.unload"><code class="docutils literal notranslate"><span class="pre">Engine.unload()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.character">character</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character"><code class="docutils literal notranslate"><span class="pre">Character</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.node">node</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node"><code class="docutils literal notranslate"><span class="pre">Node</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Place"><code class="docutils literal notranslate"><span class="pre">Place</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Thing"><code class="docutils literal notranslate"><span class="pre">Thing</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="#module-LiSE.character">character</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#LiSE.character.Character"><code class="docutils literal notranslate"><span class="pre">Character</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.stat"><code class="docutils literal notranslate"><span class="pre">Character.stat</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.place"><code class="docutils literal notranslate"><span class="pre">Character.place</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.thing"><code class="docutils literal notranslate"><span class="pre">Character.thing</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.node"><code class="docutils literal notranslate"><span class="pre">Character.node</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.portal"><code class="docutils literal notranslate"><span class="pre">Character.portal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.preportal"><code class="docutils literal notranslate"><span class="pre">Character.preportal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.unit"><code class="docutils literal notranslate"><span class="pre">Character.unit</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.add_portal"><code class="docutils literal notranslate"><span class="pre">Character.add_portal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.new_portal"><code class="docutils literal notranslate"><span class="pre">Character.new_portal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.add_portals_from"><code class="docutils literal notranslate"><span class="pre">Character.add_portals_from()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.add_thing"><code class="docutils literal notranslate"><span class="pre">Character.add_thing()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.new_thing"><code class="docutils literal notranslate"><span class="pre">Character.new_thing()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.add_things_from"><code class="docutils literal notranslate"><span class="pre">Character.add_things_from()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.add_place"><code class="docutils literal notranslate"><span class="pre">Character.add_place()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.add_places_from"><code class="docutils literal notranslate"><span class="pre">Character.add_places_from()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.new_place"><code class="docutils literal notranslate"><span class="pre">Character.new_place()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.historical"><code class="docutils literal notranslate"><span class="pre">Character.historical()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.place2thing"><code class="docutils literal notranslate"><span class="pre">Character.place2thing()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.portals"><code class="docutils literal notranslate"><span class="pre">Character.portals()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.remove_portal"><code class="docutils literal notranslate"><span class="pre">Character.remove_portal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.remove_unit"><code class="docutils literal notranslate"><span class="pre">Character.remove_unit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.thing2place"><code class="docutils literal notranslate"><span class="pre">Character.thing2place()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.units"><code class="docutils literal notranslate"><span class="pre">Character.units()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.character.Character.facade"><code class="docutils literal notranslate"><span class="pre">Character.facade()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.portal">portal</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.portal.Portal"><code class="docutils literal notranslate"><span class="pre">Portal</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.rule">rule</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.rule.Rule"><code class="docutils literal notranslate"><span class="pre">Rule</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="#module-LiSE.node">node</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#LiSE.node.Node"><code class="docutils literal notranslate"><span class="pre">Node</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node.user"><code class="docutils literal notranslate"><span class="pre">Node.user</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node.portal"><code class="docutils literal notranslate"><span class="pre">Node.portal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node.preportal"><code class="docutils literal notranslate"><span class="pre">Node.preportal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node.content"><code class="docutils literal notranslate"><span class="pre">Node.content</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node.contents"><code class="docutils literal notranslate"><span class="pre">Node.contents()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node.successors"><code class="docutils literal notranslate"><span class="pre">Node.successors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node.predecessors"><code class="docutils literal notranslate"><span class="pre">Node.predecessors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node.shortest_path"><code class="docutils literal notranslate"><span class="pre">Node.shortest_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node.shortest_path_length"><code class="docutils literal notranslate"><span class="pre">Node.shortest_path_length()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node.path_exists"><code class="docutils literal notranslate"><span class="pre">Node.path_exists()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node.new_portal"><code class="docutils literal notranslate"><span class="pre">Node.new_portal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node.new_thing"><code class="docutils literal notranslate"><span class="pre">Node.new_thing()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node.historical"><code class="docutils literal notranslate"><span class="pre">Node.historical()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Node.delete"><code class="docutils literal notranslate"><span class="pre">Node.delete()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.query">query</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.query.QueryResult"><code class="docutils literal notranslate"><span class="pre">QueryResult</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#LiSE.node.Place"><code class="docutils literal notranslate"><span class="pre">Place</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Place.delete"><code class="docutils literal notranslate"><span class="pre">Place.delete()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#module-LiSE.xcollections">xcollections</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.xcollections.StringStore"><code class="docutils literal notranslate"><span class="pre">StringStore</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#LiSE.xcollections.FunctionStore"><code class="docutils literal notranslate"><span class="pre">FunctionStore</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#LiSE.node.Thing"><code class="docutils literal notranslate"><span class="pre">Thing</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Thing.clear"><code class="docutils literal notranslate"><span class="pre">Thing.clear()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Thing.delete"><code class="docutils literal notranslate"><span class="pre">Thing.delete()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Thing.follow_path"><code class="docutils literal notranslate"><span class="pre">Thing.follow_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Thing.go_to_place"><code class="docutils literal notranslate"><span class="pre">Thing.go_to_place()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Thing.location"><code class="docutils literal notranslate"><span class="pre">Thing.location</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.node.Thing.travel_to"><code class="docutils literal notranslate"><span class="pre">Thing.travel_to()</span></code></a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#module-LiSE.portal">portal</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#LiSE.portal.Portal"><code class="docutils literal notranslate"><span class="pre">Portal</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.portal.Portal.origin"><code class="docutils literal notranslate"><span class="pre">Portal.origin</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.portal.Portal.destination"><code class="docutils literal notranslate"><span class="pre">Portal.destination</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.portal.Portal.character"><code class="docutils literal notranslate"><span class="pre">Portal.character</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.portal.Portal.engine"><code class="docutils literal notranslate"><span class="pre">Portal.engine</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.portal.Portal.reciprocal"><code class="docutils literal notranslate"><span class="pre">Portal.reciprocal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.portal.Portal.historical"><code class="docutils literal notranslate"><span class="pre">Portal.historical()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.portal.Portal.delete"><code class="docutils literal notranslate"><span class="pre">Portal.delete()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#module-LiSE.rule">rule</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#LiSE.rule.Rule"><code class="docutils literal notranslate"><span class="pre">Rule</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.rule.Rule.action"><code class="docutils literal notranslate"><span class="pre">Rule.action()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.rule.Rule.always"><code class="docutils literal notranslate"><span class="pre">Rule.always()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.rule.Rule.duplicate"><code class="docutils literal notranslate"><span class="pre">Rule.duplicate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.rule.Rule.prereq"><code class="docutils literal notranslate"><span class="pre">Rule.prereq()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#LiSE.rule.Rule.trigger"><code class="docutils literal notranslate"><span class="pre">Rule.trigger()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#module-LiSE.query">query</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#LiSE.query.QueryResult"><code class="docutils literal notranslate"><span class="pre">QueryResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#module-LiSE.xcollections">xcollections</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#LiSE.xcollections.StringStore"><code class="docutils literal notranslate"><span class="pre">StringStore</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#LiSE.xcollections.FunctionStore"><code class="docutils literal notranslate"><span class="pre">FunctionStore</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../ELiDE/index.html">ELiDE</a></li>
@@ -1132,7 +1233,7 @@ the function itself.</p>
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="../manual.html" title="previous chapter">Introduction</a></li>
+      <li>Previous: <a href="design.html" title="previous chapter">Design</a></li>
       <li>Next: <a href="../ELiDE/index.html" title="next chapter">ELiDE</a></li>
   </ul></li>
 </ul>

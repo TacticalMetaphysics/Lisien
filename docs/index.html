@@ -49,38 +49,143 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html">LiSE</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.engine">engine</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine"><code class="docutils literal notranslate"><span class="pre">Engine</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/design.html">Design</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/design.html#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/design.html#caching-world-state">Caching world state</a></li>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/design.html#deltas">Deltas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/design.html#rules-engine">Rules engine</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.character">character</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character"><code class="docutils literal notranslate"><span class="pre">Character</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html">engine</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#LiSE.Engine"><code class="docutils literal notranslate"><span class="pre">Engine</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.branch"><code class="docutils literal notranslate"><span class="pre">Engine.branch</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.is_ancestor_of"><code class="docutils literal notranslate"><span class="pre">Engine.is_ancestor_of()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.turn"><code class="docutils literal notranslate"><span class="pre">Engine.turn</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.time"><code class="docutils literal notranslate"><span class="pre">Engine.time</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.rule"><code class="docutils literal notranslate"><span class="pre">Engine.rule</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.rulebook"><code class="docutils literal notranslate"><span class="pre">Engine.rulebook</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.eternal"><code class="docutils literal notranslate"><span class="pre">Engine.eternal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.universal"><code class="docutils literal notranslate"><span class="pre">Engine.universal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.trigger"><code class="docutils literal notranslate"><span class="pre">Engine.trigger</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.prereq"><code class="docutils literal notranslate"><span class="pre">Engine.prereq</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.action"><code class="docutils literal notranslate"><span class="pre">Engine.action</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.method"><code class="docutils literal notranslate"><span class="pre">Engine.method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.function"><code class="docutils literal notranslate"><span class="pre">Engine.function</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#id0"><code class="docutils literal notranslate"><span class="pre">Engine.rule</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.next_turn"><code class="docutils literal notranslate"><span class="pre">Engine.next_turn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.get_delta"><code class="docutils literal notranslate"><span class="pre">Engine.get_delta()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.advancing"><code class="docutils literal notranslate"><span class="pre">Engine.advancing()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.batch"><code class="docutils literal notranslate"><span class="pre">Engine.batch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.plan"><code class="docutils literal notranslate"><span class="pre">Engine.plan()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.snap_keyframe"><code class="docutils literal notranslate"><span class="pre">Engine.snap_keyframe()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.delete_plan"><code class="docutils literal notranslate"><span class="pre">Engine.delete_plan()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.new_character"><code class="docutils literal notranslate"><span class="pre">Engine.new_character()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.add_character"><code class="docutils literal notranslate"><span class="pre">Engine.add_character()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.del_character"><code class="docutils literal notranslate"><span class="pre">Engine.del_character()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.turns_when"><code class="docutils literal notranslate"><span class="pre">Engine.turns_when()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.apply_choices"><code class="docutils literal notranslate"><span class="pre">Engine.apply_choices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.flush"><code class="docutils literal notranslate"><span class="pre">Engine.flush()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.commit"><code class="docutils literal notranslate"><span class="pre">Engine.commit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.close"><code class="docutils literal notranslate"><span class="pre">Engine.close()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.Engine.unload"><code class="docutils literal notranslate"><span class="pre">Engine.unload()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.node">node</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node"><code class="docutils literal notranslate"><span class="pre">Node</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Place"><code class="docutils literal notranslate"><span class="pre">Place</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Thing"><code class="docutils literal notranslate"><span class="pre">Thing</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.portal">portal</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.portal.Portal"><code class="docutils literal notranslate"><span class="pre">Portal</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.character">character</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character"><code class="docutils literal notranslate"><span class="pre">Character</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.stat"><code class="docutils literal notranslate"><span class="pre">Character.stat</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.place"><code class="docutils literal notranslate"><span class="pre">Character.place</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.thing"><code class="docutils literal notranslate"><span class="pre">Character.thing</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.node"><code class="docutils literal notranslate"><span class="pre">Character.node</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.portal"><code class="docutils literal notranslate"><span class="pre">Character.portal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.preportal"><code class="docutils literal notranslate"><span class="pre">Character.preportal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.unit"><code class="docutils literal notranslate"><span class="pre">Character.unit</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.add_portal"><code class="docutils literal notranslate"><span class="pre">Character.add_portal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.new_portal"><code class="docutils literal notranslate"><span class="pre">Character.new_portal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.add_portals_from"><code class="docutils literal notranslate"><span class="pre">Character.add_portals_from()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.add_thing"><code class="docutils literal notranslate"><span class="pre">Character.add_thing()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.new_thing"><code class="docutils literal notranslate"><span class="pre">Character.new_thing()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.add_things_from"><code class="docutils literal notranslate"><span class="pre">Character.add_things_from()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.add_place"><code class="docutils literal notranslate"><span class="pre">Character.add_place()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.add_places_from"><code class="docutils literal notranslate"><span class="pre">Character.add_places_from()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.new_place"><code class="docutils literal notranslate"><span class="pre">Character.new_place()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.historical"><code class="docutils literal notranslate"><span class="pre">Character.historical()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.place2thing"><code class="docutils literal notranslate"><span class="pre">Character.place2thing()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.portals"><code class="docutils literal notranslate"><span class="pre">Character.portals()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.remove_portal"><code class="docutils literal notranslate"><span class="pre">Character.remove_portal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.remove_unit"><code class="docutils literal notranslate"><span class="pre">Character.remove_unit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.thing2place"><code class="docutils literal notranslate"><span class="pre">Character.thing2place()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.units"><code class="docutils literal notranslate"><span class="pre">Character.units()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.character.Character.facade"><code class="docutils literal notranslate"><span class="pre">Character.facade()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.rule">rule</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.Rule"><code class="docutils literal notranslate"><span class="pre">Rule</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.query">query</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.query.QueryResult"><code class="docutils literal notranslate"><span class="pre">QueryResult</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.node">node</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node"><code class="docutils literal notranslate"><span class="pre">Node</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node.user"><code class="docutils literal notranslate"><span class="pre">Node.user</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node.portal"><code class="docutils literal notranslate"><span class="pre">Node.portal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node.preportal"><code class="docutils literal notranslate"><span class="pre">Node.preportal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node.content"><code class="docutils literal notranslate"><span class="pre">Node.content</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node.contents"><code class="docutils literal notranslate"><span class="pre">Node.contents()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node.successors"><code class="docutils literal notranslate"><span class="pre">Node.successors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node.predecessors"><code class="docutils literal notranslate"><span class="pre">Node.predecessors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node.shortest_path"><code class="docutils literal notranslate"><span class="pre">Node.shortest_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node.shortest_path_length"><code class="docutils literal notranslate"><span class="pre">Node.shortest_path_length()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node.path_exists"><code class="docutils literal notranslate"><span class="pre">Node.path_exists()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node.new_portal"><code class="docutils literal notranslate"><span class="pre">Node.new_portal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node.new_thing"><code class="docutils literal notranslate"><span class="pre">Node.new_thing()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node.historical"><code class="docutils literal notranslate"><span class="pre">Node.historical()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Node.delete"><code class="docutils literal notranslate"><span class="pre">Node.delete()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#module-LiSE.xcollections">xcollections</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.xcollections.StringStore"><code class="docutils literal notranslate"><span class="pre">StringStore</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.xcollections.FunctionStore"><code class="docutils literal notranslate"><span class="pre">FunctionStore</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#LiSE.node.Place"><code class="docutils literal notranslate"><span class="pre">Place</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Place.delete"><code class="docutils literal notranslate"><span class="pre">Place.delete()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#LiSE.node.Thing"><code class="docutils literal notranslate"><span class="pre">Thing</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Thing.clear"><code class="docutils literal notranslate"><span class="pre">Thing.clear()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Thing.delete"><code class="docutils literal notranslate"><span class="pre">Thing.delete()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Thing.follow_path"><code class="docutils literal notranslate"><span class="pre">Thing.follow_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Thing.go_to_place"><code class="docutils literal notranslate"><span class="pre">Thing.go_to_place()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Thing.location"><code class="docutils literal notranslate"><span class="pre">Thing.location</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.node.Thing.travel_to"><code class="docutils literal notranslate"><span class="pre">Thing.travel_to()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.portal">portal</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#LiSE.portal.Portal"><code class="docutils literal notranslate"><span class="pre">Portal</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.portal.Portal.origin"><code class="docutils literal notranslate"><span class="pre">Portal.origin</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.portal.Portal.destination"><code class="docutils literal notranslate"><span class="pre">Portal.destination</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.portal.Portal.character"><code class="docutils literal notranslate"><span class="pre">Portal.character</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.portal.Portal.engine"><code class="docutils literal notranslate"><span class="pre">Portal.engine</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.portal.Portal.reciprocal"><code class="docutils literal notranslate"><span class="pre">Portal.reciprocal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.portal.Portal.historical"><code class="docutils literal notranslate"><span class="pre">Portal.historical()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.portal.Portal.delete"><code class="docutils literal notranslate"><span class="pre">Portal.delete()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.rule">rule</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#LiSE.rule.Rule"><code class="docutils literal notranslate"><span class="pre">Rule</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.Rule.action"><code class="docutils literal notranslate"><span class="pre">Rule.action()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.Rule.always"><code class="docutils literal notranslate"><span class="pre">Rule.always()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.Rule.duplicate"><code class="docutils literal notranslate"><span class="pre">Rule.duplicate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.Rule.prereq"><code class="docutils literal notranslate"><span class="pre">Rule.prereq()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="LiSE/index.html#LiSE.rule.Rule.trigger"><code class="docutils literal notranslate"><span class="pre">Rule.trigger()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.query">query</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#LiSE.query.QueryResult"><code class="docutils literal notranslate"><span class="pre">QueryResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.xcollections">xcollections</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#LiSE.xcollections.StringStore"><code class="docutils literal notranslate"><span class="pre">StringStore</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="LiSE/index.html#LiSE.xcollections.FunctionStore"><code class="docutils literal notranslate"><span class="pre">FunctionStore</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ELiDE/index.html">ELiDE</a><ul>
@@ -247,7 +352,14 @@
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="manual.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html">engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.character">character</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.node">node</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.portal">portal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.rule">rule</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.query">query</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.xcollections">xcollections</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ELiDE/index.html">ELiDE</a></li>
 </ul>
 

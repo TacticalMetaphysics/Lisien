@@ -11,6 +11,7 @@ Welcome to LiSE's documentation!
    :caption: Contents:
 
    manual
+   LiSE/design
    LiSE/index
    ELiDE/index
 

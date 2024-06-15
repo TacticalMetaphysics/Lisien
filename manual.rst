@@ -78,6 +78,8 @@ nearly real-time in most cases, to make it convenient to flip
 back and forth between a correct world state and an incorrect one
 and use your intuition to spot exactly what went wrong.
 
+See :doc:`LiSE/design` for details.
+
 Usage
 -----
 The only LiSE class that you should ever instantiate yourself is
