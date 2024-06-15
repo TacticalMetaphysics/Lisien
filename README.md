@@ -377,7 +377,7 @@ ELiDE is meant to support repurposing its widgets to build a rudimentary graphic
 interface for a game. For an example of what that might look like, see
 [the Awareness sim](https://github.com/TacticalMetaphysics/LiSE/blob/main/ELiDE/ELiDE/examples/awareness.py).
 You may prefer to work with some other Python-based game engine, such as
-[Pyglet](http://pyglet.org/) or [Ursina](ursinaengine.org/), in which case you don't really need ELiDE--
+[Pyglet](http://pyglet.org/) or [Ursina](https://www.ursinaengine.org/), in which case you don't really need ELiDE--
 though you may find it useful to open ELiDE in your game folder when you're
 trying to track down a bug.
 
