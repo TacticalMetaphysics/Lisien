@@ -43,4 +43,5 @@ server = ["CherryPy>=18.6.1"]
 [tool.pytest.ini_options]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+	"big: marks tests as too big to diagnose specific bugs with"
 ]
