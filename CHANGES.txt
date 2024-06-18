@@ -1,3 +1,12 @@
+== 0.15.0 | 2024-06-18 ==
+* Automatically unload history, thus minimizing memory usage for long games
+    By default, this happens whenever you commit changes to the database.
+* Improved support for ELiDE widgets in games
+    * New example sim, awareness.py, to demonstrate this
+* Moved `game_start` into its own module
+* Dropped support for Python 3.7 and the lz4 module
+* A lot of fixes regarding thread safety and interprocess sync
+
 == 0.14.2 | 2023-04-27 ==
 * Fix the rest of the loader
 
