@@ -7,7 +7,7 @@ include-package-data=true
 
 [project]
 name = "ELiDE"
-version = "0.14.1"
+version = "0.15.0"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
@@ -22,7 +22,7 @@ classifiers = [
 	"Development Status :: 2 - Pre-Alpha"
 ]
 dependencies = [
-	"LiSE>=0.14.0,<0.15.0",
+	"LiSE>=0.15.0,<0.16.0",
 	"kivy>=2.0.0,<3",
 	"kivy-deps.glew ; sys_platform == 'win32'",
 	"kivy-deps.sdl2 ; sys_platform == 'win32'",
