@@ -80,6 +80,7 @@ def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=25, seed=None):
 			for sheep in wolff.engine.character['sheep'].units()
 		]
 		my_loc = wolff['location']
+		assert my_loc is not None
 		if len(sheep_locs) <= 2:
 			nearest = sheep_locs[0]
 		else:
