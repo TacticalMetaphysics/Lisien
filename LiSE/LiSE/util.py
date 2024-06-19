@@ -25,7 +25,8 @@ from contextlib import contextmanager
 from textwrap import dedent
 from time import monotonic
 from types import MethodType, FunctionType
-from typing import (Mapping, Iterable, Union, Callable, Dict, Hashable)
+from typing import (Mapping, Sequence, Iterable, Union, Callable, Dict,
+					Hashable)
 
 import numpy as np
 import msgpack
@@ -1026,11 +1027,26 @@ def dicthash(d):
 	the_hash = 0
 	for k, v in d.items():
 		the_hash ^= hash(k)
-		if isinstance(v, Mapping):
-			the_hash ^= dicthash(v)
-		elif isinstance(v, list):
-			for vv in v:
-				the_hash ^= dicthash(vv)
-		else:
+		if isinstance(v, Hashable):
 			the_hash ^= hash(v)
+		elif isinstance(v, Mapping):
+			the_hash ^= dicthash(v)
+		elif isinstance(v, Sequence):
+			the_hash ^= listhash(v)
+		else:
+			raise TypeError(f"{v} is not hashable", v)
+	return the_hash
+
+
+def listhash(L):
+	the_hash = 0
+	for v in L:
+		if isinstance(v, Hashable):
+			the_hash ^= hash(v)
+		elif isinstance(v, Sequence):
+			the_hash ^= listhash(v)
+		elif isinstance(v, Mapping):
+			the_hash ^= dicthash(v)
+		else:
+			raise TypeError(f"{v} is not hashable", v)
 	return the_hash
