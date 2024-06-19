@@ -984,9 +984,9 @@ def normalize_layout(l):
 
 def kf2delta(kf) -> dict:
 	ret = {}
-	for ((charn,), kvs) in kf['graph_val'].items():
+	for ((charn, ), kvs) in kf['graph_val'].items():
 		ret[charn] = kvs
-	for ((charn,), existences) in kf['nodes'].items():
+	for ((charn, ), existences) in kf['nodes'].items():
 		if charn in ret:
 			ret[charn]['nodes'] = existences
 		else:
@@ -1020,3 +1020,17 @@ def kf2delta(kf) -> dict:
 		else:
 			ret[charn] = {'edge_val': {orign: {destn: kvs}}}
 	return ret
+
+
+def dicthash(d):
+	the_hash = 0
+	for k, v in d.items():
+		the_hash ^= hash(k)
+		if isinstance(v, Mapping):
+			the_hash ^= dicthash(v)
+		elif isinstance(v, list):
+			for vv in v:
+				the_hash ^= dicthash(vv)
+		else:
+			the_hash ^= hash(v)
+	return the_hash
