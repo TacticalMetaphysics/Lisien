@@ -241,7 +241,7 @@ class Engine(AbstractEngine, gORM):
 		if you're not using the rules engine.
 	:param parallel_triggers: Whether to evaluate trigger functions in threads.
 		This has performance benefits if you are using a free-threaded build of
-		Python (without a GIL). Default ``False``.
+		Python (without a GIL). Default ``True``.
 
 	"""
 	char_cls = Character
@@ -281,7 +281,7 @@ class Engine(AbstractEngine, gORM):
 					keyframe_on_close: bool = True,
 					cache_arranger: bool = False,
 					enforce_end_of_time: bool = True,
-					parallel_triggers: bool = False):
+					parallel_triggers: bool = True):
 		if logfun is None:
 			from logging import getLogger
 			logger = getLogger("Life Sim Engine")
