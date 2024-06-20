@@ -679,26 +679,11 @@ class NodeContentsCache(Cache):
 		On the assumption that the future has been invalidated.
 
 		"""
-		assert not self.parents  # not how stuff is stored in this cache
-		for branchkey, branches in list(self.branches.items()):
-			if branch in branches:
-				branhc = branches[branch]
-				if turn in branhc:
-					trun = branhc[turn]
-					if tick in trun:
-						del trun[tick]
-					trun.truncate(tick)
-					if not trun:
-						del branhc[turn]
-				branhc.truncate(turn)
-				if not branhc:
-					del branches[branch]
-			if not branches:
-				del self.branches[branchkey]
-		for keykey, keys in list(self.keys.items()):
-			for key, branchs in list(keys.items()):
-				if branch in branchs:
-					branhc = branchs[branch]
+		with self._lock:
+			assert not self.parents  # not how stuff is stored in this cache
+			for branchkey, branches in list(self.branches.items()):
+				if branch in branches:
+					branhc = branches[branch]
 					if turn in branhc:
 						trun = branhc[turn]
 						if tick in trun:
@@ -708,44 +693,60 @@ class NodeContentsCache(Cache):
 							del branhc[turn]
 					branhc.truncate(turn)
 					if not branhc:
-						del branchs[branch]
-				if not branchs:
-					del keys[key]
-			if not keys:
-				del self.keys[keykey]
-		sets = self.settings[branch]
-		if turn in sets:
-			setsturn = sets[turn]
-			if tick in setsturn:
-				del setsturn[tick]
-			setsturn.truncate(tick)
-			if not setsturn:
-				del sets[turn]
-		sets.truncate(turn)
-		if not sets:
-			del self.settings[branch]
-		presets = self.presettings[branch]
-		if turn in presets:
-			presetsturn = presets[turn]
-			if tick in presetsturn:
-				del presetsturn[tick]
-			presetsturn.truncate(tick)
-			if not presetsturn:
-				del presets[turn]
-		presets.truncate(turn)
-		if not presets:
-			del self.presettings[branch]
-		for entity, brnch in list(self.keycache):
-			if brnch == branch:
-				kc = self.keycache[entity, brnch]
-				if turn in kc:
-					kcturn = kc[turn]
-					if tick in kcturn:
-						del kcturn[tick]
-					kcturn.truncate(tick)
-					if not kcturn:
-						del kc[turn]
-				kc.truncate(turn)
-				if not kc:
-					del self.keycache[entity, brnch]
-		self.shallowest = OrderedDict()
+						del branches[branch]
+				if not branches:
+					del self.branches[branchkey]
+			for keykey, keys in list(self.keys.items()):
+				for key, branchs in list(keys.items()):
+					if branch in branchs:
+						branhc = branchs[branch]
+						if turn in branhc:
+							trun = branhc[turn]
+							if tick in trun:
+								del trun[tick]
+							trun.truncate(tick)
+							if not trun:
+								del branhc[turn]
+						branhc.truncate(turn)
+						if not branhc:
+							del branchs[branch]
+					if not branchs:
+						del keys[key]
+				if not keys:
+					del self.keys[keykey]
+			sets = self.settings[branch]
+			if turn in sets:
+				setsturn = sets[turn]
+				if tick in setsturn:
+					del setsturn[tick]
+				setsturn.truncate(tick)
+				if not setsturn:
+					del sets[turn]
+			sets.truncate(turn)
+			if not sets:
+				del self.settings[branch]
+			presets = self.presettings[branch]
+			if turn in presets:
+				presetsturn = presets[turn]
+				if tick in presetsturn:
+					del presetsturn[tick]
+				presetsturn.truncate(tick)
+				if not presetsturn:
+					del presets[turn]
+			presets.truncate(turn)
+			if not presets:
+				del self.presettings[branch]
+			for entity, brnch in list(self.keycache):
+				if brnch == branch:
+					kc = self.keycache[entity, brnch]
+					if turn in kc:
+						kcturn = kc[turn]
+						if tick in kcturn:
+							del kcturn[tick]
+						kcturn.truncate(tick)
+						if not kcturn:
+							del kc[turn]
+					kc.truncate(turn)
+					if not kc:
+						del self.keycache[entity, brnch]
+			self.shallowest = OrderedDict()
