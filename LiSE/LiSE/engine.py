@@ -239,6 +239,9 @@ class Engine(AbstractEngine, gORM):
 		time travelling to a point after the time that's been simulated.
 		Default ``True``. You normally want this, but it could cause problems
 		if you're not using the rules engine.
+	:param parallel_triggers: Whether to evaluate trigger functions in threads.
+		This has performance benefits if you are using a free-threaded build of
+		Python (without a GIL). Default ``False``.
 
 	"""
 	char_cls = Character
@@ -277,7 +280,8 @@ class Engine(AbstractEngine, gORM):
 					keep_rules_journal: bool = True,
 					keyframe_on_close: bool = True,
 					cache_arranger: bool = False,
-					enforce_end_of_time: bool = True):
+					enforce_end_of_time: bool = True,
+					parallel_triggers: bool = False):
 		if logfun is None:
 			from logging import getLogger
 			logger = getLogger("Life Sim Engine")
@@ -355,7 +359,8 @@ class Engine(AbstractEngine, gORM):
 		self.query.keyframe_interval = keyframe_interval
 		self.query.snap_keyframe = self.snap_keyframe
 		self.flush_interval = flush_interval
-		self._trigger_pool = ThreadPoolExecutor()
+		if parallel_triggers:
+			self._trigger_pool = ThreadPoolExecutor()
 		self._rules_iter = self._follow_rules()
 		self._rando = Random()
 		if 'rando_state' in self.universal:
@@ -1320,7 +1325,7 @@ class Engine(AbstractEngine, gORM):
 		branch, turn, tick = self._btt()
 		charmap = self.character
 		rulemap = self.rule
-		pool = self._trigger_pool
+		pool = getattr(self, "_trigger_pool", None)
 		todo = defaultdict(list)
 
 		def check_triggers(prio, rulebook, rule, handled_fun, entity):
@@ -1364,8 +1369,13 @@ class Engine(AbstractEngine, gORM):
 			handled = partial(self._handled_char, charactername, rulebook,
 								rulename, branch, turn)
 			entity = charmap[charactername]
-			trig_futs.append(
-				pool.submit(check_triggers, prio, rulebook, rule, handled,
+			if pool:
+				trig_futs.append(
+					pool.submit(check_triggers, prio, rulebook, rule, handled,
+								entity))
+			else:
+				trig_futs.append(
+					partial(check_triggers, prio, rulebook, rule, handled,
 							entity))
 
 		avcache_retr = self._unitness_cache._base_retrieve
@@ -1403,8 +1413,13 @@ class Engine(AbstractEngine, gORM):
 			handled = partial(self._handled_av, charn, graphn, avn, rulebook,
 								rulen, branch, turn)
 			entity = get_node(graphn, avn)
-			trig_futs.append(
-				pool.submit(check_triggers, prio, rulebook, rule, handled,
+			if pool:
+				trig_futs.append(
+					pool.submit(check_triggers, prio, rulebook, rule, handled,
+								entity))
+			else:
+				trig_futs.append(
+					partial(check_triggers, prio, rulebook, rule, handled,
 							entity))
 		is_thing = self._is_thing
 		handled_char_thing = self._handled_char_thing
@@ -1418,8 +1433,13 @@ class Engine(AbstractEngine, gORM):
 			handled = partial(handled_char_thing, charn, thingn, rulebook,
 								rulen, branch, turn)
 			entity = get_thing(charn, thingn)
-			trig_futs.append(
-				pool.submit(check_triggers, prio, rulebook, rule, handled,
+			if pool:
+				trig_futs.append(
+					pool.submit(check_triggers, prio, rulebook, rule, handled,
+								entity))
+			else:
+				trig_futs.append(
+					partial(check_triggers, prio, rulebook, rule, handled,
 							entity))
 		handled_char_place = self._handled_char_place
 		for (
@@ -1432,8 +1452,13 @@ class Engine(AbstractEngine, gORM):
 			handled = partial(handled_char_place, charn, placen, rulebook,
 								rulen, branch, turn)
 			entity = get_place(charn, placen)
-			trig_futs.append(
-				pool.submit(check_triggers, prio, rulebook, rule, handled,
+			if pool:
+				trig_futs.append(
+					pool.submit(check_triggers, prio, rulebook, rule, handled,
+								entity))
+			else:
+				trig_futs.append(
+					partial(check_triggers, prio, rulebook, rule, handled,
 							entity))
 		edge_exists = self._edge_exists
 		get_edge = self._get_edge
@@ -1448,8 +1473,13 @@ class Engine(AbstractEngine, gORM):
 			handled = partial(handled_char_port, charn, orign, destn, rulebook,
 								rulen, branch, turn)
 			entity = get_edge(charn, orign, destn)
-			trig_futs.append(
-				pool.submit(check_triggers, prio, rulebook, rule, handled,
+			if pool:
+				trig_futs.append(
+					pool.submit(check_triggers, prio, rulebook, rule, handled,
+								entity))
+			else:
+				trig_futs.append(
+					partial(check_triggers, prio, rulebook, rule, handled,
 							entity))
 		handled_node = self._handled_node
 		for (prio, charn, noden, rulebook,
@@ -1461,8 +1491,13 @@ class Engine(AbstractEngine, gORM):
 			handled = partial(handled_node, charn, noden, rulebook, rulen,
 								branch, turn)
 			entity = get_node(charn, noden)
-			trig_futs.append(
-				pool.submit(check_triggers, prio, rulebook, rule, handled,
+			if pool:
+				trig_futs.append(
+					pool.submit(check_triggers, prio, rulebook, rule, handled,
+								entity))
+			else:
+				trig_futs.append(
+					partial(check_triggers, prio, rulebook, rule, handled,
 							entity))
 		handled_portal = self._handled_portal
 		for (
@@ -1475,10 +1510,19 @@ class Engine(AbstractEngine, gORM):
 			handled = partial(handled_portal, charn, orign, destn, rulebook,
 								rulen, branch, turn)
 			entity = get_edge(charn, orign, destn)
-			trig_futs.append(
-				pool.submit(check_triggers, prio, rulebook, rule, handled,
+			if pool:
+				trig_futs.append(
+					pool.submit(check_triggers, prio, rulebook, rule, handled,
+								entity))
+			else:
+				trig_futs.append(
+					partial(check_triggers, prio, rulebook, rule, handled,
 							entity))
-		wait(trig_futs)
+		if pool:
+			wait(trig_futs)
+		else:
+			for part in trig_futs:
+				part()
 
 		def fmtent(entity):
 			if isinstance(entity, self.char_cls):
