@@ -379,8 +379,6 @@ class Engine(AbstractEngine, gORM):
 											rando_state)
 			else:
 				self.universal['rando_state'] = rando_state
-		if hasattr(self.method, 'init'):
-			self.method.init(self)
 		if cache_arranger:
 			self._start_cache_arranger()
 
