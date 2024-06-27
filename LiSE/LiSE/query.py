@@ -910,6 +910,12 @@ class ConnectionHolder(query.ConnectionHolder):
 				pass
 			except Exception as ex:
 				return ex
+		schemaver_b = b'\xb4_lise_schema_version'
+		ver = self.call_one('global_get', schemaver_b).fetchone()
+		if ver is None:
+			self.call_one('global_insert', schemaver_b, b'\x00')
+		elif ver[0] != b'\x00':
+			return ValueError(f"Unsupported database schema version: {ver}", ver)
 
 
 class QueryEngine(query.QueryEngine):
