@@ -16,6 +16,7 @@
 ordinary method calls.
 
 """
+import sys
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from operator import itemgetter
 from re import match
@@ -26,7 +27,6 @@ from typing import (Dict, Tuple, Set, Callable, Union, Any, List, Iterable,
 					Optional)
 
 import msgpack
-import numpy as np
 
 from .allegedb import OutOfTimelineError, Key
 from .engine import Engine
@@ -80,6 +80,7 @@ def _packed_dict_delta(old: Dict[bytes, bytes],
 	"""Describe changes from one shallow dictionary of msgpack data to another
 
 	"""
+	import numpy as np
 	post = {}
 	pre = {}
 	added_thread = Thread(target=_dict_delta_added, args=(old, new, pre, post))
@@ -491,10 +492,11 @@ class EngineHandle(object):
 				*self._real._btt()))
 		return pack(ret), packed_delta
 
-	def _get_slow_delta(
+	def _get_slow_delta_np(
 			self,
 			btt_from: Tuple[str, int, int] = None,
 			btt_to: Tuple[str, int, int] = None) -> SlightlyPackedDeltaType:
+		import numpy as np
 		pack = self._real.pack
 		delta: Dict[bytes, Any] = {}
 		btt_from = self._get_btt(btt_from)
@@ -630,6 +632,9 @@ class EngineHandle(object):
 		if rbd:
 			delta[RULEBOOKS] = dict(map(self.pack_pair, rbd.items()))
 		return delta
+
+	def _get_slow_delta_threaded(self, btt_from: Tuple[str, int, int] = None, btt_to: Tuple[str, int, int] = None):
+		raise NotImplementedError
 
 	@prepacked
 	def time_travel(
@@ -1479,3 +1484,9 @@ class EngineHandle(object):
 		prereqs = dict(self._real.prereq.iterplain())
 		actions = dict(self._real.action.iterplain())
 		return ret, kf, self._real.eternal, functions, methods, triggers, prereqs, actions
+
+
+if hasattr(sys, '_is_gil_enabled') and sys._is_gil_enabled():
+	EngineHandle._get_slow_delta = EngineHandle._get_slow_delta_threaded
+else:
+	EngineHandle._get_slow_delta = EngineHandle._get_slow_delta_np
