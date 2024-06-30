@@ -1584,7 +1584,7 @@ class Engine(AbstractEngine, gORM):
 	def add_character(self,
 						name: Key,
 						data: Union[Graph, DiGraph, dict] = None,
-						layout: bool = True,
+						layout: bool = False,
 						**kwargs) -> None:
 		"""Create a new character.
 
@@ -1596,7 +1596,7 @@ class Engine(AbstractEngine, gORM):
 		a copy of it. You can use a dictionary instead, and it will
 		be converted to a graph.
 
-		With ``layout=True`` (the default), compute a layout to make the
+		With ``layout=True``, compute a layout to make the
 		graph show up nicely in ELiDE.
 
 		Any keyword arguments will be set as stats of the new character.
