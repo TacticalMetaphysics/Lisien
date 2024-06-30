@@ -44,7 +44,6 @@ from queue import Queue
 from threading import Thread
 from typing import Any, List, Callable, Tuple
 
-import numpy as np
 from sqlalchemy import select, and_, Table
 from sqlalchemy.sql.functions import func
 from .alchemy import meta, gather_sql
@@ -406,7 +405,11 @@ class QueryResultEndTurn(QueryResult):
 			spans.append((turn_from, turn_to))
 			left.append(l_v)
 			right.append(r_v)
-		bools = self._oper(np.array(left), np.array(right))
+		try:
+			import numpy as np
+			bools = self._oper(np.array(left), np.array(right))
+		except ImportError:
+			bools = [self._oper(l, r) for (l, r) in zip(left, right)]
 		self._list = _list = []
 		append = _list.append
 		add = self._trues.add
@@ -561,7 +564,11 @@ class QueryResultMidTurn(QueryResult):
 			spans.append((time_from, time_to))
 			left.append(l_v)
 			right.append(r_v)
-		bools = self._oper(np.array(left), np.array(right))
+		try:
+			import numpy as np
+			bools = self._oper(np.array(left), np.array(right))
+		except ImportError:
+			bools = [self._oper(l, r) for (l, r) in zip(left, right)]
 		trues = self._trues
 		_list = self._list = []
 		for span, buul in zip(spans, bools):
