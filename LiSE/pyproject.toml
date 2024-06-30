@@ -28,7 +28,7 @@ dependencies = [
 	"msgpack>=1.0.0",
 	"networkx>=2.4,<4",
 	"sqlalchemy>=1.4,<3",
-	"numpy>=1.19.5,<2",
+	"numpy>=1.19.5,<3",
 	"tblib>=1.7.0,<2"
 ]
 
