@@ -31,6 +31,7 @@ from os import PathLike
 from abc import ABC, abstractmethod
 from random import Random
 
+import networkx as nx
 from networkx import (Graph, DiGraph, spring_layout, from_dict_of_dicts,
 						from_dict_of_lists)
 from blinker import Signal
