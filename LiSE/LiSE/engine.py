@@ -1627,7 +1627,7 @@ class Engine(AbstractEngine, gORM):
 		if kwargs:
 			if not data:
 				data = DiGraph()
-			if not isinstance(data, DiGraph):
+			if not isinstance(data, Graph):
 				try:
 					data = nx.from_dict_of_dicts(data)
 				except AttributeError:
