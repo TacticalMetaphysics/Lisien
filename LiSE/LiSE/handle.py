@@ -18,7 +18,6 @@ ordinary method calls.
 """
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed, Future
-from itertools import chain
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from operator import itemgetter
 from re import match
@@ -683,6 +682,15 @@ class EngineHandle(object):
 					graph_val_futs.append(k)
 			return graph_val_futs
 
+		def pack_graph_val_fut(fut: Future) -> None:
+			graph = pack(fut.graph)
+			key = pack(fut.key)
+			v = pack(fut.after)
+			if graph in delta:
+				delta[graph][key] = v
+			else:
+				delta[graph] = {key: v, NODE_VAL: {}, EDGE_VAL: {}}
+
 		def start_node_val_futs(pool: ThreadPoolExecutor, kf_from: dict, kf_to: dict) -> list[Future]:
 			node_val_futs = []
 			for graph, node in kf_from['node_val'].keys() | kf_to['node_val'].keys():
@@ -699,6 +707,20 @@ class EngineHandle(object):
 					fut.after = after
 					node_val_futs.append(fut)
 			return node_val_futs
+
+		def pack_node_val_fut(fut: Future) -> None:
+			graph = pack(fut.graph)
+			node = pack(fut.node)
+			key = pack(fut.key)
+			v = pack(fut.after)
+			if graph not in delta:
+				delta[graph] = {NODE_VAL: {node: {key: v}}, EDGE_VAL: {}}
+			elif NODE_VAL not in delta[graph]:
+				delta[graph][NODE_VAL] = {node: {key: v}}
+			elif node not in delta[graph][NODE_VAL]:
+				delta[graph][NODE_VAL][node] = {key: v}
+			else:
+				delta[graph][NODE_VAL][node][key] = v
 
 		def start_edge_val_futs(pool: ThreadPoolExecutor, kf_from: dict, kf_to: dict) -> list[Future]:
 			edge_val_futs = []
@@ -719,6 +741,41 @@ class EngineHandle(object):
 					edge_val_futs.append(fut)
 			return edge_val_futs
 
+		def pack_edge_added(graph, orig, dest) -> None:
+			graph = pack(graph)
+			origdest = pack((orig, dest))
+			if graph not in delta:
+				delta[graph] = {EDGES: {origdest: TRUE}}
+			elif EDGES not in delta[graph]:
+				delta[graph][EDGES] = {origdest: TRUE}
+			else:
+				delta[graph][EDGES][origdest] = TRUE
+
+		def pack_edge_removed(graph, orig, dest) -> None:
+			graph = pack(graph)
+			origdest = pack((orig, dest))
+			if graph not in delta:
+				delta[graph] = {EDGES: {origdest: FALSE}}
+			elif EDGES not in delta[graph]:
+				delta[graph][EDGES] = {origdest: FALSE}
+			else:
+				delta[graph][EDGES][origdest] = FALSE
+
+		def pack_edge_val_fut(fut: Future) -> None:
+			graph = pack(fut.graph)
+			orig = pack(fut.orig)
+			dest = pack(fut.dest)
+			key = pack(fut.key)
+			v = pack(fut.after)
+			if graph not in delta:
+				delta[graph] = {EDGE_VAL: {orig: {dest: {key: v}}}}
+			elif orig not in delta[graph][EDGE_VAL]:
+				delta[graph][EDGE_VAL][orig] = {dest: {key: v}}
+			elif dest not in delta[graph][EDGE_VAL][orig]:
+				delta[graph][EDGE_VAL][orig][dest] = {key: v}
+			else:
+				delta[graph][EDGE_VAL][orig][dest][key] = v
+
 		def start_nodes_added_removed_futs(pool: ThreadPoolExecutor, kf_from: dict, kf_to: dict) -> list[Future]:
 			futs = []
 			for graph in kf_from['nodes'].keys() & kf_to['nodes'].keys():
@@ -732,6 +789,26 @@ class EngineHandle(object):
 				futs.append(fut)
 			return futs
 
+		def pack_added_node_fut(fut: Future) -> None:
+			graph = pack(fut.graph)
+			for node in map(pack, fut.result()):
+				if graph not in delta:
+					delta[graph] = {NODES: {node: TRUE}}
+				elif NODES not in delta[graph]:
+					delta[graph][NODES] = {node: TRUE}
+				else:
+					delta[graph][NODES][node] = TRUE
+
+		def pack_removed_node_fut(fut: Future) -> None:
+			graph = pack(fut.graph)
+			for node in map(pack, fut.result()):
+				if graph not in delta:
+					delta[graph] = {NODES: {node: FALSE}}
+				elif NODES not in delta[graph]:
+					delta[graph][NODES] = {node: FALSE}
+				else:
+					delta[graph][NODES][node] = FALSE
+
 		def start_universal_futs(pool: ThreadPoolExecutor, univ_old: dict, univ_new: dict) -> list[Future]:
 			futs = []
 			for k in univ_old.keys() & univ_new.keys():
@@ -740,6 +817,18 @@ class EngineHandle(object):
 				fut.operation = 'universal changes'
 				futs.append(fut)
 			return futs
+
+		def pack_universal_added(key) -> None:
+			delta[UNIVERSAL][pack(key)] = pack(new_univ[key])
+
+		def pack_universal_removed(key) -> None:
+			delta[UNIVERSAL][pack(key)] = NONE
+
+		def pack_universal_fut(fut: Future) -> None:
+			if UNIVERSAL in delta:
+				delta[UNIVERSAL][pack(fut.key)] = pack(new_univ[fut.key])
+			else:
+				delta[UNIVERSAL] = {pack(fut.key): pack(new_univ[fut.key])}
 
 		def start_rules_futs(pool: ThreadPoolExecutor, rules_old: dict, rules_new: dict) -> list[Future]:
 			def changed_lists(rule_old, rule_new):
@@ -758,6 +847,18 @@ class EngineHandle(object):
 				futs.append(fut)
 			return futs
 
+		def pack_rule_added(key, new_rule) -> None:
+			delta[RULES][pack(key)] = pack(new_rule)
+
+		def pack_rule_removed(key) -> None:
+			delta[RULES][pack(key)] = NONE
+
+		def pack_rule_changed_fut(fut: Future) -> None:
+			if RULES in delta:
+				delta[RULES][pack(fut.rule)] = pack(fut.result())
+			else:
+				delta[RULES] = {pack(fut.rule): pack(fut.result())}
+
 		def start_rulebooks_futs(pool: ThreadPoolExecutor, rulebooks_old: dict, rulebooks_new: dict) -> list[Future]:
 			def changed(rulebook_old, rulebook_new):
 				if rulebook_old == rulebook_new:
@@ -769,6 +870,12 @@ class EngineHandle(object):
 				fut.rulebook = k
 				futs.append(fut)
 			return futs
+
+		def pack_rulebook_added(key, new_rulebook) -> None:
+			delta[RULEBOOKS][pack(key)] = pack(new_rulebook)
+
+		def pack_rulebook_removed(key) -> None:
+			delta[RULEBOOKS][pack(key)] = NONE
 
 		delta: Dict[bytes, Any] = {}
 		pack = self._real.pack
@@ -806,6 +913,7 @@ class EngineHandle(object):
 			rules_removed_fut = pool.submit(sub, old_rules.keys(), new_rules.keys())
 			rulebooks_added_fut = pool.submit(sub, new_rulebooks.keys(), old_rulebooks.keys())
 			rulebooks_removed_fut = pool.submit(sub, old_rulebooks.keys(), new_rulebooks.keys())
+			pack_futs = []
 			for fut in as_completed([
 				edges_added_fut, edges_removed_fut, universal_added_fut, universal_removed_fut,
 				rules_added_fut, rules_removed_fut, rulebooks_added_fut, rulebooks_removed_fut,
@@ -817,124 +925,62 @@ class EngineHandle(object):
 				if not r:
 					continue
 				if hasattr(fut, 'node'):
-					graph = pack(fut.graph)
-					node = pack(fut.node)
-					key = pack(fut.key)
-					v = pack(fut.after)
-					if graph not in delta:
-						delta[graph] = {NODE_VAL: {node: {key: v}}, EDGE_VAL: {}}
-					elif NODE_VAL not in delta[graph]:
-						delta[graph][NODE_VAL] = {node: {key: v}}
-					elif node not in delta[graph][NODE_VAL]:
-						delta[graph][NODE_VAL][node] = {key: v}
-					else:
-						delta[graph][NODE_VAL][node][key] = v
+					pack_futs.append(pool.submit(pack_node_val_fut, fut))
 				elif hasattr(fut, 'dest'):
-					graph = pack(fut.graph)
-					orig = pack(fut.orig)
-					dest = pack(fut.dest)
-					key = pack(fut.key)
-					if graph not in delta:
-						delta[graph] = {EDGE_VAL: {orig: {dest: {key: v}}}}
-					elif orig not in delta[graph][EDGE_VAL]:
-						delta[graph][EDGE_VAL][orig] = {dest: {key: v}}
-					elif dest not in delta[graph][EDGE_VAL][orig]:
-						delta[graph][EDGE_VAL][orig][dest] = {key: v}
-					else:
-						delta[graph][EDGE_VAL][orig][dest][key] = v
+					pack_futs.append(pool.submit(pack_edge_val_fut, fut))
 				elif hasattr(fut, 'operation'):
 					if fut.operation == 'added nodes':
-						graph = pack(fut.graph)
-						for node in map(pack, fut.result()):
-							if graph not in delta:
-								delta[graph] = {NODES: {node: TRUE}}
-							elif NODES not in delta[graph]:
-								delta[graph][NODES] = {node: TRUE}
-							else:
-								delta[graph][NODES][node] = TRUE
+						pack_futs.append(pool.submit(pack_added_node_fut, fut))
 					elif fut.operation == 'removed nodes':
-						graph = pack(fut.graph)
-						for node in map(pack, fut.result()):
-							if graph not in delta:
-								delta[graph] = {NODES: {node: FALSE}}
-							elif NODES not in delta[graph]:
-								delta[graph][NODES] = {node: FALSE}
-							else:
-								delta[graph][NODES][node] = FALSE
+						pack_futs.append(pool.submit(pack_removed_node_fut, fut))
 					else:
 						assert fut.operation == 'universal changes'
-						if UNIVERSAL in delta:
-							delta[UNIVERSAL][pack(fut.key)] = pack(new_univ[fut.key])
-						else:
-							delta[UNIVERSAL] = {pack(fut.key): pack(new_univ[fut.key])}
+						pack_futs.append(pool.submit(pack_universal_fut, fut))
 				elif fut is edges_added_fut:
 					for graph, orig, dest in fut.result():
-						graph = pack(graph)
-						origdest = pack((orig, dest))
-						if graph not in delta:
-							delta[graph] = {EDGES: {origdest: TRUE}}
-						elif EDGES not in delta[graph]:
-							delta[graph][EDGES] = {origdest: TRUE}
-						else:
-							delta[graph][EDGES][origdest] = TRUE
+						pack_futs.append(pool.submit(pack_edge_added, graph, orig, dest))
 				elif fut is edges_removed_fut:
 					for graph, orig, dest in fut.result():
-						graph = pack(graph)
-						origdest = pack((orig, dest))
-						if graph not in delta:
-							delta[graph] = {EDGES: {origdest: FALSE}}
-						elif EDGES not in delta[graph]:
-							delta[graph][EDGES] = {origdest: FALSE}
-						else:
-							delta[graph][EDGES][origdest] = FALSE
+						pack_futs.append(pool.submit(pack_edge_removed, graph, orig, dest))
 				elif fut is universal_added_fut and fut.result():
 					if UNIVERSAL not in delta:
 						delta[UNIVERSAL] = {}
 					for key in fut.result():
-						delta[UNIVERSAL][pack(key)] = pack(new_univ[key])
+						pack_futs.append(pool.submit(pack_universal_added, key))
 				elif fut is universal_removed_fut and fut.result():
 					if UNIVERSAL not in delta:
 						delta[UNIVERSAL] = {}
 					for key in fut.result():
-						delta[UNIVERSAL][pack(key)] = NONE
+						pack_futs.append(pool.submit(pack_universal_removed, key))
 				elif fut is rules_added_fut and fut.result():
 					if RULES not in delta:
 						delta[RULES] = {}
 					for key in fut.result():
-						delta[RULES][pack(key)] = pack(new_rules[key])
+						pack_futs.append(pool.submit(pack_rule_added, key, new_rules[key]))
 				elif fut is rules_removed_fut and fut.result():
 					if RULES not in delta:
 						delta[RULES] = {}
 					for key in fut.result():
-						delta[RULES][pack(key)] = NONE
+						pack_futs.append(pool.submit(pack_rule_removed, key))
 				elif hasattr(fut, 'rule'):
-					if RULES in delta:
-						delta[RULES][pack(fut.rule)] = pack(fut.result())
-					else:
-						delta[RULES] = {pack(fut.rule): pack(fut.result())}
+					pack_futs.append(pool.submit(pack_rule_changed_fut, fut))
 				elif fut is rulebooks_added_fut and fut.result():
 					if RULEBOOKS not in delta:
 						delta[RULEBOOKS] = {}
 					for key in fut.result():
-						delta[RULEBOOKS][pack(key)] = pack(new_rulebooks[key])
+						pack_futs.append(pool.submit(pack_rulebook_added, key, new_rulebooks[key]))
 				elif fut is rulebooks_removed_fut and fut.result():
 					if RULEBOOKS not in delta:
 						delta[RULEBOOKS] = {}
 					for key in fut.result():
-						delta[RULEBOOKS][pack(key)] = NONE
+						pack_futs.append(pool.submit(pack_rulebook_removed, key))
 				elif hasattr(fut, 'rulebook'):
 					if RULEBOOKS in delta:
 						delta[RULEBOOKS][pack(fut.rulebook)] = pack(fut.result())
 					else:
 						delta[RULEBOOKS] = {pack(fut.rulebook): pack(fut.result())}
 				else:
-					graph = pack(fut.graph)
-					key = pack(fut.key)
-					v = pack(fut.after)
-					if graph in delta:
-						delta[graph][key] = v
-					else:
-						delta[graph] = {key: v, NODE_VAL: {}, EDGE_VAL: {}}
+					pack_futs.append(pool.submit(pack_graph_val_fut, fut))
 		return delta
 
 	@prepacked

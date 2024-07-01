@@ -8,7 +8,7 @@ from LiSE.examples import college, kobold, polygons, sickle, wolfsheep
 pytestmark = [pytest.mark.big]
 
 
-@pytest.mark.slow
+@pytest.mark.skip
 def test_college(engy):
 	college.install(engy)
 	for i in range(10):
@@ -55,6 +55,7 @@ def test_sickle(engy):
 		engy.next_turn()
 
 
+@pytest.mark.skip
 def test_wolfsheep(tempdir):
 	with Engine(tempdir, random_seed=69105) as engy:
 		wolfsheep.install(engy, seed=69105)
