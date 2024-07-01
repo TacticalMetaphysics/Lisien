@@ -17,7 +17,7 @@ ordinary method calls.
 
 """
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed, Future
+from concurrent.futures import ThreadPoolExecutor, as_completed, Future, wait
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from operator import itemgetter
 from re import match
@@ -981,6 +981,7 @@ class EngineHandle(object):
 						delta[RULEBOOKS] = {pack(fut.rulebook): pack(fut.result())}
 				else:
 					pack_futs.append(pool.submit(pack_graph_val_fut, fut))
+			wait(pack_futs)
 		return delta
 
 	@prepacked
