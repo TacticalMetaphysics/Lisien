@@ -1574,7 +1574,7 @@ class Engine(AbstractEngine, gORM):
 	def new_character(self,
 						name: Key,
 						data: Graph = None,
-						layout: bool = True,
+						layout: bool = False,
 						**kwargs) -> Character:
 		"""Create and return a new :class:`Character`."""
 		self.add_character(name, data, layout, **kwargs)
@@ -1627,6 +1627,11 @@ class Engine(AbstractEngine, gORM):
 		if kwargs:
 			if not data:
 				data = DiGraph()
+			if not isinstance(data, DiGraph):
+				try:
+					data = nx.from_dict_of_dicts(data)
+				except AttributeError:
+					data = nx.from_dict_of_lists(data)
 			data.graph.update(kwargs)
 		self._init_graph(name, 'DiGraph', data)
 		self._graph_objs[name] = self.char_cls(self, name)
