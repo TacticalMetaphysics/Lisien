@@ -138,6 +138,7 @@ def _packed_dict_delta_threads(old: Dict[bytes, bytes], new: Dict[bytes, bytes])
 		for fut in as_completed(futs):
 			pre[fut.key] = old[fut.key]
 			post[fut.key] = new[fut.key]
+		wait(futs)
 	added_thread.join()
 	removed_thread.join()
 	return pre, post
