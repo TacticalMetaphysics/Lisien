@@ -1124,3 +1124,25 @@ def listhash(L):
 		else:
 			raise TypeError(f"{v} is not hashable", v)
 	return the_hash
+
+
+def howfast(fn: str):
+	def wrap(func):
+		@wraps(func)
+		def timing(*args, **kwargs):
+			start = monotonic()
+			ret = func(*args, **kwargs)
+			timed = monotonic() - start
+			with open(fn, "a") as outf:
+				outf.write(str(timed) + "\n")
+			return ret
+		return timing
+	return wrap
+
+
+def sumlines(fn: str) -> float:
+	total = 0.
+	with open(fn, "r") as inf:
+		for line in inf:
+			total += float(line.strip())
+	return total
