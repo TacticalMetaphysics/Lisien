@@ -1146,3 +1146,14 @@ def sumlines(fn: str) -> float:
 		for line in inf:
 			total += float(line.strip())
 	return total
+
+
+def meanlines(fn: str) -> float:
+	total = 0.
+	count = 0
+	with open(fn, "r") as inf:
+		for line in inf:
+			total += float(line.strip())
+			count += 1
+	return total / count
+
