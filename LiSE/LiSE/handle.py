@@ -76,7 +76,7 @@ def _dict_delta_removed(old: Dict[bytes, bytes], new: Dict[bytes, bytes],
 		current[k] = NONE
 
 
-def _packed_dict_delta_numpy(old: Dict[bytes, bytes],
+def _packed_dict_delta(old: Dict[bytes, bytes],
 						new: Dict[bytes, bytes]) -> FormerAndCurrentType:
 	"""Describe changes from one shallow dictionary of msgpack data to another
 
@@ -118,37 +118,6 @@ def _packed_dict_delta_numpy(old: Dict[bytes, bytes],
 			post[k] = current[:-1]
 	return pre, post
 
-
-def _packed_dict_delta_threads(old: Dict[bytes, bytes], new: Dict[bytes, bytes]) -> FormerAndCurrentType:
-	from operator import ne
-	post = {}
-	pre = {}
-	added_thread = Thread(target=_dict_delta_added, args=(old, new, pre, post))
-	removed_thread = Thread(target=_dict_delta_removed,
-	                        args=(old, new, pre, post))
-	added_thread.start()
-	removed_thread.start()
-	ks = old.keys() & new.keys()
-	with ThreadPoolExecutor() as pool:
-		futs = []
-		for k in ks:
-			fut = pool.submit(ne, old[k], new[k])
-			fut.key = k
-			futs.append(fut)
-		for fut in as_completed(futs):
-			pre[fut.key] = old[fut.key]
-			post[fut.key] = new[fut.key]
-		wait(futs)
-	added_thread.join()
-	removed_thread.join()
-	return pre, post
-
-
-try:
-	import numpy
-	_packed_dict_delta = _packed_dict_delta_numpy
-except ImportError:
-	_packed_dict_delta = _packed_dict_delta_threads
 
 
 def _set_delta_added(old: Set[bytes], new: Set[bytes],
