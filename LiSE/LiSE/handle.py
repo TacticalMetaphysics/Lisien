@@ -644,10 +644,10 @@ class EngineHandle(object):
 			rbd = self.all_rulebooks_delta(btt_from=btt_from, btt_to=btt_to)
 			if rbd:
 				delta[RULEBOOKS] = dict(pool.map(self.pack_pair, rbd.items()))
+			unid = self.universal_delta(btt_from=btt_from, btt_to=btt_to)
+			if unid:
+				delta[UNIVERSAL] = unid
 			wait(futs)
-		unid = self.universal_delta(btt_from=btt_from, btt_to=btt_to)
-		if unid:
-			delta[UNIVERSAL] = unid
 		return delta
 
 	@prepacked
