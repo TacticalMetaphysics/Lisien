@@ -557,7 +557,6 @@ class EngineHandle(object):
 				values_from.append(va)
 				values_to.append(vb)
 		values_changed = np.array(ids_from) != np.array(ids_to)
-		delta = {}
 
 		def pack_one(k, va, vb):
 			if va == vb:
