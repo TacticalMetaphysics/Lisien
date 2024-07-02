@@ -558,13 +558,13 @@ class EngineHandle(object):
 				values_to.append(vb)
 		values_changed = np.array(ids_from) != np.array(ids_to)
 
-		def pack_one(k, va, vb):
+		def pack_one(pool, k, va, vb):
 			if va == vb:
 				return
 			v = pack(vb)
 			if k[0] == 'node':
 				_, graph, node, key = k
-				graph, node, key = map(pack, (graph, node, key))
+				graph, node, key = pool.map(pack, (graph, node, key))
 				if graph not in delta:
 					delta[graph] = {NODE_VAL: {node: {key: v}}, EDGE_VAL: {}}
 				elif node not in delta[graph][NODE_VAL]:
@@ -573,7 +573,7 @@ class EngineHandle(object):
 					delta[graph][NODE_VAL][node][key] = v
 			elif k[0] == 'edge':
 				_, graph, orig, dest, key = k
-				graph, orig, dest, key = map(pack, (graph, orig, dest, key))
+				graph, orig, dest, key = pool.map(pack, (graph, orig, dest, key))
 				if graph not in delta:
 					delta[graph] = {
 						EDGE_VAL: {
@@ -594,7 +594,7 @@ class EngineHandle(object):
 			else:
 				assert k[0] == 'graph'
 				_, graph, key = k
-				graph, key = map(pack, (graph, key))
+				graph, key = pool.map(pack, (graph, key))
 				if graph in delta:
 					delta[graph][key] = v
 				else:
@@ -621,7 +621,7 @@ class EngineHandle(object):
 		with ThreadPoolExecutor() as pool:
 			for k, va, vb, _ in filter(itemgetter(3),
 									zip(keys, values_from, values_to, values_changed)):
-				futs.append(pool.submit(pack_one, k, va, vb))
+				futs.append(pool.submit(pack_one, pool, k, va, vb))
 			for graph in kf_from['nodes'].keys() & kf_to['nodes'].keys():
 				for node in kf_from['nodes'][graph].keys(
 				) - kf_to['nodes'][graph].keys():
