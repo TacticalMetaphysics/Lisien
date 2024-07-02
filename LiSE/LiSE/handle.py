@@ -17,7 +17,7 @@ ordinary method calls.
 
 """
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed, Future, wait
+from concurrent.futures import ThreadPoolExecutor, wait
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from operator import itemgetter
 from re import match
