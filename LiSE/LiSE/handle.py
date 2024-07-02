@@ -518,6 +518,9 @@ class EngineHandle(object):
 		ids_to = []
 		values_from = []
 		values_to = []
+		# Comparing object IDs is guaranteed never to give a false equality,
+		# because of the way keyframes are constructed "from scratch".
+		# It may give a false inequality, in the case of mutable objects.
 		for graph in kf_from['graph_val'].keys() | kf_to['graph_val'].keys():
 			a = kf_from['graph_val'].get(graph, {})
 			b = kf_to['graph_val'].get(graph, {})
