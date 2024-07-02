@@ -545,39 +545,52 @@ class EngineHandle(object):
 		kf_to = self._real._get_kf(*btt_to)
 		self._real._set_btt(*now)
 		keys = []
+		ids_from = []
+		ids_to = []
 		values_from = []
 		values_to = []
-		# assemble the whole world state into three big arrays,
-		# use numpy to compare keys and values,
-		# then turn it all back into a dictionary of the right form
 		for graph in kf_from['graph_val'].keys() | kf_to['graph_val'].keys():
 			a = kf_from['graph_val'].get(graph, {})
 			b = kf_to['graph_val'].get(graph, {})
 			for k in a.keys() | b.keys():
 				keys.append(('graph', graph[0], k))
-				values_from.append(pack(a.get(k)) + b'\xc1')
-				values_to.append(pack(b.get(k)) + b'\xc1')
+				va = a.get(k)
+				vb = b.get(k)
+				ids_from.append(id(va))
+				ids_to.append(id(vb))
+				values_from.append(va)
+				values_to.append(vb)
 		for graph, node in kf_from['node_val'].keys() | kf_to['node_val'].keys(
 		):
 			a = kf_from['node_val'].get((graph, node), {})
 			b = kf_to['node_val'].get((graph, node), {})
 			for k in a.keys() | b.keys():
 				keys.append(('node', graph, node, k))
-				values_from.append(pack(a.get(k)) + b'\xc1')
-				values_to.append(pack(b.get(k)) + b'\xc1')
+				va = a.get(k)
+				vb = b.get(k)
+				ids_from.append(id(va))
+				ids_to.append(id(vb))
+				values_from.append(va)
+				values_to.append(vb)
 		for graph, orig, dest, i in kf_from['edge_val'].keys(
 		) | kf_to['edge_val'].keys():
 			a = kf_from['edge_val'].get((graph, orig, dest, i), {})
 			b = kf_to['edge_val'].get((graph, orig, dest, i), {})
 			for k in a.keys() | b.keys():
 				keys.append(('edge', graph, orig, dest, k))
-				values_from.append(pack(a.get(k)) + b'\xc1')
-				values_to.append(pack(b.get(k)) + b'\xc1')
-		values_changed = np.array(values_from) != np.array(values_to)
+				va = a.get(k)
+				vb = b.get(k)
+				ids_from.append(id(va))
+				ids_to.append(id(vb))
+				values_from.append(va)
+				values_to.append(vb)
+		values_changed = np.array(ids_from) != np.array(ids_to)
 		delta = {}
-		for k, v, _ in filter(itemgetter(2),
-								zip(keys, values_to, values_changed)):
-			v = v[:-1]
+		for k, va, vb, _ in filter(itemgetter(3),
+								zip(keys, values_from, values_to, values_changed)):
+			if va == vb:
+				continue
+			v = pack(vb)
 			if k[0] == 'node':
 				_, graph, node, key = k
 				graph, node, key = map(pack, (graph, node, key))
