@@ -151,7 +151,7 @@ def concat_d(r: Dict[bytes, bytes]) -> bytes:
 
 
 def concat_s(s: Set[bytes]) -> bytes:
-	"""Pack a set of msgpack-encoded values into a msgpack array with ext code"""
+	"""Pack a set of msgpack-encoded values into a msgpack array with ext code """ + str(SET_CODE)
 	resp = msgpack.Packer().pack_array_header(len(s))
 	for v in s:
 		resp += v
