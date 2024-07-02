@@ -637,10 +637,7 @@ class EngineHandle(object):
 				futs.append(pool.submit(pack_edge, pool, graph, orig, dest, TRUE))
 			rud = self.all_rules_delta(btt_from=btt_from, btt_to=btt_to)
 			if rud:
-				delta[RULES] = {
-					rule: stuff
-					for rule, stuff in pool.map(self.pack_pair, rud.items())
-				}
+				delta[RULES] = dict(pool.map(self.pack_pair, rud.items()))
 			rbd = self.all_rulebooks_delta(btt_from=btt_from, btt_to=btt_to)
 			if rbd:
 				delta[RULEBOOKS] = dict(pool.map(self.pack_pair, rbd.items()))
