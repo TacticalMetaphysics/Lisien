@@ -586,10 +586,10 @@ class EngineHandle(object):
 				values_to.append(vb)
 		values_changed = np.array(ids_from) != np.array(ids_to)
 		delta = {}
-		for k, va, vb, _ in filter(itemgetter(3),
-								zip(keys, values_from, values_to, values_changed)):
+
+		def pack_one(k, va, vb):
 			if va == vb:
-				continue
+				return
 			v = pack(vb)
 			if k[0] == 'node':
 				_, graph, node, key = k
@@ -628,55 +628,55 @@ class EngineHandle(object):
 					delta[graph][key] = v
 				else:
 					delta[graph] = {key: v, NODE_VAL: {}, EDGE_VAL: {}}
-		for graph in kf_from['nodes'].keys() & kf_to['nodes'].keys():
-			for node in kf_from['nodes'][graph].keys(
-			) - kf_to['nodes'][graph].keys():
-				grap, node = map(pack, (graph[0], node))
-				if grap not in delta:
-					delta[grap] = {NODES: {node: FALSE}}
-				elif NODES not in delta[grap]:
-					delta[grap][NODES] = {node: FALSE}
-				else:
-					delta[grap][NODES][node] = FALSE
-			for node in kf_to['nodes'][graph].keys(
-			) - kf_from['nodes'][graph].keys():
-				grap, node = map(pack, (graph[0], node))
-				if grap not in delta:
-					delta[grap] = {NODES: {node: TRUE}}
-				elif NODES not in delta[grap]:
-					delta[grap][NODES] = {node: TRUE}
-				else:
-					delta[grap][NODES][node] = TRUE
-		for graph, orig, dest in kf_from['edges'].keys() - kf_to['edges'].keys(
-		):
-			graph = pack(graph)
-			if graph not in delta:
-				delta[graph] = {EDGES: {pack((orig, dest)): FALSE}}
-			elif EDGES not in delta[graph]:
-				delta[graph][EDGES] = {pack((orig, dest)): FALSE}
+
+		def pack_node(pool, graph, node, existence):
+			grap, node = pool.map(pack, (graph[0], node))
+			if grap not in delta:
+				delta[grap] = {NODES: {node: existence}}
+			elif NODES not in delta[grap]:
+				delta[grap][NODES] = {node: existence}
 			else:
-				delta[graph][EDGES][pack((orig, dest))] = FALSE
-		for graph, orig, dest in kf_to['edges'].keys() - kf_from['edges'].keys(
-		):
-			graph = pack(graph)
+				delta[grap][NODES][node] = existence
+
+		def pack_edge(pool, graph, orig, dest, existence):
+			graph, origdest = pool.map(pack, (graph, (orig, dest)))
 			if graph not in delta:
-				delta[graph] = {EDGES: {pack((orig, dest)): TRUE}}
+				delta[graph] = {EDGES: {origdest: existence}}
 			elif EDGES not in delta[graph]:
-				delta[graph][EDGES] = {pack((orig, dest)): TRUE}
+				delta[graph][EDGES] = {origdest: existence}
 			else:
-				delta[graph][EDGES][pack((orig, dest))] = TRUE
+				delta[graph][EDGES][origdest] = existence
+		futs = []
+		with ThreadPoolExecutor() as pool:
+			for k, va, vb, _ in filter(itemgetter(3),
+									zip(keys, values_from, values_to, values_changed)):
+				futs.append(pool.submit(pack_one, k, va, vb))
+			for graph in kf_from['nodes'].keys() & kf_to['nodes'].keys():
+				for node in kf_from['nodes'][graph].keys(
+				) - kf_to['nodes'][graph].keys():
+					futs.append(pool.submit(pack_node, pool, graph, node, FALSE))
+				for node in kf_to['nodes'][graph].keys(
+				) - kf_from['nodes'][graph].keys():
+					futs.append(pool.submit(pack_node, pool, graph, node, TRUE))
+			for graph, orig, dest in kf_from['edges'].keys() - kf_to['edges'].keys(
+			):
+				futs.append(pool.submit(pack_edge, pool, graph, orig, dest, FALSE))
+			for graph, orig, dest in kf_to['edges'].keys() - kf_from['edges'].keys(
+			):
+				futs.append(pool.submit(pack_edge, pool, graph, orig, dest, TRUE))
+			rud = self.all_rules_delta(btt_from=btt_from, btt_to=btt_to)
+			if rud:
+				delta[RULES] = {
+					rule: stuff
+					for rule, stuff in pool.map(self.pack_pair, rud.items())
+				}
+			rbd = self.all_rulebooks_delta(btt_from=btt_from, btt_to=btt_to)
+			if rbd:
+				delta[RULEBOOKS] = dict(pool.map(self.pack_pair, rbd.items()))
+			wait(futs)
 		unid = self.universal_delta(btt_from=btt_from, btt_to=btt_to)
 		if unid:
 			delta[UNIVERSAL] = unid
-		rud = self.all_rules_delta(btt_from=btt_from, btt_to=btt_to)
-		if rud:
-			delta[RULES] = {
-				pack(rule): pack(stuff)
-				for rule, stuff in rud.items()
-			}
-		rbd = self.all_rulebooks_delta(btt_from=btt_from, btt_to=btt_to)
-		if rbd:
-			delta[RULEBOOKS] = dict(map(self.pack_pair, rbd.items()))
 		return delta
 
 	@prepacked
