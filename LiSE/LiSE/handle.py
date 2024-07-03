@@ -558,13 +558,13 @@ class EngineHandle(object):
 				values_to.append(vb)
 		values_changed = np.array(ids_from) != np.array(ids_to)
 
-		def pack_one(pool, k, va, vb):
+		def pack_one(k, va, vb):
 			if va == vb:
 				return
 			v = pack(vb)
 			if k[0] == 'node':
 				_, graph, node, key = k
-				graph, node, key = pool.map(pack, (graph, node, key))
+				graph, node, key = map(pack, (graph, node, key))
 				if graph not in delta:
 					delta[graph] = {NODE_VAL: {node: {key: v}}, EDGE_VAL: {}}
 				elif node not in delta[graph][NODE_VAL]:
@@ -573,7 +573,7 @@ class EngineHandle(object):
 					delta[graph][NODE_VAL][node][key] = v
 			elif k[0] == 'edge':
 				_, graph, orig, dest, key = k
-				graph, orig, dest, key = pool.map(pack, (graph, orig, dest, key))
+				graph, orig, dest, key = map(pack, (graph, orig, dest, key))
 				if graph not in delta:
 					delta[graph] = {
 						EDGE_VAL: {
@@ -594,14 +594,14 @@ class EngineHandle(object):
 			else:
 				assert k[0] == 'graph'
 				_, graph, key = k
-				graph, key = pool.map(pack, (graph, key))
+				graph, key = map(pack, (graph, key))
 				if graph in delta:
 					delta[graph][key] = v
 				else:
 					delta[graph] = {key: v, NODE_VAL: {}, EDGE_VAL: {}}
 
-		def pack_node(pool, graph, node, existence):
-			grap, node = pool.map(pack, (graph[0], node))
+		def pack_node(graph, node, existence):
+			grap, node = map(pack, (graph[0], node))
 			if grap not in delta:
 				delta[grap] = {NODES: {node: existence}}
 			elif NODES not in delta[grap]:
@@ -609,8 +609,8 @@ class EngineHandle(object):
 			else:
 				delta[grap][NODES][node] = existence
 
-		def pack_edge(pool, graph, orig, dest, existence):
-			graph, origdest = pool.map(pack, (graph, (orig, dest)))
+		def pack_edge(graph, orig, dest, existence):
+			graph, origdest = map(pack, (graph, (orig, dest)))
 			if graph not in delta:
 				delta[graph] = {EDGES: {origdest: existence}}
 			elif EDGES not in delta[graph]:
@@ -625,22 +625,22 @@ class EngineHandle(object):
 			for graph in kf_from['nodes'].keys() & kf_to['nodes'].keys():
 				for node in kf_from['nodes'][graph].keys(
 				) - kf_to['nodes'][graph].keys():
-					futs.append(pool.submit(pack_node, pool, graph, node, FALSE))
+					futs.append(pool.submit(pack_node, graph, node, FALSE))
 				for node in kf_to['nodes'][graph].keys(
 				) - kf_from['nodes'][graph].keys():
-					futs.append(pool.submit(pack_node, pool, graph, node, TRUE))
+					futs.append(pool.submit(pack_node, graph, node, TRUE))
 			for graph, orig, dest in kf_from['edges'].keys() - kf_to['edges'].keys(
 			):
-				futs.append(pool.submit(pack_edge, pool, graph, orig, dest, FALSE))
+				futs.append(pool.submit(pack_edge, graph, orig, dest, FALSE))
 			for graph, orig, dest in kf_to['edges'].keys() - kf_from['edges'].keys(
 			):
-				futs.append(pool.submit(pack_edge, pool, graph, orig, dest, TRUE))
+				futs.append(pool.submit(pack_edge, graph, orig, dest, TRUE))
 			rud = self.all_rules_delta(btt_from=btt_from, btt_to=btt_to)
 			if rud:
-				delta[RULES] = dict(pool.map(self.pack_pair, rud.items()))
+				delta[RULES] = dict(map(self.pack_pair, rud.items()))
 			rbd = self.all_rulebooks_delta(btt_from=btt_from, btt_to=btt_to)
 			if rbd:
-				delta[RULEBOOKS] = dict(pool.map(self.pack_pair, rbd.items()))
+				delta[RULEBOOKS] = dict(map(self.pack_pair, rbd.items()))
 			unid = self.universal_delta(btt_from=btt_from, btt_to=btt_to)
 			if unid:
 				delta[UNIVERSAL] = unid
