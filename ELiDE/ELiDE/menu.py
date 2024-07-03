@@ -28,11 +28,12 @@ from .gen import GridGeneratorDialog
 
 class MenuTextInput(TextInput):
 	"""Special text input for setting the branch"""
+
 	set_value = ObjectProperty()
 
 	def __init__(self, **kwargs):
 		"""Disable multiline, and bind ``on_text_validate`` to ``on_enter``"""
-		kwargs['multiline'] = False
+		kwargs["multiline"] = False
 		super().__init__(**kwargs)
 		self.bind(on_text_validate=self.on_enter)
 
@@ -42,10 +43,10 @@ class MenuTextInput(TextInput):
 		working.
 
 		"""
-		if self.text == '':
+		if self.text == "":
 			return
 		self.set_value(Clock.get_time(), self.text)
-		self.text = ''
+		self.text = ""
 		self.focus = False
 
 	def on_focus(self, *args):
@@ -63,8 +64,9 @@ class MenuIntInput(MenuTextInput):
 
 	def insert_text(self, s, from_undo=False):
 		"""Natural numbers only."""
-		return super().insert_text(''.join(c for c in s if c in '0123456789'),
-									from_undo)
+		return super().insert_text(
+			"".join(c for c in s if c in "0123456789"), from_undo
+		)
 
 
 class GeneratorButton(Button):
@@ -73,8 +75,9 @@ class GeneratorButton(Button):
 
 class WorldStartConfigurator(BoxLayout):
 	"""Give options for how to initialize the world state"""
+
 	grid_config = ObjectProperty()
-	generator_type = OptionProperty(None, options=['grid'], allownone=True)
+	generator_type = OptionProperty(None, options=["grid"], allownone=True)
 	dismiss = ObjectProperty()
 	toggle = ObjectProperty()
 	starter = ObjectProperty()
@@ -82,29 +85,29 @@ class WorldStartConfigurator(BoxLayout):
 	generator_dropdown = ObjectProperty()
 
 	def on_generator_dropdown(self, *args):
-
 		def select_txt(btn):
 			self.generator_dropdown.select(btn.text)
 
-		for opt in ['None', 'Grid']:
+		for opt in ["None", "Grid"]:
 			self.generator_dropdown.add_widget(
-				GeneratorButton(text=opt, on_release=select_txt))
+				GeneratorButton(text=opt, on_release=select_txt)
+			)
 		self.generator_dropdown.bind(on_select=self.select_generator_type)
 
 	def select_generator_type(self, instance, value):
 		self.ids.drop.text = value
-		if value == 'None':
+		if value == "None":
 			self.ids.controls.clear_widgets()
 			self.generator_type = None
-		elif value == 'Grid':
+		elif value == "Grid":
 			self.ids.controls.clear_widgets()
 			self.ids.controls.add_widget(self.grid_config)
 			self.grid_config.size = self.ids.controls.size
 			self.grid_config.pos = self.ids.controls.pos
-			self.generator_type = 'grid'
+			self.generator_type = "grid"
 
 	def start(self, *args):
-		if self.generator_type == 'grid':
+		if self.generator_type == "grid":
 			if self.grid_config.validate():
 				engine = self.starter()
 				self.grid_config.generate(engine)
@@ -114,7 +117,7 @@ class WorldStartConfigurator(BoxLayout):
 			else:
 				# TODO show error
 				return
-		elif not hasattr(self, '_starting'):
+		elif not hasattr(self, "_starting"):
 			self._starting = True
 			self.starter()
 			self.init_board()
@@ -126,17 +129,18 @@ class DirPicker(Screen):
 	toggle = ObjectProperty()
 
 	def open(self, path, *args):
-		App.get_running_app().starting_dir = os.path.abspath('.')
+		App.get_running_app().starting_dir = os.path.abspath(".")
 		os.chdir(path)
-		if 'world.db' not in os.listdir(path):
+		if "world.db" not in os.listdir(path):
 			# TODO show a configurator, accept cancellation, extract init params
-			if not hasattr(self, 'config_popover'):
+			if not hasattr(self, "config_popover"):
 				self.config_popover = ModalView()
 				self.configurator = WorldStartConfigurator(
 					grid_config=GridGeneratorDialog(),
 					dismiss=self.config_popover.dismiss,
 					toggle=self.toggle,
-					generator_dropdown=DropDown())
+					generator_dropdown=DropDown(),
+				)
 				self.config_popover.add_widget(self.configurator)
 			self.config_popover.open()
 			return

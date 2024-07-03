@@ -25,12 +25,16 @@ import tempfile
 pytestmark = [pytest.mark.slow, pytest.mark.big]
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def college24_premade():
-	directory = tempfile.mkdtemp('.')
+	directory = tempfile.mkdtemp(".")
 	shutil.unpack_archive(
-		os.path.join(os.path.abspath(os.path.dirname(__file__)),
-						'college24_premade.tar.xz'), directory)
+		os.path.join(
+			os.path.abspath(os.path.dirname(__file__)),
+			"college24_premade.tar.xz",
+		),
+		directory,
+	)
 	with Engine(directory) as eng:
 		yield eng
 	shutil.rmtree(directory)
@@ -46,23 +50,27 @@ def roommate_collisions(college24_premade):
 	for chara in engine.character.values():
 		if chara.name in done:
 			continue
-		match = re.match(r'dorm(\d)room(\d)student(\d)', chara.name)
+		match = re.match(r"dorm(\d)room(\d)student(\d)", chara.name)
 		if not match:
 			continue
 		dorm, room, student = match.groups()
-		other_student = '1' if student == '0' else '0'
+		other_student = "1" if student == "0" else "0"
 		student = chara
-		other_student = engine.character['dorm{}room{}student{}'.format(
-			dorm, room, other_student)]
+		other_student = engine.character[
+			"dorm{}room{}student{}".format(dorm, room, other_student)
+		]
 		cond = student.unit.only.historical(
-			'location') == other_student.unit.only.historical('location')
+			"location"
+		) == other_student.unit.only.historical("location")
 		same_loc_turns = {turn for (branch, turn) in cond._iter_times()}
 		assert same_loc_turns, "{} and {} don't seem to share a room".format(
-			student.name, other_student.name)
-		assert len(
-			same_loc_turns
-		) >= 6, "{} and {} did not share their room for at least 6 turns".format(
-			student.name, other_student.name)
+			student.name, other_student.name
+		)
+		assert (
+			len(same_loc_turns) >= 6
+		), "{} and {} did not share their room for at least 6 turns".format(
+			student.name, other_student.name
+		)
 
 		assert same_loc_turns == engine.turns_when(cond)
 
@@ -81,17 +89,22 @@ def sober_collisions(college24_premade):
 	"""
 	engine = college24_premade
 	students = [
-		stu for stu in engine.character['student_body'].stat['characters']
-		if not (stu.stat['drunkard'] or stu.stat['lazy'])
+		stu
+		for stu in engine.character["student_body"].stat["characters"]
+		if not (stu.stat["drunkard"] or stu.stat["lazy"])
 	]
 
 	assert students
 
 	def sameClasstime(stu0, stu1):
 		assert list(
-			engine.turns_when((stu0.unit.only.historical(
-				'location') == stu1.unit.only.historical('location')) & (
-					stu1.unit.only.historical('location') == 'classroom'))
+			engine.turns_when(
+				(
+					stu0.unit.only.historical("location")
+					== stu1.unit.only.historical("location")
+				)
+				& (stu1.unit.only.historical("location") == "classroom")
+			)
 		), """{stu0} seems not to have been in the classroom 
 				at the same time as {stu1}.
 				{stu0} was there at turns {turns0}
@@ -100,10 +113,15 @@ def sober_collisions(college24_premade):
 			stu1=stu1.name,
 			turns0=list(
 				engine.turns_when(
-					stu0.unit.only.historical('location') == 'classroom')),
+					stu0.unit.only.historical("location") == "classroom"
+				)
+			),
 			turns1=list(
 				engine.turns_when(
-					stu1.unit.only.historical('location') == 'classroom')))
+					stu1.unit.only.historical("location") == "classroom"
+				)
+			),
+		)
 		return stu1
 
 	reduce(sameClasstime, students)
@@ -118,7 +136,7 @@ def noncollision(college24_premade):
 	engine = college24_premade
 	dorm = defaultdict(lambda: defaultdict(dict))
 	for character in engine.character.values():
-		match = re.match(r'dorm(\d)room(\d)student(\d)', character.name)
+		match = re.match(r"dorm(\d)room(\d)student(\d)", character.name)
 		if not match:
 			continue
 		d, r, s = match.groups()
@@ -132,22 +150,26 @@ def noncollision(college24_premade):
 					for stu1 in dorm[d][rr].values():
 						assert not list(
 							engine.turns_when(
-								stu0.unit.only.historical('location') ==
-								stu1.unit.only.historical(
-									'location') == 'dorm{}room{}'.format(d, r))
+								stu0.unit.only.historical("location")
+								== stu1.unit.only.historical("location")
+								== "dorm{}room{}".format(d, r)
+							)
 						), "{} seems to share a room with {}".format(
-							stu0.name, stu1.name)
-				common = 'common{}'.format(d)
+							stu0.name, stu1.name
+						)
+				common = "common{}".format(d)
 				for dd in other_dorms:
 					for rr in dorm[dd]:
 						for stu1 in dorm[dd][rr].values():
 							assert not list(
 								engine.turns_when(
-									stu0.unit.only.historical('location') ==
-									stu1.unit.only.historical(
-										'location') == common)
+									stu0.unit.only.historical("location")
+									== stu1.unit.only.historical("location")
+									== common
+								)
 							), "{} seems to have been in the same common room  as {}".format(
-								stu0.name, stu1.name)
+								stu0.name, stu1.name
+							)
 
 
 def test_noncollision_premade(college24_premade):
@@ -161,35 +183,35 @@ def test_windows_intersection():
 
 def test_graph_val_select_eq(engy):
 	assert engy.turn == 0
-	me = engy.new_character('me')
-	me.stat['foo'] = 'bar'
-	me.stat['qux'] = 'bas'
+	me = engy.new_character("me")
+	me.stat["foo"] = "bar"
+	me.stat["qux"] = "bas"
 	engy.next_turn()
 	assert engy.turn == 1
-	me.stat['foo'] = ''
-	me.stat['foo'] = 'bas'
-	me.stat['qux'] = 'bar'
+	me.stat["foo"] = ""
+	me.stat["foo"] = "bas"
+	me.stat["qux"] = "bar"
 	engy.next_turn()
 	assert engy.turn == 2
-	me.stat['qux'] = 'bas'
+	me.stat["qux"] = "bas"
 	engy.next_turn()
 	assert engy.turn == 3
-	me.stat['qux'] = 'bar'
+	me.stat["qux"] = "bar"
 	engy.next_turn()
 	assert engy.turn == 4
-	engy.branch = 'leaf'
+	engy.branch = "leaf"
 	assert engy.turn == 4
 	engy.next_turn()
 	assert engy.turn == 5
-	me.stat['foo'] = 'bar'
+	me.stat["foo"] = "bar"
 	engy.next_turn()
 	assert engy.turn == 6
-	me.stat['foo'] = 'bas'
-	me.stat['qux'] = 'bas'
+	me.stat["foo"] = "bas"
+	me.stat["qux"] = "bas"
 	engy.next_turn()
 	assert engy.turn == 7
-	foo_alias = me.historical('foo')
-	qux_alias = me.historical('qux')
+	foo_alias = me.historical("foo")
+	qux_alias = me.historical("qux")
 	qry = foo_alias == qux_alias
 	turn_end_result = engy.turns_when(qry)
 	assert 5 in turn_end_result
@@ -202,44 +224,47 @@ def test_graph_val_select_eq(engy):
 	assert 4 not in mid_turn_result
 	assert mid_turn_result == set(mid_turn_result) == {1, 2, 3, 5, 6, 7}
 	assert list(engy.turns_when(qry)) == list(turn_end_result) == [2, 5, 6, 7]
-	assert list(reversed(engy.turns_when(qry))) == list(
-		reversed(turn_end_result)) == [7, 6, 5, 2]
+	assert (
+		list(reversed(engy.turns_when(qry)))
+		== list(reversed(turn_end_result))
+		== [7, 6, 5, 2]
+	)
 	assert engy.turns_when(qry, mid_turn=True)[-1] == 7
 	assert engy.turns_when(qry, mid_turn=True)[0] == 1
 
 
 def test_graph_nodeval_select_eq(engy):
 	assert engy.turn == 0
-	me = engy.new_character('me')
-	me.stat['foo'] = 'bar'
-	qux = me.new_place('qux')
-	qux['quux'] = 'bas'
+	me = engy.new_character("me")
+	me.stat["foo"] = "bar"
+	qux = me.new_place("qux")
+	qux["quux"] = "bas"
 	engy.next_turn()
 	assert engy.turn == 1
-	me.stat['foo'] = ''
-	me.stat['foo'] = 'bas'
-	qux['quux'] = 'bar'
+	me.stat["foo"] = ""
+	me.stat["foo"] = "bas"
+	qux["quux"] = "bar"
 	engy.next_turn()
 	assert engy.turn == 2
-	qux['quux'] = 'bas'
+	qux["quux"] = "bas"
 	engy.next_turn()
 	assert engy.turn == 3
-	qux['quux'] = 'bar'
+	qux["quux"] = "bar"
 	engy.next_turn()
 	assert engy.turn == 4
-	engy.branch = 'leaf'
+	engy.branch = "leaf"
 	assert engy.turn == 4
 	engy.next_turn()
 	assert engy.turn == 5
-	me.stat['foo'] = 'bar'
+	me.stat["foo"] = "bar"
 	engy.next_turn()
 	assert engy.turn == 6
-	me.stat['foo'] = 'bas'
-	qux['quux'] = 'bas'
+	me.stat["foo"] = "bas"
+	qux["quux"] = "bas"
 	engy.next_turn()
 	assert engy.turn == 7
-	foo_alias = me.historical('foo')
-	qux_alias = qux.historical('quux')
+	foo_alias = me.historical("foo")
+	qux_alias = qux.historical("quux")
 	qry = foo_alias == qux_alias
 	turn_end_result = engy.turns_when(qry)
 	assert 5 in turn_end_result
@@ -252,8 +277,11 @@ def test_graph_nodeval_select_eq(engy):
 	assert 4 not in mid_turn_result
 	assert mid_turn_result == set(mid_turn_result) == {1, 2, 3, 5, 6, 7}
 	assert list(engy.turns_when(qry)) == list(turn_end_result) == [2, 5, 6, 7]
-	assert list(reversed(engy.turns_when(qry))) == list(
-		reversed(turn_end_result)) == [7, 6, 5, 2]
+	assert (
+		list(reversed(engy.turns_when(qry)))
+		== list(reversed(turn_end_result))
+		== [7, 6, 5, 2]
+	)
 	assert engy.turns_when(qry, mid_turn=True)[-1] == 7
 	assert engy.turns_when(qry, mid_turn=True)[0] == 1
 
@@ -263,15 +291,15 @@ def test_location_qry(engy):
 	place1 = phys.new_place(1)
 	place2 = phys.new_place(2)
 	place3 = phys.new_place(3)
-	thing1 = place3.new_thing('t1')
-	thing2 = place1.new_thing('t2')
+	thing1 = place3.new_thing("t1")
+	thing2 = place1.new_thing("t2")
 	engy.next_turn()
 	thing1.location = place2
 	thing2.location = place2
 	thing2.location = place1
 	engy.next_turn()
 	thing2.location = place2
-	qry = thing1.historical('location') == thing2.historical('location')
+	qry = thing1.historical("location") == thing2.historical("location")
 	res0 = engy.turns_when(qry)
 	assert 2 in res0
 	assert 1 not in res0
@@ -288,18 +316,18 @@ def test_place_val_qry(engy):
 	place1 = phys.new_place(1)
 	place2 = phys.new_place(2)
 	assert engy.turn == 0
-	place1['flavor'] = 'delicious'
-	place2['flavor'] = 'disgusting'
+	place1["flavor"] = "delicious"
+	place2["flavor"] = "disgusting"
 	engy.next_turn()
 	assert engy.turn == 1
-	place2['flavor'] = 'delicious'
+	place2["flavor"] = "delicious"
 	engy.next_turn()
 	assert engy.turn == 2
-	place1['flavor'] = 'disgusting'
+	place1["flavor"] = "disgusting"
 	engy.next_turn()
 	assert engy.turn == 3
-	place2['flavor'] = 'disgusting'
-	qry = place1.historical('flavor') == place2.historical('flavor')
+	place2["flavor"] = "disgusting"
+	qry = place1.historical("flavor") == place2.historical("flavor")
 	res = engy.turns_when(qry)
 	assert 1 in res
 	assert 3 in res
@@ -312,14 +340,15 @@ def test_place_val_qry(engy):
 def test_stress_graph_val_select_eq(engy):
 	import random
 	from time import monotonic
-	me = engy.new_character('me')
-	me.stat['qux'] = random.choice(['foo', 'bar', 'bas'])
-	me.stat['quux'] = random.choice(['foo', 'bar', 'bas'])
+
+	me = engy.new_character("me")
+	me.stat["qux"] = random.choice(["foo", "bar", "bas"])
+	me.stat["quux"] = random.choice(["foo", "bar", "bas"])
 	for i in range(10000):
 		engy.next_turn()
-		me.stat['qux'] = random.choice(['foo', 'bar', 'bas'])
-		me.stat['quux'] = random.choice(['foo', 'bar', 'bas'])
-	qry = me.historical('qux') == me.historical('quux')
+		me.stat["qux"] = random.choice(["foo", "bar", "bas"])
+		me.stat["quux"] = random.choice(["foo", "bar", "bas"])
+	qry = me.historical("qux") == me.historical("quux")
 	start_ts = monotonic()
 	res = engy.turns_when(qry)
 	assert monotonic() - start_ts < 1
@@ -330,29 +359,29 @@ def test_stress_graph_val_select_eq(engy):
 
 
 def test_graph_val_select_lt_gt(engy):
-	me = engy.new_character('me')
-	me.stat['foo'] = 10
-	me.stat['bar'] = 1
+	me = engy.new_character("me")
+	me.stat["foo"] = 10
+	me.stat["bar"] = 1
 	engy.next_turn()
-	me.stat['foo'] = 2
-	me.stat['bar'] = 8
+	me.stat["foo"] = 2
+	me.stat["bar"] = 8
 	engy.next_turn()
-	me.stat['foo'] = 3
+	me.stat["foo"] = 3
 	engy.next_turn()
-	me.stat['foo'] = 9
+	me.stat["foo"] = 9
 	engy.next_turn()
-	engy.branch = 'leaf'
-	me.stat['bar'] = 5
+	engy.branch = "leaf"
+	me.stat["bar"] = 5
 	engy.next_turn()
-	me.stat['bar'] = 2
+	me.stat["bar"] = 2
 	engy.next_turn()
-	me.stat['bar'] = 10
+	me.stat["bar"] = 10
 	engy.next_turn()
-	me.stat['bar'] = 1
+	me.stat["bar"] = 1
 	engy.next_turn()
-	me.stat['bar'] = 10
-	foo_hist = me.historical('foo')
-	bar_hist = me.historical('bar')
+	me.stat["bar"] = 10
+	foo_hist = me.historical("foo")
+	bar_hist = me.historical("bar")
 	res = engy.turns_when(foo_hist < bar_hist)
 	assert set(res) == {1, 2, 6, 8}
 	assert str([1, 2, 6, 8]) in str(engy.turns_when(foo_hist < bar_hist))
@@ -364,14 +393,15 @@ def test_graph_val_select_lt_gt(engy):
 def test_stress_graph_val_select_lt(engy):
 	import random
 	from time import monotonic
-	me = engy.new_character('me')
-	me.stat['foo'] = random.randrange(0, 10)
-	me.stat['bar'] = random.randrange(0, 10)
+
+	me = engy.new_character("me")
+	me.stat["foo"] = random.randrange(0, 10)
+	me.stat["bar"] = random.randrange(0, 10)
 	for i in range(10000):
 		engy.next_turn()
-		me.stat['foo'] = random.randrange(0, 10)
-		me.stat['bar'] = random.randrange(0, 10)
-	qry = me.historical('foo') < me.historical('bar')
+		me.stat["foo"] = random.randrange(0, 10)
+		me.stat["bar"] = random.randrange(0, 10)
+	qry = me.historical("foo") < me.historical("bar")
 	start_ts = monotonic()
 	res = engy.turns_when(qry)
 	assert monotonic() - start_ts < 1
@@ -382,52 +412,52 @@ def test_stress_graph_val_select_lt(engy):
 
 
 def test_graph_val_compound(engy):
-	you = engy.new_character('you')
+	you = engy.new_character("you")
 	assert engy.turn == 0
-	me = engy.new_character('me')
-	me.stat['foo'] = 'bar'
-	me.stat['qux'] = 'bas'
-	you.stat['foo'] = 10
-	you.stat['bar'] = 1
+	me = engy.new_character("me")
+	me.stat["foo"] = "bar"
+	me.stat["qux"] = "bas"
+	you.stat["foo"] = 10
+	you.stat["bar"] = 1
 	engy.next_turn()
 	assert engy.turn == 1
-	me.stat['foo'] = ''
-	me.stat['foo'] = 'bas'
-	me.stat['qux'] = 'bar'
-	you.stat['foo'] = 2
-	you.stat['bar'] = 8
+	me.stat["foo"] = ""
+	me.stat["foo"] = "bas"
+	me.stat["qux"] = "bar"
+	you.stat["foo"] = 2
+	you.stat["bar"] = 8
 	engy.next_turn()
 	assert engy.turn == 2
-	me.stat['qux'] = 'bas'
-	you.stat['foo'] = 3
+	me.stat["qux"] = "bas"
+	you.stat["foo"] = 3
 	engy.next_turn()
 	assert engy.turn == 3
-	me.stat['qux'] = 'bar'
-	you.stat['foo'] = 9
+	me.stat["qux"] = "bar"
+	you.stat["foo"] = 9
 	engy.next_turn()
 	assert engy.turn == 4
-	engy.branch = 'leaf'
+	engy.branch = "leaf"
 	assert engy.turn == 4
-	you.stat['bar'] = 5
+	you.stat["bar"] = 5
 	engy.next_turn()
 	assert engy.turn == 5
-	me.stat['foo'] = 'bar'
-	you.stat['bar'] = 2
+	me.stat["foo"] = "bar"
+	you.stat["bar"] = 2
 	engy.next_turn()
 	assert engy.turn == 6
-	me.stat['foo'] = 'bas'
-	me.stat['qux'] = 'bas'
-	you.stat['bar'] = 10
+	me.stat["foo"] = "bas"
+	me.stat["qux"] = "bas"
+	you.stat["bar"] = 10
 	engy.next_turn()
-	you.stat['bar'] = 1
+	you.stat["bar"] = 1
 	assert engy.turn == 7
 	engy.next_turn()
 	assert engy.turn == 8
-	you.stat['bar'] = 10
-	eq_qry = me.historical('foo') == me.historical('qux')
+	you.stat["bar"] = 10
+	eq_qry = me.historical("foo") == me.historical("qux")
 	correct_eq = {2, 5, 6, 7, 8}
 	assert set(engy.turns_when(eq_qry)) == correct_eq
-	lt_qry = you.historical('foo') < you.historical('bar')
+	lt_qry = you.historical("foo") < you.historical("bar")
 	correct_lt = {1, 2, 6, 8}
 	assert set(engy.turns_when(lt_qry)) == correct_lt
 	assert engy.turns_when(lt_qry & eq_qry) == correct_eq & correct_lt

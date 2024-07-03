@@ -32,10 +32,10 @@ class GridGeneratorDialog(BoxLayout):
 			return False
 		elif self.directions == 4:
 			# instead, we're running just after game init, before the view is open on it, and we'll make a character ourselves
-			engine.add_character('physical', grid_2d_graph(x, y))
+			engine.add_character("physical", grid_2d_graph(x, y))
 			return True
 		elif self.directions == 8:
-			engine.add_character('physical', grid_2d_8graph(x, y))
+			engine.add_character("physical", grid_2d_8graph(x, y))
 			return True
 		else:
 			return False

@@ -16,8 +16,11 @@ from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 
-from kivy.properties import (BooleanProperty, ObjectProperty,
-								ReferenceListProperty)
+from kivy.properties import (
+	BooleanProperty,
+	ObjectProperty,
+	ReferenceListProperty,
+)
 from .graph.arrow import GraphArrowWidget
 from .util import try_load, dummynum, trigger
 from LiSE.proxy import CharStatProxy
@@ -49,22 +52,27 @@ class CharMenu(BoxLayout):
 		if not (self.screen and self.screen.boardview and self.screen.app):
 			Clock.schedule_once(self.on_screen, 0)
 			return
-		self.forearrow = GraphArrowWidget(board=self.screen.boardview.board,
-											origin=self.ids.emptyleft,
-											destination=self.ids.emptyright)
+		self.forearrow = GraphArrowWidget(
+			board=self.screen.boardview.board,
+			origin=self.ids.emptyleft,
+			destination=self.ids.emptyright,
+		)
 		self.ids.portaladdbut.add_widget(self.forearrow)
 		self.ids.emptyleft.bind(pos=self.forearrow._trigger_repoint)
 		self.ids.emptyright.bind(pos=self.forearrow._trigger_repoint)
 		if self.reciprocal_portal:
-			assert (self.revarrow is None)
-			self.revarrow = GraphArrowWidget(board=self.screen.boardview.board,
-												origin=self.ids.emptyright,
-												destination=self.ids.emptyleft)
+			assert self.revarrow is None
+			self.revarrow = GraphArrowWidget(
+				board=self.screen.boardview.board,
+				origin=self.ids.emptyright,
+				destination=self.ids.emptyleft,
+			)
 			self.ids.portaladdbut.add_widget(self.revarrow)
 			self.ids.emptyleft.bind(pos=self.revarrow._trigger_repoint)
 			self.ids.emptyright.bind(pos=self.revarrow._trigger_repoint)
-		self.bind(reciprocal_portal=self.screen.boardview.setter(
-			'reciprocal_portal'))
+		self.bind(
+			reciprocal_portal=self.screen.boardview.setter("reciprocal_portal")
+		)
 
 	def spot_from_dummy(self, dummy):
 		if self.screen.boardview.parent != self.screen.mainview:
@@ -77,8 +85,11 @@ class CharMenu(BoxLayout):
 		if name not in graphboard.spot:
 			graphboard.add_spot(name)
 		gridboard = self.screen.gridboards[self.app.character_name]
-		if name not in gridboard.spot and isinstance(
-			name, tuple) and len(name) == 2:
+		if (
+			name not in gridboard.spot
+			and isinstance(name, tuple)
+			and len(name) == 2
+		):
 			gridboard.add_spot(name)
 
 	def pawn_from_dummy(self, dummy):
@@ -89,8 +100,10 @@ class CharMenu(BoxLayout):
 		if name not in graphboard.pawn:
 			graphboard.add_pawn(name)
 		gridboard = self.screen.gridboards[self.app.character_name]
-		if name not in gridboard.pawn and self.app.character.thing[name][
-			"location"] in gridboard.spot:
+		if (
+			name not in gridboard.pawn
+			and self.app.character.thing[name]["location"] in gridboard.spot
+		):
 			gridboard.add_pawn(name)
 
 	def toggle_chars_screen(self, *args):
@@ -100,8 +113,9 @@ class CharMenu(BoxLayout):
 
 	def toggle_rules(self, *args):
 		"""Display or hide the view for constructing rules out of cards."""
-		if self.app.manager.current != 'rules' and not isinstance(
-			self.app.selected_proxy, CharStatProxy):
+		if self.app.manager.current != "rules" and not isinstance(
+			self.app.selected_proxy, CharStatProxy
+		):
 			self.app.rules.entity = self.app.selected_proxy
 			self.app.rules.rulebook = self.app.selected_proxy.rulebook
 		if isinstance(self.app.selected_proxy, CharStatProxy):
@@ -122,18 +136,19 @@ class CharMenu(BoxLayout):
 		or hide it if already showing.
 
 		"""
-		if self.app.manager.current == 'spotcfg':
+		if self.app.manager.current == "spotcfg":
 			dummyplace = self.screendummyplace
 			self.ids.placetab.remove_widget(dummyplace)
 			dummyplace.clear()
 			if self.app.spotcfg.prefix:
 				dummyplace.prefix = self.app.spotcfg.prefix
-				dummyplace.num = dummynum(self.app.character,
-											dummyplace.prefix) + 1
+				dummyplace.num = (
+					dummynum(self.app.character, dummyplace.prefix) + 1
+				)
 			if self.app.spotcfg.imgpaths:
 				dummyplace.paths = self.app.spotcfg.imgpaths
 			else:
-				dummyplace.paths = ['atlas://rltiles/floor/floor-stone']
+				dummyplace.paths = ["atlas://rltiles/floor/floor-stone"]
 			dummyplace.center = self.ids.placetab.center
 			self.ids.placetab.add_widget(dummyplace)
 		else:
@@ -142,18 +157,19 @@ class CharMenu(BoxLayout):
 
 	def toggle_pawn_cfg(self):
 		"""Show or hide the pop-over where you can configure the dummy pawn"""
-		if self.app.manager.current == 'pawncfg':
+		if self.app.manager.current == "pawncfg":
 			dummything = self.app.dummything
 			self.ids.thingtab.remove_widget(dummything)
 			dummything.clear()
 			if self.app.pawncfg.prefix:
 				dummything.prefix = self.app.pawncfg.prefix
-				dummything.num = dummynum(self.app.character,
-											dummything.prefix) + 1
+				dummything.num = (
+					dummynum(self.app.character, dummything.prefix) + 1
+				)
 			if self.app.pawncfg.imgpaths:
 				dummything.paths = self.app.pawncfg.imgpaths
 			else:
-				dummything.paths = ['atlas://rltiles/base/unseen']
+				dummything.paths = ["atlas://rltiles/base/unseen"]
 			self.ids.thingtab.add_widget(dummything)
 		else:
 			self.app.pawncfg.prefix = self.ids.dummything.prefix
@@ -165,27 +181,33 @@ class CharMenu(BoxLayout):
 		fact.
 
 		"""
-		self.reciprocal_portal = self.screen.boardview.reciprocal_portal = not self.screen.boardview.reciprocal_portal
+		self.reciprocal_portal = (
+			self.screen.boardview.reciprocal_portal
+		) = not self.screen.boardview.reciprocal_portal
 		if self.screen.boardview.reciprocal_portal:
-			assert (self.revarrow is None)
-			self.revarrow = GraphArrowWidget(board=self.screen.boardview.board,
-												origin=self.ids.emptyright,
-												destination=self.ids.emptyleft)
+			assert self.revarrow is None
+			self.revarrow = GraphArrowWidget(
+				board=self.screen.boardview.board,
+				origin=self.ids.emptyright,
+				destination=self.ids.emptyleft,
+			)
 			self.ids.portaladdbut.add_widget(self.revarrow)
 			self.ids.emptyright.bind(pos=self.revarrow._trigger_repoint)
 			self.ids.emptyleft.bind(pos=self.revarrow._trigger_repoint)
 		else:
-			if hasattr(self, 'revarrow'):
+			if hasattr(self, "revarrow"):
 				self.ids.portaladdbut.remove_widget(self.revarrow)
 				self.revarrow = None
 
 	def new_character(self, but):
-		charn = try_load(self.app.engine.unpack,
-							self.app.chars.ids.newname.text)
+		charn = try_load(
+			self.app.engine.unpack, self.app.chars.ids.newname.text
+		)
 		self.app.select_character(self.app.engine.new_character(charn))
-		self.app.chars.ids.newname.text = ''
+		self.app.chars.ids.newname.text = ""
 		self.app.chars.charsview.adapter.data = list(
-			self.engine.character.keys())
+			self.engine.character.keys()
+		)
 		Clock.schedule_once(self.toggle_chars_screen, 0.01)
 
 	def on_dummyplace(self, *args):
@@ -198,7 +220,7 @@ class CharMenu(BoxLayout):
 
 	@trigger
 	def _trigger_deselect(self, *args):
-		if hasattr(self.app.selection, 'selected'):
+		if hasattr(self.app.selection, "selected"):
 			self.app.selection.selected = False
 		self.app.selection = None
 

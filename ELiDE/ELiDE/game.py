@@ -19,8 +19,12 @@ from threading import Thread
 from kivy.app import App
 from kivy.logger import Logger
 from kivy.clock import Clock, triggered
-from kivy.properties import (BooleanProperty, ObjectProperty, NumericProperty,
-								StringProperty)
+from kivy.properties import (
+	BooleanProperty,
+	ObjectProperty,
+	NumericProperty,
+	StringProperty,
+)
 
 from kivy.factory import Factory
 from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
@@ -84,10 +88,9 @@ class GameScreen(Screen):
 
 		"""
 		self.disable_input()
-		self.app.wait_travel(character,
-								thing,
-								dest,
-								cb=partial(self.enable_input, cb))
+		self.app.wait_travel(
+			character, thing, dest, cb=partial(self.enable_input, cb)
+		)
 
 	def wait_turns(self, turns, cb=None):
 		"""Call ``self.app.engine.next_turn()`` ``n`` times, waiting ``self.app.turn_length`` in between
@@ -117,13 +120,15 @@ class GameScreen(Screen):
 		start_func()
 		self.app.wait_turns(turns, cb=partial(self.enable_input, end_func))
 
-	def wait_travel_command(self,
-							character,
-							thing,
-							dest,
-							start_func,
-							turns=1,
-							end_func=lambda: None):
+	def wait_travel_command(
+		self,
+		character,
+		thing,
+		dest,
+		start_func,
+		turns=1,
+		end_func=lambda: None,
+	):
 		"""Schedule a thing to travel someplace and do something, then wait for it to finish.
 
 		Input will be disabled for the duration.
@@ -138,18 +143,24 @@ class GameScreen(Screen):
 
 		"""
 		self.disable_input()
-		self.app.wait_travel_command(character, thing, dest, start_func, turns,
-										partial(self.enable_input, end_func))
+		self.app.wait_travel_command(
+			character,
+			thing,
+			dest,
+			start_func,
+			turns,
+			partial(self.enable_input, end_func),
+		)
 
 
 class GameApp(App):
 	modules = []
 	do_game_start = False
 	turn_length = NumericProperty(0.5)
-	branch = StringProperty('trunk')
+	branch = StringProperty("trunk")
 	turn = NumericProperty(0)
 	tick = NumericProperty(0)
-	prefix = StringProperty('.')
+	prefix = StringProperty(".")
 	selection = ObjectProperty(allownone=True)
 
 	def wait_turns(self, turns, *, cb=None):
@@ -169,8 +180,9 @@ class GameApp(App):
 			return
 		self.next_turn()
 		turns -= 1
-		Clock.schedule_once(partial(self.wait_turns, turns, cb=cb),
-							self.turn_length)
+		Clock.schedule_once(
+			partial(self.wait_turns, turns, cb=cb), self.turn_length
+		)
 
 	def wait_travel(self, character, thing, dest, cb=None):
 		"""Schedule a thing to travel someplace, then wait for it to finish, and call ``cb`` if provided
@@ -180,11 +192,12 @@ class GameApp(App):
 		:param dest: name of the destination (a place)
 		:param cb: function to be called when I'm done
 		:return: ``None``
-		
+
 		"""
 		self.wait_turns(
 			self.engine.character[character].thing[thing].travel_to(dest),
-			cb=cb)
+			cb=cb,
+		)
 
 	def wait_command(self, start_func, turns=1, end_func=None):
 		"""Call ``start_func``, and wait to call ``end_func`` after simulating ``turns`` (default 1)
@@ -198,13 +211,9 @@ class GameApp(App):
 		start_func()
 		self.wait_turns(turns, cb=end_func)
 
-	def wait_travel_command(self,
-							character,
-							thing,
-							dest,
-							start_func,
-							turns=1,
-							end_func=None):
+	def wait_travel_command(
+		self, character, thing, dest, start_func, turns=1, end_func=None
+	):
 		"""Schedule a thing to travel someplace and do something, then wait for it to finish.
 
 		:param character: name of the character
@@ -215,11 +224,12 @@ class GameApp(App):
 		:param end_func: optional. Function to call after waiting ``turns`` after start_func
 		:return: ``None``
 		"""
-		self.wait_travel(character,
-							thing,
-							dest,
-							cb=partial(self.wait_command, start_func, turns,
-										end_func))
+		self.wait_travel(
+			character,
+			thing,
+			dest,
+			cb=partial(self.wait_command, start_func, turns, end_func),
+		)
 
 	def _pull_time(self, *args, branch, turn, tick):
 		self.branch, self.turn, self.tick = branch, turn, tick
@@ -227,24 +237,25 @@ class GameApp(App):
 	def build(self):
 		have_world = False
 		try:
-			os.stat('world.db')
+			os.stat("world.db")
 			have_world = True
 		except FileNotFoundError:
 			pass
 		self.procman = LiSE.proxy.EngineProcessManager()
-		self.engine = self.procman.start(self.prefix,
-											logger=Logger,
-											loglevel=getattr(
-												self, 'loglevel', 'debug'),
-											do_game_start=self.do_game_start
-											and not have_world,
-											install_modules=self.modules)
+		self.engine = self.procman.start(
+			self.prefix,
+			logger=Logger,
+			loglevel=getattr(self, "loglevel", "debug"),
+			do_game_start=self.do_game_start and not have_world,
+			install_modules=self.modules,
+		)
 		self.branch, self.turn, self.tick = self.engine._btt()
 		self.engine.time.connect(self._pull_time, weak=False)
 		self.screen_manager = ScreenManager(transition=NoTransition())
-		if hasattr(self, 'inspector'):
+		if hasattr(self, "inspector"):
 			from kivy.core.window import Window
 			from kivy.modules import inspector
+
 			inspector.create_inspector(Window, self.screen_manager)
 		return self.screen_manager
 
@@ -269,7 +280,7 @@ class GameApp(App):
 		mistakenly go two or three turns into the future.
 
 		"""
-		if hasattr(self, '_next_turn_thread'):
+		if hasattr(self, "_next_turn_thread"):
 			self._next_turn_thread.join()
 		self._next_turn_thread = Thread(target=self.engine.next_turn)
 		self._next_turn_thread.start()

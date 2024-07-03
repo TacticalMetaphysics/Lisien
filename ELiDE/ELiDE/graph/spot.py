@@ -16,6 +16,7 @@
 top of these.
 
 """
+
 from kivy.clock import Clock
 
 from .arrow import get_points, get_quad_vertices
@@ -33,7 +34,8 @@ class GraphSpot(GraphPawnSpot):
 	the window the :class:`Board` is in.
 
 	"""
-	default_image_paths = ['atlas://rltiles/floor.atlas/floor-stone']
+
+	default_image_paths = ["atlas://rltiles/floor.atlas/floor-stone"]
 	default_pos = (0.5, 0.5)
 
 	def __init__(self, **kwargs):
@@ -43,10 +45,10 @@ class GraphSpot(GraphPawnSpot):
 		"""
 		self._pospawn_partials = {}
 		self._pospawn_triggers = {}
-		kwargs['size_hint'] = (None, None)
-		if 'place' in kwargs:
-			kwargs['proxy'] = kwargs['place']
-			del kwargs['place']
+		kwargs["size_hint"] = (None, None)
+		if "place" in kwargs:
+			kwargs["proxy"] = kwargs["place"]
+			del kwargs["place"]
 		super().__init__(**kwargs)
 
 	def on_board(self, *args):
@@ -54,16 +56,15 @@ class GraphSpot(GraphPawnSpot):
 		self.board.bind(size=self._upd_pos)
 
 	def on_pos(self, *args):
-
 		def upd(orig, dest):
 			bgr = r * bg_scale_selected  # change for selectedness pls
 			if (orig, dest) not in port_index:
 				return
 			idx = port_index[orig, dest]
 			inst = instructions[orig, dest]
-			(ox, oy, dx, dy), (x1, y1, endx, endy, x2,
-								y2) = get_points(spot[orig], spot[dest],
-													arrowhead_size)
+			(ox, oy, dx, dy), (x1, y1, endx, endy, x2, y2) = get_points(
+				spot[orig], spot[dest], arrowhead_size
+			)
 			if ox < dx:
 				bot_left_xs[idx] = ox - bgr
 				top_right_xs[idx] = dx + bgr
@@ -76,15 +77,16 @@ class GraphSpot(GraphPawnSpot):
 			else:
 				bot_left_ys[idx] = dy - bgr
 				top_right_ys[idx] = oy + bgr
-			quadverts = get_quad_vertices(ox, oy, dx, dy, x1, y1, endx, endy,
-											x2, y2, bgr, r)
-			inst['shaft_bg'].points = quadverts['shaft_bg']
-			colliders[orig, dest] = Collide2DPoly(points=quadverts['shaft_bg'])
-			inst['left_head_bg'].points = quadverts['left_head_bg']
-			inst['right_head_bg'].points = quadverts['right_head_bg']
-			inst['shaft_fg'].points = quadverts['shaft_fg']
-			inst['left_head_fg'].points = quadverts['left_head_fg']
-			inst['right_head_fg'].points = quadverts['right_head_fg']
+			quadverts = get_quad_vertices(
+				ox, oy, dx, dy, x1, y1, endx, endy, x2, y2, bgr, r
+			)
+			inst["shaft_bg"].points = quadverts["shaft_bg"]
+			colliders[orig, dest] = Collide2DPoly(points=quadverts["shaft_bg"])
+			inst["left_head_bg"].points = quadverts["left_head_bg"]
+			inst["right_head_bg"].points = quadverts["right_head_bg"]
+			inst["shaft_fg"].points = quadverts["shaft_fg"]
+			inst["left_head_fg"].points = quadverts["left_head_fg"]
+			inst["right_head_fg"].points = quadverts["right_head_fg"]
 
 		if not self.board:
 			return
@@ -120,11 +122,10 @@ class GraphSpot(GraphPawnSpot):
 		if self.board is None:
 			Clock.schedule_once(self._upd_pos, 0)
 			return
-		self.pos = (int(
-			self.proxy.get('_x', self.default_pos[0]) * self.board.width),
-					int(
-						self.proxy.get('_y', self.default_pos[1]) *
-						self.board.height))
+		self.pos = (
+			int(self.proxy.get("_x", self.default_pos[0]) * self.board.width),
+			int(self.proxy.get("_y", self.default_pos[1]) * self.board.height),
+		)
 
 	def finalize(self, initial=True):
 		if initial:
@@ -138,8 +139,8 @@ class GraphSpot(GraphPawnSpot):
 		recorded in the database.
 
 		"""
-		self.proxy['_x'] = self.x / self.board.width
-		self.proxy['_y'] = self.y / self.board.height
+		self.proxy["_x"] = self.x / self.board.width
+		self.proxy["_y"] = self.y / self.board.height
 
 	_trigger_push_pos = trigger(push_pos)
 

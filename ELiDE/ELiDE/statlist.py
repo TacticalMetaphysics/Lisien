@@ -16,6 +16,7 @@
 user. Autoupdates when there's a change for any reason.
 
 """
+
 from functools import partial
 from kivy.properties import (
 	DictProperty,
@@ -25,16 +26,17 @@ from kivy.clock import Clock
 from kivy.uix.recycleview import RecycleView
 
 default_cfg = {
-	'control': 'readout',
-	'true_text': '1',
-	'false_text': '0',
-	'min': 0.0,
-	'max': 1.0
+	"control": "readout",
+	"true_text": "1",
+	"false_text": "0",
+	"min": 0.0,
+	"max": 1.0,
 }
 
 
 class BaseStatListView(RecycleView):
 	"""Base class for widgets showing lists of stats and their values"""
+
 	proxy = ObjectProperty()
 	"""A proxy object representing a LiSE entity"""
 	engine = ObjectProperty()
@@ -56,12 +58,13 @@ class BaseStatListView(RecycleView):
 		if k not in self.proxy:
 			raise KeyError
 		del self.proxy[k]
-		if '_config' in self.proxy and k in self.proxy['_config']:
-			del self.proxy['_config'][k]
+		if "_config" in self.proxy and k in self.proxy["_config"]:
+			del self.proxy["_config"][k]
 
 	def set_value(self, k, v):
 		"""Set a value on the proxy, parsing it to a useful datatype if possible"""
 		from ast import literal_eval
+
 		if self.engine is None or self.proxy is None:
 			self._trigger_set_value(k, v)
 			return
@@ -84,60 +87,60 @@ class BaseStatListView(RecycleView):
 
 	def init_config(self, key):
 		"""Set the configuration for the key to something that will always work"""
-		self.proxy['_config'].setdefault(key, default_cfg)
+		self.proxy["_config"].setdefault(key, default_cfg)
 
 	def set_config(self, key, option, value):
 		"""Set a configuration option for a key"""
-		if '_config' not in self.proxy:
+		if "_config" not in self.proxy:
 			newopt = dict(default_cfg)
 			newopt[option] = value
-			self.proxy['_config'] = {key: newopt}
+			self.proxy["_config"] = {key: newopt}
 		else:
-			if key in self.proxy['_config']:
-				self.proxy['_config'][key][option] = value
+			if key in self.proxy["_config"]:
+				self.proxy["_config"][key][option] = value
 			else:
 				newopt = dict(default_cfg)
 				newopt[option] = value
-				self.proxy['_config'][key] = newopt
+				self.proxy["_config"][key] = newopt
 
 	def set_configs(self, key, d):
 		"""Set the whole configuration for a key"""
-		if '_config' in self.proxy:
-			self.proxy['_config'][key] = d
+		if "_config" in self.proxy:
+			self.proxy["_config"][key] = d
 		else:
-			self.proxy['_config'] = {key: d}
+			self.proxy["_config"] = {key: d}
 
 	def iter_data(self):
 		"""Iterate over key-value pairs that are really meant to be displayed"""
-		invalid = {'character', 'name', 'location', 'rulebooks'}
-		for (k, v) in self.proxy.items():
-			if (not (isinstance(k, str) and k[0] == '_') and k not in invalid):
+		invalid = {"character", "name", "location", "rulebooks"}
+		for k, v in self.proxy.items():
+			if not (isinstance(k, str) and k[0] == "_") and k not in invalid:
 				yield k, v
 
 	def munge(self, k, v):
 		"""Turn a key and value into a dictionary describing a widget to show"""
-		if '_config' in self.proxy and k in self.proxy['_config']:
-			config = self.proxy['_config'][k].unwrap()
+		if "_config" in self.proxy and k in self.proxy["_config"]:
+			config = self.proxy["_config"][k].unwrap()
 		else:
 			config = default_cfg
 		return {
-			'key': k,
-			'reg': self._reg_widget,
-			'unreg': self._unreg_widget,
-			'gett': self.proxy.__getitem__,
-			'sett': self.set_value,
-			'listen': self.proxy.connect,
-			'unlisten': self.proxy.disconnect,
-			'config': config
+			"key": k,
+			"reg": self._reg_widget,
+			"unreg": self._unreg_widget,
+			"gett": self.proxy.__getitem__,
+			"sett": self.set_value,
+			"listen": self.proxy.connect,
+			"unlisten": self.proxy.disconnect,
+			"config": config,
 		}
 
 	def upd_data(self, *args):
 		"""Update to match new entity data"""
 		data = [self.munge(k, v) for k, v in self.iter_data()]
-		self.data = sorted(data, key=lambda d: d['key'])
+		self.data = sorted(data, key=lambda d: d["key"])
 
 	def _trigger_upd_data(self, *args, **kwargs):
-		if hasattr(self, '_scheduled_upd_data'):
+		if hasattr(self, "_scheduled_upd_data"):
 			Clock.unschedule(self._scheduled_upd_data)
 		self._scheduled_upd_data = Clock.schedule_once(self.upd_data, 0)
 

@@ -24,13 +24,15 @@ import networkx as nx
 from LiSE import Engine
 
 
-def install(engine,
-			n_creatures=5,
-			n_sickles=3,
-			malaria_chance=.05,
-			mate_chance=.05,
-			mapsize=(1, 1),
-			startpos=(0, 0)):
+def install(
+	engine,
+	n_creatures=5,
+	n_sickles=3,
+	malaria_chance=0.05,
+	mate_chance=0.05,
+	mapsize=(1, 1),
+	startpos=(0, 0),
+):
 	"""Natural Selection on Sickle Cell Anemia
 
 	If anyone carries a pair of sickle betaglobin genes, they die of
@@ -50,25 +52,28 @@ def install(engine,
 	)
 	for n in range(0, n_creatures):
 		name = "critter" + str(n)
-		phys.add_thing(name=name,
-						location=startpos,
-						sickle_a=(n < n_sickles),
-						sickle_b=False,
-						male=engine.coin_flip(),
-						last_mate_turn=-1)
+		phys.add_thing(
+			name=name,
+			location=startpos,
+			sickle_a=(n < n_sickles),
+			sickle_b=False,
+			male=engine.coin_flip(),
+			last_mate_turn=-1,
+		)
 		assert name in phys.thing
 		assert name not in phys.place
 		assert name in phys.node, "couldn't add node {} to phys.node".format(
-			name)
-		assert hasattr(phys.node[name], 'location')
+			name
+		)
+		assert hasattr(phys.node[name], "location")
 		species.add_unit("physical", name)
-		assert hasattr(species.unit['physical'][name], 'location')
+		assert hasattr(species.unit["physical"][name], "location")
 
 	# putting dieoff earlier in the code than mate means that dieoff will
 	# be followed before mate is
 	@species.unit.rule
 	def dieoff(critter):
-		ret = 'malaria' if critter['from_malaria'] else 'anemia'
+		ret = "malaria" if critter["from_malaria"] else "anemia"
 		critter.delete()
 		# assert (critter.name not in critter.character.node)
 		return ret
@@ -78,56 +83,65 @@ def install(engine,
 		"""If I share my location with another critter, attempt to mate"""
 		engine = critter.engine
 		species = critter.user.only
-		suitors = list(oc for oc in critter.location.contents()
-						if oc['male'] != critter['male'])
-		assert (len(suitors) > 0)
+		suitors = list(
+			oc
+			for oc in critter.location.contents()
+			if oc["male"] != critter["male"]
+		)
+		assert len(suitors) > 0
 		other_critter = critter.engine.choice(suitors)
 		sickles = [
-			critter['sickle_a'], critter['sickle_b'],
-			other_critter['sickle_a'], other_critter['sickle_b']
+			critter["sickle_a"],
+			critter["sickle_b"],
+			other_critter["sickle_a"],
+			other_critter["sickle_b"],
 		]
 		engine.shuffle(sickles)
 		name = "critter" + str(species.stat["n_creatures"])
 		species.stat["n_creatures"] += 1
-		engine.character["physical"].add_thing(name,
-												critter["location"],
-												sickle_a=sickles.pop(),
-												sickle_b=sickles.pop(),
-												male=engine.coin_flip(),
-												last_mate_turn=engine.turn)
+		engine.character["physical"].add_thing(
+			name,
+			critter["location"],
+			sickle_a=sickles.pop(),
+			sickle_b=sickles.pop(),
+			male=engine.coin_flip(),
+			last_mate_turn=engine.turn,
+		)
 		species.add_unit("physical", name)
-		critter['last_mate_turn'] = other_critter[
-			'last_mate_turn'] = engine.turn
-		return 'mated'
+		critter["last_mate_turn"] = other_critter["last_mate_turn"] = (
+			engine.turn
+		)
+		return "mated"
 
 	@mate.prereq
 	def once_per_turn(critter):
-		return critter['last_mate_turn'] < critter.engine.turn
+		return critter["last_mate_turn"] < critter.engine.turn
 
 	@mate.prereq
 	def mate_present(critter):
 		for oc in critter.location.contents():
-			if oc['male'] != critter['male']:
+			if oc["male"] != critter["male"]:
 				return True
 		return False
 
 	@mate.trigger
 	def in_the_mood(critter):
-		return critter.engine.random() < critter.user.only.stat['mate_chance']
+		return critter.engine.random() < critter.user.only.stat["mate_chance"]
 
 	@dieoff.trigger
 	def sickle2(critter):
-		r = critter['sickle_a'] and critter['sickle_b']
+		r = critter["sickle_a"] and critter["sickle_b"]
 		if r:
-			critter['from_malaria'] = False
+			critter["from_malaria"] = False
 		return r
 
 	@dieoff.trigger
 	def malaria(critter):
-		r = (critter.engine.random() < critter.user.only.stat['malaria_chance']
-				and not (critter['sickle_a'] or critter['sickle_b']))
+		r = critter.engine.random() < critter.user.only.stat[
+			"malaria_chance"
+		] and not (critter["sickle_a"] or critter["sickle_b"])
 		if r:
-			critter['from_malaria'] = True
+			critter["from_malaria"] = True
 		return r
 
 	# it would make more sense to keep using species.avatar.rule, this
@@ -135,7 +149,7 @@ def install(engine,
 	@phys.thing.rule
 	def wander(critter):
 		dests = list(critter.character.place.keys())
-		dests.remove(critter['location'])
+		dests.remove(critter["location"])
 		dest = critter.engine.choice(dests)
 		critter.travel_to(dest)
 
@@ -148,22 +162,37 @@ def install(engine,
 		return len(critter.character.place) > 1
 
 
-def sickle_cell_test(engine,
-						n_creatures=5,
-						n_sickles=3,
-						malaria_chance=.05,
-						mate_chance=.05,
-						mapsize=(1, 1),
-						startpos=(0, 0),
-						turns=100):
-	install(engine, n_creatures, n_sickles, malaria_chance, mate_chance,
-			mapsize, startpos)
-	species = engine.character['species']
-	print("Starting with {} creatures, of which {} have "
-			"at least one sickle betaglobin.".format(
-				len(species.unit['physical']),
-				sum(1 for critter in species.unit['physical'].values()
-					if critter['sickle_a'] or critter['sickle_b'])))
+def sickle_cell_test(
+	engine,
+	n_creatures=5,
+	n_sickles=3,
+	malaria_chance=0.05,
+	mate_chance=0.05,
+	mapsize=(1, 1),
+	startpos=(0, 0),
+	turns=100,
+):
+	install(
+		engine,
+		n_creatures,
+		n_sickles,
+		malaria_chance,
+		mate_chance,
+		mapsize,
+		startpos,
+	)
+	species = engine.character["species"]
+	print(
+		"Starting with {} creatures, of which {} have "
+		"at least one sickle betaglobin.".format(
+			len(species.unit["physical"]),
+			sum(
+				1
+				for critter in species.unit["physical"].values()
+				if critter["sickle_a"] or critter["sickle_b"]
+			),
+		)
+	)
 
 	for i in range(0, turns):
 		malaria_dead = 0
@@ -176,25 +205,38 @@ def sickle_cell_test(engine,
 			r = r[0]
 			if isinstance(r, Exception):
 				raise r
-			if 'malaria' in r:
+			if "malaria" in r:
 				malaria_dead += 1
-			if 'anemia' in r:
+			if "anemia" in r:
 				anemia_dead += 1
-			if 'mated' in r:
+			if "mated" in r:
 				born += 1
-		print("On turn {}, {} critters were born; "
-				"{} died of malaria, and {} of sickle cell anemia, "
-				"leaving {} alive.".format(
-					i, born, malaria_dead, anemia_dead,
-					len(engine.character['species'].unit['physical'])))
-	print("Of the remaining {} creatures, {} have a sickle betaglobin.".format(
-		len(species.unit['physical']),
-		sum(1 for critter in species.unit['physical'].values()
-			if critter['sickle_a'] or critter['sickle_b'])))
+		print(
+			"On turn {}, {} critters were born; "
+			"{} died of malaria, and {} of sickle cell anemia, "
+			"leaving {} alive.".format(
+				i,
+				born,
+				malaria_dead,
+				anemia_dead,
+				len(engine.character["species"].unit["physical"]),
+			)
+		)
+	print(
+		"Of the remaining {} creatures, {} have a sickle betaglobin.".format(
+			len(species.unit["physical"]),
+			sum(
+				1
+				for critter in species.unit["physical"].values()
+				if critter["sickle_a"] or critter["sickle_b"]
+			),
+		)
+	)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 	import tempfile
+
 	with tempfile.TemporaryDirectory() as d:
 		with Engine(d, random_seed=69106, clear=True) as engine:
 			sickle_cell_test(engine)

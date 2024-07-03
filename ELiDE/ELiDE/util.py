@@ -28,8 +28,9 @@ fortyfive = pi / 4
 DEFAULT_ARROW_LABEL_KWARGS = {"font_size": 16, "bold": True}
 
 
-class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior,
-									RecycleBoxLayout):
+class SelectableRecycleBoxLayout(
+	FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout
+):
 	pass
 
 
@@ -63,8 +64,9 @@ class trigger(object):
 			# instantiates.  Don't try making any trigger in that
 			# case.
 			return
-		retval = Clock.create_trigger(partial(self.func, instance),
-										self.timeout)
+		retval = Clock.create_trigger(
+			partial(self.func, instance), self.timeout
+		)
 		setattr(instance, self.func.__name__, retval)
 		return retval
 
@@ -140,6 +142,12 @@ def get_thin_rect_vertices(ox, oy, dx, dy, r):
 	x4 = leftx - xoff
 	y4 = boty + yoff
 	return [
-		x1 * xco, y1 * yco, x2 * xco, y2 * yco, x3 * xco, y3 * yco, x4 * xco,
-		y4 * yco
+		x1 * xco,
+		y1 * yco,
+		x2 * xco,
+		y2 * yco,
+		x3 * xco,
+		y3 * yco,
+		x4 * xco,
+		y4 * yco,
 	]

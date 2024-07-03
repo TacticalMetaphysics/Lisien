@@ -15,11 +15,11 @@ def game_start(engine) -> None:
 
 	# ensure we're on a fresh branch
 	if engine.turn != 0 or engine.tick != 0:
-		if engine.branch == 'trunk':
-			new_branch_name = 'trunk0'
+		if engine.branch == "trunk":
+			new_branch_name = "trunk0"
 		else:
 			new_branch_num = int(engine.branch[5:])
-			new_branch_name = 'trunk' + str(new_branch_num)
+			new_branch_name = "trunk" + str(new_branch_num)
 		engine.turn = 0
 		engine.tick = 0
 		engine.switch_main_branch(new_branch_name)
@@ -39,21 +39,24 @@ def game_start(engine) -> None:
 	shuffle(locs)
 
 	for turtle in range(engine.eternal.setdefault("people", 60)):
-		initworld.add_node("turtle" + str(turtle),
-							awareness=0,
-							facing=randint(0, 3),
-							location=locs.pop(),
-							_image_paths=[
-								"atlas://rltiles/base/unseen",
-								"atlas://rltiles/body/robe_black"
-							])
+		initworld.add_node(
+			"turtle" + str(turtle),
+			awareness=0,
+			facing=randint(0, 3),
+			location=locs.pop(),
+			_image_paths=[
+				"atlas://rltiles/base/unseen",
+				"atlas://rltiles/body/robe_black",
+			],
+		)
 
 	for center in range(engine.eternal.setdefault("centers", 20)):
 		initworld.add_node(
 			"center" + str(center),
 			location=locs.pop(),
 			nonusage=0,
-			_image_paths=["atlas://rltiles/dungeon/dngn_altar_xom"])
+			_image_paths=["atlas://rltiles/dungeon/dngn_altar_xom"],
+		)
 
 	phys = engine.new_character("physical", initworld)
 	peep = engine.new_character("people")
@@ -79,14 +82,18 @@ def game_start(engine) -> None:
 		x %= person.engine.eternal["max-pxcor"]
 		y %= person.engine.eternal["max-pycor"]
 		person["location"] = (x, y)
-		person["facing"] = (person["facing"] + person.engine.randint(0, 1) -
-							person.engine.randint(0, 1))
+		person["facing"] = (
+			person["facing"]
+			+ person.engine.randint(0, 1)
+			- person.engine.randint(0, 1)
+		)
 
 	@engine.function
 	def has_literature(person):
 		for contained in person.location.contents():
 			if contained.name.startswith("flyer") or contained.name.startswith(
-				"center"):
+				"center"
+			):
 				return True
 		return False
 
@@ -96,29 +103,30 @@ def game_start(engine) -> None:
 		if person["awareness"] < 5:
 			image_paths = [
 				"atlas://rltiles/base/unseen",
-				"atlas://rltiles/body/robe_black"
+				"atlas://rltiles/body/robe_black",
 			]
 		elif person["awareness"] < 10:
 			image_paths = [
 				"atlas://rltiles/base/unseen",
-				"atlas://rltiles/body/robe_green"
+				"atlas://rltiles/body/robe_green",
 			]
 		elif person["awareness"] < 15:
 			image_paths = [
 				"atlas://rltiles/base/unseen",
-				"atlas://rltiles/body/robe_white_green"
+				"atlas://rltiles/body/robe_white_green",
 			]
 		else:
 			image_paths = [
 				"atlas://rltiles/base/unseen",
-				"atlas://rltiles/body/robe_green_gold"
+				"atlas://rltiles/body/robe_green_gold",
 			]
 		if person["_image_paths"] != image_paths:
 			person["_image_paths"] = image_paths
 		person["last_learned"] = person.engine.turn
 		for contained in person.location.contents():
 			if contained.name.startswith("flyer") or contained.name.startswith(
-				"center"):
+				"center"
+			):
 				contained["last_read"] = person.engine.turn
 
 	# this would be more pleasant as something like a partial
@@ -144,7 +152,8 @@ def game_start(engine) -> None:
 		scroll = person.location.new_thing(
 			f"flyer{maxnum:02}",
 			nonusage=0,
-			_image_paths=["atlas://rltiles/scroll/scroll-0"])
+			_image_paths=["atlas://rltiles/scroll/scroll-0"],
+		)
 		lit_.add_unit(scroll)
 
 	@write.trigger
@@ -167,16 +176,17 @@ def game_start(engine) -> None:
 
 	@disappear.trigger
 	def unused(ctr):
-		return ctr.get(
-			"last_read", ctr.engine.turn
-		) - ctr.engine.turn > ctr.engine.eternal["nonusage-limit"]
+		return (
+			ctr.get("last_read", ctr.engine.turn) - ctr.engine.turn
+			> ctr.engine.eternal["nonusage-limit"]
+		)
 
 
 class AwarenessGridBoard(GridBoard):
-
 	def on_selection(self, *args):
 		if not GameApp.get_running_app().placing_centers or not isinstance(
-			self.selection, self.spot_cls):
+			self.selection, self.spot_cls
+		):
 			return
 		prox = self.selection.proxy
 		for contained in prox.contents():
@@ -188,18 +198,19 @@ class AwarenessGridBoard(GridBoard):
 		prox.add_thing(
 			name,
 			nonusage=0,
-			_image_paths=["atlas://rltiles/dungeon/dngn_altar_xom"])
+			_image_paths=["atlas://rltiles/dungeon/dngn_altar_xom"],
+		)
 
 
 class MainGame(GameScreen):
-
 	def on_parent(self, *args):
-		if 'game' not in self.ids:
+		if "game" not in self.ids:
 			Clock.schedule_once(self.on_parent, 0)
 			return
 		self.set_up()
 		self.ids.game.board = AwarenessGridBoard(
-			character=self.engine.character['physical'])
+			character=self.engine.character["physical"]
+		)
 		AwarenessApp.get_running_app().bind(turn=self._get_turn)
 
 	def _get_turn(self, *args):
@@ -219,15 +230,16 @@ class MainGame(GameScreen):
 		self.engine.turn = 0
 		self.engine.tick = 0
 		self.engine.switch_main_branch(branch)
-		if hasattr(self, 'ran_once'):
+		if hasattr(self, "ran_once"):
 			self.engine.eternal["people"] = int(self.ids.people.value)
 			self.engine.eternal["centers"] = int(self.ids.centers.value)
 			self.engine.eternal["nonusage-limit"] = int(
-				self.ids.nonusage.value)
+				self.ids.nonusage.value
+			)
 		self.engine.game_start()
 		app = GameApp.get_running_app()
 		self._push_character()
-		if not hasattr(self, 'ran_once'):
+		if not hasattr(self, "ran_once"):
 			self.ids.people.value = app.engine.eternal["people"]
 			self.ids.centers.value = app.engine.eternal["centers"]
 			self.ids.nonusage.value = app.engine.eternal["nonusage-limit"]
@@ -239,7 +251,7 @@ class MainGame(GameScreen):
 			Clock.schedule_once(self._push_character, 0)
 			return
 		board.character.thing.disconnect(board.update_from_thing)
-		phys = AwarenessApp.get_running_app().engine.character['physical']
+		phys = AwarenessApp.get_running_app().engine.character["physical"]
 		board.character = phys
 		board.update()
 		phys.thing.connect(board.update_from_thing)
@@ -255,7 +267,7 @@ class AwarenessApp(GameApp):
 		if self.play:
 			Clock.schedule_interval(self.next_turn, self.turn_length)
 			self._scheduled_next_turn = True
-		elif hasattr(self, '_scheduled_next_turn'):
+		elif hasattr(self, "_scheduled_next_turn"):
 			Clock.unschedule(self.next_turn)
 			del self._scheduled_next_turn
 
@@ -373,7 +385,7 @@ Builder.load_string(kv)
 if __name__ == "__main__":
 	freeze_support()
 	d = mkdtemp()
-	with open(d + '/game_start.py', 'w', encoding='utf-8') as outf:
+	with open(d + "/game_start.py", "w", encoding="utf-8") as outf:
 		outf.write(getsource(game_start))
 	AwarenessApp(prefix=d).run()
 	print("Files are in " + d)

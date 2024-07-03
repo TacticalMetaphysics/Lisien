@@ -13,332 +13,254 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 PHYSICAL_INITIAL_COPY = {
-	'node_val': {
-		'common0': {
-			'rulebook': ('physical', 'common0')
+	"node_val": {
+		"common0": {"rulebook": ("physical", "common0")},
+		"dorm1room3": {"rulebook": ("physical", "dorm1room3")},
+		"dorm1room4student1": {
+			"rulebook": ("physical", "dorm1room4student1"),
+			"location": "dorm1room4",
 		},
-		'dorm1room3': {
-			'rulebook': ('physical', 'dorm1room3')
+		"dorm2room4student0": {
+			"rulebook": ("physical", "dorm2room4student0"),
+			"location": "dorm2room4",
 		},
-		'dorm1room4student1': {
-			'rulebook': ('physical', 'dorm1room4student1'),
-			'location': 'dorm1room4'
+		"classroom": {"rulebook": ("physical", "classroom")},
+		"dorm0room5student1": {
+			"rulebook": ("physical", "dorm0room5student1"),
+			"location": "dorm0room5",
 		},
-		'dorm2room4student0': {
-			'rulebook': ('physical', 'dorm2room4student0'),
-			'location': 'dorm2room4'
+		"dorm2room3student1": {
+			"rulebook": ("physical", "dorm2room3student1"),
+			"location": "dorm2room3",
 		},
-		'classroom': {
-			'rulebook': ('physical', 'classroom')
+		"dorm0room3student0": {
+			"rulebook": ("physical", "dorm0room3student0"),
+			"location": "dorm0room3",
 		},
-		'dorm0room5student1': {
-			'rulebook': ('physical', 'dorm0room5student1'),
-			'location': 'dorm0room5'
+		"dorm0room2student0": {
+			"rulebook": ("physical", "dorm0room2student0"),
+			"location": "dorm0room2",
 		},
-		'dorm2room3student1': {
-			'rulebook': ('physical', 'dorm2room3student1'),
-			'location': 'dorm2room3'
+		"dorm2room1student0": {
+			"rulebook": ("physical", "dorm2room1student0"),
+			"location": "dorm2room1",
 		},
-		'dorm0room3student0': {
-			'rulebook': ('physical', 'dorm0room3student0'),
-			'location': 'dorm0room3'
+		"dorm1room4student0": {
+			"rulebook": ("physical", "dorm1room4student0"),
+			"location": "dorm1room4",
 		},
-		'dorm0room2student0': {
-			'rulebook': ('physical', 'dorm0room2student0'),
-			'location': 'dorm0room2'
+		"dorm2room0student1": {
+			"rulebook": ("physical", "dorm2room0student1"),
+			"location": "dorm2room0",
 		},
-		'dorm2room1student0': {
-			'rulebook': ('physical', 'dorm2room1student0'),
-			'location': 'dorm2room1'
+		"dorm1room1": {"rulebook": ("physical", "dorm1room1")},
+		"dorm2room0": {"rulebook": ("physical", "dorm2room0")},
+		"dorm2room3student0": {
+			"rulebook": ("physical", "dorm2room3student0"),
+			"location": "dorm2room3",
 		},
-		'dorm1room4student0': {
-			'rulebook': ('physical', 'dorm1room4student0'),
-			'location': 'dorm1room4'
+		"dorm0room0student0": {
+			"rulebook": ("physical", "dorm0room0student0"),
+			"location": "dorm0room0",
 		},
-		'dorm2room0student1': {
-			'rulebook': ('physical', 'dorm2room0student1'),
-			'location': 'dorm2room0'
+		"dorm2room2student0": {
+			"rulebook": ("physical", "dorm2room2student0"),
+			"location": "dorm2room2",
 		},
-		'dorm1room1': {
-			'rulebook': ('physical', 'dorm1room1')
+		"dorm0room3student1": {
+			"rulebook": ("physical", "dorm0room3student1"),
+			"location": "dorm0room3",
 		},
-		'dorm2room0': {
-			'rulebook': ('physical', 'dorm2room0')
+		"dorm0room5": {"rulebook": ("physical", "dorm0room5")},
+		"dorm2room1": {"rulebook": ("physical", "dorm2room1")},
+		"dorm1room1student1": {
+			"rulebook": ("physical", "dorm1room1student1"),
+			"location": "dorm1room1",
 		},
-		'dorm2room3student0': {
-			'rulebook': ('physical', 'dorm2room3student0'),
-			'location': 'dorm2room3'
+		"dorm0room4student0": {
+			"rulebook": ("physical", "dorm0room4student0"),
+			"location": "dorm0room4",
 		},
-		'dorm0room0student0': {
-			'rulebook': ('physical', 'dorm0room0student0'),
-			'location': 'dorm0room0'
+		"dorm2room2student1": {
+			"rulebook": ("physical", "dorm2room2student1"),
+			"location": "dorm2room2",
 		},
-		'dorm2room2student0': {
-			'rulebook': ('physical', 'dorm2room2student0'),
-			'location': 'dorm2room2'
+		"dorm1room2": {"rulebook": ("physical", "dorm1room2")},
+		"dorm0room2": {"rulebook": ("physical", "dorm0room2")},
+		"dorm2room5": {"rulebook": ("physical", "dorm2room5")},
+		"dorm1room3student1": {
+			"rulebook": ("physical", "dorm1room3student1"),
+			"location": "dorm1room3",
 		},
-		'dorm0room3student1': {
-			'rulebook': ('physical', 'dorm0room3student1'),
-			'location': 'dorm0room3'
+		"dorm0room2student1": {
+			"rulebook": ("physical", "dorm0room2student1"),
+			"location": "dorm0room2",
 		},
-		'dorm0room5': {
-			'rulebook': ('physical', 'dorm0room5')
+		"dorm1room5student0": {
+			"rulebook": ("physical", "dorm1room5student0"),
+			"location": "dorm1room5",
 		},
-		'dorm2room1': {
-			'rulebook': ('physical', 'dorm2room1')
+		"dorm1room0student0": {
+			"rulebook": ("physical", "dorm1room0student0"),
+			"location": "dorm1room0",
 		},
-		'dorm1room1student1': {
-			'rulebook': ('physical', 'dorm1room1student1'),
-			'location': 'dorm1room1'
+		"dorm2room5student0": {
+			"rulebook": ("physical", "dorm2room5student0"),
+			"location": "dorm2room5",
 		},
-		'dorm0room4student0': {
-			'rulebook': ('physical', 'dorm0room4student0'),
-			'location': 'dorm0room4'
+		"dorm1room5student1": {
+			"rulebook": ("physical", "dorm1room5student1"),
+			"location": "dorm1room5",
 		},
-		'dorm2room2student1': {
-			'rulebook': ('physical', 'dorm2room2student1'),
-			'location': 'dorm2room2'
+		"dorm1room4": {"rulebook": ("physical", "dorm1room4")},
+		"dorm0room1student1": {
+			"rulebook": ("physical", "dorm0room1student1"),
+			"location": "dorm0room1",
 		},
-		'dorm1room2': {
-			'rulebook': ('physical', 'dorm1room2')
+		"dorm1room2student0": {
+			"rulebook": ("physical", "dorm1room2student0"),
+			"location": "dorm1room2",
 		},
-		'dorm0room2': {
-			'rulebook': ('physical', 'dorm0room2')
+		"common2": {"rulebook": ("physical", "common2")},
+		"dorm2room1student1": {
+			"rulebook": ("physical", "dorm2room1student1"),
+			"location": "dorm2room1",
 		},
-		'dorm2room5': {
-			'rulebook': ('physical', 'dorm2room5')
+		"dorm1room0student1": {
+			"rulebook": ("physical", "dorm1room0student1"),
+			"location": "dorm1room0",
 		},
-		'dorm1room3student1': {
-			'rulebook': ('physical', 'dorm1room3student1'),
-			'location': 'dorm1room3'
+		"dorm1room2student1": {
+			"rulebook": ("physical", "dorm1room2student1"),
+			"location": "dorm1room2",
 		},
-		'dorm0room2student1': {
-			'rulebook': ('physical', 'dorm0room2student1'),
-			'location': 'dorm0room2'
+		"dorm0room0student1": {
+			"rulebook": ("physical", "dorm0room0student1"),
+			"location": "dorm0room0",
 		},
-		'dorm1room5student0': {
-			'rulebook': ('physical', 'dorm1room5student0'),
-			'location': 'dorm1room5'
+		"dorm0room1student0": {
+			"rulebook": ("physical", "dorm0room1student0"),
+			"location": "dorm0room1",
 		},
-		'dorm1room0student0': {
-			'rulebook': ('physical', 'dorm1room0student0'),
-			'location': 'dorm1room0'
+		"dorm1room0": {"rulebook": ("physical", "dorm1room0")},
+		"dorm2room0student0": {
+			"rulebook": ("physical", "dorm2room0student0"),
+			"location": "dorm2room0",
 		},
-		'dorm2room5student0': {
-			'rulebook': ('physical', 'dorm2room5student0'),
-			'location': 'dorm2room5'
+		"dorm0room4": {"rulebook": ("physical", "dorm0room4")},
+		"dorm0room4student1": {
+			"rulebook": ("physical", "dorm0room4student1"),
+			"location": "dorm0room4",
 		},
-		'dorm1room5student1': {
-			'rulebook': ('physical', 'dorm1room5student1'),
-			'location': 'dorm1room5'
+		"dorm2room3": {"rulebook": ("physical", "dorm2room3")},
+		"dorm0room1": {"rulebook": ("physical", "dorm0room1")},
+		"dorm1room1student0": {
+			"rulebook": ("physical", "dorm1room1student0"),
+			"location": "dorm1room1",
 		},
-		'dorm1room4': {
-			'rulebook': ('physical', 'dorm1room4')
+		"dorm0room0": {"rulebook": ("physical", "dorm0room0")},
+		"dorm1room3student0": {
+			"rulebook": ("physical", "dorm1room3student0"),
+			"location": "dorm1room3",
 		},
-		'dorm0room1student1': {
-			'rulebook': ('physical', 'dorm0room1student1'),
-			'location': 'dorm0room1'
+		"dorm2room2": {"rulebook": ("physical", "dorm2room2")},
+		"dorm2room4student1": {
+			"rulebook": ("physical", "dorm2room4student1"),
+			"location": "dorm2room4",
 		},
-		'dorm1room2student0': {
-			'rulebook': ('physical', 'dorm1room2student0'),
-			'location': 'dorm1room2'
+		"dorm0room5student0": {
+			"rulebook": ("physical", "dorm0room5student0"),
+			"location": "dorm0room5",
 		},
-		'common2': {
-			'rulebook': ('physical', 'common2')
+		"dorm1room5": {"rulebook": ("physical", "dorm1room5")},
+		"dorm0room3": {"rulebook": ("physical", "dorm0room3")},
+		"dorm2room5student1": {
+			"rulebook": ("physical", "dorm2room5student1"),
+			"location": "dorm2room5",
 		},
-		'dorm2room1student1': {
-			'rulebook': ('physical', 'dorm2room1student1'),
-			'location': 'dorm2room1'
-		},
-		'dorm1room0student1': {
-			'rulebook': ('physical', 'dorm1room0student1'),
-			'location': 'dorm1room0'
-		},
-		'dorm1room2student1': {
-			'rulebook': ('physical', 'dorm1room2student1'),
-			'location': 'dorm1room2'
-		},
-		'dorm0room0student1': {
-			'rulebook': ('physical', 'dorm0room0student1'),
-			'location': 'dorm0room0'
-		},
-		'dorm0room1student0': {
-			'rulebook': ('physical', 'dorm0room1student0'),
-			'location': 'dorm0room1'
-		},
-		'dorm1room0': {
-			'rulebook': ('physical', 'dorm1room0')
-		},
-		'dorm2room0student0': {
-			'rulebook': ('physical', 'dorm2room0student0'),
-			'location': 'dorm2room0'
-		},
-		'dorm0room4': {
-			'rulebook': ('physical', 'dorm0room4')
-		},
-		'dorm0room4student1': {
-			'rulebook': ('physical', 'dorm0room4student1'),
-			'location': 'dorm0room4'
-		},
-		'dorm2room3': {
-			'rulebook': ('physical', 'dorm2room3')
-		},
-		'dorm0room1': {
-			'rulebook': ('physical', 'dorm0room1')
-		},
-		'dorm1room1student0': {
-			'rulebook': ('physical', 'dorm1room1student0'),
-			'location': 'dorm1room1'
-		},
-		'dorm0room0': {
-			'rulebook': ('physical', 'dorm0room0')
-		},
-		'dorm1room3student0': {
-			'rulebook': ('physical', 'dorm1room3student0'),
-			'location': 'dorm1room3'
-		},
-		'dorm2room2': {
-			'rulebook': ('physical', 'dorm2room2')
-		},
-		'dorm2room4student1': {
-			'rulebook': ('physical', 'dorm2room4student1'),
-			'location': 'dorm2room4'
-		},
-		'dorm0room5student0': {
-			'rulebook': ('physical', 'dorm0room5student0'),
-			'location': 'dorm0room5'
-		},
-		'dorm1room5': {
-			'rulebook': ('physical', 'dorm1room5')
-		},
-		'dorm0room3': {
-			'rulebook': ('physical', 'dorm0room3')
-		},
-		'dorm2room5student1': {
-			'rulebook': ('physical', 'dorm2room5student1'),
-			'location': 'dorm2room5'
-		},
-		'common1': {
-			'rulebook': ('physical', 'common1')
-		},
-		'dorm2room4': {
-			'rulebook': ('physical', 'dorm2room4')
-		}
+		"common1": {"rulebook": ("physical", "common1")},
+		"dorm2room4": {"rulebook": ("physical", "dorm2room4")},
 	},
-	'hour': 0,
-	'name': 'physical',
-	'edge_val': {
-		'common0': {
-			'dorm0room5': {},
-			'dorm0room3': {},
-			'classroom': {},
-			'dorm0room1': {},
-			'dorm0room0': {},
-			'dorm0room4': {},
-			'dorm0room2': {}
+	"hour": 0,
+	"name": "physical",
+	"edge_val": {
+		"common0": {
+			"dorm0room5": {},
+			"dorm0room3": {},
+			"classroom": {},
+			"dorm0room1": {},
+			"dorm0room0": {},
+			"dorm0room4": {},
+			"dorm0room2": {},
 		},
-		'dorm1room3': {
-			'common1': {}
+		"dorm1room3": {"common1": {}},
+		"common2": {
+			"dorm2room1": {},
+			"dorm2room2": {},
+			"dorm2room0": {},
+			"classroom": {},
+			"dorm2room5": {},
+			"dorm2room4": {},
+			"dorm2room3": {},
 		},
-		'common2': {
-			'dorm2room1': {},
-			'dorm2room2': {},
-			'dorm2room0': {},
-			'classroom': {},
-			'dorm2room5': {},
-			'dorm2room4': {},
-			'dorm2room3': {}
+		"classroom": {"common0": {}, "common2": {}, "common1": {}},
+		"dorm1room1": {"common1": {}},
+		"dorm2room0": {"common2": {}},
+		"dorm1room0": {"common1": {}},
+		"dorm0room0": {"common0": {}},
+		"dorm0room4": {"common0": {}},
+		"dorm2room3": {"common2": {}},
+		"dorm0room1": {"common0": {}},
+		"dorm2room2": {"common2": {}},
+		"dorm1room5": {"common1": {}},
+		"dorm1room2": {"common1": {}},
+		"dorm0room2": {"common0": {}},
+		"dorm2room1": {"common2": {}},
+		"dorm2room5": {"common2": {}},
+		"dorm2room4": {"common2": {}},
+		"dorm0room3": {"common0": {}},
+		"dorm0room5": {"common0": {}},
+		"common1": {
+			"dorm1room3": {},
+			"dorm1room1": {},
+			"classroom": {},
+			"dorm1room5": {},
+			"dorm1room0": {},
+			"dorm1room2": {},
+			"dorm1room4": {},
 		},
-		'classroom': {
-			'common0': {},
-			'common2': {},
-			'common1': {}
-		},
-		'dorm1room1': {
-			'common1': {}
-		},
-		'dorm2room0': {
-			'common2': {}
-		},
-		'dorm1room0': {
-			'common1': {}
-		},
-		'dorm0room0': {
-			'common0': {}
-		},
-		'dorm0room4': {
-			'common0': {}
-		},
-		'dorm2room3': {
-			'common2': {}
-		},
-		'dorm0room1': {
-			'common0': {}
-		},
-		'dorm2room2': {
-			'common2': {}
-		},
-		'dorm1room5': {
-			'common1': {}
-		},
-		'dorm1room2': {
-			'common1': {}
-		},
-		'dorm0room2': {
-			'common0': {}
-		},
-		'dorm2room1': {
-			'common2': {}
-		},
-		'dorm2room5': {
-			'common2': {}
-		},
-		'dorm2room4': {
-			'common2': {}
-		},
-		'dorm0room3': {
-			'common0': {}
-		},
-		'dorm0room5': {
-			'common0': {}
-		},
-		'common1': {
-			'dorm1room3': {},
-			'dorm1room1': {},
-			'classroom': {},
-			'dorm1room5': {},
-			'dorm1room0': {},
-			'dorm1room2': {},
-			'dorm1room4': {}
-		},
-		'dorm1room4': {
-			'common1': {}
-		}
+		"dorm1room4": {"common1": {}},
 	},
-	'rulebooks': {
-		'character': ('physical', 'character'),
-		'thing': ('physical', 'character_thing'),
-		'unit': ('physical', 'unit'),
-		'place': ('physical', 'character_place'),
-		'portal': ('physical', 'character_portal')
-	}
+	"rulebooks": {
+		"character": ("physical", "character"),
+		"thing": ("physical", "character_thing"),
+		"unit": ("physical", "unit"),
+		"place": ("physical", "character_place"),
+		"portal": ("physical", "character_portal"),
+	},
 }
 DORM_INITIAL_COPY = {
-	'rulebooks': {
-		'thing': ('dorm0', 'character_thing'),
-		'character': ('dorm0', 'character'),
-		'unit': ('dorm0', 'unit'),
-		'portal': ('dorm0', 'character_portal'),
-		'place': ('dorm0', 'character_place')
+	"rulebooks": {
+		"thing": ("dorm0", "character_thing"),
+		"character": ("dorm0", "character"),
+		"unit": ("dorm0", "unit"),
+		"portal": ("dorm0", "character_portal"),
+		"place": ("dorm0", "character_place"),
 	},
-	'name': 'dorm0',
-	'units': {
-		'physical':
-		frozenset({
-			'dorm0room1', 'dorm0room2', 'dorm0room4', 'dorm0room5',
-			'dorm0room3', 'common0', 'dorm0room0'
-		})
-	}
+	"name": "dorm0",
+	"units": {
+		"physical": frozenset(
+			{
+				"dorm0room1",
+				"dorm0room2",
+				"dorm0room4",
+				"dorm0room5",
+				"dorm0room3",
+				"common0",
+				"dorm0room0",
+			}
+		)
+	},
 }
 STUDENT_INITIAL_COPY = {
 	'units': {
@@ -361,495 +283,649 @@ STUDENT_INITIAL_COPY = {
 			'drunk': 0,
 			'slow': 0
 		},
-		'cell13': {
-			'rulebook': ('dorm0room0student0', 'cell13'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell86': {
-			'rulebook': ('dorm0room0student0', 'cell86'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell11': {
-			'rulebook': ('dorm0room0student0', 'cell11'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell24': {
-			'rulebook': ('dorm0room0student0', 'cell24'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell53': {
-			'rulebook': ('dorm0room0student0', 'cell53'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell60': {
-			'rulebook': ('dorm0room0student0', 'cell60'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell55': {
-			'rulebook': ('dorm0room0student0', 'cell55'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell51': {
-			'rulebook': ('dorm0room0student0', 'cell51'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell25': {
-			'rulebook': ('dorm0room0student0', 'cell25'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell98': {
-			'rulebook': ('dorm0room0student0', 'cell98'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell85': {
-			'rulebook': ('dorm0room0student0', 'cell85'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell81': {
-			'rulebook': ('dorm0room0student0', 'cell81'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell63': {
-			'rulebook': ('dorm0room0student0', 'cell63'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell47': {
-			'rulebook': ('dorm0room0student0', 'cell47'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell78': {
-			'rulebook': ('dorm0room0student0', 'cell78'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell0': {
-			'rulebook': ('dorm0room0student0', 'cell0'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell12': {
-			'rulebook': ('dorm0room0student0', 'cell12'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell35': {
-			'rulebook': ('dorm0room0student0', 'cell35'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell99': {
-			'rulebook': ('dorm0room0student0', 'cell99'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell16': {
-			'rulebook': ('dorm0room0student0', 'cell16'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell57': {
-			'rulebook': ('dorm0room0student0', 'cell57'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell92': {
-			'rulebook': ('dorm0room0student0', 'cell92'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell1': {
-			'rulebook': ('dorm0room0student0', 'cell1'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell62': {
-			'rulebook': ('dorm0room0student0', 'cell62'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell80': {
-			'rulebook': ('dorm0room0student0', 'cell80'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell44': {
-			'rulebook': ('dorm0room0student0', 'cell44'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell82': {
-			'rulebook': ('dorm0room0student0', 'cell82'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell37': {
-			'rulebook': ('dorm0room0student0', 'cell37'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell20': {
-			'rulebook': ('dorm0room0student0', 'cell20'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell87': {
-			'rulebook': ('dorm0room0student0', 'cell87'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell64': {
-			'rulebook': ('dorm0room0student0', 'cell64'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell3': {
-			'rulebook': ('dorm0room0student0', 'cell3'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell23': {
-			'rulebook': ('dorm0room0student0', 'cell23'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell28': {
-			'rulebook': ('dorm0room0student0', 'cell28'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell95': {
-			'rulebook': ('dorm0room0student0', 'cell95'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell59': {
-			'rulebook': ('dorm0room0student0', 'cell59'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell91': {
-			'rulebook': ('dorm0room0student0', 'cell91'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell34': {
-			'rulebook': ('dorm0room0student0', 'cell34'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell32': {
-			'rulebook': ('dorm0room0student0', 'cell32'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell31': {
-			'rulebook': ('dorm0room0student0', 'cell31'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell21': {
-			'rulebook': ('dorm0room0student0', 'cell21'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell4': {
-			'rulebook': ('dorm0room0student0', 'cell4'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell77': {
-			'rulebook': ('dorm0room0student0', 'cell77'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell27': {
-			'rulebook': ('dorm0room0student0', 'cell27'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell61': {
-			'rulebook': ('dorm0room0student0', 'cell61'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell70': {
-			'rulebook': ('dorm0room0student0', 'cell70'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell84': {
-			'rulebook': ('dorm0room0student0', 'cell84'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell36': {
-			'rulebook': ('dorm0room0student0', 'cell36'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell30': {
-			'rulebook': ('dorm0room0student0', 'cell30'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell88': {
-			'rulebook': ('dorm0room0student0', 'cell88'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell52': {
-			'rulebook': ('dorm0room0student0', 'cell52'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell58': {
-			'rulebook': ('dorm0room0student0', 'cell58'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell2': {
-			'rulebook': ('dorm0room0student0', 'cell2'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell75': {
-			'rulebook': ('dorm0room0student0', 'cell75'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell69': {
-			'rulebook': ('dorm0room0student0', 'cell69'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell74': {
-			'rulebook': ('dorm0room0student0', 'cell74'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell49': {
-			'rulebook': ('dorm0room0student0', 'cell49'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell90': {
-			'rulebook': ('dorm0room0student0', 'cell90'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell15': {
-			'rulebook': ('dorm0room0student0', 'cell15'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell65': {
-			'rulebook': ('dorm0room0student0', 'cell65'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell50': {
-			'rulebook': ('dorm0room0student0', 'cell50'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell22': {
-			'rulebook': ('dorm0room0student0', 'cell22'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell46': {
-			'rulebook': ('dorm0room0student0', 'cell46'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell93': {
-			'rulebook': ('dorm0room0student0', 'cell93'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell40': {
-			'rulebook': ('dorm0room0student0', 'cell40'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell66': {
-			'rulebook': ('dorm0room0student0', 'cell66'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell73': {
-			'rulebook': ('dorm0room0student0', 'cell73'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell8': {
-			'rulebook': ('dorm0room0student0', 'cell8'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell41': {
-			'rulebook': ('dorm0room0student0', 'cell41'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell17': {
-			'rulebook': ('dorm0room0student0', 'cell17'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell56': {
-			'rulebook': ('dorm0room0student0', 'cell56'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell48': {
-			'rulebook': ('dorm0room0student0', 'cell48'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell89': {
-			'rulebook': ('dorm0room0student0', 'cell89'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell5': {
-			'rulebook': ('dorm0room0student0', 'cell5'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell94': {
-			'rulebook': ('dorm0room0student0', 'cell94'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell19': {
-			'rulebook': ('dorm0room0student0', 'cell19'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell71': {
-			'rulebook': ('dorm0room0student0', 'cell71'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell67': {
-			'rulebook': ('dorm0room0student0', 'cell67'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell96': {
-			'rulebook': ('dorm0room0student0', 'cell96'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell18': {
-			'rulebook': ('dorm0room0student0', 'cell18'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell42': {
-			'rulebook': ('dorm0room0student0', 'cell42'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell38': {
-			'rulebook': ('dorm0room0student0', 'cell38'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell29': {
-			'rulebook': ('dorm0room0student0', 'cell29'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell54': {
-			'rulebook': ('dorm0room0student0', 'cell54'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell14': {
-			'rulebook': ('dorm0room0student0', 'cell14'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell9': {
-			'rulebook': ('dorm0room0student0', 'cell9'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell33': {
-			'rulebook': ('dorm0room0student0', 'cell33'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell68': {
-			'rulebook': ('dorm0room0student0', 'cell68'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell10': {
-			'rulebook': ('dorm0room0student0', 'cell10'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell7': {
-			'rulebook': ('dorm0room0student0', 'cell7'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell76': {
-			'rulebook': ('dorm0room0student0', 'cell76'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell45': {
-			'rulebook': ('dorm0room0student0', 'cell45'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell83': {
-			'rulebook': ('dorm0room0student0', 'cell83'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell43': {
-			'rulebook': ('dorm0room0student0', 'cell43'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell79': {
-			'rulebook': ('dorm0room0student0', 'cell79'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell97': {
-			'rulebook': ('dorm0room0student0', 'cell97'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell39': {
-			'rulebook': ('dorm0room0student0', 'cell39'),
-			'drunk': 0,
-			'slow': 0
-		},
-		'cell6': {
-			'rulebook': ('dorm0room0student0', 'cell6'),
-			'drunk': 0,
-			'slow': 0
+		("physical", (21, 23)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (21, 23),
+			"_x": 0.392,
+			"_y": 0.9391666666666667,
+		},
+		("physical", (21, 24)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (21, 24),
+			"_x": 0.392,
+			"_y": 0.98,
+		},
+		("physical", (22, 0)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (22, 0),
+			"_x": 0.5880000000000001,
+			"_y": 0.0,
+		},
+		("physical", (22, 1)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (22, 1),
+			"_x": 0.5880000000000001,
+			"_y": 0.04083333333333333,
+		},
+		("physical", (22, 2)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (22, 2),
+			"_x": 0.5880000000000001,
+			"_y": 0.08166666666666667,
+		},
+		("physical", (22, 3)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (22, 3),
+			"_x": 0.5880000000000001,
+			"_y": 0.1225,
+		},
+		("physical", (22, 4)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (22, 4),
+			"_x": 0.5880000000000001,
+			"_y": 0.16333333333333333,
+		},
+		("physical", (22, 5)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (22, 5),
+			"_x": 0.5880000000000001,
+			"_y": 0.20416666666666666,
+		},
+		("physical", (22, 6)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (22, 6),
+			"_x": 0.5880000000000001,
+			"_y": 0.245,
+		},
+		("physical", (22, 7)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (22, 7),
+			"_x": 0.5880000000000001,
+			"_y": 0.28583333333333333,
+		},
+		("physical", (22, 8)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (22, 8),
+			"_x": 0.5880000000000001,
+			"_y": 0.32666666666666666,
+		},
+		("physical", (22, 9)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (22, 9),
+			"_x": 0.5880000000000001,
+			"_y": 0.3675,
+		},
+		("physical", (22, 10)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (22, 10),
+			"_x": 0.5880000000000001,
+			"_y": 0.4083333333333333,
+		},
+		("physical", (22, 11)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (22, 11),
+			"_x": 0.5880000000000001,
+			"_y": 0.44916666666666666,
+		},
+		("physical", (22, 12)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (22, 12),
+			"_x": 0.5880000000000001,
+			"_y": 0.49,
+		},
+		("physical", (22, 13)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (22, 13),
+			"_x": 0.5880000000000001,
+			"_y": 0.5308333333333333,
+		},
+		("physical", (22, 14)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (22, 14),
+			"_x": 0.5880000000000001,
+			"_y": 0.5716666666666667,
+		},
+		("physical", (22, 15)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (22, 15),
+			"_x": 0.5880000000000001,
+			"_y": 0.6125,
+		},
+		("physical", (22, 16)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (22, 16),
+			"_x": 0.5880000000000001,
+			"_y": 0.6533333333333333,
+		},
+		("physical", (22, 17)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (22, 17),
+			"_x": 0.5880000000000001,
+			"_y": 0.6941666666666666,
+		},
+		("physical", (22, 18)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (22, 18),
+			"_x": 0.5880000000000001,
+			"_y": 0.735,
+		},
+		("physical", (22, 19)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (22, 19),
+			"_x": 0.5880000000000001,
+			"_y": 0.7758333333333334,
+		},
+		("physical", (22, 20)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (22, 20),
+			"_x": 0.5880000000000001,
+			"_y": 0.8166666666666667,
+		},
+		("physical", (22, 21)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (22, 21),
+			"_x": 0.5880000000000001,
+			"_y": 0.8574999999999999,
+		},
+		("physical", (22, 22)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (22, 22),
+			"_x": 0.5880000000000001,
+			"_y": 0.8983333333333333,
+		},
+		("physical", (22, 23)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (22, 23),
+			"_x": 0.5880000000000001,
+			"_y": 0.9391666666666667,
+		},
+		("physical", (22, 24)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (22, 24),
+			"_x": 0.5880000000000001,
+			"_y": 0.98,
+		},
+		("physical", (23, 0)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (23, 0),
+			"_x": 0.784,
+			"_y": 0.0,
+		},
+		("physical", (23, 1)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (23, 1),
+			"_x": 0.784,
+			"_y": 0.04083333333333333,
+		},
+		("physical", (23, 2)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (23, 2),
+			"_x": 0.784,
+			"_y": 0.08166666666666667,
+		},
+		("physical", (23, 3)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (23, 3),
+			"_x": 0.784,
+			"_y": 0.1225,
+		},
+		("physical", (23, 4)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (23, 4),
+			"_x": 0.784,
+			"_y": 0.16333333333333333,
+		},
+		("physical", (23, 5)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (23, 5),
+			"_x": 0.784,
+			"_y": 0.20416666666666666,
+		},
+		("physical", (23, 6)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (23, 6),
+			"_x": 0.784,
+			"_y": 0.245,
+		},
+		("physical", (23, 7)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (23, 7),
+			"_x": 0.784,
+			"_y": 0.28583333333333333,
+		},
+		("physical", (23, 8)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (23, 8),
+			"_x": 0.784,
+			"_y": 0.32666666666666666,
+		},
+		("physical", (23, 9)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (23, 9),
+			"_x": 0.784,
+			"_y": 0.3675,
+		},
+		("physical", (23, 10)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (23, 10),
+			"_x": 0.784,
+			"_y": 0.4083333333333333,
+		},
+		("physical", (23, 11)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (23, 11),
+			"_x": 0.784,
+			"_y": 0.44916666666666666,
+		},
+		("physical", (23, 12)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (23, 12),
+			"_x": 0.784,
+			"_y": 0.49,
+		},
+		("physical", (23, 13)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (23, 13),
+			"_x": 0.784,
+			"_y": 0.5308333333333333,
+		},
+		("physical", (23, 14)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (23, 14),
+			"_x": 0.784,
+			"_y": 0.5716666666666667,
+		},
+		("physical", (23, 15)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (23, 15),
+			"_x": 0.784,
+			"_y": 0.6125,
+		},
+		("physical", (23, 16)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (23, 16),
+			"_x": 0.784,
+			"_y": 0.6533333333333333,
+		},
+		("physical", (23, 17)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (23, 17),
+			"_x": 0.784,
+			"_y": 0.6941666666666666,
+		},
+		("physical", (23, 18)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (23, 18),
+			"_x": 0.784,
+			"_y": 0.735,
+		},
+		("physical", (23, 19)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (23, 19),
+			"_x": 0.784,
+			"_y": 0.7758333333333334,
+		},
+		("physical", (23, 20)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (23, 20),
+			"_x": 0.784,
+			"_y": 0.8166666666666667,
+		},
+		("physical", (23, 21)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (23, 21),
+			"_x": 0.784,
+			"_y": 0.8574999999999999,
+		},
+		("physical", (23, 22)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (23, 22),
+			"_x": 0.784,
+			"_y": 0.8983333333333333,
+		},
+		("physical", (23, 23)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (23, 23),
+			"_x": 0.784,
+			"_y": 0.9391666666666667,
+		},
+		("physical", (23, 24)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (23, 24),
+			"_x": 0.784,
+			"_y": 0.98,
+		},
+		("physical", (24, 0)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 0),
+			"_x": 0.98,
+			"_y": 0.0,
+		},
+		("physical", (24, 1)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (24, 1),
+			"_x": 0.98,
+			"_y": 0.04083333333333333,
+		},
+		("physical", (24, 2)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 2),
+			"_x": 0.98,
+			"_y": 0.08166666666666667,
+		},
+		("physical", (24, 3)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 3),
+			"_x": 0.98,
+			"_y": 0.1225,
+		},
+		("physical", (24, 4)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 4),
+			"_x": 0.98,
+			"_y": 0.16333333333333333,
+		},
+		("physical", (24, 5)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (24, 5),
+			"_x": 0.98,
+			"_y": 0.20416666666666666,
+		},
+		("physical", (24, 6)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (24, 6),
+			"_x": 0.98,
+			"_y": 0.245,
+		},
+		("physical", (24, 7)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (24, 7),
+			"_x": 0.98,
+			"_y": 0.28583333333333333,
+		},
+		("physical", (24, 8)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (24, 8),
+			"_x": 0.98,
+			"_y": 0.32666666666666666,
+		},
+		("physical", (24, 9)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 9),
+			"_x": 0.98,
+			"_y": 0.3675,
+		},
+		("physical", (24, 10)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (24, 10),
+			"_x": 0.98,
+			"_y": 0.4083333333333333,
+		},
+		("physical", (24, 11)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 11),
+			"_x": 0.98,
+			"_y": 0.44916666666666666,
+		},
+		("physical", (24, 12)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (24, 12),
+			"_x": 0.98,
+			"_y": 0.49,
+		},
+		("physical", (24, 13)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 13),
+			"_x": 0.98,
+			"_y": 0.5308333333333333,
+		},
+		("physical", (24, 14)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 14),
+			"_x": 0.98,
+			"_y": 0.5716666666666667,
+		},
+		("physical", (24, 15)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 15),
+			"_x": 0.98,
+			"_y": 0.6125,
+		},
+		("physical", (24, 16)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (24, 16),
+			"_x": 0.98,
+			"_y": 0.6533333333333333,
+		},
+		("physical", (24, 17)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (24, 17),
+			"_x": 0.98,
+			"_y": 0.6941666666666666,
+		},
+		("physical", (24, 18)): {
+			"bare": False,
+			"_image_paths": ["atlas://rltiles/floor/floor-moss"],
+			"name": (24, 18),
+			"_x": 0.98,
+			"_y": 0.735,
+		},
+		("physical", (24, 19)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 19),
+			"_x": 0.98,
+			"_y": 0.7758333333333334,
+		},
+		("physical", (24, 20)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 20),
+			"_x": 0.98,
+			"_y": 0.8166666666666667,
+		},
+		("physical", (24, 21)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 21),
+			"_x": 0.98,
+			"_y": 0.8574999999999999,
+		},
+		("physical", (24, 22)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 22),
+			"_x": 0.98,
+			"_y": 0.8983333333333333,
+		},
+		("physical", (24, 23)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 23),
+			"_x": 0.98,
+			"_y": 0.9391666666666667,
+		},
+		("physical", (24, 24)): {
+			"bare": True,
+			"_image_paths": ["atlas://rltiles/floor/floor-normal"],
+			"name": (24, 24),
+			"_x": 0.98,
+			"_y": 0.98,
+		},
+		("physical", "wolf0"): {
+			"name": "wolf0",
+			"_image_paths": ["atlas://rltiles/dc-mon/war_dog"],
+			"location": (19, 5),
+		},
+		("physical", "wolf1"): {
+			"name": "wolf1",
+			"_image_paths": ["atlas://rltiles/dc-mon/war_dog"],
+			"location": (9, 14),
+		},
+		("physical", "wolf2"): {
+			"name": "wolf2",
+			"_image_paths": ["atlas://rltiles/dc-mon/war_dog"],
+			"location": (20, 2),
+		},
+		("physical", "wolf3"): {
+			"name": "wolf3",
+			"_image_paths": ["atlas://rltiles/dc-mon/war_dog"],
+			"location": (23, 22),
+		},
+		("physical", "wolf4"): {
+			"name": "wolf4",
+			"_image_paths": ["atlas://rltiles/dc-mon/war_dog"],
+			"location": (23, 17),
+		},
+		("physical", "wolf5"): {
+			"name": "wolf5",
+			"_image_paths": ["atlas://rltiles/dc-mon/war_dog"],
+			"location": (12, 9),
+		},
+		("physical", "wolf6"): {
+			"name": "wolf6",
+			"_image_paths": ["atlas://rltiles/dc-mon/war_dog"],
+			"location": (5, 3),
+		},
+		("physical", "wolf7"): {
+			"name": "wolf7",
+			"_image_paths": ["atlas://rltiles/dc-mon/war_dog"],
+			"location": (15, 16),
+		},
+		("physical", "wolf8"): {
+			"name": "wolf8",
+			"_image_paths": ["atlas://rltiles/dc-mon/war_dog"],
+			"location": (1, 22),
+		},
+		("physical", "wolf9"): {
+			"name": "wolf9",
+			"_image_paths": ["atlas://rltiles/dc-mon/war_dog"],
+			"location": (18, 20),
+		},
+		("physical", "sheep0"): {
+			"name": "sheep0",
+			"_image_paths": ["atlas://rltiles/dc-mon/sheep"],
+			"location": (12, 13),
+		},
+		("physical", "sheep1"): {
+			"name": "sheep1",
+			"_image_paths": ["atlas://rltiles/dc-mon/sheep"],
+			"location": (22, 20),
+		},
+		("physical", "sheep2"): {
+			"name": "sheep2",
+			"_image_paths": ["atlas://rltiles/dc-mon/sheep"],
+			"location": (17, 0),
+		},
+		("physical", "sheep3"): {
+			"name": "sheep3",
+			"_image_paths": ["atlas://rltiles/dc-mon/sheep"],
+			"location": (15, 16),
+		},
+		("physical", "sheep4"): {
+			"name": "sheep4",
+			"_image_paths": ["atlas://rltiles/dc-mon/sheep"],
+			"location": (23, 22),
+		},
+		("physical", "sheep5"): {
+			"name": "sheep5",
+			"_image_paths": ["atlas://rltiles/dc-mon/sheep"],
+			"location": (21, 15),
+		},
+		("physical", "sheep6"): {
+			"name": "sheep6",
+			"_image_paths": ["atlas://rltiles/dc-mon/sheep"],
+			"location": (11, 23),
+		},
+		("physical", "sheep7"): {
+			"name": "sheep7",
+			"_image_paths": ["atlas://rltiles/dc-mon/sheep"],
+			"location": (12, 10),
+		},
+		("physical", "sheep9"): {
+			"name": "sheep9",
+			"_image_paths": ["atlas://rltiles/dc-mon/sheep"],
+			"location": (5, 14),
+		},
+		("physical", "sheep10"): {
+			"name": "sheep10",
+			"_image_paths": ["atlas://rltiles/dc-mon/sheep"],
+			"location": (7, 22),
+		},
+		("physical", "sheep11"): {
+			"name": "sheep11",
+			"_image_paths": ["atlas://rltiles/dc-mon/sheep"],
+			"location": (9, 13),
 		},
 		'cell72': {
 			'rulebook': ('dorm0room0student0', 'cell72'),

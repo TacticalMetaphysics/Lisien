@@ -16,4 +16,4 @@ from .board import GraphBoard
 from .pawn import Pawn
 from .spot import GraphSpot
 
-__all__ = ['GraphBoard', 'Pawn', 'GraphSpot']
+__all__ = ["GraphBoard", "Pawn", "GraphSpot"]

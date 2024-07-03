@@ -16,16 +16,19 @@ import pytest
 import networkx as nx
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def something(engy):
-	yield engy.new_character('physical').new_place('somewhere').new_thing(
-		'something')
+	yield (
+		engy.new_character("physical")
+		.new_place("somewhere")
+		.new_thing("something")
+	)
 
 
 def test_contents(something):
-	pl1 = something.character.place['somewhere']
-	pl2 = something.character.new_place('somewhere2')
-	assert something.location == something.character.node['somewhere']
+	pl1 = something.character.place["somewhere"]
+	pl2 = something.character.new_place("somewhere2")
+	assert something.location == something.character.node["somewhere"]
 	assert something.name in pl1.content
 	assert something.name not in pl2.content
 	assert [something] == list(pl1.contents())
@@ -39,9 +42,9 @@ def test_future_contents(something):
 		engine.turn = 1
 		something.location = None
 		engine.turn = 2
-		somebody = somewhere.new_thing('somebody')
+		somebody = somewhere.new_thing("somebody")
 		engine.turn = 0
-		someone = somewhere.new_thing('someone')
+		someone = somewhere.new_thing("someone")
 	engine.turn = 0
 	assert len(somewhere.contents()) == 2
 	assert something in somewhere.contents()
@@ -60,7 +63,7 @@ def test_future_contents(something):
 
 
 def test_travel(engy):
-	phys = engy.new_character('physical', data=nx.grid_2d_graph(8, 8))
+	phys = engy.new_character("physical", data=nx.grid_2d_graph(8, 8))
 	del phys.place[1, 1]
 	del phys.place[6, 1]
 	thing1 = phys.place[0, 0].new_thing(1)

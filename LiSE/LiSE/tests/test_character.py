@@ -20,11 +20,10 @@ from LiSE.engine import Engine
 
 
 class CharacterTest(LiSE.allegedb.tests.test_all.AllegedTest):
-
 	def setUp(self):
-		self.tempdir = tempfile.mkdtemp(dir='.')
+		self.tempdir = tempfile.mkdtemp(dir=".")
 		self.engine = Engine(self.tempdir, enforce_end_of_time=False)
-		self.graphmakers = (self.engine.new_character, )
+		self.graphmakers = (self.engine.new_character,)
 
 	def tearDown(self):
 		self.engine.close()
@@ -32,22 +31,26 @@ class CharacterTest(LiSE.allegedb.tests.test_all.AllegedTest):
 
 
 class CharacterBranchLineageTest(
-		CharacterTest, LiSE.allegedb.tests.test_all.AbstractBranchLineageTest):
+	CharacterTest, LiSE.allegedb.tests.test_all.AbstractBranchLineageTest
+):
 	pass
 
 
-class CharacterDictStorageTest(CharacterTest,
-								LiSE.allegedb.tests.test_all.DictStorageTest):
+class CharacterDictStorageTest(
+	CharacterTest, LiSE.allegedb.tests.test_all.DictStorageTest
+):
 	pass
 
 
-class CharacterListStorageTest(CharacterTest,
-								LiSE.allegedb.tests.test_all.ListStorageTest):
+class CharacterListStorageTest(
+	CharacterTest, LiSE.allegedb.tests.test_all.ListStorageTest
+):
 	pass
 
 
-class CharacterSetStorageTest(CharacterTest,
-								LiSE.allegedb.tests.test_all.SetStorageTest):
+class CharacterSetStorageTest(
+	CharacterTest, LiSE.allegedb.tests.test_all.SetStorageTest
+):
 	pass
 
 
@@ -55,7 +58,7 @@ def set_in_mapping(mapp, stat, v):
 	"""Sync a value in ``mapp``, having key ``stat``, with ``v``."""
 	# Mutate the stuff in-place instead of simply replacing it,
 	# because this could trigger side effects
-	if stat == 'name':
+	if stat == "name":
 		return
 	if v is None:
 		del mapp[stat]
@@ -109,9 +112,9 @@ def update_char(char, *, stat=(), node=(), portal=()):
 			if node in end_things:
 				del end_things[node]
 		elif node in char.place:
-			if 'location' in v:
+			if "location" in v:
 				del end_places[node]
-				char.place2thing(node, v.pop('location'))
+				char.place2thing(node, v.pop("location"))
 				if node in end_places:
 					me = end_things[node] = end_places.pop(node)
 				else:
@@ -128,13 +131,13 @@ def update_char(char, *, stat=(), node=(), portal=()):
 				for k, vv in v.items():
 					set_in_mapping(char.place[node], k, vv)
 		elif node in char.thing:
-			if 'location' in v and v['location'] is None:
+			if "location" in v and v["location"] is None:
 				if node in end_things:
 					me = end_places[node] = end_things.pop(node)
 				else:
 					me = end_places[node] = dict(char.thing[node])
-				del me['location']
-				del v['location']
+				del me["location"]
+				del v["location"]
 				char.thing2place(node)
 				update(me, v)
 				for k, vv in v.items():
@@ -144,13 +147,13 @@ def update_char(char, *, stat=(), node=(), portal=()):
 				update(me, v)
 				for k, vv in v.items():
 					set_in_mapping(char.thing[node], k, vv)
-		elif 'location' in v:
+		elif "location" in v:
 			end_things[node] = v
-			me = char.new_thing(node, v.pop('location'))
+			me = char.new_thing(node, v.pop("location"))
 			for k, vv in v.items():
 				set_in_mapping(me, k, vv)
 		else:
-			v['name'] = node
+			v["name"] = node
 			end_places[node] = v
 			me = char.new_node(node)
 			for k, vv in v.items():
@@ -167,47 +170,43 @@ def update_char(char, *, stat=(), node=(), portal=()):
 			for k, vv in v.items():
 				set_in_mapping(e, k, vv)
 	return {
-		'stat': end_stats,
-		'place': end_places,
-		'thing': end_things,
-		'portal': end_edges
+		"stat": end_stats,
+		"place": end_places,
+		"thing": end_things,
+		"portal": end_edges,
 	}
 
 
-CHAR_DATA = [('empty', {}, {}, [], [], [], []),
-				('small', {
-					0: [1],
-					1: [0],
-					'kobold': []
-				}, {
-					'spam': 'eggs',
-					'ham': {
-						'baked beans': 'delicious'
-					},
-					'qux': ['quux', 'quuux'],
-					'clothes': {'hats', 'shirts', 'pants'}
-				}, [('kobold', {
-					'location': 0,
-					'evil': True
-				}), (0, {
-					'evil': False
-				}), (1, {
-					'evil': False
-				})], [('spam', None), ('qux', ['quux']),
-						('clothes', 'no')], [(2, {
-							'evil': False
-						}), ('kobold', {
-							'evil': False
-						})], [(0, 1, None), (0, 2, {
-							'hi': 'hello'
-						})])]
+CHAR_DATA = [
+	("empty", {}, {}, [], [], [], []),
+	(
+		"small",
+		{0: [1], 1: [0], "kobold": []},
+		{
+			"spam": "eggs",
+			"ham": {"baked beans": "delicious"},
+			"qux": ["quux", "quuux"],
+			"clothes": {"hats", "shirts", "pants"},
+		},
+		[
+			("kobold", {"location": 0, "evil": True}),
+			(0, {"evil": False}),
+			(1, {"evil": False}),
+		],
+		[("spam", None), ("qux", ["quux"]), ("clothes", "no")],
+		[(2, {"evil": False}), ("kobold", {"evil": False})],
+		[(0, 1, None), (0, 2, {"hi": "hello"})],
+	),
+]
 
 
 @pytest.mark.parametrize(
-	['name', 'data', 'stat', 'nodestat', 'statup', 'nodeup', 'edgeup'],
-	CHAR_DATA)
-def test_char_creation(tmpdir, name, data, stat, nodestat, statup, nodeup,
-						edgeup):
+	["name", "data", "stat", "nodestat", "statup", "nodeup", "edgeup"],
+	CHAR_DATA,
+)
+def test_char_creation(
+	tmpdir, name, data, stat, nodestat, statup, nodeup, edgeup
+):
 	with Engine(tmpdir) as eng:
 		char = eng.new_character(name, data, **stat)
 		assert set(char.node) == set(data)
@@ -220,10 +219,12 @@ def test_char_creation(tmpdir, name, data, stat, nodestat, statup, nodeup,
 
 
 @pytest.mark.parametrize(
-	['name', 'data', 'stat', 'nodestat', 'statup', 'nodeup', 'edgeup'],
-	CHAR_DATA)
-def test_facade_creation(tmpdir, name, data, stat, nodestat, statup, nodeup,
-							edgeup):
+	["name", "data", "stat", "nodestat", "statup", "nodeup", "edgeup"],
+	CHAR_DATA,
+)
+def test_facade_creation(
+	tmpdir, name, data, stat, nodestat, statup, nodeup, edgeup
+):
 	with Engine(tmpdir) as eng:
 		char = eng.new_character(name, data, **stat)
 		fac = char.facade()
@@ -256,10 +257,10 @@ def test_facade(character_updates):
 			start_edge.setdefault(o, {})[d] = character.edge[o][d].unwrap()
 	facade = character.facade()
 	updated = update_char(facade, stat=statup, node=nodeup, portal=edgeup)
-	assert facade.stat == updated['stat']
-	assert facade.place == updated['place']
-	assert facade.thing == updated['thing']
-	assert facade.portal == updated['portal']
+	assert facade.stat == updated["stat"]
+	assert facade.place == updated["place"]
+	assert facade.thing == updated["thing"]
+	assert facade.portal == updated["portal"]
 	# changes to a facade should not impact the underlying character
 	assert start_stat == character.stat.unwrap()
 	assert start_place == character.place.unwrap()
@@ -272,36 +273,39 @@ def test_facade(character_updates):
 
 
 def test_set_rulebook(engy):
-	engy.universal['list'] = []
-	ch = engy.new_character('physical')
+	engy.universal["list"] = []
+	ch = engy.new_character("physical")
 
 	@ch.rule(always=True)
 	def rule0(cha):
-		cha.engine.universal['list'].append(0)
+		cha.engine.universal["list"].append(0)
 
 	@engy.rule(always=True)
 	def rule1(who):
-		who.engine.universal['list'].append(1)
+		who.engine.universal["list"].append(1)
 
-	engy.rulebook['rb1'] = [rule1]
+	engy.rulebook["rb1"] = [rule1]
 	engy.next_turn()
-	assert engy.universal['list'] == [0]
-	ch.rulebook = 'rb1'
+	assert engy.universal["list"] == [0]
+	ch.rulebook = "rb1"
 	engy.next_turn()
-	assert engy.universal['list'] == [0, 1]
-	ch.rulebook = engy.rulebook['physical', 'character']
+	assert engy.universal["list"] == [0, 1]
+	ch.rulebook = engy.rulebook["physical", "character"]
 	engy.next_turn()
-	assert engy.universal['list'] == [0, 1, 0]
+	assert engy.universal["list"] == [0, 1, 0]
 
 
 def test_iter_portals(engy):
 	from LiSE.character import grid_2d_8graph
-	ch = engy.new_character('physical', grid_2d_8graph(4, 4))
-	portal_abs = {(portal.origin.name, portal.destination.name)
-					for portal in ch.portals()}
+
+	ch = engy.new_character("physical", grid_2d_8graph(4, 4))
+	portal_abs = {
+		(portal.origin.name, portal.destination.name)
+		for portal in ch.portals()
+	}
 	for a, ayes in ch.adj.items():
 		for b in ayes:
 			assert (a, b) in portal_abs
-	for (a, b) in portal_abs:
+	for a, b in portal_abs:
 		assert a in ch.edge
 		assert b in ch.edge[a]

@@ -12,8 +12,12 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from kivy.properties import (NumericProperty, ObjectProperty,
-								ReferenceListProperty, StringProperty)
+from kivy.properties import (
+	NumericProperty,
+	ObjectProperty,
+	ReferenceListProperty,
+	StringProperty,
+)
 from kivy.lang import Builder
 from kivy.logger import Logger
 
@@ -27,6 +31,7 @@ class Dummy(ImageStack):
 	onto the graph, creates one of them.
 
 	"""
+
 	_touch = ObjectProperty(None, allownone=True)
 	name = StringProperty()
 	prefix = StringProperty()

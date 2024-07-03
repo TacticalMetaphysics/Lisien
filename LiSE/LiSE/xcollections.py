@@ -21,6 +21,7 @@ Most of these are subclasses of :class:`blinker.Signal`, so you can listen
 for changes using the ``connect(..)`` method.
 
 """
+
 from io import StringIO
 from collections.abc import MutableMapping
 from copy import deepcopy
@@ -39,7 +40,6 @@ from .allegedb.graph import GraphsMapping
 
 
 class TabUnparser(Unparser):
-
 	def fill(self, text=""):
 		__doc__ = Unparser.fill.__doc__
 		self.f.write("\n" + "\t" * self._indent + text)
@@ -64,9 +64,8 @@ class Language(str):
 
 
 class AbstractLanguageDescriptor(Signal):
-
 	def __get__(self, instance, owner=None):
-		if not hasattr(self, 'lang'):
+		if not hasattr(self, "lang"):
 			self.lang = Language(self, self._get_language(instance))
 		return self.lang
 
@@ -80,19 +79,18 @@ class AbstractLanguageDescriptor(Signal):
 
 
 class LanguageDescriptor(AbstractLanguageDescriptor):
-
 	def _get_language(self, inst):
 		return inst._language
 
 	def _set_language(self, inst, val):
 		inst._load_language(val)
-		inst.query.global_set('language', val)
+		inst.query.global_set("language", val)
 
 
 class StringStore(MutableMapping, Signal):
 	language = LanguageDescriptor()
 
-	def __init__(self, query, prefix, lang='eng'):
+	def __init__(self, query, prefix, lang="eng"):
 		"""Store the engine, the name of the database table to use, and the
 		language code.
 
@@ -107,7 +105,7 @@ class StringStore(MutableMapping, Signal):
 			self._cache = {}
 
 	def _load_language(self, lang):
-		with open(os.path.join(self._prefix, lang + ".json"), 'r') as inf:
+		with open(os.path.join(self._prefix, lang + ".json"), "r") as inf:
 			self._cache = json.load(inf)
 		self._language = lang
 
@@ -142,8 +140,9 @@ class StringStore(MutableMapping, Signal):
 	def save(self, reimport=False):
 		if not os.path.exists(self._prefix):
 			os.mkdir(self._prefix)
-		with open(os.path.join(self._prefix, self._language + ".json"),
-					'w') as outf:
+		with open(
+			os.path.join(self._prefix, self._language + ".json"), "w"
+		) as outf:
 			json.dump(self._cache, outf, indent=4, sort_keys=True)
 
 
@@ -164,7 +163,8 @@ class FunctionStore(Signal):
 	def __init__(self, filename):
 		if not filename.endswith(".py"):
 			raise ValueError(
-				"FunctionStore can only work with pure Python source code")
+				"FunctionStore can only work with pure Python source code"
+			)
 		super().__init__()
 		self._filename = fullname = os.path.abspath(os.path.realpath(filename))
 		path, filename = os.path.split(fullname)
@@ -232,7 +232,7 @@ class FunctionStore(Signal):
 		self.send(self, attr=k, val=None)
 
 	def save(self, reimport=True):
-		with open(self._filename, 'w', encoding="utf-8") as outf:
+		with open(self._filename, "w", encoding="utf-8") as outf:
 			outf.write("# encoding: utf-8")
 			Unparser(self._ast, outf)
 		if reimport:
@@ -265,12 +265,12 @@ class FunctionStore(Signal):
 			self._ast_idx[name] = len(self._ast.body)
 			self._ast.body.append(expr)
 		locl = {}
-		exec(compile(mod, self._filename, 'exec'), {}, locl)
+		exec(compile(mod, self._filename, "exec"), {}, locl)
 		self._locl.update(locl)
 		self.send(self, attr=name, val=locl[name])
 
 	def get_source(self, name):
-		if name == 'truth':
+		if name == "truth":
 			return "def truth(*args):\n\treturn True"
 		return unparse(self._ast.body[self._ast_idx[name]])
 
@@ -280,10 +280,9 @@ class FunctionStore(Signal):
 
 
 class MethodStore(FunctionStore):
-
 	def __init__(self, engine):
 		self.engine = engine
-		super().__init__('method.py')
+		super().__init__("method.py")
 
 	def __getattr__(self, item):
 		return MethodType(super().__getattr__(item), self.engine)
@@ -291,7 +290,8 @@ class MethodStore(FunctionStore):
 
 class UniversalMapping(MutableMapping, Signal):
 	"""Mapping for variables that are global but which I keep history for"""
-	__slots__ = ['engine']
+
+	__slots__ = ["engine"]
 
 	def __init__(self, engine):
 		"""Store the engine and initialize my private dictionary of
@@ -336,7 +336,8 @@ class CharacterMapping(GraphsMapping, Signal):
 	anything useful anymore.
 
 	"""
-	engine = getatt('orm')
+
+	engine = getatt("orm")
 
 	def __init__(self, orm):
 		GraphsMapping.__init__(self, orm)
@@ -349,13 +350,14 @@ class CharacterMapping(GraphsMapping, Signal):
 
 		"""
 		from .character import Character
+
 		if name not in self:
 			raise KeyError("No such character")
 		cache = self.engine._graph_objs
 		if name not in cache:
-			cache[name] = Character(self.engine,
-									name,
-									init_rulebooks=name not in self)
+			cache[name] = Character(
+				self.engine, name, init_rulebooks=name not in self
+			)
 		ret = cache[name]
 		if not isinstance(ret, Character):
 			raise TypeError("""Tried to get a graph that isn't a Character.
@@ -368,7 +370,7 @@ class CharacterMapping(GraphsMapping, Signal):
 		the given value.
 
 		"""
-		self.engine._init_graph(name, 'DiGraph', value)
+		self.engine._init_graph(name, "DiGraph", value)
 		self.send(self, key=name, val=self.engine._graph_objs[name])
 
 	def __delitem__(self, name):

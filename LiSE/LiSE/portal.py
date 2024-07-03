@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Directed edges, as used by LiSE."""
+
 from __future__ import annotations
 from collections.abc import Mapping
 from typing import Union, List, Tuple, Any
@@ -42,10 +43,19 @@ class Portal(Edge, RuleFollower):
 	been deleted.
 
 	"""
-	__slots__ = ('graph', 'orig', 'dest', 'idx', 'origin', 'destination',
-					'_rulebook', '_real_rule_mapping')
-	character = getatt('graph')
-	engine = getatt('db')
+
+	__slots__ = (
+		"graph",
+		"orig",
+		"dest",
+		"idx",
+		"origin",
+		"destination",
+		"_rulebook",
+		"_real_rule_mapping",
+	)
+	character = getatt("graph")
+	engine = getatt("db")
 	no_unwrap = True
 
 	def __init__(self, graph: AbstractCharacter, orig: Key, dest: Key):
@@ -56,7 +66,8 @@ class Portal(Edge, RuleFollower):
 	@property
 	def _cache(self):
 		return self.db._edge_val_cache[self.character.name][self.orig][
-			self.dest][0]
+			self.dest
+		][0]
 
 	def _rule_name_activeness(self):
 		rulebook_name = self._get_rulebook_name()
@@ -65,7 +76,7 @@ class Portal(Edge, RuleFollower):
 			return
 		cache = cache[rulebook_name]
 		for rule in cache:
-			for (branch, turn, tick) in self.engine._iter_parent_btt():
+			for branch, turn, tick in self.engine._iter_parent_btt():
 				if branch not in cache[rule]:
 					continue
 				try:
@@ -81,7 +92,8 @@ class Portal(Edge, RuleFollower):
 	def _get_rulebook_name(self):
 		try:
 			return self.engine._portals_rulebooks_cache.retrieve(
-				self.character.name, self.orig, self.dest, *self.engine._btt())
+				self.character.name, self.orig, self.dest, *self.engine._btt()
+			)
 		except KeyError:
 			return (self.character.name, self.orig, self.dest)
 
@@ -91,44 +103,51 @@ class Portal(Edge, RuleFollower):
 		dest = self.dest
 		cache = self.engine._portals_rulebooks_cache
 		try:
-			if rulebook == cache.retrieve(character, orig, dest,
-											*self.engine._btt()):
+			if rulebook == cache.retrieve(
+				character, orig, dest, *self.engine._btt()
+			):
 				return
 		except KeyError:
 			pass
 		branch, turn, tick = self.engine._nbtt()
 		cache.store(character, orig, dest, branch, turn, tick, rulebook)
-		self.engine.query.set_portal_rulebook(character, orig, dest, branch,
-												turn, tick, rulebook)
+		self.engine.query.set_portal_rulebook(
+			character, orig, dest, branch, turn, tick, rulebook
+		)
 
 	def _get_rule_mapping(self):
 		return RuleMapping(self)
 
 	def __getitem__(self, key):
-		if key == 'origin':
+		if key == "origin":
 			return self.orig
-		elif key == 'destination':
+		elif key == "destination":
 			return self.dest
-		elif key == 'character':
+		elif key == "character":
 			return self.character.name
 		else:
 			return super().__getitem__(key)
 
 	def __setitem__(self, key, value):
-		if key in ('origin', 'destination', 'character'):
+		if key in ("origin", "destination", "character"):
 			raise KeyError("Can't change " + key)
 		super().__setitem__(key, value)
 
 	def __repr__(self):
 		"""Describe character, origin, and destination"""
 		return "<{}.character[{}].portal[{}][{}]>".format(
-			repr(self.engine), repr(self['character']), repr(self['origin']),
-			repr(self['destination']))
+			repr(self.engine),
+			repr(self["character"]),
+			repr(self["origin"]),
+			repr(self["destination"]),
+		)
 
 	def __bool__(self):
 		"""It means something that I exist, even if I have no data."""
-		return (self.orig in self.character.portal
-				and self.dest in self.character.portal[self.orig])
+		return (
+			self.orig in self.character.portal
+			and self.dest in self.character.portal[self.orig]
+		)
 
 	@property
 	def reciprocal(self) -> "Portal":
@@ -152,9 +171,9 @@ class Portal(Edge, RuleFollower):
 		"""
 		return StatusAlias(entity=self, stat=stat)
 
-	def update(self,
-				e: Union[Mapping, List[Tuple[Any, Any]]] = None,
-				**f) -> None:
+	def update(
+		self, e: Union[Mapping, List[Tuple[Any, Any]]] = None, **f
+	) -> None:
 		"""Works like regular update, but less
 
 		Only actually updates when the new value and the old value differ.
@@ -162,7 +181,7 @@ class Portal(Edge, RuleFollower):
 
 		"""
 		if e is not None:
-			if hasattr(e, 'keys') and callable(e.keys):
+			if hasattr(e, "keys") and callable(e.keys):
 				for k in e.keys():
 					if k not in self:
 						self[k] = e[k]
@@ -186,12 +205,25 @@ class Portal(Edge, RuleFollower):
 		"""
 		self.clear()
 		branch, turn, tick = self.engine._nbtt()
-		self.engine._edges_cache.store(self.character.name, self.origin.name,
-										self.destination.name, 0, branch, turn,
-										tick, None)
-		self.engine.query.exist_edge(self.character.name, self.origin.name,
-										self.destination.name, branch, turn,
-										tick, False)
+		self.engine._edges_cache.store(
+			self.character.name,
+			self.origin.name,
+			self.destination.name,
+			0,
+			branch,
+			turn,
+			tick,
+			None,
+		)
+		self.engine.query.exist_edge(
+			self.character.name,
+			self.origin.name,
+			self.destination.name,
+			branch,
+			turn,
+			tick,
+			False,
+		)
 		try:
 			del self.engine._edge_objs[(self.graph.name, self.orig, self.dest)]
 		except KeyError:
@@ -200,8 +232,8 @@ class Portal(Edge, RuleFollower):
 	def unwrap(self) -> dict:
 		"""Return a dictionary representation of this entity"""
 		return {
-			k:
-			v.unwrap()
-			if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
+			k: v.unwrap()
+			if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap")
+			else v
 			for (k, v) in self.items()
 		}

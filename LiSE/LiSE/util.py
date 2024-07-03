@@ -12,23 +12,34 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Common utility functions and data structures.
+"""Common utility functions and data structures."""
 
-"""
 from abc import ABC, abstractmethod
 from collections.abc import Set
 from concurrent.futures import ThreadPoolExecutor, wait
 from enum import Enum
 from itertools import chain
-from operator import (ge, gt, le, lt, eq, attrgetter, add, sub, mul, pow,
-						truediv, floordiv, mod)
+from operator import (
+	ge,
+	gt,
+	le,
+	lt,
+	eq,
+	attrgetter,
+	add,
+	sub,
+	mul,
+	pow,
+	truediv,
+	floordiv,
+	mod,
+)
 from functools import partial, wraps, cached_property
 from contextlib import contextmanager
 from textwrap import dedent
 from time import monotonic
 from types import MethodType, FunctionType
-from typing import (Mapping, Sequence, Iterable, Union, Callable, Dict,
-					Hashable)
+from typing import Mapping, Sequence, Iterable, Union, Callable, Dict, Hashable
 
 import msgpack
 import networkx as nx
@@ -39,6 +50,7 @@ from . import exc
 
 class FinalRule:
 	"""A singleton sentinel for the rule iterator"""
+
 	__slots__ = []
 
 	def __hash__(self):
@@ -51,16 +63,17 @@ final_rule = FinalRule()
 
 class MsgpackExtensionType(Enum):
 	"""Type codes for packing special LiSE types into msgpack"""
+
 	tuple = 0x00
 	frozenset = 0x01
 	set = 0x02
 	exception = 0x03
-	character = 0x7f
-	place = 0x7e
-	thing = 0x7d
-	portal = 0x7c
-	final_rule = 0x7b
-	function = 0x7a
+	character = 0x7F
+	place = 0x7E
+	thing = 0x7D
+	portal = 0x7C
+	final_rule = 0x7B
+	function = 0x7A
 	method = 0x79
 
 
@@ -71,14 +84,15 @@ class get_rando:
 	planning mode, and will save the randomizer's state after every call.
 
 	"""
-	__slots__ = ('_getter', '_wrapfun', '_instance')
+
+	__slots__ = ("_getter", "_wrapfun", "_instance")
 	_getter: Callable
 
 	def __init__(self, attr, *attrs):
 		self._getter = attrgetter(attr, *attrs)
 
 	def __get__(self, instance, owner) -> Callable:
-		if hasattr(self, '_wrapfun') and self._instance is instance:
+		if hasattr(self, "_wrapfun") and self._instance is instance:
 			return self._wrapfun
 		retfun = self._getter(instance)
 
@@ -87,7 +101,7 @@ class get_rando:
 			if instance._planning:
 				raise exc.PlanError("Don't use randomization in a plan")
 			ret = retfun(*args, **kwargs)
-			instance.universal['rando_state'] = instance._rando.getstate()
+			instance.universal["rando_state"] = instance._rando.getstate()
 			return ret
 
 		self._wrapfun = remembering_rando_state
@@ -96,7 +110,7 @@ class get_rando:
 
 
 @contextmanager
-def timer(msg='', logfun: callable = None):
+def timer(msg="", logfun: callable = None):
 	if logfun is None:
 		logfun = print
 	start = monotonic()
@@ -121,19 +135,27 @@ def singleton_get(s):
 
 class EntityStatAccessor(object):
 	__slots__ = [
-		'engine', 'entity', 'branch', 'turn', 'tick', 'stat', 'current',
-		'mungers'
+		"engine",
+		"entity",
+		"branch",
+		"turn",
+		"tick",
+		"stat",
+		"current",
+		"mungers",
 	]
 
-	def __init__(self,
-					entity,
-					stat,
-					engine=None,
-					branch=None,
-					turn=None,
-					tick=None,
-					current=False,
-					mungers: list = None):
+	def __init__(
+		self,
+		entity,
+		stat,
+		engine=None,
+		branch=None,
+		turn=None,
+		tick=None,
+		current=False,
+		mungers: list = None,
+	):
 		if engine is None:
 			engine = entity.engine
 		if branch is None:
@@ -162,7 +184,7 @@ class EntityStatAccessor(object):
 				self.engine.tick = tick
 			elif self.tick is not None:
 				self.engine.tick = self.tick
-			if hasattr(self.entity, 'stat'):
+			if hasattr(self.entity, "stat"):
 				res = self.entity.stat[self.stat]
 			else:
 				res = self.entity[self.stat]
@@ -179,9 +201,15 @@ class EntityStatAccessor(object):
 
 	def __repr__(self):
 		return "EntityStatAccessor({}[{}]{}), {} mungers".format(
-			self.entity, self.stat,
-			"" if self.current else ", branch={}, turn={}, tick={}".format(
-				self.branch, self.turn, self.tick), len(self.mungers))
+			self.entity,
+			self.stat,
+			""
+			if self.current
+			else ", branch={}, turn={}, tick={}".format(
+				self.branch, self.turn, self.tick
+			),
+			len(self.mungers),
+		)
 
 	def __gt__(self, other):
 		return self() > other
@@ -199,9 +227,16 @@ class EntityStatAccessor(object):
 		return self() == other
 
 	def munge(self, munger):
-		return EntityStatAccessor(self.entity, self.stat, self.engine,
-									self.branch, self.turn, self.tick,
-									self.current, self.mungers + [munger])
+		return EntityStatAccessor(
+			self.entity,
+			self.stat,
+			self.engine,
+			self.branch,
+			self.turn,
+			self.tick,
+			self.current,
+			self.mungers + [munger],
+		)
 
 	def __add__(self, other):
 		return self.munge(partial(add, other))
@@ -228,9 +263,7 @@ class EntityStatAccessor(object):
 		return self.munge(lambda x: x[k])
 
 	def iter_history(self, beginning, end):
-		"""Iterate over all the values this stat has had in the given window, inclusive.
-
-		"""
+		"""Iterate over all the values this stat has had in the given window, inclusive."""
 		# It might be useful to do this in a way that doesn't change the
 		# engine's time, perhaps for thread safety
 		engine = self.engine
@@ -245,7 +278,7 @@ class EntityStatAccessor(object):
 			except KeyError:
 				yield None
 				continue
-			if hasattr(y, 'unwrap'):
+			if hasattr(y, "unwrap"):
 				y = y.unwrap()
 			yield y
 		engine.turn = oldturn
@@ -253,18 +286,18 @@ class EntityStatAccessor(object):
 
 
 def dedent_source(source):
-	nlidx = source.index('\n')
+	nlidx = source.index("\n")
 	if nlidx is None:
 		raise ValueError("Invalid source")
-	while source[:nlidx].strip().startswith('@'):
-		source = source[nlidx + 1:]
-		nlidx = source.index('\n')
+	while source[:nlidx].strip().startswith("@"):
+		source = source[nlidx + 1 :]
+		nlidx = source.index("\n")
 	return dedent(source)
 
 
 def _sort_set_key(v):
 	if isinstance(v, tuple):
-		return (2, ) + tuple(map(repr, v))
+		return (2,) + tuple(map(repr, v))
 	if isinstance(v, str):
 		return 1, v
 	return 0, repr(v)
@@ -302,7 +335,6 @@ def fake_submit(func, *args, **kwargs):
 	"""
 
 	class FakeFuture:
-
 		def __init__(self, func, *args, **kwargs):
 			self._func = func
 			self._args = args
@@ -324,6 +356,7 @@ class AbstractEngine(ABC):
 	block, in which deserialized entities will be created as needed.
 
 	"""
+
 	portal_cls: type
 	thing_cls: type
 	place_cls: type
@@ -334,55 +367,63 @@ class AbstractEngine(ABC):
 	def pack(self):
 		try:
 			from lise_ormsgpack import packb
+
 			return packb
 		except ImportError:
 			pass
 		handlers = {
-			self.char_cls:
-			lambda char: msgpack.ExtType(MsgpackExtensionType.character.value,
-											packer(char.name)),
-			self.place_cls:
-			lambda place: msgpack.ExtType(
+			self.char_cls: lambda char: msgpack.ExtType(
+				MsgpackExtensionType.character.value, packer(char.name)
+			),
+			self.place_cls: lambda place: msgpack.ExtType(
 				MsgpackExtensionType.place.value,
-				packer([place.character.name, place.name])),
-			self.thing_cls:
-			lambda thing: msgpack.ExtType(
+				packer([place.character.name, place.name]),
+			),
+			self.thing_cls: lambda thing: msgpack.ExtType(
 				MsgpackExtensionType.thing.value,
-				packer([thing.character.name, thing.name])),
-			self.portal_cls:
-			lambda port: msgpack.ExtType(
+				packer([thing.character.name, thing.name]),
+			),
+			self.portal_cls: lambda port: msgpack.ExtType(
 				MsgpackExtensionType.portal.value,
-				packer([
-					port.character.name, port.origin.name, port.destination.
-					name
-				])),
-			tuple:
-			lambda tup: msgpack.ExtType(MsgpackExtensionType.tuple.value,
-										packer(list(tup))),
-			frozenset:
-			lambda frozs: msgpack.ExtType(MsgpackExtensionType.frozenset.value,
-											packer(list(frozs))),
-			set:
-			lambda s: msgpack.ExtType(MsgpackExtensionType.set.value,
-										packer(list(s))),
-			FinalRule:
-			lambda obj: msgpack.ExtType(MsgpackExtensionType.final_rule.value,
-										b""),
-			FunctionType:
-			lambda func: msgpack.ExtType(
+				packer(
+					[
+						port.character.name,
+						port.origin.name,
+						port.destination.name,
+					]
+				),
+			),
+			tuple: lambda tup: msgpack.ExtType(
+				MsgpackExtensionType.tuple.value, packer(list(tup))
+			),
+			frozenset: lambda frozs: msgpack.ExtType(
+				MsgpackExtensionType.frozenset.value, packer(list(frozs))
+			),
+			set: lambda s: msgpack.ExtType(
+				MsgpackExtensionType.set.value, packer(list(s))
+			),
+			FinalRule: lambda obj: msgpack.ExtType(
+				MsgpackExtensionType.final_rule.value, b""
+			),
+			FunctionType: lambda func: msgpack.ExtType(
 				getattr(MsgpackExtensionType, func.__module__).value,
-				packer(func.__name__)),
-			MethodType:
-			lambda meth: msgpack.ExtType(MsgpackExtensionType.method.value,
-											packer(meth.__name__)),
-			Exception:
-			lambda exc: msgpack.ExtType(
+				packer(func.__name__),
+			),
+			MethodType: lambda meth: msgpack.ExtType(
+				MsgpackExtensionType.method.value, packer(meth.__name__)
+			),
+			Exception: lambda exc: msgpack.ExtType(
 				MsgpackExtensionType.exception.value,
-				packer([
-					exc.__class__.__name__,
-					Traceback(exc.__traceback__).to_dict()
-					if hasattr(exc, "__traceback__") else None
-				] + list(exc.args)))
+				packer(
+					[
+						exc.__class__.__name__,
+						Traceback(exc.__traceback__).to_dict()
+						if hasattr(exc, "__traceback__")
+						else None,
+					]
+					+ list(exc.args)
+				),
+			),
 		}
 
 		def pack_handler(obj):
@@ -396,10 +437,12 @@ class AbstractEngine(ABC):
 				return dict(obj)
 			raise TypeError("Can't pack {}".format(typ))
 
-		packer = partial(msgpack.packb,
-							default=pack_handler,
-							strict_types=True,
-							use_bin_type=True)
+		packer = partial(
+			msgpack.packb,
+			default=pack_handler,
+			strict_types=True,
+			use_bin_type=True,
+		)
 		return packer
 
 	@cached_property
@@ -413,50 +456,50 @@ class AbstractEngine(ABC):
 		method = self.method
 		excs = {
 			# builtin exceptions
-			'AssertionError': AssertionError,
-			'AttributeError': AttributeError,
-			'EOFError': EOFError,
-			'FloatingPointError': FloatingPointError,
-			'GeneratorExit': GeneratorExit,
-			'ImportError': ImportError,
-			'IndexError': IndexError,
-			'KeyError': KeyError,
-			'KeyboardInterrupt': KeyboardInterrupt,
-			'MemoryError': MemoryError,
-			'NameError': NameError,
-			'NotImplementedError': NotImplementedError,
-			'OSError': OSError,
-			'OverflowError': OverflowError,
-			'RecursionError': RecursionError,
-			'ReferenceError': ReferenceError,
-			'RuntimeError': RuntimeError,
-			'StopIteration': StopIteration,
-			'IndentationError': IndentationError,
-			'TabError': TabError,
-			'SystemError': SystemError,
-			'SystemExit': SystemExit,
-			'TypeError': TypeError,
-			'UnboundLocalError': UnboundLocalError,
-			'UnicodeError': UnicodeError,
-			'UnicodeEncodeError': UnicodeEncodeError,
-			'UnicodeDecodeError': UnicodeDecodeError,
-			'UnicodeTranslateError': UnicodeTranslateError,
-			'ValueError': ValueError,
-			'ZeroDivisionError': ZeroDivisionError,
+			"AssertionError": AssertionError,
+			"AttributeError": AttributeError,
+			"EOFError": EOFError,
+			"FloatingPointError": FloatingPointError,
+			"GeneratorExit": GeneratorExit,
+			"ImportError": ImportError,
+			"IndexError": IndexError,
+			"KeyError": KeyError,
+			"KeyboardInterrupt": KeyboardInterrupt,
+			"MemoryError": MemoryError,
+			"NameError": NameError,
+			"NotImplementedError": NotImplementedError,
+			"OSError": OSError,
+			"OverflowError": OverflowError,
+			"RecursionError": RecursionError,
+			"ReferenceError": ReferenceError,
+			"RuntimeError": RuntimeError,
+			"StopIteration": StopIteration,
+			"IndentationError": IndentationError,
+			"TabError": TabError,
+			"SystemError": SystemError,
+			"SystemExit": SystemExit,
+			"TypeError": TypeError,
+			"UnboundLocalError": UnboundLocalError,
+			"UnicodeError": UnicodeError,
+			"UnicodeEncodeError": UnicodeEncodeError,
+			"UnicodeDecodeError": UnicodeDecodeError,
+			"UnicodeTranslateError": UnicodeTranslateError,
+			"ValueError": ValueError,
+			"ZeroDivisionError": ZeroDivisionError,
 			# LiSE exceptions
-			'NonUniqueError': exc.NonUniqueError,
-			'AmbiguousAvatarError': exc.AmbiguousAvatarError,
-			'AmbiguousUserError': exc.AmbiguousUserError,
-			'RulesEngineError': exc.RulesEngineError,
-			'RuleError': exc.RuleError,
-			'RedundantRuleError': exc.RedundantRuleError,
-			'UserFunctionError': exc.UserFunctionError,
-			'WorldIntegrityError': exc.WorldIntegrityError,
-			'CacheError': exc.CacheError,
-			'TravelException': exc.TravelException,
-			'OutOfTimelineError': exc.OutOfTimelineError,
-			'HistoricKeyError': exc.HistoricKeyError,
-			'NotInKeyframeError': exc.NotInKeyframeError
+			"NonUniqueError": exc.NonUniqueError,
+			"AmbiguousAvatarError": exc.AmbiguousAvatarError,
+			"AmbiguousUserError": exc.AmbiguousUserError,
+			"RulesEngineError": exc.RulesEngineError,
+			"RuleError": exc.RuleError,
+			"RedundantRuleError": exc.RedundantRuleError,
+			"UserFunctionError": exc.UserFunctionError,
+			"WorldIntegrityError": exc.WorldIntegrityError,
+			"CacheError": exc.CacheError,
+			"TravelException": exc.TravelException,
+			"OutOfTimelineError": exc.OutOfTimelineError,
+			"HistoricKeyError": exc.HistoricKeyError,
+			"NotInKeyframeError": exc.NotInKeyframeError,
 		}
 
 		def unpack_exception(ext):
@@ -512,28 +555,23 @@ class AbstractEngine(ABC):
 				return portal_cls(char, orign, destn)
 
 		handlers = {
-			MsgpackExtensionType.character.value:
-			unpack_char,
-			MsgpackExtensionType.place.value:
-			unpack_place,
-			MsgpackExtensionType.thing.value:
-			unpack_thing,
-			MsgpackExtensionType.portal.value:
-			unpack_portal,
-			MsgpackExtensionType.final_rule.value:
-			lambda obj: final_rule,
-			MsgpackExtensionType.tuple.value:
-			lambda ext: tuple(unpacker(ext)),
-			MsgpackExtensionType.frozenset.value:
-			lambda ext: frozenset(unpacker(ext)),
-			MsgpackExtensionType.set.value:
-			lambda ext: set(unpacker(ext)),
-			MsgpackExtensionType.function.value:
-			lambda ext: getattr(function, unpacker(ext)),
-			MsgpackExtensionType.method.value:
-			lambda ext: getattr(method, unpacker(ext)),
-			MsgpackExtensionType.exception.value:
-			unpack_exception
+			MsgpackExtensionType.character.value: unpack_char,
+			MsgpackExtensionType.place.value: unpack_place,
+			MsgpackExtensionType.thing.value: unpack_thing,
+			MsgpackExtensionType.portal.value: unpack_portal,
+			MsgpackExtensionType.final_rule.value: lambda obj: final_rule,
+			MsgpackExtensionType.tuple.value: lambda ext: tuple(unpacker(ext)),
+			MsgpackExtensionType.frozenset.value: lambda ext: frozenset(
+				unpacker(ext)
+			),
+			MsgpackExtensionType.set.value: lambda ext: set(unpacker(ext)),
+			MsgpackExtensionType.function.value: lambda ext: getattr(
+				function, unpacker(ext)
+			),
+			MsgpackExtensionType.method.value: lambda ext: getattr(
+				method, unpacker(ext)
+			),
+			MsgpackExtensionType.exception.value: unpack_exception,
 		}
 
 		def unpack_handler(code, data):
@@ -542,9 +580,9 @@ class AbstractEngine(ABC):
 			return msgpack.ExtType(code, data)
 
 		def unpacker(b: bytes):
-			the_unpacker = msgpack.Unpacker(ext_hook=unpack_handler,
-											raw=False,
-											strict_map_key=False)
+			the_unpacker = msgpack.Unpacker(
+				ext_hook=unpack_handler, raw=False, strict_map_key=False
+			)
 			the_unpacker.feed(b)
 			# Deliberately only returning the initial item;
 			# others are likely to be null bytes as a result of the
@@ -582,11 +620,13 @@ class AbstractEngine(ABC):
 		for i in range(0, n):
 			yield self.die_roll(d)
 
-	def dice_check(self,
-					n: int,
-					d: int,
-					target: int,
-					comparator: Union[str, Callable] = '<=') -> bool:
+	def dice_check(
+		self,
+		n: int,
+		d: int,
+		target: int,
+		comparator: Union[str, Callable] = "<=",
+	) -> bool:
 		"""Roll ``n`` dice with ``d`` sides, sum them, and compare
 
 		If ``comparator`` is provided, use it instead of the default <=.
@@ -596,13 +636,13 @@ class AbstractEngine(ABC):
 		from operator import gt, lt, ge, le, eq, ne
 
 		comps: Dict[str, Callable] = {
-			'>': gt,
-			'<': lt,
-			'>=': ge,
-			'<=': le,
-			'=': eq,
-			'==': eq,
-			'!=': ne
+			">": gt,
+			"<": lt,
+			">=": ge,
+			"<=": le,
+			"=": eq,
+			"==": eq,
+			"!=": ne,
 		}
 		if not callable(comparator):
 			comparator = comps[comparator]
@@ -621,28 +661,27 @@ class AbstractEngine(ABC):
 			return True
 		return pct > self.randint(0, 99)
 
-	betavariate = get_rando('_rando.betavariate')
-	choice = get_rando('_rando.choice')
-	expovariate = get_rando('_rando.expovariate')
-	gammavariate = get_rando('_rando.gammavariate')
-	gauss = get_rando('_rando.gauss')
-	getrandbits = get_rando('_rando.getrandbits')
-	lognormvariate = get_rando('_rando.lognormvariate')
-	normalvariate = get_rando('_rando.normalvariate')
-	paretovariate = get_rando('_rando.paretovariate')
-	randint = get_rando('_rando.randint')
-	random = get_rando('_rando.random')
-	randrange = get_rando('_rando.randrange')
-	sample = get_rando('_rando.sample')
-	shuffle = get_rando('_rando.shuffle')
-	triangular = get_rando('_rando.triangular')
-	uniform = get_rando('_rando.uniform')
-	vonmisesvariate = get_rando('_rando.vonmisesvariate')
-	weibullvariate = get_rando('_rando.weibullvariate')
+	betavariate = get_rando("_rando.betavariate")
+	choice = get_rando("_rando.choice")
+	expovariate = get_rando("_rando.expovariate")
+	gammavariate = get_rando("_rando.gammavariate")
+	gauss = get_rando("_rando.gauss")
+	getrandbits = get_rando("_rando.getrandbits")
+	lognormvariate = get_rando("_rando.lognormvariate")
+	normalvariate = get_rando("_rando.normalvariate")
+	paretovariate = get_rando("_rando.paretovariate")
+	randint = get_rando("_rando.randint")
+	random = get_rando("_rando.random")
+	randrange = get_rando("_rando.randrange")
+	sample = get_rando("_rando.sample")
+	shuffle = get_rando("_rando.shuffle")
+	triangular = get_rando("_rando.triangular")
+	uniform = get_rando("_rando.uniform")
+	vonmisesvariate = get_rando("_rando.vonmisesvariate")
+	weibullvariate = get_rando("_rando.weibullvariate")
 
 
 class SpecialMappingDescriptor:
-
 	def __init__(self, mapclsname):
 		self.mapps = {}
 		self.mapclsname = mapclsname
@@ -676,7 +715,8 @@ class AbstractCharacter(Mapping):
 	to be used in place of graph attributes
 
 	"""
-	engine = getatt('db')
+
+	engine = getatt("db")
 	no_unwrap = True
 	name: Hashable
 	db: AbstractEngine
@@ -836,18 +876,21 @@ class AbstractCharacter(Mapping):
 	def __getitem__(self, k):
 		return self.adj[k]
 
-	thing = SpecialMappingDescriptor('ThingMapping')
-	place = SpecialMappingDescriptor('PlaceMapping')
-	node = nodes = _node = SpecialMappingDescriptor('ThingPlaceMapping')
+	thing = SpecialMappingDescriptor("ThingMapping")
+	place = SpecialMappingDescriptor("PlaceMapping")
+	node = nodes = _node = SpecialMappingDescriptor("ThingPlaceMapping")
 	portal = adj = succ = edge = _adj = _succ = SpecialMappingDescriptor(
-		'PortalSuccessorsMapping')
+		"PortalSuccessorsMapping"
+	)
 	preportal = pred = _pred = SpecialMappingDescriptor(
-		'PortalPredecessorsMapping')
-	unit = SpecialMappingDescriptor('UnitGraphMapping')
-	stat = getatt('graph')
+		"PortalPredecessorsMapping"
+	)
+	unit = SpecialMappingDescriptor("UnitGraphMapping")
+	stat = getatt("graph")
 
 	def historical(self, stat):
 		from .query import StatusAlias
+
 		return StatusAlias(entity=self.stat, stat=stat)
 
 	def do(self, func, *args, **kwargs):
@@ -876,7 +919,7 @@ class AbstractCharacter(Mapping):
 			if k in self.place:
 				n = 0
 				while k in self.place:
-					k = ok + (n, ) if isinstance(ok, tuple) else (ok, n)
+					k = ok + (n,) if isinstance(ok, tuple) else (ok, n)
 					n += 1
 			renamed[ok] = k
 			self.place[k] = g.nodes[k]
@@ -913,7 +956,7 @@ class AbstractCharacter(Mapping):
 	def _lookup_comparator(self, comparator):
 		if callable(comparator):
 			return comparator
-		ops = {'ge': ge, 'gt': gt, 'le': le, 'lt': lt, 'eq': eq}
+		ops = {"ge": ge, "gt": gt, "le": le, "lt": lt, "eq": eq}
 		if comparator in ops:
 			return ops[comparator]
 		return getattr(self.engine.function, comparator)
@@ -927,7 +970,8 @@ class AbstractCharacter(Mapping):
 		"""
 		comparator = self._lookup_comparator(comparator)
 		dead = [
-			name for name, node in self.node.items()
+			name
+			for name, node in self.node.items()
 			if stat in node and comparator(node[stat], threshold)
 		]
 		self.remove_nodes_from(dead)
@@ -945,7 +989,8 @@ class AbstractCharacter(Mapping):
 		for u in self.portal:
 			for v in self.portal[u]:
 				if stat in self.portal[u][v] and comparator(
-					self.portal[u][v][stat], threshold):
+					self.portal[u][v][stat], threshold
+				):
 					dead.append((u, v))
 		self.remove_edges_from(dead)
 		return self
@@ -963,7 +1008,7 @@ def _numpy_normalize_layout(l):
 	xs = []
 	ys = []
 	ks = []
-	for (k, (x, y)) in l.items():
+	for k, (x, y) in l.items():
 		xs.append(x)
 		ys.append(y)
 		ks.append(k)
@@ -996,8 +1041,8 @@ def _threaded_normalize_layout(l):
 		xs.append(x)
 		ys.append(y)
 
-	minx = miny = float('inf')
-	maxx = maxy = float('-inf')
+	minx = miny = float("inf")
+	maxx = maxy = float("-inf")
 
 	def calc_minx(x):
 		nonlocal minx
@@ -1022,12 +1067,15 @@ def _threaded_normalize_layout(l):
 	def calc_norm(minimum, coefficient, coord):
 		return coefficient * (coord - minimum)
 
-
 	with ThreadPoolExecutor() as pool:
-		wait(chain(pool.map(calc_minx, *xs),
-		                   pool.map(calc_maxx, *xs),
-		                   pool.map(calc_miny, *ys),
-		                   pool.map(calc_maxy, *ys)))
+		wait(
+			chain(
+				pool.map(calc_minx, *xs),
+				pool.map(calc_maxx, *xs),
+				pool.map(calc_miny, *ys),
+				pool.map(calc_maxy, *ys),
+			)
+		)
 		if maxx == minx:
 			xnorm = [0.5] * len(xs)
 			xnormfuts = None
@@ -1051,49 +1099,49 @@ def _threaded_normalize_layout(l):
 
 try:
 	import numpy as np
+
 	normalize_layout = _numpy_normalize_layout
 except ImportError:
 	normalize_layout = _threaded_normalize_layout
 
 
-
 def kf2delta(kf) -> dict:
 	ret = {}
-	for ((charn, ), kvs) in kf['graph_val'].items():
+	for (charn,), kvs in kf["graph_val"].items():
 		ret[charn] = kvs
-	for ((charn, ), existences) in kf['nodes'].items():
+	for (charn,), existences in kf["nodes"].items():
 		if charn in ret:
-			ret[charn]['nodes'] = existences
+			ret[charn]["nodes"] = existences
 		else:
-			ret[charn] = {'nodes': existences}
-	for ((charn, noden), kvs) in kf['node_val'].items():
+			ret[charn] = {"nodes": existences}
+	for (charn, noden), kvs in kf["node_val"].items():
 		if charn in ret:
-			if 'node_val' in ret[charn]:
-				ret[charn]['node_val'][noden] = kvs
+			if "node_val" in ret[charn]:
+				ret[charn]["node_val"][noden] = kvs
 			else:
-				ret[charn]['node_val'] = {noden: kvs}
+				ret[charn]["node_val"] = {noden: kvs}
 		else:
-			ret[charn] = {'node_val': {noden: kvs}}
-	for ((charn, orign, destn), existence) in kf['edges'].items():
+			ret[charn] = {"node_val": {noden: kvs}}
+	for (charn, orign, destn), existence in kf["edges"].items():
 		ex = existence[0]
 		if charn in ret:
-			if 'edges' in ret[charn]:
-				ret[charn]['edges'][orign, destn] = ex
+			if "edges" in ret[charn]:
+				ret[charn]["edges"][orign, destn] = ex
 			else:
-				ret[charn]['edges'] = {(orign, destn): ex}
+				ret[charn]["edges"] = {(orign, destn): ex}
 		else:
-			ret[charn] = {'edges': {(orign, destn): ex}}
-	for ((charn, orign, destn, _), kvs) in kf['edge_val'].items():
+			ret[charn] = {"edges": {(orign, destn): ex}}
+	for (charn, orign, destn, _), kvs in kf["edge_val"].items():
 		if charn in ret:
-			if 'edge_val' in ret[charn]:
-				if orign in ret[charn]['edge_val']:
-					ret[charn]['edge_val'][orign][destn] = kvs
+			if "edge_val" in ret[charn]:
+				if orign in ret[charn]["edge_val"]:
+					ret[charn]["edge_val"][orign][destn] = kvs
 				else:
-					ret[charn]['edge_val'][orign] = {destn: kvs}
+					ret[charn]["edge_val"][orign] = {destn: kvs}
 			else:
-				ret[charn]['edge_val'] = {orign: {destn: kvs}}
+				ret[charn]["edge_val"] = {orign: {destn: kvs}}
 		else:
-			ret[charn] = {'edge_val': {orign: {destn: kvs}}}
+			ret[charn] = {"edge_val": {orign: {destn: kvs}}}
 	return ret
 
 
@@ -1136,12 +1184,14 @@ def howfast(fn: str):
 			with open(fn, "a") as outf:
 				outf.write(str(timed) + "\n")
 			return ret
+
 		return timing
+
 	return wrap
 
 
 def sumlines(fn: str) -> float:
-	total = 0.
+	total = 0.0
 	with open(fn, "r") as inf:
 		for line in inf:
 			total += float(line.strip())
@@ -1149,11 +1199,10 @@ def sumlines(fn: str) -> float:
 
 
 def meanlines(fn: str) -> float:
-	total = 0.
+	total = 0.0
 	count = 0
 	with open(fn, "r") as inf:
 		for line in inf:
 			total += float(line.strip())
 			count += 1
 	return total / count
-

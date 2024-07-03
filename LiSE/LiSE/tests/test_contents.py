@@ -17,9 +17,9 @@ import pytest
 from LiSE.allegedb import OutOfTimelineError
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def chara(engy):
-	yield engy.new_character('chara')
+	yield engy.new_character("chara")
 
 
 def test_many_things_in_place(chara):
@@ -55,7 +55,7 @@ def test_contents_over_time(chara):
 	chara.engine.turn = 5
 	with pytest.raises(OutOfTimelineError):
 		del chara.thing[5]
-	chara.engine.branch = 'b'
+	chara.engine.branch = "b"
 	del chara.thing[5]
 	assert set(place.content.keys()) == {1, 2, 3, 4}
 
@@ -85,7 +85,7 @@ def test_contents_in_plan(chara):
 	chara.engine.turn = 4
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 9, 15}
 	# this neither
-	there = chara.new_place('there')
+	there = chara.new_place("there")
 	chara.thing[9].location = there
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 15}
 	chara.engine.turn = 5

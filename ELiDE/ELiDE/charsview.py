@@ -19,8 +19,12 @@ from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen
 from kivy.uix.recycleview import RecycleView
-from kivy.properties import ListProperty, ObjectProperty, StringProperty, \
- NumericProperty
+from kivy.properties import (
+	ListProperty,
+	ObjectProperty,
+	StringProperty,
+	NumericProperty,
+)
 
 from .stores import RecycleToggleButton
 from .util import SelectableRecycleBoxLayout
@@ -62,18 +66,18 @@ class CharactersScreen(Screen):
 
 	def new_character(self, name, *args):
 		self.engine.add_character(name)
-		self.ids.newname.text = ''
+		self.ids.newname.text = ""
 		i = len(self.charsview.data)
 		self.charsview.i2name[i] = name
 		self.charsview.name2i[name] = i
-		self.charsview.data.append({'index': i, 'text': name})
+		self.charsview.data.append({"index": i, "text": name})
 		self.names.append(name)
 		self.new_board(name)
 		self.push_character_name(name)
 
 	def _trigger_new_character(self, name):
 		part = partial(self.new_character, name)
-		if hasattr(self, '_scheduled_new_character'):
+		if hasattr(self, "_scheduled_new_character"):
 			Clock.unschedule(self._scheduled_new_character)
 		self._scheduled_new_character = Clock.schedule_once(part)
 
@@ -81,7 +85,7 @@ class CharactersScreen(Screen):
 		for i, name in enumerate(names):
 			self.charsview.i2name[i] = name
 			self.charsview.name2i[name] = i
-			yield {'index': i, 'text': name}
+			yield {"index": i, "text": name}
 
 	def on_names(self, *args):
 		app = App.get_running_app()
@@ -99,7 +103,7 @@ class CharactersScreen(Screen):
 		if not self.push_character_name:
 			Clock.schedule_once(self.on_charsview, 0)
 			return
-		self.charsview.bind(character_name=self.setter('character_name'))
+		self.charsview.bind(character_name=self.setter("character_name"))
 		self.bind(character_name=self.push_character_name)
 
 

@@ -10,27 +10,38 @@ graphics layered on one another. This widget simplifies the management
 of such compositions.
 
 """
+
 from kivy.uix.widget import Widget
 from kivy.core.image import Image
-from kivy.graphics import (Rectangle, InstructionGroup, PushMatrix, PopMatrix,
-							Translate)
+from kivy.graphics import (
+	Rectangle,
+	InstructionGroup,
+	PushMatrix,
+	PopMatrix,
+	Translate,
+)
 from kivy.graphics.fbo import Fbo
-from kivy.properties import (AliasProperty, DictProperty, ListProperty,
-								ObjectProperty)
+from kivy.properties import (
+	AliasProperty,
+	DictProperty,
+	ListProperty,
+	ObjectProperty,
+)
 from kivy.clock import Clock
 from kivy.resources import resource_find
 
 
 class TextureStack(Widget):
 	"""Several textures superimposed on one another, and possibly offset
-    by some amount.
+	by some amount.
 
-    In 2D games where characters can wear different clothes or hold
-    different equipment, their graphics are often composed of several
-    graphics layered on one another. This widget simplifies the
-    management of such compositions.
+	In 2D games where characters can wear different clothes or hold
+	different equipment, their graphics are often composed of several
+	graphics layered on one another. This widget simplifies the
+	management of such compositions.
 
-    """
+	"""
+
 	texs = ListProperty()
 	"""Texture objects"""
 	offxs = ListProperty()
@@ -57,9 +68,9 @@ class TextureStack(Widget):
 			offys.append(y)
 		self.offxs, self.offys = offxs, offys
 
-	offsets = AliasProperty(_get_offsets,
-							_set_offsets,
-							bind=('offxs', 'offys'))
+	offsets = AliasProperty(
+		_get_offsets, _set_offsets, bind=("offxs", "offys")
+	)
 	"""List of (x, y) tuples by which to offset the corresponding texture."""
 	_texture_rectangles = DictProperty({})
 	"""Private.
@@ -71,7 +82,7 @@ class TextureStack(Widget):
 
 	def __init__(self, **kwargs):
 		"""Make triggers and bind."""
-		kwargs['size_hint'] = (None, None)
+		kwargs["size_hint"] = (None, None)
 		self.translate = Translate(0, 0)
 		self.group = InstructionGroup()
 		super().__init__(**kwargs)
@@ -85,10 +96,10 @@ class TextureStack(Widget):
 		texlen = len(self.texs)
 		# Ensure each property is the same length as my texs, padding
 		# with 0 as needed
-		for prop in ('offxs', 'offys'):
+		for prop in ("offxs", "offys"):
 			proplen = len(getattr(self, prop))
 			if proplen > texlen:
-				setattr(self, prop, getattr(self, prop)[:proplen - texlen])
+				setattr(self, prop, getattr(self, prop)[: proplen - texlen])
 			if texlen > proplen:
 				propval = list(getattr(self, prop))
 				propval += [0] * (texlen - proplen)
@@ -116,9 +127,7 @@ class TextureStack(Widget):
 		self.canvas.add(self.group)
 
 	def on_pos(self, *args):
-		"""Translate all the rectangles within this widget to reflect the widget's position.
-
-        """
+		"""Translate all the rectangles within this widget to reflect the widget's position."""
 		(x, y) = self.pos
 		self.translate.x = x
 		self.translate.y = y
@@ -132,9 +141,9 @@ class TextureStack(Widget):
 
 	def insert(self, i, tex):
 		"""Insert the texture into my ``texs``, waiting for the creation of
-        the canvas if necessary.
+		the canvas if necessary.
 
-        """
+		"""
 		if not self.canvas:
 			Clock.schedule_once(lambda dt: self.insert(i, tex), 0)
 			return
@@ -170,9 +179,10 @@ class TextureStack(Widget):
 
 class ImageStack(TextureStack):
 	"""Instead of supplying textures themselves, supply paths to where the
-    textures may be loaded from.
+	textures may be loaded from.
 
-    """
+	"""
+
 	paths = ListProperty()
 	"""List of paths to images you want stacked."""
 	pathtexs = DictProperty()
@@ -182,22 +192,26 @@ class ImageStack(TextureStack):
 
 	def on_paths(self, *args):
 		"""Make textures from the images in ``paths``, and assign them at the
-        same index in my ``texs`` as in my ``paths``.
+		same index in my ``texs`` as in my ``paths``.
 
-        """
+		"""
 		for i, path in enumerate(self.paths):
 			if path in self.pathtexs:
-				if (self.pathtexs[path] in self.texs
-					and self.texs.index(self.pathtexs[path]) == i):
+				if (
+					self.pathtexs[path] in self.texs
+					and self.texs.index(self.pathtexs[path]) == i
+				):
 					continue
 			else:
 				try:
-					self.pathimgs[path] = img = Image.load(resource_find(path),
-															keep_data=True)
+					self.pathimgs[path] = img = Image.load(
+						resource_find(path), keep_data=True
+					)
 				except Exception:
 					self.pathimgs[path] = img = Image.load(
 						resource_find("atlas://rltiles/misc/floppy"),
-						keep_data=True)
+						keep_data=True,
+					)
 				self.pathtexs[path] = img.texture
 			if i == len(self.texs):
 				self.texs.append(self.pathtexs[path])
@@ -230,30 +244,33 @@ class ImageStack(TextureStack):
 class TextureStackBatchWidget(Widget):
 	"""Widget for efficiently drawing many TextureStacks
 
-    Only add TextureStack or ImageStack widgets to this. Avoid adding
-    any that are to be changed frequently.
+	Only add TextureStack or ImageStack widgets to this. Avoid adding
+	any that are to be changed frequently.
 
-    """
-	critical_props = ['texs', 'offxs', 'offys', 'pos']
+	"""
+
+	critical_props = ["texs", "offxs", "offys", "pos"]
 	"""Properties that, when changed on my children, force a redraw."""
 
 	def __init__(self, **kwargs):
 		self._trigger_redraw = Clock.create_trigger(self.redraw)
 		self._trigger_rebind_children = Clock.create_trigger(
-			self.rebind_children)
+			self.rebind_children
+		)
 		super(TextureStackBatchWidget, self).__init__(**kwargs)
 
 	def on_parent(self, *args):
 		if not self.canvas:
 			Clock.schedule_once(self.on_parent, 0)
 			return
-		if not hasattr(self, '_fbo'):
+		if not hasattr(self, "_fbo"):
 			with self.canvas:
 				self._fbo = Fbo(size=self.size)
 				self._fbo.add_reload_observer(self.redraw)
 				self._translate = Translate(x=self.x, y=self.y)
-				self._rectangle = Rectangle(texture=self._fbo.texture,
-											size=self.size)
+				self._rectangle = Rectangle(
+					texture=self._fbo.texture, size=self.size
+				)
 		self.rebind_children()
 
 	def rebind_children(self, *args):
@@ -262,7 +279,7 @@ class TextureStackBatchWidget(Widget):
 		for child in self.children:
 			child_by_uid[child.uid] = child
 			child.bind(**binds)
-		if hasattr(self, '_old_children'):
+		if hasattr(self, "_old_children"):
 			old_children = self._old_children
 			for uid in set(old_children).difference(child_by_uid):
 				old_children[uid].unbind(**binds)
@@ -280,12 +297,12 @@ class TextureStackBatchWidget(Widget):
 			fbo.add(child.canvas)
 
 	def on_pos(self, *args):
-		if not hasattr(self, '_translate'):
+		if not hasattr(self, "_translate"):
 			return
 		self._translate.x, self._translate.y = self.pos
 
 	def on_size(self, *args):
-		if not hasattr(self, '_rectangle'):
+		if not hasattr(self, "_rectangle"):
 			return
 		self._rectangle.size = self._fbo.size = self.size
 		self.redraw()
@@ -302,7 +319,7 @@ class TextureStackBatchWidget(Widget):
 
 			children.insert(index, widget)
 		widget.parent = self
-		if hasattr(self, '_fbo'):
+		if hasattr(self, "_fbo"):
 			self.rebind_children()
 
 	def remove_widget(self, widget):
@@ -310,20 +327,18 @@ class TextureStackBatchWidget(Widget):
 			return
 		self.children.remove(widget)
 		widget.parent = None
-		if hasattr(self, '_fbo'):
+		if hasattr(self, "_fbo"):
 			self.rebind_children()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 	from kivy.base import runTouchApp
 	from itertools import cycle
 	import json
 
 	# I should come up with a prettier demo that has a whole lot of widgets in it
 
-
 	class DraggyStack(ImageStack):
-
 		def on_touch_down(self, touch):
 			if self.collide_point(*touch.pos):
 				touch.grab(self)
@@ -345,20 +360,30 @@ if __name__ == '__main__':
 			self._old_parent.add_widget(self)
 			return True
 
-	with open('marsh_davies_island_bg.atlas') as bgf, open(
-		'marsh_davies_island_fg.atlas') as fgf:
+	with open("marsh_davies_island_bg.atlas") as bgf, open(
+		"marsh_davies_island_fg.atlas"
+	) as fgf:
 		pathses = zip(
-			('atlas://marsh_davies_island_bg/' + name for name in json.load(
-				bgf)["marsh_davies_island_bg-0.png"].keys()),
-			('atlas://marsh_davies_island_fg/' + name for name in cycle(
-				json.load(fgf)["marsh_davies_island_fg-0.png"].keys())))
+			(
+				"atlas://marsh_davies_island_bg/" + name
+				for name in json.load(bgf)[
+					"marsh_davies_island_bg-0.png"
+				].keys()
+			),
+			(
+				"atlas://marsh_davies_island_fg/" + name
+				for name in cycle(
+					json.load(fgf)["marsh_davies_island_fg-0.png"].keys()
+				)
+			),
+		)
 	sbatch = TextureStackBatchWidget(size=(800, 600), pos=(0, 0))
 	for i, paths in enumerate(pathses):
 		sbatch.add_widget(
-			DraggyStack(paths=paths,
-						offxs=[0, 16],
-						offys=[0, 16],
-						pos=(0, 32 * i)))
+			DraggyStack(
+				paths=paths, offxs=[0, 16], offys=[0, 16], pos=(0, 32 * i)
+			)
+		)
 	parent = Widget(size=(800, 600), pos=(0, 0))
 	parent.add_widget(sbatch)
 	runTouchApp(parent)

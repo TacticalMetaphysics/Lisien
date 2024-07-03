@@ -1,4 +1,0 @@
-[style]
-based_on_style = pep8
-USE_TABS = True
-CONTINUATION_ALIGN_STYLE = VALIGN-RIGHT

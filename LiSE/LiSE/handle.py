@@ -16,6 +16,7 @@
 ordinary method calls.
 
 """
+
 from concurrent.futures import ThreadPoolExecutor
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from operator import itemgetter
@@ -23,8 +24,17 @@ from re import match
 from functools import partial
 from importlib import import_module
 from threading import Thread
-from typing import (Dict, Tuple, Set, Callable, Union, Any, List, Iterable,
-					Optional)
+from typing import (
+	Dict,
+	Tuple,
+	Set,
+	Callable,
+	Union,
+	Any,
+	List,
+	Iterable,
+	Optional,
+)
 
 import msgpack
 
@@ -34,58 +44,76 @@ from .node import Node
 from .portal import Portal
 from .util import MsgpackExtensionType, AbstractCharacter, timer, kf2delta
 
-SlightlyPackedDeltaType = Dict[bytes, Dict[bytes, Union[bytes, Dict[
-	bytes, Union[bytes, Dict[bytes, Union[bytes, Dict[bytes, bytes]]]]]]]]
+SlightlyPackedDeltaType = Dict[
+	bytes,
+	Dict[
+		bytes,
+		Union[
+			bytes,
+			Dict[
+				bytes,
+				Union[bytes, Dict[bytes, Union[bytes, Dict[bytes, bytes]]]],
+			],
+		],
+	],
+]
 FormerAndCurrentType = Tuple[Dict[bytes, bytes], Dict[bytes, bytes]]
 
 TRUE: bytes = msgpack.packb(True)
 FALSE: bytes = msgpack.packb(False)
 NONE: bytes = msgpack.packb(None)
-NODES: bytes = msgpack.packb('nodes')
-EDGES: bytes = msgpack.packb('edges')
-UNITS: bytes = msgpack.packb('units')
-RULEBOOK: bytes = msgpack.packb('rulebook')
-RULEBOOKS: bytes = msgpack.packb('rulebooks')
-NODE_VAL: bytes = msgpack.packb('node_val')
-EDGE_VAL: bytes = msgpack.packb('edge_val')
-ETERNAL: bytes = msgpack.packb('eternal')
-UNIVERSAL: bytes = msgpack.packb('universal')
-STRINGS: bytes = msgpack.packb('strings')
-RULES: bytes = msgpack.packb('rules')
-LOCATION: bytes = msgpack.packb('location')
-BRANCH: bytes = msgpack.packb('branch')
-SET_CODE: bytes = MsgpackExtensionType.set.value.to_bytes(1,
-															"big",
-															signed=False)
+NODES: bytes = msgpack.packb("nodes")
+EDGES: bytes = msgpack.packb("edges")
+UNITS: bytes = msgpack.packb("units")
+RULEBOOK: bytes = msgpack.packb("rulebook")
+RULEBOOKS: bytes = msgpack.packb("rulebooks")
+NODE_VAL: bytes = msgpack.packb("node_val")
+EDGE_VAL: bytes = msgpack.packb("edge_val")
+ETERNAL: bytes = msgpack.packb("eternal")
+UNIVERSAL: bytes = msgpack.packb("universal")
+STRINGS: bytes = msgpack.packb("strings")
+RULES: bytes = msgpack.packb("rules")
+LOCATION: bytes = msgpack.packb("location")
+BRANCH: bytes = msgpack.packb("branch")
+SET_CODE: bytes = MsgpackExtensionType.set.value.to_bytes(
+	1, "big", signed=False
+)
 
 
-def _dict_delta_added(old: Dict[bytes, bytes], new: Dict[bytes, bytes],
-						former: Dict[bytes, bytes], current: Dict[bytes,
-																	bytes]):
+def _dict_delta_added(
+	old: Dict[bytes, bytes],
+	new: Dict[bytes, bytes],
+	former: Dict[bytes, bytes],
+	current: Dict[bytes, bytes],
+):
 	for k in new.keys() - old.keys():
 		former[k] = NONE
 		current[k] = new[k]
 
 
-def _dict_delta_removed(old: Dict[bytes, bytes], new: Dict[bytes, bytes],
-						former: Dict[bytes, bytes], current: Dict[bytes,
-																	bytes]):
+def _dict_delta_removed(
+	old: Dict[bytes, bytes],
+	new: Dict[bytes, bytes],
+	former: Dict[bytes, bytes],
+	current: Dict[bytes, bytes],
+):
 	for k in old.keys() - new.keys():
 		former[k] = old[k]
 		current[k] = NONE
 
 
-def _packed_dict_delta(old: Dict[bytes, bytes],
-						new: Dict[bytes, bytes]) -> FormerAndCurrentType:
-	"""Describe changes from one shallow dictionary of msgpack data to another
-
-	"""
+def _packed_dict_delta(
+	old: Dict[bytes, bytes], new: Dict[bytes, bytes]
+) -> FormerAndCurrentType:
+	"""Describe changes from one shallow dictionary of msgpack data to another"""
 	import numpy as np
+
 	post = {}
 	pre = {}
 	added_thread = Thread(target=_dict_delta_added, args=(old, new, pre, post))
-	removed_thread = Thread(target=_dict_delta_removed,
-							args=(old, new, pre, post))
+	removed_thread = Thread(
+		target=_dict_delta_removed, args=(old, new, pre, post)
+	)
 	added_thread.start()
 	removed_thread.start()
 	ks = old.keys() & new.keys()
@@ -97,9 +125,9 @@ def _packed_dict_delta(old: Dict[bytes, bytes],
 		# I append it here so that the last byte will never be \x00,
 		# which numpy uses as a terminator, but msgpack uses for
 		# the integer zero.
-		oldv_l.append(old[k] + b'\xc1')
-		newv_l.append(new[k] + b'\xc1')
-		k_l.append(k + b'\xc1')
+		oldv_l.append(old[k] + b"\xc1")
+		newv_l.append(new[k] + b"\xc1")
+		k_l.append(k + b"\xc1")
 	oldvs = np.array(oldv_l)
 	newvs = np.array(newv_l)
 	ks = np.array(k_l)
@@ -110,17 +138,21 @@ def _packed_dict_delta(old: Dict[bytes, bytes],
 		changed_keys = ks[changes]
 		changed_values = newvs[changes]
 		former_values = oldvs[changes]
-		for k, former, current in zip(changed_keys, former_values,
-										changed_values):
+		for k, former, current in zip(
+			changed_keys, former_values, changed_values
+		):
 			k = k[:-1]
 			pre[k] = former[:-1]
 			post[k] = current[:-1]
 	return pre, post
 
 
-def _set_delta_added(old: Set[bytes], new: Set[bytes],
-						former: Dict[bytes, bytes], current: Dict[bytes,
-																	bytes]):
+def _set_delta_added(
+	old: Set[bytes],
+	new: Set[bytes],
+	former: Dict[bytes, bytes],
+	current: Dict[bytes, bytes],
+):
 	for item in new - old:
 		former[item] = FALSE
 		current[item] = TRUE
@@ -130,8 +162,9 @@ def set_delta(old: Set[bytes], new: Set[bytes]) -> FormerAndCurrentType:
 	"""Describes changes from one set of msgpack-packed values to another"""
 	former = {}
 	current = {}
-	added_thread = Thread(target=_set_delta_added,
-							args=(old, new, former, current))
+	added_thread = Thread(
+		target=_set_delta_added, args=(old, new, former, current)
+	)
 	added_thread.start()
 	for item in old - new:
 		former[item] = TRUE
@@ -149,8 +182,10 @@ def concat_d(r: Dict[bytes, bytes]) -> bytes:
 
 
 def concat_s(s: Set[bytes]) -> bytes:
-	"""Pack a set of msgpack-encoded values into a msgpack array with ext code """ + str(
-		SET_CODE)
+	(
+		"""Pack a set of msgpack-encoded values into a msgpack array with ext code """
+		+ str(SET_CODE)
+	)
 	resp = msgpack.Packer().pack_array_header(len(s))
 	for v in s:
 		resp += v
@@ -166,14 +201,26 @@ def concat_s(s: Set[bytes]) -> bytes:
 	elif data_len == 16:
 		return b"\xd8" + SET_CODE + resp
 	elif data_len < 2**8:
-		return b"\xc7" + data_len.to_bytes(1, "big",
-											signed=False) + SET_CODE + resp
+		return (
+			b"\xc7"
+			+ data_len.to_bytes(1, "big", signed=False)
+			+ SET_CODE
+			+ resp
+		)
 	elif data_len < 2**16:
-		return b"\xc8" + data_len.to_bytes(2, "big",
-											signed=False) + SET_CODE + resp
+		return (
+			b"\xc8"
+			+ data_len.to_bytes(2, "big", signed=False)
+			+ SET_CODE
+			+ resp
+		)
 	elif data_len < 2**32:
-		return b"\xc9" + data_len.to_bytes(4, "big",
-											signed=False) + SET_CODE + resp
+		return (
+			b"\xc9"
+			+ data_len.to_bytes(4, "big", signed=False)
+			+ SET_CODE
+			+ resp
+		)
 	else:
 		raise ValueError("Too long")
 
@@ -192,6 +239,7 @@ class EngineHandle(object):
 	developing your own API.
 
 	"""
+
 	_after_ret: Callable
 
 	def __init__(self, args=(), kwargs=None, logq=None, loglevel=None):
@@ -207,7 +255,7 @@ class EngineHandle(object):
 		"""
 		if kwargs is None:
 			kwargs = {}
-		kwargs.setdefault('logfun', self.log)
+		kwargs.setdefault("logfun", self.log)
 		self._logq = logq
 		self._loglevel = loglevel
 		self._real = Engine(*args, cache_arranger=False, **kwargs)
@@ -237,11 +285,11 @@ class EngineHandle(object):
 	def log(self, level: Union[str, int], message: str) -> None:
 		if isinstance(level, str):
 			level = {
-				'debug': 10,
-				'info': 20,
-				'warning': 30,
-				'error': 40,
-				'critical': 50
+				"debug": 10,
+				"info": 20,
+				"warning": 30,
+				"error": 40,
+				"critical": 50,
 			}[level.lower()]
 		if self._logq and level >= self._loglevel:
 			self._logq.put((level, message))
@@ -263,7 +311,7 @@ class EngineHandle(object):
 
 	def time_locked(self) -> bool:
 		"""Return whether the sim-time has been prevented from advancing"""
-		return hasattr(self._real, 'locktime')
+		return hasattr(self._real, "locktime")
 
 	@prepacked
 	def copy_character(self, char: Key) -> Dict[bytes, bytes]:
@@ -282,23 +330,17 @@ class EngineHandle(object):
 				dest_stats[dest] = concat_d(stats)
 			ported[orig] = concat_d(dest_stats)
 		return {
-			NODES:
-			concat_d({node: TRUE
-						for node in self.character_nodes(char)}),
-			EDGES:
-			concat_d(
-				{origdest: TRUE
-					for origdest in self.character_portals(char)}),
-			UNITS:
-			concat_d({k: concat_s(v)
-						for (k, v) in units.items()}),
-			RULEBOOKS:
-			concat_d(self.character_rulebooks_copy(char)),
-			NODE_VAL:
-			concat_d(self._character_nodes_stat_copy(char)),
-			EDGE_VAL:
-			concat_d(ported),
-			**self.character_stat_copy(char)
+			NODES: concat_d(
+				{node: TRUE for node in self.character_nodes(char)}
+			),
+			EDGES: concat_d(
+				{origdest: TRUE for origdest in self.character_portals(char)}
+			),
+			UNITS: concat_d({k: concat_s(v) for (k, v) in units.items()}),
+			RULEBOOKS: concat_d(self.character_rulebooks_copy(char)),
+			NODE_VAL: concat_d(self._character_nodes_stat_copy(char)),
+			EDGE_VAL: concat_d(ported),
+			**self.character_stat_copy(char),
 		}
 
 	def get_keyframe(self, branch, turn, tick):
@@ -317,7 +359,7 @@ class EngineHandle(object):
 		Special value 'all' gets mappings for every character that exists.
 
 		"""
-		if chars == 'all':
+		if chars == "all":
 			it = iter(self._real.character.keys())
 		else:
 			it = iter(chars)
@@ -327,35 +369,32 @@ class EngineHandle(object):
 		for char in it:
 			chara = self._real.character[char]
 			char_d = ret[char] = {
-				'units': self._character_units_copy(char),
-				'rulebooks': {
-					'character': chara.rulebook.name,
-					'unit': chara.unit.rulebook.name,
-					'thing': chara.thing.rulebook.name,
-					'place': chara.place.rulebook.name,
-					'portal': chara.portal.rulebook.name
+				"units": self._character_units_copy(char),
+				"rulebooks": {
+					"character": chara.rulebook.name,
+					"unit": chara.unit.rulebook.name,
+					"thing": chara.thing.rulebook.name,
+					"place": chara.place.rulebook.name,
+					"portal": chara.portal.rulebook.name,
 				},
 			}
-			if (char, ) in kf['graph_val']:
-				char_d.update(kf['graph_val'][
-					char,
-				])
-			if (char, ) in kf['nodes']:
-				char_d['nodes'] = {
-					node: ex
-					for (node, ex) in kf['nodes'][
-						char,
-					].items() if ex
+			if (char,) in kf["graph_val"]:
+				char_d.update(kf["graph_val"][char,])
+			if (char,) in kf["nodes"]:
+				char_d["nodes"] = {
+					node: ex for (node, ex) in kf["nodes"][char,].items() if ex
 				}
-		for (char, node), val in kf['node_val'].items():
-			ret.setdefault(char, {}).setdefault('node_val', {})[node] = val
-		for (char, orig, dest), ex in kf['edges'].items():
-			ret.setdefault(char, {}).setdefault('edges', {})[orig,
-																dest] = ex[0]
-		for (char, orig, dest, idx), mapp in kf['edge_val'].items():
+		for (char, node), val in kf["node_val"].items():
+			ret.setdefault(char, {}).setdefault("node_val", {})[node] = val
+		for (char, orig, dest), ex in kf["edges"].items():
+			ret.setdefault(char, {}).setdefault("edges", {})[orig, dest] = ex[
+				0
+			]
+		for (char, orig, dest, idx), mapp in kf["edge_val"].items():
 			for key, value in mapp.items():
-				ret.setdefault(char, {}).setdefault('edge_val', {}).setdefault(
-					orig, {}).setdefault(dest, {})[key] = value
+				ret.setdefault(char, {}).setdefault("edge_val", {}).setdefault(
+					orig, {}
+				).setdefault(dest, {})[key] = value
 		return ret
 
 	def _pack_delta(self, delta):
@@ -367,62 +406,66 @@ class EngineHandle(object):
 			pchar = pack(char)
 			chard = slightly_packed_delta[pchar] = {}
 			packd = mostly_packed_delta[pchar] = {}
-			if 'nodes' in chardelta:
+			if "nodes" in chardelta:
 				nd = chard[NODES] = {
 					pack(node): pack(ex)
-					for node, ex in chardelta.pop('nodes').items()
+					for node, ex in chardelta.pop("nodes").items()
 				}
 				packd[NODES] = concat_d(nd)
-			if 'node_val' in chardelta:
+			if "node_val" in chardelta:
 				slightnoded = chard[NODE_VAL] = {}
 				packnodevd = {}
-				for node, vals in chardelta.pop('node_val').items():
+				for node, vals in chardelta.pop("node_val").items():
 					pnode = pack(node)
 					pvals = dict(map(self.pack_pair, vals.items()))
 					slightnoded[pnode] = pvals
 					packnodevd[pnode] = concat_d(pvals)
 				packd[NODE_VAL] = concat_d(packnodevd)
-			if 'edges' in chardelta:
+			if "edges" in chardelta:
 				ed = chard[EDGES] = {
 					pack(origdest): pack(ex)
-					for origdest, ex in chardelta.pop('edges').items()
+					for origdest, ex in chardelta.pop("edges").items()
 				}
 				packd[EDGES] = concat_d(ed)
-			if 'edge_val' in chardelta:
+			if "edge_val" in chardelta:
 				slightorigd = chard[EDGE_VAL] = {}
 				packorigd = {}
-				for orig, dests in chardelta.pop('edge_val').items():
+				for orig, dests in chardelta.pop("edge_val").items():
 					porig = pack(orig)
 					slightdestd = slightorigd[porig] = {}
 					packdestd = {}
 					for dest, port in dests.items():
 						pdest = pack(dest)
 						slightportd = slightdestd[pdest] = dict(
-							map(self.pack_pair, port.items()))
+							map(self.pack_pair, port.items())
+						)
 						packdestd[pdest] = concat_d(slightportd)
 					packorigd[porig] = concat_d(packdestd)
 				packd[EDGE_VAL] = concat_d(packorigd)
-			if 'units' in chardelta:
+			if "units" in chardelta:
 				slightgraphd = chard[UNITS] = {}
 				packunitd = {}
-				for graph, unitss in chardelta.pop('units').items():
+				for graph, unitss in chardelta.pop("units").items():
 					pgraph = pack(graph)
 					slightunitd = slightgraphd[pgraph] = dict(
-						map(self.pack_pair, unitss.items()))
+						map(self.pack_pair, unitss.items())
+					)
 					packunitd[pgraph] = concat_d(slightunitd)
 				packd[UNITS] = concat_d(packunitd)
-			if 'rulebooks' in chardelta:
+			if "rulebooks" in chardelta:
 				chard[RULEBOOKS] = slightrbd = dict(
-					map(self.pack_pair,
-						chardelta.pop('rulebooks').items()))
+					map(self.pack_pair, chardelta.pop("rulebooks").items())
+				)
 				packd[RULEBOOKS] = concat_d(slightrbd)
 			todo = dict(map(self.pack_pair, chardelta.items()))
 			chard.update(todo)
 			packd.update(todo)
-		return slightly_packed_delta, concat_d({
-			charn: concat_d(stuff)
-			for charn, stuff in mostly_packed_delta.items()
-		})
+		return slightly_packed_delta, concat_d(
+			{
+				charn: concat_d(stuff)
+				for charn, stuff in mostly_packed_delta.items()
+			}
+		)
 
 	@staticmethod
 	def _concat_char_delta(delta: SlightlyPackedDeltaType) -> bytes:
@@ -485,19 +528,24 @@ class EngineHandle(object):
 		"""Simulate a turn. Return whatever result, as well as a delta"""
 		pack = self.pack
 		self.debug(
-			'calling next_turn at {}, {}, {}'.format(*self._real._btt()))
+			"calling next_turn at {}, {}, {}".format(*self._real._btt())
+		)
 		ret, delta = self._real.next_turn()
 		slightly_packed_delta, packed_delta = self._pack_delta(delta)
 		self.debug(
-			'got results from next_turn at {}, {}, {}. Packing...'.format(
-				*self._real._btt()))
+			"got results from next_turn at {}, {}, {}. Packing...".format(
+				*self._real._btt()
+			)
+		)
 		return pack(ret), packed_delta
 
 	def _get_slow_delta(
-			self,
-			btt_from: Tuple[str, int, int] = None,
-			btt_to: Tuple[str, int, int] = None) -> SlightlyPackedDeltaType:
+		self,
+		btt_from: Tuple[str, int, int] = None,
+		btt_to: Tuple[str, int, int] = None,
+	) -> SlightlyPackedDeltaType:
 		import numpy as np
+
 		pack = self._real.pack
 		delta: Dict[bytes, Any] = {}
 		btt_from = self._get_btt(btt_from)
@@ -520,35 +568,37 @@ class EngineHandle(object):
 		# Comparing object IDs is guaranteed never to give a false equality,
 		# because of the way keyframes are constructed.
 		# It may give a false inequality.
-		for graph in kf_from['graph_val'].keys() | kf_to['graph_val'].keys():
-			a = kf_from['graph_val'].get(graph, {})
-			b = kf_to['graph_val'].get(graph, {})
+		for graph in kf_from["graph_val"].keys() | kf_to["graph_val"].keys():
+			a = kf_from["graph_val"].get(graph, {})
+			b = kf_to["graph_val"].get(graph, {})
 			for k in a.keys() | b.keys():
-				keys.append(('graph', graph[0], k))
+				keys.append(("graph", graph[0], k))
 				va = a.get(k)
 				vb = b.get(k)
 				ids_from.append(id(va))
 				ids_to.append(id(vb))
 				values_from.append(va)
 				values_to.append(vb)
-		for graph, node in kf_from['node_val'].keys() | kf_to['node_val'].keys(
+		for graph, node in (
+			kf_from["node_val"].keys() | kf_to["node_val"].keys()
 		):
-			a = kf_from['node_val'].get((graph, node), {})
-			b = kf_to['node_val'].get((graph, node), {})
+			a = kf_from["node_val"].get((graph, node), {})
+			b = kf_to["node_val"].get((graph, node), {})
 			for k in a.keys() | b.keys():
-				keys.append(('node', graph, node, k))
+				keys.append(("node", graph, node, k))
 				va = a.get(k)
 				vb = b.get(k)
 				ids_from.append(id(va))
 				ids_to.append(id(vb))
 				values_from.append(va)
 				values_to.append(vb)
-		for graph, orig, dest, i in kf_from['edge_val'].keys(
-		) | kf_to['edge_val'].keys():
-			a = kf_from['edge_val'].get((graph, orig, dest, i), {})
-			b = kf_to['edge_val'].get((graph, orig, dest, i), {})
+		for graph, orig, dest, i in (
+			kf_from["edge_val"].keys() | kf_to["edge_val"].keys()
+		):
+			a = kf_from["edge_val"].get((graph, orig, dest, i), {})
+			b = kf_to["edge_val"].get((graph, orig, dest, i), {})
 			for k in a.keys() | b.keys():
-				keys.append(('edge', graph, orig, dest, k))
+				keys.append(("edge", graph, orig, dest, k))
 				va = a.get(k)
 				vb = b.get(k)
 				ids_from.append(id(va))
@@ -561,7 +611,7 @@ class EngineHandle(object):
 			if va == vb:
 				return
 			v = pack(vb)
-			if k[0] == 'node':
+			if k[0] == "node":
 				_, graph, node, key = k
 				graph, node, key = map(pack, (graph, node, key))
 				if graph not in delta:
@@ -570,19 +620,13 @@ class EngineHandle(object):
 					delta[graph][NODE_VAL][node] = {key: v}
 				else:
 					delta[graph][NODE_VAL][node][key] = v
-			elif k[0] == 'edge':
+			elif k[0] == "edge":
 				_, graph, orig, dest, key = k
 				graph, orig, dest, key = map(pack, (graph, orig, dest, key))
 				if graph not in delta:
 					delta[graph] = {
-						EDGE_VAL: {
-							orig: {
-								dest: {
-									key: v
-								}
-							}
-						},
-						NODE_VAL: {}
+						EDGE_VAL: {orig: {dest: {key: v}}},
+						NODE_VAL: {},
 					}
 				elif orig not in delta[graph][EDGE_VAL]:
 					delta[graph][EDGE_VAL][orig] = {dest: {key: v}}
@@ -591,7 +635,7 @@ class EngineHandle(object):
 				else:
 					delta[graph][EDGE_VAL][orig][dest][key] = v
 			else:
-				assert k[0] == 'graph'
+				assert k[0] == "graph"
 				_, graph, key = k
 				graph, key = map(pack, (graph, key))
 				if graph in delta:
@@ -620,21 +664,28 @@ class EngineHandle(object):
 		futs = []
 		with ThreadPoolExecutor() as pool:
 			for k, va, vb, _ in filter(
-				itemgetter(3), zip(keys, values_from, values_to,
-									values_changed)):
+				itemgetter(3),
+				zip(keys, values_from, values_to, values_changed),
+			):
 				futs.append(pool.submit(pack_one, k, va, vb))
-			for graph in kf_from['nodes'].keys() & kf_to['nodes'].keys():
-				for node in kf_from['nodes'][graph].keys(
-				) - kf_to['nodes'][graph].keys():
+			for graph in kf_from["nodes"].keys() & kf_to["nodes"].keys():
+				for node in (
+					kf_from["nodes"][graph].keys()
+					- kf_to["nodes"][graph].keys()
+				):
 					futs.append(pool.submit(pack_node, graph, node, FALSE))
-				for node in kf_to['nodes'][graph].keys(
-				) - kf_from['nodes'][graph].keys():
+				for node in (
+					kf_to["nodes"][graph].keys()
+					- kf_from["nodes"][graph].keys()
+				):
 					futs.append(pool.submit(pack_node, graph, node, TRUE))
-			for graph, orig, dest in kf_from['edges'].keys(
-			) - kf_to['edges'].keys():
+			for graph, orig, dest in (
+				kf_from["edges"].keys() - kf_to["edges"].keys()
+			):
 				futs.append(pool.submit(pack_edge, graph, orig, dest, FALSE))
-			for graph, orig, dest in kf_to['edges'].keys(
-			) - kf_from['edges'].keys():
+			for graph, orig, dest in (
+				kf_to["edges"].keys() - kf_from["edges"].keys()
+			):
 				futs.append(pool.submit(pack_edge, graph, orig, dest, TRUE))
 			rud = self.all_rules_delta(btt_from=btt_from, btt_to=btt_to)
 			if rud:
@@ -661,21 +712,24 @@ class EngineHandle(object):
 
 		"""
 		if branch in self._real._branches:
-			parent, turn_from, tick_from, turn_to, tick_to = self._real._branches[
-				branch]
+			parent, turn_from, tick_from, turn_to, tick_to = (
+				self._real._branches[branch]
+			)
 			if tick is None:
-				if turn < turn_from or (self._real._enforce_end_of_time
-										and turn > turn_to):
-					raise OutOfTimelineError("Out of bounds",
-												*self._real._btt(), branch,
-												turn, tick)
+				if turn < turn_from or (
+					self._real._enforce_end_of_time and turn > turn_to
+				):
+					raise OutOfTimelineError(
+						"Out of bounds", *self._real._btt(), branch, turn, tick
+					)
 			else:
 				if (turn, tick) < (turn_from, tick_from) or (
-					self._real._enforce_end_of_time and
-					(turn, tick) > (turn_to, tick_to)):
-					raise OutOfTimelineError("Out of bounds",
-												*self._real._btt(), branch,
-												turn, tick)
+					self._real._enforce_end_of_time
+					and (turn, tick) > (turn_to, tick_to)
+				):
+					raise OutOfTimelineError(
+						"Out of bounds", *self._real._btt(), branch, turn, tick
+					)
 		branch_from, turn_from, tick_from = self._real._btt()
 		slow_delta = branch != branch_from
 		self._real.time = (branch, turn)
@@ -684,13 +738,15 @@ class EngineHandle(object):
 		else:
 			self._real.tick = tick
 		if slow_delta:
-			delta = self._get_slow_delta(btt_from=(branch_from, turn_from,
-													tick_from),
-											btt_to=(branch, turn, tick))
+			delta = self._get_slow_delta(
+				btt_from=(branch_from, turn_from, tick_from),
+				btt_to=(branch, turn, tick),
+			)
 			packed_delta = self._concat_char_delta(delta)
 		else:
-			delta = self._real.get_delta(branch, turn_from, tick_from, turn,
-											tick)
+			delta = self._real.get_delta(
+				branch, turn_from, tick_from, turn, tick
+			)
 			slightly_packed_delta, packed_delta = self._pack_delta(delta)
 		return NONE, packed_delta
 
@@ -702,7 +758,7 @@ class EngineHandle(object):
 
 		"""
 		branch = self._real.branch
-		m = match(r'(.*)(\d+)', branch)
+		m = match(r"(.*)(\d+)", branch)
 		if m:
 			stem, n = m.groups()
 			branch = stem + str(int(n) + 1)
@@ -726,13 +782,13 @@ class EngineHandle(object):
 		"""Make a new character, initialized with whatever data"""
 		# Probably not great that I am unpacking and then repacking the stats
 		character = self._real.new_character(char, **attr)
-		placedata = data.get('place', data.get('node', {}))
+		placedata = data.get("place", data.get("node", {}))
 		for place, stats in placedata.items():
 			character.add_place(place, **stats)
-		thingdata = data.get('thing', {})
+		thingdata = data.get("thing", {})
 		for thing, stats in thingdata.items():
 			character.add_thing(thing, **stats)
-		portdata = data.get('edge', data.get('portal', data.get('adj', {})))
+		portdata = data.get("edge", data.get("portal", data.get("adj", {})))
 		for orig, dests in portdata.items():
 			for dest, stats in dests.items():
 				character.add_portal(orig, dest, **stats)
@@ -799,10 +855,11 @@ class EngineHandle(object):
 
 	@prepacked
 	def universal_delta(
-			self,
-			*,
-			btt_from: Tuple[str, int, int] = None,
-			btt_to: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
+		self,
+		*,
+		btt_from: Tuple[str, int, int] = None,
+		btt_to: Tuple[str, int, int] = None,
+	) -> Dict[bytes, bytes]:
 		now = self._real._btt()
 		if btt_from is None:
 			btt_from = self.get_btt()
@@ -833,9 +890,9 @@ class EngineHandle(object):
 			raise KeyError("no such character")
 		pack = self.pack
 		return {
-			pack(k):
-			pack(v.unwrap()) if hasattr(v, 'unwrap')
-			and not hasattr(v, 'no_unwrap') else pack(v)
+			pack(k): pack(v.unwrap())
+			if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap")
+			else pack(v)
 			for (k, v) in self._real.character[char].stat.items()
 		}
 
@@ -850,11 +907,17 @@ class EngineHandle(object):
 	def character_rulebooks_copy(self, char) -> Dict[bytes, bytes]:
 		chara = self._real.character[char]
 		return dict(
-			map(self.pack_pair, [('character', chara.rulebook.name),
-									('unit', chara.unit.rulebook.name),
-									('thing', chara.thing.rulebook.name),
-									('place', chara.place.rulebook.name),
-									('portal', chara.portal.rulebook.name)]))
+			map(
+				self.pack_pair,
+				[
+					("character", chara.rulebook.name),
+					("unit", chara.unit.rulebook.name),
+					("thing", chara.thing.rulebook.name),
+					("place", chara.place.rulebook.name),
+					("portal", chara.portal.rulebook.name),
+				],
+			)
+		)
 
 	def set_character_stat(self, char: Key, k: Key, v) -> None:
 		self._real.character[char].stat[k] = v
@@ -866,9 +929,9 @@ class EngineHandle(object):
 		self._real.character[char].stat.update(patch)
 
 	def update_character(self, char: Key, patch: Dict):
-		self.update_character_stats(char, patch['character'])
-		self.update_nodes(char, patch['node'])
-		self.update_portals(char, patch['portal'])
+		self.update_character_stats(char, patch["character"])
+		self.update_nodes(char, patch["node"])
+		self.update_portals(char, patch["portal"])
 
 	def characters(self) -> List[Key]:
 		return list(self._real.character.keys())
@@ -879,18 +942,17 @@ class EngineHandle(object):
 	def del_node_stat(self, char: Key, node: Key, k: Key) -> None:
 		del self._real.character[char].node[node][k]
 
-	def _get_btt(self,
-					btt: Tuple[str, int, int] = None) -> Tuple[str, int, int]:
+	def _get_btt(
+		self, btt: Tuple[str, int, int] = None
+	) -> Tuple[str, int, int]:
 		if btt is None:
 			return self._real._btt()
 		return btt
 
 	@prepacked
-	def node_stat_copy(self,
-						char: Key,
-						node: Key,
-						btt: Tuple[str, int,
-									int] = None) -> Dict[bytes, bytes]:
+	def node_stat_copy(
+		self, char: Key, node: Key, btt: Tuple[str, int, int] = None
+	) -> Dict[bytes, bytes]:
 		branch, turn, tick = self._get_btt(btt)
 		pack = self._real.pack
 		origtime = self._real._btt()
@@ -899,20 +961,20 @@ class EngineHandle(object):
 		noden = node
 		node = self._real.character[char].node[noden]
 		ret = {
-			pack(k):
-			pack(v.unwrap()) if hasattr(v, 'unwrap')
-			and not hasattr(v, 'no_unwrap') else pack(v)
-			for (k, v) in node.items() if k not in
-			{'character', 'name', 'arrival_time', 'next_arrival_time'}
+			pack(k): pack(v.unwrap())
+			if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap")
+			else pack(v)
+			for (k, v) in node.items()
+			if k
+			not in {"character", "name", "arrival_time", "next_arrival_time"}
 		}
 		if (branch, turn, tick) != origtime:
 			self._real._set_btt(*origtime)
 		return ret
 
 	def _character_nodes_stat_copy(
-			self,
-			char: Key,
-			btt: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
+		self, char: Key, btt: Tuple[str, int, int] = None
+	) -> Dict[bytes, bytes]:
 		pack = self._real.pack
 		return {
 			pack(node): concat_d(self.node_stat_copy(char, node, btt=btt))
@@ -942,8 +1004,9 @@ class EngineHandle(object):
 
 		"""
 		node = self._real.character[char].node
-		with self._real.batch(), timer("EngineHandle.update_nodes",
-										self.debug):
+		with self._real.batch(), timer(
+			"EngineHandle.update_nodes", self.debug
+		):
 			for n, npatch in patch.items():
 				if patch is None:
 					del node[n]
@@ -961,9 +1024,9 @@ class EngineHandle(object):
 			del self._real.character[char].node[node]
 
 	@prepacked
-	def character_nodes(self,
-						char: Key,
-						btt: Tuple[str, int, int] = None) -> Set[bytes]:
+	def character_nodes(
+		self, char: Key, btt: Tuple[str, int, int] = None
+	) -> Set[bytes]:
 		pack = self.pack
 		branch, turn, tick = self._get_btt(btt)
 		origtime = self._real._btt()
@@ -979,24 +1042,25 @@ class EngineHandle(object):
 	def node_predecessors(self, char: Key, node: Key) -> List[Key]:
 		return list(self._real.character[char].pred[node].keys())
 
-	def character_set_node_predecessors(self, char: Key, node: Key,
-										preds: Iterable) -> None:
+	def character_set_node_predecessors(
+		self, char: Key, node: Key, preds: Iterable
+	) -> None:
 		self._real.character[char].pred[node] = preds
 
 	def character_del_node_predecessors(self, char: Key, node: Key) -> None:
 		del self._real.character[char].pred[node]
 
 	@prepacked
-	def node_successors(self,
-						char: Key,
-						node: Key,
-						btt: Tuple[str, int, int] = None) -> Set[bytes]:
+	def node_successors(
+		self, char: Key, node: Key, btt: Tuple[str, int, int] = None
+	) -> Set[bytes]:
 		branch, turn, tick = self._get_btt(btt)
 		origtime = self._real._btt()
 		if (branch, turn, tick) != origtime:
 			self._real._set_btt(branch, turn, tick)
 		ret = set(
-			map(self.pack, self._real.character[char].portal[node].keys()))
+			map(self.pack, self._real.character[char].portal[node].keys())
+		)
 		if (branch, turn, tick) != origtime:
 			self._real._set_btt(*origtime)
 		return ret
@@ -1006,8 +1070,9 @@ class EngineHandle(object):
 
 	def init_thing(self, char: Key, thing: Key, statdict: dict = None) -> None:
 		if thing in self._real.character[char].thing:
-			raise KeyError('Already have thing in character {}: {}'.format(
-				char, thing))
+			raise KeyError(
+				"Already have thing in character {}: {}".format(char, thing)
+			)
 		if statdict is None:
 			statdict = {}
 		return self.set_thing(char, thing, statdict)
@@ -1015,8 +1080,9 @@ class EngineHandle(object):
 	def set_thing(self, char: Key, thing: Key, statdict: Dict) -> None:
 		self._real.character[char].thing[thing] = statdict
 
-	def add_thing(self, char: Key, thing: Key, loc: Key,
-					statdict: Dict) -> None:
+	def add_thing(
+		self, char: Key, thing: Key, loc: Key, statdict: Dict
+	) -> None:
 		self._real.character[char].add_thing(thing, loc, **statdict)
 
 	def place2thing(self, char: Key, node: Key, loc: Key) -> None:
@@ -1030,24 +1096,25 @@ class EngineHandle(object):
 			self.add_thing(char, *thing)
 
 	def set_thing_location(self, char: Key, thing: Key, loc: Key) -> None:
-		self._real.character[char].thing[thing]['location'] = loc
+		self._real.character[char].thing[thing]["location"] = loc
 
-	def thing_follow_path(self, char: Key, thing: Key, path: List[Key],
-							weight: Key) -> int:
-		return self._real.character[char].thing[thing].follow_path(
-			path, weight)
+	def thing_follow_path(
+		self, char: Key, thing: Key, path: List[Key], weight: Key
+	) -> int:
+		return (
+			self._real.character[char].thing[thing].follow_path(path, weight)
+		)
 
-	def thing_go_to_place(self, char: Key, thing: Key, place: Key,
-							weight: Key) -> int:
-		return self._real.character[char].thing[thing].go_to_place(
-			place, weight)
+	def thing_go_to_place(
+		self, char: Key, thing: Key, place: Key, weight: Key
+	) -> int:
+		return (
+			self._real.character[char].thing[thing].go_to_place(place, weight)
+		)
 
-	def thing_travel_to(self,
-						char: Key,
-						thing: Key,
-						dest: Key,
-						weight: Key = None,
-						graph=None) -> int:
+	def thing_travel_to(
+		self, char: Key, thing: Key, dest: Key, weight: Key = None, graph=None
+	) -> int:
 		"""Make something find a path to ``dest`` and follow it.
 
 		Optional argument ``weight`` is the portal stat to use to schedule
@@ -1057,13 +1124,17 @@ class EngineHandle(object):
 		pathfinding. Should resemble a networkx DiGraph.
 
 		"""
-		return self._real.character[char].thing[thing].travel_to(
-			dest, weight, graph)
+		return (
+			self._real.character[char]
+			.thing[thing]
+			.travel_to(dest, weight, graph)
+		)
 
 	def init_place(self, char: Key, place: Key, statdict: Dict = None) -> None:
 		if place in self._real.character[char].place:
-			raise KeyError('Already have place in character {}: {}'.format(
-				char, place))
+			raise KeyError(
+				"Already have place in character {}: {}".format(char, place)
+			)
 		if statdict is None:
 			statdict = {}
 		return self.set_place(char, place, statdict)
@@ -1075,12 +1146,14 @@ class EngineHandle(object):
 	def add_places_from(self, char: Key, seq: Iterable) -> None:
 		self._real.character[char].add_places_from(seq)
 
-	def add_portal(self,
-					char: Key,
-					orig: Key,
-					dest: Key,
-					statdict: Dict,
-					symmetrical: bool = False) -> None:
+	def add_portal(
+		self,
+		char: Key,
+		orig: Key,
+		dest: Key,
+		statdict: Dict,
+		symmetrical: bool = False,
+	) -> None:
 		self._real.character[char].add_portal(orig, dest, **statdict)
 		if symmetrical:
 			self._real.character[char].add_portal(dest, orig, **statdict)
@@ -1091,8 +1164,9 @@ class EngineHandle(object):
 	def del_portal(self, char: Key, orig: Key, dest: Key) -> None:
 		self._real.character[char].remove_edge(orig, dest)
 
-	def set_portal_stat(self, char: Key, orig: Key, dest: Key, k: Key,
-						v) -> None:
+	def set_portal_stat(
+		self, char: Key, orig: Key, dest: Key, k: Key, v
+	) -> None:
 		self._real.character[char].portal[orig][dest][k] = v
 
 	def del_portal_stat(self, char: Key, orig: Key, dest: Key, k: Key) -> None:
@@ -1100,31 +1174,25 @@ class EngineHandle(object):
 
 	@prepacked
 	def portal_stat_copy(
-			self,
-			char: Key,
-			orig: Key,
-			dest: Key,
-			btt: Tuple[str, int, int] = None) -> Dict[bytes, bytes]:
+		self, char: Key, orig: Key, dest: Key, btt: Tuple[str, int, int] = None
+	) -> Dict[bytes, bytes]:
 		pack = self._real.pack
 		branch, turn, tick = self._get_btt(btt)
 		origtime = self._real._btt()
 		if (branch, turn, tick) != origtime:
 			self._real._set_btt(branch, turn, tick)
 		ret = {
-			pack(k):
-			pack(v.unwrap())
-			if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
-			for (
-				k, v) in self._real.character[char].portal[orig][dest].items()
+			pack(k): pack(v.unwrap())
+			if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap")
+			else v
+			for (k, v) in self._real.character[char].portal[orig][dest].items()
 		}
 		if (branch, turn, tick) != origtime:
 			self._real._set_btt(*origtime)
 		return ret
 
 	def _character_portals_stat_copy(
-		self,
-		char: Key,
-		btt: Tuple[str, int, int] = None
+		self, char: Key, btt: Tuple[str, int, int] = None
 	) -> Dict[bytes, Dict[bytes, Dict[bytes, bytes]]]:
 		pack = self.pack
 		r = {}
@@ -1142,19 +1210,23 @@ class EngineHandle(object):
 			r[porig][pdest] = self.portal_stat_copy(char, orig, dest, btt=btt)
 		return r
 
-	def update_portal(self, char: Key, orig: Key, dest: Key,
-						patch: Dict) -> None:
+	def update_portal(
+		self, char: Key, orig: Key, dest: Key, patch: Dict
+	) -> None:
 		character = self._real.character[char]
 		if patch is None:
 			del character.portal[orig][dest]
-		elif orig not in character.portal or dest not in character.portal[orig]:
+		elif (
+			orig not in character.portal or dest not in character.portal[orig]
+		):
 			character.portal[orig][dest] = patch
 		else:
 			character.portal[orig][dest].update(patch)
 
-	def update_portals(self, char: Key, patch: Dict[Tuple[Key, Key],
-													Dict]) -> None:
-		for ((orig, dest), ppatch) in patch.items():
+	def update_portals(
+		self, char: Key, patch: Dict[Tuple[Key, Key], Dict]
+	) -> None:
+		for (orig, dest), ppatch in patch.items():
 			self.update_portal(char, orig, dest, ppatch)
 
 	def add_unit(self, char: Key, graph: Key, node: Key) -> None:
@@ -1170,19 +1242,21 @@ class EngineHandle(object):
 		self._real.rulebook.__getitem__(rulebook)
 		return []
 
-	def rulebook_copy(self,
-						rulebook: Key,
-						btt: Tuple[str, int, int] = None) -> List[str]:
+	def rulebook_copy(
+		self, rulebook: Key, btt: Tuple[str, int, int] = None
+	) -> List[str]:
 		branch, turn, tick = self._get_btt(btt)
-		return list(self._real.rulebook[rulebook]._get_cache(
-			branch, turn, tick)[0])
+		return list(
+			self._real.rulebook[rulebook]._get_cache(branch, turn, tick)[0]
+		)
 
 	def rulebook_delta(
-			self,
-			rulebook: Key,
-			*,
-			btt_from: Tuple[str, int, int] = None,
-			btt_to: Tuple[str, int, int] = None) -> Optional[List[str]]:
+		self,
+		rulebook: Key,
+		*,
+		btt_from: Tuple[str, int, int] = None,
+		btt_to: Tuple[str, int, int] = None,
+	) -> Optional[List[str]]:
 		old = self.rulebook_copy(rulebook, btt=btt_from)
 		new = self.rulebook_copy(rulebook, btt=btt_to)
 		if old == new:
@@ -1190,26 +1264,27 @@ class EngineHandle(object):
 		return new
 
 	def all_rulebooks_delta(
-			self,
-			*,
-			btt_from: Tuple[str, int, int] = None,
-			btt_to: Tuple[str, int, int] = None) -> Dict[Key, List[str]]:
+		self,
+		*,
+		btt_from: Tuple[str, int, int] = None,
+		btt_to: Tuple[str, int, int] = None,
+	) -> Dict[Key, List[str]]:
 		btt_from = self._get_btt(btt_from)
 		btt_to = self._get_btt(btt_to)
 		if btt_from == btt_to:
 			return {}
 		ret = {}
 		for rulebook in self._real.rulebook.keys():
-			delta = self.rulebook_delta(rulebook,
-										btt_from=btt_from,
-										btt_to=btt_to)
+			delta = self.rulebook_delta(
+				rulebook, btt_from=btt_from, btt_to=btt_to
+			)
 			if delta:
 				ret[rulebook] = delta
 		return ret
 
-	def all_rulebooks_copy(self,
-							btt: Tuple[str, int,
-										int] = None) -> Dict[Key, List[str]]:
+	def all_rulebooks_copy(
+		self, btt: Tuple[str, int, int] = None
+	) -> Dict[Key, List[str]]:
 		btt = self._get_btt(btt)
 		origtime = self._real._btt()
 		self._real._set_btt(*btt)
@@ -1259,37 +1334,42 @@ class EngineHandle(object):
 	def set_node_rulebook(self, char: Key, node: Key, rulebook: Key) -> None:
 		self._real.character[char].node[node].rulebook = rulebook
 
-	def set_portal_rulebook(self, char: Key, orig: Key, dest: Key,
-							rulebook: Key) -> None:
+	def set_portal_rulebook(
+		self, char: Key, orig: Key, dest: Key, rulebook: Key
+	) -> None:
 		self._real.character[char].portal[orig][dest].rulebook = rulebook
 
-	def rule_copy(self,
-					rule: str,
-					btt: Tuple[str, int, int] = None) -> Dict[str, List[str]]:
+	def rule_copy(
+		self, rule: str, btt: Tuple[str, int, int] = None
+	) -> Dict[str, List[str]]:
 		branch, turn, tick = self._get_btt(btt)
 		try:
 			triggers = list(
-				self._real._triggers_cache.retrieve(rule, branch, turn, tick))
+				self._real._triggers_cache.retrieve(rule, branch, turn, tick)
+			)
 		except KeyError:
 			triggers = []
 		try:
 			prereqs = list(
-				self._real._prereqs_cache.retrieve(rule, branch, turn, tick))
+				self._real._prereqs_cache.retrieve(rule, branch, turn, tick)
+			)
 		except KeyError:
 			prereqs = []
 		try:
 			actions = list(
-				self._real._actions_cache.retrieve(rule, branch, turn, tick))
+				self._real._actions_cache.retrieve(rule, branch, turn, tick)
+			)
 		except KeyError:
 			actions = []
-		return {'triggers': triggers, 'prereqs': prereqs, 'actions': actions}
+		return {"triggers": triggers, "prereqs": prereqs, "actions": actions}
 
 	def rule_delta(
-			self,
-			rule: str,
-			*,
-			btt_from: Tuple[str, int, int] = None,
-			btt_to: Tuple[str, int, int] = None) -> Dict[str, List[str]]:
+		self,
+		rule: str,
+		*,
+		btt_from: Tuple[str, int, int] = None,
+		btt_to: Tuple[str, int, int] = None,
+	) -> Dict[str, List[str]]:
 		btt_from = self._get_btt(btt_from)
 		btt_to = self._get_btt(btt_to)
 		if btt_from == btt_to:
@@ -1297,20 +1377,20 @@ class EngineHandle(object):
 		old = self.rule_copy(rule, btt=btt_from)
 		new = self.rule_copy(rule, btt=btt_to)
 		ret = {}
-		if new['triggers'] != old['triggers']:
-			ret['triggers'] = new['triggers']
-		if new['prereqs'] != old['prereqs']:
-			ret['prereqs'] = new['prereqs']
-		if new['actions'] != old['actions']:
-			ret['actions'] = new['actions']
+		if new["triggers"] != old["triggers"]:
+			ret["triggers"] = new["triggers"]
+		if new["prereqs"] != old["prereqs"]:
+			ret["prereqs"] = new["prereqs"]
+		if new["actions"] != old["actions"]:
+			ret["actions"] = new["actions"]
 		return ret
 
 	def all_rules_delta(
 		self,
 		*,
 		btt_from: Tuple[str, int, int] = None,
-		btt_to: Tuple[str, int,
-						int] = None) -> Dict[str, Dict[str, List[str]]]:
+		btt_to: Tuple[str, int, int] = None,
+	) -> Dict[str, Dict[str, List[str]]]:
 		ret = {}
 		btt_from = self._get_btt(btt_from)
 		btt_to = self._get_btt(btt_to)
@@ -1323,17 +1403,14 @@ class EngineHandle(object):
 		return ret
 
 	def all_rules_copy(
-			self,
-			*,
-			btt: Tuple[str, int,
-						int] = None) -> Dict[str, Dict[str, List[str]]]:
+		self, *, btt: Tuple[str, int, int] = None
+	) -> Dict[str, Dict[str, List[str]]]:
 		btt = self._get_btt(btt)
 		origtime = self._real._btt()
 		if btt != origtime:
 			self._real._set_btt(*btt)
 		ret = {
-			rule: self.rule_copy(rule, btt)
-			for rule in self._real.rule.keys()
+			rule: self.rule_copy(rule, btt) for rule in self._real.rule.keys()
 		}
 		if btt != origtime:
 			self._real._set_btt(*origtime)
@@ -1341,8 +1418,9 @@ class EngineHandle(object):
 
 	@prepacked
 	def source_copy(self, store: str) -> Dict[bytes, bytes]:
-		return dict(map(self.pack_pair,
-						getattr(self._real, store).iterplain()))
+		return dict(
+			map(self.pack_pair, getattr(self._real, store).iterplain())
+		)
 
 	def get_source(self, store: str, name: str) -> str:
 		return getattr(self._real, store).get_source(name)
@@ -1353,11 +1431,12 @@ class EngineHandle(object):
 	def del_source(self, store: str, k: str) -> None:
 		delattr(getattr(self._real, store), k)
 
-	def call_stored_function(self, store: str, func: str, args: Tuple,
-								kwargs: Dict) -> Any:
+	def call_stored_function(
+		self, store: str, func: str, args: Tuple, kwargs: Dict
+	) -> Any:
 		branch, turn, tick = self._real._btt()
-		if store == 'method':
-			args = (self._real, ) + tuple(args)
+		if store == "method":
+			args = (self._real,) + tuple(args)
 		store = getattr(self._real, store)
 		if store not in self._real.stores:
 			raise ValueError("{} is not a function store".format(store))
@@ -1375,10 +1454,11 @@ class EngineHandle(object):
 
 	def do_game_start(self):
 		time_from = self._real._btt()
-		if hasattr(self._real.method, 'game_start'):
+		if hasattr(self._real.method, "game_start"):
 			self._real.game_start()
-		return [], self._real.get_delta(*time_from, self._real.turn,
-										self._real.tick)
+		return [], self._real.get_delta(
+			*time_from, self._real.turn, self._real.tick
+		)
 
 	def is_ancestor_of(self, parent: str, child: str) -> bool:
 		return self._real.is_ancestor_of(parent, child)
@@ -1396,21 +1476,22 @@ class EngineHandle(object):
 		return self._real.branch_parent(branch)
 
 	def apply_choices(
-		self,
-		choices: List[dict],
-		dry_run=False,
-		perfectionist=False
+		self, choices: List[dict], dry_run=False, perfectionist=False
 	) -> Tuple[List[Tuple[Any, Any]], List[Tuple[Any, Any]]]:
 		return self._real.apply_choices(choices, dry_run, perfectionist)
 
 	@staticmethod
-	def get_schedule(entity: Union[AbstractCharacter, Node,
-									Portal], stats: Iterable[Key],
-						beginning: int, end: int) -> Dict[Key, List]:
+	def get_schedule(
+		entity: Union[AbstractCharacter, Node, Portal],
+		stats: Iterable[Key],
+		beginning: int,
+		end: int,
+	) -> Dict[Key, List]:
 		ret = {}
 		for stat in stats:
 			ret[stat] = list(
-				entity.historical(stat).iter_history(beginning, end))
+				entity.historical(stat).iter_history(beginning, end)
+			)
 		return ret
 
 	@prepacked
@@ -1418,13 +1499,14 @@ class EngineHandle(object):
 		raise NotImplementedError
 
 	@prepacked
-	def grid_2d_graph(self, character: Key, m: int, n: int,
-						periodic: bool) -> bytes:
+	def grid_2d_graph(
+		self, character: Key, m: int, n: int, periodic: bool
+	) -> bytes:
 		raise NotImplementedError
 
-	def rules_handled_turn(self,
-							branch: str = None,
-							turn: str = None) -> Dict[str, List[str]]:
+	def rules_handled_turn(
+		self, branch: str = None, turn: str = None
+	) -> Dict[str, List[str]]:
 		if branch is None:
 			branch = self.branch
 		if turn is None:
@@ -1432,23 +1514,23 @@ class EngineHandle(object):
 		eng = self._real
 		# assume the caches are all sync'd
 		return {
-			'character':
-			eng._character_rules_handled_cache.handled_deep[branch][turn],
-			'unit':
-			eng._unit_rules_handled_cache.handled_deep[branch][turn],
-			'character_thing':
-			eng._character_thing_rules_handled_cache.handled_deep[branch]
-			[turn],
-			'character_place':
-			eng._character_place_rules_handled_cache.handled_deep[branch]
-			[turn],
-			'character_portal':
-			eng._character_portal_rules_handled_cache.handled_deep[branch]
-			[turn],
-			'node':
-			eng._node_rules_handled_cache.handled_deep[branch][turn],
-			'portal':
-			eng._portal_rules_handled_cache.handled_deep[branch][turn]
+			"character": eng._character_rules_handled_cache.handled_deep[
+				branch
+			][turn],
+			"unit": eng._unit_rules_handled_cache.handled_deep[branch][turn],
+			"character_thing": eng._character_thing_rules_handled_cache.handled_deep[
+				branch
+			][turn],
+			"character_place": eng._character_place_rules_handled_cache.handled_deep[
+				branch
+			][turn],
+			"character_portal": eng._character_portal_rules_handled_cache.handled_deep[
+				branch
+			][turn],
+			"node": eng._node_rules_handled_cache.handled_deep[branch][turn],
+			"portal": eng._portal_rules_handled_cache.handled_deep[branch][
+				turn
+			],
 		}
 
 	def branches(self) -> Dict[str, Tuple[str, int, int, int, int]]:
@@ -1468,24 +1550,25 @@ class EngineHandle(object):
 		ret = self._real._get_kf(*self._real._btt())
 		# the following will be unnecessary when universal is a standard
 		# part of keyframes
-		ret['universal'] = dict(self._real.universal)
+		ret["universal"] = dict(self._real.universal)
 		return ret
 
 	def game_start(self) -> None:
 		branch, turn, tick = self._real._btt()
 		if (turn, tick) != (0, 0):
 			raise Exception(
-				"You tried to start a game when it wasn't the start of time")
+				"You tried to start a game when it wasn't the start of time"
+			)
 		ret = self._real.game_start()
 		kf = self.get_kf_now()
 		delt = kf2delta(kf)
-		delt['eternal'] = dict(self._real.eternal)
-		delt['universal'] = dict(self._real.universal)
-		delt['rules'] = {
+		delt["eternal"] = dict(self._real.eternal)
+		delt["universal"] = dict(self._real.universal)
+		delt["rules"] = {
 			rule: self.rule_copy(rule, (branch, turn, tick))
 			for rule in self._real.rule
 		}
-		delt['rulebooks'] = {
+		delt["rulebooks"] = {
 			rulebook: self.rulebook_copy(rulebook, (branch, turn, tick))
 			for rulebook in self._real.rulebook
 		}
@@ -1494,4 +1577,13 @@ class EngineHandle(object):
 		triggers = dict(self._real.trigger.iterplain())
 		prereqs = dict(self._real.prereq.iterplain())
 		actions = dict(self._real.action.iterplain())
-		return ret, kf, self._real.eternal, functions, methods, triggers, prereqs, actions
+		return (
+			ret,
+			kf,
+			self._real.eternal,
+			functions,
+			methods,
+			triggers,
+			prereqs,
+			actions,
+		)

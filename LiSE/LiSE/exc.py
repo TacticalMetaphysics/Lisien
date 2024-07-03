@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Exception classes for use in LiSE."""
+
 from .allegedb import HistoricKeyError, OutOfTimelineError
 from .allegedb.query import IntegrityError, TimeError
 from .allegedb.cache import NotInKeyframeError
@@ -43,6 +44,7 @@ class UserFunctionError(SyntaxError):
 	something goes wrong.
 
 	"""
+
 	pass
 
 
@@ -55,6 +57,7 @@ class WorldIntegrityError(ValueError):
 
 class CacheError(ValueError):
 	"""Error condition for something going wrong with a cache"""
+
 	pass
 
 
@@ -66,14 +69,16 @@ class TravelException(Exception):
 
 	"""
 
-	def __init__(self,
-					message,
-					path=None,
-					followed=None,
-					traveller=None,
-					branch=None,
-					turn=None,
-					lastplace=None):
+	def __init__(
+		self,
+		message,
+		path=None,
+		followed=None,
+		traveller=None,
+		branch=None,
+		turn=None,
+		lastplace=None,
+	):
 		"""Store the message as usual, and also the optional arguments:
 
 		``path``: a list of Place names to show such a path as you found

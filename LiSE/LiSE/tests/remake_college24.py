@@ -5,8 +5,9 @@ import shutil
 from ..engine import Engine
 from ..examples.college import install
 
-outpath = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-						'college24_premade.tar.xz')
+outpath = os.path.join(
+	os.path.abspath(os.path.dirname(__file__)), "college24_premade.tar.xz"
+)
 if os.path.exists(outpath):
 	os.remove(outpath)
 with tempfile.TemporaryDirectory() as directory:
@@ -14,4 +15,4 @@ with tempfile.TemporaryDirectory() as directory:
 		install(eng)
 		for i in range(24):
 			eng.next_turn()
-	shutil.make_archive(outpath[:-7], 'xztar', directory, '.')
+	shutil.make_archive(outpath[:-7], "xztar", directory, ".")

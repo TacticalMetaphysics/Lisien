@@ -23,7 +23,7 @@ from array import array
 
 
 class Collide2DPoly(object):
-	''' Collide2DPoly checks whether a point is within a polygon defined by a
+	"""Collide2DPoly checks whether a point is within a polygon defined by a
 	list of corner points.
 
 	Based on http://alienryderflex.com/polygon/
@@ -46,9 +46,20 @@ class Collide2DPoly(object):
 
 	This pure Python version was ported from the kivy.garden.collider
 	package. It is available under the MIT license.
-	'''
-	__slots__ = ('points', 'count', 'constant', 'multiple', 'min_x', 'max_x',
-					'min_y', 'max_y', 'width', 'space')
+	"""
+
+	__slots__ = (
+		"points",
+		"count",
+		"constant",
+		"multiple",
+		"min_x",
+		"max_x",
+		"min_y",
+		"max_y",
+		"width",
+		"space",
+	)
 
 	def __init__(self, points, cache=False, **kwargs):
 		length = len(points)
@@ -59,9 +70,9 @@ class Collide2DPoly(object):
 			return
 		count = length // 2
 		self.count = count
-		self.points = points = array('d', points)
-		self.constant = constant = array('d', [0.0] * count)
-		self.multiple = multiple = array('d', [0.0] * count)
+		self.points = points = array("d", points)
+		self.constant = constant = array("d", [0.0] * count)
+		self.multiple = multiple = array("d", [0.0] * count)
 
 		self.min_x = min(points[0::2])
 		self.max_x = max(points[0::2])
@@ -82,19 +93,21 @@ class Collide2DPoly(object):
 			j_y = j_x + 1
 			if points[j_y] == points[i_y]:
 				constant[i] = points[i_x]
-				multiple[i] = 0.
+				multiple[i] = 0.0
 			else:
-				constant[i] = (points[i_x] - points[i_y] * points[j_x] /
-								(points[j_y] - points[i_y]) +
-								points[i_y] * points[i_x] /
-								(points[j_y] - points[i_y]))
-				multiple[i] = ((points[j_x] - points[i_x]) /
-								(points[j_y] - points[i_y]))
+				constant[i] = (
+					points[i_x]
+					- points[i_y] * points[j_x] / (points[j_y] - points[i_y])
+					+ points[i_y] * points[i_x] / (points[j_y] - points[i_y])
+				)
+				multiple[i] = (points[j_x] - points[i_x]) / (
+					points[j_y] - points[i_y]
+				)
 			j = i
 		if cache:
-			width = int(ceil(self.max_x) - min_x + 1.)
+			width = int(ceil(self.max_x) - min_x + 1.0)
 			self.width = width
-			height = int(ceil(self.max_y) - min_y + 1.)
+			height = int(ceil(self.max_y) - min_y + 1.0)
 			self.space = space = []
 			for y in range(height):
 				for x in range(width):
@@ -103,18 +116,23 @@ class Collide2DPoly(object):
 					for i in range(count):
 						i_y = i * 2 + 1
 						j_y = j * 2 + 1
-						if (points[i_y] < y and points[j_y] >= y
-							or points[j_y] < y and points[i_y] >= y):
+						if (
+							points[i_y] < y
+							and points[j_y] >= y
+							or points[j_y] < y
+							and points[i_y] >= y
+						):
 							odd ^= y * multiple[i] + constant[i] < x
 						j = i
 					space[y * width + x] = odd
 
 	def collide_point(self, x, y):
 		points = self.points
-		if not points or not (self.min_x <= x <= self.max_x
-								and self.min_y <= y <= self.max_y):
+		if not points or not (
+			self.min_x <= x <= self.max_x and self.min_y <= y <= self.max_y
+		):
 			return False
-		if hasattr(self, 'space'):
+		if hasattr(self, "space"):
 			y -= floor(self.min_y)
 			x -= floor(self.min_x)
 			return self.space[int(y) * self.width + int(x)]
@@ -126,8 +144,12 @@ class Collide2DPoly(object):
 		for i in range(self.count):
 			i_y = i * 2 + 1
 			j_y = j * 2 + 1
-			if (points[i_y] < y and points[j_y] >= y
-				or points[j_y] < y and points[i_y] >= y):
+			if (
+				points[i_y] < y
+				and points[j_y] >= y
+				or points[j_y] < y
+				and points[i_y] >= y
+			):
 				odd ^= y * multiple[i] + constant[i] < x
 			j = i
 		return odd

@@ -12,13 +12,17 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Generic dialog boxes and menus, for in front of a Board
+"""Generic dialog boxes and menus, for in front of a Board"""
 
-"""
 from functools import partial
-from kivy.properties import (DictProperty, ListProperty, ObjectProperty,
-								StringProperty, NumericProperty,
-								VariableListProperty)
+from kivy.properties import (
+	DictProperty,
+	ListProperty,
+	ObjectProperty,
+	StringProperty,
+	NumericProperty,
+	VariableListProperty,
+)
 from kivy.core.text import DEFAULT_FONT
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -33,7 +37,7 @@ from kivy.logger import Logger
 class Box(Widget):
 	padding = VariableListProperty(6)
 	border = VariableListProperty(4)
-	font_size = StringProperty('15sp')
+	font_size = StringProperty("15sp")
 	font_name = StringProperty(DEFAULT_FONT)
 	background = StringProperty()
 	background_color = VariableListProperty([1, 1, 1, 1])
@@ -41,7 +45,7 @@ class Box(Widget):
 
 
 class ScrollableLabel(ScrollView):
-	font_size = StringProperty('15sp')
+	font_size = StringProperty("15sp")
 	font_name = StringProperty(DEFAULT_FONT)
 	color = VariableListProperty([0, 0, 0, 1])
 	line_spacing = NumericProperty(0)
@@ -54,6 +58,7 @@ class MessageBox(Box):
 	Does support styled text with BBcode.
 
 	"""
+
 	line_spacing = NumericProperty(0)
 	text = StringProperty()
 
@@ -66,6 +71,7 @@ class DialogMenu(Box):
 	``function`` when pressed.
 
 	"""
+
 	options = ListProperty()
 	"""List of pairs of (button_text, callable)"""
 
@@ -78,10 +84,10 @@ class DialogMenu(Box):
 		self._sv.y = self.y + self.padding[3]
 
 	def on_options(self, *args):
-		if not hasattr(self, '_sv'):
+		if not hasattr(self, "_sv"):
 			self._sv = ScrollView(size=self.size, pos=self.pos)
 			self.bind(size=self._set_sv_size, pos=self._set_sv_pos)
-			layout = BoxLayout(orientation='vertical')
+			layout = BoxLayout(orientation="vertical")
 			self._sv.add_widget(layout)
 			self.add_widget(self._sv)
 		else:
@@ -90,13 +96,15 @@ class DialogMenu(Box):
 		for txt, part in self.options:
 			if not callable(part):
 				raise TypeError("Menu options must be callable")
-			butn = Button(text=txt,
-							on_release=part,
-							font_name=self.font_name,
-							font_size=self.font_size,
-							valign='center',
-							halign='center')
-			butn.bind(size=butn.setter('text_size'))
+			butn = Button(
+				text=txt,
+				on_release=part,
+				font_name=self.font_name,
+				font_size=self.font_size,
+				valign="center",
+				halign="center",
+			)
+			butn.bind(size=butn.setter("text_size"))
 			layout.add_widget(butn)
 
 
@@ -109,34 +117,39 @@ class Dialog(BoxLayout):
 	in LiSE.
 
 	"""
+
 	message_kwargs = DictProperty({})
 	menu_kwargs = DictProperty({})
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
-		self.bind(message_kwargs=self._propagate_msg_kwargs,
-					menu_kwargs=self._propagate_menu_kwargs)
+		self.bind(
+			message_kwargs=self._propagate_msg_kwargs,
+			menu_kwargs=self._propagate_menu_kwargs,
+		)
 		self._propagate_msg_kwargs()
 		self._propagate_menu_kwargs()
 
 	def _propagate_msg_kwargs(self, *args):
-		if 'msg' not in self.ids:
+		if "msg" not in self.ids:
 			Clock.schedule_once(self._propagate_msg_kwargs, 0)
 			return
 		kw = dict(self.message_kwargs)
-		kw.setdefault('background',
-						'atlas://data/images/defaulttheme/textinput')
+		kw.setdefault(
+			"background", "atlas://data/images/defaulttheme/textinput"
+		)
 		for k, v in kw.items():
 			setattr(self.ids.msg, k, v)
 
 	def _propagate_menu_kwargs(self, *args):
-		if 'menu' not in self.ids:
+		if "menu" not in self.ids:
 			Clock.schedule_once(self._propagate_menu_kwargs, 0)
 			return
 		kw = dict(self.menu_kwargs)
 		kw.setdefault(
-			'background',
-			'atlas://data/images/defaulttheme/vkeyboard_background')
+			"background",
+			"atlas://data/images/defaulttheme/vkeyboard_background",
+		)
 		for k, v in kw.items():
 			setattr(self.ids.menu, k, v)
 
@@ -159,10 +172,11 @@ class DialogLayout(FloatLayout):
 	:class:`EngineProxy`.
 
 	"""
+
 	dialog = ObjectProperty()
 	engine = ObjectProperty()
 	todo = ListProperty()
-	usermod = StringProperty('user')
+	usermod = StringProperty("user")
 	userpkg = StringProperty(None, allownone=True)
 
 	def __init__(self, **kwargs):
@@ -170,26 +184,26 @@ class DialogLayout(FloatLayout):
 		self.dialog = Dialog()
 
 	def on_engine(self, *args):
-		todo = self.engine.universal.get('last_result')
+		todo = self.engine.universal.get("last_result")
 		if isinstance(todo, list):
 			self.todo = todo
 		else:
 			self.todo = []
-		self.idx = self.engine.universal.get('last_result_idx', 0)
+		self.idx = self.engine.universal.get("last_result_idx", 0)
 		self.engine.universal.connect(self._pull)
 		if self.todo:
 			self.advance_dialog()
 
 	def _pull(self, *args, key, value):
-		if key == 'last_result':
+		if key == "last_result":
 			self.todo = value if value and isinstance(value, list) else []
-		elif key == 'last_result_idx':
+		elif key == "last_result_idx":
 			self.idx = value if value and isinstance(value, int) else 0
 
 	def on_idx(self, *args):
-		lidx = self.engine.universal.get('last_result_idx')
+		lidx = self.engine.universal.get("last_result_idx")
 		if lidx is not None and lidx != self.idx:
-			self.engine.universal['last_result_idx'] = self.idx
+			self.engine.universal["last_result_idx"] = self.idx
 		Logger.debug(f"DialogLayout.idx = {self.idx}")
 
 	def advance_dialog(self, after_ok=None, *args):
@@ -220,17 +234,18 @@ class DialogLayout(FloatLayout):
 		dia = self.dialog
 		# Simple text dialogs just tell the player something and let them click OK
 		if isinstance(diargs, str):
-			dia.message_kwargs = {'text': diargs}
+			dia.message_kwargs = {"text": diargs}
 			dia.menu_kwargs = {
-				'options': [('OK', partial(self.ok, cb2=after_ok))]
+				"options": [("OK", partial(self.ok, cb2=after_ok))]
 			}
 		# List dialogs are for when you need the player to make a choice and don't care much
 		# about presentation
 		elif isinstance(diargs, list):
-			dia.message_kwargs = {'text': 'Select from the following:'}
+			dia.message_kwargs = {"text": "Select from the following:"}
 			dia.menu_kwargs = {
-				'options':
-				list(map(partial(self._munge_menu_option, after_ok), diargs))
+				"options": list(
+					map(partial(self._munge_menu_option, after_ok), diargs)
+				)
 			}
 		# For real control of the dialog, you need a pair of dicts --
 		# the 0th describes the message shown to the player, the 1th
@@ -238,27 +253,32 @@ class DialogLayout(FloatLayout):
 		elif isinstance(diargs, tuple):
 			if len(diargs) != 2:
 				# TODO more informative error
-				raise TypeError('Need a tuple of length 2')
+				raise TypeError("Need a tuple of length 2")
 			msgkwargs, mnukwargs = diargs
 			if isinstance(msgkwargs, dict):
 				dia.message_kwargs = msgkwargs
 			elif isinstance(msgkwargs, str):
-				dia.message_kwargs['text'] = msgkwargs
+				dia.message_kwargs["text"] = msgkwargs
 			else:
 				raise TypeError("Message must be dict or str")
 			if isinstance(mnukwargs, dict):
-				mnukwargs['options'] = list(
-					map(partial(self._munge_menu_option, after_ok),
-						mnukwargs['options']))
+				mnukwargs["options"] = list(
+					map(
+						partial(self._munge_menu_option, after_ok),
+						mnukwargs["options"],
+					)
+				)
 				dia.menu_kwargs = mnukwargs
 			elif isinstance(mnukwargs, (list, tuple)):
-				dia.menu_kwargs['options'] = list(
-					map(partial(self._munge_menu_option, after_ok), mnukwargs))
+				dia.menu_kwargs["options"] = list(
+					map(partial(self._munge_menu_option, after_ok), mnukwargs)
+				)
 			else:
 				raise TypeError("Menu must be dict or list")
 		else:
-			raise TypeError("Don't know how to turn {} into a dialog".format(
-				type(diargs)))
+			raise TypeError(
+				"Don't know how to turn {} into a dialog".format(type(diargs))
+			)
 		self.add_widget(dia)
 
 	def ok(self, *args, cb=None, cb2=None):
@@ -271,7 +291,8 @@ class DialogLayout(FloatLayout):
 
 	def _lookup_func(self, funcname):
 		from importlib import import_module
-		if not hasattr(self, '_usermod'):
+
+		if not hasattr(self, "_usermod"):
 			self._usermod = import_module(self.usermod, self.userpkg)
 		return getattr(self.usermod, funcname)
 

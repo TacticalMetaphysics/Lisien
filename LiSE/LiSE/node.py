@@ -18,6 +18,7 @@ Every node that actually exists is either a Place or a Thing, but they
 have a lot in common.
 
 """
+
 from __future__ import annotations
 from collections.abc import Mapping, ValuesView
 from typing import Optional, Union, Iterator, List
@@ -43,13 +44,14 @@ class UserMapping(Mapping):
 	the keys; and so on.
 
 	"""
-	__slots__ = ['node']
+
+	__slots__ = ["node"]
 
 	def __init__(self, node):
 		"""Store the node"""
 		self.node = node
 
-	engine = getatt('node.engine')
+	engine = getatt("node.engine")
 
 	def _user_names(self):
 		node = self.node
@@ -64,7 +66,7 @@ class UserMapping(Mapping):
 		for user in cache:
 			if user in seen:
 				continue
-			for (branch, turn, tick) in engine._iter_parent_btt():
+			for branch, turn, tick in engine._iter_parent_btt():
 				if branch in cache[user]:
 					branchd = cache[user][branch]
 					if turn in branchd:
@@ -108,7 +110,7 @@ class UserMapping(Mapping):
 	def __contains__(self, item):
 		if item in self.engine.character:
 			item = self.engine.character[item]
-		if hasattr(item, 'unit'):
+		if hasattr(item, "unit"):
 			charn = self.node.character.name
 			nn = self.node.name
 			return charn in item.unit and nn in item.unit[charn]
@@ -126,7 +128,7 @@ class UserMapping(Mapping):
 
 
 class NodeContentValues(ValuesView):
-	_mapping: 'NodeContent'
+	_mapping: "NodeContent"
 
 	def __iter__(self):
 		node = self._mapping.node
@@ -148,7 +150,7 @@ class NodeContentValues(ValuesView):
 
 
 class NodeContent(Mapping):
-	__slots__ = ('node', )
+	__slots__ = ("node",)
 
 	def __init__(self, node):
 		self.node = node
@@ -156,8 +158,10 @@ class NodeContent(Mapping):
 	def __iter__(self):
 		try:
 			it = self.node.engine._node_contents_cache.retrieve(
-				self.node.character.name, self.node.name,
-				*self.node.engine._btt())
+				self.node.character.name,
+				self.node.name,
+				*self.node.engine._btt(),
+			)
 		except KeyError:
 			return
 		yield from it
@@ -166,8 +170,11 @@ class NodeContent(Mapping):
 		try:
 			return len(
 				self.node.engine._node_contents_cache.retrieve(
-					self.node.character.name, self.node.name,
-					*self.node.engine._btt()))
+					self.node.character.name,
+					self.node.name,
+					*self.node.engine._btt(),
+				)
+			)
 		except KeyError:
 			return 0
 
@@ -187,7 +194,7 @@ class NodeContent(Mapping):
 
 
 class DestsValues(ValuesView):
-	_mapping: 'Dests'
+	_mapping: "Dests"
 
 	def __contains__(self, item):
 		_, name = self._mapping._pn
@@ -195,7 +202,7 @@ class DestsValues(ValuesView):
 
 
 class Dests(Mapping):
-	__slots__ = ('_ecnb', '_pn')
+	__slots__ = ("_ecnb", "_pn")
 
 	def __init__(self, node):
 		name = node.name
@@ -225,7 +232,7 @@ class Dests(Mapping):
 
 
 class OrigsValues(ValuesView):
-	_mapping: 'Origs'
+	_mapping: "Origs"
 
 	def __contains__(self, item):
 		_, name = self._mapping._pn
@@ -233,7 +240,7 @@ class OrigsValues(ValuesView):
 
 
 class Origs(Mapping):
-	__slots__ = ('_pn', '_ecnb')
+	__slots__ = ("_pn", "_ecnb")
 
 	def __init__(self, node):
 		name = node.name
@@ -274,12 +281,13 @@ class Node(graph.Node, rule.RuleFollower):
 	This is truthy if it exists, falsy if it's been deleted.
 
 	"""
-	__slots__ = ('_real_rule_mapping', )
-	character = getatt('graph')
-	name = getatt('node')
+
+	__slots__ = ("_real_rule_mapping",)
+	character = getatt("graph")
+	name = getatt("node")
 	no_unwrap = True
 	_extra_keys = {
-		'name',
+		"name",
 	}
 
 	def _get_rule_mapping(self):
@@ -288,7 +296,8 @@ class Node(graph.Node, rule.RuleFollower):
 	def _get_rulebook_name(self):
 		try:
 			return self.engine._nodes_rulebooks_cache.retrieve(
-				self.character.name, self.name, *self.engine._btt())
+				self.character.name, self.name, *self.engine._btt()
+			)
 		except KeyError:
 			return self.character.name, self.name
 
@@ -300,19 +309,21 @@ class Node(graph.Node, rule.RuleFollower):
 		node = self.name
 		cache = self.engine._nodes_rulebooks_cache
 		try:
-			if rulebook == cache.retrieve(character, node,
-											*self.engine._btt()):
+			if rulebook == cache.retrieve(
+				character, node, *self.engine._btt()
+			):
 				return
 		except KeyError:
 			pass
 		branch, turn, tick = self.engine._nbtt()
 		cache.store(character, node, branch, turn, tick, rulebook)
-		self.engine.query.set_node_rulebook(character, node, branch, turn,
-											tick, rulebook)
+		self.engine.query.set_node_rulebook(
+			character, node, branch, turn, tick, rulebook
+		)
 
-	successor = succ = adj = edge = getatt('portal')
-	predecessor = pred = getatt('preportal')
-	engine = getatt('db')
+	successor = succ = adj = edge = getatt("portal")
+	predecessor = pred = getatt("preportal")
+	engine = getatt("db")
 
 	@property
 	def user(self) -> UserMapping:
@@ -325,7 +336,7 @@ class Node(graph.Node, rule.RuleFollower):
 
 	@property
 	def portal(self) -> Dests:
-		""" A mapping of portals leading out from this node.
+		"""A mapping of portals leading out from this node.
 
 		Aliases ``portal``, ``adj``, ``edge``, ``successor``, and ``succ``
 		are available.
@@ -384,17 +395,18 @@ class Node(graph.Node, rule.RuleFollower):
 	def _plain_dest_name(self, dest):
 		if isinstance(dest, Node):
 			if dest.character != self.character:
-				raise ValueError("{} not in {}".format(dest.name,
-														self.character.name))
+				raise ValueError(
+					"{} not in {}".format(dest.name, self.character.name)
+				)
 			return dest.name
 		else:
 			if dest in self.character.node:
 				return dest
 			raise ValueError("{} not in {}".format(dest, self.character.name))
 
-	def shortest_path_length(self,
-								dest: Union["Key", "Node"],
-								weight: "Key" = None) -> int:
+	def shortest_path_length(
+		self, dest: Union["Key", "Node"], weight: "Key" = None
+	) -> int:
 		"""Return the length of the path from me to ``dest``.
 
 		Raise ``ValueError`` if ``dest`` is not a node in my character
@@ -402,24 +414,26 @@ class Node(graph.Node, rule.RuleFollower):
 
 		"""
 
-		return shortest_path_length(self.character, self.name,
-									self._plain_dest_name(dest), weight)
+		return shortest_path_length(
+			self.character, self.name, self._plain_dest_name(dest), weight
+		)
 
-	def shortest_path(self,
-						dest: Union[Key, "Node"],
-						weight: Key = None) -> List[Key]:
+	def shortest_path(
+		self, dest: Union[Key, "Node"], weight: Key = None
+	) -> List[Key]:
 		"""Return a list of node names leading from me to ``dest``.
 
 		Raise ``ValueError`` if ``dest`` is not a node in my character
 		or the name of one.
 
 		"""
-		return shortest_path(self.character, self.name,
-								self._plain_dest_name(dest), weight)
+		return shortest_path(
+			self.character, self.name, self._plain_dest_name(dest), weight
+		)
 
-	def path_exists(self,
-					dest: Union[Key, "Node"],
-					weight: Key = None) -> bool:
+	def path_exists(
+		self, dest: Union[Key, "Node"], weight: Key = None
+	) -> bool:
 		"""Return whether there is a path leading from me to ``dest``.
 
 		With ``weight``, only consider edges that have a stat by the
@@ -452,18 +466,21 @@ class Node(graph.Node, rule.RuleFollower):
 		for user in list(self.user.values()):
 			user.remove_unit(self.character.name, self.name)
 		branch, turn, tick = self.engine._nbtt()
-		self.engine._nodes_cache.store(self.character.name, self.name, branch,
-										turn, tick, False)
-		self.engine.query.exist_node(self.character.name, self.name, branch,
-										turn, tick, False)
+		self.engine._nodes_cache.store(
+			self.character.name, self.name, branch, turn, tick, False
+		)
+		self.engine.query.exist_node(
+			self.character.name, self.name, branch, turn, tick, False
+		)
 		self.character.node.send(self.character.node, key=self.name, val=None)
 
-	def new_portal(self, other: Union[Key, "Node"],
-					**stats) -> "LiSE.portal.Portal":
+	def new_portal(
+		self, other: Union[Key, "Node"], **stats
+	) -> "LiSE.portal.Portal":
 		"""Connect a portal from here to another node, and return it."""
-		return self.character.new_portal(self.name,
-											getattr(other, 'name', other),
-											**stats)
+		return self.character.new_portal(
+			self.name, getattr(other, "name", other), **stats
+		)
 
 	def new_thing(self, name: Key, **stats) -> "Thing":
 		"""Create a new thing, located here, and return it."""
@@ -490,27 +507,35 @@ class Place(Node):
 	been deleted.
 
 	"""
-	__slots__ = ('graph', 'db', 'node', '_rulebook', '_rulebooks',
-					'_real_rule_mapping')
+
+	__slots__ = (
+		"graph",
+		"db",
+		"node",
+		"_rulebook",
+		"_rulebooks",
+		"_real_rule_mapping",
+	)
 
 	extrakeys = {
-		'name',
+		"name",
 	}
 
 	def __getitem__(self, key):
-		if key == 'name':
+		if key == "name":
 			return self.name
 		return super().__getitem__(key)
 
 	def __repr__(self):
-		return "<{}.character[{}].place[{}]>".format(repr(self.engine),
-														self.character.name,
-														self.name)
+		return "<{}.character[{}].place[{}]>".format(
+			repr(self.engine), self.character.name, self.name
+		)
 
 	def _validate_node_type(self):
 		try:
-			self.engine._things_cache.retrieve(self.character.name, self.name,
-												*self.engine._btt())
+			self.engine._things_cache.retrieve(
+				self.character.name, self.name, *self.engine._btt()
+			)
 			return False
 		except:
 			return True
@@ -518,9 +543,9 @@ class Place(Node):
 	def delete(self) -> None:
 		"""Remove myself from the world model immediately."""
 		super().delete()
-		self.character.place.send(self.character.place,
-									key=self.name,
-									val=None)
+		self.character.place.send(
+			self.character.place, key=self.name, val=None
+		)
 
 
 def roerror(*args):
@@ -537,17 +562,25 @@ class Thing(Node):
 	been deleted.
 
 	"""
-	__slots__ = ('graph', 'db', 'node', '_rulebook', '_rulebooks',
-					'_real_rule_mapping')
 
-	_extra_keys = {'name', 'location'}
+	__slots__ = (
+		"graph",
+		"db",
+		"node",
+		"_rulebook",
+		"_rulebooks",
+		"_real_rule_mapping",
+	)
+
+	_extra_keys = {"name", "location"}
 
 	def _getname(self):
 		return self.name
 
 	def _getloc(self):
 		ret = self.engine._things_cache._base_retrieve(
-			(self.character.name, self.name, *self.engine._btt()))
+			(self.character.name, self.name, *self.engine._btt())
+		)
 		if ret is None or isinstance(ret, Exception):
 			return None
 		return ret
@@ -572,9 +605,9 @@ class Thing(Node):
 	def _set_loc(self, loc: Optional[Key]):
 		self.engine._set_thing_loc(self.character.name, self.name, loc)
 
-	_getitem_dispatch = {'name': _getname, 'location': _getloc}
+	_getitem_dispatch = {"name": _getname, "location": _getloc}
 
-	_setitem_dispatch = {'name': roerror, 'location': _set_loc}
+	_setitem_dispatch = {"name": roerror, "location": _set_loc}
 
 	def __getitem__(self, key: Key):
 		"""Return one of my stats stored in the database, or special cases:
@@ -608,14 +641,15 @@ class Thing(Node):
 
 	def __repr__(self):
 		return "<{}.character['{}'].thing['{}']>".format(
-			self.engine, self.character.name, self.name)
+			self.engine, self.character.name, self.name
+		)
 
 	def delete(self) -> None:
 		super().delete()
 		self._set_loc(None)
-		self.character.thing.send(self.character.thing,
-									key=self.name,
-									val=None)
+		self.character.thing.send(
+			self.character.thing, key=self.name, val=None
+		)
 
 	def clear(self) -> None:
 		"""Unset everything."""
@@ -626,30 +660,35 @@ class Thing(Node):
 	@property
 	def location(self) -> Node:
 		"""The ``Thing`` or ``Place`` I'm in."""
-		locn = self['location']
+		locn = self["location"]
 		if locn is None:
 			raise AttributeError("Not really a Thing")
 		return self.engine._get_node(self.character, locn)
 
 	@location.setter
 	def location(self, v: Union[Node, Key]):
-		if hasattr(v, 'name'):
+		if hasattr(v, "name"):
 			v = v.name
-		self['location'] = v
+		self["location"] = v
 
 	@property
 	def next_location(self) -> Optional[Node]:
 		branch = self.engine.branch
-		turn = self.engine._things_cache.turn_after(self.character.name,
-													self.name,
-													*self.engine.time)
+		turn = self.engine._things_cache.turn_after(
+			self.character.name, self.name, *self.engine.time
+		)
 		if turn is None:
 			return None
 		return self.engine._get_node(
 			self.character,
 			self.engine._things_cache.retrieve(
-				self.character.name, self.name, branch, turn,
-				self.engine._turn_end_plan[branch, turn]))
+				self.character.name,
+				self.name,
+				branch,
+				turn,
+				self.engine._turn_end_plan[branch, turn],
+			),
+		)
 
 	def go_to_place(self, place: Union[Node, Key], weight: Key = None) -> int:
 		"""Assuming I'm in a node that has a :class:`Portal` direct
@@ -661,17 +700,22 @@ class Thing(Node):
 		Return the number of turns the travel will take.
 
 		"""
-		if hasattr(place, 'name'):
+		if hasattr(place, "name"):
 			placen = place.name
 		else:
 			placen = place
 		curloc = self["location"]
 		orm = self.character.engine
-		turns = 1 if weight is None else self.engine._portal_objs[(
-			self.character.name, curloc, place)].get(weight, 1)
+		turns = (
+			1
+			if weight is None
+			else self.engine._portal_objs[
+				(self.character.name, curloc, place)
+			].get(weight, 1)
+		)
 		with self.engine.plan():
 			orm.turn += turns
-			self['location'] = placen
+			self["location"] = placen
 		return turns
 
 	def follow_path(self, path: list, weight: Key = None) -> int:
@@ -691,17 +735,21 @@ class Thing(Node):
 		eng = self.character.engine
 		with eng.plan():
 			prevplace = path.pop(0)
-			if prevplace != self['location']:
+			if prevplace != self["location"]:
 				raise ValueError("Path does not start at my present location")
 			subpath = [prevplace]
 			for place in path:
-				if (prevplace not in self.character.portal
-					or place not in self.character.portal[prevplace]):
+				if (
+					prevplace not in self.character.portal
+					or place not in self.character.portal[prevplace]
+				):
 					raise TravelException(
 						"Couldn't follow portal from {} to {}".format(
-							prevplace, place),
+							prevplace, place
+						),
 						path=subpath,
-						traveller=self)
+						traveller=self,
+					)
 				subpath.append(place)
 				prevplace = place
 			turns_total = 0
@@ -718,10 +766,12 @@ class Thing(Node):
 			self.location = subplace
 		return turns_total
 
-	def travel_to(self,
-					dest: Union[Node, Key],
-					weight: Key = None,
-					graph: nx.DiGraph = None) -> int:
+	def travel_to(
+		self,
+		dest: Union[Node, Key],
+		weight: Key = None,
+		graph: nx.DiGraph = None,
+	) -> int:
 		"""Find the shortest path to the given node from where I am
 		now, and follow it.
 
@@ -742,7 +792,7 @@ class Thing(Node):
 		Return value is the number of turns the travel will take.
 
 		"""
-		destn = dest.name if hasattr(dest, 'name') else dest
+		destn = dest.name if hasattr(dest, "name") else dest
 		if destn == self.location.name:
 			raise ValueError("I'm already at {}".format(destn))
 		graph = self.character if graph is None else graph

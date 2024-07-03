@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Code that draws the box around a Pawn or Spot when it's selected"""
+
 from collections import defaultdict
 from functools import partial
 from operator import itemgetter
@@ -22,8 +23,15 @@ import numpy as np
 from kivy.core.image import Image
 from kivy.graphics.fbo import Fbo
 from kivy.properties import ObjectProperty, BooleanProperty, ListProperty
-from kivy.graphics import (InstructionGroup, Translate, PopMatrix, PushMatrix,
-							Color, Line, Rectangle)
+from kivy.graphics import (
+	InstructionGroup,
+	Translate,
+	PopMatrix,
+	PushMatrix,
+	Color,
+	Line,
+	Rectangle,
+)
 from kivy.resources import resource_find
 from kivy.uix.layout import Layout
 from kivy.clock import Clock, mainthread
@@ -38,7 +46,7 @@ class TextureStackPlane(Widget):
 	data = ListProperty()
 	selected = ObjectProperty(allownone=True)
 	color_selected = ListProperty([0.0, 1.0, 1.0, 1.0])
-	default_image_path = 'atlas://rltiles/base.atlas/unseen'
+	default_image_path = "atlas://rltiles/base.atlas/unseen"
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -50,7 +58,7 @@ class TextureStackPlane(Widget):
 		self._instructions = {}
 		self._stack_index = {}
 		self._trigger_redraw = Clock.create_trigger(self.redraw)
-		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+		self._redraw_bind_uid = self.fbind("data", self._trigger_redraw)
 
 	def on_parent(self, *args):
 		if not self.canvas:
@@ -59,19 +67,20 @@ class TextureStackPlane(Widget):
 		with self.canvas:
 			self._fbo = Fbo(size=self.size)
 			self._translate = Translate(x=self.x, y=self.y)
-			self._rectangle = Rectangle(size=self.size,
-										texture=self._fbo.texture)
+			self._rectangle = Rectangle(
+				size=self.size, texture=self._fbo.texture
+			)
 		self.bind(pos=self._trigger_redraw, size=self._trigger_redraw)
 		self._trigger_redraw()
 
 	def on_pos(self, *args):
-		if not hasattr(self, '_translate'):
+		if not hasattr(self, "_translate"):
 			return
 		self._translate.x, self._translate.y = self.pos
 		self.canvas.ask_update()
 
 	def on_size(self, *args):
-		if not hasattr(self, '_rectangle') or not hasattr(self, '_fbo'):
+		if not hasattr(self, "_rectangle") or not hasattr(self, "_fbo"):
 			return
 		self._rectangle.size = self._fbo.size = self.size
 		self.redraw()
@@ -97,10 +106,11 @@ class TextureStackPlane(Widget):
 					if "height" not in datum and h > tall:
 						tall = h
 				rects.append(
-					Rectangle(texture=tex, pos=(x, y), size=(wide, tall)))
+					Rectangle(texture=tex, pos=(x, y), size=(wide, tall))
+				)
 			instructions[name] = {
 				"rectangles": rects,
-				"group": InstructionGroup()
+				"group": InstructionGroup(),
 			}
 			grp = instructions[name]["group"]
 			for rect in rects:
@@ -134,9 +144,9 @@ class TextureStackPlane(Widget):
 		self._right_xs = np.array(right_xs)
 		self._stack_index[name] = len(self._keys)
 		self._keys.append(name)
-		self.unbind_uid('data', self._redraw_bind_uid)
+		self.unbind_uid("data", self._redraw_bind_uid)
 		self.data.append(datum)
-		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+		self._redraw_bind_uid = self.fbind("data", self._trigger_redraw)
 		self._add_datum_upd_fbo(**datum)
 
 	@mainthread
@@ -155,14 +165,13 @@ class TextureStackPlane(Widget):
 		del self._instructions[name]
 
 	def remove(self, name_or_idx):
-
 		def delarr(arr, i):
 			if i == 0:
 				return arr[1:]
 			elif i == len(arr) - 1:
 				return arr[:-1]
 			else:
-				return np.concatenate((arr[:i], arr[i + 1:]))
+				return np.concatenate((arr[:i], arr[i + 1 :]))
 
 		if name_or_idx in self._keys:
 			idx = self._keys.index(name_or_idx)
@@ -179,23 +188,23 @@ class TextureStackPlane(Widget):
 		self._bot_ys = delarr(self._bot_ys, idx)
 		self._top_ys = delarr(self._top_ys, idx)
 		self._right_xs = delarr(self._right_xs, idx)
-		self.unbind_uid('data', self._redraw_bind_uid)
+		self.unbind_uid("data", self._redraw_bind_uid)
 		del self.data[idx]
-		self._redraw_bind_uid = self.fbind('data', self._trigger_redraw)
+		self._redraw_bind_uid = self.fbind("data", self._trigger_redraw)
 		self._remove_upd_fbo(name)
 
 	@mainthread
 	def _redraw_upd_fbo(self, changed_instructions):
 		fbo = self._fbo
 		for insts in changed_instructions:
-			group = insts['group']
+			group = insts["group"]
 			group.clear()
-			for rect in insts['rectangles']:
+			for rect in insts["rectangles"]:
 				group.add(rect)
-			if 'color0' in insts:
-				group.add(insts['color0'])
-				group.add(insts['line'])
-				group.add(insts['color1'])
+			if "color0" in insts:
+				group.add(insts["color0"])
+				group.add(insts["line"])
+				group.add(insts["color1"])
 			if group not in fbo.children:
 				fbo.add(group)
 		self._rectangle.texture = fbo.texture
@@ -204,27 +213,26 @@ class TextureStackPlane(Widget):
 	def _redraw_remove_fbo(self, removed_instructions):
 		fbo = self._fbo
 		for insts in removed_instructions:
-			fbo.remove(insts['group'])
+			fbo.remove(insts["group"])
 
 	def redraw(self, *args):
-
 		def get_rects(datum):
-			width = datum.get('width', 0)
-			height = datum.get('height', 0)
-			if isinstance(datum['x'], float):
-				x = datum['x'] * self_width
+			width = datum.get("width", 0)
+			height = datum.get("height", 0)
+			if isinstance(datum["x"], float):
+				x = datum["x"] * self_width
 			else:
-				if not isinstance(datum['x'], int):
+				if not isinstance(datum["x"], int):
 					raise TypeError("need int or float for pos")
-				x = datum['x']
-			if isinstance(datum['y'], float):
-				y = datum['y'] * self_height
+				x = datum["x"]
+			if isinstance(datum["y"], float):
+				y = datum["y"] * self_height
 			else:
-				if not isinstance(datum['y'], int):
+				if not isinstance(datum["y"], int):
 					raise TypeError("need int or float for pos")
-				y = datum['y']
+				y = datum["y"]
 			rects = []
-			for texture in datum['textures']:
+			for texture in datum["textures"]:
 				if isinstance(texture, str):
 					try:
 						texture = Image.load(resource_find(texture)).texture
@@ -241,36 +249,37 @@ class TextureStackPlane(Widget):
 					height = h
 				assert w > 0 and h > 0
 				rects.append(
-					Rectangle(pos=(x, y), size=(w, h), texture=texture))
+					Rectangle(pos=(x, y), size=(w, h), texture=texture)
+				)
 			return rects
 
 		def get_lines_and_colors(datum) -> dict:
-			width = datum.get('width', 0)
-			height = datum.get('height', 0)
-			if isinstance(datum['x'], float):
-				x = datum['x'] * self_width
+			width = datum.get("width", 0)
+			height = datum.get("height", 0)
+			if isinstance(datum["x"], float):
+				x = datum["x"] * self_width
 			else:
-				if not isinstance(datum['x'], int):
+				if not isinstance(datum["x"], int):
 					raise TypeError("need int or float for pos")
-				x = datum['x']
-			if isinstance(datum['y'], float):
-				y = datum['y'] * self_height
+				x = datum["x"]
+			if isinstance(datum["y"], float):
+				y = datum["y"] * self_height
 			else:
-				if not isinstance(datum['y'], int):
+				if not isinstance(datum["y"], int):
 					raise TypeError("need int or float for pos")
-				y = datum['y']
+				y = datum["y"]
 			right = x + width
 			top = y + height
 			instructions = {}
 			colr = Color(rgba=color_selected)
-			instructions['color0'] = colr
+			instructions["color0"] = colr
 			line = Line(points=[x, y, right, y, right, top, x, top, x, y])
-			instructions['line'] = line
+			instructions["line"] = line
 			coler = Color(rgba=[1, 1, 1, 1])
-			instructions['color1'] = coler
+			instructions["color1"] = coler
 			return instructions
 
-		if not hasattr(self, '_rectangle'):
+		if not hasattr(self, "_rectangle"):
 			self._trigger_redraw()
 			return
 		Logger.debug("TextureStackPlane: redrawing")
@@ -289,32 +298,32 @@ class TextureStackPlane(Widget):
 		todo = []
 		observed = set()
 		for datum in self.data:
-			name = datum['name']
+			name = datum["name"]
 			observed.add(name)
-			texs = datum['textures']
-			if isinstance(datum['x'], float):
-				x = datum['x'] * self_width
+			texs = datum["textures"]
+			if isinstance(datum["x"], float):
+				x = datum["x"] * self_width
 			else:
-				if not isinstance(datum['x'], int):
+				if not isinstance(datum["x"], int):
 					raise TypeError("need int or float for pos")
-				x = datum['x']
-			if isinstance(datum['y'], float):
-				y = datum['y'] * self_height
+				x = datum["x"]
+			if isinstance(datum["y"], float):
+				y = datum["y"] * self_height
 			else:
-				if not isinstance(datum['y'], int):
+				if not isinstance(datum["y"], int):
 					raise TypeError("need int or float for pos")
-				y = datum['y']
+				y = datum["y"]
 			if name in stack_index:
 				rects = get_rects(datum)
 				if name == selected:
 					insts = get_lines_and_colors(datum)
 				else:
 					insts = {}
-				insts['rectangles'] = rects
+				insts["rectangles"] = rects
 				if name in instructions:
-					insts['group'] = instructions[name]['group']
+					insts["group"] = instructions[name]["group"]
 				else:
-					insts['group'] = InstructionGroup()
+					insts["group"] = InstructionGroup()
 				todo.append(insts)
 				instructions[name] = insts
 				width = datum.get("width", 0)
@@ -323,10 +332,12 @@ class TextureStackPlane(Widget):
 					if isinstance(texture, str):
 						try:
 							texture = Image.load(
-								resource_find(texture)).texture
+								resource_find(texture)
+							).texture
 						except Exception:
 							texture = Image.load(
-								self.default_image_path).texture
+								self.default_image_path
+							).texture
 					w, h = texture.size
 					if "width" in datum:
 						w = width
@@ -362,8 +373,8 @@ class TextureStackPlane(Widget):
 				top = y + height
 				top_ys.append(top)
 				instructions[name] = insts = {
-					'rectangles': rects,
-					'group': grp
+					"rectangles": rects,
+					"group": grp,
 				}
 				if name == selected:
 					insts.update(get_lines_and_colors())
@@ -382,12 +393,18 @@ class TextureStackPlane(Widget):
 		self._fbo.release()
 		self._redraw_upd_fbo(todo)
 		self._redraw_remove_fbo(get_rid)
-		Logger.debug(f"TextureStackPlane: redrawn in "
-						f"{monotonic() - start_ts:,.2f} seconds")
+		Logger.debug(
+			f"TextureStackPlane: redrawn in "
+			f"{monotonic() - start_ts:,.2f} seconds"
+		)
 
 	def iter_collided_keys(self, x, y):
-		hits = (self._left_xs <= x) & (self._bot_ys <= y) & (
-			y <= self._top_ys) & (x <= self._right_xs)
+		hits = (
+			(self._left_xs <= x)
+			& (self._bot_ys <= y)
+			& (y <= self._top_ys)
+			& (x <= self._right_xs)
+		)
 		return map(itemgetter(0), filter(itemgetter(1), zip(self._keys, hits)))
 
 
@@ -396,6 +413,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 	:class:`Place`.
 
 	"""
+
 	board = ObjectProperty()
 	engine = ObjectProperty()
 	selected = BooleanProperty(False)
@@ -405,8 +423,8 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 	use_boardspace = True
 
 	def __init__(self, **kwargs):
-		if 'proxy' in kwargs:
-			kwargs['name'] = kwargs['proxy'].name
+		if "proxy" in kwargs:
+			kwargs["name"] = kwargs["proxy"].name
 		super().__init__(**kwargs)
 		self.bind(pos=self._position)
 
@@ -419,49 +437,57 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 
 	def finalize(self, initial=True):
 		"""Call this after you've created all the PawnSpot you need and are ready to add them to the board."""
-		if getattr(self, '_finalized', False):
+		if getattr(self, "_finalized", False):
 			return
-		if (self.proxy is None or not hasattr(self.proxy, 'name')):
+		if self.proxy is None or not hasattr(self.proxy, "name"):
 			Clock.schedule_once(partial(self.finalize, initial=initial), 0)
 			return
 		if initial:
 			self.name = self.proxy.name
-			if '_image_paths' in self.proxy:
+			if "_image_paths" in self.proxy:
 				try:
-					self.paths = self.proxy['_image_paths']
+					self.paths = self.proxy["_image_paths"]
 				except Exception as ex:
 					if not (
-						isinstance(ex.args[0], str) and
-						ex.args[0].startswith('Unable to load image type')):
+						isinstance(ex.args[0], str)
+						and ex.args[0].startswith("Unable to load image type")
+					):
 						raise ex
 					self.paths = self.default_image_paths
 			else:
-				self.paths = self.proxy.setdefault('_image_paths',
-													self.default_image_paths)
+				self.paths = self.proxy.setdefault(
+					"_image_paths", self.default_image_paths
+				)
 			zeroes = [0] * len(self.paths)
-			self.offxs = self.proxy.setdefault('_offxs', zeroes)
-			self.offys = self.proxy.setdefault('_offys', zeroes)
+			self.offxs = self.proxy.setdefault("_offxs", zeroes)
+			self.offys = self.proxy.setdefault("_offys", zeroes)
 			self.proxy.connect(self._trigger_pull_from_proxy)
 			self.finalize_children(initial=True)
 		self._push_image_paths_binding = self.fbind(
-			'paths', self._trigger_push_image_paths)
-		self._push_offxs_binding = self.fbind('offxs',
-												self._trigger_push_offxs)
-		self._push_offys_binding = self.fbind('offys',
-												self._trigger_push_offys)
+			"paths", self._trigger_push_image_paths
+		)
+		self._push_offxs_binding = self.fbind(
+			"offxs", self._trigger_push_offxs
+		)
+		self._push_offys_binding = self.fbind(
+			"offys", self._trigger_push_offys
+		)
 		self._finalized = True
 
 	def unfinalize(self):
-		self.unbind_uid('paths', self._push_image_paths_binding)
-		self.unbind_uid('offxs', self._push_offxs_binding)
-		self.unbind_uid('offys', self._push_offys_binding)
+		self.unbind_uid("paths", self._push_image_paths_binding)
+		self.unbind_uid("offxs", self._push_offxs_binding)
+		self.unbind_uid("offys", self._push_offys_binding)
 		self._finalized = False
 
 	def pull_from_proxy(self, *args):
-		initial = not hasattr(self, '_finalized')
+		initial = not hasattr(self, "_finalized")
 		self.unfinalize()
-		for key, att in [('_image_paths', 'paths'), ('_offxs', 'offxs'),
-							('_offys', 'offys')]:
+		for key, att in [
+			("_image_paths", "paths"),
+			("_offxs", "offxs"),
+			("_offys", "offys"),
+		]:
 			if key in self.proxy and self.proxy[key] != getattr(self, att):
 				setattr(self, att, self.proxy[key])
 		self.finalize(initial)
@@ -472,15 +498,15 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 
 	@trigger
 	def _trigger_push_image_paths(self, *args):
-		self.proxy['_image_paths'] = list(self.paths)
+		self.proxy["_image_paths"] = list(self.paths)
 
 	@trigger
 	def _trigger_push_offxs(self, *args):
-		self.proxy['_offxs'] = list(self.offxs)
+		self.proxy["_offxs"] = list(self.offxs)
 
 	@trigger
 	def _trigger_push_offys(self, *args):
-		self.proxy['_offys'] = list(self.offys)
+		self.proxy["_offys"] = list(self.offys)
 
 	def on_linecolor(self, *args):
 		"""If I don't yet have the instructions for drawing the selection box
@@ -488,7 +514,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		:class:`Color` instruction to match my current ``linecolor``.
 
 		"""
-		if hasattr(self, 'color'):
+		if hasattr(self, "color"):
 			self.color.rgba = self.linecolor
 			return
 
@@ -497,8 +523,16 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 
 		def upd_box_points(*args):
 			self.box.points = [
-				0, 0, self.width, 0, self.width, self.height, 0, self.height,
-				0, 0
+				0,
+				0,
+				self.width,
+				0,
+				self.width,
+				self.height,
+				0,
+				self.height,
+				0,
+				0,
 			]
 
 		self.boxgrp = boxgrp = InstructionGroup()
@@ -511,11 +545,11 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		upd_box_points()
 		self.bind(size=upd_box_points, pos=upd_box_translate)
 		boxgrp.add(self.box)
-		boxgrp.add(Color(1., 1., 1.))
+		boxgrp.add(Color(1.0, 1.0, 1.0))
 		boxgrp.add(PopMatrix())
 
 	def on_board(self, *args):
-		if not (hasattr(self, 'group') and hasattr(self, 'boxgrp')):
+		if not (hasattr(self, "group") and hasattr(self, "boxgrp")):
 			Clock.schedule_once(self.on_board, 0)
 			return
 		self.canvas.add(self.group)
@@ -533,9 +567,9 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 	def do_layout(self, *args):
 		# First try to lay out my children inside of me,
 		# leaving at least this much space on the sides
-		xpad = self.proxy.get('_xpad', self.width / 4)
-		ypad = self.proxy.get('_ypad', self.height / 4)
-		self.gutter = gutter = self.proxy.get('_gutter', xpad / 2)
+		xpad = self.proxy.get("_xpad", self.width / 4)
+		ypad = self.proxy.get("_ypad", self.height / 4)
+		self.gutter = gutter = self.proxy.get("_gutter", xpad / 2)
 		height = self.height - ypad
 		content_height = 0
 		too_tall = False
@@ -543,7 +577,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		content_width = 0
 		groups = defaultdict(list)
 		for child in self.children:
-			group = child.proxy.get('_group', '')
+			group = child.proxy.get("_group", "")
 			groups[group].append(child)
 			if child.height > height:
 				height = child.height
@@ -565,9 +599,11 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 					subgroup.append(member)
 			subgroups.append(subgroup)
 			content_height = max(
-				(content_height, sum(wid.height for wid in subgroups[0])))
+				(content_height, sum(wid.height for wid in subgroups[0]))
+			)
 			content_width += sum(
-				max(wid.width for wid in subgrp) for subgrp in subgroups)
+				max(wid.width for wid in subgrp) for subgrp in subgroups
+			)
 			piles[group] = subgroups
 		self.content_width = content_width + gutter * (len(piles) - 1)
 		too_wide = content_width > width
@@ -598,7 +634,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 	def _position(self, *args):
 		x, y = self.pos
 		for child in self.children:
-			offx, offy = getattr(child, 'rel_pos', (0, 0))
+			offx, offy = getattr(child, "rel_pos", (0, 0))
 			child.pos = x + offx, y + offy
 
 	def on_selected(self, *args):
@@ -609,33 +645,33 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 
 
 class Stack:
-	__slots__ = ['board', 'proxy', '__self__']
+	__slots__ = ["board", "proxy", "__self__"]
 
 	def __init__(self, **kwargs):
-		self.board = kwargs['board']
-		self.proxy = kwargs['proxy']
+		self.board = kwargs["board"]
+		self.proxy = kwargs["proxy"]
 
 	@property
 	def paths(self):
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		plane = self._stack_plane
 		datum = plane.data[plane._stack_index[name]]
-		return datum['textures']
+		return datum["textures"]
 
 	@paths.setter
 	@mainthread
 	def paths(self, v):
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		plane = self._stack_plane
 		datum = plane.data[plane._stack_index[name]]
-		plane.unbind_uid('data', plane._redraw_bind_uid)
-		datum['textures'] = v
+		plane.unbind_uid("data", plane._redraw_bind_uid)
+		datum["textures"] = v
 		insts = plane._instructions[name]
-		rects = insts['rectangles']
-		group = insts['group']
+		rects = insts["rectangles"]
+		group = insts["group"]
 		for rect in rects:
 			group.remove(rect)
-		rects = insts['rectangles'] = []
+		rects = insts["rectangles"] = []
 		wide = datum.get("width", 0)
 		tall = datum.get("height", 0)
 		for path in v:
@@ -650,61 +686,73 @@ class Stack:
 			rect = Rectangle(texture=tex, pos=self.pos, size=(wide, tall))
 			rects.append(rect)
 			group.add(rect)
-		plane._redraw_bind_uid = plane.fbind('data', plane._trigger_redraw)
+		plane._redraw_bind_uid = plane.fbind("data", plane._trigger_redraw)
 
 	@property
 	def selected(self):
-		return self._stack_plane.selected == self.proxy['name']
+		return self._stack_plane.selected == self.proxy["name"]
 
 	@selected.setter
 	@mainthread
 	def selected(self, v: bool):
 		stack_plane: TextureStackPlane = self._stack_plane
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		insts = stack_plane._instructions[name]
 		fbo = stack_plane._fbo
 		fbo.bind()
 		fbo.clear_buffer()
 		if v:
 			stack_plane.selected = name
-			if 'color0' in insts:
-				insts['color0'].rgba = stack_plane.color_selected
+			if "color0" in insts:
+				insts["color0"].rgba = stack_plane.color_selected
 			else:
 				idx = stack_plane._stack_index[name]
 				left = stack_plane._left_xs[idx]
 				bot = stack_plane._bot_ys[idx]
 				right = stack_plane._right_xs[idx]
 				top = stack_plane._top_ys[idx]
-				grp = insts['group']
-				insts['color0'] = Color(rgba=stack_plane.color_selected)
-				grp.add(insts['color0'])
-				insts['line'] = Line(points=[
-					left, bot, right, bot, right, top, left, top, left, bot
-				])
-				grp.add(insts['line'])
-				insts['color1'] = Color(rgba=[1., 1., 1., 1.])
-				grp.add(insts['color1'])
+				grp = insts["group"]
+				insts["color0"] = Color(rgba=stack_plane.color_selected)
+				grp.add(insts["color0"])
+				insts["line"] = Line(
+					points=[
+						left,
+						bot,
+						right,
+						bot,
+						right,
+						top,
+						left,
+						top,
+						left,
+						bot,
+					]
+				)
+				grp.add(insts["line"])
+				insts["color1"] = Color(rgba=[1.0, 1.0, 1.0, 1.0])
+				grp.add(insts["color1"])
 		else:
-			if stack_plane.selected == self.proxy['name']:
+			if stack_plane.selected == self.proxy["name"]:
 				stack_plane.selected = None
-			if 'color0' in insts:
-				insts['color0'].rgba = [0., 0., 0., 0.]
+			if "color0" in insts:
+				insts["color0"].rgba = [0.0, 0.0, 0.0, 0.0]
 		fbo.release()
 
 	@property
 	def pos(self):
 		stack_plane = self._stack_plane
-		idx = stack_plane._stack_index[self.proxy['name']]
+		idx = stack_plane._stack_index[self.proxy["name"]]
 		return float(stack_plane._left_xs[idx]), float(
-			stack_plane._bot_ys[idx])
+			stack_plane._bot_ys[idx]
+		)
 
 	@pos.setter
 	@mainthread
 	def pos(self, xy):
 		x, y = xy
 		stack_plane = self._stack_plane
-		stack_plane.unbind_uid('data', stack_plane._redraw_bind_uid)
-		name = self.proxy['name']
+		stack_plane.unbind_uid("data", stack_plane._redraw_bind_uid)
+		name = self.proxy["name"]
 		insts = stack_plane._instructions[name]
 		idx = stack_plane._stack_index[name]
 		left = stack_plane._left_xs[idx]
@@ -722,13 +770,14 @@ class Stack:
 		stack_plane._fbo.bind()
 		stack_plane._fbo.clear_buffer()
 		stack_plane._fbo.release()
-		for rect in insts['rectangles']:
+		for rect in insts["rectangles"]:
 			rect.pos = xy
-		if 'line' in insts:
-			insts['line'].points = [x, y, r, y, r, t, x, t, x, y]
-		stack_plane.data[idx]['pos'] = xy
+		if "line" in insts:
+			insts["line"].points = [x, y, r, y, r, t, x, t, x, y]
+		stack_plane.data[idx]["pos"] = xy
 		stack_plane._redraw_bind_uid = stack_plane.fbind(
-			'data', stack_plane._trigger_redraw)
+			"data", stack_plane._trigger_redraw
+		)
 
 	@property
 	def _stack_plane(self):
@@ -737,7 +786,7 @@ class Stack:
 	@property
 	def x(self):
 		stack_plane = self._stack_plane
-		idx = stack_plane._stack_index[self.proxy['name']]
+		idx = stack_plane._stack_index[self.proxy["name"]]
 		return float(stack_plane._left_xs[idx])
 
 	@x.setter
@@ -747,7 +796,7 @@ class Stack:
 	@property
 	def y(self):
 		stack_plane = self._stack_plane
-		idx = stack_plane._stack_index[self.proxy['name']]
+		idx = stack_plane._stack_index[self.proxy["name"]]
 		return float(stack_plane._bot_ys[idx])
 
 	@y.setter
@@ -761,7 +810,7 @@ class Stack:
 	@property
 	def size(self):
 		stack_plane = self._stack_plane
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		idx = stack_plane._stack_index[name]
 		left = stack_plane._left_xs[idx]
 		bot = stack_plane._bot_ys[idx]
@@ -773,26 +822,27 @@ class Stack:
 	def size(self, wh):
 		w, h = wh
 		stack_plane = self._stack_plane
-		stack_plane.unbind_uid('data', stack_plane._redraw_bind_uid)
-		name = self.proxy['name']
+		stack_plane.unbind_uid("data", stack_plane._redraw_bind_uid)
+		name = self.proxy["name"]
 		insts = stack_plane._instructions[name]
 		idx = stack_plane._stack_index[name]
 		x = stack_plane._left_xs[idx]
 		y = stack_plane._bot_ys[idx]
 		r = stack_plane._right_xs[idx] = x + w
 		t = stack_plane._top_ys[idx] = y + h
-		for rect in insts['rectangles']:
+		for rect in insts["rectangles"]:
 			rect.size = wh
-		if 'line' in insts:
-			insts['line'].points = [x, y, r, y, r, t, x, t, x, y]
-		stack_plane.data[idx]['size'] = wh
+		if "line" in insts:
+			insts["line"].points = [x, y, r, y, r, t, x, t, x, y]
+		stack_plane.data[idx]["size"] = wh
 		stack_plane._redraw_bind_uid = stack_plane.fbind(
-			'data', stack_plane._trigger_redraw)
+			"data", stack_plane._trigger_redraw
+		)
 
 	@property
 	def width(self):
 		stack_plane = self.board.stack_plane
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		idx = stack_plane._stack_index[name]
 		left = stack_plane._left_xs[idx]
 		right = stack_plane._right_xs[idx]
@@ -805,7 +855,7 @@ class Stack:
 	@property
 	def height(self):
 		stack_plane = self.board.stack_plane
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		idx = stack_plane._stack_index[name]
 		top = stack_plane._top_ys[idx]
 		bot = stack_plane._bot_ys[idx]
@@ -818,7 +868,7 @@ class Stack:
 	@property
 	def center(self):
 		stack_plane = self.board.stack_plane
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		idx = stack_plane._stack_index[name]
 		x = stack_plane._left_xs[idx]
 		y = stack_plane._bot_ys[idx]
@@ -831,7 +881,7 @@ class Stack:
 	@center.setter
 	def center(self, c):
 		stack_plane = self.board.stack_plane
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		idx = stack_plane._stack_index[name]
 		x = stack_plane._left_xs[idx]
 		y = stack_plane._bot_ys[idx]
@@ -844,7 +894,7 @@ class Stack:
 	@property
 	def center_x(self):
 		stack_plane = self.board.stack_plane
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		idx = stack_plane._stack_index[name]
 		x = stack_plane._left_xs[idx]
 		r = stack_plane._right_xs[idx]
@@ -854,7 +904,7 @@ class Stack:
 	@center_x.setter
 	def center_x(self, cx):
 		stack_plane = self.board.stack_plane
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		idx = stack_plane._stack_index[name]
 		x = stack_plane._left_xs[idx]
 		r = stack_plane._right_xs[idx]
@@ -864,7 +914,7 @@ class Stack:
 	@property
 	def center_y(self):
 		stack_plane = self.board.stack_plane
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		idx = stack_plane._stack_index[name]
 		y = stack_plane._bot_ys[idx]
 		t = stack_plane._top_ys[idx]
@@ -874,7 +924,7 @@ class Stack:
 	@center_y.setter
 	def center_y(self, cy):
 		stack_plane = self.board.stack_plane
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		idx = stack_plane._stack_index[name]
 		y = stack_plane._bot_ys[idx]
 		t = stack_plane._top_ys[idx]
@@ -884,14 +934,14 @@ class Stack:
 	@property
 	def top(self):
 		stack_plane = self.board.stack_plane
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		idx = stack_plane._stack_index[name]
 		return float(stack_plane._top_ys[idx])
 
 	@top.setter
 	def top(self, t):
 		stack_plane = self.board.stack_plane
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		idx = stack_plane._stack_index[name]
 		y = stack_plane._bot_ys[idx]
 		stack_plane._top_ys[idx] = t
@@ -902,14 +952,14 @@ class Stack:
 	@property
 	def right(self):
 		stack_plane = self.board.stack_plane
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		idx = stack_plane._stack_index[name]
 		return float(stack_plane._right_xs[idx])
 
 	@right.setter
 	def right(self, r):
 		stack_plane = self.board.stack_plane
-		name = self.proxy['name']
+		name = self.proxy["name"]
 		idx = stack_plane._stack_index[name]
 		x = stack_plane._left_xs[idx]
 		stack_plane._right_xs[idx] = r
@@ -919,7 +969,7 @@ class Stack:
 
 	@property
 	def name(self):
-		return self.proxy['name']
+		return self.proxy["name"]
 
 	def collide_point(self, x, y):
 		pos = self.pos

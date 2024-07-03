@@ -47,17 +47,20 @@ def all_arrows_placed(board, char=None):
 def board_is_arranged(board, char=None):
 	if char is None:
 		char = board.character
-	return all_spots_placed(board, char) and all_pawns_placed(
-		board, char) and all_arrows_placed(board, char)
+	return (
+		all_spots_placed(board, char)
+		and all_pawns_placed(board, char)
+		and all_arrows_placed(board, char)
+	)
 
 
 def idle_until(condition=None, timeout=100, message="Timed out"):
 	"""Advance frames until ``condition()`` is true
 
-    With integer ``timeout``, give up after that many frames,
-    raising ``TimeoutError``. You can customize its ``message``.
+	With integer ``timeout``, give up after that many frames,
+	raising ``TimeoutError``. You can customize its ``message``.
 
-    """
+	"""
 	if not (timeout or condition):
 		raise ValueError("Need timeout or condition")
 	if condition is None:
@@ -81,16 +84,14 @@ def window_with_widget(wid):
 
 
 class MockTouch(MotionEvent):
-
 	def depack(self, args):
 		self.is_touch = True
-		self.sx = args['sx']
-		self.sy = args['sy']
+		self.sx = args["sx"]
+		self.sy = args["sy"]
 		super().depack(args)
 
 
 class ListenableDict(dict, Signal):
-
 	def __init__(self):
 		Signal.__init__(self)
 
@@ -112,7 +113,7 @@ class MockEngine(Signal):
 		self._ready = True
 
 	def __setattr__(self, key, value):
-		if not hasattr(self, '_ready'):
+		if not hasattr(self, "_ready"):
 			super().__setattr__(key, value)
 			return
 		self.send(self, key=key, value=value)
@@ -121,22 +122,21 @@ class MockEngine(Signal):
 	def next_turn(self, *args, **kwargs):
 		self.turn += 1
 		self.final_turn = self.turn
-		kwargs['cb']('next_turn', 'trunk', self.turn, 0, ([], {}))
+		kwargs["cb"]("next_turn", "trunk", self.turn, 0, ([], {}))
 
 	def handle(self, *args, **kwargs):
-		return {'a': 'b'}
+		return {"a": "b"}
 
 	def commit(self):
 		pass
 
 
 class ELiDEAppTest(GraphicUnitTest):
-
 	def setUp(self):
 		super(ELiDEAppTest, self).setUp()
 		self.prefix = mkdtemp()
 		self.old_argv = sys.argv.copy()
-		sys.argv = ['python', '-m', 'ELiDE', self.prefix]
+		sys.argv = ["python", "-m", "ELiDE", self.prefix]
 		self.app = ELiDEApp()
 		self.app.config = ConfigParser(None)
 		self.app.build_config(self.app.config)

@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from kivy.clock import mainthread
-from kivy.properties import (NumericProperty, ObjectProperty, StringProperty)
+from kivy.properties import NumericProperty, ObjectProperty, StringProperty
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.recycleview import RecycleView
@@ -25,15 +25,19 @@ class RuleStepper(RecycleView):
 	name = StringProperty()
 
 	def from_rules_handled_turn(self, rules_handled_turn):
-		data = [{
-			'widget': 'RuleStepperRuleButton',
-			'name': 'start',
-			'end_tick': 0,
-			'height': 40
-		}]
+		data = [
+			{
+				"widget": "RuleStepperRuleButton",
+				"name": "start",
+				"end_tick": 0,
+				"height": 40,
+			}
+		]
 		prev_tick = 0
-		for rbtyp, rules in sorted(rules_handled_turn.items(),
-									key=lambda kv: min(kv[1].keys() or [-1])):
+		for rbtyp, rules in sorted(
+			rules_handled_turn.items(),
+			key=lambda kv: min(kv[1].keys() or [-1]),
+		):
 			if not rules:
 				continue
 			last_entity = None
@@ -43,33 +47,33 @@ class RuleStepper(RecycleView):
 				if tick == prev_tick:
 					continue
 				if not typed:
-					data.append({'widget': 'RulebookTypeLabel', 'name': rbtyp})
+					data.append({"widget": "RulebookTypeLabel", "name": rbtyp})
 					typed = True
-				rulebook_per_entity = rbtyp in {'thing', 'place', 'portal'}
+				rulebook_per_entity = rbtyp in {"thing", "place", "portal"}
 				if not rulebook_per_entity:
 					if rulebook != last_rulebook:
 						last_rulebook = rulebook
-						data.append({
-							'widget': 'RulebookLabel',
-							'name': rulebook
-						})
+						data.append(
+							{"widget": "RulebookLabel", "name": rulebook}
+						)
 				if entity != last_entity:
 					last_entity = entity
-					data.append({'widget': 'EntityLabel', 'name': entity})
+					data.append({"widget": "EntityLabel", "name": entity})
 				if rulebook_per_entity:
 					if rulebook != last_rulebook:
 						rulebook = last_rulebook
-						data.append({
-							'widget': 'RulebookLabel',
-							'name': rulebook
-						})
-				data.append({
-					'widget': 'RuleStepperRuleButton',
-					'name': rule,
-					'start_tick': prev_tick,
-					'end_tick': tick,
-					'height': 40
-				})
+						data.append(
+							{"widget": "RulebookLabel", "name": rulebook}
+						)
+				data.append(
+					{
+						"widget": "RuleStepperRuleButton",
+						"name": rule,
+						"start_tick": prev_tick,
+						"end_tick": tick,
+						"height": 40,
+					}
+				)
 				prev_tick = tick
 		self.data = data
 
@@ -91,7 +95,7 @@ class RuleStepperRuleButton(Button):
 
 	@mainthread
 	def upd_line(self, *args):
-		if hasattr(self, 'color_inst'):
+		if hasattr(self, "color_inst"):
 			if self.tick == self.end_tick:
 				self.color_inst.rgba = [1, 0, 0, 1]
 				self.line.points = [self.x, self.y, self.right, self.y]
@@ -99,10 +103,16 @@ class RuleStepperRuleButton(Button):
 				self.color_inst.rgba = [0, 0, 0, 0]
 		else:
 			with self.canvas:
-				self.color_inst = Color(rgba=([1, 0, 0, 1] if self.tick in (
-					self.start_tick, self.end_tick) else [0, 0, 0, 0]))
+				self.color_inst = Color(
+					rgba=(
+						[1, 0, 0, 1]
+						if self.tick in (self.start_tick, self.end_tick)
+						else [0, 0, 0, 0]
+					)
+				)
 				self.line = Line(
-					points=[self.x, self.top, self.right, self.top])
+					points=[self.x, self.top, self.right, self.top]
+				)
 
 
 class EntityLabel(Label):

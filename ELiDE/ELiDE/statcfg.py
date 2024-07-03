@@ -14,8 +14,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.properties import (DictProperty, NumericProperty, StringProperty,
-								ObjectProperty)
+from kivy.properties import (
+	DictProperty,
+	NumericProperty,
+	StringProperty,
+	ObjectProperty,
+)
 from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
@@ -26,10 +30,10 @@ from .statlist import BaseStatListView
 
 
 class FloatInput(TextInput):
-
 	def insert_text(self, s, from_undo=False):
-		return super().insert_text(''.join(c for c in s if c in '0123456789.'),
-									from_undo)
+		return super().insert_text(
+			"".join(c for c in s if c in "0123456789."), from_undo
+		)
 
 
 class ControlTypePicker(Button):
@@ -57,71 +61,86 @@ class ControlTypePicker(Button):
 		self.dropdown = None
 		self.dropdown = DropDown()
 		self.dropdown.bind(
-			on_select=lambda instance, x: self.set_control(self.key, x))
-		readoutbut = Button(text='readout',
-							size_hint_y=None,
-							height=self.height,
-							background_color=(0.7, 0.7, 0.7, 1))
+			on_select=lambda instance, x: self.set_control(self.key, x)
+		)
+		readoutbut = Button(
+			text="readout",
+			size_hint_y=None,
+			height=self.height,
+			background_color=(0.7, 0.7, 0.7, 1),
+		)
 		readoutbut.bind(
-			on_release=lambda instance: self.dropdown.select('readout'))
+			on_release=lambda instance: self.dropdown.select("readout")
+		)
 		self.dropdown.add_widget(readoutbut)
-		textinbut = Button(text='textinput',
-							size_hint_y=None,
-							height=self.height,
-							background_color=(0.7, 0.7, 0.7, 1))
+		textinbut = Button(
+			text="textinput",
+			size_hint_y=None,
+			height=self.height,
+			background_color=(0.7, 0.7, 0.7, 1),
+		)
 		textinbut.bind(
-			on_release=lambda instance: self.dropdown.select('textinput'))
+			on_release=lambda instance: self.dropdown.select("textinput")
+		)
 		self.dropdown.add_widget(textinbut)
-		togbut = Button(text='togglebutton',
-						size_hint_y=None,
-						height=self.height,
-						background_color=(0.7, 0.7, 0.7, 1))
+		togbut = Button(
+			text="togglebutton",
+			size_hint_y=None,
+			height=self.height,
+			background_color=(0.7, 0.7, 0.7, 1),
+		)
 		togbut.bind(
-			on_release=lambda instance: self.dropdown.select('togglebutton'))
+			on_release=lambda instance: self.dropdown.select("togglebutton")
+		)
 		self.dropdown.add_widget(togbut)
-		sliderbut = Button(text='slider',
-							size_hint_y=None,
-							height=self.height,
-							background_color=(0.7, 0.7, 0.7, 1))
+		sliderbut = Button(
+			text="slider",
+			size_hint_y=None,
+			height=self.height,
+			background_color=(0.7, 0.7, 0.7, 1),
+		)
 		sliderbut.bind(
-			on_release=lambda instance: self.dropdown.select('slider'))
+			on_release=lambda instance: self.dropdown.select("slider")
+		)
 		self.dropdown.add_widget(sliderbut)
 		self.bind(on_release=self.dropdown.open)
 
 
 class ConfigListItemToggleButton(BoxLayout):
-	true_text = StringProperty('0')
-	false_text = StringProperty('1')
+	true_text = StringProperty("0")
+	false_text = StringProperty("1")
 
 	def set_true_text(self, *args):
-		self.parent.set_config(self.parent.key, 'true_text',
-								self.ids.truetext.text)
+		self.parent.set_config(
+			self.parent.key, "true_text", self.ids.truetext.text
+		)
 		self.true_text = self.ids.truetext.text
 
 	def set_false_text(self, *args):
-		self.parent.set_config(self.parent.key, 'false_text',
-								self.ids.falsetext.text)
+		self.parent.set_config(
+			self.parent.key, "false_text", self.ids.falsetext.text
+		)
 
 
 class ConfigListItemSlider(BoxLayout):
-	min = NumericProperty(0.)
-	max = NumericProperty(1.)
+	min = NumericProperty(0.0)
+	max = NumericProperty(1.0)
 
 	def set_min(self, *args):
 		minn = float(self.ids.minimum.text)
 		try:
-			self.parent.set_config(self.parent.key, 'min', minn)
+			self.parent.set_config(self.parent.key, "min", minn)
 			self.min = minn
 		except ValueError:
-			self.ids.minimum.text = ''
+			self.ids.minimum.text = ""
 
 	def set_max(self, *args):
 		maxx = float(self.ids.minimum.text)
 		try:
-			self.parent.set_config(self.parent.key, 'max', maxx)
+			self.parent.set_config(self.parent.key, "max", maxx)
 			self.max = maxx
 		except ValueError:
-			self.ids.maximum.text = ''
+			self.ids.maximum.text = ""
 
 
 class ConfigListItemCustomizer(BoxLayout):
@@ -132,20 +151,25 @@ class ConfigListItemCustomizer(BoxLayout):
 
 	def on_control(self, *args):
 		self.clear_widgets()
-		if self.control == 'togglebutton':
-			if 'true_text' not in self.config or 'false_text' not in self.config:
+		if self.control == "togglebutton":
+			if (
+				"true_text" not in self.config
+				or "false_text" not in self.config
+			):
 				Clock.schedule_once(self.on_control, 0)
 				return
 			wid = ConfigListItemToggleButton(
-				true_text=self.config['true_text'],
-				false_text=self.config['false_text'])
+				true_text=self.config["true_text"],
+				false_text=self.config["false_text"],
+			)
 			self.add_widget(wid)
-		elif self.control == 'slider':
-			if 'min' not in self.config or 'max' not in self.config:
+		elif self.control == "slider":
+			if "min" not in self.config or "max" not in self.config:
 				Clock.schedule_once(self.on_control, 0)
 				return
-			wid = ConfigListItemSlider(min=self.config['min'],
-										max=self.config['max'])
+			wid = ConfigListItemSlider(
+				min=self.config["min"], max=self.config["max"]
+			)
 			self.add_widget(wid)
 
 
@@ -164,25 +188,25 @@ class StatListViewConfigurator(BaseStatListView):
 	_control_wids = DictProperty()
 
 	def set_control(self, key, value):
-		config = self.proxy.get('_config', {})
-		if value == 'slider':
-			if 'min' not in config:
-				self.set_config(key, 'min', 0.0)
-			if 'max' not in config:
-				self.set_config(key, 'max', 1.0)
-		elif value == 'togglebutton':
-			if 'true_text' not in config:
-				self.set_config(key, 'true_text', '1')
-			if 'false_text' not in config:
-				self.set_config(key, 'false_text', '0')
-		self.set_config(key, 'control', value)
+		config = self.proxy.get("_config", {})
+		if value == "slider":
+			if "min" not in config:
+				self.set_config(key, "min", 0.0)
+			if "max" not in config:
+				self.set_config(key, "max", 1.0)
+		elif value == "togglebutton":
+			if "true_text" not in config:
+				self.set_config(key, "true_text", "1")
+			if "false_text" not in config:
+				self.set_config(key, "false_text", "0")
+		self.set_config(key, "control", value)
 
 	def munge(self, k, v):
 		# makes ConfigListItem
 		ret = super().munge(k, v)
-		ret['deleter'] = self.del_key
-		ret['set_control'] = self.set_control
-		ret['set_config'] = self.set_config
+		ret["deleter"] = self.del_key
+		ret["set_control"] = self.set_control
+		ret["set_config"] = self.set_config
 		return ret
 
 
@@ -212,8 +236,8 @@ class StatScreen(Screen):
 			self.proxy[key] = self.engine.unpack(value)
 		except (TypeError, ValueError):
 			self.proxy[key] = value
-		self.ids.newstatkey.text = ''
-		self.ids.newstatval.text = ''
+		self.ids.newstatkey.text = ""
+		self.ids.newstatval.text = ""
 
 
 Builder.load_string("""

@@ -19,7 +19,7 @@ from LiSE.exc import AmbiguousUserError
 
 @pytest.fixture(scope="function")
 def someplace(engy):
-	yield engy.new_character('physical').new_place('someplace')
+	yield engy.new_character("physical").new_place("someplace")
 
 
 def test_contents(someplace):
@@ -33,7 +33,7 @@ def test_contents(someplace):
 		assert that in someplace.contents()
 	for that in someplace.contents():
 		assert that in stuff
-	elsewhere = someplace.character.new_place('elsewhere')
+	elsewhere = someplace.character.new_place("elsewhere")
 	fust = elsewhere.new_thing(11)
 	assert fust not in someplace.contents()
 	assert 11 not in someplace.content
@@ -43,47 +43,47 @@ def test_contents(someplace):
 
 def test_portal(someplace):
 	assert not someplace.portal
-	assert 'there' not in someplace.portal
-	there = someplace.character.new_place('there')
+	assert "there" not in someplace.portal
+	there = someplace.character.new_place("there")
 	assert not there.preportal
-	assert 'someplace' not in there.preportal
-	someplace.character.new_portal('someplace', 'there')
+	assert "someplace" not in there.preportal
+	someplace.character.new_portal("someplace", "there")
 	assert someplace.portal
-	assert 'there' in someplace.portal
-	assert 'there' not in someplace.preportal
+	assert "there" in someplace.portal
+	assert "there" not in someplace.preportal
 	assert there.preportal
-	assert 'someplace' in there.preportal
-	assert 'someplace' not in there.portal
-	someplace.character.remove_edge('someplace', 'there')
-	assert 'there' not in someplace.portal
-	assert 'someplace' not in there.preportal
+	assert "someplace" in there.preportal
+	assert "someplace" not in there.portal
+	someplace.character.remove_edge("someplace", "there")
+	assert "there" not in someplace.portal
+	assert "someplace" not in there.preportal
 
 
 def test_user(someplace):
 	with pytest.raises(AmbiguousUserError):
 		someplace.user.only
-	someone = someplace.engine.new_character('someone')
+	someone = someplace.engine.new_character("someone")
 	someone.add_unit(someplace)
 	assert someplace.user.only is someone
-	assert 'someone' in someplace.user
-	assert someplace.user['someone'] is someone
-	noone = someplace.engine.new_character('noone')
-	assert 'noone' not in someplace.user
+	assert "someone" in someplace.user
+	assert someplace.user["someone"] is someone
+	noone = someplace.engine.new_character("noone")
+	assert "noone" not in someplace.user
 	noone.add_unit(someplace)
 	with pytest.raises(AmbiguousUserError):
 		someplace.user.only
-	assert 'noone' in someplace.user
-	assert someplace.user['noone'] is noone
+	assert "noone" in someplace.user
+	assert someplace.user["noone"] is noone
 
 
 def test_rulebook(someplace):
-	assert someplace.rulebook.name == ('physical', 'someplace')
-	someplace.rulebook = 'imadeitup'
-	assert someplace.rulebook.name == 'imadeitup'
+	assert someplace.rulebook.name == ("physical", "someplace")
+	someplace.rulebook = "imadeitup"
+	assert someplace.rulebook.name == "imadeitup"
 
 
 def test_deletion_after_keyframe(engy):
-	phys = engy.new_character('physical', data=nx.grid_2d_graph(8, 8))
+	phys = engy.new_character("physical", data=nx.grid_2d_graph(8, 8))
 	del phys.place[5, 5]
 	assert (5, 5) not in phys.place
 	assert (5, 5) not in list(phys.place)
@@ -94,13 +94,13 @@ def test_deletion_after_keyframe(engy):
 
 
 def test_clear(engy):
-	phys = engy.new_character('physical')
-	place = phys.new_place('here')
-	place['a'] = 1
-	place['b'] = 2
-	assert place['a'] == 1
-	assert place['b'] == 2
+	phys = engy.new_character("physical")
+	place = phys.new_place("here")
+	place["a"] = 1
+	place["b"] = 2
+	assert place["a"] == 1
+	assert place["b"] == 2
 	place.clear()
-	assert 'a' not in place
+	assert "a" not in place
 	with pytest.raises(KeyError):
-		print(place['b'])
+		print(place["b"])

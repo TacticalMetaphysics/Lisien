@@ -17,10 +17,17 @@ one :class:`kivy.uix.togglebutton.ToggleButton` apiece, arranged in a
 :class:`kivy.uix.stacklayout.StackLayout`. The user selects graphics
 from the :class:`Pallet`, and the :class:`Pallet` updates its
 ``selection`` list to show what the user selected."""
+
 from kivy.clock import Clock
-from kivy.properties import (DictProperty, NumericProperty, ObjectProperty,
-								OptionProperty, ListProperty,
-								ReferenceListProperty, StringProperty)
+from kivy.properties import (
+	DictProperty,
+	NumericProperty,
+	ObjectProperty,
+	OptionProperty,
+	ListProperty,
+	ReferenceListProperty,
+	StringProperty,
+)
 from kivy.resources import resource_find
 from kivy.atlas import Atlas
 from kivy.lang import Builder
@@ -37,16 +44,17 @@ class SwatchButton(ToggleButton):
 	toggled, will report the fact to the :class:`Pallet` it's in.
 
 	"""
+
 	tex = ObjectProperty()
 	"""Texture to display here"""
 
 	def on_state(self, *args):
-		if self.state == 'down':
-			assert (self not in self.parent.selection)
-			if self.parent.selection_mode == 'single':
+		if self.state == "down":
+			assert self not in self.parent.selection
+			if self.parent.selection_mode == "single":
 				for wid in self.parent.selection:
 					if wid is not self:
-						wid.state = 'normal'
+						wid.state = "normal"
 				self.parent.selection = [self]
 			else:
 				self.parent.selection.append(self)
@@ -60,11 +68,13 @@ class SwatchButton(ToggleButton):
 			return
 		self.canvas.after.clear()
 		with self.canvas.after:
-			self._img_rect = Rectangle(pos=self._get_img_rect_pos(),
-										size=self.tex.size,
-										texture=self.tex)
-		self.fbind('pos', self._upd_img_rect_pos)
-		self.fbind('tex', self._upd_img_rect_tex)
+			self._img_rect = Rectangle(
+				pos=self._get_img_rect_pos(),
+				size=self.tex.size,
+				texture=self.tex,
+			)
+		self.fbind("pos", self._upd_img_rect_pos)
+		self.fbind("tex", self._upd_img_rect_tex)
 
 	def _get_img_rect_pos(self):
 		x, y = self.pos
@@ -88,6 +98,7 @@ class SwatchButton(ToggleButton):
 
 class Pallet(StackLayout):
 	"""Many :class:`SwatchButton`, gathered from an :class:`kivy.atlas.Atlas`."""
+
 	atlas = ObjectProperty()
 	""":class:`kivy.atlas.Atlas` object I'll make :class:`SwatchButton` from."""
 	filename = StringProperty()
@@ -102,12 +113,13 @@ class Pallet(StackLayout):
 	"""Size of each and every :class:`SwatchButton` here"""
 	selection = ListProperty([])
 	"""List of :class:`SwatchButton`s that are selected"""
-	selection_mode = OptionProperty('single', options=['single', 'multiple'])
+	selection_mode = OptionProperty("single", options=["single", "multiple"])
 	"""Whether to allow only a 'single' selected :class:`SwatchButton` (default), or 'multiple'"""
 
 	def on_selection(self, *args):
-		Logger.debug('Pallet: {} got selection {}'.format(
-			self.filename, self.selection))
+		Logger.debug(
+			"Pallet: {} got selection {}".format(self.filename, self.selection)
+		)
 
 	def on_filename(self, *args):
 		if not self.filename:
@@ -137,21 +149,24 @@ class Pallet(StackLayout):
 			if name not in atlas_textures:
 				remove_widget(swatch)
 				del swatches[name]
-		for (name, tex) in atlas_textures.items():
+		for name, tex in atlas_textures.items():
 			if name in swatches and swatches[name] != tex:
 				remove_widget(swatches[name])
 			if name not in swatches or swatches[name] != tex:
-				swatches[name] = SwatchButton(text=name,
-												tex=tex,
-												size_hint=(None, None),
-												size=swatch_size)
+				swatches[name] = SwatchButton(
+					text=name,
+					tex=tex,
+					size_hint=(None, None),
+					size=swatch_size,
+				)
 				add_widget(swatches[name])
 
 	def _trigger_upd_textures(self, *args):
-		if hasattr(self, '_scheduled_upd_textures'):
+		if hasattr(self, "_scheduled_upd_textures"):
 			Clock.unschedule(self._scheduled_upd_textures)
 		self._scheduled_upd_textures = Clock.schedule_once(
-			self._trigger_upd_textures)
+			self._trigger_upd_textures
+		)
 
 
 kv = """
