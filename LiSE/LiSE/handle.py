@@ -118,7 +118,6 @@ def _packed_dict_delta(old: Dict[bytes, bytes],
 	return pre, post
 
 
-
 def _set_delta_added(old: Set[bytes], new: Set[bytes],
 						former: Dict[bytes, bytes], current: Dict[bytes,
 																	bytes]):
@@ -150,7 +149,8 @@ def concat_d(r: Dict[bytes, bytes]) -> bytes:
 
 
 def concat_s(s: Set[bytes]) -> bytes:
-	"""Pack a set of msgpack-encoded values into a msgpack array with ext code """ + str(SET_CODE)
+	"""Pack a set of msgpack-encoded values into a msgpack array with ext code """ + str(
+		SET_CODE)
 	resp = msgpack.Packer().pack_array_header(len(s))
 	for v in s:
 		resp += v
@@ -616,10 +616,12 @@ class EngineHandle(object):
 				delta[graph][EDGES] = {origdest: existence}
 			else:
 				delta[graph][EDGES][origdest] = existence
+
 		futs = []
 		with ThreadPoolExecutor() as pool:
-			for k, va, vb, _ in filter(itemgetter(3),
-									zip(keys, values_from, values_to, values_changed)):
+			for k, va, vb, _ in filter(
+				itemgetter(3), zip(keys, values_from, values_to,
+									values_changed)):
 				futs.append(pool.submit(pack_one, k, va, vb))
 			for graph in kf_from['nodes'].keys() & kf_to['nodes'].keys():
 				for node in kf_from['nodes'][graph].keys(
@@ -628,11 +630,11 @@ class EngineHandle(object):
 				for node in kf_to['nodes'][graph].keys(
 				) - kf_from['nodes'][graph].keys():
 					futs.append(pool.submit(pack_node, graph, node, TRUE))
-			for graph, orig, dest in kf_from['edges'].keys() - kf_to['edges'].keys(
-			):
+			for graph, orig, dest in kf_from['edges'].keys(
+			) - kf_to['edges'].keys():
 				futs.append(pool.submit(pack_edge, graph, orig, dest, FALSE))
-			for graph, orig, dest in kf_to['edges'].keys() - kf_from['edges'].keys(
-			):
+			for graph, orig, dest in kf_to['edges'].keys(
+			) - kf_from['edges'].keys():
 				futs.append(pool.submit(pack_edge, graph, orig, dest, TRUE))
 			rud = self.all_rules_delta(btt_from=btt_from, btt_to=btt_to)
 			if rud:
