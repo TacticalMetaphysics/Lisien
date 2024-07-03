@@ -1344,7 +1344,7 @@ class CharacterProxy(AbstractCharacter):
 					else:
 						self.place._cache[node] = prox = PlaceProxy(self, node)
 						self.place.send(prox, key=None, value=True)
-					self.node.send(prox, key=None, value=None)
+					self.node.send(prox, key=None, value=True)
 			else:
 				prox = self.node[node]
 				if node in self.place._cache:
