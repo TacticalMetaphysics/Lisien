@@ -1340,11 +1340,11 @@ class CharacterProxy(AbstractCharacter):
 					if nodeval and 'location' in nodeval:
 						self.thing._cache[node] = prox = ThingProxy(
 							self, node, nodeval['location'])
-						self.thing.send(self.thing, key=node, value=prox)
+						self.thing.send(prox, key=None, value=True)
 					else:
 						self.place._cache[node] = prox = PlaceProxy(self, node)
-						self.place.send(self.place, key=node, value=prox)
-					self.node.send(prox, key=None, value=True)
+						self.place.send(prox, key=None, value=True)
+					self.node.send(prox, key=None, value=None)
 			else:
 				prox = self.node[node]
 				if node in self.place._cache:

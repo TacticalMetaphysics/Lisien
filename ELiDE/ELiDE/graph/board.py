@@ -21,7 +21,7 @@ from kivy.properties import (BooleanProperty, ReferenceListProperty,
 								ListProperty, StringProperty)
 from kivy.lang import Builder
 from kivy.logger import Logger
-from kivy.clock import Clock
+from kivy.clock import Clock, mainthread
 from kivy.uix.image import Image
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.floatlayout import FloatLayout
@@ -762,6 +762,7 @@ class GraphBoard(RelativeLayout):
 			Clock.unschedule(self._scheduled_add_pawn[thingn])
 		self._scheduled_add_pawn[thingn] = Clock.schedule_once(part, 0)
 
+	@mainthread
 	def add_new_pawns(self, *args):
 		Logger.debug("Board: adding new pawns to {}".format(
 			self.character.name))
@@ -776,7 +777,7 @@ class GraphBoard(RelativeLayout):
 		for thing in things2add:
 			pwn = make_pawn(thing)
 			nodes_patch[thing['name']] = {
-				'_image_paths': list(pwn['textures'])
+				'_image_paths': list(pwn.get('textures', Pawn.default_image_paths))
 			}
 			pawns_added.append(pwn)
 		if nodes_patch:
@@ -839,6 +840,7 @@ class GraphBoard(RelativeLayout):
 	def update_from_character_stat(self, character, key, value):
 		pass
 
+	@mainthread
 	def update_from_character_node(self, node, key, value):
 		if hasattr(node, 'location'):
 			if not node:
