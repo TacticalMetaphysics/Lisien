@@ -16,8 +16,7 @@
 ordinary method calls.
 
 """
-import sys
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import ThreadPoolExecutor
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from operator import itemgetter
 from re import match
@@ -644,7 +643,6 @@ class EngineHandle(object):
 			unid = self.universal_delta(btt_from=btt_from, btt_to=btt_to)
 			if unid:
 				delta[UNIVERSAL] = unid
-			wait(futs)
 		return delta
 
 	@prepacked
