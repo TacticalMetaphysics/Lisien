@@ -249,7 +249,7 @@ class GridBoard(Widget):
 		Clock.schedule_once(part, 0)
 
 	def update_from_thing(self, thing, key, value):
-		if thing:
+		if thing and not (key is None and not value):
 			if thing.name not in self.pawn:
 				self.add_pawn(thing.name)
 			elif key == 'location':
