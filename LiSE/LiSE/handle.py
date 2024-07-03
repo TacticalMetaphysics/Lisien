@@ -621,7 +621,7 @@ class EngineHandle(object):
 		with ThreadPoolExecutor() as pool:
 			for k, va, vb, _ in filter(itemgetter(3),
 									zip(keys, values_from, values_to, values_changed)):
-				futs.append(pool.submit(pack_one, pool, k, va, vb))
+				futs.append(pool.submit(pack_one, k, va, vb))
 			for graph in kf_from['nodes'].keys() & kf_to['nodes'].keys():
 				for node in kf_from['nodes'][graph].keys(
 				) - kf_to['nodes'][graph].keys():
