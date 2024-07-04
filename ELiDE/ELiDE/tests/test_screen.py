@@ -159,6 +159,9 @@ class ScreenTest(ELiDEAppTest):
 			100,
 			"Never made spot for location 0",
 		)
+		idle_until(
+			lambda: 2 in graphboard.pawn, 100, "Never made pawn for thing 2"
+		)
 		locspot0 = graphboard.spot[0, 0]
 		gridspot0 = gridboard.spot[0, 0]
 		locspot1 = graphboard.spot[1, 1]
