@@ -37,8 +37,13 @@
 
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span>
 <span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="kn">import</span> <span class="n">Logger</span>
-<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span><span class="n">ListProperty</span><span class="p">,</span> <span class="n">NumericProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span><span class="p">,</span>
-								<span class="n">ReferenceListProperty</span><span class="p">,</span> <span class="n">BooleanProperty</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span>
+	<span class="n">ListProperty</span><span class="p">,</span>
+	<span class="n">NumericProperty</span><span class="p">,</span>
+	<span class="n">ObjectProperty</span><span class="p">,</span>
+	<span class="n">ReferenceListProperty</span><span class="p">,</span>
+	<span class="n">BooleanProperty</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.widget</span> <span class="kn">import</span> <span class="n">Widget</span>
 <span class="kn">from</span> <span class="nn">kivy.lang.builder</span> <span class="kn">import</span> <span class="n">Builder</span>
 <span class="kn">from</span> <span class="nn">kivy.vector</span> <span class="kn">import</span> <span class="n">Vector</span>
@@ -86,9 +91,11 @@
 		<span class="n">make_spot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_spot</span>
 		<span class="n">make_pawn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_pawn</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-			<span class="nb">map</span><span class="p">(</span><span class="n">make_spot</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+			<span class="nb">map</span><span class="p">(</span><span class="n">make_spot</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">pawn_plane</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-			<span class="nb">map</span><span class="p">(</span><span class="n">make_pawn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+			<span class="nb">map</span><span class="p">(</span><span class="n">make_pawn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">redraw</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">pawn_plane</span><span class="o">.</span><span class="n">redraw</span><span class="p">()</span>
 
@@ -105,11 +112,17 @@
 		<span class="n">placen</span> <span class="o">=</span> <span class="n">place</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">placen</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">placen</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-				<span class="s2">&quot;Can only make spot from places with tuple names of length 2&quot;</span><span class="p">)</span>
-		<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">placen</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">placen</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
-			<span class="n">placen</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">placen</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">int</span><span class="p">):</span>
+				<span class="s2">&quot;Can only make spot from places with tuple names of length 2&quot;</span>
+			<span class="p">)</span>
+		<span class="k">if</span> <span class="p">(</span>
+			<span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">placen</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+			<span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">placen</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span>
+			<span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">placen</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">)</span>
+			<span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">placen</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">int</span><span class="p">)</span>
+		<span class="p">):</span>
 			<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-				<span class="s2">&quot;GridBoard can only display places named with pairs of ints&quot;</span><span class="p">)</span>
+				<span class="s2">&quot;GridBoard can only display places named with pairs of ints&quot;</span>
+			<span class="p">)</span>
 		<span class="k">if</span> <span class="s2">&quot;_image_paths&quot;</span> <span class="ow">in</span> <span class="n">place</span><span class="p">:</span>
 			<span class="n">textures</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">place</span><span class="p">[</span><span class="s2">&quot;_image_paths&quot;</span><span class="p">])</span>
 		<span class="k">else</span><span class="p">:</span>
@@ -121,29 +134,23 @@
 			<span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tile_width</span><span class="p">),</span>
 			<span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tile_height</span><span class="p">),</span>
 			<span class="s2">&quot;textures&quot;</span><span class="p">:</span> <span class="n">textures</span><span class="p">,</span>
-			<span class="s2">&quot;proxy&quot;</span><span class="p">:</span> <span class="n">place</span>
+			<span class="s2">&quot;proxy&quot;</span><span class="p">:</span> <span class="n">place</span><span class="p">,</span>
 		<span class="p">}</span>
 		<span class="k">return</span> <span class="n">r</span>
 
 	<span class="k">def</span> <span class="nf">make_pawn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 		<span class="n">location</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">thing</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]]</span>
 		<span class="n">r</span> <span class="o">=</span> <span class="p">{</span>
-			<span class="s2">&quot;name&quot;</span><span class="p">:</span>
-			<span class="n">thing</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
-			<span class="s2">&quot;x&quot;</span><span class="p">:</span>
-			<span class="nb">int</span><span class="p">(</span><span class="n">location</span><span class="o">.</span><span class="n">x</span><span class="p">),</span>
-			<span class="s2">&quot;y&quot;</span><span class="p">:</span>
-			<span class="nb">int</span><span class="p">(</span><span class="n">location</span><span class="o">.</span><span class="n">y</span><span class="p">),</span>
-			<span class="s2">&quot;width&quot;</span><span class="p">:</span>
-			<span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tile_width</span><span class="p">),</span>
-			<span class="s2">&quot;height&quot;</span><span class="p">:</span>
-			<span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tile_height</span><span class="p">),</span>
-			<span class="s2">&quot;location&quot;</span><span class="p">:</span>
-			<span class="n">location</span><span class="p">,</span>
-			<span class="s2">&quot;textures&quot;</span><span class="p">:</span>
-			<span class="nb">list</span><span class="p">(</span><span class="n">thing</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_image_paths&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn_cls</span><span class="o">.</span><span class="n">default_image_paths</span><span class="p">)),</span>
-			<span class="s2">&quot;proxy&quot;</span><span class="p">:</span>
-			<span class="n">thing</span>
+			<span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">thing</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+			<span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">location</span><span class="o">.</span><span class="n">x</span><span class="p">),</span>
+			<span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">location</span><span class="o">.</span><span class="n">y</span><span class="p">),</span>
+			<span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tile_width</span><span class="p">),</span>
+			<span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tile_height</span><span class="p">),</span>
+			<span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">location</span><span class="p">,</span>
+			<span class="s2">&quot;textures&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span>
+				<span class="n">thing</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_image_paths&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn_cls</span><span class="o">.</span><span class="n">default_image_paths</span><span class="p">)</span>
+			<span class="p">),</span>
+			<span class="s2">&quot;proxy&quot;</span><span class="p">:</span> <span class="n">thing</span><span class="p">,</span>
 		<span class="p">}</span>
 		<span class="k">return</span> <span class="n">r</span>
 
@@ -154,7 +161,7 @@
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Already have a pawn for </span><span class="si">{</span><span class="n">thingn</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 		<span class="n">pwn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_pawn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">thingn</span><span class="p">])</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">pawn</span><span class="p">[</span><span class="n">thingn</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn_cls</span><span class="p">(</span><span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">proxy</span><span class="o">=</span><span class="n">pwn</span><span class="p">[</span><span class="s2">&quot;proxy&quot;</span><span class="p">])</span>
-		<span class="n">location</span> <span class="o">=</span> <span class="n">pwn</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]</span>
+		<span class="n">location</span> <span class="o">=</span> <span class="n">pwn</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">contained</span><span class="p">[</span><span class="n">location</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">thingn</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">pawn_plane</span><span class="o">.</span><span class="n">add_datum</span><span class="p">(</span><span class="n">pwn</span><span class="p">)</span>
 
@@ -169,44 +176,56 @@
 			<span class="k">return</span>
 		<span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;GridBoard: on_parent start&quot;</span><span class="p">)</span>
 		<span class="n">start_ts</span> <span class="o">=</span> <span class="n">monotonic</span><span class="p">()</span>
-		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_pawn_plane&#39;</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_pawn_plane&quot;</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">pawn_plane</span> <span class="o">=</span> <span class="n">TextureStackPlane</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span> <span class="o">=</span> <span class="n">TextureStackPlane</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pawn_plane</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">),</span>
-						<span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pawn_plane</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">))</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">),</span>
-						<span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+				<span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pawn_plane</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;pos&quot;</span><span class="p">),</span>
+				<span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pawn_plane</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;size&quot;</span><span class="p">),</span>
+			<span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+				<span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;pos&quot;</span><span class="p">),</span>
+				<span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;size&quot;</span><span class="p">),</span>
+			<span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pawn_plane</span><span class="p">)</span>
 		<span class="n">spot_data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
 			<span class="nb">map</span><span class="p">(</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">make_spot</span><span class="p">,</span>
 				<span class="nb">filter</span><span class="p">(</span>
-					<span class="k">lambda</span> <span class="n">spot</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spot</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">spot</span><span class="p">[</span>
-						<span class="s2">&quot;name&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
+					<span class="k">lambda</span> <span class="n">spot</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spot</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">)</span>
+					<span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">spot</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span>
+				<span class="p">),</span>
+			<span class="p">)</span>
+		<span class="p">)</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">spot_data</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn_plane</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
 			<span class="k">return</span>
 		<span class="k">for</span> <span class="n">spt</span> <span class="ow">in</span> <span class="n">spot_data</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">spt</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot_cls</span><span class="p">(</span><span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
-													<span class="n">proxy</span><span class="o">=</span><span class="n">spt</span><span class="p">[</span><span class="s2">&quot;proxy&quot;</span><span class="p">])</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">_redraw_bind_uid</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">spt</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot_cls</span><span class="p">(</span>
+				<span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">proxy</span><span class="o">=</span><span class="n">spt</span><span class="p">[</span><span class="s2">&quot;proxy&quot;</span><span class="p">]</span>
+			<span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">_redraw_bind_uid</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">spot_data</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">redraw</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">_redraw_bind_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
-			<span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">_trigger_redraw</span><span class="p">)</span>
+			<span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">_trigger_redraw</span>
+		<span class="p">)</span>
 		<span class="n">wide</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">datum</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">datum</span> <span class="ow">in</span> <span class="n">spot_data</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile_width</span>
 		<span class="n">high</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">datum</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">datum</span> <span class="ow">in</span> <span class="n">spot_data</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile_width</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn_plane</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">wide</span><span class="p">,</span> <span class="n">high</span>
 		<span class="n">pawn_data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">make_pawn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
 		<span class="k">for</span> <span class="n">pwn</span> <span class="ow">in</span> <span class="n">pawn_data</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">pawn</span><span class="p">[</span><span class="n">pwn</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn_cls</span><span class="p">(</span><span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
-													<span class="n">proxy</span><span class="o">=</span><span class="n">pwn</span><span class="p">[</span><span class="s2">&quot;proxy&quot;</span><span class="p">])</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">pawn</span><span class="p">[</span><span class="n">pwn</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn_cls</span><span class="p">(</span>
+				<span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">proxy</span><span class="o">=</span><span class="n">pwn</span><span class="p">[</span><span class="s2">&quot;proxy&quot;</span><span class="p">]</span>
+			<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">pawn_plane</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pawn_data</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">update_from_thing</span><span class="p">)</span>
 		<span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
 			<span class="sa">f</span><span class="s2">&quot;GridBoard: on_parent end, took </span><span class="si">{</span><span class="n">monotonic</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start_ts</span><span class="si">:</span><span class="s2">,.2f</span><span class="si">}</span><span class="s2">&quot;</span>
-			<span class="sa">f</span><span class="s2">&quot; seconds&quot;</span><span class="p">)</span>
+			<span class="sa">f</span><span class="s2">&quot; seconds&quot;</span>
+		<span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">rm_spot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
 		<span class="n">spot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
@@ -244,12 +263,15 @@
 			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">contained</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
-		<span class="k">if</span> <span class="s1">&#39;nodes&#39;</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">:</span>
-			<span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">extant</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="s1">&#39;nodes&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+		<span class="k">if</span> <span class="s2">&quot;nodes&quot;</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">:</span>
+			<span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">extant</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="s2">&quot;nodes&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 				<span class="k">if</span> <span class="n">extant</span><span class="p">:</span>
-					<span class="k">if</span> <span class="s1">&#39;node_val&#39;</span> <span class="ow">in</span> <span class="n">delta</span> <span class="ow">and</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span>
-						<span class="s1">&#39;node_val&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="s1">&#39;location&#39;</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="s1">&#39;node_val&#39;</span><span class="p">][</span>
-							<span class="n">node</span><span class="p">]</span> <span class="ow">and</span> <span class="n">node</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">pawnmap</span><span class="p">:</span>
+					<span class="k">if</span> <span class="p">(</span>
+						<span class="s2">&quot;node_val&quot;</span> <span class="ow">in</span> <span class="n">delta</span>
+						<span class="ow">and</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="s2">&quot;node_val&quot;</span><span class="p">]</span>
+						<span class="ow">and</span> <span class="s2">&quot;location&quot;</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="s2">&quot;node_val&quot;</span><span class="p">][</span><span class="n">node</span><span class="p">]</span>
+						<span class="ow">and</span> <span class="n">node</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">pawnmap</span>
+					<span class="p">):</span>
 						<span class="n">add_pawn</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
 					<span class="k">elif</span> <span class="n">node</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">spotmap</span><span class="p">:</span>
 						<span class="n">add_spot</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
@@ -258,23 +280,27 @@
 						<span class="n">rm_pawn</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
 					<span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">spotmap</span><span class="p">:</span>
 						<span class="n">rm_spot</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-		<span class="k">if</span> <span class="s1">&#39;node_val&#39;</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">:</span>
-			<span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">stats</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="s1">&#39;node_val&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-				<span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">spotmap</span> <span class="ow">and</span> <span class="s1">&#39;_image_paths&#39;</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">:</span>
-					<span class="n">spotmap</span><span class="p">[</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span>
-						<span class="s1">&#39;_image_paths&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot_cls</span><span class="o">.</span><span class="n">default_image_paths</span>
+		<span class="k">if</span> <span class="s2">&quot;node_val&quot;</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">:</span>
+			<span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">stats</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="s2">&quot;node_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+				<span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">spotmap</span> <span class="ow">and</span> <span class="s2">&quot;_image_paths&quot;</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">:</span>
+					<span class="n">spotmap</span><span class="p">[</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">(</span>
+						<span class="n">stats</span><span class="p">[</span><span class="s2">&quot;_image_paths&quot;</span><span class="p">]</span>
+						<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot_cls</span><span class="o">.</span><span class="n">default_image_paths</span>
+					<span class="p">)</span>
 				<span class="k">elif</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">pawnmap</span><span class="p">:</span>
 					<span class="n">pawn</span> <span class="o">=</span> <span class="n">pawnmap</span><span class="p">[</span><span class="n">node</span><span class="p">]</span>
-					<span class="k">if</span> <span class="s1">&#39;location&#39;</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">:</span>
+					<span class="k">if</span> <span class="s2">&quot;location&quot;</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">:</span>
 						<span class="k">try</span><span class="p">:</span>
-							<span class="n">loc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]]</span>
+							<span class="n">loc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]]</span>
 							<span class="n">pawn</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">loc</span><span class="o">.</span><span class="n">pos</span>
 						<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 							<span class="bp">self</span><span class="o">.</span><span class="n">rm_pawn</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-					<span class="k">if</span> <span class="s1">&#39;_image_paths&#39;</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">:</span>
-						<span class="n">pawn</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span>
-							<span class="s1">&#39;_image_paths&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn_cls</span><span class="o">.</span><span class="n">default_image_paths</span>
-				<span class="k">elif</span> <span class="s1">&#39;location&#39;</span> <span class="ow">in</span> <span class="n">stats</span> <span class="ow">and</span> <span class="n">stats</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">:</span>
+					<span class="k">if</span> <span class="s2">&quot;_image_paths&quot;</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">:</span>
+						<span class="n">pawn</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">(</span>
+							<span class="n">stats</span><span class="p">[</span><span class="s2">&quot;_image_paths&quot;</span><span class="p">]</span>
+							<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn_cls</span><span class="o">.</span><span class="n">default_image_paths</span>
+						<span class="p">)</span>
+				<span class="k">elif</span> <span class="s2">&quot;location&quot;</span> <span class="ow">in</span> <span class="n">stats</span> <span class="ow">and</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">:</span>
 					<span class="bp">self</span><span class="o">.</span><span class="n">add_pawn</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">trigger_update_from_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -283,10 +309,10 @@
 		<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">part</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">update_from_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-		<span class="k">if</span> <span class="n">thing</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">thing</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">value</span><span class="p">):</span>
 			<span class="k">if</span> <span class="n">thing</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn</span><span class="p">:</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">add_pawn</span><span class="p">(</span><span class="n">thing</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-			<span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;location&#39;</span><span class="p">:</span>
+			<span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;location&quot;</span><span class="p">:</span>
 				<span class="k">if</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">:</span>
 					<span class="n">loc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">value</span><span class="p">]</span>
 					<span class="n">pwn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn</span><span class="p">[</span><span class="n">thing</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
@@ -300,17 +326,29 @@
 <div class="viewcode-block" id="GridBoard.on_touch_down">
 <a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.grid.board.GridBoard.on_touch_down">[docs]</a>
 	<span class="k">def</span> <span class="nf">on_touch_down</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">selection_candidates</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">chain</span><span class="p">(</span>
-			<span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pawn</span><span class="o">.</span><span class="n">get</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn_plane</span><span class="o">.</span><span class="n">iter_collided_keys</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">)),</span>
-			<span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="o">.</span><span class="n">get</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">iter_collided_keys</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">))</span>
-		<span class="p">))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">selection_candidates</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+			<span class="n">chain</span><span class="p">(</span>
+				<span class="nb">map</span><span class="p">(</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">pawn</span><span class="o">.</span><span class="n">get</span><span class="p">,</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">pawn_plane</span><span class="o">.</span><span class="n">iter_collided_keys</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">),</span>
+				<span class="p">),</span>
+				<span class="nb">map</span><span class="p">(</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="o">.</span><span class="n">get</span><span class="p">,</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">iter_collided_keys</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">),</span>
+				<span class="p">),</span>
+			<span class="p">)</span>
+		<span class="p">)</span>
 		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">on_touch_down</span><span class="p">(</span><span class="n">touch</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="GridBoard.on_touch_up">
 <a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.grid.board.GridBoard.on_touch_up">[docs]</a>
 	<span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
-		<span class="n">touched</span> <span class="o">=</span> <span class="p">{</span><span class="n">candidate</span> <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection_candidates</span> <span class="k">if</span> <span class="n">candidate</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">)}</span>
+		<span class="n">touched</span> <span class="o">=</span> <span class="p">{</span>
+			<span class="n">candidate</span>
+			<span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection_candidates</span>
+			<span class="k">if</span> <span class="n">candidate</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+		<span class="p">}</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">touched</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">selection_candidates</span> <span class="o">=</span> <span class="p">[]</span>
 			<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">on_touch_up</span><span class="p">(</span><span class="n">touch</span><span class="p">)</span>
@@ -318,7 +356,9 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">selection</span> <span class="o">=</span> <span class="n">touched</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">selection_candidates</span> <span class="o">=</span> <span class="p">[]</span>
 			<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">on_touch_up</span><span class="p">(</span><span class="n">touch</span><span class="p">)</span>
-		<span class="n">pawns_touched</span> <span class="o">=</span> <span class="p">{</span><span class="n">node</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">touched</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn_cls</span><span class="p">)}</span>
+		<span class="n">pawns_touched</span> <span class="o">=</span> <span class="p">{</span>
+			<span class="n">node</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">touched</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn_cls</span><span class="p">)</span>
+		<span class="p">}</span>
 		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pawns_touched</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">selection</span> <span class="o">=</span> <span class="n">pawns_touched</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">selection_candidates</span> <span class="o">=</span> <span class="p">[]</span>
@@ -334,7 +374,9 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">selection</span> <span class="o">=</span> <span class="n">spots_touched</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">selection_candidates</span> <span class="o">=</span> <span class="p">[]</span>
 			<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">on_touch_up</span><span class="p">(</span><span class="n">touch</span><span class="p">)</span>
-		<span class="k">assert</span> <span class="ow">not</span> <span class="n">spots_touched</span><span class="p">,</span> <span class="s2">&quot;How do you have overlapping spots on a GridBoard??&quot;</span>
+		<span class="k">assert</span> <span class="p">(</span>
+			<span class="ow">not</span> <span class="n">spots_touched</span>
+		<span class="p">),</span> <span class="s2">&quot;How do you have overlapping spots on a GridBoard??&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">selection_candidates</span> <span class="o">=</span> <span class="p">[]</span>
 		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">on_touch_up</span><span class="p">(</span><span class="n">touch</span><span class="p">)</span></div>
 </div>
@@ -355,7 +397,8 @@
 	<span class="k">def</span> <span class="nf">pawn_from_dummy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dummy</span><span class="p">):</span>
 		<span class="n">dummy_center</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_local</span><span class="p">(</span><span class="o">*</span><span class="n">dummy</span><span class="o">.</span><span class="n">center</span><span class="p">)</span>
 		<span class="n">candidates</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">iter_collided_keys</span><span class="p">(</span><span class="o">*</span><span class="n">dummy_center</span><span class="p">))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">spot_plane</span><span class="o">.</span><span class="n">iter_collided_keys</span><span class="p">(</span><span class="o">*</span><span class="n">dummy_center</span><span class="p">)</span>
+		<span class="p">)</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">candidates</span><span class="p">:</span>
 			<span class="k">return</span>
 		<span class="n">whereat_d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">candidates</span><span class="o">.</span><span class="n">pop</span><span class="p">()]</span>
@@ -366,16 +409,20 @@
 			<span class="n">dist</span> <span class="o">=</span> <span class="n">Vector</span><span class="p">(</span><span class="o">*</span><span class="n">whereat_center</span><span class="p">)</span><span class="o">.</span><span class="n">distance</span><span class="p">(</span><span class="n">dummy_center</span><span class="p">)</span>
 			<span class="k">while</span> <span class="n">candidates</span><span class="p">:</span>
 				<span class="n">thereat_d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">candidates</span><span class="o">.</span><span class="n">pop</span><span class="p">()]</span>
-				<span class="n">thereat_center</span> <span class="o">=</span> <span class="n">thereat_d</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">half_wide</span><span class="p">,</span> <span class="n">thereat_d</span><span class="o">.</span><span class="n">y</span> <span class="o">+</span> <span class="n">half_high</span>
+				<span class="n">thereat_center</span> <span class="o">=</span> <span class="p">(</span>
+					<span class="n">thereat_d</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">half_wide</span><span class="p">,</span>
+					<span class="n">thereat_d</span><span class="o">.</span><span class="n">y</span> <span class="o">+</span> <span class="n">half_high</span><span class="p">,</span>
+				<span class="p">)</span>
 				<span class="n">thereto</span> <span class="o">=</span> <span class="n">Vector</span><span class="p">(</span><span class="o">*</span><span class="n">thereat_center</span><span class="p">)</span><span class="o">.</span><span class="n">distance</span><span class="p">(</span><span class="n">dummy_center</span><span class="p">)</span>
 				<span class="k">if</span> <span class="n">thereto</span> <span class="o">&lt;</span> <span class="n">dist</span><span class="p">:</span>
 					<span class="n">whereat_d</span><span class="p">,</span> <span class="n">dist</span> <span class="o">=</span> <span class="n">thereat_d</span><span class="p">,</span> <span class="n">thereto</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">pawn_plane</span><span class="o">.</span><span class="n">add_datum</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">make_pawn</span><span class="p">(</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">new_thing</span><span class="p">(</span><span class="n">dummy</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-												<span class="n">whereat_d</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-												<span class="n">_image_paths</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span>
-													<span class="n">dummy</span><span class="o">.</span><span class="n">paths</span><span class="p">))))</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">new_thing</span><span class="p">(</span>
+					<span class="n">dummy</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">whereat_d</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">_image_paths</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">dummy</span><span class="o">.</span><span class="n">paths</span><span class="p">)</span>
+				<span class="p">)</span>
+			<span class="p">)</span>
+		<span class="p">)</span>
 		<span class="n">dummy</span><span class="o">.</span><span class="n">num</span> <span class="o">+=</span> <span class="mi">1</span>
 
 	<span class="k">def</span> <span class="nf">on_board</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -424,7 +471,14 @@
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html">engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html#module-LiSE.character">character</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html#module-LiSE.node">node</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html#module-LiSE.portal">portal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html#module-LiSE.rule">rule</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html#module-LiSE.query">query</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html#module-LiSE.xcollections">xcollections</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../ELiDE/index.html">ELiDE</a></li>
 </ul>
 

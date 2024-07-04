@@ -1,23 +1,23 @@
-
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" data-content_root="../../../">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ELiDE.graph.arrow &#8212; LiSE 0.14.0a documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
-    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-    <script src="../../../_static/doctools.js"></script>
-    <script src="../../../_static/sphinx_highlight.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=12dfc556" />
+    <script src="../../../_static/documentation_options.js?v=fbc7b204"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
    
   <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
   
+
   
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+  
 
   </head><body>
   
@@ -51,21 +51,30 @@
 <span class="sd">screen they are at the moment.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+
 <span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">cos</span><span class="p">,</span> <span class="n">sin</span><span class="p">,</span> <span class="n">atan</span><span class="p">,</span> <span class="n">pi</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">itemgetter</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Iterator</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.widget</span> <span class="kn">import</span> <span class="n">Widget</span>
+<span class="kn">from</span> <span class="nn">kivy.core.text</span> <span class="kn">import</span> <span class="n">Label</span>
 <span class="kn">from</span> <span class="nn">kivy.graphics.fbo</span> <span class="kn">import</span> <span class="n">Fbo</span>
-<span class="kn">from</span> <span class="nn">kivy.graphics</span> <span class="kn">import</span> <span class="p">(</span><span class="n">Translate</span><span class="p">,</span> <span class="n">Rectangle</span><span class="p">,</span> <span class="n">Quad</span><span class="p">,</span> <span class="n">Color</span><span class="p">,</span> <span class="n">InstructionGroup</span><span class="p">)</span>
-<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span><span class="n">NumericProperty</span><span class="p">,</span> <span class="n">ListProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span><span class="p">)</span>
-<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span>
+<span class="kn">from</span> <span class="nn">kivy.graphics</span> <span class="kn">import</span> <span class="n">Translate</span><span class="p">,</span> <span class="n">Rectangle</span><span class="p">,</span> <span class="n">Quad</span><span class="p">,</span> <span class="n">Color</span><span class="p">,</span> <span class="n">InstructionGroup</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="n">NumericProperty</span><span class="p">,</span> <span class="n">ListProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span><span class="p">,</span> <span class="n">mainthread</span>
 
 <span class="k">try</span><span class="p">:</span>
 	<span class="kn">from</span> <span class="nn">kivy.garden.collider</span> <span class="kn">import</span> <span class="n">Collide2DPoly</span>
 <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ImportError</span><span class="p">):</span>
 	<span class="kn">from</span> <span class="nn">..collide</span> <span class="kn">import</span> <span class="n">Collide2DPoly</span>
-<span class="kn">from</span> <span class="nn">..util</span> <span class="kn">import</span> <span class="n">get_thin_rect_vertices</span><span class="p">,</span> <span class="n">fortyfive</span>
+<span class="kn">from</span> <span class="nn">..util</span> <span class="kn">import</span> <span class="p">(</span>
+	<span class="n">get_thin_rect_vertices</span><span class="p">,</span>
+	<span class="n">fortyfive</span><span class="p">,</span>
+	<span class="n">DEFAULT_ARROW_LABEL_KWARGS</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">cos45</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">fortyfive</span><span class="p">)</span>
 <span class="n">sin45</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">fortyfive</span><span class="p">)</span>
@@ -152,7 +161,9 @@
 	<span class="k">return</span> <span class="n">ow</span><span class="p">,</span> <span class="n">oh</span><span class="p">,</span> <span class="n">dw</span><span class="p">,</span> <span class="n">dh</span><span class="p">,</span> <span class="n">xco</span><span class="p">,</span> <span class="n">leftx</span><span class="p">,</span> <span class="n">rightx</span><span class="p">,</span> <span class="n">yco</span><span class="p">,</span> <span class="n">topy</span><span class="p">,</span> <span class="n">boty</span>
 
 
-<div class="viewcode-block" id="get_points_multi"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.get_points_multi">[docs]</a><span class="k">def</span> <span class="nf">get_points_multi</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="get_points_multi">
+<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.get_points_multi">[docs]</a>
+<span class="k">def</span> <span class="nf">get_points_multi</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Return a dictionary mapping (orig, dest) to pairs of point lists for arrows</span>
 
 <span class="sd">	Takes an iterable of (orig, dest, taillen) where orig and dest are Spot instances</span>
@@ -169,7 +180,7 @@
 	<span class="n">taillens</span> <span class="o">=</span> <span class="p">[]</span>
 	<span class="n">xcos</span> <span class="o">=</span> <span class="p">[]</span>
 	<span class="n">ycos</span> <span class="o">=</span> <span class="p">[]</span>
-	<span class="k">for</span> <span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+	<span class="k">for</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="n">p1</span> <span class="o">=</span> <span class="n">_get_points_first_part</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span>
 		<span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
@@ -218,13 +229,16 @@
 	<span class="n">endxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">rightxs</span><span class="p">,</span> <span class="n">xcos</span><span class="p">)</span>
 	<span class="n">endys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">topys</span><span class="p">,</span> <span class="n">ycos</span><span class="p">)</span>
 	<span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">startx</span><span class="p">,</span> <span class="n">starty</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
-		<span class="n">keys</span><span class="p">,</span> <span class="n">startxs</span><span class="p">,</span> <span class="n">startys</span><span class="p">,</span> <span class="n">endxs</span><span class="p">,</span> <span class="n">endys</span><span class="p">,</span> <span class="n">x1s</span><span class="p">,</span> <span class="n">y1s</span><span class="p">,</span> <span class="n">endxs</span><span class="p">,</span> <span class="n">endys</span><span class="p">,</span> <span class="n">x2s</span><span class="p">,</span>
-		<span class="n">y2s</span><span class="p">):</span>
+		<span class="n">keys</span><span class="p">,</span> <span class="n">startxs</span><span class="p">,</span> <span class="n">startys</span><span class="p">,</span> <span class="n">endxs</span><span class="p">,</span> <span class="n">endys</span><span class="p">,</span> <span class="n">x1s</span><span class="p">,</span> <span class="n">y1s</span><span class="p">,</span> <span class="n">endxs</span><span class="p">,</span> <span class="n">endys</span><span class="p">,</span> <span class="n">x2s</span><span class="p">,</span> <span class="n">y2s</span>
+	<span class="p">):</span>
 		<span class="n">ret</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">([</span><span class="n">startx</span><span class="p">,</span> <span class="n">starty</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">],</span> <span class="p">[</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">])</span>
 	<span class="k">return</span> <span class="n">ret</span></div>
 
 
-<div class="viewcode-block" id="get_points"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.get_points">[docs]</a><span class="k">def</span> <span class="nf">get_points</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">):</span>
+
+<div class="viewcode-block" id="get_points">
+<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.get_points">[docs]</a>
+<span class="k">def</span> <span class="nf">get_points</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Return a pair of lists of points for use making an arrow.</span>
 
 <span class="sd">	The first list is the beginning and end point of the trunk of the arrow.</span>
@@ -262,14 +276,52 @@
 	<span class="k">return</span> <span class="p">[</span><span class="n">startx</span><span class="p">,</span> <span class="n">starty</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">],</span> <span class="p">[</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">]</span></div>
 
 
-<span class="k">def</span> <span class="nf">get_quad_vertices</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">bgr</span><span class="p">,</span> <span class="n">fgr</span><span class="p">):</span>
+
+<span class="k">def</span> <span class="nf">get_quad_vertices</span><span class="p">(</span>
+	<span class="n">ox</span><span class="p">,</span>
+	<span class="n">oy</span><span class="p">,</span>
+	<span class="n">dx</span><span class="p">,</span>
+	<span class="n">dy</span><span class="p">,</span>
+	<span class="n">x1</span><span class="p">,</span>
+	<span class="n">y1</span><span class="p">,</span>
+	<span class="n">endx</span><span class="p">,</span>
+	<span class="n">endy</span><span class="p">,</span>
+	<span class="n">x2</span><span class="p">,</span>
+	<span class="n">y2</span><span class="p">,</span>
+	<span class="n">bgr</span><span class="p">,</span>
+	<span class="n">fgr</span><span class="p">,</span>
+	<span class="n">label_w</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+	<span class="n">label_h</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="p">):</span>
+	<span class="k">if</span> <span class="n">dx</span> <span class="o">&gt;</span> <span class="n">ox</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">dy</span> <span class="o">&gt;</span> <span class="n">oy</span><span class="p">:</span>
+			<span class="n">label_pos</span> <span class="o">=</span> <span class="n">x2</span> <span class="o">-</span> <span class="n">label_w</span><span class="p">,</span> <span class="n">dy</span> <span class="o">-</span> <span class="n">label_h</span>
+		<span class="k">elif</span> <span class="n">dy</span> <span class="o">&lt;</span> <span class="n">oy</span><span class="p">:</span>
+			<span class="n">label_pos</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">-</span> <span class="n">label_w</span><span class="p">,</span> <span class="n">dy</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">label_pos</span> <span class="o">=</span> <span class="n">x2</span> <span class="o">-</span> <span class="n">label_w</span><span class="p">,</span> <span class="n">y2</span> <span class="o">-</span> <span class="n">label_h</span>
+	<span class="k">elif</span> <span class="n">dx</span> <span class="o">&lt;</span> <span class="n">ox</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">dy</span> <span class="o">&lt;</span> <span class="n">oy</span><span class="p">:</span>
+			<span class="n">label_pos</span> <span class="o">=</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span>
+		<span class="k">elif</span> <span class="n">dy</span> <span class="o">&gt;</span> <span class="n">oy</span><span class="p">:</span>
+			<span class="n">label_pos</span> <span class="o">=</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">-</span> <span class="n">label_h</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">label_pos</span> <span class="o">=</span> <span class="n">x2</span><span class="p">,</span> <span class="n">dy</span> <span class="o">-</span> <span class="n">label_h</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">dy</span> <span class="o">&gt;</span> <span class="n">oy</span><span class="p">:</span>
+			<span class="n">label_pos</span> <span class="o">=</span> <span class="n">x2</span> <span class="o">-</span> <span class="n">label_w</span><span class="p">,</span> <span class="n">dy</span> <span class="o">-</span> <span class="n">label_h</span>
+		<span class="k">elif</span> <span class="n">dy</span> <span class="o">&lt;</span> <span class="n">oy</span><span class="p">:</span>
+			<span class="n">label_pos</span> <span class="o">=</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">label_pos</span> <span class="o">=</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span>
 	<span class="k">return</span> <span class="p">{</span>
-		<span class="s1">&#39;shaft_bg&#39;</span><span class="p">:</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">bgr</span><span class="p">),</span>
-		<span class="s1">&#39;shaft_fg&#39;</span><span class="p">:</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">fgr</span><span class="p">),</span>
-		<span class="s1">&#39;left_head_bg&#39;</span><span class="p">:</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">bgr</span><span class="p">),</span>
-		<span class="s1">&#39;right_head_bg&#39;</span><span class="p">:</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">bgr</span><span class="p">),</span>
-		<span class="s1">&#39;left_head_fg&#39;</span><span class="p">:</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">fgr</span><span class="p">),</span>
-		<span class="s1">&#39;right_head_fg&#39;</span><span class="p">:</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">fgr</span><span class="p">)</span>
+		<span class="s2">&quot;shaft_bg&quot;</span><span class="p">:</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">bgr</span><span class="p">),</span>
+		<span class="s2">&quot;shaft_fg&quot;</span><span class="p">:</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">fgr</span><span class="p">),</span>
+		<span class="s2">&quot;left_head_bg&quot;</span><span class="p">:</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">bgr</span><span class="p">),</span>
+		<span class="s2">&quot;right_head_bg&quot;</span><span class="p">:</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">bgr</span><span class="p">),</span>
+		<span class="s2">&quot;left_head_fg&quot;</span><span class="p">:</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">fgr</span><span class="p">),</span>
+		<span class="s2">&quot;right_head_fg&quot;</span><span class="p">:</span> <span class="n">get_thin_rect_vertices</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">fgr</span><span class="p">),</span>
+		<span class="s2">&quot;label_pos&quot;</span><span class="p">:</span> <span class="n">label_pos</span><span class="p">,</span>
 	<span class="p">}</span>
 
 
@@ -277,9 +329,8 @@
 
 
 <span class="k">class</span> <span class="nc">GraphArrow</span><span class="p">:</span>
-
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">slope</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">slope</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a float of the increase in y divided by the increase in x,</span>
 <span class="sd">		both from left to right.</span>
 
@@ -293,7 +344,7 @@
 		<span class="n">dx</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">x</span>
 		<span class="n">dy</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">y</span>
 		<span class="k">if</span> <span class="n">oy</span> <span class="o">==</span> <span class="n">dy</span><span class="p">:</span>
-			<span class="k">return</span> <span class="mf">0.</span>
+			<span class="k">return</span> <span class="mf">0.0</span>
 		<span class="k">elif</span> <span class="n">ox</span> <span class="o">==</span> <span class="n">dx</span><span class="p">:</span>
 			<span class="k">return</span> <span class="kc">None</span>
 		<span class="k">else</span><span class="p">:</span>
@@ -302,7 +353,7 @@
 			<span class="k">return</span> <span class="n">rise</span> <span class="o">/</span> <span class="n">run</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">y_intercept</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">y_intercept</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return my Y-intercept.</span>
 
 <span class="sd">		I probably don&#39;t really hit the left edge of the window, but</span>
@@ -319,20 +370,24 @@
 		<span class="k">return</span> <span class="p">(</span><span class="n">y_numerator</span> <span class="o">-</span> <span class="n">x_numerator</span><span class="p">),</span> <span class="n">denominator</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">reciprocal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">reciprocal</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;GraphArrow&quot;</span><span class="p">]:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;The arrow connecting the same spots in the opposite direction&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">pred_arrow</span><span class="p">:</span>
 			<span class="k">return</span>
-		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">pred_arrow</span><span class="p">[</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">]:</span>
+		<span class="k">if</span> <span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span>
+			<span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">pred_arrow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+		<span class="p">):</span>
 			<span class="k">return</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">pred_arrow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">selected</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">selected</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selection</span>
 
 	<span class="nd">@selected</span><span class="o">.</span><span class="n">setter</span>
-	<span class="k">def</span> <span class="nf">selected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">selected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selection</span> <span class="o">=</span> <span class="bp">self</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">repoint</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">board</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">):</span>
@@ -340,11 +395,12 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="n">origin</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">destination</span> <span class="o">=</span> <span class="n">destination</span>
 
-	<span class="k">def</span> <span class="nf">collide_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">collide_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">arrow_plane</span><span class="o">.</span><span class="n">_colliders_map</span><span class="p">[</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span>
+		<span class="p">]</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">pos_along</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pct</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">pos_along</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pct</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return coordinates for where a Pawn should be if it has travelled</span>
 <span class="sd">		along ``pct`` of my length (between 0 and 1).</span>
 
@@ -361,13 +417,15 @@
 		<span class="n">ydist</span> <span class="o">=</span> <span class="p">(</span><span class="n">dy</span> <span class="o">-</span> <span class="n">oy</span><span class="p">)</span> <span class="o">*</span> <span class="n">pct</span>
 		<span class="k">return</span> <span class="n">ox</span> <span class="o">+</span> <span class="n">xdist</span><span class="p">,</span> <span class="n">oy</span> <span class="o">+</span> <span class="n">ydist</span>
 
-	<span class="k">def</span> <span class="nf">repoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selected</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="nd">@mainthread</span>
+	<span class="k">def</span> <span class="nf">repoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selected</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="n">arrow_plane</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">arrow_plane</span>
 		<span class="n">fbo</span> <span class="o">=</span> <span class="n">arrow_plane</span><span class="o">.</span><span class="n">_fbo</span>
 		<span class="n">fbo</span><span class="o">.</span><span class="n">bind</span><span class="p">()</span>
 		<span class="n">fbo</span><span class="o">.</span><span class="n">clear_buffer</span><span class="p">()</span>
-		<span class="n">shaft_points</span><span class="p">,</span> <span class="n">head_points</span> <span class="o">=</span> <span class="n">get_points</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="p">,</span>
-												<span class="n">arrow_plane</span><span class="o">.</span><span class="n">arrowhead_size</span><span class="p">)</span>
+		<span class="n">shaft_points</span><span class="p">,</span> <span class="n">head_points</span> <span class="o">=</span> <span class="n">get_points</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="p">,</span> <span class="n">arrow_plane</span><span class="o">.</span><span class="n">arrowhead_size</span>
+		<span class="p">)</span>
 		<span class="n">r</span> <span class="o">=</span> <span class="n">arrow_plane</span><span class="o">.</span><span class="n">arrow_width</span> <span class="o">/</span> <span class="mi">2</span>
 		<span class="k">if</span> <span class="n">selected</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span><span class="p">:</span>
 			<span class="n">bg_scale</span> <span class="o">=</span> <span class="n">arrow_plane</span><span class="o">.</span><span class="n">bg_scale_selected</span>
@@ -378,30 +436,61 @@
 			<span class="n">bg_color</span> <span class="o">=</span> <span class="n">arrow_plane</span><span class="o">.</span><span class="n">bg_color_unselected</span>
 			<span class="n">fg_color</span> <span class="o">=</span> <span class="n">arrow_plane</span><span class="o">.</span><span class="n">fg_color_unselected</span>
 		<span class="n">plane</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">arrow_plane</span>
-		<span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">arrow_plane</span><span class="o">.</span><span class="n">_instructions_map</span><span class="p">:</span>
-			<span class="n">verts</span> <span class="o">=</span> <span class="n">get_quad_vertices</span><span class="p">(</span><span class="o">*</span><span class="n">shaft_points</span><span class="p">,</span> <span class="o">*</span><span class="n">head_points</span><span class="p">,</span>
-										<span class="n">r</span> <span class="o">*</span> <span class="n">bg_scale</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+		<span class="n">portal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">][</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span>
+		<span class="p">]</span>
+		<span class="n">portal_text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">portal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">portal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_label_stat&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+		<span class="n">label_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">portal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;label_kwargs&quot;</span><span class="p">,</span> <span class="p">()))</span>
+		<span class="k">if</span> <span class="n">portal_text</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="n">label_kwargs</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">portal_text</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">arrow_plane</span><span class="o">.</span><span class="n">_labels</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">][</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span>
+			<span class="p">]</span>
+			<span class="n">label</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">portal_text</span>
+		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+			<span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">arrow_plane</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">][</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span>
+			<span class="p">]</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span><span class="o">**</span><span class="n">DEFAULT_ARROW_LABEL_KWARGS</span><span class="p">,</span> <span class="o">**</span><span class="n">label_kwargs</span><span class="p">)</span>
+		<span class="k">if</span> <span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+		<span class="p">)</span> <span class="ow">in</span> <span class="n">plane</span><span class="o">.</span><span class="n">_instructions_map</span><span class="p">:</span>
+			<span class="n">verts</span> <span class="o">=</span> <span class="n">get_quad_vertices</span><span class="p">(</span>
+				<span class="o">*</span><span class="n">shaft_points</span><span class="p">,</span> <span class="o">*</span><span class="n">head_points</span><span class="p">,</span> <span class="n">r</span> <span class="o">*</span> <span class="n">bg_scale</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="o">*</span><span class="n">label</span><span class="o">.</span><span class="n">render</span><span class="p">()</span>
+			<span class="p">)</span>
 			<span class="n">insts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">arrow_plane</span><span class="o">.</span><span class="n">_instructions_map</span><span class="p">[</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
-			<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;color0&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="n">bg_color</span>
-			<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;color1&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="n">fg_color</span>
-			<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;shaft_bg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s1">&#39;shaft_bg&#39;</span><span class="p">]</span>
-			<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;left_head_bg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s1">&#39;left_head_bg&#39;</span><span class="p">]</span>
-			<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;right_head_bg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s1">&#39;right_head_bg&#39;</span><span class="p">]</span>
-			<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;shaft_fg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s1">&#39;shaft_fg&#39;</span><span class="p">]</span>
-			<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;left_head_fg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s1">&#39;left_head_fg&#39;</span><span class="p">]</span>
-			<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;right_head_fg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s1">&#39;right_head_fg&#39;</span><span class="p">]</span>
-			<span class="n">plane</span><span class="o">.</span><span class="n">_colliders_map</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-									<span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Collide2DPoly</span><span class="p">(</span>
-										<span class="n">points</span><span class="o">=</span><span class="n">verts</span><span class="p">[</span><span class="s1">&#39;shaft_bg&#39;</span><span class="p">])</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span>
+			<span class="p">]</span>
+			<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;color0&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="n">bg_color</span>
+			<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;color1&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="n">fg_color</span>
+			<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;shaft_bg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s2">&quot;shaft_bg&quot;</span><span class="p">]</span>
+			<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;left_head_bg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s2">&quot;left_head_bg&quot;</span><span class="p">]</span>
+			<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;right_head_bg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s2">&quot;right_head_bg&quot;</span><span class="p">]</span>
+			<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;shaft_fg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s2">&quot;shaft_fg&quot;</span><span class="p">]</span>
+			<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;left_head_fg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s2">&quot;left_head_fg&quot;</span><span class="p">]</span>
+			<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;right_head_fg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s2">&quot;right_head_fg&quot;</span><span class="p">]</span>
+			<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;label_rect&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s2">&quot;label_pos&quot;</span><span class="p">]</span>
+			<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;label_rect&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">render</span><span class="p">()</span>
+			<span class="n">label</span><span class="o">.</span><span class="n">refresh</span><span class="p">()</span>
+			<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;label_rect&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">texture</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">texture</span>
+			<span class="n">plane</span><span class="o">.</span><span class="n">_colliders_map</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+				<span class="n">Collide2DPoly</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">verts</span><span class="p">[</span><span class="s2">&quot;shaft_bg&quot;</span><span class="p">])</span>
+			<span class="p">)</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="n">plane</span><span class="o">.</span><span class="n">_instructions_map</span> <span class="o">=</span> <span class="n">insts</span> <span class="o">=</span> <span class="n">get_instructions</span><span class="p">(</span>
-				<span class="o">*</span><span class="n">shaft_points</span><span class="p">,</span> <span class="o">*</span><span class="n">head_points</span><span class="p">,</span> <span class="n">bg_color</span><span class="p">,</span> <span class="n">fg_color</span><span class="p">)</span>
+			<span class="n">plane</span><span class="o">.</span><span class="n">_instructions_map</span><span class="p">[</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span>
+			<span class="p">]</span> <span class="o">=</span> <span class="n">insts</span> <span class="o">=</span> <span class="n">get_instructions</span><span class="p">(</span>
+				<span class="o">*</span><span class="n">shaft_points</span><span class="p">,</span>
+				<span class="o">*</span><span class="n">head_points</span><span class="p">,</span>
+				<span class="n">bg_color</span><span class="p">,</span>
+				<span class="n">fg_color</span><span class="p">,</span>
+				<span class="o">*</span><span class="n">label</span><span class="o">.</span><span class="n">render</span><span class="p">(),</span>
+				<span class="n">label</span><span class="p">,</span>
+			<span class="p">)</span>
 			<span class="n">plane</span><span class="o">.</span><span class="n">_colliders_map</span><span class="p">[</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">Collide2DPoly</span><span class="p">(</span>
-					<span class="n">points</span><span class="o">=</span><span class="n">insts</span><span class="p">[</span><span class="s1">&#39;shaft_bg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span><span class="p">)</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span>
+			<span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">Collide2DPoly</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">insts</span><span class="p">[</span><span class="s2">&quot;shaft_bg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span><span class="p">)</span>
 		<span class="n">myidx</span> <span class="o">=</span> <span class="n">plane</span><span class="o">.</span><span class="n">_port_index</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
 		<span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span> <span class="o">=</span> <span class="n">shaft_points</span>
 		<span class="n">plane</span><span class="o">.</span><span class="n">_bot_left_corner_xs</span><span class="p">[</span><span class="n">myidx</span><span class="p">]</span> <span class="o">=</span> <span class="nb">min</span><span class="p">((</span><span class="n">ox</span><span class="p">,</span> <span class="n">dx</span><span class="p">))</span>
@@ -413,23 +502,59 @@
 		<span class="n">arrow_plane</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">ask_update</span><span class="p">()</span>
 
 
-<span class="k">def</span> <span class="nf">get_instructions</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">bgr</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span>
-						<span class="n">bg_color</span><span class="p">,</span> <span class="n">fg_color</span><span class="p">):</span>
-	<span class="n">quadverts</span> <span class="o">=</span> <span class="n">get_quad_vertices</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span>
-									<span class="n">bgr</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_instructions</span><span class="p">(</span>
+	<span class="n">ox</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+	<span class="n">oy</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+	<span class="n">dx</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+	<span class="n">dy</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+	<span class="n">x1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+	<span class="n">y1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+	<span class="n">endx</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+	<span class="n">endy</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+	<span class="n">x2</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+	<span class="n">y2</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+	<span class="n">bgr</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+	<span class="n">r</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+	<span class="n">bg_color</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+	<span class="n">fg_color</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+	<span class="n">label_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+	<span class="n">label</span><span class="p">:</span> <span class="n">Label</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+	<span class="k">if</span> <span class="n">label_kwargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="n">label_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">DEFAULT_ARROW_LABEL_KWARGS</span><span class="p">}</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="n">label_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">label_kwargs</span><span class="p">)</span>
+		<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">DEFAULT_ARROW_LABEL_KWARGS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+			<span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">label_kwargs</span><span class="p">:</span>
+				<span class="n">label_kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+	<span class="k">if</span> <span class="n">label</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="n">label</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span><span class="o">**</span><span class="n">label_kwargs</span><span class="p">)</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="n">label</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">label_kwargs</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span>
+	<span class="n">text_size</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">render</span><span class="p">()</span>
+	<span class="n">quadverts</span> <span class="o">=</span> <span class="n">get_quad_vertices</span><span class="p">(</span>
+		<span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">bgr</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="o">*</span><span class="n">text_size</span>
+	<span class="p">)</span>
+	<span class="n">label</span><span class="o">.</span><span class="n">refresh</span><span class="p">()</span>
 	<span class="k">return</span> <span class="p">{</span>
-		<span class="s1">&#39;color0&#39;</span><span class="p">:</span> <span class="n">Color</span><span class="p">(</span><span class="n">rgba</span><span class="o">=</span><span class="n">bg_color</span><span class="p">),</span>
-		<span class="s1">&#39;shaft_bg&#39;</span><span class="p">:</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">quadverts</span><span class="p">[</span><span class="s1">&#39;shaft_bg&#39;</span><span class="p">]),</span>
-		<span class="s1">&#39;left_head_bg&#39;</span><span class="p">:</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">quadverts</span><span class="p">[</span><span class="s1">&#39;left_head_bg&#39;</span><span class="p">]),</span>
-		<span class="s1">&#39;right_head_bg&#39;</span><span class="p">:</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">quadverts</span><span class="p">[</span><span class="s1">&#39;right_head_bg&#39;</span><span class="p">]),</span>
-		<span class="s1">&#39;color1&#39;</span><span class="p">:</span> <span class="n">Color</span><span class="p">(</span><span class="n">rgba</span><span class="o">=</span><span class="n">fg_color</span><span class="p">),</span>
-		<span class="s1">&#39;shaft_fg&#39;</span><span class="p">:</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">quadverts</span><span class="p">[</span><span class="s1">&#39;shaft_fg&#39;</span><span class="p">]),</span>
-		<span class="s1">&#39;left_head_fg&#39;</span><span class="p">:</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">quadverts</span><span class="p">[</span><span class="s1">&#39;left_head_fg&#39;</span><span class="p">]),</span>
-		<span class="s1">&#39;right_head_fg&#39;</span><span class="p">:</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">quadverts</span><span class="p">[</span><span class="s1">&#39;right_head_fg&#39;</span><span class="p">]),</span>
+		<span class="s2">&quot;color0&quot;</span><span class="p">:</span> <span class="n">Color</span><span class="p">(</span><span class="n">rgba</span><span class="o">=</span><span class="n">bg_color</span><span class="p">),</span>
+		<span class="s2">&quot;shaft_bg&quot;</span><span class="p">:</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">quadverts</span><span class="p">[</span><span class="s2">&quot;shaft_bg&quot;</span><span class="p">]),</span>
+		<span class="s2">&quot;left_head_bg&quot;</span><span class="p">:</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">quadverts</span><span class="p">[</span><span class="s2">&quot;left_head_bg&quot;</span><span class="p">]),</span>
+		<span class="s2">&quot;right_head_bg&quot;</span><span class="p">:</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">quadverts</span><span class="p">[</span><span class="s2">&quot;right_head_bg&quot;</span><span class="p">]),</span>
+		<span class="s2">&quot;color1&quot;</span><span class="p">:</span> <span class="n">Color</span><span class="p">(</span><span class="n">rgba</span><span class="o">=</span><span class="n">fg_color</span><span class="p">),</span>
+		<span class="s2">&quot;shaft_fg&quot;</span><span class="p">:</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">quadverts</span><span class="p">[</span><span class="s2">&quot;shaft_fg&quot;</span><span class="p">]),</span>
+		<span class="s2">&quot;left_head_fg&quot;</span><span class="p">:</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">quadverts</span><span class="p">[</span><span class="s2">&quot;left_head_fg&quot;</span><span class="p">]),</span>
+		<span class="s2">&quot;right_head_fg&quot;</span><span class="p">:</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="n">quadverts</span><span class="p">[</span><span class="s2">&quot;right_head_fg&quot;</span><span class="p">]),</span>
+		<span class="s2">&quot;label_rect&quot;</span><span class="p">:</span> <span class="n">Rectangle</span><span class="p">(</span>
+			<span class="n">pos</span><span class="o">=</span><span class="n">quadverts</span><span class="p">[</span><span class="s2">&quot;label_pos&quot;</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="n">text_size</span><span class="p">,</span> <span class="n">texture</span><span class="o">=</span><span class="n">label</span><span class="o">.</span><span class="n">texture</span>
+		<span class="p">),</span>
+		<span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span>
 	<span class="p">}</span>
 
 
-<div class="viewcode-block" id="GraphArrowWidget"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.GraphArrowWidget">[docs]</a><span class="k">class</span> <span class="nc">GraphArrowWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">,</span> <span class="n">GraphArrow</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphArrowWidget">
+<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.GraphArrowWidget">[docs]</a>
+<span class="k">class</span> <span class="nc">GraphArrowWidget</span><span class="p">(</span><span class="n">Widget</span><span class="p">,</span> <span class="n">GraphArrow</span><span class="p">):</span>
 	<span class="n">arrowhead_size</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
 	<span class="n">arrow_width</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
 	<span class="n">bg_scale</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
@@ -441,21 +566,22 @@
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">on_origin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_origin_bind_uid&#39;</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_origin_bind_uid&quot;</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_origin_bind_uid</span><span class="p">)</span>
 			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin_bind_uid</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="p">:</span>
 			<span class="k">return</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_origin_bind_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_origin_bind_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">on_destination</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_destination_bind_uid&#39;</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_destination_bind_uid&quot;</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_destination_bind_uid</span><span class="p">)</span>
 			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_destination_bind_uid</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="p">:</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_destination_bind_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
-			<span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
+			<span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span>
+		<span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="p">:</span>
@@ -464,33 +590,60 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="k">return</span>
-		<span class="n">shaft_points</span><span class="p">,</span> <span class="n">head_points</span> <span class="o">=</span> <span class="n">get_points</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="p">,</span>
-												<span class="bp">self</span><span class="o">.</span><span class="n">arrowhead_size</span><span class="p">)</span>
+		<span class="n">shaft_points</span><span class="p">,</span> <span class="n">head_points</span> <span class="o">=</span> <span class="n">get_points</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrowhead_size</span>
+		<span class="p">)</span>
 		<span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="p">:</span>
 			<span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow_width</span> <span class="o">/</span> <span class="mi">2</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">_instructions</span> <span class="o">=</span> <span class="n">get_instructions</span><span class="p">(</span><span class="o">*</span><span class="n">shaft_points</span><span class="p">,</span> <span class="o">*</span><span class="n">head_points</span><span class="p">,</span>
-													<span class="n">r</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_scale</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span>
-													<span class="bp">self</span><span class="o">.</span><span class="n">bg_color</span><span class="p">,</span>
-													<span class="bp">self</span><span class="o">.</span><span class="n">fg_color</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_instructions</span> <span class="o">=</span> <span class="n">get_instructions</span><span class="p">(</span>
+				<span class="o">*</span><span class="n">shaft_points</span><span class="p">,</span>
+				<span class="o">*</span><span class="n">head_points</span><span class="p">,</span>
+				<span class="n">r</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_scale</span><span class="p">,</span>
+				<span class="n">r</span><span class="p">,</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">bg_color</span><span class="p">,</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">fg_color</span><span class="p">,</span>
+			<span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">repoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="n">shaft_points</span><span class="p">,</span> <span class="n">head_points</span> <span class="o">=</span> <span class="n">get_points</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="p">,</span>
-												<span class="bp">self</span><span class="o">.</span><span class="n">arrowhead_size</span><span class="p">)</span>
+		<span class="n">shaft_points</span><span class="p">,</span> <span class="n">head_points</span> <span class="o">=</span> <span class="n">get_points</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrowhead_size</span>
+		<span class="p">)</span>
 		<span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow_width</span> <span class="o">/</span> <span class="mi">2</span>
-		<span class="n">verts</span> <span class="o">=</span> <span class="n">get_quad_vertices</span><span class="p">(</span><span class="o">*</span><span class="n">shaft_points</span><span class="p">,</span> <span class="o">*</span><span class="n">head_points</span><span class="p">,</span>
-									<span class="n">r</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_scale</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="n">portal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">][</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span>
+			<span class="p">]</span>
+			<span class="n">portal_text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">portal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">portal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_label_stat&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+		<span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
+			<span class="n">portal_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_label&quot;</span><span class="p">):</span>
+			<span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span>
+			<span class="n">label</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">portal_text</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">portal_text</span><span class="p">)</span>
+		<span class="n">label_size</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">render</span><span class="p">()</span>
+		<span class="n">verts</span> <span class="o">=</span> <span class="n">get_quad_vertices</span><span class="p">(</span>
+			<span class="o">*</span><span class="n">shaft_points</span><span class="p">,</span> <span class="o">*</span><span class="n">head_points</span><span class="p">,</span> <span class="n">r</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_scale</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="o">*</span><span class="n">label_size</span>
+		<span class="p">)</span>
 		<span class="n">insts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instructions</span>
-		<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;color0&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color</span>
-		<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;color1&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color</span>
-		<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;shaft_bg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s1">&#39;shaft_bg&#39;</span><span class="p">]</span>
-		<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;left_head_bg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s1">&#39;left_head_bg&#39;</span><span class="p">]</span>
-		<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;right_head_bg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s1">&#39;right_head_bg&#39;</span><span class="p">]</span>
-		<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;shaft_fg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s1">&#39;shaft_fg&#39;</span><span class="p">]</span>
-		<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;left_head_fg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s1">&#39;left_head_fg&#39;</span><span class="p">]</span>
-		<span class="n">insts</span><span class="p">[</span><span class="s1">&#39;right_head_fg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s1">&#39;right_head_fg&#39;</span><span class="p">]</span></div>
+		<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;color0&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color</span>
+		<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;color1&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color</span>
+		<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;shaft_bg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s2">&quot;shaft_bg&quot;</span><span class="p">]</span>
+		<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;left_head_bg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s2">&quot;left_head_bg&quot;</span><span class="p">]</span>
+		<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;right_head_bg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s2">&quot;right_head_bg&quot;</span><span class="p">]</span>
+		<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;shaft_fg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s2">&quot;shaft_fg&quot;</span><span class="p">]</span>
+		<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;left_head_fg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s2">&quot;left_head_fg&quot;</span><span class="p">]</span>
+		<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;right_head_fg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s2">&quot;right_head_fg&quot;</span><span class="p">]</span>
+		<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;label_rect&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="s2">&quot;label_pos&quot;</span><span class="p">]</span>
+		<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;label_rect&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">label_size</span>
+		<span class="n">label</span><span class="o">.</span><span class="n">refresh</span><span class="p">()</span>
+		<span class="n">insts</span><span class="p">[</span><span class="s2">&quot;label_rect&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">texture</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">texture</span></div>
 
 
-<div class="viewcode-block" id="ArrowPlane"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.ArrowPlane">[docs]</a><span class="k">class</span> <span class="nc">ArrowPlane</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+
+<div class="viewcode-block" id="ArrowPlane">
+<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.ArrowPlane">[docs]</a>
+<span class="k">class</span> <span class="nc">ArrowPlane</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
 	<span class="n">data</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
 	<span class="n">arrowhead_size</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
 	<span class="n">arrow_width</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -502,8 +655,9 @@
 	<span class="n">fg_color_selected</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">create_trigger</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">redraw</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_redraw_bind_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_redraw_bind_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">arrowhead_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_colliders_map</span> <span class="o">=</span> <span class="p">{}</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_instructions_map</span> <span class="o">=</span> <span class="p">{}</span>
@@ -522,12 +676,16 @@
 		<span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span> <span class="o">=</span> <span class="n">Fbo</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_translate</span> <span class="o">=</span> <span class="n">Translate</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">_rectangle</span> <span class="o">=</span> <span class="n">Rectangle</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
-										<span class="n">texture</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span><span class="o">.</span><span class="n">texture</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_rectangle</span> <span class="o">=</span> <span class="n">Rectangle</span><span class="p">(</span>
+				<span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">texture</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span><span class="o">.</span><span class="n">texture</span>
+			<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span><span class="p">()</span>
 
+	<span class="k">def</span> <span class="nf">have_arrow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
+		<span class="k">return</span> <span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_port_index</span>
+
 	<span class="k">def</span> <span class="nf">redraw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_rectangle&#39;</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_rectangle&quot;</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span><span class="p">()</span>
 			<span class="k">return</span>
 		<span class="n">fbo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span>
@@ -541,8 +699,9 @@
 		<span class="n">fg_color_unselected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected</span>
 		<span class="n">taillen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrowhead_size</span>
 		<span class="n">points_map</span> <span class="o">=</span> <span class="n">get_points_multi</span><span class="p">(</span>
-			<span class="p">(</span><span class="n">datum</span><span class="p">[</span><span class="s1">&#39;origspot&#39;</span><span class="p">],</span> <span class="n">datum</span><span class="p">[</span><span class="s1">&#39;destspot&#39;</span><span class="p">],</span> <span class="n">taillen</span><span class="p">)</span>
-			<span class="k">for</span> <span class="n">datum</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+			<span class="p">(</span><span class="n">datum</span><span class="p">[</span><span class="s2">&quot;origspot&quot;</span><span class="p">],</span> <span class="n">datum</span><span class="p">[</span><span class="s2">&quot;destspot&quot;</span><span class="p">],</span> <span class="n">taillen</span><span class="p">)</span>
+			<span class="k">for</span> <span class="n">datum</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
+		<span class="p">)</span>
 		<span class="n">port_l</span> <span class="o">=</span> <span class="p">[]</span>
 		<span class="n">bot_left_corner_xs</span> <span class="o">=</span> <span class="p">[]</span>
 		<span class="n">bot_left_corner_ys</span> <span class="o">=</span> <span class="p">[]</span>
@@ -554,7 +713,7 @@
 		<span class="n">oys</span> <span class="o">=</span> <span class="p">[]</span>
 		<span class="n">dxs</span> <span class="o">=</span> <span class="p">[]</span>
 		<span class="n">dys</span> <span class="o">=</span> <span class="p">[]</span>
-		<span class="k">for</span> <span class="p">((</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">),</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">points_map</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+		<span class="k">for</span> <span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">),</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">points_map</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
 			<span class="n">oxs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ox</span><span class="p">)</span>
 			<span class="n">oys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">oy</span><span class="p">)</span>
 			<span class="n">dxs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dx</span><span class="p">)</span>
@@ -562,27 +721,44 @@
 		<span class="n">widths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dxs</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">oxs</span><span class="p">))</span>
 		<span class="n">heights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dys</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">oys</span><span class="p">))</span>
 		<span class="n">lengths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">widths</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">heights</span><span class="p">))</span>
-		<span class="k">for</span> <span class="n">length</span><span class="p">,</span> <span class="p">(</span><span class="n">port</span><span class="p">,</span> <span class="p">((</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">),</span>
-							<span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span>
-								<span class="n">y2</span><span class="p">)))</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">lengths</span><span class="p">,</span> <span class="n">points_map</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+		<span class="k">for</span> <span class="n">length</span><span class="p">,</span> <span class="p">(</span>
+			<span class="n">port</span><span class="p">,</span>
+			<span class="p">((</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">),</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)),</span>
+		<span class="p">),</span> <span class="n">datum</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">lengths</span><span class="p">,</span> <span class="n">points_map</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">):</span>
 			<span class="k">if</span> <span class="n">length</span> <span class="o">&lt;</span> <span class="n">r</span><span class="p">:</span>
 				<span class="k">continue</span>
 			<span class="n">bgr</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="n">bg_scale_selected</span>  <span class="c1"># change for selectedness pls</span>
-			<span class="n">instructions</span> <span class="o">=</span> <span class="n">get_instructions</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span>
-											<span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">bgr</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span>
-											<span class="n">bg_color_unselected</span><span class="p">,</span>
-											<span class="n">fg_color_unselected</span><span class="p">)</span>
-			<span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;group&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grp</span> <span class="o">=</span> <span class="n">InstructionGroup</span><span class="p">()</span>
-			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;color0&#39;</span><span class="p">])</span>
-			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;shaft_bg&#39;</span><span class="p">])</span>
-			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;left_head_bg&#39;</span><span class="p">])</span>
-			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;right_head_bg&#39;</span><span class="p">])</span>
-			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;color1&#39;</span><span class="p">])</span>
-			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;shaft_fg&#39;</span><span class="p">])</span>
-			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;left_head_fg&#39;</span><span class="p">])</span>
-			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;right_head_fg&#39;</span><span class="p">])</span>
+			<span class="n">instructions</span> <span class="o">=</span> <span class="n">get_instructions</span><span class="p">(</span>
+				<span class="n">ox</span><span class="p">,</span>
+				<span class="n">oy</span><span class="p">,</span>
+				<span class="n">dx</span><span class="p">,</span>
+				<span class="n">dy</span><span class="p">,</span>
+				<span class="n">x1</span><span class="p">,</span>
+				<span class="n">y1</span><span class="p">,</span>
+				<span class="n">endx</span><span class="p">,</span>
+				<span class="n">endy</span><span class="p">,</span>
+				<span class="n">x2</span><span class="p">,</span>
+				<span class="n">y2</span><span class="p">,</span>
+				<span class="n">bgr</span><span class="p">,</span>
+				<span class="n">r</span><span class="p">,</span>
+				<span class="n">bg_color_unselected</span><span class="p">,</span>
+				<span class="n">fg_color_unselected</span><span class="p">,</span>
+				<span class="n">datum</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;label_kwargs&quot;</span><span class="p">,</span> <span class="p">{}),</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">[</span><span class="n">port</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">port</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+			<span class="p">)</span>
+			<span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;group&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grp</span> <span class="o">=</span> <span class="n">InstructionGroup</span><span class="p">()</span>
+			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;color0&quot;</span><span class="p">])</span>
+			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;shaft_bg&quot;</span><span class="p">])</span>
+			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;left_head_bg&quot;</span><span class="p">])</span>
+			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;right_head_bg&quot;</span><span class="p">])</span>
+			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;color1&quot;</span><span class="p">])</span>
+			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;shaft_fg&quot;</span><span class="p">])</span>
+			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;left_head_fg&quot;</span><span class="p">])</span>
+			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;right_head_fg&quot;</span><span class="p">])</span>
+			<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;label_rect&quot;</span><span class="p">])</span>
 			<span class="n">add</span><span class="p">(</span><span class="n">grp</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_instructions_map</span><span class="p">[</span><span class="n">port</span><span class="p">]</span> <span class="o">=</span> <span class="n">instructions</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">[</span><span class="n">port</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="n">port</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span>
 			<span class="k">if</span> <span class="n">ox</span> <span class="o">&lt;</span> <span class="n">dx</span><span class="p">:</span>
 				<span class="n">leftx</span> <span class="o">=</span> <span class="n">ox</span>
 				<span class="n">rightx</span> <span class="o">=</span> <span class="n">dx</span>
@@ -602,7 +778,8 @@
 			<span class="n">top_right_corner_xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rightx</span> <span class="o">+</span> <span class="n">bgr</span><span class="p">)</span>
 			<span class="n">top_right_corner_ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">topy</span> <span class="o">+</span> <span class="n">bgr</span><span class="p">)</span>
 			<span class="n">colliders_map</span><span class="p">[</span><span class="n">port</span><span class="p">]</span> <span class="o">=</span> <span class="n">Collide2DPoly</span><span class="p">(</span>
-				<span class="n">points</span><span class="o">=</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;shaft_bg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span><span class="p">)</span>
+				<span class="n">points</span><span class="o">=</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;shaft_bg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span>
+			<span class="p">)</span>
 		<span class="n">fbo</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">ask_update</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_port_l</span> <span class="o">=</span> <span class="n">port_l</span>
@@ -611,30 +788,39 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_top_right_corner_xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">top_right_corner_xs</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_top_right_corner_ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">top_right_corner_ys</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">add_new_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">datum</span><span class="p">):</span>
-		<span class="n">orig_spot</span> <span class="o">=</span> <span class="n">datum</span><span class="p">[</span><span class="s1">&#39;origspot&#39;</span><span class="p">]</span>
-		<span class="n">dest_spot</span> <span class="o">=</span> <span class="n">datum</span><span class="p">[</span><span class="s1">&#39;destspot&#39;</span><span class="p">]</span>
-		<span class="n">shaft_points</span><span class="p">,</span> <span class="n">head_points</span> <span class="o">=</span> <span class="n">get_points</span><span class="p">(</span><span class="n">orig_spot</span><span class="p">,</span> <span class="n">dest_spot</span><span class="p">,</span>
-												<span class="bp">self</span><span class="o">.</span><span class="n">arrowhead_size</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redraw_bind_uid</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">add_new_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">datum</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="n">orig_spot</span> <span class="o">=</span> <span class="n">datum</span><span class="p">[</span><span class="s2">&quot;origspot&quot;</span><span class="p">]</span>
+		<span class="n">dest_spot</span> <span class="o">=</span> <span class="n">datum</span><span class="p">[</span><span class="s2">&quot;destspot&quot;</span><span class="p">]</span>
+		<span class="n">shaft_points</span><span class="p">,</span> <span class="n">head_points</span> <span class="o">=</span> <span class="n">get_points</span><span class="p">(</span>
+			<span class="n">orig_spot</span><span class="p">,</span> <span class="n">dest_spot</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrowhead_size</span>
+		<span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redraw_bind_uid</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datum</span><span class="p">)</span>
 		<span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow_width</span> <span class="o">/</span> <span class="mi">2</span>
 		<span class="n">bgr</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_scale_unselected</span>
 		<span class="n">instructions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instructions_map</span><span class="p">[</span>
-			<span class="n">orig_spot</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-			<span class="n">dest_spot</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_instructions</span><span class="p">(</span><span class="o">*</span><span class="n">shaft_points</span><span class="p">,</span> <span class="o">*</span><span class="n">head_points</span><span class="p">,</span>
-												<span class="n">bgr</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span>
-												<span class="bp">self</span><span class="o">.</span><span class="n">bg_color_unselected</span><span class="p">,</span>
-												<span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected</span><span class="p">)</span>
-		<span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;group&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grp</span> <span class="o">=</span> <span class="n">InstructionGroup</span><span class="p">()</span>
-		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;color0&#39;</span><span class="p">])</span>
-		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;shaft_bg&#39;</span><span class="p">])</span>
-		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;left_head_bg&#39;</span><span class="p">])</span>
-		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;right_head_bg&#39;</span><span class="p">])</span>
-		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;color1&#39;</span><span class="p">])</span>
-		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;shaft_fg&#39;</span><span class="p">])</span>
-		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;left_head_fg&#39;</span><span class="p">])</span>
-		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;right_head_fg&#39;</span><span class="p">])</span>
+			<span class="n">orig_spot</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">dest_spot</span><span class="o">.</span><span class="n">name</span>
+		<span class="p">]</span> <span class="o">=</span> <span class="n">get_instructions</span><span class="p">(</span>
+			<span class="o">*</span><span class="n">shaft_points</span><span class="p">,</span>
+			<span class="o">*</span><span class="n">head_points</span><span class="p">,</span>
+			<span class="n">bgr</span><span class="p">,</span>
+			<span class="n">r</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">bg_color_unselected</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected</span><span class="p">,</span>
+			<span class="n">datum</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;label_kwargs&quot;</span><span class="p">,</span> <span class="p">{}),</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">[</span><span class="n">orig_spot</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="n">dest_spot</span><span class="o">.</span><span class="n">name</span><span class="p">],</span>
+		<span class="p">)</span>
+		<span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;group&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grp</span> <span class="o">=</span> <span class="n">InstructionGroup</span><span class="p">()</span>
+		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;color0&quot;</span><span class="p">])</span>
+		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;shaft_bg&quot;</span><span class="p">])</span>
+		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;left_head_bg&quot;</span><span class="p">])</span>
+		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;right_head_bg&quot;</span><span class="p">])</span>
+		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;color1&quot;</span><span class="p">])</span>
+		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;shaft_fg&quot;</span><span class="p">])</span>
+		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;left_head_fg&quot;</span><span class="p">])</span>
+		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;right_head_fg&quot;</span><span class="p">])</span>
+		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">])</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">[</span><span class="n">orig_spot</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="n">dest_spot</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">grp</span><span class="p">)</span>
 		<span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span> <span class="o">=</span> <span class="n">shaft_points</span>
 		<span class="k">if</span> <span class="n">ox</span> <span class="o">&lt;</span> <span class="n">dx</span><span class="p">:</span>
@@ -652,22 +838,27 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_port_index</span><span class="p">[</span><span class="n">orig_spot</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">dest_spot</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_port_l</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_port_l</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">orig_spot</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">dest_spot</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_bot_left_corner_xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-			<span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bot_left_corner_xs</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">left_x</span> <span class="o">-</span> <span class="n">bgr</span><span class="p">])</span>
+			<span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bot_left_corner_xs</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">left_x</span> <span class="o">-</span> <span class="n">bgr</span><span class="p">]</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_bot_left_corner_ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-			<span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bot_left_corner_ys</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">bot_y</span> <span class="o">-</span> <span class="n">bgr</span><span class="p">])</span>
+			<span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bot_left_corner_ys</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">bot_y</span> <span class="o">-</span> <span class="n">bgr</span><span class="p">]</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_top_right_corner_xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-			<span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_top_right_corner_xs</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">right_x</span> <span class="o">+</span> <span class="n">bgr</span><span class="p">])</span>
+			<span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_top_right_corner_xs</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">right_x</span> <span class="o">+</span> <span class="n">bgr</span><span class="p">]</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_top_right_corner_ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-			<span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_top_right_corner_ys</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">top_y</span> <span class="o">+</span> <span class="n">bgr</span><span class="p">])</span>
+			<span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_top_right_corner_ys</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">top_y</span> <span class="o">+</span> <span class="n">bgr</span><span class="p">]</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_colliders_map</span><span class="p">[</span><span class="n">orig_spot</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">dest_spot</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Collide2DPoly</span><span class="p">(</span>
-			<span class="n">points</span><span class="o">=</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;shaft_bg&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span><span class="p">)</span>
+			<span class="n">points</span><span class="o">=</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;shaft_bg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">points</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">ask_update</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_redraw_bind_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_redraw_bind_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">remove_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span><span class="o">.</span><span class="n">bind</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span><span class="o">.</span><span class="n">clear_buffer</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_instructions_map</span><span class="p">[</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">][</span><span class="s1">&#39;group&#39;</span><span class="p">])</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_instructions_map</span><span class="p">[</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">][</span><span class="s2">&quot;group&quot;</span><span class="p">])</span>
 		<span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_port_index</span><span class="p">[</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">]</span>
 		<span class="k">for</span> <span class="n">port</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_port_l</span><span class="p">[</span><span class="n">index</span><span class="p">:]:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_port_index</span><span class="p">[</span><span class="n">port</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
@@ -675,36 +866,52 @@
 		<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instructions_map</span><span class="p">[</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">]</span>
 		<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_colliders_map</span><span class="p">[</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">]</span>
 		<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_port_l</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
-		<span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;_bot_left_corner_ys&#39;</span><span class="p">,</span> <span class="s1">&#39;_bot_left_corner_xs&#39;</span><span class="p">,</span>
-					<span class="s1">&#39;_top_right_corner_ys&#39;</span><span class="p">,</span> <span class="s1">&#39;_top_right_corner_xs&#39;</span><span class="p">):</span>
+		<span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="p">(</span>
+			<span class="s2">&quot;_bot_left_corner_ys&quot;</span><span class="p">,</span>
+			<span class="s2">&quot;_bot_left_corner_xs&quot;</span><span class="p">,</span>
+			<span class="s2">&quot;_top_right_corner_ys&quot;</span><span class="p">,</span>
+			<span class="s2">&quot;_top_right_corner_xs&quot;</span><span class="p">,</span>
+		<span class="p">):</span>
 			<span class="n">dat</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arr</span><span class="p">))</span>
 			<span class="k">del</span> <span class="n">dat</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
 			<span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dat</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">ask_update</span><span class="p">()</span>
 
-	<span class="k">def</span> <span class="nf">iter_collided_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">update_portal_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+		<span class="n">rect</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instructions_map</span><span class="p">[</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">][</span><span class="s2">&quot;label&quot;</span><span class="p">]</span>
+		<span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">[</span><span class="n">orig</span><span class="p">][</span><span class="n">dest</span><span class="p">]</span>
+		<span class="n">label</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">text</span>
+		<span class="n">label</span><span class="o">.</span><span class="n">refresh</span><span class="p">()</span>
+		<span class="n">rect</span><span class="o">.</span><span class="n">texture</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">texture</span>
+
+	<span class="k">def</span> <span class="nf">iter_collided_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
 		<span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
 		<span class="n">collider_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_colliders_map</span>
-		<span class="n">hits</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bot_left_corner_xs</span> <span class="o">&lt;=</span> <span class="n">x</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">_bot_left_corner_ys</span> <span class="o">&lt;=</span> <span class="n">y</span>
-		<span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_top_right_corner_xs</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">y</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_top_right_corner_ys</span><span class="p">)</span>
-		<span class="k">for</span> <span class="n">port</span> <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-						<span class="nb">filter</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_port_l</span><span class="p">,</span> <span class="n">hits</span><span class="p">))):</span>
+		<span class="n">hits</span> <span class="o">=</span> <span class="p">(</span>
+			<span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bot_left_corner_xs</span> <span class="o">&lt;=</span> <span class="n">x</span><span class="p">)</span>
+			<span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bot_left_corner_ys</span> <span class="o">&lt;=</span> <span class="n">y</span><span class="p">)</span>
+			<span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_top_right_corner_xs</span><span class="p">)</span>
+			<span class="o">&amp;</span> <span class="p">(</span><span class="n">y</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_top_right_corner_ys</span><span class="p">)</span>
+		<span class="p">)</span>
+		<span class="k">for</span> <span class="n">port</span> <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span>
+			<span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="nb">filter</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_port_l</span><span class="p">,</span> <span class="n">hits</span><span class="p">))</span>
+		<span class="p">):</span>
 			<span class="k">if</span> <span class="n">collider_map</span><span class="p">[</span><span class="n">port</span><span class="p">]</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
 				<span class="k">yield</span> <span class="n">port</span>
 
 	<span class="k">def</span> <span class="nf">on_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_translate&#39;</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_translate&quot;</span><span class="p">):</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_translate</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_translate</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">ask_update</span><span class="p">()</span>
 
 	<span class="k">def</span> <span class="nf">on_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_rectangle&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_fbo&#39;</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_rectangle&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_fbo&quot;</span><span class="p">):</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_rectangle</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">redraw</span><span class="p">()</span></div>
+
 </pre></div>
 
           </div>
@@ -726,7 +933,14 @@
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html">engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html#module-LiSE.character">character</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html#module-LiSE.node">node</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html#module-LiSE.portal">portal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html#module-LiSE.rule">rule</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html#module-LiSE.query">query</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html#module-LiSE.xcollections">xcollections</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../ELiDE/index.html">ELiDE</a></li>
 </ul>
 
@@ -739,7 +953,7 @@
   </ul></li>
 </ul>
 </div>
-<div id="searchbox" style="display: none" role="search">
+<search id="searchbox" style="display: none" role="search">
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
@@ -747,7 +961,7 @@
       <input type="submit" value="Go" />
     </form>
     </div>
-</div>
+</search>
 <script>document.getElementById('searchbox').style.display = "block"</script>
 
 
@@ -762,11 +976,11 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;Zachary Spector.
+      &#169;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
       
     </div>
 

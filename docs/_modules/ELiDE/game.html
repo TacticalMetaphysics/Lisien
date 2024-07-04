@@ -51,8 +51,12 @@
 <span class="kn">from</span> <span class="nn">kivy.app</span> <span class="kn">import</span> <span class="n">App</span>
 <span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="kn">import</span> <span class="n">Logger</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span><span class="p">,</span> <span class="n">triggered</span>
-<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span><span class="n">BooleanProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span><span class="p">,</span> <span class="n">NumericProperty</span><span class="p">,</span>
-								<span class="n">StringProperty</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span>
+	<span class="n">BooleanProperty</span><span class="p">,</span>
+	<span class="n">ObjectProperty</span><span class="p">,</span>
+	<span class="n">NumericProperty</span><span class="p">,</span>
+	<span class="n">StringProperty</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span> <span class="nn">kivy.factory</span> <span class="kn">import</span> <span class="n">Factory</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="kn">import</span> <span class="n">ScreenManager</span><span class="p">,</span> <span class="n">Screen</span><span class="p">,</span> <span class="n">NoTransition</span>
@@ -126,10 +130,9 @@
 
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">disable_input</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">wait_travel</span><span class="p">(</span><span class="n">character</span><span class="p">,</span>
-								<span class="n">thing</span><span class="p">,</span>
-								<span class="n">dest</span><span class="p">,</span>
-								<span class="n">cb</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_input</span><span class="p">,</span> <span class="n">cb</span><span class="p">))</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">wait_travel</span><span class="p">(</span>
+			<span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_input</span><span class="p">,</span> <span class="n">cb</span><span class="p">)</span>
+		<span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="GameScreen.wait_turns">
@@ -168,13 +171,15 @@
 
 <div class="viewcode-block" id="GameScreen.wait_travel_command">
 <a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameScreen.wait_travel_command">[docs]</a>
-	<span class="k">def</span> <span class="nf">wait_travel_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-							<span class="n">character</span><span class="p">,</span>
-							<span class="n">thing</span><span class="p">,</span>
-							<span class="n">dest</span><span class="p">,</span>
-							<span class="n">start_func</span><span class="p">,</span>
-							<span class="n">turns</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-							<span class="n">end_func</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">wait_travel_command</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">character</span><span class="p">,</span>
+		<span class="n">thing</span><span class="p">,</span>
+		<span class="n">dest</span><span class="p">,</span>
+		<span class="n">start_func</span><span class="p">,</span>
+		<span class="n">turns</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+		<span class="n">end_func</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+	<span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Schedule a thing to travel someplace and do something, then wait for it to finish.</span>
 
 <span class="sd">		Input will be disabled for the duration.</span>
@@ -189,8 +194,14 @@
 
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">disable_input</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">wait_travel_command</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">start_func</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span>
-										<span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_input</span><span class="p">,</span> <span class="n">end_func</span><span class="p">))</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">wait_travel_command</span><span class="p">(</span>
+			<span class="n">character</span><span class="p">,</span>
+			<span class="n">thing</span><span class="p">,</span>
+			<span class="n">dest</span><span class="p">,</span>
+			<span class="n">start_func</span><span class="p">,</span>
+			<span class="n">turns</span><span class="p">,</span>
+			<span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_input</span><span class="p">,</span> <span class="n">end_func</span><span class="p">),</span>
+		<span class="p">)</span></div>
 </div>
 
 
@@ -201,10 +212,10 @@
 	<span class="n">modules</span> <span class="o">=</span> <span class="p">[]</span>
 	<span class="n">do_game_start</span> <span class="o">=</span> <span class="kc">False</span>
 	<span class="n">turn_length</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
-	<span class="n">branch</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;trunk&#39;</span><span class="p">)</span>
+	<span class="n">branch</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s2">&quot;trunk&quot;</span><span class="p">)</span>
 	<span class="n">turn</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 	<span class="n">tick</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-	<span class="n">prefix</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+	<span class="n">prefix</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
 	<span class="n">selection</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <div class="viewcode-block" id="GameApp.wait_turns">
@@ -226,8 +237,9 @@
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">next_turn</span><span class="p">()</span>
 		<span class="n">turns</span> <span class="o">-=</span> <span class="mi">1</span>
-		<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wait_turns</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">cb</span><span class="p">),</span>
-							<span class="bp">self</span><span class="o">.</span><span class="n">turn_length</span><span class="p">)</span></div>
+		<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span>
+			<span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wait_turns</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">cb</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn_length</span>
+		<span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="GameApp.wait_travel">
@@ -240,11 +252,12 @@
 <span class="sd">		:param dest: name of the destination (a place)</span>
 <span class="sd">		:param cb: function to be called when I&#39;m done</span>
 <span class="sd">		:return: ``None``</span>
-<span class="sd">		</span>
+
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">wait_turns</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">character</span><span class="p">]</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">thing</span><span class="p">]</span><span class="o">.</span><span class="n">travel_to</span><span class="p">(</span><span class="n">dest</span><span class="p">),</span>
-			<span class="n">cb</span><span class="o">=</span><span class="n">cb</span><span class="p">)</span></div>
+			<span class="n">cb</span><span class="o">=</span><span class="n">cb</span><span class="p">,</span>
+		<span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="GameApp.wait_command">
@@ -264,13 +277,9 @@
 
 <div class="viewcode-block" id="GameApp.wait_travel_command">
 <a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameApp.wait_travel_command">[docs]</a>
-	<span class="k">def</span> <span class="nf">wait_travel_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-							<span class="n">character</span><span class="p">,</span>
-							<span class="n">thing</span><span class="p">,</span>
-							<span class="n">dest</span><span class="p">,</span>
-							<span class="n">start_func</span><span class="p">,</span>
-							<span class="n">turns</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-							<span class="n">end_func</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">wait_travel_command</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">start_func</span><span class="p">,</span> <span class="n">turns</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">end_func</span><span class="o">=</span><span class="kc">None</span>
+	<span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Schedule a thing to travel someplace and do something, then wait for it to finish.</span>
 
 <span class="sd">		:param character: name of the character</span>
@@ -281,11 +290,12 @@
 <span class="sd">		:param end_func: optional. Function to call after waiting ``turns`` after start_func</span>
 <span class="sd">		:return: ``None``</span>
 <span class="sd">		&quot;&quot;&quot;</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">wait_travel</span><span class="p">(</span><span class="n">character</span><span class="p">,</span>
-							<span class="n">thing</span><span class="p">,</span>
-							<span class="n">dest</span><span class="p">,</span>
-							<span class="n">cb</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wait_command</span><span class="p">,</span> <span class="n">start_func</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span>
-										<span class="n">end_func</span><span class="p">))</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">wait_travel</span><span class="p">(</span>
+			<span class="n">character</span><span class="p">,</span>
+			<span class="n">thing</span><span class="p">,</span>
+			<span class="n">dest</span><span class="p">,</span>
+			<span class="n">cb</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wait_command</span><span class="p">,</span> <span class="n">start_func</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span> <span class="n">end_func</span><span class="p">),</span>
+		<span class="p">)</span></div>
 
 
 	<span class="k">def</span> <span class="nf">_pull_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
@@ -296,24 +306,25 @@
 	<span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="n">have_world</span> <span class="o">=</span> <span class="kc">False</span>
 		<span class="k">try</span><span class="p">:</span>
-			<span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="s1">&#39;world.db&#39;</span><span class="p">)</span>
+			<span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="s2">&quot;world.db&quot;</span><span class="p">)</span>
 			<span class="n">have_world</span> <span class="o">=</span> <span class="kc">True</span>
 		<span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
 			<span class="k">pass</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">procman</span> <span class="o">=</span> <span class="n">LiSE</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">EngineProcessManager</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">procman</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span>
-											<span class="n">logger</span><span class="o">=</span><span class="n">Logger</span><span class="p">,</span>
-											<span class="n">loglevel</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span>
-												<span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;loglevel&#39;</span><span class="p">,</span> <span class="s1">&#39;debug&#39;</span><span class="p">),</span>
-											<span class="n">do_game_start</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_game_start</span>
-											<span class="ow">and</span> <span class="ow">not</span> <span class="n">have_world</span><span class="p">,</span>
-											<span class="n">install_modules</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">procman</span><span class="o">.</span><span class="n">start</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span>
+			<span class="n">logger</span><span class="o">=</span><span class="n">Logger</span><span class="p">,</span>
+			<span class="n">loglevel</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;loglevel&quot;</span><span class="p">,</span> <span class="s2">&quot;debug&quot;</span><span class="p">),</span>
+			<span class="n">do_game_start</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_game_start</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">have_world</span><span class="p">,</span>
+			<span class="n">install_modules</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">,</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull_time</span><span class="p">,</span> <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">screen_manager</span> <span class="o">=</span> <span class="n">ScreenManager</span><span class="p">(</span><span class="n">transition</span><span class="o">=</span><span class="n">NoTransition</span><span class="p">())</span>
-		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;inspector&#39;</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;inspector&quot;</span><span class="p">):</span>
 			<span class="kn">from</span> <span class="nn">kivy.core.window</span> <span class="kn">import</span> <span class="n">Window</span>
 			<span class="kn">from</span> <span class="nn">kivy.modules</span> <span class="kn">import</span> <span class="n">inspector</span>
+
 			<span class="n">inspector</span><span class="o">.</span><span class="n">create_inspector</span><span class="p">(</span><span class="n">Window</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen_manager</span><span class="p">)</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen_manager</span></div>
 
@@ -347,7 +358,7 @@
 <span class="sd">		mistakenly go two or three turns into the future.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_next_turn_thread&#39;</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_next_turn_thread&quot;</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_next_turn_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_next_turn_thread</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">next_turn</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_next_turn_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
@@ -376,7 +387,14 @@
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.character">character</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.node">node</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.portal">portal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.rule">rule</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.query">query</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.xcollections">xcollections</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
 </ul>
 

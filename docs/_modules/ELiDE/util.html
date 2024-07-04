@@ -1,23 +1,23 @@
-
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" data-content_root="../../">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ELiDE.util &#8212; LiSE 0.14.0a documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
-    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-    <script src="../../_static/doctools.js"></script>
-    <script src="../../_static/sphinx_highlight.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=12dfc556" />
+    <script src="../../_static/documentation_options.js?v=fbc7b204"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
   <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
   
+
   
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+  
 
   </head><body>
   
@@ -57,13 +57,21 @@
 <span class="n">fortyfive</span> <span class="o">=</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span>
 <span class="sd">&quot;&quot;&quot;pi / 4&quot;&quot;&quot;</span>
 
+<span class="n">DEFAULT_ARROW_LABEL_KWARGS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;font_size&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span> <span class="s2">&quot;bold&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
 
-<div class="viewcode-block" id="SelectableRecycleBoxLayout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.SelectableRecycleBoxLayout">[docs]</a><span class="k">class</span> <span class="nc">SelectableRecycleBoxLayout</span><span class="p">(</span><span class="n">FocusBehavior</span><span class="p">,</span> <span class="n">LayoutSelectionBehavior</span><span class="p">,</span>
-									<span class="n">RecycleBoxLayout</span><span class="p">):</span>
+
+<div class="viewcode-block" id="SelectableRecycleBoxLayout">
+<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.SelectableRecycleBoxLayout">[docs]</a>
+<span class="k">class</span> <span class="nc">SelectableRecycleBoxLayout</span><span class="p">(</span>
+	<span class="n">FocusBehavior</span><span class="p">,</span> <span class="n">LayoutSelectionBehavior</span><span class="p">,</span> <span class="n">RecycleBoxLayout</span>
+<span class="p">):</span>
 	<span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="trigger"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.trigger">[docs]</a><span class="k">class</span> <span class="nc">trigger</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+<div class="viewcode-block" id="trigger">
+<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.trigger">[docs]</a>
+<span class="k">class</span> <span class="nc">trigger</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Make a trigger from a method.</span>
 
 <span class="sd">	Decorate a method with this and it will become a trigger. Supply a</span>
@@ -76,7 +84,7 @@
 <span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func_or_timeout</span><span class="p">):</span>
-		<span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">func_or_timeout</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">func_or_timeout</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">func</span> <span class="o">=</span> <span class="n">func_or_timeout</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="mi">0</span>
 		<span class="k">else</span><span class="p">:</span>
@@ -93,13 +101,17 @@
 			<span class="c1"># instantiates.  Don&#39;t try making any trigger in that</span>
 			<span class="c1"># case.</span>
 			<span class="k">return</span>
-		<span class="n">retval</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">create_trigger</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="n">instance</span><span class="p">),</span>
-										<span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+		<span class="n">retval</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">create_trigger</span><span class="p">(</span>
+			<span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="n">instance</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span>
+		<span class="p">)</span>
 		<span class="nb">setattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">retval</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">retval</span></div>
 
 
-<div class="viewcode-block" id="try_load"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.try_load">[docs]</a><span class="k">def</span> <span class="nf">try_load</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+
+<div class="viewcode-block" id="try_load">
+<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.try_load">[docs]</a>
+<span class="k">def</span> <span class="nf">try_load</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Return the JSON interpretation the object if possible, or just the</span>
 <span class="sd">	object otherwise.</span>
 
@@ -110,7 +122,10 @@
 		<span class="k">return</span> <span class="n">obj</span></div>
 
 
-<div class="viewcode-block" id="dummynum"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.dummynum">[docs]</a><span class="k">def</span> <span class="nf">dummynum</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+
+<div class="viewcode-block" id="dummynum">
+<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.dummynum">[docs]</a>
+<span class="k">def</span> <span class="nf">dummynum</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Count how many nodes there already are in the character whose name</span>
 <span class="sd">	starts the same.</span>
 
@@ -128,7 +143,10 @@
 	<span class="k">return</span> <span class="n">num</span></div>
 
 
-<div class="viewcode-block" id="get_thin_rect_vertices"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.get_thin_rect_vertices">[docs]</a><span class="k">def</span> <span class="nf">get_thin_rect_vertices</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+
+<div class="viewcode-block" id="get_thin_rect_vertices">
+<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.get_thin_rect_vertices">[docs]</a>
+<span class="k">def</span> <span class="nf">get_thin_rect_vertices</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Given the starting point, ending point, and width, return a list of</span>
 <span class="sd">	vertex coordinates at the corners of the line segment</span>
 <span class="sd">	(really a thin rectangle).</span>
@@ -170,9 +188,16 @@
 	<span class="n">x4</span> <span class="o">=</span> <span class="n">leftx</span> <span class="o">-</span> <span class="n">xoff</span>
 	<span class="n">y4</span> <span class="o">=</span> <span class="n">boty</span> <span class="o">+</span> <span class="n">yoff</span>
 	<span class="k">return</span> <span class="p">[</span>
-		<span class="n">x1</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y1</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span> <span class="n">x2</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y2</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span> <span class="n">x3</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y3</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span> <span class="n">x4</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span>
-		<span class="n">y4</span> <span class="o">*</span> <span class="n">yco</span>
+		<span class="n">x1</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span>
+		<span class="n">y1</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
+		<span class="n">x2</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span>
+		<span class="n">y2</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
+		<span class="n">x3</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span>
+		<span class="n">y3</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
+		<span class="n">x4</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span>
+		<span class="n">y4</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
 	<span class="p">]</span></div>
+
 </pre></div>
 
           </div>
@@ -194,7 +219,14 @@
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.character">character</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.node">node</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.portal">portal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.rule">rule</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.query">query</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.xcollections">xcollections</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
 </ul>
 
@@ -207,7 +239,7 @@
   </ul></li>
 </ul>
 </div>
-<div id="searchbox" style="display: none" role="search">
+<search id="searchbox" style="display: none" role="search">
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
@@ -215,7 +247,7 @@
       <input type="submit" value="Go" />
     </form>
     </div>
-</div>
+</search>
 <script>document.getElementById('searchbox').style.display = "block"</script>
 
 
@@ -230,11 +262,11 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;Zachary Spector.
+      &#169;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
       
     </div>
 

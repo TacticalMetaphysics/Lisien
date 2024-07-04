@@ -1,3 +1,11 @@
+== 0.15.2 | 2024-07-05 ==
+* Crash fixes involving time travel
+* Speed up interbranch time travel somewhat
+* Switch to ruff formatter
+
+== 0.15.1 | 2024-06-24 ==
+* Fix another concurrency issue
+
 == 0.15.0 | 2024-06-18 ==
 * Automatically unload history, thus minimizing memory usage for long games
     By default, this happens whenever you commit changes to the database.

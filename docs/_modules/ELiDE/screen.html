@@ -50,6 +50,7 @@
 <span class="sd">grid, the time control panel, and the menu.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
+
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">ast</span> <span class="kn">import</span> <span class="n">literal_eval</span>
 <span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Thread</span>
@@ -67,10 +68,16 @@
 <span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="kn">import</span> <span class="n">Screen</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span>
 <span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="kn">import</span> <span class="n">Logger</span>
-<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span><span class="n">BooleanProperty</span><span class="p">,</span> <span class="n">BoundedNumericProperty</span><span class="p">,</span>
-								<span class="n">DictProperty</span><span class="p">,</span> <span class="n">ListProperty</span><span class="p">,</span> <span class="n">NumericProperty</span><span class="p">,</span>
-								<span class="n">ObjectProperty</span><span class="p">,</span> <span class="n">ReferenceListProperty</span><span class="p">,</span>
-								<span class="n">StringProperty</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span>
+	<span class="n">BooleanProperty</span><span class="p">,</span>
+	<span class="n">BoundedNumericProperty</span><span class="p">,</span>
+	<span class="n">DictProperty</span><span class="p">,</span>
+	<span class="n">ListProperty</span><span class="p">,</span>
+	<span class="n">NumericProperty</span><span class="p">,</span>
+	<span class="n">ObjectProperty</span><span class="p">,</span>
+	<span class="n">ReferenceListProperty</span><span class="p">,</span>
+	<span class="n">StringProperty</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">.stepper</span> <span class="kn">import</span> <span class="n">RuleStepper</span>
 <span class="kn">from</span> <span class="nn">.charmenu</span> <span class="kn">import</span> <span class="n">CharMenu</span>
 <span class="kn">from</span> <span class="nn">.graph.board</span> <span class="kn">import</span> <span class="n">GraphBoardView</span>
@@ -78,7 +85,7 @@
 <span class="kn">from</span> <span class="nn">.calendar</span> <span class="kn">import</span> <span class="n">Agenda</span>
 <span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">dummynum</span><span class="p">,</span> <span class="n">trigger</span>
 
-<span class="n">Factory</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;CharMenu&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">CharMenu</span><span class="p">)</span>
+<span class="n">Factory</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">CharMenu</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="KvLayout">
@@ -100,8 +107,9 @@
 <span class="sd">	in the StatListPanel.</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
+
 	<span class="n">selection_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
-	<span class="n">button_text</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;Configure stats&#39;</span><span class="p">)</span>
+	<span class="n">button_text</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s2">&quot;Configure stats&quot;</span><span class="p">)</span>
 	<span class="n">cfgstatbut</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">statlist</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -109,7 +117,7 @@
 	<span class="n">toggle_stat_cfg</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
 	<span class="k">def</span> <span class="nf">on_proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">selection_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
@@ -136,7 +144,7 @@
 
 	<span class="k">def</span> <span class="nf">on_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
-		<span class="n">app</span><span class="o">.</span><span class="n">edit_locked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;down&#39;</span></div>
+		<span class="n">app</span><span class="o">.</span><span class="n">edit_locked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;down&quot;</span></div>
 
 
 
@@ -179,27 +187,29 @@
 <span class="sd">	the LiSE rules engine has been made to run.</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
+
 	<span class="n">screen</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">buttons_font_size</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">18</span><span class="p">)</span>
 	<span class="n">disable_one_turn</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">()</span>
 
 	<span class="k">def</span> <span class="nf">set_branch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="n">branch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">branchfield</span><span class="o">.</span><span class="n">text</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">branchfield</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">branchfield</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">time_travel</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">turn</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">_switch_to_menu</span><span class="p">()</span>
 
 	<span class="k">def</span> <span class="nf">set_turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="n">turn</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">turnfield</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">turnfield</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">turnfield</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">time_travel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">_switch_to_menu</span><span class="p">()</span>
 
 	<span class="k">def</span> <span class="nf">set_tick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="n">tick</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">tickfield</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">tickfield</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">time_travel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span>
-									<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">tickfield</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">time_travel</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">_switch_to_menu</span><span class="p">()</span>
 
 	<span class="nd">@mainthread</span>
@@ -215,16 +225,20 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">tickfield</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">tick</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">on_screen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span>
-					<span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;branchfield&#39;</span><span class="p">,</span> <span class="s1">&#39;turnfield&#39;</span><span class="p">,</span> <span class="s1">&#39;tickfield&#39;</span><span class="p">)):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
+			<span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span>
+			<span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;branchfield&quot;</span><span class="p">,</span> <span class="s2">&quot;turnfield&quot;</span><span class="p">,</span> <span class="s2">&quot;tickfield&quot;</span><span class="p">)</span>
+		<span class="p">):</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_screen</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">branchfield</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">branch</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">turnfield</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">turn</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">tickfield</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">tick</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">branch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upd_branch_hint</span><span class="p">,</span>
-								<span class="n">turn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upd_turn_hint</span><span class="p">,</span>
-								<span class="n">tick</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upd_tick_hint</span><span class="p">)</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+			<span class="n">branch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upd_branch_hint</span><span class="p">,</span>
+			<span class="n">turn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upd_turn_hint</span><span class="p">,</span>
+			<span class="n">tick</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upd_tick_hint</span><span class="p">,</span>
+		<span class="p">)</span></div>
 
 
 
@@ -240,6 +254,7 @@
 <span class="sd">	own.</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
+
 	<span class="n">manager</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">graphboards</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
 	<span class="n">gridboards</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
@@ -270,16 +285,20 @@
 		<span class="k">return</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
 
 	<span class="k">def</span> <span class="nf">_update_adding_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">adding_portal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;down&#39;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">adding_portal</span> <span class="o">=</span> <span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;down&quot;</span>
+		<span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">_update_board</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">board</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graphboards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">gridview</span><span class="o">.</span><span class="n">board</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gridboards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">]</span>
 
 	<span class="k">def</span> <span class="nf">on_mainview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="k">if</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">portaladdbut</span>
-		<span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graphboards</span><span class="p">:</span>
+		<span class="k">if</span> <span class="p">(</span>
+			<span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">)</span>
+			<span class="ow">or</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">portaladdbut</span><span class="p">)</span>
+			<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graphboards</span>
+		<span class="p">):</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_mainview</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">boardview</span> <span class="o">=</span> <span class="n">GraphBoardView</span><span class="p">(</span>
@@ -288,26 +307,32 @@
 			<span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
 			<span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span>
 			<span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">graphboards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">],</span>
-			<span class="n">adding_portal</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;down&#39;</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">),</span>
-							<span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">))</span>
+			<span class="n">adding_portal</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;down&quot;</span><span class="p">,</span>
+		<span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+			<span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;size&quot;</span><span class="p">),</span>
+			<span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;pos&quot;</span><span class="p">),</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_adding_portal</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">character_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_board</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">calendar</span> <span class="o">=</span> <span class="n">Agenda</span><span class="p">(</span><span class="n">update_mode</span><span class="o">=</span><span class="s1">&#39;present&#39;</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">calendar_view</span> <span class="o">=</span> <span class="n">ScrollView</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
-										<span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">calendar</span> <span class="o">=</span> <span class="n">Agenda</span><span class="p">(</span><span class="n">update_mode</span><span class="o">=</span><span class="s2">&quot;present&quot;</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">calendar_view</span> <span class="o">=</span> <span class="n">ScrollView</span><span class="p">(</span>
+			<span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">pos</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">gridview</span> <span class="o">=</span> <span class="n">GridBoardView</span><span class="p">(</span>
 			<span class="n">scale_min</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
 			<span class="n">scale_max</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span>
 			<span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
 			<span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span>
-			<span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gridboards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">])</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
-			<span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">calendar_view</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">),</span>
-			<span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">calendar_view</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">),</span>
+			<span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gridboards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">],</span>
 		<span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gridview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">),</span>
-							<span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gridview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+			<span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">calendar_view</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;size&quot;</span><span class="p">),</span>
+			<span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">calendar_view</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;pos&quot;</span><span class="p">),</span>
+		<span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+			<span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gridview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;size&quot;</span><span class="p">),</span> <span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gridview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;pos&quot;</span><span class="p">)</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">calendar_view</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calendar</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="p">)</span>
 
@@ -315,10 +340,12 @@
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">:</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_statpanel</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 			<span class="k">return</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">selected_proxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span><span class="p">,</span>
-						<span class="n">branch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span><span class="p">,</span>
-						<span class="n">turn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span><span class="p">,</span>
-						<span class="n">tick</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+			<span class="n">selected_proxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span><span class="p">,</span>
+			<span class="n">branch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span><span class="p">,</span>
+			<span class="n">turn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span><span class="p">,</span>
+			<span class="n">tick</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span><span class="p">,</span>
+		<span class="p">)</span>
 
 	<span class="nd">@trigger</span>
 	<span class="k">def</span> <span class="nf">_update_statlist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -327,12 +354,12 @@
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_update_statlist</span><span class="p">()</span>
 			<span class="k">return</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">update_calendar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="o">.</span><span class="n">statlist</span><span class="p">,</span>
-									<span class="n">past_turns</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-									<span class="n">future_turns</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">update_calendar</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="o">.</span><span class="n">statlist</span><span class="p">,</span> <span class="n">past_turns</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">future_turns</span><span class="o">=</span><span class="mi">0</span>
+		<span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">pull_visibility</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">visible</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">==</span> <span class="s1">&#39;main&#39;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">visible</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">==</span> <span class="s2">&quot;main&quot;</span>
 
 	<span class="k">def</span> <span class="nf">on_manager</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">pull_visibility</span><span class="p">()</span>
@@ -345,20 +372,19 @@
 <span class="sd">		current ``play_speed``.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_play_scheduled&#39;</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_play_scheduled&quot;</span><span class="p">):</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_play_scheduled</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_play_scheduled</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_interval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">play</span><span class="p">,</span>
-														<span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">play_speed</span><span class="p">)</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_play_scheduled</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_interval</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">play</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">play_speed</span>
+		<span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="MainScreen.remake_display">
 <a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.remake_display">[docs]</a>
 	<span class="k">def</span> <span class="nf">remake_display</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Remake any affected widgets after a change in my ``kv``.</span>
-
-<span class="sd">		&quot;&quot;&quot;</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Remake any affected widgets after a change in my ``kv``.&quot;&quot;&quot;</span>
 		<span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kv</span><span class="p">)</span>
-		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_kv_layout&#39;</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_kv_layout&quot;</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kv_layout</span><span class="p">)</span>
 			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kv_layout</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_kv_layout</span> <span class="o">=</span> <span class="n">KvLayout</span><span class="p">()</span>
@@ -372,29 +398,37 @@
 	<span class="k">def</span> <span class="nf">on_touch_down</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">visible</span><span class="p">:</span>
 			<span class="n">touch</span><span class="o">.</span><span class="n">grab</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-		<span class="k">for</span> <span class="n">interceptor</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timepanel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turnscroll</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="p">,</span>
-							<span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dummyplace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dummything</span><span class="p">):</span>
+		<span class="k">for</span> <span class="n">interceptor</span> <span class="ow">in</span> <span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">timepanel</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">turnscroll</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">dummyplace</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">dummything</span><span class="p">,</span>
+		<span class="p">):</span>
 			<span class="k">if</span> <span class="n">interceptor</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
-				<span class="n">interceptor</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_down&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">keep_selection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gridview</span><span class="o">.</span><span class="n">keep_selection</span> <span class="o">=</span> <span class="kc">True</span>
+				<span class="n">interceptor</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s2">&quot;on_touch_down&quot;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">keep_selection</span> <span class="o">=</span> <span class="p">(</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">gridview</span><span class="o">.</span><span class="n">keep_selection</span>
+				<span class="p">)</span> <span class="o">=</span> <span class="kc">True</span>
 				<span class="k">return</span> <span class="kc">True</span>
-		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialoglayout</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_down&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialoglayout</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s2">&quot;on_touch_down&quot;</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 			<span class="k">return</span> <span class="kc">True</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_down&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span></div>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s2">&quot;on_touch_down&quot;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="MainScreen.on_touch_up">
 <a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.on_touch_up">[docs]</a>
 	<span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">timepanel</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
-			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">timepanel</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_up&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
+			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">timepanel</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s2">&quot;on_touch_up&quot;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
 		<span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">turnscroll</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
-			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">turnscroll</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_up&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
+			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">turnscroll</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s2">&quot;on_touch_up&quot;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
 		<span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
-			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_up&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
+			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s2">&quot;on_touch_up&quot;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
 		<span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
-			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_up&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_up&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span></div>
+			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s2">&quot;on_touch_up&quot;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s2">&quot;on_touch_up&quot;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="MainScreen.on_dummies">
@@ -413,7 +447,7 @@
 			<span class="n">dummy</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="n">dummynum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="n">dummy</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
 
 		<span class="k">for</span> <span class="n">dummy</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dummies</span><span class="p">:</span>
-			<span class="k">if</span> <span class="n">dummy</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dummy</span><span class="p">,</span> <span class="s1">&#39;_numbered&#39;</span><span class="p">):</span>
+			<span class="k">if</span> <span class="n">dummy</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dummy</span><span class="p">,</span> <span class="s2">&quot;_numbered&quot;</span><span class="p">):</span>
 				<span class="k">continue</span>
 			<span class="k">if</span> <span class="n">dummy</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">dummything</span><span class="p">:</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">imgpaths</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_propagate_thing_paths</span><span class="p">)</span>
@@ -433,8 +467,9 @@
 		<span class="c1"># horrible hack</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">dummyplace</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">imgpaths</span>
 
-	<span class="k">def</span> <span class="nf">_update_from_time_travel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span>
-									<span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_update_from_time_travel</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+	<span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_update_from_delta</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
 	<span class="k">def</span> <span class="nf">_update_from_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -452,20 +487,20 @@
 <span class="sd">		If you want to disable this, set ``engine.universal[&#39;block&#39;] = True``</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">playbut</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">playbut</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">,</span>
-			<span class="s1">&#39;engine&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
+		<span class="k">if</span> <span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">playbut</span> <span class="ow">is</span> <span class="kc">None</span>
+			<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">playbut</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;normal&quot;</span>
+			<span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">,</span> <span class="s2">&quot;engine&quot;</span><span class="p">)</span>
+			<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span> <span class="ow">is</span> <span class="kc">None</span>
+			<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">closed</span>
+		<span class="p">):</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">next_turn</span><span class="p">()</span></div>
 
 
-	<span class="k">def</span> <span class="nf">_update_from_next_turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-								<span class="n">command</span><span class="p">,</span>
-								<span class="n">branch</span><span class="p">,</span>
-								<span class="n">turn</span><span class="p">,</span>
-								<span class="n">tick</span><span class="p">,</span>
-								<span class="n">result</span><span class="p">,</span>
-								<span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_update_from_next_turn</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span>
+	<span class="p">):</span>
 		<span class="n">todo</span><span class="p">,</span> <span class="n">deltas</span> <span class="o">=</span> <span class="n">result</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">todo</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">dialoglayout</span><span class="o">.</span><span class="n">todo</span> <span class="o">=</span> <span class="n">todo</span>
@@ -486,19 +521,21 @@
 			<span class="k">return</span>
 		<span class="n">eng</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span>
 		<span class="n">dial</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialoglayout</span>
-		<span class="k">if</span> <span class="n">eng</span><span class="o">.</span><span class="n">universal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;block&#39;</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">eng</span><span class="o">.</span><span class="n">universal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;block&quot;</span><span class="p">):</span>
 			<span class="n">Logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
 				<span class="s2">&quot;MainScreen: next_turn blocked, delete universal[&#39;block&#39;] to unblock&quot;</span>
 			<span class="p">)</span>
 			<span class="k">return</span>
 		<span class="k">if</span> <span class="n">dial</span><span class="o">.</span><span class="n">idx</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">dial</span><span class="o">.</span><span class="n">todo</span><span class="p">):</span>
 			<span class="n">Logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-				<span class="s2">&quot;MainScreen: not advancing time while there&#39;s a dialog&quot;</span><span class="p">)</span>
+				<span class="s2">&quot;MainScreen: not advancing time while there&#39;s a dialog&quot;</span>
+			<span class="p">)</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">tmp_block</span> <span class="o">=</span> <span class="kc">True</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_next_turn_thread</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span>
 			<span class="n">target</span><span class="o">=</span><span class="n">eng</span><span class="o">.</span><span class="n">next_turn</span><span class="p">,</span>
-			<span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;cb&#39;</span><span class="p">:</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_from_next_turn</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">cb</span><span class="p">)})</span>
+			<span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;cb&quot;</span><span class="p">:</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_from_next_turn</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">cb</span><span class="p">)},</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_next_turn_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">_switch_to_menu</span><span class="p">()</span></div>
 
@@ -510,8 +547,9 @@
 
 	<span class="k">def</span> <span class="nf">switch_to_boardview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="s1">&#39;apply_choices&#39;</span><span class="p">,</span>
-								<span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">calendar</span><span class="o">.</span><span class="n">get_track</span><span class="p">()])</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
+			<span class="s2">&quot;apply_choices&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">calendar</span><span class="o">.</span><span class="n">get_track</span><span class="p">()]</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">toggle_gridview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -531,10 +569,10 @@
 
 	<span class="nd">@trigger</span>
 	<span class="k">def</span> <span class="nf">toggle_timestream</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">!=</span> <span class="s1">&#39;timestream&#39;</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="s1">&#39;timestream&#39;</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">!=</span> <span class="s2">&quot;timestream&quot;</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="s2">&quot;timestream&quot;</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="s1">&#39;main&#39;</span></div>
+			<span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="s2">&quot;main&quot;</span></div>
 
 
 
@@ -551,28 +589,35 @@
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">(</span><span class="n">CharMenuContainer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span> <span class="o">=</span> <span class="n">CharMenu</span><span class="p">(</span><span class="n">screen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="p">,</span> <span class="n">size_hint_y</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">screen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;screen&#39;</span><span class="p">))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">screen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;screen&quot;</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">dummyplace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">dummyplace</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">dummyplace</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;dummyplace&#39;</span><span class="p">))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">dummyplace</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;dummyplace&quot;</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">dummything</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">dummything</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">dummything</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;dummything&#39;</span><span class="p">))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">dummything</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;dummything&quot;</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">portaladdbut</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">portaladdbut</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">portaladdbut</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;portaladdbut&#39;</span><span class="p">))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">portaladdbut</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;portaladdbut&quot;</span><span class="p">))</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">toggle_gridview</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">toggle_gridview</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
-			<span class="n">toggle_gridview</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;toggle_gridview&#39;</span><span class="p">),</span>
-			<span class="n">toggle_timestream</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;toggle_timestream&#39;</span><span class="p">))</span>
+			<span class="n">toggle_gridview</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;toggle_gridview&quot;</span><span class="p">),</span>
+			<span class="n">toggle_timestream</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;toggle_timestream&quot;</span><span class="p">),</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">stepper</span> <span class="o">=</span> <span class="n">RuleStepper</span><span class="p">(</span><span class="n">size_hint_y</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">button</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="n">on_release</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_toggle_stepper</span><span class="p">,</span>
-								<span class="n">text</span><span class="o">=</span><span class="s1">&#39;Rule</span><span class="se">\n</span><span class="s1">stepper&#39;</span><span class="p">,</span>
-								<span class="n">size_hint_y</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">button</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span>
+			<span class="n">on_release</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_toggle_stepper</span><span class="p">,</span>
+			<span class="n">text</span><span class="o">=</span><span class="s2">&quot;Rule</span><span class="se">\n</span><span class="s2">stepper&quot;</span><span class="p">,</span>
+			<span class="n">size_hint_y</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+		<span class="p">)</span>
 		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
 		<span class="n">app</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">branch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_switch_to_menu</span><span class="p">,</span> <span class="n">turn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_switch_to_menu</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;charmenu&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span>
-			<span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;stepper&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;button&#39;</span><span class="p">):</span>
+		<span class="k">if</span> <span class="p">(</span>
+			<span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span>
+			<span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;charmenu&quot;</span><span class="p">)</span>
+			<span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;stepper&quot;</span><span class="p">)</span>
+			<span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;button&quot;</span><span class="p">)</span>
+		<span class="p">):</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_parent</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="p">)</span>
@@ -584,13 +629,14 @@
 			<span class="n">engine</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">stepper</span><span class="o">.</span><span class="n">from_rules_handled_turn</span><span class="p">(</span>
-				<span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="s1">&#39;rules_handled_turn&#39;</span><span class="p">))</span>
+				<span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="s2">&quot;rules_handled_turn&quot;</span><span class="p">)</span>
+			<span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stepper</span><span class="p">)</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">button</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;Menu&#39;</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">button</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;Menu&quot;</span>
 		<span class="k">else</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="p">)</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">button</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;Rule stepper&#39;</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">button</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;Rule stepper&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">button</span><span class="p">)</span>
 
 	<span class="nd">@trigger</span>
@@ -598,7 +644,7 @@
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="p">)</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">button</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;Rule stepper&#39;</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">button</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;Rule stepper&quot;</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">button</span><span class="p">)</span></div>
 
 
@@ -606,9 +652,8 @@
 <div class="viewcode-block" id="TurnScroll">
 <a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.TurnScroll">[docs]</a>
 <span class="k">class</span> <span class="nc">TurnScroll</span><span class="p">(</span><span class="n">Slider</span><span class="p">):</span>
-
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-		<span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+		<span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;step&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_collect_engine</span><span class="p">()</span>
 
@@ -642,7 +687,8 @@
 		<span class="k">if</span> <span class="n">touch</span><span class="o">.</span><span class="n">grab_current</span> <span class="o">==</span> <span class="bp">self</span><span class="p">:</span>
 			<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
 			<span class="n">app</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">timepanel</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">turnfield</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
-				<span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+				<span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+			<span class="p">)</span>
 		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">on_touch_move</span><span class="p">(</span><span class="n">touch</span><span class="p">)</span></div>
 
 
@@ -846,7 +892,14 @@
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.character">character</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.node">node</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.portal">portal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.rule">rule</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.query">query</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.xcollections">xcollections</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
 </ul>
 
