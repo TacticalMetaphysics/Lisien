@@ -12,16 +12,17 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from LiSE.proxy import EngineProcessManager
 from LiSE.handle import EngineHandle
 import LiSE.allegedb.tests.test_all
+from LiSE.tests import data
 import pytest
 import LiSE.examples.kobold as kobold
 import LiSE.examples.college as college
 import shutil
 import tempfile
-import data
+import msgpack
 
 
 class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
@@ -240,3 +241,17 @@ def test_thing_place_iter():
 		for thing_name in phys.thing:
 			assert isinstance(thing_name, str)
 		manager.shutdown()
+
+
+def test_get_slow_delta_overload():
+	eng: MagicMock
+	with patch("LiSE.handle.Engine"):
+		hand = EngineHandle()
+		eng = hand._real
+		eng.pack = msgpack.packb
+		eng.branch, eng.turn, eng.tick = data.BTT_FROM
+		eng._btt.return_value = data.BTT_FROM
+		eng._get_kf.side_effect = [data.KF_FROM, data.KF_TO]
+		assert (
+			hand._get_slow_delta(data.BTT_FROM, data.BTT_TO) == data.SLOW_DELTA
+		)
