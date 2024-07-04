@@ -190,6 +190,11 @@ class GraphBoardTest(GraphicUnitTest):
 			100,
 			"Dummy 2 didn't get to board",
 		)
+		idle_until(
+			lambda: board.stack_plane.data,
+			100,
+			"Dummy 2 didn't get into the board's stack_plane",
+		)
 		view.pawn_from_dummy(dummy2)
 		idle_until(
 			lambda: dummy2_name in char.thing, 100, "Dummy 2 didn't add thing"
