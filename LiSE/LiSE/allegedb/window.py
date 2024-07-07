@@ -20,13 +20,30 @@ you asked for (and thus, keys must be orderable). It is optimized for retrieval
 of the same key and neighboring ones repeatedly and in sequence.
 
 """
+
 from abc import abstractmethod, ABC
 from collections import deque
-from collections.abc import Mapping, MutableMapping, KeysView, ItemsView, ValuesView
+from collections.abc import (
+	Mapping,
+	MutableMapping,
+	KeysView,
+	ItemsView,
+	ValuesView,
+)
 from itertools import chain
 from operator import itemgetter, lt, le
 from threading import Lock
-from typing import Union, Callable, Dict, List, Tuple, Any, Iterable, Set, Optional
+from typing import (
+	Union,
+	Callable,
+	Dict,
+	List,
+	Tuple,
+	Any,
+	Iterable,
+	Set,
+	Optional,
+)
 from enum import Enum
 
 get0 = itemgetter(0)
@@ -34,33 +51,42 @@ get1 = itemgetter(1)
 
 
 class Direction(Enum):
-	FORWARD = 'forward'
-	BACKWARD = 'backward'
+	FORWARD = "forward"
+	BACKWARD = "backward"
 
 
-def update_window(turn_from: int, tick_from: int, turn_to: int, tick_to: int,
-					updfun: Callable, branchd: Dict[int, List[tuple]]):
+def update_window(
+	turn_from: int,
+	tick_from: int,
+	turn_to: int,
+	tick_to: int,
+	updfun: Callable,
+	branchd: Dict[int, List[tuple]],
+):
 	"""Iterate over some time in ``branchd``, call ``updfun`` on the values"""
 	if turn_from in branchd:
 		# Not including the exact tick you started from,
 		# because deltas are *changes*
-		for past_state in branchd[turn_from][tick_from + 1:]:
+		for past_state in branchd[turn_from][tick_from + 1 :]:
 			updfun(*past_state)
 	for midturn in range(turn_from + 1, turn_to):
 		if midturn in branchd:
 			for past_state in branchd[midturn][:]:
 				updfun(*past_state)
 	if turn_to in branchd:
-		for past_state in branchd[turn_to][:tick_to + 1]:
+		for past_state in branchd[turn_to][: tick_to + 1]:
 			updfun(*past_state)
 
 
-def update_backward_window(turn_from: int, tick_from: int, turn_to: int,
-							tick_to: int, updfun: Callable,
-							branchd: Dict[int, List[tuple]]):
-	"""Iterate backward over time in ``branchd``, call ``updfun`` on the values
-
-	"""
+def update_backward_window(
+	turn_from: int,
+	tick_from: int,
+	turn_to: int,
+	tick_to: int,
+	updfun: Callable,
+	branchd: Dict[int, List[tuple]],
+):
+	"""Iterate backward over time in ``branchd``, call ``updfun`` on the values"""
 	if turn_from in branchd:
 		for future_state in reversed(branchd[turn_from][:tick_from]):
 			updfun(*future_state)
@@ -69,7 +95,7 @@ def update_backward_window(turn_from: int, tick_from: int, turn_to: int,
 			for future_state in reversed(branchd[midturn][:]):
 				updfun(*future_state)
 	if turn_to in branchd:
-		for future_state in reversed(branchd[turn_to][tick_to + 1:]):
+		for future_state in reversed(branchd[turn_to][tick_to + 1 :]):
 			updfun(*future_state)
 
 
@@ -81,20 +107,27 @@ class HistoricKeyError(KeyError):
 		self.deleted = deleted
 
 
-def within_history(rev: int, windowdict: 'WindowDict'):
+def within_history(rev: int, windowdict: "WindowDict"):
 	"""Return whether the windowdict has history at the revision."""
 	if not windowdict:
 		return False
-	begin = windowdict._past[0][0] if windowdict._past else windowdict._future[
-		-1][0]
-	end = windowdict._future[0][0] if windowdict._future else windowdict._past[
-		-1][0]
+	begin = (
+		windowdict._past[0][0]
+		if windowdict._past
+		else windowdict._future[-1][0]
+	)
+	end = (
+		windowdict._future[0][0]
+		if windowdict._future
+		else windowdict._past[-1][0]
+	)
 	return begin <= rev <= end
 
 
 class WindowDictKeysView(ABC, KeysView):
 	"""Look through all the keys a WindowDict contains."""
-	_mapping: 'WindowDict'
+
+	_mapping: "WindowDict"
 
 	def __contains__(self, rev: int):
 		return rev in self._mapping._keys
@@ -110,7 +143,8 @@ class WindowDictKeysView(ABC, KeysView):
 
 class WindowDictItemsView(ABC, ItemsView):
 	"""Look through everything a WindowDict contains."""
-	_mapping: 'WindowDict'
+
+	_mapping: "WindowDict"
 
 	def __contains__(self, item: Tuple[int, Any]):
 		(rev, v) = item
@@ -136,7 +170,8 @@ class WindowDictItemsView(ABC, ItemsView):
 
 class WindowDictPastFutureKeysView(ABC, KeysView):
 	"""View on a WindowDict's keys relative to last lookup"""
-	_mapping: Union['WindowDictPastView', 'WindowDictFutureView']
+
+	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
 
 	def __iter__(self):
 		if not self._mapping.stack:
@@ -148,7 +183,7 @@ class WindowDictPastFutureKeysView(ABC, KeysView):
 
 
 class WindowDictPastFutureItemsView(ABC, ItemsView):
-	_mapping: Union['WindowDictPastView', 'WindowDictFutureView']
+	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
 
 	@staticmethod
 	@abstractmethod
@@ -171,7 +206,6 @@ class WindowDictPastFutureItemsView(ABC, ItemsView):
 
 
 class WindowDictPastItemsView(WindowDictPastFutureItemsView):
-
 	@staticmethod
 	def _out_of_range(item: Tuple[int, Any], stack: List[Tuple[int, Any]]):
 		return item[0] < stack[0][0] or item[0] > stack[-1][0]
@@ -187,7 +221,8 @@ class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
 
 class WindowDictPastFutureValuesView(ABC, ValuesView):
 	"""Abstract class for views on the past or future values of a WindowDict"""
-	_mapping: Union['WindowDictPastView', 'WindowDictFutureView']
+
+	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
 
 	def __iter__(self):
 		stack = self._mapping.stack
@@ -204,7 +239,8 @@ class WindowDictPastFutureValuesView(ABC, ValuesView):
 
 class WindowDictValuesView(ABC, ValuesView):
 	"""Look through all the values that a WindowDict contains."""
-	_mapping: 'WindowDict'
+
+	_mapping: "WindowDict"
 
 	def __contains__(self, value: Any):
 		past = self._mapping._past
@@ -230,7 +266,8 @@ class WindowDictValuesView(ABC, ValuesView):
 
 class WindowDictPastFutureView(ABC, Mapping):
 	"""Abstract class for historical views on WindowDict"""
-	__slots__ = ('stack', )
+
+	__slots__ = ("stack",)
 	stack: List[Tuple[int, Any]]
 
 	def __init__(self, stack: List[Tuple[int, Any]]) -> None:
@@ -301,11 +338,12 @@ class WindowDictFutureView(WindowDictPastFutureView):
 
 class WindowDictSlice:
 	"""A slice of history in which the start is earlier than the stop"""
-	__slots__ = ['dic', 'slic']
-	dic: 'WindowDict'
+
+	__slots__ = ["dic", "slic"]
+	dic: "WindowDict"
 	slic: slice
 
-	def __init__(self, dic: 'WindowDict', slic: slice):
+	def __init__(self, dic: "WindowDict", slic: slice):
 		self.dic = dic
 		self.slic = slic
 
@@ -318,8 +356,11 @@ class WindowDictSlice:
 			return
 		slic = self.slic
 		if slic.step is not None:
-			for i in range(slic.start or dic.beginning, slic.stop
-							or dic.end + 1, slic.step):
+			for i in range(
+				slic.start or dic.beginning,
+				slic.stop or dic.end + 1,
+				slic.step,
+			):
 				yield dic[i]
 			return
 		if slic.start is None and slic.stop is None:
@@ -379,9 +420,10 @@ class WindowDictSlice:
 
 class WindowDictReverseSlice:
 	"""A slice of history in which the start is later than the stop"""
-	__slots__ = ['dict', 'slice']
 
-	def __init__(self, dict: 'WindowDict', slic: slice):
+	__slots__ = ["dict", "slice"]
+
+	def __init__(self, dict: "WindowDict", slic: slice):
 		self.dict = dict
 		self.slice = slic
 
@@ -394,8 +436,9 @@ class WindowDictReverseSlice:
 			return
 		slic = self.slice
 		if slic.step is not None:
-			for i in range(slic.start or dic.end, slic.stop or dic.beginning,
-							slic.step):
+			for i in range(
+				slic.start or dic.end, slic.stop or dic.beginning, slic.step
+			):
 				yield dic[i]
 			return
 		if slic.start is None and slic.stop is None:
@@ -456,7 +499,8 @@ class WindowDict(MutableMapping):
 	even if you don't supply a step. That will get you values in reverse order.
 
 	"""
-	__slots__ = ('_future', '_past', '_keys', '_last', '_lock')
+
+	__slots__ = ("_future", "_past", "_keys", "_last", "_lock")
 
 	_past: List[Tuple[int, Any]]
 	_future: List[Tuple[int, Any]]
@@ -565,7 +609,7 @@ class WindowDict(MutableMapping):
 			return self._past[-1][1]
 		raise KeyError("No data")
 
-	def truncate(self, rev: int, direction: Direction = 'forward') -> None:
+	def truncate(self, rev: int, direction: Direction = "forward") -> None:
 		"""Delete everything after the given revision, exclusive.
 
 		With direction='backward', delete everything before the revision,
@@ -574,10 +618,10 @@ class WindowDict(MutableMapping):
 		"""
 		with self._lock:
 			self._seek(rev)
-			if direction == 'forward':
+			if direction == "forward":
 				self._keys.difference_update(map(get0, self._future))
 				self._future = []
-			elif direction == 'backward':
+			elif direction == "backward":
 				if not self._past:
 					return
 				if self._past[-1][0] == rev:
@@ -613,8 +657,8 @@ class WindowDict(MutableMapping):
 			return empty
 
 	def __init__(
-			self,
-			data: Union[List[Tuple[int, Any]], Dict[int, Any]] = None) -> None:
+		self, data: Union[List[Tuple[int, Any]], Dict[int, Any]] = None
+	) -> None:
 		self._lock = Lock()
 		with self._lock:
 			if not data:
@@ -653,7 +697,8 @@ class WindowDict(MutableMapping):
 			past = self._past
 			if not past:
 				raise HistoricKeyError(
-					"Revision {} is before the start of history".format(rev))
+					"Revision {} is before the start of history".format(rev)
+				)
 			return past[-1][1]
 
 	def __setitem__(self, rev: int, v: Any) -> None:
@@ -682,11 +727,13 @@ class WindowDict(MutableMapping):
 		if self.beginning is None:
 			if self.end is not None and rev > self.end:
 				raise HistoricKeyError(
-					"Rev outside of history: {}".format(rev))
+					"Rev outside of history: {}".format(rev)
+				)
 		elif self.end is None:
 			if self.beginning is not None and rev < self.beginning:
 				raise HistoricKeyError(
-					"Rev outside of history: {}".format(rev))
+					"Rev outside of history: {}".format(rev)
+				)
 		elif not self.beginning <= rev <= self.end:
 			raise HistoricKeyError("Rev outside of history: {}".format(rev))
 		with self._lock:
@@ -708,15 +755,16 @@ class WindowDict(MutableMapping):
 
 class FuturistWindowDict(WindowDict):
 	"""A WindowDict that does not let you rewrite the past."""
+
 	__slots__ = (
-		'_future',
-		'_past',
+		"_future",
+		"_past",
 	)
 	_future: List[Tuple[int, Any]]
 	_past: List[Tuple[int, Any]]
 
 	def __setitem__(self, rev: int, v: Any) -> None:
-		if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
+		if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap"):
 			v = v.unwrap()
 		with self._lock:
 			self._seek(rev)
@@ -724,7 +772,8 @@ class FuturistWindowDict(WindowDict):
 			future = self._future
 			if future:
 				raise HistoricKeyError(
-					"Already have some history after {}".format(rev))
+					"Already have some history after {}".format(rev)
+				)
 			if not past:
 				past.append((rev, v))
 			elif rev > past[-1][0]:
@@ -734,12 +783,13 @@ class FuturistWindowDict(WindowDict):
 			else:
 				raise HistoricKeyError(
 					"Already have some history after {} "
-					"(and my seek function is broken?)".format(rev))
+					"(and my seek function is broken?)".format(rev)
+				)
 			self._keys.add(rev)
 
 
 class TurnDict(FuturistWindowDict):
-	__slots__ = ('_future', '_past')
+	__slots__ = ("_future", "_past")
 	_future: List[Tuple[int, Any]]
 	_past: List[Tuple[int, Any]]
 	cls = FuturistWindowDict
@@ -758,7 +808,8 @@ class SettingsTurnDict(WindowDict):
 	further turn.
 
 	"""
-	__slots__ = ('_future', '_past')
+
+	__slots__ = ("_future", "_past")
 	_future: List[Tuple[int, Any]]
 	_past: List[Tuple[int, Any]]
 	cls = WindowDict

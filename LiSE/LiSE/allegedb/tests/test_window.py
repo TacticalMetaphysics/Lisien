@@ -3,7 +3,7 @@ from .. import HistoricKeyError, ORM
 from itertools import cycle
 import pytest
 
-testvs = ['a', 99, ['spam', 'eggs', 'ham'], {'foo': 'bar', 0: 1, '💧': '🔑'}]
+testvs = ["a", 99, ["spam", "eggs", "ham"], {"foo": "bar", 0: 1, "💧": "🔑"}]
 testdata = []
 for k, v in zip(range(100), cycle(testvs)):
 	if type(v) is str:
@@ -15,7 +15,7 @@ for k, v in zip(range(100), cycle(testvs)):
 	else:
 		assert type(v) is dict
 		vv = dict(v)
-		vv['k'] = k
+		vv["k"] = k
 		testdata.append((k, vv))
 
 
@@ -106,19 +106,23 @@ def test_empty():
 
 def test_slice(windd):
 	assert list(windd[:50]) == [windd[i] for i in range(50)]
-	assert list(reversed(
-		windd[:50])) == [windd[i] for i in reversed(range(50))]
+	assert list(reversed(windd[:50])) == [
+		windd[i] for i in reversed(range(50))
+	]
 	assert list(windd[:50:2]) == [windd[i] for i in range(0, 50, 2)]
 	assert list(windd[50:]) == [windd[i] for i in range(50, 100)]
-	assert list(reversed(
-		windd[50:])) == [windd[i] for i in reversed(range(50, 100))]
+	assert list(reversed(windd[50:])) == [
+		windd[i] for i in reversed(range(50, 100))
+	]
 	assert list(windd[50::2]) == [windd[i] for i in range(50, 100, 2)]
 	assert list(windd[25:50]) == [windd[i] for i in range(25, 50)]
-	assert list(reversed(
-		windd[25:50])) == [windd[i] for i in reversed(range(25, 50))]
+	assert list(reversed(windd[25:50])) == [
+		windd[i] for i in reversed(range(25, 50))
+	]
 	assert list(windd[50:25]) == [windd[i] for i in range(50, 25, -1)]
-	assert list(reversed(
-		windd[50:25])) == [windd[i] for i in reversed(range(50, 25, -1))]
+	assert list(reversed(windd[50:25])) == [
+		windd[i] for i in reversed(range(50, 25, -1))
+	]
 	assert list(windd[25:50:2]) == [windd[i] for i in range(25, 50, 2)]
 	assert list(windd[50:25:-2]) == [windd[i] for i in range(50, 25, -2)]
 
@@ -138,33 +142,33 @@ def test_del(windd):
 def test_set():
 	wd = WindowDict()
 	assert 0 not in wd
-	wd[0] = 'foo'
+	wd[0] = "foo"
 	assert 0 in wd
-	assert wd[0] == 'foo'
+	assert wd[0] == "foo"
 	assert 1 not in wd
-	wd[1] = 'oof'
+	wd[1] = "oof"
 	assert 1 in wd
-	assert wd[1] == 'oof'
+	assert wd[1] == "oof"
 	assert 3 not in wd
-	wd[3] = 'ofo'
+	wd[3] = "ofo"
 	assert 3 in wd
-	assert wd[3] == 'ofo'
+	assert wd[3] == "ofo"
 	assert 2 not in wd
-	wd[2] = 'owo'
+	wd[2] = "owo"
 	assert 2 in wd
-	assert wd[2] == 'owo'
-	wd[3] = 'fof'
-	assert wd[3] == 'fof'
-	wd[0] = 'off'
-	assert wd[0] == 'off'
+	assert wd[2] == "owo"
+	wd[3] = "fof"
+	assert wd[3] == "fof"
+	wd[0] = "off"
+	assert wd[0] == "off"
 	assert 4 not in wd
-	wd[4] = WindowDict({'spam': 'eggs'})
+	wd[4] = WindowDict({"spam": "eggs"})
 	assert 4 in wd
-	assert wd[4] == {'spam': 'eggs'}
+	assert wd[4] == {"spam": "eggs"}
 	assert 5 not in wd
-	with ORM('sqlite:///:memory:') as orm:
-		g = orm.new_digraph('g')
-		g.node[5] = {'ham': {'spam': 'beans'}}
-		wd[5] = g.node[5]['ham']
-		assert wd[5] == {'spam': 'beans'}
-		assert wd[5] == g.node[5]['ham']
+	with ORM("sqlite:///:memory:") as orm:
+		g = orm.new_digraph("g")
+		g.node[5] = {"ham": {"spam": "beans"}}
+		wd[5] = g.node[5]["ham"]
+		assert wd[5] == {"spam": "beans"}
+		assert wd[5] == g.node[5]["ham"]

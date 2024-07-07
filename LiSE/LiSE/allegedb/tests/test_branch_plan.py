@@ -3,59 +3,59 @@ from LiSE import allegedb
 import os
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def orm():
 	with allegedb.ORM("sqlite:///:memory:") as it:
 		yield it
 
 
 def test_single_plan(orm):
-	g = orm.new_digraph('graph')
+	g = orm.new_digraph("graph")
 	g.add_node(0)
 	orm.turn = 1
 	g.add_node(1)
 	with orm.plan():
 		orm.turn = 2
 		g.add_node(2)
-		g.node[2]['clever'] = False
+		g.node[2]["clever"] = False
 		orm.turn = 3
-		g.node[2]['funny'] = True
+		g.node[2]["funny"] = True
 		g.add_node(3)
 		orm.turn = 4
-		g.node[2]['successful'] = True
+		g.node[2]["successful"] = True
 	orm.turn = 1
 	assert 2 not in g.node
-	orm.branch = 'b'
+	orm.branch = "b"
 	assert 2 not in g.node
 	assert 1 in g
 	orm.turn = 2
 	assert 2 in g.node
-	assert g.node[2].keys() == {'clever'}
+	assert g.node[2].keys() == {"clever"}
 	orm.turn = 3
-	assert g.node[2]['funny']
+	assert g.node[2]["funny"]
 	assert 3 in g
-	assert g.node[2].keys() == {'funny', 'clever'}
+	assert g.node[2].keys() == {"funny", "clever"}
 	orm.turn = 4
-	assert g.node[2].keys() == {'funny', 'clever', 'successful'}
+	assert g.node[2].keys() == {"funny", "clever", "successful"}
 	orm.turn = 2
-	assert g.node[2].keys() == {'clever'}
-	g.node[2]['funny'] = False
-	assert g.node[2].keys() == {'funny', 'clever'}
+	assert g.node[2].keys() == {"clever"}
+	g.node[2]["funny"] = False
+	assert g.node[2].keys() == {"funny", "clever"}
 	orm.turn = 3
-	assert not g.node[2]['funny']
+	assert not g.node[2]["funny"]
 	assert 3 not in g.node
 	orm.turn = 4
-	assert g.node[2].keys() == {'funny', 'clever'}
+	assert g.node[2].keys() == {"funny", "clever"}
 	orm.turn = 1
-	orm.branch = 'trunk'
+	orm.branch = "trunk"
 	orm.turn = 0
 	assert 1 not in g.node
-	orm.branch = 'c'
+	orm.branch = "c"
 	orm.turn = 2
 	assert 1 not in g.node
 	assert 2 not in g.node
 	orm.turn = 0
-	orm.branch = 'trunk'
+	orm.branch = "trunk"
 	orm.turn = 2
 	assert 2 in g.node
 
@@ -118,7 +118,7 @@ def test_plan_vs_plan(orm):
 
 
 def test_save_load_plan(tmpdbfile):
-	tmpdbstring = 'sqlite:///' + tmpdbfile
+	tmpdbstring = "sqlite:///" + tmpdbfile
 	with allegedb.ORM(tmpdbstring) as orm:
 		g1 = orm.new_digraph(1)
 		g2 = orm.new_digraph(2)

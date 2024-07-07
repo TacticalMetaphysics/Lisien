@@ -12,12 +12,17 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Classes for in-memory storage and retrieval of historical graph data.
-"""
+"""Classes for in-memory storage and retrieval of historical graph data."""
+
 from typing import Tuple, Hashable, Optional
 
-from .window import WindowDict, HistoricKeyError, FuturistWindowDict, \
- TurnDict, SettingsTurnDict
+from .window import (
+	WindowDict,
+	HistoricKeyError,
+	FuturistWindowDict,
+	TurnDict,
+	SettingsTurnDict,
+)
 from collections import OrderedDict, defaultdict, deque
 from threading import RLock
 
@@ -27,9 +32,7 @@ class NotInKeyframeError(KeyError):
 
 
 def _default_args_munger(self, k):
-	"""By default, `PickyDefaultDict`'s ``type`` takes no positional arguments.
-
-	"""
+	"""By default, `PickyDefaultDict`'s ``type`` takes no positional arguments."""
 	return tuple()
 
 
@@ -50,12 +53,15 @@ class PickyDefaultDict(dict):
 	They take arguments ``self`` and the unused key being looked up.
 
 	"""
-	__slots__ = ['type', 'args_munger', 'kwargs_munger', 'parent', 'key']
 
-	def __init__(self,
-					type: type,
-					args_munger: callable = _default_args_munger,
-					kwargs_munger: callable = _default_kwargs_munger):
+	__slots__ = ["type", "args_munger", "kwargs_munger", "parent", "key"]
+
+	def __init__(
+		self,
+		type: type,
+		args_munger: callable = _default_args_munger,
+		kwargs_munger: callable = _default_kwargs_munger,
+	):
 		self.type = type
 		self.args_munger = args_munger
 		self.kwargs_munger = kwargs_munger
@@ -64,8 +70,9 @@ class PickyDefaultDict(dict):
 		if k in self:
 			return super(PickyDefaultDict, self).__getitem__(k)
 		try:
-			ret = self[k] = self.type(*self.args_munger(self, k),
-										**self.kwargs_munger(self, k))
+			ret = self[k] = self.type(
+				*self.args_munger(self, k), **self.kwargs_munger(self, k)
+			)
 		except TypeError:
 			raise KeyError(k)
 		return ret
@@ -88,16 +95,28 @@ class StructuredDefaultDict(dict):
 	to my constructor.
 
 	"""
-	__slots__ = ('layer', 'type', 'args_munger', 'kwargs_munger', 'parent',
-					'key', '_stuff', 'gettest', 'settest')
 
-	def __init__(self,
-					layers: int,
-					type: type = None,
-					args_munger: callable = _default_args_munger,
-					kwargs_munger: callable = _default_kwargs_munger,
-					gettest=lambda k: None,
-					settest=lambda k, v: None):
+	__slots__ = (
+		"layer",
+		"type",
+		"args_munger",
+		"kwargs_munger",
+		"parent",
+		"key",
+		"_stuff",
+		"gettest",
+		"settest",
+	)
+
+	def __init__(
+		self,
+		layers: int,
+		type: type = None,
+		args_munger: callable = _default_args_munger,
+		kwargs_munger: callable = _default_kwargs_munger,
+		gettest=lambda k: None,
+		settest=lambda k, v: None,
+	):
 		if layers < 1:
 			raise ValueError("Not enough layers")
 		self.layer = layers
@@ -123,8 +142,9 @@ class StructuredDefaultDict(dict):
 		elif layer < 1:
 			raise ValueError("Invalid layer")
 		else:
-			ret = StructuredDefaultDict(layer - 1, typ, args_munger,
-										kwargs_munger)
+			ret = StructuredDefaultDict(
+				layer - 1, typ, args_munger, kwargs_munger
+			)
 			ret.parent = self
 			ret.key = k
 		dict.__setitem__(self, k, ret)
@@ -134,15 +154,22 @@ class StructuredDefaultDict(dict):
 		self.settest(k, v)
 		if type(v) is StructuredDefaultDict:
 			layer, typ, args_munger, kwargs_munger = self._stuff
-			if (v.layer == layer - 1 and (typ is None or v.type is typ)
+			if (
+				v.layer == layer - 1
+				and (typ is None or v.type is typ)
 				and v.args_munger is args_munger
-				and v.kwargs_munger is kwargs_munger):
+				and v.kwargs_munger is kwargs_munger
+			):
 				super().__setitem__(k, v)
 				return
 		elif type(v) is PickyDefaultDict:
 			layer, typ, args_munger, kwargs_munger = self._stuff
-			if (layer == 1 and v.type is typ and v.args_munger is args_munger
-				and v.kwargs_munger is kwargs_munger):
+			if (
+				layer == 1
+				and v.type is typ
+				and v.args_munger is args_munger
+				and v.kwargs_munger is kwargs_munger
+			):
 				super().__setitem__(k, v)
 				return
 		raise TypeError("Can't set layer {}".format(self.layer))
@@ -184,11 +211,28 @@ def lru_append(kc, lru, kckey, maxsize):
 
 class Cache:
 	"""A data store that's useful for tracking graph revisions."""
-	__slots__ = ('db', 'parents', 'keys', 'keycache', 'branches', 'shallowest',
-					'settings', 'presettings', 'time_entity', '_kc_lru',
-					'_store_stuff', '_remove_stuff', '_truncate_stuff',
-					'setdb', 'deldb', 'keyframe', 'name',
-					'_store_journal_stuff', '_lock')
+
+	__slots__ = (
+		"db",
+		"parents",
+		"keys",
+		"keycache",
+		"branches",
+		"shallowest",
+		"settings",
+		"presettings",
+		"time_entity",
+		"_kc_lru",
+		"_store_stuff",
+		"_remove_stuff",
+		"_truncate_stuff",
+		"setdb",
+		"deldb",
+		"keyframe",
+		"name",
+		"_store_journal_stuff",
+		"_lock",
+	)
 
 	def __init__(self, db, kfkvs=None):
 		super().__init__()
@@ -223,8 +267,9 @@ class Cache:
 		but still need to iterate through history to find the value.
 
 		"""
-		self.keyframe = StructuredDefaultDict(1, SettingsTurnDict,
-												**(kfkvs or {}))
+		self.keyframe = StructuredDefaultDict(
+			1, SettingsTurnDict, **(kfkvs or {})
+		)
 		"""Key-value dictionaries representing my state at a given time"""
 		self.shallowest = OrderedDict()
 		"""A dictionary for plain, unstructured hinting."""
@@ -235,29 +280,49 @@ class Cache:
 		self.time_entity = {}
 		self._kc_lru = OrderedDict()
 		self._lock = RLock()
-		self._store_stuff = (self._lock, self.parents, self.branches,
-								self.keys, db.delete_plan, db._time_plan,
-								self._iter_future_contradictions, db._branches,
-								db._turn_end, self._store_journal,
-								self.time_entity, db._where_cached,
-								self.keycache, db, self._update_keycache)
-		self._remove_stuff = (self._lock, self.time_entity, self.parents,
-								self.branches, self.keys, self.settings,
-								self.presettings, self._remove_keycache,
-								self.keycache)
-		self._truncate_stuff = (self._lock, self.parents, self.branches,
-								self.keys, self.settings, self.presettings,
-								self.keycache)
-		self._store_journal_stuff: Tuple[PickyDefaultDict, PickyDefaultDict,
-											callable] = (
-												self.settings,
-												self.presettings,
-												self._base_retrieve)
+		self._store_stuff = (
+			self._lock,
+			self.parents,
+			self.branches,
+			self.keys,
+			db.delete_plan,
+			db._time_plan,
+			self._iter_future_contradictions,
+			db._branches,
+			db._turn_end,
+			self._store_journal,
+			self.time_entity,
+			db._where_cached,
+			self.keycache,
+			db,
+			self._update_keycache,
+		)
+		self._remove_stuff = (
+			self._lock,
+			self.time_entity,
+			self.parents,
+			self.branches,
+			self.keys,
+			self.settings,
+			self.presettings,
+			self._remove_keycache,
+			self.keycache,
+		)
+		self._truncate_stuff = (
+			self._lock,
+			self.parents,
+			self.branches,
+			self.keys,
+			self.settings,
+			self.presettings,
+			self.keycache,
+		)
+		self._store_journal_stuff: Tuple[
+			PickyDefaultDict, PickyDefaultDict, callable
+		] = (self.settings, self.presettings, self._base_retrieve)
 
 	def set_keyframe(self, graph, branch, turn, tick, keyframe):
-		kfg = self.keyframe[
-			graph,
-		]
+		kfg = self.keyframe[graph,]
 		if branch in kfg:
 			kfgb = kfg[branch]
 			if turn in kfgb:
@@ -283,7 +348,7 @@ class Cache:
 		# Make keycaches and valcaches. Must be done chronologically
 		# to make forwarding work.
 		childbranch = db._childbranch
-		branch2do = deque(['trunk'])
+		branch2do = deque(["trunk"])
 
 		store = self.store
 		while branch2do:
@@ -311,16 +376,24 @@ class Cache:
 						if ex.deleted:
 							raise
 
-	def _get_keycachelike(self, keycache: dict, keys: dict,
-							get_adds_dels: callable, parentity: tuple,
-							branch: str, turn: int, tick: int, *,
-							forward: bool):
+	def _get_keycachelike(
+		self,
+		keycache: dict,
+		keys: dict,
+		get_adds_dels: callable,
+		parentity: tuple,
+		branch: str,
+		turn: int,
+		tick: int,
+		*,
+		forward: bool,
+	):
 		"""Try to retrieve a frozenset representing extant keys.
 
 		If I can't, generate one, store it, and return it.
 
 		"""
-		keycache_key = parentity + (branch, )
+		keycache_key = parentity + (branch,)
 		keycache2 = keycache3 = None
 		if keycache_key in keycache:
 			keycache2 = keycache[keycache_key]
@@ -349,10 +422,14 @@ class Cache:
 							turn,
 							tick,
 							stoptime=(branch, old_turn, old_turn_kc.end),
-							cache=keys)
+							cache=keys,
+						)
 						try:
-							ret = old_turn_kc.final().union(added).difference(
-								deleted)
+							ret = (
+								old_turn_kc.final()
+								.union(added)
+								.difference(deleted)
+							)
 						except KeyError:
 							ret = frozenset()
 						# assert ret == get_adds_dels(
@@ -370,11 +447,18 @@ class Cache:
 								branch,
 								turn,
 								tick,
-								stoptime=(branch, turn,
-											keycache3.rev_before(tick)),
-								cache=keys)
-							ret = keycache3[tick].union(added).difference(
-								deleted)
+								stoptime=(
+									branch,
+									turn,
+									keycache3.rev_before(tick),
+								),
+								cache=keys,
+							)
+							ret = (
+								keycache3[tick]
+								.union(added)
+								.difference(deleted)
+							)
 							# assert ret == get_adds_dels(
 							# keys[parentity], branch, turn, tick)[0]  # slow
 							keycache3[tick] = ret
@@ -389,9 +473,11 @@ class Cache:
 								turn,
 								tick,
 								stoptime=(branch, turn_before, tick_before),
-								cache=keys)
+								cache=keys,
+							)
 							ret = keycache3[tick] = keys_before.union(
-								added).difference(deleted)
+								added
+							).difference(deleted)
 							# assert ret == get_adds_dels(
 							# keys[parentity], branch, turn, tick)[0]  # slow
 							return ret
@@ -410,24 +496,37 @@ class Cache:
 				keycache[keycache_key] = kcc
 			return ret
 
-	def _get_keycache(self, parentity: tuple, branch: str, turn: int,
-						tick: int, *, forward: bool):
+	def _get_keycache(
+		self,
+		parentity: tuple,
+		branch: str,
+		turn: int,
+		tick: int,
+		*,
+		forward: bool,
+	):
 		"""Get a frozenset of keys that exist in the entity at the moment.
 
 		With ``forward=True``, enable an optimization that copies old key sets
 		forward and updates them.
 
 		"""
-		lru_append(self.keycache, self._kc_lru,
-					(parentity + (branch, ), turn, tick), KEYCACHE_MAXSIZE)
-		return self._get_keycachelike(self.keycache,
-										self.keys,
-										self._get_adds_dels,
-										parentity,
-										branch,
-										turn,
-										tick,
-										forward=forward)
+		lru_append(
+			self.keycache,
+			self._kc_lru,
+			(parentity + (branch,), turn, tick),
+			KEYCACHE_MAXSIZE,
+		)
+		return self._get_keycachelike(
+			self.keycache,
+			self.keys,
+			self._get_adds_dels,
+			parentity,
+			branch,
+			turn,
+			tick,
+			forward=forward,
+		)
 
 	def _update_keycache(self, *args, forward: bool):
 		"""Add or remove a key in the set describing the keys that exist."""
@@ -438,25 +537,25 @@ class Cache:
 		tick: int
 		entity, key, branch, turn, tick, value = args[-6:]
 		parent = args[:-6]
-		kc = self._get_keycache(parent + (entity, ),
-								branch,
-								turn,
-								tick,
-								forward=forward)
+		kc = self._get_keycache(
+			parent + (entity,), branch, turn, tick, forward=forward
+		)
 		if value is None:
-			kc = kc.difference((key, ))
+			kc = kc.difference((key,))
 		else:
-			kc = kc.union((key, ))
+			kc = kc.union((key,))
 		self.keycache[parent + (entity, branch)][turn][tick] = kc
 
-	def _get_adds_dels(self,
-						entity: Hashable,
-						branch: str,
-						turn: int,
-						tick: int,
-						*,
-						stoptime: Tuple[str, int, int] = None,
-						cache: dict = None):
+	def _get_adds_dels(
+		self,
+		entity: Hashable,
+		branch: str,
+		turn: int,
+		tick: int,
+		*,
+		stoptime: Tuple[str, int, int] = None,
+		cache: dict = None,
+	):
 		"""Return a pair of sets describing changes to the entity's keys
 
 		Returns a pair of sets: ``(added, deleted)``. These are the changes
@@ -475,13 +574,12 @@ class Cache:
 		deleted = set()
 		kf = self.keyframe.get(entity, None)
 		for key, branches in cache.get(entity, {}).items():
-			for (branc, trn,
-					tck) in self.db._iter_parent_btt(branch,
-														turn,
-														tick,
-														stoptime=stoptime):
+			for branc, trn, tck in self.db._iter_parent_btt(
+				branch, turn, tick, stoptime=stoptime
+			):
 				if branc not in branches or not branches[branc].rev_gettable(
-					trn):
+					trn
+				):
 					continue
 				turnd = branches[branc]
 				if trn in turnd:
@@ -503,7 +601,7 @@ class Cache:
 				break
 		if stoptime or not kf:
 			return added, deleted
-		for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn, tick):
+		for branc, trn, tck in self.db._iter_parent_btt(branch, turn, tick):
 			if branc not in kf or not kf[branc].rev_gettable(trn):
 				continue
 			kfb = kf[branc]
@@ -515,12 +613,14 @@ class Cache:
 				added.update(set(kfb[trn].final()).difference(deleted))
 		return added, deleted
 
-	def store(self,
-				*args,
-				planning: bool = None,
-				forward: bool = None,
-				loading=False,
-				contra=None):
+	def store(
+		self,
+		*args,
+		planning: bool = None,
+		forward: bool = None,
+		loading=False,
+		contra=None,
+	):
 		"""Put a value in various dictionaries for later .retrieve(...).
 
 		Needs at least five arguments, of which the -1th is the value
@@ -541,10 +641,23 @@ class Cache:
 		of the ends of branches and turns.
 
 		"""
-		(lock, self_parents, self_branches, self_keys, delete_plan, time_plan,
-			self_iter_future_contradictions, db_branches, db_turn_end,
-			self_store_journal, self_time_entity, db_where_cached, keycache,
-			db, update_keycache) = self._store_stuff
+		(
+			lock,
+			self_parents,
+			self_branches,
+			self_keys,
+			delete_plan,
+			time_plan,
+			self_iter_future_contradictions,
+			db_branches,
+			db_turn_end,
+			self_store_journal,
+			self_time_entity,
+			db_where_cached,
+			keycache,
+			db,
+			update_keycache,
+		) = self._store_stuff
 		if planning is None:
 			planning = db._planning
 		if forward is None:
@@ -569,7 +682,8 @@ class Cache:
 					turns = branches[branch]
 				else:
 					branches = self_branches[parentikey] = self_keys[
-						parent + (entity, )][key] = parentity[key]
+						parent + (entity,)
+					][key] = parentity[key]
 					turns = branches[branch]
 			else:
 				if entikey in self_branches:
@@ -577,37 +691,48 @@ class Cache:
 					turns = branches[branch]
 				else:
 					branches = self_branches[entikey]
-					self_keys[
-						entity,
-					][key] = branches
+					self_keys[entity,][key] = branches
 					turns = branches[branch]
 			if planning:
 				if turn in turns and tick < turns[turn].end:
 					raise HistoricKeyError(
-						"Already have some ticks after {} in turn {} of branch {}"
-						.format(tick, turn, branch))
+						"Already have some ticks after {} in turn {} of branch {}".format(
+							tick, turn, branch
+						)
+					)
 			if contra:
 				contras = list(
-					self_iter_future_contradictions(entity, key, turns, branch,
-													turn, tick, value))
+					self_iter_future_contradictions(
+						entity, key, turns, branch, turn, tick, value
+					)
+				)
 				if contras:
 					self.shallowest = OrderedDict()
 				for contra_turn, contra_tick in contras:
 					if (
-						branch, contra_turn, contra_tick
+						branch,
+						contra_turn,
+						contra_tick,
 					) in time_plan:  # could've been deleted in this very loop
-						delete_plan(time_plan[branch, contra_turn,
-												contra_tick])
+						delete_plan(
+							time_plan[branch, contra_turn, contra_tick]
+						)
 				if not turns:  # turns may be mutated in delete_plan
 					branches[branch] = turns
 				if parentikey not in self_branches:
 					self_branches[parentikey] = branches
 			if not loading and not planning:
-				parbranch, turn_start, tick_start, turn_end, tick_end = db_branches[
-					branch]
+				parbranch, turn_start, tick_start, turn_end, tick_end = (
+					db_branches[branch]
+				)
 				if (turn, tick) > (turn_end, tick_end):
-					db_branches[
-						branch] = parbranch, turn_start, tick_start, turn, tick
+					db_branches[branch] = (
+						parbranch,
+						turn_start,
+						tick_start,
+						turn,
+						tick,
+					)
 				if tick > db_turn_end[branch, turn]:
 					db_turn_end[branch, turn] = tick
 			self_store_journal(*args)
@@ -637,49 +762,93 @@ class Cache:
 				update_keycache(*args, forward=forward)
 
 	def remove_character(self, character):
-		(lock, time_entity, parents, branches, keys, settings, presettings,
-			remove_keycache, keycache) = self._remove_stuff
-		todel = {(branch, turn, tick, parent, entity, key)
-					for ((branch, turn, tick), (parent, entity,
-												key)) in time_entity.items()
-					if (parent and parent[0] == character) or (
-						not parent and entity == character)}
+		(
+			lock,
+			time_entity,
+			parents,
+			branches,
+			keys,
+			settings,
+			presettings,
+			remove_keycache,
+			keycache,
+		) = self._remove_stuff
+		todel = {
+			(branch, turn, tick, parent, entity, key)
+			for (
+				(branch, turn, tick),
+				(parent, entity, key),
+			) in time_entity.items()
+			if (parent and parent[0] == character)
+			or (not parent and entity == character)
+		}
 		todel_shallow = {k for k in self.shallowest if k[0] == character}
 		with lock:
 			for k in todel_shallow:
 				del self.shallowest[k]
-			for (branch, turn, tick, parent, entity, key) in todel:
-				self._remove_btt_parentikey(branch, turn, tick, parent, entity,
-											key)
+			for branch, turn, tick, parent, entity, key in todel:
+				self._remove_btt_parentikey(
+					branch, turn, tick, parent, entity, key
+				)
 
 	def remove_branch(self, branch: str):
-		(lock, time_entity, parents, branches, keys, settings, presettings,
-			remove_keycache, keycache) = self._remove_stuff
-		todel = {(branc, turn, tick, parent, entity, key)
-					for ((branc, turn, tick), (parent, entity,
-												key)) in time_entity.items()
-					if branc == branch}
+		(
+			lock,
+			time_entity,
+			parents,
+			branches,
+			keys,
+			settings,
+			presettings,
+			remove_keycache,
+			keycache,
+		) = self._remove_stuff
+		todel = {
+			(branc, turn, tick, parent, entity, key)
+			for (
+				(branc, turn, tick),
+				(parent, entity, key),
+			) in time_entity.items()
+			if branc == branch
+		}
 		todel_shallow = {k for k in self.shallowest if k[-2] == branch}
 		with lock:
 			for k in todel_shallow:
 				del self.shallowest[k]
 			for branc, turn, tick, parent, entity, key in todel:
-				self._remove_btt_parentikey(branc, turn, tick, parent, entity,
-											key)
-				if (*parent, entity, key, branc, turn,
-					tick) in self.shallowest:
-					del self.shallowest[(*parent, entity, key, branc, turn,
-											tick)]
+				self._remove_btt_parentikey(
+					branc, turn, tick, parent, entity, key
+				)
+				if (
+					*parent,
+					entity,
+					key,
+					branc,
+					turn,
+					tick,
+				) in self.shallowest:
+					del self.shallowest[
+						(*parent, entity, key, branc, turn, tick)
+					]
 
 	def _remove_btt_parentikey(self, branch, turn, tick, parent, entity, key):
-		(_, time_entity, parents, branches, keys, settings, presettings,
-			remove_keycache, keycache) = self._remove_stuff
+		(
+			_,
+			time_entity,
+			parents,
+			branches,
+			keys,
+			settings,
+			presettings,
+			remove_keycache,
+			keycache,
+		) = self._remove_stuff
 		try:
 			del time_entity[branch][turn][tick]
 		except KeyError:
 			pass
 		branchkey = parent + (entity, key)
-		keykey = parent + (entity, )
+		keykey = parent + (entity,)
 		if parent in parents:
 			parentt = parents[parent]
 			if entity in parentt:
@@ -713,11 +882,20 @@ class Cache:
 
 	def remove(self, branch: str, turn: int, tick: int):
 		"""Delete all data from a specific tick"""
-		(lock, time_entity, parents, branches, keys, settings, presettings,
-			remove_keycache, keycache) = self._remove_stuff
+		(
+			lock,
+			time_entity,
+			parents,
+			branches,
+			keys,
+			settings,
+			presettings,
+			remove_keycache,
+			keycache,
+		) = self._remove_stuff
 		parent, entity, key = time_entity[branch, turn, tick]
 		branchkey = parent + (entity, key)
-		keykey = parent + (entity, )
+		keykey = parent + (entity,)
 		with lock:
 			if parent in parents:
 				parentt = parents[parent]
@@ -805,11 +983,12 @@ class Cache:
 			if not kc:
 				del keycache[entity_branch]
 
-	def truncate(self, branch: str, turn: int, tick: int, direction='forward'):
-		if direction not in {'forward', 'backward'}:
+	def truncate(self, branch: str, turn: int, tick: int, direction="forward"):
+		if direction not in {"forward", "backward"}:
 			raise ValueError("Illegal direction")
-		(lock, parents, branches, keys, settings, presettings,
-			keycache) = self._truncate_stuff
+		(lock, parents, branches, keys, settings, presettings, keycache) = (
+			self._truncate_stuff
+		)
 
 		def truncate_branhc(branhc):
 			if turn in branhc:
@@ -845,9 +1024,15 @@ class Cache:
 					truncate_branhc(keycache[entity_branch])
 
 	@staticmethod
-	def _iter_future_contradictions(entity: Hashable, key: Hashable,
-									turns: WindowDict, branch: str, turn: int,
-									tick: int, value):
+	def _iter_future_contradictions(
+		entity: Hashable,
+		key: Hashable,
+		turns: WindowDict,
+		branch: str,
+		turn: int,
+		tick: int,
+		value,
+	):
 		"""Iterate over contradicted ``(turn, tick)`` if applicable"""
 		# assumes that all future entries are in the plan
 		if not turns:
@@ -922,10 +1107,10 @@ class Cache:
 		key, branch, turn, tick = args[-4:]
 		keyframes = self.keyframe.get(entity, {})
 		branches = self.branches
-		entikey = entity + (key, )
+		entikey = entity + (key,)
 		if entikey in branches:
 			branchentk = branches[entikey]
-			for (b, r, t) in self.db._iter_parent_btt(branch, turn, tick):
+			for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
 				brancs = branchentk.get(b)
 				if brancs is not None and brancs.rev_gettable(r):
 					if r in brancs and brancs[r].rev_gettable(t):
@@ -935,8 +1120,10 @@ class Cache:
 						if b in keyframes and r in keyframes[b]:
 							kfbr = keyframes[b][r]
 							if kfbr.rev_before(t) is not None and (
-								brancs[r].rev_before(t) < kfbr.rev_before(t) <
-								t):
+								brancs[r].rev_before(t)
+								< kfbr.rev_before(t)
+								< t
+							):
 								kf = kfbr[t]
 								if key in kf:
 									ret = kf[key]
@@ -954,7 +1141,8 @@ class Cache:
 							kfb = keyframes[b]
 							if kfb.rev_before(r - 1) is not None and (
 								brancs.rev_before(r - 1)
-								< kfb.rev_before(r - 1)):
+								< kfb.rev_before(r - 1)
+							):
 								kfbr = kfb[r - 1]
 								kf = kfbr.final()
 								if key in kf:
@@ -964,8 +1152,9 @@ class Cache:
 									return ret
 								else:
 									return NotInKeyframeError("No value")
-							elif brancs.rev_before(r - 1) == kfb.rev_before(r -
-																			1):
+							elif brancs.rev_before(r - 1) == kfb.rev_before(
+								r - 1
+							):
 								kfbr = kfb[r - 1]
 								trns = brancs[r - 1]
 								if trns.end < kfbr.end:
@@ -981,8 +1170,11 @@ class Cache:
 						if store_hint:
 							shallowest[args] = ret
 						return ret
-					elif b in keyframes and r in keyframes[b] and keyframes[b][
-						r].rev_gettable(t):
+					elif (
+						b in keyframes
+						and r in keyframes[b]
+						and keyframes[b][r].rev_gettable(t)
+					):
 						if key in keyframes[b][r][t]:
 							ret = keyframes[b][r][t][key]
 							if store_hint:
@@ -1022,7 +1214,7 @@ class Cache:
 						else:
 							return NotInKeyframeError("No value")
 		else:
-			for (b, r, t) in self.db._iter_parent_btt(branch, turn, tick):
+			for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
 				if b in keyframes:
 					kfb = keyframes[b]
 					if r in kfb:
@@ -1082,11 +1274,9 @@ class Cache:
 		if self.db._no_kc:
 			yield from self._get_adds_dels(entity, branch, turn, tick)[0]
 			return
-		yield from self._get_keycache(entity,
-										branch,
-										turn,
-										tick,
-										forward=forward)
+		yield from self._get_keycache(
+			entity, branch, turn, tick, forward=forward
+		)
 
 	iter_entities = iter_keys = iter_entity_keys = iter_entities_or_keys
 
@@ -1106,7 +1296,8 @@ class Cache:
 		if self.db._no_kc:
 			return len(self._get_adds_dels(entity, branch, turn, tick)[0])
 		return len(
-			self._get_keycache(entity, branch, turn, tick, forward=forward))
+			self._get_keycache(entity, branch, turn, tick, forward=forward)
+		)
 
 	count_entities = count_keys = count_entity_keys = count_entities_or_keys
 
@@ -1119,37 +1310,44 @@ class Cache:
 		retr = self._base_retrieve(args)
 		return retr is not None and not isinstance(retr, Exception)
 
-	contains_entity = contains_key = contains_entity_key = contains_entity_or_key
+	contains_entity = contains_key = contains_entity_key = (
+		contains_entity_or_key
+	)
 
 
 class NodesCache(Cache):
 	"""A cache for remembering whether nodes exist at a given time."""
+
 	__slots__ = ()
 
-	def store(self,
-				graph: Hashable,
-				node: Hashable,
-				branch: str,
-				turn: int,
-				tick: int,
-				ex: bool,
-				*,
-				planning: bool = None,
-				forward: bool = None,
-				loading=False,
-				contra=True):
+	def store(
+		self,
+		graph: Hashable,
+		node: Hashable,
+		branch: str,
+		turn: int,
+		tick: int,
+		ex: bool,
+		*,
+		planning: bool = None,
+		forward: bool = None,
+		loading=False,
+		contra=True,
+	):
 		if not ex:
 			ex = None
-		return super().store(graph,
-								node,
-								branch,
-								turn,
-								tick,
-								ex,
-								planning=planning,
-								forward=forward,
-								loading=loading,
-								contra=contra)
+		return super().store(
+			graph,
+			node,
+			branch,
+			turn,
+			tick,
+			ex,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+		)
 
 	def _update_keycache(self, *args, forward):
 		graph: Hashable
@@ -1161,71 +1359,92 @@ class NodesCache(Cache):
 		graph, node, branch, turn, tick, ex = args
 		if not ex:
 			ex = None
-		super()._update_keycache(graph,
-									node,
-									branch,
-									turn,
-									tick,
-									ex,
-									forward=forward)
+		super()._update_keycache(
+			graph, node, branch, turn, tick, ex, forward=forward
+		)
 
-	def _iter_future_contradictions(self, entity: Hashable, key: Hashable,
-									turns: dict, branch: str, turn: int,
-									tick: int, value):
-		yield from super()._iter_future_contradictions(entity, key, turns,
-														branch, turn, tick,
-														value)
+	def _iter_future_contradictions(
+		self,
+		entity: Hashable,
+		key: Hashable,
+		turns: dict,
+		branch: str,
+		turn: int,
+		tick: int,
+		value,
+	):
+		yield from super()._iter_future_contradictions(
+			entity, key, turns, branch, turn, tick, value
+		)
 		yield from self.db._edges_cache._slow_iter_node_contradicted_times(
-			branch, turn, tick, entity, key)
+			branch, turn, tick, entity, key
+		)
 
 
 class EdgesCache(Cache):
 	"""A cache for remembering whether edges exist at a given time."""
-	__slots__ = ('destcache', 'origcache', 'predecessors', '_origcache_lru',
-					'_destcache_lru', '_get_destcache_stuff',
-					'_get_origcache_stuff', '_additional_store_stuff')
+
+	__slots__ = (
+		"destcache",
+		"origcache",
+		"predecessors",
+		"_origcache_lru",
+		"_destcache_lru",
+		"_get_destcache_stuff",
+		"_get_origcache_stuff",
+		"_additional_store_stuff",
+	)
 
 	@property
 	def successors(self):
 		return self.parents
 
 	def __init__(self, db):
-
 		def gettest(k):
 			assert len(k) == 3, "Bad key: " + repr(k)
 
 		def settest(k, v):
 			assert len(k) == 3, "Bad key: {}, to be set to {}".format(k, v)
 
-		Cache.__init__(self,
-						db,
-						kfkvs={
-							'gettest': gettest,
-							'settest': settest
-						})
+		Cache.__init__(
+			self, db, kfkvs={"gettest": gettest, "settest": settest}
+		)
 		self.destcache = PickyDefaultDict(SettingsTurnDict)
 		self.origcache = PickyDefaultDict(SettingsTurnDict)
 		self.predecessors = StructuredDefaultDict(3, TurnDict)
 		self._origcache_lru = OrderedDict()
 		self._destcache_lru = OrderedDict()
-		self._get_destcache_stuff: Tuple[PickyDefaultDict, OrderedDict,
-											callable, StructuredDefaultDict,
-											callable] = (
-												self.destcache,
-												self._destcache_lru,
-												self._get_keycachelike,
-												self.successors,
-												self._adds_dels_successors)
-		self._get_origcache_stuff: Tuple[PickyDefaultDict, OrderedDict,
-											callable, StructuredDefaultDict,
-											callable] = (
-												self.origcache,
-												self._origcache_lru,
-												self._get_keycachelike,
-												self.predecessors,
-												self._adds_dels_predecessors)
-		self._additional_store_stuff = (self.db, self.predecessors,
-										self.successors)
+		self._get_destcache_stuff: Tuple[
+			PickyDefaultDict,
+			OrderedDict,
+			callable,
+			StructuredDefaultDict,
+			callable,
+		] = (
+			self.destcache,
+			self._destcache_lru,
+			self._get_keycachelike,
+			self.successors,
+			self._adds_dels_successors,
+		)
+		self._get_origcache_stuff: Tuple[
+			PickyDefaultDict,
+			OrderedDict,
+			callable,
+			StructuredDefaultDict,
+			callable,
+		] = (
+			self.origcache,
+			self._origcache_lru,
+			self._get_keycachelike,
+			self.predecessors,
+			self._adds_dels_predecessors,
+		)
+		self._additional_store_stuff = (
+			self.db,
+			self.predecessors,
+			self.successors,
+		)
 
 	def _update_keycache(self, *args, forward: bool):
 		super()._update_keycache(*args, forward=forward)
@@ -1237,34 +1456,35 @@ class EdgesCache(Cache):
 		dest, key, branch, turn, tick, value = args[-6:]
 		graph, orig = args[:-6]
 		# it's possible either of these might cause unnecessary iteration
-		dests = self._get_destcache(graph,
-									orig,
-									branch,
-									turn,
-									tick,
-									forward=forward)
-		origs = self._get_origcache(graph,
-									dest,
-									branch,
-									turn,
-									tick,
-									forward=forward)
+		dests = self._get_destcache(
+			graph, orig, branch, turn, tick, forward=forward
+		)
+		origs = self._get_origcache(
+			graph, dest, branch, turn, tick, forward=forward
+		)
 		if value is None:
-			dests = dests.difference((dest, ))
-			origs = origs.difference((orig, ))
+			dests = dests.difference((dest,))
+			origs = origs.difference((orig,))
 		else:
-			dests = dests.union((dest, ))
-			origs = origs.union((orig, ))
+			dests = dests.union((dest,))
+			origs = origs.union((orig,))
 		self.destcache[graph, orig, branch][turn][tick] = dests
 		self.origcache[graph, dest, branch][turn][tick] = origs
 
-	def _slow_iter_node_contradicted_times(self, branch: str, turn: int,
-											tick: int, graph: Hashable,
-											node: Hashable):
+	def _slow_iter_node_contradicted_times(
+		self,
+		branch: str,
+		turn: int,
+		tick: int,
+		graph: Hashable,
+		node: Hashable,
+	):
 		# slow and bad.
 		retrieve = self._base_retrieve
-		for items in (self.successors[graph, node].items(),
-						self.predecessors[graph, node].items()):
+		for items in (
+			self.successors[graph, node].items(),
+			self.predecessors[graph, node].items(),
+		):
 			for dest, idxs in items:  # dest might really be orig
 				for idx, branches in idxs.items():
 					brnch = branches[branch]
@@ -1272,33 +1492,35 @@ class EdgesCache(Cache):
 						ticks = brnch[turn]
 						for tck, present in ticks.future(tick).items():
 							if tck > tick and present is not retrieve(
-								(graph, node, dest, idx, branch, turn, tick)):
+								(graph, node, dest, idx, branch, turn, tick)
+							):
 								yield turn, tck
 					for trn, ticks in brnch.future(turn).items():
 						for tck, present in ticks.items():
 							if present is not retrieve(
-								(graph, node, dest, idx, branch, turn, tick)):
+								(graph, node, dest, idx, branch, turn, tick)
+							):
 								yield trn, tck
 
-	def _adds_dels_successors(self,
-								parentity: tuple,
-								branch: str,
-								turn: int,
-								tick: int,
-								*,
-								stoptime: Tuple[str, int, int] = None,
-								cache: dict = None):
+	def _adds_dels_successors(
+		self,
+		parentity: tuple,
+		branch: str,
+		turn: int,
+		tick: int,
+		*,
+		stoptime: Tuple[str, int, int] = None,
+		cache: dict = None,
+	):
 		graph, orig = parentity
 		added = set()
 		deleted = set()
 		cache = cache or self.successors
 		if (graph, orig) in cache and cache[graph, orig]:
 			for dest in cache[graph, orig]:
-				addidx, delidx = self._get_adds_dels((graph, orig, dest),
-														branch,
-														turn,
-														tick,
-														stoptime=stoptime)
+				addidx, delidx = self._get_adds_dels(
+					(graph, orig, dest), branch, turn, tick, stoptime=stoptime
+				)
 				if addidx and not delidx:
 					added.add(dest)
 				elif delidx and not addidx:
@@ -1330,25 +1552,25 @@ class EdgesCache(Cache):
 			assert len(ks) == 3, "BBadd key in keyframe: " + repr(ks)
 		return added, deleted
 
-	def _adds_dels_predecessors(self,
-								parentity: tuple,
-								branch: str,
-								turn: int,
-								tick: int,
-								*,
-								stoptime: Tuple[str, int, int] = None,
-								cache: dict = None):
+	def _adds_dels_predecessors(
+		self,
+		parentity: tuple,
+		branch: str,
+		turn: int,
+		tick: int,
+		*,
+		stoptime: Tuple[str, int, int] = None,
+		cache: dict = None,
+	):
 		graph, dest = parentity
 		added = set()
 		deleted = set()
 		cache = cache or self.predecessors
 		if cache[graph, dest]:
 			for orig in cache[graph, dest]:
-				addidx, delidx = self._get_adds_dels((graph, orig, dest),
-														branch,
-														turn,
-														tick,
-														stoptime=stoptime)
+				addidx, delidx = self._get_adds_dels(
+					(graph, orig, dest), branch, turn, tick, stoptime=stoptime
+				)
 				if addidx and not delidx:
 					added.add(orig)
 				elif delidx and not addidx:
@@ -1376,139 +1598,174 @@ class EdgesCache(Cache):
 							added.add(orig)
 		return added, deleted
 
-	def _get_destcache(self, graph: Hashable, orig: Hashable, branch: str,
-						turn: int, tick: int, *, forward: bool):
+	def _get_destcache(
+		self,
+		graph: Hashable,
+		orig: Hashable,
+		branch: str,
+		turn: int,
+		tick: int,
+		*,
+		forward: bool,
+	):
 		"""Return a set of destination nodes succeeding ``orig``"""
-		(destcache, destcache_lru, get_keycachelike, successors,
-			adds_dels_sucpred) = self._get_destcache_stuff
-		lru_append(destcache, destcache_lru,
-					((graph, orig, branch), turn, tick), KEYCACHE_MAXSIZE)
-		return get_keycachelike(destcache,
-								successors,
-								adds_dels_sucpred, (graph, orig),
-								branch,
-								turn,
-								tick,
-								forward=forward)
+		(
+			destcache,
+			destcache_lru,
+			get_keycachelike,
+			successors,
+			adds_dels_sucpred,
+		) = self._get_destcache_stuff
+		lru_append(
+			destcache,
+			destcache_lru,
+			((graph, orig, branch), turn, tick),
+			KEYCACHE_MAXSIZE,
+		)
+		return get_keycachelike(
+			destcache,
+			successors,
+			adds_dels_sucpred,
+			(graph, orig),
+			branch,
+			turn,
+			tick,
+			forward=forward,
+		)
 
-	def _get_origcache(self, graph: Hashable, dest: Hashable, branch: str,
-						turn: int, tick: int, *, forward: bool):
+	def _get_origcache(
+		self,
+		graph: Hashable,
+		dest: Hashable,
+		branch: str,
+		turn: int,
+		tick: int,
+		*,
+		forward: bool,
+	):
 		"""Return a set of origin nodes leading to ``dest``"""
-		(origcache, origcache_lru, get_keycachelike, predecessors,
-			adds_dels_sucpred) = self._get_origcache_stuff
-		lru_append(origcache, origcache_lru,
-					((graph, dest, branch), turn, tick), KEYCACHE_MAXSIZE)
-		return get_keycachelike(origcache,
-								predecessors,
-								adds_dels_sucpred, (graph, dest),
-								branch,
-								turn,
-								tick,
-								forward=forward)
+		(
+			origcache,
+			origcache_lru,
+			get_keycachelike,
+			predecessors,
+			adds_dels_sucpred,
+		) = self._get_origcache_stuff
+		lru_append(
+			origcache,
+			origcache_lru,
+			((graph, dest, branch), turn, tick),
+			KEYCACHE_MAXSIZE,
+		)
+		return get_keycachelike(
+			origcache,
+			predecessors,
+			adds_dels_sucpred,
+			(graph, dest),
+			branch,
+			turn,
+			tick,
+			forward=forward,
+		)
 
-	def iter_successors(self,
-						graph,
-						orig,
-						branch,
-						turn,
-						tick,
-						*,
-						forward=None):
+	def iter_successors(
+		self, graph, orig, branch, turn, tick, *, forward=None
+	):
 		"""Iterate over successors of a given origin node at a given time."""
 		if self.db._no_kc:
-			yield from self._adds_dels_successors((graph, orig), branch, turn,
-													tick)[0]
+			yield from self._adds_dels_successors(
+				(graph, orig), branch, turn, tick
+			)[0]
 			return
 		if forward is None:
 			forward = self.db._forward
-		yield from self._get_destcache(graph,
-										orig,
-										branch,
-										turn,
-										tick,
-										forward=forward)
+		yield from self._get_destcache(
+			graph, orig, branch, turn, tick, forward=forward
+		)
 
-	def iter_predecessors(self,
-							graph: Hashable,
-							dest: Hashable,
-							branch: str,
-							turn: int,
-							tick: int,
-							*,
-							forward: bool = None):
+	def iter_predecessors(
+		self,
+		graph: Hashable,
+		dest: Hashable,
+		branch: str,
+		turn: int,
+		tick: int,
+		*,
+		forward: bool = None,
+	):
 		"""Iterate over predecessors to a destination node at a given time."""
 		if self.db._no_kc:
-			yield from self._adds_dels_predecessors((graph, dest), branch,
-													turn, tick)[0]
+			yield from self._adds_dels_predecessors(
+				(graph, dest), branch, turn, tick
+			)[0]
 			return
 		if forward is None:
 			forward = self.db._forward
-		yield from self._get_origcache(graph,
-										dest,
-										branch,
-										turn,
-										tick,
-										forward=forward)
+		yield from self._get_origcache(
+			graph, dest, branch, turn, tick, forward=forward
+		)
 
-	def count_successors(self,
-							graph: Hashable,
-							orig: Hashable,
-							branch: str,
-							turn: int,
-							tick: int,
-							*,
-							forward: str = None):
-		"""Return the number of successors to an origin node at a given time.
-
-		"""
+	def count_successors(
+		self,
+		graph: Hashable,
+		orig: Hashable,
+		branch: str,
+		turn: int,
+		tick: int,
+		*,
+		forward: str = None,
+	):
+		"""Return the number of successors to an origin node at a given time."""
 		if self.db._no_kc:
 			return len(
-				self._adds_dels_successors((graph, orig), branch, turn,
-											tick)[0])
+				self._adds_dels_successors((graph, orig), branch, turn, tick)[
+					0
+				]
+			)
 		if forward is None:
 			forward = self.db._forward
 		return len(
-			self._get_destcache(graph,
-								orig,
-								branch,
-								turn,
-								tick,
-								forward=forward))
+			self._get_destcache(
+				graph, orig, branch, turn, tick, forward=forward
+			)
+		)
 
-	def count_predecessors(self,
-							graph: Hashable,
-							dest: Hashable,
-							branch: str,
-							turn: int,
-							tick: int,
-							*,
-							forward: bool = None):
-		"""Return the number of predecessors from a destination node at a time.
-
-		"""
+	def count_predecessors(
+		self,
+		graph: Hashable,
+		dest: Hashable,
+		branch: str,
+		turn: int,
+		tick: int,
+		*,
+		forward: bool = None,
+	):
+		"""Return the number of predecessors from a destination node at a time."""
 		if self.db._no_kc:
 			return len(
-				self._adds_dels_predecessors((graph, dest), branch, turn,
-												tick)[0])
+				self._adds_dels_predecessors(
+					(graph, dest), branch, turn, tick
+				)[0]
+			)
 		if forward is None:
 			forward = self.db._forward
 		return len(
-			self._get_origcache(graph,
-								dest,
-								branch,
-								turn,
-								tick,
-								forward=forward))
+			self._get_origcache(
+				graph, dest, branch, turn, tick, forward=forward
+			)
+		)
 
-	def has_successor(self,
-						graph: Hashable,
-						orig: Hashable,
-						dest: Hashable,
-						branch: str,
-						turn: int,
-						tick: int,
-						*,
-						forward: bool = None):
+	def has_successor(
+		self,
+		graph: Hashable,
+		orig: Hashable,
+		dest: Hashable,
+		branch: str,
+		turn: int,
+		tick: int,
+		*,
+		forward: bool = None,
+	):
 		"""Return whether an edge connects the origin to the destination now
 
 		Doesn't require the edge's index, which makes it slower than retrieving
@@ -1517,22 +1774,21 @@ class EdgesCache(Cache):
 		"""
 		if forward is None:
 			forward = self.db._forward
-		return dest in self._get_destcache(graph,
-											orig,
-											branch,
-											turn,
-											tick,
-											forward=forward)
+		return dest in self._get_destcache(
+			graph, orig, branch, turn, tick, forward=forward
+		)
 
-	def has_predecessor(self,
-						graph: Hashable,
-						dest: Hashable,
-						orig: Hashable,
-						branch: str,
-						turn: int,
-						tick: int,
-						*,
-						forward: bool = None):
+	def has_predecessor(
+		self,
+		graph: Hashable,
+		dest: Hashable,
+		orig: Hashable,
+		branch: str,
+		turn: int,
+		tick: int,
+		*,
+		forward: bool = None,
+	):
 		"""Return whether an edge connects the destination to the origin now
 
 		Doesn't require the edge's index, which makes it slower than retrieving
@@ -1541,96 +1797,100 @@ class EdgesCache(Cache):
 		"""
 		if forward is None:
 			forward = self.db._forward
-		return orig in self._get_origcache(graph,
-											dest,
-											branch,
-											turn,
-											tick,
-											forward=forward)
+		return orig in self._get_origcache(
+			graph, dest, branch, turn, tick, forward=forward
+		)
 
-	def store(self,
-				graph,
-				orig,
-				dest,
-				idx,
-				branch,
-				turn,
-				tick,
-				ex,
-				*,
-				planning=None,
-				forward=None,
-				loading=False,
-				contra=True):
+	def store(
+		self,
+		graph,
+		orig,
+		dest,
+		idx,
+		branch,
+		turn,
+		tick,
+		ex,
+		*,
+		planning=None,
+		forward=None,
+		loading=False,
+		contra=True,
+	):
 		db, predecessors, successors = self._additional_store_stuff
 		if not ex:
 			ex = None
 		if planning is None:
 			planning = db._planning
-		Cache.store(self,
-					graph,
-					orig,
-					dest,
-					idx,
-					branch,
-					turn,
-					tick,
-					ex,
-					planning=planning,
-					forward=forward,
-					loading=loading,
-					contra=contra)
+		Cache.store(
+			self,
+			graph,
+			orig,
+			dest,
+			idx,
+			branch,
+			turn,
+			tick,
+			ex,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+		)
 		predecessors[graph, dest][orig][idx][branch][turn] = successors[
-			graph, orig][dest][idx][branch][turn]
+			graph, orig
+		][dest][idx][branch][turn]
 
 	# if ex:
-	#	 assert self.retrieve(graph, orig, dest, idx, branch, turn, tick)
-	#	 assert self.has_successor(graph, orig, dest, branch, turn, tick)
-	#	 assert self.has_predecessor(g
-	#	 raph, dest, orig, branch, turn, tick)
+	# assert self.retrieve(graph, orig, dest, idx, branch, turn, tick)
+	# assert self.has_successor(graph, orig, dest, branch, turn, tick)
+	# assert self.has_predecessor(g
+	# raph, dest, orig, branch, turn, tick)
 	# else:
-	#	 assert self._base_retrieve(
-	#	 (graph, orig, dest, idx, branch, turn, tick)) in (None, KeyError)
-	#	 assert not self.has_successor(
-	#	 graph, orig, dest, branch, turn, tick)
-	#	 assert not self.has_predecessor(
-	#	 graph, dest, orig, branch, turn, tick)
+	# assert self._base_retrieve(
+	# (graph, orig, dest, idx, branch, turn, tick)) in (None, KeyError)
+	# assert not self.has_successor(
+	# graph, orig, dest, branch, turn, tick)
+	# assert not self.has_predecessor(
+	# graph, dest, orig, branch, turn, tick)
 
 
 class EntitylessCache(Cache):
 	__slots__ = ()
 
-	def store(self,
-				key,
-				branch,
-				turn,
-				tick,
-				value,
-				*,
-				planning=None,
-				forward=None,
-				loading=False,
-				contra=True):
-		super().store(None,
-						key,
-						branch,
-						turn,
-						tick,
-						value,
-						planning=planning,
-						forward=forward,
-						loading=loading,
-						contra=contra)
+	def store(
+		self,
+		key,
+		branch,
+		turn,
+		tick,
+		value,
+		*,
+		planning=None,
+		forward=None,
+		loading=False,
+		contra=True,
+	):
+		super().store(
+			None,
+			key,
+			branch,
+			turn,
+			tick,
+			value,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+		)
 
 	def set_keyframe(self, branch, turn, tick, keyframe):
 		super().set_keyframe(None, branch, turn, tick, keyframe)
 
 	def iter_entities_or_keys(self, branch, turn, tick, *, forward=None):
-		return super().iter_entities_or_keys(None,
-												branch,
-												turn,
-												tick,
-												forward=forward)
+		return super().iter_entities_or_keys(
+			None, branch, turn, tick, forward=forward
+		)
 
 	iter_entities = iter_keys = iter_entities_or_keys
 
@@ -1640,4 +1900,4 @@ class EntitylessCache(Cache):
 	contains_entity = contains_key = contains_entity_or_key
 
 	def retrieve(self, *args):
-		return super().retrieve(*(None, ) + args)
+		return super().retrieve(*(None,) + args)
