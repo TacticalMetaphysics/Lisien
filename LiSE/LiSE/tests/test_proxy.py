@@ -13,6 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from unittest.mock import patch, MagicMock
+
+import networkx as nx
+
+from LiSE.engine import Engine
 from LiSE.proxy import EngineProcessManager
 from LiSE.handle import EngineHandle
 import LiSE.allegedb.tests.test_all
@@ -252,3 +256,57 @@ def test_get_slow_delta_overload(eng: MagicMock):
 	eng._btt.return_value = data.BTT_FROM
 	eng._get_kf.side_effect = [data.KF_FROM, data.KF_TO]
 	assert hand._get_slow_delta(data.BTT_FROM, data.BTT_TO) == data.SLOW_DELTA
+
+
+@pytest.mark.parametrize("keyframed", [True, False])
+def test_apply_delta(tempdir, keyframed):
+	with Engine(tempdir) as eng:
+		initial_state = nx.DiGraph(
+			{
+				0: {1: {"omg": "lol"}},
+				1: {0: {"omg": "blasphemy"}},
+				2: {},
+				3: {},
+				"it": {},
+			}
+		)
+		initial_state.nodes()[2]["hi"] = "hello"
+		initial_state.nodes()["it"]["location"] = 0
+		initial_state.graph["wat"] = "nope"
+		phys = eng.new_character("physical", initial_state)
+		eng.add_character("pointless")
+		eng.next_turn()
+		del phys.portal[1][0]
+		port = phys.new_portal(0, 2)
+		port["hi"] = "bye"
+		phys.place[1]["wtf"] = "bbq"
+		phys.thing["it"].location = phys.place[1]
+		del phys.place[3]
+		eng.add_character("pointed")
+		del eng.character["pointless"]
+		phys.portal[0][1]["meaning"] = 42
+		del phys.portal[0][1]["omg"]
+		if keyframed:
+			eng.snap_keyframe()
+		eng.turn = 0
+		eng.tick = 0
+	mang = EngineProcessManager()
+	try:
+		prox = mang.start(tempdir)
+		assert prox.turn == 0
+		phys = prox.character["physical"]
+		assert 3 in phys.place
+		assert phys.portal[1][0]["omg"] == "blasphemy"
+		prox.turn = 1
+		assert 3 not in phys.place
+		assert 0 not in phys.portal[1]
+		assert 2 in phys.portal[0]
+		assert phys.portal[0][2]["hi"] == "bye"
+		assert phys.place[1]["wtf"] == "bbq"
+		assert phys.thing["it"].location == phys.place[1]
+		assert "pointless" not in prox.character
+		assert "pointed" in prox.character
+		assert phys.portal[0][1]["meaning"] == 42
+		assert "omg" not in phys.portal[0][1]
+	finally:
+		mang.shutdown()
