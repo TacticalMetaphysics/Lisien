@@ -2625,8 +2625,7 @@ class EngineProxy(AbstractEngine):
 			)
 		return received
 
-	def _upd_caches(self, command, branch, turn, tick, result, no_del=False):
-		deleted = set(self.character.keys())
+	def _upd_caches(self, command, branch, turn, tick, result):
 		result, deltas = result
 		self.eternal._update_cache(deltas.pop("eternal", {}))
 		self.universal._update_cache(deltas.pop("universal", {}))
@@ -2656,15 +2655,13 @@ class EngineProxy(AbstractEngine):
 			# the "delta" is just the rules list, for now
 			rulebookproxy.send(rulebookproxy, rules=delta)
 		for char, chardelta in deltas.items():
+			if "name" in chardelta and chardelta["name"] is None:
+				del self._char_cache[char]
+				continue
 			if char not in self._char_cache:
 				self._char_cache[char] = CharacterProxy(self, char)
 			chara = self.character[char]
 			chara._apply_delta(chardelta)
-			deleted.discard(char)
-		if no_del:
-			return
-		for char in deleted:
-			del self._char_cache[char]
 
 	def _btt(self):
 		return self._branch, self._turn, self._tick
@@ -2704,7 +2701,7 @@ class EngineProxy(AbstractEngine):
 		)
 
 	def _upd(self, *args, **kwargs):
-		self._upd_caches(*args, no_del=True, **kwargs)
+		self._upd_caches(*args, **kwargs)
 		self._set_time(*args, no_del=True, **kwargs)
 
 	def _upd_and_cb(self, cb, *args, **kwargs):
