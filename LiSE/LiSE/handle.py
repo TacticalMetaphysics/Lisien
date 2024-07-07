@@ -62,6 +62,7 @@ FormerAndCurrentType = Tuple[Dict[bytes, bytes], Dict[bytes, bytes]]
 TRUE: bytes = msgpack.packb(True)
 FALSE: bytes = msgpack.packb(False)
 NONE: bytes = msgpack.packb(None)
+NAME: bytes = msgpack.packb("name")
 NODES: bytes = msgpack.packb("nodes")
 EDGES: bytes = msgpack.packb("edges")
 UNITS: bytes = msgpack.packb("units")
@@ -607,12 +608,14 @@ class EngineHandle(object):
 				values_to.append(vb)
 		values_changed = np.array(ids_from) != np.array(ids_to)
 
-		def pack_one(k, va, vb):
+		def pack_one(k, va, vb, deleted_nodes, deleted_edges):
 			if va == vb:
 				return
 			v = pack(vb)
 			if k[0] == "node":
 				_, graph, node, key = k
+				if graph in deleted_nodes and node in deleted_nodes[graph]:
+					return
 				graph, node, key = map(pack, (graph, node, key))
 				if graph not in delta:
 					delta[graph] = {NODE_VAL: {node: {key: v}}, EDGE_VAL: {}}
@@ -622,6 +625,8 @@ class EngineHandle(object):
 					delta[graph][NODE_VAL][node][key] = v
 			elif k[0] == "edge":
 				_, graph, orig, dest, key = k
+				if (graph, orig, dest) in deleted_edges:
+					return
 				graph, orig, dest, key = map(pack, (graph, orig, dest, key))
 				if graph not in delta:
 					delta[graph] = {
@@ -663,25 +668,34 @@ class EngineHandle(object):
 
 		futs = []
 		with ThreadPoolExecutor() as pool:
+			nodes_intersection = (
+				kf_from["nodes"].keys() & kf_to["nodes"].keys()
+			)
+			deleted_nodes = {}
+			for graph in nodes_intersection:
+				deleted_nodes_here = deleted_nodes[graph] = (
+					kf_from["nodes"][graph].keys()
+					- kf_to["nodes"][graph].keys()
+				)
+				for node in deleted_nodes_here:
+					futs.append(pool.submit(pack_node, graph, node, FALSE))
+			deleted_edges = kf_from["edges"].keys() - kf_to["edges"].keys()
 			for k, va, vb, _ in filter(
 				itemgetter(3),
 				zip(keys, values_from, values_to, values_changed),
 			):
-				futs.append(pool.submit(pack_one, k, va, vb))
-			for graph in kf_from["nodes"].keys() & kf_to["nodes"].keys():
-				for node in (
-					kf_from["nodes"][graph].keys()
-					- kf_to["nodes"][graph].keys()
-				):
-					futs.append(pool.submit(pack_node, graph, node, FALSE))
+				futs.append(
+					pool.submit(
+						pack_one, k, va, vb, deleted_nodes, deleted_edges
+					)
+				)
+			for graph in nodes_intersection:
 				for node in (
 					kf_to["nodes"][graph].keys()
 					- kf_from["nodes"][graph].keys()
 				):
 					futs.append(pool.submit(pack_node, graph, node, TRUE))
-			for graph, orig, dest in (
-				kf_from["edges"].keys() - kf_to["edges"].keys()
-			):
+			for graph, orig, dest in deleted_edges:
 				futs.append(pool.submit(pack_edge, graph, orig, dest, FALSE))
 			for graph, orig, dest in (
 				kf_to["edges"].keys() - kf_from["edges"].keys()
@@ -696,6 +710,9 @@ class EngineHandle(object):
 			unid = self.universal_delta(btt_from=btt_from, btt_to=btt_to)
 			if unid:
 				delta[UNIVERSAL] = unid
+		for graph in list(delta):
+			if delta[graph][NAME] is None:
+				del delta[graph]
 		return delta
 
 	@prepacked
