@@ -994,20 +994,6 @@ class DiGraph(networkx.DiGraph):
 	def name(self, v):
 		raise TypeError("graphs can't be renamed")
 
-	def _and_previous(self):
-		"""Return a 4-tuple that will usually be (current branch, current
-		revision - 1, current branch, current revision), unless
-		current revision - 1 is before the start of the current
-		branch, in which case the first element will be the parent
-		branch.
-
-		"""
-		branch = self.db.branch
-		rev = self.db.rev
-		(parent, parent_rev) = self.db.call_one("parparrev", branch).fetchone()
-		before_branch = parent if parent_rev == rev else branch
-		return before_branch, rev - 1, branch, rev
-
 	def remove_node(self, n):
 		"""Version of remove_node that minimizes writes"""
 		if n not in self._node:
