@@ -711,7 +711,7 @@ class EngineHandle(object):
 			if unid:
 				delta[UNIVERSAL] = unid
 		for graph in list(delta):
-			if delta[graph].get(NAME) is None:
+			if delta[graph].get(NAME, True) is None:
 				del delta[graph]
 		return delta
 
