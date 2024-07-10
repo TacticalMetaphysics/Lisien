@@ -76,10 +76,10 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, primary_key=True),
 		Column("turn", INT, primary_key=True),
 		Column("tick", INT, primary_key=True),
-		Column("type", TEXT, default="Graph"),
+		Column("type", TEXT, default="Graph", nullable=True),
 		CheckConstraint(
 			"type IN "
-			"('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph', 'Deleted')"
+			"('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph', NULL)"
 		),
 		sqlite_with_rowid=False,
 	)

@@ -713,9 +713,6 @@ class EngineHandle(object):
 			unid = self.universal_delta(btt_from=btt_from, btt_to=btt_to)
 			if unid:
 				delta[UNIVERSAL] = unid
-		for graph in list(delta):
-			if delta[graph].get(NAME, True) is None:
-				del delta[graph]
 		return delta
 
 	@prepacked

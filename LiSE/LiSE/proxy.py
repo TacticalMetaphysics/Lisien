@@ -2654,14 +2654,17 @@ class EngineProxy(AbstractEngine):
 			rulebookproxy = self._rulebook_obj_cache[rulebook]
 			# the "delta" is just the rules list, for now
 			rulebookproxy.send(rulebookproxy, rules=delta)
+		to_delete = set()
 		for char, chardelta in deltas.items():
-			if "name" in chardelta and chardelta["name"] is None:
-				del self._char_cache[char]
+			if chardelta.get("name", True) is None:
+				to_delete.add(char)
 				continue
 			if char not in self._char_cache:
 				self._char_cache[char] = CharacterProxy(self, char)
 			chara = self.character[char]
 			chara._apply_delta(chardelta)
+		for char in to_delete:
+			del self._char_cache[char]
 
 	def _btt(self):
 		return self._branch, self._turn, self._tick

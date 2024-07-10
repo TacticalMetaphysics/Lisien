@@ -1074,6 +1074,8 @@ class ORM:
 			"edges": {},
 			"edge_val": {},
 		}
+		for graph in self._graph_cache.iter_keys(branch, turn, tick):
+			ret["graph_val"][graph,] = {"name": graph}
 		gvck = self._graph_val_cache.keyframe
 		gv = ret["graph_val"]
 		for k in gvck:
@@ -2807,8 +2809,8 @@ class ORM:
 		for stat in list(graph.graph):
 			del graph.graph[stat]
 		branch, turn, tick = self._nbtt()
-		self.query.graphs_insert(name, branch, turn, tick, "Deleted")
-		self._graph_cache.store(name, branch, turn, tick, "Deleted")
+		self.query.graphs_insert(name, branch, turn, tick, None)
+		self._graph_cache.store(name, branch, turn, tick, None)
 
 	def _iter_parent_btt(
 		self,
