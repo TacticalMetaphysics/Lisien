@@ -79,7 +79,7 @@ def tables_for_meta(meta):
 		Column("type", TEXT, default="Graph", nullable=True),
 		CheckConstraint(
 			"type IN "
-			"('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph', NULL)"
+			"('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph', 'Deleted')"
 		),
 		sqlite_with_rowid=False,
 	)

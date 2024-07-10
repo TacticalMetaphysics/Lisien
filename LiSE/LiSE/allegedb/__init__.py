@@ -2674,8 +2674,9 @@ class ORM:
 		try:
 			self._graph_cache.retrieve(name, branch, turn, tick)
 			branch, turn, tick = self._nbtt()
-		except KeyError:
-			pass
+		except KeyError as ex:
+			if getattr(ex, "deleted", False):
+				branch, turn, tick = self._nbtt()
 		self._graph_cache.store(name, branch, turn, tick, type_s)
 		self.query.new_graph(name, branch, turn, tick, type_s)
 		self._nudge_loaded(branch, turn, tick)
@@ -2809,7 +2810,7 @@ class ORM:
 		for stat in list(graph.graph):
 			del graph.graph[stat]
 		branch, turn, tick = self._nbtt()
-		self.query.graphs_insert(name, branch, turn, tick, None)
+		self.query.graphs_insert(name, branch, turn, tick, "Deleted")
 		self._graph_cache.store(name, branch, turn, tick, None)
 
 	def _iter_parent_btt(
