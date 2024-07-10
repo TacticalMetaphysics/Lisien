@@ -1416,12 +1416,6 @@ class ORM:
 								del evkg[orig][dest]
 					elif exists:
 						ekg[orig] = {dest: exists}
-			if graph in edge_val_keyframe:
-				for orig, dests in edge_val_keyframe[graph].items():
-					for dest, val in dests.items():
-						evck[graph, orig, dest, 0][now[0]].store_at(
-							now[1], now[2], val
-						)
 			if graph in edges_keyframe:
 				if graph not in edge_val_keyframe:
 					edge_val_keyframe[graph] = {}
@@ -1450,6 +1444,12 @@ class ORM:
 							evkg[orig] = dests
 				else:
 					edge_val_keyframe[graph] = dgev
+			if graph in edge_val_keyframe:
+				for orig, dests in edge_val_keyframe[graph].items():
+					for dest, val in dests.items():
+						evck[graph, orig, dest, 0][now[0]].store_at(
+							now[1], now[2], val
+						)
 			if deltg:
 				if graph in graph_val_keyframe:
 					if (
