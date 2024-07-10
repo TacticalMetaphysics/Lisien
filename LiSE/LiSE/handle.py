@@ -649,7 +649,7 @@ class EngineHandle(object):
 					delta[graph] = {key: v, NODE_VAL: {}, EDGE_VAL: {}}
 
 		def pack_node(graph, node, existence):
-			grap, node = map(pack, (graph[0], node))
+			grap, node = map(pack, (graph, node))
 			if grap not in delta:
 				delta[grap] = {NODES: {node: existence}}
 			elif NODES not in delta[grap]:
