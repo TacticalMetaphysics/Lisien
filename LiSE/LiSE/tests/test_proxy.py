@@ -258,8 +258,8 @@ def test_get_slow_delta_overload(eng: MagicMock):
 	assert hand._get_slow_delta(data.BTT_FROM, data.BTT_TO) == data.SLOW_DELTA
 
 
-@pytest.mark.parametrize("keyframed", [True, False])
-def test_apply_delta(tempdir, keyframed):
+@pytest.mark.parametrize("slow", [True, False])
+def test_apply_delta(tempdir, slow):
 	with Engine(tempdir) as eng:
 		initial_state = nx.DiGraph(
 			{
@@ -275,7 +275,10 @@ def test_apply_delta(tempdir, keyframed):
 		initial_state.graph["wat"] = "nope"
 		phys = eng.new_character("physical", initial_state)
 		eng.add_character("pointless")
-		eng.next_turn()
+		if slow:
+			eng.branch = "b"
+		else:
+			eng.next_turn()
 		del phys.portal[1][0]
 		port = phys.new_portal(0, 2)
 		port["hi"] = "bye"
@@ -286,10 +289,11 @@ def test_apply_delta(tempdir, keyframed):
 		del eng.character["pointless"]
 		phys.portal[0][1]["meaning"] = 42
 		del phys.portal[0][1]["omg"]
-		if keyframed:
-			eng.snap_keyframe()
-		eng.turn = 0
-		eng.tick = 0
+		if slow:
+			eng.branch = "trunk"
+		else:
+			eng.turn = 0
+			eng.tick = 0
 	mang = EngineProcessManager()
 	try:
 		prox = mang.start(tempdir)
@@ -297,7 +301,10 @@ def test_apply_delta(tempdir, keyframed):
 		phys = prox.character["physical"]
 		assert 3 in phys.place
 		assert phys.portal[1][0]["omg"] == "blasphemy"
-		prox.turn = 1
+		if slow:
+			prox.branch = "b"
+		else:
+			prox.turn = 1
 		assert 3 not in phys.place
 		assert 0 not in phys.portal[1]
 		assert 2 in phys.portal[0]
