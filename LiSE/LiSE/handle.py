@@ -618,7 +618,9 @@ class EngineHandle(object):
 					return
 				graph, node, key = map(pack, (graph, node, key))
 				if graph not in delta:
-					delta[graph] = {NODE_VAL: {node: {key: v}}, EDGE_VAL: {}}
+					delta[graph] = {NODE_VAL: {node: {key: v}}}
+				elif NODE_VAL not in delta[graph]:
+					delta[graph][NODE_VAL] = {node: {key: v}}
 				elif node not in delta[graph][NODE_VAL]:
 					delta[graph][NODE_VAL][node] = {key: v}
 				else:
@@ -631,8 +633,9 @@ class EngineHandle(object):
 				if graph not in delta:
 					delta[graph] = {
 						EDGE_VAL: {orig: {dest: {key: v}}},
-						NODE_VAL: {},
 					}
+				elif EDGE_VAL not in delta[graph]:
+					delta[graph][EDGE_VAL] = {orig: {dest: {key: v}}}
 				elif orig not in delta[graph][EDGE_VAL]:
 					delta[graph][EDGE_VAL][orig] = {dest: {key: v}}
 				elif dest not in delta[graph][EDGE_VAL][orig]:
@@ -646,7 +649,7 @@ class EngineHandle(object):
 				if graph in delta:
 					delta[graph][key] = v
 				else:
-					delta[graph] = {key: v, NODE_VAL: {}, EDGE_VAL: {}}
+					delta[graph] = {key: v}
 
 		def pack_node(graph, node, existence):
 			grap, node = map(pack, (graph, node))
