@@ -1563,9 +1563,6 @@ class ORM:
 			if parent is None:
 				return self._snap_keyframe_de_novo(branch, turn, tick)
 			the_kf = self._recurse_delta_keyframes((branch, turn, tick))
-		self._snap_keyframe_from_delta(
-			the_kf, (branch, turn, tick), self.get_delta(*the_kf, turn, tick)
-		)
 		if the_kf[0] != branch:
 			self._alias_kf(the_kf[0], branch, turn, tick)
 
