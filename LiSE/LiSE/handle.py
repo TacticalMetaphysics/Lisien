@@ -672,10 +672,10 @@ class EngineHandle(object):
 				kf_from["nodes"].keys() & kf_to["nodes"].keys()
 			)
 			deleted_nodes = {}
-			for graph in nodes_intersection:
+			for (graph,) in nodes_intersection:
 				deleted_nodes_here = deleted_nodes[graph] = (
-					kf_from["nodes"][graph].keys()
-					- kf_to["nodes"][graph].keys()
+					kf_from["nodes"][graph,].keys()
+					- kf_to["nodes"][graph,].keys()
 				)
 				for node in deleted_nodes_here:
 					futs.append(pool.submit(pack_node, graph, node, FALSE))
@@ -689,10 +689,10 @@ class EngineHandle(object):
 						pack_one, k, va, vb, deleted_nodes, deleted_edges
 					)
 				)
-			for graph in nodes_intersection:
+			for (graph,) in nodes_intersection:
 				for node in (
-					kf_to["nodes"][graph].keys()
-					- kf_from["nodes"][graph].keys()
+					kf_to["nodes"][graph,].keys()
+					- kf_from["nodes"][graph,].keys()
 				):
 					futs.append(pool.submit(pack_node, graph, node, TRUE))
 			for graph, orig, dest in deleted_edges:
