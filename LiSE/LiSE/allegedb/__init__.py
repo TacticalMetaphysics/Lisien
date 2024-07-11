@@ -915,7 +915,9 @@ class ORM:
 	def _load_graphs(self):
 		self.graph = GraphsMapping(self)
 		for graph, branch, turn, tick, typ in self.query.graphs_dump():
-			self._graph_cache.store(graph, branch, turn, tick, typ)
+			self._graph_cache.store(
+				graph, branch, turn, tick, typ if typ != "Deleted" else None
+			)
 			if typ not in {"DiGraph", "Deleted"}:
 				raise NotImplementedError("Only DiGraph for now")
 			# still create object for deleted graphs, in case you time travel
