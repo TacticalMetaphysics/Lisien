@@ -2882,7 +2882,8 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 		if inst == b"shutdown":
 			handle_out_pipe.close()
 			handle_in_pipe.close()
-			logq.close()
+			if logq:
+				logq.close()
 			return 0
 		instruction = engine_handle.unpack(inst)
 		if isinstance(instruction, dict) and "__use_msgspec__" in instruction:
