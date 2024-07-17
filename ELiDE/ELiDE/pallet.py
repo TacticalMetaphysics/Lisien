@@ -18,7 +18,7 @@ one :class:`kivy.uix.togglebutton.ToggleButton` apiece, arranged in a
 from the :class:`Pallet`, and the :class:`Pallet` updates its
 ``selection`` list to show what the user selected."""
 
-from kivy.clock import Clock
+from kivy.clock import Clock, mainthread
 from kivy.properties import (
 	DictProperty,
 	NumericProperty,
@@ -62,6 +62,7 @@ class SwatchButton(ToggleButton):
 			if self in self.parent.selection:
 				self.parent.selection.remove(self)
 
+	@mainthread
 	def on_parent(self, *args):
 		if not self.canvas or not self.tex:
 			Clock.schedule_once(self.on_parent, 0)
