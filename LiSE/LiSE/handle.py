@@ -37,6 +37,7 @@ from typing import (
 )
 
 import msgpack
+import numpy as np
 
 from .allegedb import OutOfTimelineError, Key
 from .engine import Engine
@@ -107,8 +108,6 @@ def _packed_dict_delta(
 	old: Dict[bytes, bytes], new: Dict[bytes, bytes]
 ) -> FormerAndCurrentType:
 	"""Describe changes from one shallow dictionary of msgpack data to another"""
-	import numpy as np
-
 	post = {}
 	pre = {}
 	added_thread = Thread(target=_dict_delta_added, args=(old, new, pre, post))
@@ -545,8 +544,6 @@ class EngineHandle(object):
 		btt_from: Tuple[str, int, int] = None,
 		btt_to: Tuple[str, int, int] = None,
 	) -> SlightlyPackedDeltaType:
-		import numpy as np
-
 		pack = self._real.pack
 		delta: Dict[bytes, Any] = {}
 		btt_from = self._get_btt(btt_from)
@@ -882,11 +879,45 @@ class EngineHandle(object):
 			btt_from = self.get_btt()
 		btt_to = self._get_btt(btt_to)
 		self._real._set_btt(*btt_from)
-		old = self.universal_copy()
+		old = dict(self._real.universal.items())
 		self._real._set_btt(*btt_to)
-		new = self.universal_copy()
+		new = dict(self._real.universal.items())
 		self._real._set_btt(*now)
-		former, current = _packed_dict_delta(old, new)
+		old_id_l = []
+		new_id_l = []
+		k_l = []
+		for key in old.keys() & new.keys():
+			old_id_l.append(id(old[key]))
+			new_id_l.append(id(new[key]))
+			k_l.append(key)
+		old_id_arr = np.array(old_id_l)
+		new_id_arr = np.array(new_id_l)
+		holder = {}
+		added_thread = Thread(
+			target=lambda: holder.__setitem__("added", new.keys() - old.keys())
+		)
+		removed_thread = Thread(
+			target=lambda: holder.__setitem__(
+				"removed", old.keys() - new.keys()
+			)
+		)
+		added_thread.start()
+		removed_thread.start()
+		changes = old_id_arr != new_id_arr
+		added_thread.join()
+		removed_thread.join()
+		added_keys = holder["added"]
+		removed_keys = holder["removed"]
+		pack = self.pack
+		current = {pack(k): pack(new[k]) for k in added_keys}
+		for k in removed_keys:
+			current[pack(k)] = NONE
+		for key in np.array(k_l, dtype=object)[changes]:
+			before = old[key]
+			after = new[key]
+			if before == after:
+				continue
+			current[pack(key)] = pack(after)
 		return current
 
 	def init_character(self, char, statdict: dict = None):
