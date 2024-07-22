@@ -1082,7 +1082,7 @@ class ORM:
 		gv = ret["graph_val"]
 		for k in gvck:
 			try:
-				gv[k] = gvck[k][branch].retrieve_exact(turn, tick)
+				gv[k].update(gvck[k][branch].retrieve_exact(turn, tick))
 			except KeyError:
 				pass
 		nck = self._nodes_cache.keyframe
