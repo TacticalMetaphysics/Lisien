@@ -1,4 +1,4 @@
-from pprint import pprint
+from kivy.base import EventLoop
 
 from ..pallet import Pallet
 from .util import ELiDEAppTest, idle_until, window_with_widget
