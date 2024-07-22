@@ -255,7 +255,8 @@ def test_get_slow_delta_overload(eng: MagicMock):
 	eng.branch, eng.turn, eng.tick = data.BTT_FROM
 	eng._btt.return_value = data.BTT_FROM
 	eng._get_kf.side_effect = [data.KF_FROM, data.KF_TO]
-	assert hand._get_slow_delta(data.BTT_FROM, data.BTT_TO) == data.SLOW_DELTA
+	slowd = hand._get_slow_delta(data.BTT_FROM, data.BTT_TO)
+	assert slowd == data.SLOW_DELTA
 
 
 @pytest.mark.parametrize("slow", [True, False])
