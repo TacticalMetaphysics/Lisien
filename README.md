@@ -108,7 +108,6 @@ export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE  # has to be run once per terminal sessio
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 # if you don't have python 3 installed: 
 brew install python pip3
-brew install cython
 git clone https://github.com/TacticalMetaphysics/LiSE.git
 cd LiSE
 python -m pip install --user kivy pygments -r LiSE/requirements.txt
