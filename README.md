@@ -95,11 +95,8 @@ set PYTHONPATH=%cd%\LiSE;%cd%\ELiDE  # only works in cmd.exe, not powershell. Ha
 
 ## Linux
 ```
-sudo apt-get install cython3 python3-dev python3-pip \
-libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
-libsdl2-ttf-dev
-# ELiDE doesn't play movies, so disable gstreamer
-USE_GSTREAMER=0 pip3 install --user kivy pygments -r LiSE/requirements.txt
+sudo apt install python3 python3-pip
+pip3 install --user kivy pygments -r LiSE/requirements.txt
 # install LiSE and the ELiDE frontend
 git clone https://github.com/TacticalMetaphysics/LiSE.git
 cd LiSE
