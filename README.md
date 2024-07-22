@@ -111,7 +111,8 @@ brew install python pip3
 brew install cython
 git clone https://github.com/TacticalMetaphysics/LiSE.git
 cd LiSE
-python -m pip install --user kivy pygments -r LiSE/requirements.txt
+# ELiDE doesn't play movies, so disable gstreamer
+USE_GSTREAMER=0 python -m pip install --user kivy pygments -r LiSE/requirements.txt
 export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE  # has to be run once per terminal session
 ```
 
