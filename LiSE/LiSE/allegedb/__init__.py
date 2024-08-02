@@ -2800,7 +2800,7 @@ class ORM:
 
 	@world_locked
 	def del_graph(self, name: Key) -> None:
-		"""Remove all traces of a graph's existence from the database
+		"""Mark a graph as deleted
 
 		:arg name: name of an existing graph
 
@@ -2809,7 +2809,7 @@ class ORM:
 		graph = self.graph[name]
 		for node in list(graph.node):
 			del graph.node[node]
-		for stat in list(graph.graph):
+		for stat in set(graph.graph) - {"name"}:
 			del graph.graph[stat]
 		branch, turn, tick = self._nbtt()
 		self.query.graphs_insert(name, branch, turn, tick, "Deleted")
