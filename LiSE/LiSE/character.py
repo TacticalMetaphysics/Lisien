@@ -207,7 +207,7 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 
 	def __setitem__(self, k, v):
 		if k == "name":
-			raise TypeError("Can't change names")
+			raise KeyError("Can't change names")
 		if hasattr(v, "unwrap"):
 			v = v.unwrap()
 		self._patch[k] = v

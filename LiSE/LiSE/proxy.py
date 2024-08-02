@@ -1112,6 +1112,8 @@ class CharStatProxy(CachingEntityProxy):
 		)
 
 	def _set_item(self, k, v):
+		if k == "name":
+			raise KeyError("Can't change names")
 		self.engine.handle(
 			command="set_character_stat",
 			char=self.name,
