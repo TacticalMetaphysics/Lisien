@@ -288,6 +288,7 @@ def test_apply_delta(tempdir, slow):
 		del phys.place[3]
 		eng.add_character("pointed")
 		del eng.character["pointless"]
+		assert "pointless" not in eng.character, "Failed to delete character"
 		phys.portal[0][1]["meaning"] = 42
 		del phys.portal[0][1]["omg"]
 		if slow:
@@ -312,7 +313,7 @@ def test_apply_delta(tempdir, slow):
 		assert phys.portal[0][2]["hi"] == "bye"
 		assert phys.place[1]["wtf"] == "bbq"
 		assert phys.thing["it"].location == phys.place[1]
-		assert "pointless" not in prox.character
+		assert "pointless" not in prox.character, "Loaded deleted character"
 		assert "pointed" in prox.character
 		assert phys.portal[0][1]["meaning"] == 42
 		assert "omg" not in phys.portal[0][1]
