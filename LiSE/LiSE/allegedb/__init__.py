@@ -590,6 +590,13 @@ class ORM:
 
 		"""
 
+		def setgraph(delta: DeltaDict, _: None, graph: Key, val: Any) -> None:
+			"""Change a delta to say that a graph was deleted or not"""
+			if val is None:
+				delta[graph] = None
+			elif graph in delta and delta[graph] is None:
+				del delta[graph]
+
 		def setgraphval(
 			delta: DeltaDict, graph: Key, key: Key, val: Any
 		) -> None:
@@ -686,6 +693,7 @@ class ORM:
 			updater = partial(
 				update_backward_window, turn_from, tick_from, turn_to, tick_to
 			)
+			gbranches = self._graph_cache.presettings
 			gvbranches = self._graph_val_cache.presettings
 			nbranches = self._nodes_cache.presettings
 			nvbranches = self._node_val_cache.presettings
@@ -696,11 +704,15 @@ class ORM:
 			updater = partial(
 				update_window, turn_from, tick_from, turn_to, tick_to
 			)
+			gbranches = self._graph_cache.settings
 			gvbranches = self._graph_val_cache.settings
 			nbranches = self._nodes_cache.settings
 			nvbranches = self._node_val_cache.settings
 			ebranches = self._edges_cache.settings
 			evbranches = self._edge_val_cache.settings
+
+		if branch in gbranches:
+			updater(partial(setgraph, delta), gbranches[branch])
 
 		if branch in gvbranches:
 			updater(partial(setgraphval, delta), gvbranches[branch])
@@ -758,6 +770,7 @@ class ORM:
 		tick_to = tick_to or self.tick
 		delta = {}
 		if tick_from < tick_to:
+			gbranches = self._graph_cache.settings
 			gvbranches = self._graph_val_cache.settings
 			nbranches = self._nodes_cache.settings
 			nvbranches = self._node_val_cache.settings
@@ -765,11 +778,21 @@ class ORM:
 			evbranches = self._edge_val_cache.settings
 			tick_to += 1
 		else:
+			gbranches = self._graph_cache.presettings
 			gvbranches = self._graph_val_cache.presettings
 			nbranches = self._nodes_cache.presettings
 			nvbranches = self._node_val_cache.presettings
 			ebranches = self._edges_cache.presettings
 			evbranches = self._edge_val_cache.presettings
+
+		if branch in gbranches and turn in gbranches[branch]:
+			for _, graph, typ in gbranches[branch][turn][tick_from:tick_to]:
+				if typ is None:
+					# It is appropriate that this will cause errors if the
+					# graph mutates while it's deleted
+					delta[graph] = None
+				elif graph in delta and delta[graph] is None:
+					del delta[graph]
 
 		if branch in gvbranches and turn in gvbranches[branch]:
 			for graph, key, value in gvbranches[branch][turn][
@@ -916,7 +939,7 @@ class ORM:
 		self.graph = GraphsMapping(self)
 		for graph, branch, turn, tick, typ in self.query.graphs_dump():
 			self._graph_cache.store(
-				graph, branch, turn, tick, typ if typ != "Deleted" else None
+				graph, branch, turn, tick, (typ if typ != "Deleted" else None)
 			)
 			if typ not in {"DiGraph", "Deleted"}:
 				raise NotImplementedError("Only DiGraph for now")

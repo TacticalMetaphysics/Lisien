@@ -311,6 +311,12 @@ class EngineHandle(object):
 		slightly_packed_delta = {}
 		mostly_packed_delta = {}
 		for char, chardelta in delta.items():
+			if chardelta is None or chardelta == {"name": None}:
+				pchar = pack(char)
+				slightly_packed_delta[pchar] = mostly_packed_delta[pchar] = (
+					None
+				)
+				continue
 			chardelta = chardelta.copy()
 			pchar = pack(char)
 			chard = slightly_packed_delta[pchar] = {}
@@ -371,7 +377,7 @@ class EngineHandle(object):
 			packd.update(todo)
 		return slightly_packed_delta, concat_d(
 			{
-				charn: concat_d(stuff)
+				charn: (concat_d(stuff) if stuff is not None else NONE)
 				for charn, stuff in mostly_packed_delta.items()
 			}
 		)
@@ -388,6 +394,9 @@ class EngineHandle(object):
 			mostly_packed_delta[UNIVERSAL] = universal
 		for char, chardelta in delta.items():
 			chardelta = chardelta.copy()
+			if chardelta == {b"\xa4name": b"\xc0"}:
+				mostly_packed_delta[char] = b"\xc0"
+				continue
 			packd = mostly_packed_delta[char] = {}
 			if NODES in chardelta:
 				charnodes = chardelta.pop(NODES)
@@ -421,7 +430,7 @@ class EngineHandle(object):
 				packd[RULEBOOKS] = concat_d(chardelta[RULEBOOKS])
 			packd.update(chardelta)
 		almost_entirely_packed_delta = {
-			charn: concat_d(stuff)
+			charn: (concat_d(stuff) if stuff != b"\xc0" else b"\xc0")
 			for charn, stuff in mostly_packed_delta.items()
 		}
 		rulebooks = delta.pop(RULEBOOKS, None)
