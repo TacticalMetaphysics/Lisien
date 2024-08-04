@@ -788,8 +788,6 @@ class ORM:
 		if branch in gbranches and turn in gbranches[branch]:
 			for _, graph, typ in gbranches[branch][turn][tick_from:tick_to]:
 				if typ is None:
-					# It is appropriate that this will cause errors if the
-					# graph mutates while it's deleted
 					delta[graph] = None
 				elif graph in delta and delta[graph] is None:
 					del delta[graph]
@@ -799,6 +797,8 @@ class ORM:
 				tick_from:tick_to
 			]:
 				if graph in delta:
+					if delta[graph] is None:
+						continue
 					delta[graph][key] = value
 				else:
 					delta[graph] = {key: value}
@@ -807,6 +807,8 @@ class ORM:
 			for graph, node, exists in nbranches[branch][turn][
 				tick_from:tick_to
 			]:
+				if graph in delta and delta[graph] is None:
+					continue
 				delta.setdefault(graph, {}).setdefault("nodes", {})[node] = (
 					bool(exists)
 				)
@@ -815,11 +817,13 @@ class ORM:
 			for graph, node, key, value in nvbranches[branch][turn][
 				tick_from:tick_to
 			]:
-				if (
-					graph in delta
-					and "nodes" in delta[graph]
-					and node in delta[graph]["nodes"]
-					and not delta[graph]["nodes"][node]
+				if graph in delta and (
+					delta[graph] is None
+					or (
+						"nodes" in delta[graph]
+						and node in delta[graph]["nodes"]
+						and not delta[graph]["nodes"][node]
+					)
 				):
 					continue
 				nodevd = delta.setdefault(graph, {}).setdefault("node_val", {})
@@ -834,25 +838,29 @@ class ORM:
 				tick_from:tick_to
 			]:
 				if graph_objs[graph].is_multigraph():
-					if (
-						graph in delta
-						and "edges" in delta[graph]
-						and orig in delta[graph]["edges"]
-						and dest in delta[graph]["edges"][orig]
-						and idx in delta[graph]["edges"][orig][dest]
-						and not delta[graph]["edges"][orig][dest][idx]
+					if graph in delta and (
+						delta[graph] is None
+						or (
+							"edges" in delta[graph]
+							and orig in delta[graph]["edges"]
+							and dest in delta[graph]["edges"][orig]
+							and idx in delta[graph]["edges"][orig][dest]
+							and not delta[graph]["edges"][orig][dest][idx]
+						)
 					):
 						continue
 					delta.setdefault(graph, {}).setdefault("edges", {})[
 						orig, dest
 					] = bool(exists)
 				else:
-					if (
-						graph in delta
-						and "edges" in delta[graph]
-						and orig in delta[graph]["edges"]
-						and dest in delta[graph]["edges"][orig]
-						and not delta[graph]["edges"][orig][dest]
+					if graph in delta and (
+						delta[graph] is None
+						or (
+							"edges" in delta[graph]
+							and orig in delta[graph]["edges"]
+							and dest in delta[graph]["edges"][orig]
+							and not delta[graph]["edges"][orig][dest]
+						)
 					):
 						continue
 					delta.setdefault(graph, {}).setdefault("edges", {})[
@@ -863,6 +871,8 @@ class ORM:
 			for graph, orig, dest, idx, key, value in evbranches[branch][turn][
 				tick_from:tick_to
 			]:
+				if graph in delta and delta[graph] is None:
+					continue
 				edgevd = (
 					delta.setdefault(graph, {})
 					.setdefault("edge_val", {})
