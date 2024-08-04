@@ -125,8 +125,11 @@ class PlanningContext(ContextDecorator):
 	and any changes you make to the world state within that block will be
 	'plans,' meaning that they are used as defaults. The world will
 	obey your plan unless you make changes to the same entities outside
-	of the plan, in which case the world will obey those, and cancel any
+	the plan, in which case the world will obey those, and cancel any
 	future plan.
+
+	Plans are *not* canceled when concerned entities are deleted, although
+	they are unlikely to be followed.
 
 	New branches cannot be started within plans. The ``with orm.forward():``
 	optimization is disabled within a ``with orm.plan():`` block, so
