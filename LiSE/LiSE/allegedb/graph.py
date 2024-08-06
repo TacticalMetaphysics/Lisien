@@ -36,22 +36,6 @@ def getatt(attribute_name):
 	return ret
 
 
-def convert_to_networkx_graph(data, create_using=None, multigraph_input=False):
-	"""Convert an AllegedGraph to the corresponding NetworkX graph type."""
-	if isinstance(data, DiGraph):
-		result = networkx.convert.from_dict_of_dicts(
-			data.adj,
-			create_using=create_using,
-			multigraph_input=data.is_multigraph(),
-		)
-		result.graph = dict(data.graph)
-		result.node = {k: dict(v) for k, v in data.node.items()}
-		return result
-	return networkx.convert.to_networkx_graph(
-		data, create_using, multigraph_input
-	)
-
-
 _alleged_receivers = defaultdict(list)
 
 
@@ -687,11 +671,9 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 		"""
 		if key in self:
 			sucs = self[key]
-			created = False
 			sucs.clear()
 		else:
 			sucs = self._cache[key] = self.Successors(self, key)
-			created = True
 		if val:
 			sucs.update(val)
 
@@ -819,7 +801,6 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 			try:
 				e = self[orig]
 				e.clear()
-				created = False
 			except KeyError:
 				self.db.query.exist_edge(
 					self.graph.name,
