@@ -29,7 +29,7 @@ from kivy.uix.button import Button
 from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
-from kivy.clock import Clock
+from kivy.clock import Clock, mainthread
 from kivy.lang import Builder
 from kivy.logger import Logger
 
@@ -83,6 +83,7 @@ class DialogMenu(Box):
 		self._sv.x = self.x + self.padding[0]
 		self._sv.y = self.y + self.padding[3]
 
+	@mainthread
 	def on_options(self, *args):
 		if not hasattr(self, "_sv"):
 			self._sv = ScrollView(size=self.size, pos=self.pos)
@@ -222,6 +223,7 @@ class DialogLayout(FloatLayout):
 			if after_ok is not None:
 				after_ok()
 
+	@mainthread
 	def _update_dialog(self, diargs, after_ok, **kwargs):
 		if diargs is None:
 			Logger.debug("DialogLayout: null dialog")
