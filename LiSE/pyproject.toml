@@ -7,7 +7,7 @@ include-package-data=true
 
 [project]
 name = "LiSE"
-version = "0.15.3"
+version = "0.15.4"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]

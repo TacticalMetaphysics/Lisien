@@ -1,3 +1,9 @@
+== 0.15.4 | 2024-08-08 ==
+* Fix time travel via rule stepper
+* Restore the ability to delete Characters
+* Even faster interbranch time travel
+* Fix a crash when time traveling between times with no changes to the world
+
 == 0.15.3 | 2024-07-22 ==
 * More crash fixes
 
