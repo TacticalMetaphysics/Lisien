@@ -223,6 +223,7 @@ class DialogLayout(FloatLayout):
 			if after_ok is not None:
 				after_ok()
 
+	@mainthread
 	def _update_dialog(self, diargs, after_ok, **kwargs):
 		if diargs is None:
 			Logger.debug("DialogLayout: null dialog")
