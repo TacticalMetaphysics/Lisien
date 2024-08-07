@@ -385,8 +385,6 @@ class WindowDictSlice:
 				else:
 					left, right = slic.stop, slic.start
 					dic._seek(right)
-					if not past:
-						return
 					cmp = le
 				if not past:
 					return
