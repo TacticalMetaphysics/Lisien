@@ -388,6 +388,8 @@ class WindowDictSlice:
 					if not past:
 						return
 					cmp = le
+				if not past:
+					return
 				it = iter(past)
 				p0, p1 = next(it)
 				while cmp(p0, left):
