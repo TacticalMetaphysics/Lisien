@@ -153,7 +153,7 @@ class NextTurn(Signal):
 							tick_to=tick,
 						)
 					else:
-						results.append(res)
+						results.extend(res)
 		engine._turns_completed[start_branch] = engine.turn
 		engine.query.complete_turn(
 			start_branch,
