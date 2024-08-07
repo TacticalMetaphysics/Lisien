@@ -144,7 +144,7 @@ Builder.load_string("""
 	text_size: self.width, None
 	halign: 'center'
 	tick: app.tick
-	set_tick: app.set_tick
+	set_tick: app.time_travel_to_tick
 <EntityLabel>:
 	multiline: True
 	text: str(self.name)
