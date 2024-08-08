@@ -852,11 +852,12 @@ class GraphBoard(RelativeLayout):
 		make_pawn = self.make_pawn
 		for thing in things2add:
 			pwn = make_pawn(thing)
-			nodes_patch[thing["name"]] = {
-				"_image_paths": list(
-					pwn.get("textures", Pawn.default_image_paths)
-				)
-			}
+			if "_image_paths" not in thing:
+				nodes_patch[thing["name"]] = {
+					"_image_paths": list(
+						pwn.get("textures", Pawn.default_image_paths)
+					)
+				}
 			pawns_added.append(pwn)
 		if nodes_patch:
 			self.character.node.patch(nodes_patch)
