@@ -1,3 +1,7 @@
+== 0.15.5 | 2024-08-10 ==
+* Fix a crash when resuming ELiDE in the past of a simulation
+* Fix rules sometimes not triggering, based on when the trigger was set
+
 == 0.15.4 | 2024-08-08 ==
 * Fix time travel via rule stepper
 * Restore the ability to delete Characters
