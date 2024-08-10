@@ -1210,7 +1210,9 @@ class Engine(AbstractEngine, gORM):
 		b, r, t = then
 		branch, turn, tick = now
 		try:
-			rbs = self._rulebooks_cache.keyframe[None,][b][r][t].copy()
+			rbs = (
+				self._rulebooks_cache.keyframe[None,][b].retrieve(r, t).copy()
+			)
 		except KeyError:
 			rbs = {}
 			for rule in self._rulebooks_cache.iter_keys(b, r, t):
@@ -1230,7 +1232,9 @@ class Engine(AbstractEngine, gORM):
 				except KeyError:
 					trigs[rule] = tuple()
 		try:
-			preqs = self._prereqs_cache.keyframe[None,][b][r][t].copy()
+			preqs = (
+				self._prereqs_cache.keyframe[None,][b].retrieve(r, t).copy()
+			)
 		except KeyError:
 			preqs = {}
 			for rule in self._prereqs_cache.iter_keys(b, r, t):
@@ -1239,7 +1243,7 @@ class Engine(AbstractEngine, gORM):
 				except KeyError:
 					preqs[rule] = tuple()
 		try:
-			acts = self._actions_cache.keyframe[None,][b][r][t].copy()
+			acts = self._actions_cache.keyframe[None,][b].retrieve(r, t).copy()
 		except KeyError:
 			acts = {}
 			for rule in self._actions_cache.iter_keys(b, r, t):
