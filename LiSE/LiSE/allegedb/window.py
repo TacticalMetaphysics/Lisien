@@ -825,11 +825,10 @@ class SettingsTurnDict(WindowDict):
 		Whether or not it was *set* at this turn and tick
 
 		"""
-		if self.rev_gettable(turn):
-			if self[turn].rev_gettable(tick):
-				return self[turn][tick]
-			elif self.rev_gettable(turn - 1):
-				return self[turn - 1].final()
+		if turn in self and self[turn].rev_gettable(tick):
+			return self[turn][tick]
+		elif self.rev_gettable(turn - 1):
+			return self[turn - 1].final()
 		raise KeyError(f"Can't retrieve turn {turn}, tick {tick}")
 
 	def retrieve_exact(self, turn: int, tick: int) -> Any:
