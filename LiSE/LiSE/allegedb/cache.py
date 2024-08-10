@@ -1175,16 +1175,18 @@ class Cache:
 						and r in keyframes[b]
 						and keyframes[b][r].rev_gettable(t)
 					):
-						if key in keyframes[b][r][t]:
-							ret = keyframes[b][r][t][key]
+						brtk = keyframes[b][r][t]
+						if key in brtk:
+							ret = brtk[key]
 							if store_hint:
 								shallowest[args] = ret
 							return ret
 						else:
 							return NotInKeyframeError("No value")
 					elif b in keyframes and keyframes[b].rev_gettable(r - 1):
-						if key in keyframes[b][r - 1].final():
-							ret = keyframes[b][r - 1].final()[key]
+						finl = keyframes[b][r - 1].final()
+						if key in finl:
+							ret = finl[key]
 							if store_hint:
 								shallowest[args] = ret
 							return ret
