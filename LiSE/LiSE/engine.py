@@ -1606,6 +1606,10 @@ class Engine(AbstractEngine, gORM):
 		charmap = self.character
 		rulemap = self.rule
 		pool = getattr(self, "_trigger_pool", None)
+		if pool:
+			submit = pool.submit
+		else:
+			submit = partial
 		todo = defaultdict(list)
 
 		def check_triggers(prio, rulebook, rule, handled_fun, entity):
@@ -1660,18 +1664,9 @@ class Engine(AbstractEngine, gORM):
 				turn,
 			)
 			entity = charmap[charactername]
-			if pool:
-				trig_futs.append(
-					pool.submit(
-						check_triggers, prio, rulebook, rule, handled, entity
-					)
-				)
-			else:
-				trig_futs.append(
-					partial(
-						check_triggers, prio, rulebook, rule, handled, entity
-					)
-				)
+			trig_futs.append(
+				submit(check_triggers, prio, rulebook, rule, handled, entity)
+			)
 
 		avcache_retr = self._unitness_cache._base_retrieve
 		node_exists = self._node_exists
@@ -1724,18 +1719,9 @@ class Engine(AbstractEngine, gORM):
 				turn,
 			)
 			entity = get_node(graphn, avn)
-			if pool:
-				trig_futs.append(
-					pool.submit(
-						check_triggers, prio, rulebook, rule, handled, entity
-					)
-				)
-			else:
-				trig_futs.append(
-					partial(
-						check_triggers, prio, rulebook, rule, handled, entity
-					)
-				)
+			trig_futs.append(
+				submit(check_triggers, prio, rulebook, rule, handled, entity)
+			)
 		is_thing = self._is_thing
 		handled_char_thing = self._handled_char_thing
 		for (
@@ -1760,18 +1746,9 @@ class Engine(AbstractEngine, gORM):
 				turn,
 			)
 			entity = get_thing(charn, thingn)
-			if pool:
-				trig_futs.append(
-					pool.submit(
-						check_triggers, prio, rulebook, rule, handled, entity
-					)
-				)
-			else:
-				trig_futs.append(
-					partial(
-						check_triggers, prio, rulebook, rule, handled, entity
-					)
-				)
+			trig_futs.append(
+				submit(check_triggers, prio, rulebook, rule, handled, entity)
+			)
 		handled_char_place = self._handled_char_place
 		for (
 			prio,
@@ -1795,18 +1772,9 @@ class Engine(AbstractEngine, gORM):
 				turn,
 			)
 			entity = get_place(charn, placen)
-			if pool:
-				trig_futs.append(
-					pool.submit(
-						check_triggers, prio, rulebook, rule, handled, entity
-					)
-				)
-			else:
-				trig_futs.append(
-					partial(
-						check_triggers, prio, rulebook, rule, handled, entity
-					)
-				)
+			trig_futs.append(
+				submit(check_triggers, prio, rulebook, rule, handled, entity)
+			)
 		edge_exists = self._edge_exists
 		get_edge = self._get_edge
 		handled_char_port = self._handled_char_port
@@ -1834,18 +1802,9 @@ class Engine(AbstractEngine, gORM):
 				turn,
 			)
 			entity = get_edge(charn, orign, destn)
-			if pool:
-				trig_futs.append(
-					pool.submit(
-						check_triggers, prio, rulebook, rule, handled, entity
-					)
-				)
-			else:
-				trig_futs.append(
-					partial(
-						check_triggers, prio, rulebook, rule, handled, entity
-					)
-				)
+			trig_futs.append(
+				submit(check_triggers, prio, rulebook, rule, handled, entity)
+			)
 		handled_node = self._handled_node
 		for (
 			prio,
@@ -1863,18 +1822,9 @@ class Engine(AbstractEngine, gORM):
 				handled_node, charn, noden, rulebook, rulen, branch, turn
 			)
 			entity = get_node(charn, noden)
-			if pool:
-				trig_futs.append(
-					pool.submit(
-						check_triggers, prio, rulebook, rule, handled, entity
-					)
-				)
-			else:
-				trig_futs.append(
-					partial(
-						check_triggers, prio, rulebook, rule, handled, entity
-					)
-				)
+			trig_futs.append(
+				submit(check_triggers, prio, rulebook, rule, handled, entity)
+			)
 		handled_portal = self._handled_portal
 		for (
 			prio,
@@ -1900,18 +1850,9 @@ class Engine(AbstractEngine, gORM):
 				turn,
 			)
 			entity = get_edge(charn, orign, destn)
-			if pool:
-				trig_futs.append(
-					pool.submit(
-						check_triggers, prio, rulebook, rule, handled, entity
-					)
-				)
-			else:
-				trig_futs.append(
-					partial(
-						check_triggers, prio, rulebook, rule, handled, entity
-					)
-				)
+			trig_futs.append(
+				submit(check_triggers, prio, rulebook, rule, handled, entity)
+			)
 		if pool:
 			wait(trig_futs)
 		else:
