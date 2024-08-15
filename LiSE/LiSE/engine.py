@@ -2111,17 +2111,10 @@ class Engine(AbstractEngine, gORM):
 				contkf[locn] = {
 					name,
 				}
-		contents_keyframes = self._node_contents_cache.keyframe
-		contkfs = contents_keyframes[graph,][branch]
-		if turn not in contkfs:
-			contkfs[turn] = {tick: contkf}
-		else:
-			contkfs[turn][tick] = contkf
-		kfs = self._things_cache.keyframe[graph,][branch]
-		if turn not in kfs:
-			kfs[turn] = {tick: newkf}
-		else:
-			kfs[turn][tick] = newkf
+		self._node_contents_cache.set_keyframe(
+			graph, branch, turn, tick, contkf
+		)
+		self._things_cache.set_keyframe(graph, branch, turn, tick, newkf)
 		assert (
 			(graph,) in self._things_cache.keyframe
 			and branch in self._things_cache.keyframe[graph,]
