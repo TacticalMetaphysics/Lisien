@@ -1,3 +1,6 @@
+== 0.15.6 | 2024-08-16 ==
+* Fix Thing objects occasionally forgetting their location
+
 == 0.15.5 | 2024-08-10 ==
 * Fix a crash when resuming ELiDE in the past of a simulation
 * Fix rules sometimes not triggering, based on when the trigger was set
