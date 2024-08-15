@@ -1332,11 +1332,11 @@ class Engine(AbstractEngine, gORM):
 							conts[loc].add(node)
 						else:
 							conts[loc] = {node}
-			conts = {
-				key: frozenset(value) for (key, value) in conts.items()
-			}
+			conts = {key: frozenset(value) for (key, value) in conts.items()}
 			branch_then, turn_then, tick_then = then
-			for b, r, t in self._iter_parent_btt(branch_then, turn_then, tick_then):
+			for b, r, t in self._iter_parent_btt(
+				branch_then, turn_then, tick_then
+			):
 				locs_kfs = self._things_cache.keyframe[graph,]
 				if b in locs_kfs:
 					locs_kfs_b = locs_kfs[b]
@@ -2063,8 +2063,15 @@ class Engine(AbstractEngine, gORM):
 		for charname, character in self.character.items():
 			locs = {}
 			conts_mut = {}
-			for thingname, thing in character.thing.items():
-				locname = thing["location"]
+			for thingname in self._things_cache.iter_keys(
+				charname, branch, turn, tick
+			):
+				try:
+					locname = self._things_cache.retrieve(
+						charname, thingname, branch, turn, tick
+					)
+				except KeyError:
+					locname = None
 				locs[thingname] = locname
 				if locname in conts_mut:
 					conts_mut[locname].add(thingname)
@@ -2072,7 +2079,9 @@ class Engine(AbstractEngine, gORM):
 					conts_mut[locname] = {thingname}
 			conts = {k: frozenset(v) for (k, v) in conts_mut.items()}
 			self._things_cache.set_keyframe(charname, branch, turn, tick, locs)
-			self._node_contents_cache.set_keyframe(charname, branch, turn, tick, conts)
+			self._node_contents_cache.set_keyframe(
+				charname, branch, turn, tick, conts
+			)
 		super()._snap_keyframe_de_novo(branch, turn, tick)
 
 	def _snap_keyframe_de_novo_graph(
