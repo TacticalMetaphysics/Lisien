@@ -1332,28 +1332,27 @@ class Engine(AbstractEngine, gORM):
 							conts[loc].add(node)
 						else:
 							conts[loc] = {node}
-			if locs:
-				conts = {
-					key: frozenset(value) for (key, value) in conts.items()
-				}
-				branch_then, turn_then, tick_then = then
-				for b, r, t in self._iter_parent_btt(branch_then, turn_then, tick_then):
-					locs_kfs = self._things_cache.keyframe[graph,]
-					if b in locs_kfs:
-						locs_kfs_b = locs_kfs[b]
-						if r in locs_kfs_b:
-							locs_kfs_br = locs_kfs_b[r]
-							if locs_kfs_br.rev_gettable(t):
-								locs_kf = locs_kfs_br[t]
-								break
-						elif locs_kfs_b.rev_gettable(r):
-							locs_kf = locs_kfs_b[r].final()
+			conts = {
+				key: frozenset(value) for (key, value) in conts.items()
+			}
+			branch_then, turn_then, tick_then = then
+			for b, r, t in self._iter_parent_btt(branch_then, turn_then, tick_then):
+				locs_kfs = self._things_cache.keyframe[graph,]
+				if b in locs_kfs:
+					locs_kfs_b = locs_kfs[b]
+					if r in locs_kfs_b:
+						locs_kfs_br = locs_kfs_b[r]
+						if locs_kfs_br.rev_gettable(t):
+							locs_kf = locs_kfs_br[t]
 							break
-				else:
-					raise HistoricKeyError("No locations keyframe to snap a new keyframe from")
-				locs_kf.update(locs)
-				self._things_cache.set_keyframe(graph, *now, locs_kf)
-				self._node_contents_cache.set_keyframe(graph, *now, conts)
+					elif locs_kfs_b.rev_gettable(r):
+						locs_kf = locs_kfs_b[r].final()
+						break
+			else:
+				locs_kf = {}
+			locs_kf.update(locs)
+			self._things_cache.set_keyframe(graph, *now, locs_kf)
+			self._node_contents_cache.set_keyframe(graph, *now, conts)
 		self._characters_rulebooks_cache.set_keyframe(
 			branch, turn, tick, charrbs
 		)
