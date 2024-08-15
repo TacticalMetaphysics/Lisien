@@ -1688,16 +1688,6 @@ class CharacterProxy(AbstractCharacter):
 		del portscache.successors[name][thing]
 		del portscache.predecessors[name][thing]
 
-	def place2thing(self, node, location):
-		# TODO: cache
-		self.engine.handle(
-			command="place2thing",
-			char=self.name,
-			node=node,
-			loc=location,
-			branching=True,
-		)
-
 	def add_portal(self, origin, destination, **kwargs):
 		symmetrical = kwargs.pop("symmetrical", False)
 		self.engine.handle(
