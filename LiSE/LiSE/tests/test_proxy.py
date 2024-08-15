@@ -70,8 +70,9 @@ def handle(tempdir):
 	from LiSE.handle import EngineHandle
 
 	hand = EngineHandle(
-		(tempdir,),
-		{"connect_string": "sqlite:///:memory:", "random_seed": 69105},
+		tempdir,
+		connect_string="sqlite:///:memory:",
+		random_seed=69105
 	)
 	yield hand
 	hand.close()

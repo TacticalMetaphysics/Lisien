@@ -68,6 +68,6 @@ def test_wolfsheep(tempdir):
 		engy.branch = "omg"
 		sheep = engy.character["sheep"]
 		sheep.rule(engy.action.breed, always=True)
-	hand = EngineHandle((tempdir,), {"random_seed": 69105})
+	hand = EngineHandle(tempdir, random_seed=69105)
 	hand.next_turn()
 	hand.close()

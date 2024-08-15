@@ -2859,7 +2859,7 @@ class EngineProxy(AbstractEngine):
 
 def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 	"""Loop to handle one command at a time and pipe results back"""
-	engine_handle = EngineHandle(args, kwargs, logq, loglevel=loglevel)
+	engine_handle = EngineHandle(*args, logq=logq, loglevel=loglevel, **kwargs)
 	compress = zlib.compress
 	decompress = zlib.decompress
 	pack = engine_handle.pack

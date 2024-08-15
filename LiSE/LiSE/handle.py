@@ -151,9 +151,8 @@ class EngineHandle:
 
 	_after_ret: Callable
 
-	def __init__(self, args=(), kwargs=None, logq=None, loglevel=None):
-		"""Instantiate an engine with the positional arguments ``args`` and
-		the keyword arguments ``kwargs``.
+	def __init__(self, *args, logq=None, loglevel=None, **kwargs):
+		"""Instantiate an engine with the given arguments
 
 		``logq`` is a :class:`Queue` into which I'll put tuples of
 		``(loglevel, message)``. ``loglevel`` is one of
@@ -162,8 +161,6 @@ class EngineHandle:
 		and controls what messages will be logged.
 
 		"""
-		if kwargs is None:
-			kwargs = {}
 		kwargs.setdefault("logfun", self.log)
 		self._logq = logq
 		self._loglevel = loglevel
