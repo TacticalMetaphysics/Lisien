@@ -2496,7 +2496,7 @@ class EngineProxy(AbstractEngine):
 	def critical(self, msg):
 		self.logger.critical(msg)
 
-	def handle(self, cmd=None, **kwargs):
+	def handle(self, cmd=None, *, cb: Optional[callable] = None, **kwargs):
 		"""Send a command to the LiSE core.
 
 		The only positional argument should be the name of a
@@ -2527,7 +2527,6 @@ class EngineProxy(AbstractEngine):
 			kwargs["command"] = cmd
 		else:
 			raise TypeError("No command")
-		cb = kwargs.pop("cb", None)
 		assert not kwargs.get("silent")
 		self.debug(f"EngineProxy: sending {cmd}")
 		start_ts = monotonic()
