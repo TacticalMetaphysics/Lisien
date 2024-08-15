@@ -259,16 +259,17 @@ class EngineHandle(object):
 		self._real._set_btt(*now)
 		return self._real._get_kf(branch, turn, tick)
 
-	def copy_chars(self, chars: Union[str, Iterable[Key]]):
+	def copy_chars(self, chars: Optional[Iterable[Key]]=None):
 		"""Return a mapping describing several characters
 
-		See the `copy_character` method for details on the format of
-		submappings.
+		Each character  has the keys 'nodes', 'edges', 'units', 'rulebooks',
+		'node_val', 'edge_val', and whatever stats the character has.
 
-		Special value 'all' gets mappings for every character that exists.
+		By default, gets mappings for every character that
+		exists.
 
 		"""
-		if chars == "all":
+		if chars is None:
 			it = iter(self._real.character.keys())
 		else:
 			it = iter(chars)
