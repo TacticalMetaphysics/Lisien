@@ -787,14 +787,6 @@ class AbstractCharacter(Mapping):
 		raise KeyError("Already have a thing named {}".format(name))
 
 	@abstractmethod
-	def thing2place(self, name):
-		pass
-
-	@abstractmethod
-	def place2thing(self, name, location):
-		pass
-
-	@abstractmethod
 	def add_portal(self, orig, dest, **kwargs):
 		pass
 

@@ -1417,10 +1417,6 @@ class CharacterProxy(AbstractCharacter):
 						edge
 					)
 
-	def thing2place(self, name):
-		# TODO
-		raise NotImplementedError("TODO")
-
 	def _get_default_rulebook_name(self):
 		return self.name, "character"
 
