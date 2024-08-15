@@ -139,7 +139,7 @@ def prepacked(fun: Callable) -> Callable:
 	return fun
 
 
-class EngineHandle(object):
+class EngineHandle:
 	"""A wrapper for a :class:`LiSE.Engine` object that runs in the same
 	process, but with an API built to be used in a command-processing
 	loop that takes commands from another process.
@@ -222,36 +222,6 @@ class EngineHandle(object):
 		"""Return whether the sim-time has been prevented from advancing"""
 		return hasattr(self._real, "locktime")
 
-	@prepacked
-	def copy_character(self, char: Key) -> Dict[bytes, bytes]:
-		"""Return a mapping describing a character
-
-		It has the keys 'nodes', 'edges', 'units', 'rulebooks', 'node_val',
-		'edge_val', and whatever stats the character has.
-
-		"""
-		units = self._character_units_copy(char)
-		ports = self._character_portals_stat_copy(char)
-		ported = {}
-		for orig, dests in ports.items():
-			dest_stats = {}
-			for dest, stats in dests.items():
-				dest_stats[dest] = concat_d(stats)
-			ported[orig] = concat_d(dest_stats)
-		return {
-			NODES: concat_d(
-				{node: TRUE for node in self.character_nodes(char)}
-			),
-			EDGES: concat_d(
-				{origdest: TRUE for origdest in self.character_portals(char)}
-			),
-			UNITS: concat_d({k: concat_s(v) for (k, v) in units.items()}),
-			RULEBOOKS: concat_d(self.character_rulebooks_copy(char)),
-			NODE_VAL: concat_d(self._character_nodes_stat_copy(char)),
-			EDGE_VAL: concat_d(ported),
-			**self.character_stat_copy(char),
-		}
-
 	def get_keyframe(self, branch, turn, tick):
 		now = self._real._btt()
 		self._real._set_btt(branch, turn, tick)
@@ -259,7 +229,7 @@ class EngineHandle(object):
 		self._real._set_btt(*now)
 		return self._real._get_kf(branch, turn, tick)
 
-	def copy_chars(self, chars: Optional[Iterable[Key]]=None):
+	def copy_chars(self, chars: Optional[Iterable[Key]] = None):
 		"""Return a mapping describing several characters
 
 		Each character  has the keys 'nodes', 'edges', 'units', 'rulebooks',
@@ -732,9 +702,6 @@ class EngineHandle(object):
 	def close(self):
 		self._real.close()
 
-	def get_time(self):
-		return self._real.time
-
 	def get_btt(self):
 		return self._real._btt()
 
@@ -744,9 +711,6 @@ class EngineHandle(object):
 	def set_language(self, lang):
 		self._real.string.language = lang
 		return self.strings_copy(lang)
-
-	def get_string_ids(self):
-		return list(self._real.string)
 
 	def get_string_lang_items(self, lang):
 		return list(self._real.string.lang_items(lang))
@@ -839,15 +803,6 @@ class EngineHandle(object):
 			current[pack(key)] = pack(after)
 		return current
 
-	def init_character(self, char, statdict: dict = None):
-		if char in self._real.character:
-			raise KeyError("Already have character {}".format(char))
-		if statdict is None:
-			statdict = {}
-		self._real.character[char] = {}
-		self._real.character[char].stat.update(statdict)
-		self.character_stat_copy(char)
-
 	def del_character(self, char):
 		del self._real.character[char]
 
@@ -891,17 +846,6 @@ class EngineHandle(object):
 
 	def del_character_stat(self, char: Key, k: Key) -> None:
 		del self._real.character[char].stat[k]
-
-	def update_character_stats(self, char: Key, patch: Dict) -> None:
-		self._real.character[char].stat.update(patch)
-
-	def update_character(self, char: Key, patch: Dict):
-		self.update_character_stats(char, patch["character"])
-		self.update_nodes(char, patch["node"])
-		self.update_portals(char, patch["portal"])
-
-	def characters(self) -> List[Key]:
-		return list(self._real.character.keys())
 
 	def set_node_stat(self, char: Key, node: Key, k: Key, v) -> None:
 		self._real.character[char].node[node][k] = v
@@ -948,23 +892,6 @@ class EngineHandle(object):
 			for node in self._real.character[char].node
 		}
 
-	def update_node(self, char: Key, node: Key, patch: Dict) -> None:
-		"""Change a node's stats according to a dictionary.
-
-		The ``patch`` dictionary should hold the new values of stats,
-		keyed by the stats' names; a value of ``None`` deletes the
-		stat.
-
-		"""
-		character = self._real.character[char]
-		if patch is None:
-			del character.node[node]
-		elif node not in character.node:
-			character.node[node] = patch
-			return
-		else:
-			character.node[node].update(patch)
-
 	def update_nodes(self, char: Key, patch: Dict):
 		"""Change the stats of nodes in a character according to a
 		dictionary.
@@ -986,10 +913,6 @@ class EngineHandle(object):
 		"""Remove a node from a character."""
 		del self._real.character[char].node[node]
 
-	def del_nodes(self, nodes):
-		for char, node in nodes:
-			del self._real.character[char].node[node]
-
 	@prepacked
 	def character_nodes(
 		self, char: Key, btt: Tuple[str, int, int] = None
@@ -1006,16 +929,10 @@ class EngineHandle(object):
 			self._real.tick = origtime[2]
 		return ret
 
-	def node_predecessors(self, char: Key, node: Key) -> List[Key]:
-		return list(self._real.character[char].pred[node].keys())
-
 	def character_set_node_predecessors(
 		self, char: Key, node: Key, preds: Iterable
 	) -> None:
 		self._real.character[char].pred[node] = preds
-
-	def character_del_node_predecessors(self, char: Key, node: Key) -> None:
-		del self._real.character[char].pred[node]
 
 	@prepacked
 	def node_successors(
@@ -1032,18 +949,6 @@ class EngineHandle(object):
 			self._real._set_btt(*origtime)
 		return ret
 
-	def nodes_connected(self, char: Key, orig: Key, dest: Key) -> bool:
-		return dest in self._real.character[char].portal[orig]
-
-	def init_thing(self, char: Key, thing: Key, statdict: dict = None) -> None:
-		if thing in self._real.character[char].thing:
-			raise KeyError(
-				"Already have thing in character {}: {}".format(char, thing)
-			)
-		if statdict is None:
-			statdict = {}
-		return self.set_thing(char, thing, statdict)
-
 	def set_thing(self, char: Key, thing: Key, statdict: Dict) -> None:
 		self._real.character[char].thing[thing] = statdict
 
@@ -1051,12 +956,6 @@ class EngineHandle(object):
 		self, char: Key, thing: Key, loc: Key, statdict: Dict
 	) -> None:
 		self._real.character[char].add_thing(thing, loc, **statdict)
-
-	def place2thing(self, char: Key, node: Key, loc: Key) -> None:
-		self._real.character[char].place2thing(node, loc)
-
-	def thing2place(self, char: Key, node: Key) -> None:
-		self._real.character[char].thing2place(node)
 
 	def add_things_from(self, char: Key, seq: Iterable) -> None:
 		for thing in seq:
@@ -1097,15 +996,6 @@ class EngineHandle(object):
 			.travel_to(dest, weight, graph)
 		)
 
-	def init_place(self, char: Key, place: Key, statdict: Dict = None) -> None:
-		if place in self._real.character[char].place:
-			raise KeyError(
-				"Already have place in character {}: {}".format(char, place)
-			)
-		if statdict is None:
-			statdict = {}
-		return self.set_place(char, place, statdict)
-
 	def set_place(self, char: Key, place: Key, statdict: Dict) -> None:
 		self._real.character[char].place[place] = statdict
 		self._after_ret = partial(self.node_stat_copy, char, place)
@@ -1138,63 +1028,6 @@ class EngineHandle(object):
 
 	def del_portal_stat(self, char: Key, orig: Key, dest: Key, k: Key) -> None:
 		del self._real.character[char][orig][dest][k]
-
-	@prepacked
-	def portal_stat_copy(
-		self, char: Key, orig: Key, dest: Key, btt: Tuple[str, int, int] = None
-	) -> Dict[bytes, bytes]:
-		pack = self._real.pack
-		branch, turn, tick = self._get_btt(btt)
-		origtime = self._real._btt()
-		if (branch, turn, tick) != origtime:
-			self._real._set_btt(branch, turn, tick)
-		ret = {
-			pack(k): pack(v.unwrap())
-			if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap")
-			else v
-			for (k, v) in self._real.character[char].portal[orig][dest].items()
-		}
-		if (branch, turn, tick) != origtime:
-			self._real._set_btt(*origtime)
-		return ret
-
-	def _character_portals_stat_copy(
-		self, char: Key, btt: Tuple[str, int, int] = None
-	) -> Dict[bytes, Dict[bytes, Dict[bytes, bytes]]]:
-		pack = self.pack
-		r = {}
-		btt = self._get_btt(btt)
-		chara = self._real.character[char]
-		origtime = self._real._btt()
-		self._real._set_btt(*btt)
-		portals = set(chara.portals())
-		self._real._set_btt(*origtime)
-		for orig, dest in portals:
-			porig = pack(orig)
-			pdest = pack(dest)
-			if porig not in r:
-				r[porig] = {}
-			r[porig][pdest] = self.portal_stat_copy(char, orig, dest, btt=btt)
-		return r
-
-	def update_portal(
-		self, char: Key, orig: Key, dest: Key, patch: Dict
-	) -> None:
-		character = self._real.character[char]
-		if patch is None:
-			del character.portal[orig][dest]
-		elif (
-			orig not in character.portal or dest not in character.portal[orig]
-		):
-			character.portal[orig][dest] = patch
-		else:
-			character.portal[orig][dest].update(patch)
-
-	def update_portals(
-		self, char: Key, patch: Dict[Tuple[Key, Key], Dict]
-	) -> None:
-		for (orig, dest), ppatch in patch.items():
-			self.update_portal(char, orig, dest, ppatch)
 
 	def add_unit(self, char: Key, graph: Key, node: Key) -> None:
 		self._real.character[char].add_unit(graph, node)
@@ -1256,8 +1089,8 @@ class EngineHandle(object):
 		origtime = self._real._btt()
 		self._real._set_btt(*btt)
 		ret = {
-			rulebook: self.rulebook_copy(rulebook)
-			for rulebook in self._real.rulebook.keys()
+			rulebook: v._get_cache(*btt)[0]
+			for (rulebook, v) in self._real.rulebook.items()
 		}
 		self._real._set_btt(*origtime)
 		return ret
@@ -1430,9 +1263,6 @@ class EngineHandle(object):
 	def is_ancestor_of(self, parent: str, child: str) -> bool:
 		return self._real.is_ancestor_of(parent, child)
 
-	def branches(self) -> set:
-		return self._real.branches()
-
 	def branch_start(self, branch: str) -> Tuple[int, int]:
 		return self._real.branch_start(branch)
 
@@ -1460,16 +1290,6 @@ class EngineHandle(object):
 				entity.historical(stat).iter_history(beginning, end)
 			)
 		return ret
-
-	@prepacked
-	def grid_2d_8graph(self, character: Key, m: int, n: int) -> bytes:
-		raise NotImplementedError
-
-	@prepacked
-	def grid_2d_graph(
-		self, character: Key, m: int, n: int, periodic: bool
-	) -> bytes:
-		raise NotImplementedError
 
 	def rules_handled_turn(
 		self, branch: str = None, turn: str = None
