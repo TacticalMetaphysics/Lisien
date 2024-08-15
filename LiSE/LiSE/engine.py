@@ -2111,6 +2111,7 @@ class Engine(AbstractEngine, gORM):
 				contkf[locn] = {
 					name,
 				}
+		contkf = {k: frozenset(v) for (k, v) in contkf.items()}
 		self._node_contents_cache.set_keyframe(
 			graph, branch, turn, tick, contkf
 		)
