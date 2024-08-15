@@ -1336,7 +1336,23 @@ class Engine(AbstractEngine, gORM):
 				conts = {
 					key: frozenset(value) for (key, value) in conts.items()
 				}
-				self._things_cache.set_keyframe(graph, *now, locs)
+				branch_then, turn_then, tick_then = then
+				for b, r, t in self._iter_parent_btt(branch_then, turn_then, tick_then):
+					locs_kfs = self._things_cache.keyframe[graph,]
+					if b in locs_kfs:
+						locs_kfs_b = locs_kfs[b]
+						if r in locs_kfs_b:
+							locs_kfs_br = locs_kfs_b[r]
+							if locs_kfs_br.rev_gettable(t):
+								locs_kf = locs_kfs_br[t]
+								break
+						elif locs_kfs_b.rev_gettable(r):
+							locs_kf = locs_kfs_b[r].final()
+							break
+				else:
+					raise HistoricKeyError("No locations keyframe to snap a new keyframe from")
+				locs_kf.update(locs)
+				self._things_cache.set_keyframe(graph, *now, locs_kf)
 				self._node_contents_cache.set_keyframe(graph, *now, conts)
 		self._characters_rulebooks_cache.set_keyframe(
 			branch, turn, tick, charrbs
@@ -2045,6 +2061,19 @@ class Engine(AbstractEngine, gORM):
 		self._triggers_cache.set_keyframe(branch, turn, tick, trigs)
 		self._prereqs_cache.set_keyframe(branch, turn, tick, preqs)
 		self._actions_cache.set_keyframe(branch, turn, tick, acts)
+		for charname, character in self.character.items():
+			locs = {}
+			conts_mut = {}
+			for thingname, thing in character.thing.items():
+				locname = thing["location"]
+				locs[thingname] = locname
+				if locname in conts_mut:
+					conts_mut[locname].add(thingname)
+				else:
+					conts_mut[locname] = {thingname}
+			conts = {k: frozenset(v) for (k, v) in conts_mut.items()}
+			self._things_cache.set_keyframe(charname, branch, turn, tick, locs)
+			self._node_contents_cache.set_keyframe(charname, branch, turn, tick, conts)
 		super()._snap_keyframe_de_novo(branch, turn, tick)
 
 	def _snap_keyframe_de_novo_graph(
