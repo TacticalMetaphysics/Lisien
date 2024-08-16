@@ -46,7 +46,6 @@ class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
 		shutil.rmtree(self.tempdir)
 
 
-@pytest.mark.test_proxy_graph_objects_create_delete
 class ProxyGraphTest(
 	LiSE.allegedb.tests.test_all.AbstractGraphTest, ProxyTest
 ):
@@ -70,9 +69,7 @@ def handle(tempdir):
 	from LiSE.handle import EngineHandle
 
 	hand = EngineHandle(
-		tempdir,
-		connect_string="sqlite:///:memory:",
-		random_seed=69105
+		tempdir, connect_string="sqlite:///:memory:", random_seed=69105
 	)
 	yield hand
 	hand.close()
