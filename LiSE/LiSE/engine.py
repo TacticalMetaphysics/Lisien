@@ -1282,9 +1282,9 @@ class Engine(AbstractEngine, gORM):
 			self.cache_arrange_queue.put("shutdown")
 		if self._cache_arrange_thread.is_alive():
 			self._cache_arrange_thread.join()
-		self.flush()
 		if self._keyframe_on_close:
 			self.snap_keyframe()
+		self.flush()
 		for store in self.stores:
 			if hasattr(store, "save"):
 				store.save(reimport=False)
