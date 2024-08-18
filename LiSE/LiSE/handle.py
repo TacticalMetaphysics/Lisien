@@ -1279,11 +1279,7 @@ class EngineHandle:
 
 	def get_kf_now(self) -> dict:
 		self._real.snap_keyframe()
-		ret = self._real._get_kf(*self._real._btt())
-		# the following will be unnecessary when universal is a standard
-		# part of keyframes
-		ret["universal"] = dict(self._real.universal)
-		return ret
+		return self._real._get_kf(*self._real._btt())
 
 	def game_start(self) -> None:
 		branch, turn, tick = self._real._btt()
