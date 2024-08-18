@@ -1098,7 +1098,14 @@ except ImportError:
 
 
 def kf2delta(kf) -> dict:
-	ret = {}
+	ret = {"rulebook": kf["rulebook"], "universal": kf["universal"]}
+	rules = ret["rules"] = {}
+	for funclist in ("triggers", "prereqs", "actions"):
+		for rule, funcs in kf[funclist].items():
+			if rule in rules:
+				rules[rule][funclist] = funcs
+			else:
+				rules[rule] = {funclist: funcs}
 	for (charn,), kvs in kf["graph_val"].items():
 		ret[charn] = kvs
 	for (charn,), existences in kf["nodes"].items():

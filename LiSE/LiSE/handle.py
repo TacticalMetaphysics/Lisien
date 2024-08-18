@@ -819,59 +819,6 @@ class EngineHandle:
 	def universal_copy(self):
 		return dict(map(self.pack_pair, self._real.universal.items()))
 
-	@prepacked
-	def universal_delta(
-		self,
-		*,
-		btt_from: Tuple[str, int, int] = None,
-		btt_to: Tuple[str, int, int] = None,
-	) -> Dict[bytes, bytes]:
-		now = self._real._btt()
-		if btt_from is None:
-			btt_from = self.get_btt()
-		btt_to = self._get_btt(btt_to)
-		self._real._set_btt(*btt_from)
-		old = dict(self._real.universal.items())
-		self._real._set_btt(*btt_to)
-		new = dict(self._real.universal.items())
-		self._real._set_btt(*now)
-		old_id_l = []
-		new_id_l = []
-		k_l = []
-		for key in old.keys() & new.keys():
-			old_id_l.append(id(old[key]))
-			new_id_l.append(id(new[key]))
-			k_l.append(key)
-		old_id_arr = np.array(old_id_l)
-		new_id_arr = np.array(new_id_l)
-		holder = {}
-		added_thread = Thread(
-			target=lambda: holder.__setitem__("added", new.keys() - old.keys())
-		)
-		removed_thread = Thread(
-			target=lambda: holder.__setitem__(
-				"removed", old.keys() - new.keys()
-			)
-		)
-		added_thread.start()
-		removed_thread.start()
-		changes = old_id_arr != new_id_arr
-		added_thread.join()
-		removed_thread.join()
-		added_keys = holder["added"]
-		removed_keys = holder["removed"]
-		pack = self.pack
-		current = {pack(k): pack(new[k]) for k in added_keys}
-		for k in removed_keys:
-			current[pack(k)] = NONE
-		for key in np.array(k_l, dtype=object)[changes]:
-			before = old[key]
-			after = new[key]
-			if before == after:
-				continue
-			current[pack(key)] = pack(after)
-		return current
-
 	def del_character(self, char):
 		del self._real.character[char]
 
@@ -1119,38 +1066,6 @@ class EngineHandle:
 			self._real.rulebook[rulebook]._get_cache(branch, turn, tick)[0]
 		)
 
-	def rulebook_delta(
-		self,
-		rulebook: Key,
-		*,
-		btt_from: Tuple[str, int, int] = None,
-		btt_to: Tuple[str, int, int] = None,
-	) -> Optional[List[str]]:
-		old = self.rulebook_copy(rulebook, btt=btt_from)
-		new = self.rulebook_copy(rulebook, btt=btt_to)
-		if old == new:
-			return
-		return new
-
-	def all_rulebooks_delta(
-		self,
-		*,
-		btt_from: Tuple[str, int, int] = None,
-		btt_to: Tuple[str, int, int] = None,
-	) -> Dict[Key, List[str]]:
-		btt_from = self._get_btt(btt_from)
-		btt_to = self._get_btt(btt_to)
-		if btt_from == btt_to:
-			return {}
-		ret = {}
-		for rulebook in self._real.rulebook.keys():
-			delta = self.rulebook_delta(
-				rulebook, btt_from=btt_from, btt_to=btt_to
-			)
-			if delta:
-				ret[rulebook] = delta
-		return ret
-
 	def all_rulebooks_copy(
 		self, btt: Tuple[str, int, int] = None
 	) -> Dict[Key, List[str]]:
@@ -1231,45 +1146,6 @@ class EngineHandle:
 		except KeyError:
 			actions = []
 		return {"triggers": triggers, "prereqs": prereqs, "actions": actions}
-
-	def rule_delta(
-		self,
-		rule: str,
-		*,
-		btt_from: Tuple[str, int, int] = None,
-		btt_to: Tuple[str, int, int] = None,
-	) -> Dict[str, List[str]]:
-		btt_from = self._get_btt(btt_from)
-		btt_to = self._get_btt(btt_to)
-		if btt_from == btt_to:
-			return {}
-		old = self.rule_copy(rule, btt=btt_from)
-		new = self.rule_copy(rule, btt=btt_to)
-		ret = {}
-		if new["triggers"] != old["triggers"]:
-			ret["triggers"] = new["triggers"]
-		if new["prereqs"] != old["prereqs"]:
-			ret["prereqs"] = new["prereqs"]
-		if new["actions"] != old["actions"]:
-			ret["actions"] = new["actions"]
-		return ret
-
-	def all_rules_delta(
-		self,
-		*,
-		btt_from: Tuple[str, int, int] = None,
-		btt_to: Tuple[str, int, int] = None,
-	) -> Dict[str, Dict[str, List[str]]]:
-		ret = {}
-		btt_from = self._get_btt(btt_from)
-		btt_to = self._get_btt(btt_to)
-		if btt_from == btt_to:
-			return ret
-		for rule in self._real.rule.keys():
-			delta = self.rule_delta(rule, btt_from=btt_from, btt_to=btt_to)
-			if delta:
-				ret[rule] = delta
-		return ret
 
 	def all_rules_copy(
 		self, *, btt: Tuple[str, int, int] = None
@@ -1419,15 +1295,6 @@ class EngineHandle:
 		kf = self.get_kf_now()
 		delt = kf2delta(kf)
 		delt["eternal"] = dict(self._real.eternal)
-		delt["universal"] = dict(self._real.universal)
-		delt["rules"] = {
-			rule: self.rule_copy(rule, (branch, turn, tick))
-			for rule in self._real.rule
-		}
-		delt["rulebooks"] = {
-			rulebook: self.rulebook_copy(rulebook, (branch, turn, tick))
-			for rulebook in self._real.rulebook
-		}
 		functions = dict(self._real.function.iterplain())
 		methods = dict(self._real.method.iterplain())
 		triggers = dict(self._real.trigger.iterplain())
