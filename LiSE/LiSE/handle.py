@@ -75,6 +75,9 @@ ETERNAL: bytes = msgpack.packb("eternal")
 UNIVERSAL: bytes = msgpack.packb("universal")
 STRINGS: bytes = msgpack.packb("strings")
 RULES: bytes = msgpack.packb("rules")
+TRIGGERS: bytes = msgpack.packb("triggers")
+PREREQS: bytes = msgpack.packb("prereqs")
+ACTIONS: bytes = msgpack.packb("actions")
 LOCATION: bytes = msgpack.packb("location")
 BRANCH: bytes = msgpack.packb("branch")
 SET_CODE: bytes = MsgpackExtensionType.set.value.to_bytes(
@@ -452,6 +455,47 @@ class EngineHandle:
 		# Comparing object IDs is guaranteed never to give a false equality,
 		# because of the way keyframes are constructed.
 		# It may give a false inequality.
+		# rules, rulebooks, universal
+		for k in kf_from["universal"].keys() | kf_to["universal"].keys():
+			keys.append(("universal", k))
+			va = kf_from["universal"].get(k)
+			vb = kf_to["universal"].get(k)
+			ids_from.append(id(va))
+			ids_to.append(id(vb))
+			values_from.append(va)
+			values_to.append(vb)
+		for rule in kf_from["triggers"].keys() | kf_to["triggers"].keys():
+			a = kf_from["triggers"].get(rule, ())
+			b = kf_to["triggers"].get(rule, ())
+			keys.append(("triggers", rule))
+			ids_from.append(id(a))
+			ids_to.append(id(b))
+			values_from.append(a)
+			values_to.append(b)
+		for rule in kf_from["prereqs"].keys() | kf_to["prereqs"].keys():
+			a = kf_from["prereqs"].get(rule, ())
+			b = kf_to["prereqs"].get(rule, ())
+			keys.append(("prereqs", rule))
+			ids_from.append(id(a))
+			ids_to.append(id(b))
+			values_from.append(a)
+			values_to.append(b)
+		for rule in kf_from["actions"].keys() | kf_to["actions"].keys():
+			a = kf_from["actions"].get(rule, ())
+			b = kf_to["actions"].get(rule, ())
+			keys.append(("actions", rule))
+			ids_from.append(id(a))
+			ids_to.append(id(b))
+			values_from.append(a)
+			values_to.append(b)
+		for rulebook in kf_from["rulebook"].keys() | kf_to["rulebook"].keys():
+			a = kf_from["rulebook"].get(rulebook, ())
+			b = kf_to["rulebook"].get(rulebook, ())
+			keys.append(("rulebook", rulebook))
+			ids_from.append(id(a))
+			ids_to.append(id(b))
+			values_from.append(a)
+			values_to.append(b)
 		for graph in kf_from["graph_val"].keys() | kf_to["graph_val"].keys():
 			a = kf_from["graph_val"].get(graph, {})
 			b = kf_to["graph_val"].get(graph, {})
@@ -495,7 +539,44 @@ class EngineHandle:
 			if va == vb:
 				return
 			v = pack(vb)
-			if k[0] == "node":
+			if k[0] == "universal":
+				_, key = k
+				key = pack(key)
+				if UNIVERSAL not in delta:
+					delta[UNIVERSAL] = {key: v}
+				else:
+					delta[UNIVERSAL][key] = v
+			elif k[0] == "triggers":
+				rule = pack(k[1])
+				if RULES not in delta:
+					delta[RULES] = {rule: {TRIGGERS: v}}
+				elif rule not in delta[RULES]:
+					delta[RULES][rule] = {TRIGGERS: v}
+				else:
+					delta[RULES][rule][TRIGGERS] = v
+			elif k[0] == "prereqs":
+				rule = pack(k[1])
+				if RULES not in delta:
+					delta[RULES] = {rule: {PREREQS: v}}
+				elif rule not in delta[RULES]:
+					delta[RULES][rule] = {PREREQS: v}
+				else:
+					delta[RULES][rule][PREREQS] = v
+			elif k[0] == "actions":
+				rule = pack(k[1])
+				if RULES not in delta:
+					delta[RULES] = {rule: {ACTIONS: v}}
+				elif rule not in delta[RULES]:
+					delta[RULES][rule] = {ACTIONS: v}
+				else:
+					delta[RULES][rule][ACTIONS] = v
+			elif k[0] == "rulebook":
+				rulebook = pack(k[1])
+				if RULEBOOK not in delta:
+					delta[RULEBOOK] = {rulebook: v}
+				else:
+					delta[RULEBOOK][rulebook] = v
+			elif k[0] == "node":
 				_, graph, node, key = k
 				if graph in deleted_nodes and node in deleted_nodes[graph]:
 					return
@@ -587,15 +668,6 @@ class EngineHandle:
 				kf_to["edges"].keys() - kf_from["edges"].keys()
 			):
 				futs.append(pool.submit(pack_edge, graph, orig, dest, TRUE))
-			rud = self.all_rules_delta(btt_from=btt_from, btt_to=btt_to)
-			if rud:
-				delta[RULES] = dict(map(self.pack_pair, rud.items()))
-			rbd = self.all_rulebooks_delta(btt_from=btt_from, btt_to=btt_to)
-			if rbd:
-				delta[RULEBOOKS] = dict(map(self.pack_pair, rbd.items()))
-			unid = self.universal_delta(btt_from=btt_from, btt_to=btt_to)
-			if unid:
-				delta[UNIVERSAL] = unid
 		return delta
 
 	@prepacked

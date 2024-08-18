@@ -321,6 +321,20 @@ class Cache:
 			PickyDefaultDict, PickyDefaultDict, callable
 		] = (self.settings, self.presettings, self._base_retrieve)
 
+	def get_keyframe(self, graph, branch, turn, tick):
+		if (graph,) not in self.keyframe:
+			raise KeyError("Unknown graph", graph)
+		g = self.keyframe[graph,]
+		if branch not in g:
+			raise KeyError("Unknown branch", branch)
+		b = g[branch]
+		if turn not in b:
+			raise KeyError("Unknown turn", turn)
+		r = b[turn]
+		if tick not in r:
+			raise KeyError("Unknown tick", tick)
+		return r[tick]
+
 	def set_keyframe(self, graph, branch, turn, tick, keyframe):
 		kfg = self.keyframe[graph,]
 		if branch in kfg:
@@ -1885,6 +1899,9 @@ class EntitylessCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
+
+	def get_keyframe(self, branch, turn, tick):
+		return super().get_keyframe(None, branch, turn, tick)
 
 	def set_keyframe(self, branch, turn, tick, keyframe):
 		super().set_keyframe(None, branch, turn, tick, keyframe)

@@ -718,6 +718,40 @@ class Engine(AbstractEngine, gORM):
 	) -> portal_cls:
 		return self.portal_cls(graph, orig, dest)
 
+	def _get_kf(self, branch, turn, tick):
+		kf = super()._get_kf(branch, turn, tick)
+		try:
+			kf["universal"] = self._universal_cache.get_keyframe(
+				branch, turn, tick
+			)
+		except KeyError:
+			kf["universal"] = {}
+		try:
+			kf["triggers"] = self._triggers_cache.get_keyframe(
+				branch, turn, tick
+			)
+		except KeyError:
+			kf["triggers"] = {}
+		try:
+			kf["prereqs"] = self._prereqs_cache.get_keyframe(
+				branch, turn, tick
+			)
+		except KeyError:
+			kf["prereqs"] = {}
+		try:
+			kf["actions"] = self._actions_cache.get_keyframe(
+				branch, turn, tick
+			)
+		except KeyError:
+			kf["actions"] = {}
+		try:
+			kf["rulebook"] = self._rulebooks_cache.get_keyframe(
+				branch, turn, tick
+			)
+		except KeyError:
+			kf["rulebook"] = {}
+		return kf
+
 	def get_delta(
 		self,
 		branch: str,
@@ -1219,6 +1253,15 @@ class Engine(AbstractEngine, gORM):
 		b, r, t = then
 		branch, turn, tick = now
 		try:
+			univ = self._universal_cache.get_keyframe(b, r, t).copy()
+		except KeyError:
+			univ = {}
+			for key in self._universal_cache.iter_keys(b, r, t):
+				try:
+					univ[key] = self._universal_cache.retrieve(key, b, r, t)
+				except KeyError:
+					pass
+		try:
 			rbs = (
 				self._rulebooks_cache.keyframe[None,][b].retrieve(r, t).copy()
 			)
@@ -1229,6 +1272,8 @@ class Engine(AbstractEngine, gORM):
 					rbs[rule] = self._rulebooks_cache.retrieve(rule, b, r, t)
 				except KeyError:
 					rbs[rule] = rule
+		univ.update(delta.pop("universal", {}))
+		self._universal_cache.set_keyframe(branch, turn, tick, univ)
 		rbs.update(delta.pop("rulebooks", {}))
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
 		try:
@@ -2033,6 +2078,9 @@ class Engine(AbstractEngine, gORM):
 	def _snap_keyframe_de_novo(
 		self, branch: str, turn: int, tick: int
 	) -> None:
+		self._universal_cache.set_keyframe(
+			branch, turn, tick, dict(self.universal.items())
+		)
 		rbnames = list(self._rulebooks_cache.iter_keys(branch, turn, tick))
 		rbs = {}
 		for rbname in rbnames:
