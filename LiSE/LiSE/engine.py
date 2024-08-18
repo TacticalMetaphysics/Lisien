@@ -2239,6 +2239,8 @@ class Engine(AbstractEngine, gORM):
 		newkf = {}
 		contkf = {}
 		for name, node in nodes.items():
+			if isinstance(node, bool):
+				raise TypeError(f"{name}: can't nodeify booleans")
 			if "location" not in node:
 				continue
 			locn = node["location"]
@@ -2251,9 +2253,9 @@ class Engine(AbstractEngine, gORM):
 				}
 		contkf = {k: frozenset(v) for (k, v) in contkf.items()}
 		self._node_contents_cache.set_keyframe(
-			graph, branch, turn, tick, contkf
+			(graph,), branch, turn, tick, contkf
 		)
-		self._things_cache.set_keyframe(graph, branch, turn, tick, newkf)
+		self._things_cache.set_keyframe((graph,), branch, turn, tick, newkf)
 		assert (
 			(graph,) in self._things_cache.keyframe
 			and branch in self._things_cache.keyframe[graph,]

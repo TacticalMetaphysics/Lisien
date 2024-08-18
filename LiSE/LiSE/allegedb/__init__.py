@@ -1233,23 +1233,25 @@ class ORM:
 		edges: EdgeValDict,
 		graph_val: StatDict,
 	) -> None:
-		self._nodes_cache.keyframe[graph,][branch].store_at(
-			turn, tick, {node: True for node in nodes}
+		self._nodes_cache.set_keyframe(
+			(graph,), branch, turn, tick, {node: True for node in nodes}
 		)
-		nvck = self._node_val_cache.keyframe
+		nvc = self._node_val_cache
 		for node, vals in nodes.items():
-			nvck[graph, node][branch].store_at(turn, tick, vals)
-		eck = self._edges_cache.keyframe
-		evck = self._edge_val_cache.keyframe
+			nvc.set_keyframe((graph, node), branch, turn, tick, vals)
+		ec = self._edges_cache
+		evc = self._edge_val_cache
 		for orig, dests in edges.items():
 			for dest, vals in dests.items():
-				edge_val_keyframe_branch_d = evck[graph, orig, dest, 0][branch]
-				edges_keyframe_branch_d = eck[graph, orig, dest][branch]
-				edges_keyframe_branch_d.store_at(turn, tick, {0: True})
-				assert edges_keyframe_branch_d[turn][tick][0]
-				edge_val_keyframe_branch_d.store_at(turn, tick, vals)
-		gvkb = self._graph_val_cache.keyframe[graph,][branch]
-		gvkb.store_at(turn, tick, graph_val)
+				ec.set_keyframe(
+					(graph, orig, dest), branch, turn, tick, {0: True}
+				)
+				evc.set_keyframe(
+					(graph, orig, dest, 0), branch, turn, tick, vals
+				)
+		self._graph_val_cache.set_keyframe(
+			(graph,), branch, turn, tick, graph_val
+		)
 
 	def _alias_kf(self, branch_from, branch_to, turn, tick):
 		"""Copy a keyframe from one branch to another
@@ -1258,41 +1260,54 @@ class ORM:
 		change, so it should be fine.
 
 		"""
-		gvck = self._graph_val_cache.keyframe
-		for gvckg in gvck.values():
+		for graph in self._graph_val_cache.keyframe:
 			try:
-				vals = gvckg[branch_from].retrieve_exact(turn, tick)
+				vals = self._graph_val_cache.get_keyframe(
+					graph, branch_from, turn, tick, copy=False
+				)
 			except KeyError:
 				continue
-			gvckg[branch_to].store_at(turn, tick, vals)
-		nck = self._nodes_cache.keyframe
-		for nckg in nck.values():
+			self._graph_val_cache.set_keyframe(
+				graph, branch_to, turn, tick, vals
+			)
+		for (graph,) in self._nodes_cache.keyframe:
 			try:
-				nodes = nckg[branch_from].retrieve_exact(turn, tick)
+				nodes = self._nodes_cache.get_keyframe(
+					graph, branch_from, turn, tick, copy=False
+				)
 			except KeyError:
 				continue
-			nckg[branch_to].store_at(turn, tick, nodes)
-		nvck = self._node_val_cache.keyframe
-		for gn in nvck.values():
+			self._nodes_cache.set_keyframe(graph, branch_to, turn, tick, nodes)
+		for graph_node in self._node_val_cache.keyframe:
 			try:
-				vals = gn[branch_from].retrieve_exact(turn, tick)
+				vals = self._node_val_cache.get_keyframe(
+					graph_node, branch_from, turn, tick, copy=False
+				)
 			except KeyError:
 				continue
-			gn[branch_to].store_at(turn, tick, vals)
-		eck = self._edges_cache.keyframe
-		for gorigdest in eck.values():
+			self._node_val_cache.set_keyframe(
+				graph_node, branch_to, turn, tick, vals
+			)
+		for graph_orig_dest in self._edges_cache.keyframe:
 			try:
-				edge = gorigdest[branch_from].retrieve_exact(turn, tick)
+				edge = self._edges_cache.get_keyframe(
+					graph_orig_dest, branch_from, turn, tick, copy=False
+				)
 			except KeyError:
 				continue
-			gorigdest[branch_to].store_at(turn, tick, edge)
-		evck = self._edge_val_cache.keyframe
-		for godi in evck.values():
+			self._edges_cache.set_keyframe(
+				graph_orig_dest, branch_to, turn, tick, edge
+			)
+		for graph_orig_dest_index in self._edge_val_cache.keyframe:
 			try:
-				vals = godi[branch_from].retrieve_exact(turn, tick)
+				vals = self._edge_val_cache.get_keyframe(
+					graph_orig_dest_index, branch_from, turn, tick, copy=False
+				)
 			except KeyError:
 				continue
-			godi[branch_to].store_at(turn, tick, vals)
+			self._edge_val_cache.set_keyframe(
+				graph_orig_dest_index, branch_to, turn, tick, vals
+			)
 
 	def _snap_keyframe_from_delta(
 		self,
@@ -1326,24 +1341,19 @@ class ORM:
 		edges_keyframe = {}
 		edge_val_keyframe = {}
 		graph_val_keyframe = {}
-		nvck = self._node_val_cache.keyframe
-		for graph, node in nvck:
+		for graph, node in self._node_val_cache.keyframe:
 			if graph not in node_val_keyframe:
 				node_val_keyframe[graph] = {}
 			try:
 				node_val_keyframe[graph][node] = (
-					nvck[graph, node][then[0]]
-					.retrieve_exact(then[1], then[2])
-					.copy()
+					self._node_val_cache.get_keyframe((graph, node), *then)
 				)
-				node_val_keyframe[graph][node]["name"] = node
 			except KeyError:
 				continue
-		eck = self._edges_cache.keyframe
-		for graph, orig, dest in eck:
+		for graph, orig, dest in self._edges_cache.keyframe:
 			try:
-				exists = eck[graph, orig, dest][then[0]].retrieve_exact(
-					then[1], then[2]
+				exists = self._edges_cache.get_keyframe(
+					(graph, orig, dest), *then
 				)[0]
 			except KeyError:
 				continue
@@ -1354,14 +1364,11 @@ class ORM:
 					edges_keyframe[graph][orig] = {dest: exists}
 			else:
 				edges_keyframe[graph] = {orig: {dest: exists}}
-		evck = self._edge_val_cache.keyframe
-		for graph, orig, dest, idx in evck:
+		for graph, orig, dest, idx in self._edge_val_cache.keyframe:
 			assert idx == 0  # until I get to multigraphs
 			try:
-				val = (
-					evck[graph, orig, dest, idx][then[0]]
-					.retrieve_exact(then[1], then[2])
-					.copy()
+				val = self._edge_val_cache.get_keyframe(
+					(graph, orig, dest, idx), *then
 				)
 			except KeyError:
 				continue
@@ -1374,18 +1381,14 @@ class ORM:
 				edge_val_keyframe[graph] = {orig: {dest: val}}
 		for graph in self.graph.keys():
 			try:
-				nodes_keyframe[graph] = (
-					self._nodes_cache.keyframe[graph,][then[0]]
-					.retrieve_exact(then[1], then[2])
-					.copy()
+				nodes_keyframe[graph] = self._nodes_cache.get_keyframe(
+					(graph,), *then
 				)
 			except KeyError:
 				nodes_keyframe[graph] = {}
 			try:
-				graph_val_keyframe[graph] = (
-					self._graph_val_cache.keyframe[graph,][then[0]]
-					.retrieve_exact(then[1], then[2])
-					.copy()
+				graph_val_keyframe[graph] = self._graph_val_cache.get_keyframe(
+					(graph,), *then
 				)
 			except KeyError:
 				graph_val_keyframe[graph] = {}
@@ -1413,8 +1416,9 @@ class ORM:
 				if graph not in node_val_keyframe:
 					node_val_keyframe[graph] = {}
 				nvkg = node_val_keyframe[graph]
-				nckg = self._nodes_cache.keyframe[graph,]
-				nckg[now[0]].store_at(now[1], now[2], nodes_keyframe[graph])
+				self._nodes_cache.set_keyframe(
+					(graph,), *now, nodes_keyframe[graph]
+				)
 				for node, ex in nodes_keyframe[graph].items():
 					if ex and node not in nvkg:
 						nvkg[node] = {"name": node}
@@ -1438,9 +1442,8 @@ class ORM:
 				else:
 					node_val_keyframe[graph] = dnv
 			if graph in node_val_keyframe:
-				nvck = self._node_val_cache.keyframe
 				for node, val in node_val_keyframe[graph].items():
-					nvck[graph, node][now[0]].store_at(now[1], now[2], val)
+					self._node_val_cache.set_keyframe((graph, node), *now, val)
 			if "edges" in deltg:
 				dge = deltg.pop("edges")
 				ekg = edges_keyframe.setdefault(graph, {})
@@ -1463,8 +1466,8 @@ class ORM:
 					if orig not in edge_val_keyframe[graph]:
 						edge_val_keyframe[graph][orig] = {}
 					for dest, ex in dests.items():
-						eck[graph, orig, dest][now[0]].store_at(
-							now[1], now[2], {0: ex}
+						self._edges_cache.set_keyframe(
+							(graph, orig, dest), *now, {0: ex}
 						)
 						if ex and dest not in edge_val_keyframe[graph][orig]:
 							edge_val_keyframe[graph][orig][dest] = {}
@@ -1487,8 +1490,8 @@ class ORM:
 			if graph in edge_val_keyframe:
 				for orig, dests in edge_val_keyframe[graph].items():
 					for dest, val in dests.items():
-						evck[graph, orig, dest, 0][now[0]].store_at(
-							now[1], now[2], val
+						self._edge_val_cache.set_keyframe(
+							(graph, orig, dest, 0), *now, val
 						)
 			if deltg:
 				if graph in graph_val_keyframe:
@@ -1512,9 +1515,8 @@ class ORM:
 				else:
 					graph_val_keyframe[graph] = deltg
 			if graph in graph_val_keyframe:
-				gvckg = self._graph_val_cache.keyframe[graph,]
-				gvckg[now[0]].store_at(
-					now[1], now[2], graph_val_keyframe[graph]
+				self._graph_val_cache.set_keyframe(
+					(graph,), *now, graph_val_keyframe[graph]
 				)
 			for when in whens:
 				nkfs.append(
