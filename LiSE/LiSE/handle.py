@@ -365,7 +365,7 @@ class EngineHandle:
 			mostly_packed_delta[UNIVERSAL] = universal
 		for char, chardelta in delta.items():
 			chardelta = chardelta.copy()
-			if chardelta == {b"\xa4name": b"\xc0"}:
+			if chardelta.get(b"\xa4name") == b"\xc0":
 				mostly_packed_delta[char] = b"\xc0"
 				continue
 			packd = mostly_packed_delta[char] = {}
@@ -397,16 +397,11 @@ class EngineHandle:
 					packd[UNITS] = concat_d({})
 				else:
 					packd[UNITS] = chardelta[UNITS]
-			if RULEBOOKS in chardelta:
-				packd[RULEBOOKS] = concat_d(chardelta[RULEBOOKS])
 			packd.update(chardelta)
 		almost_entirely_packed_delta = {
 			charn: (concat_d(stuff) if stuff != b"\xc0" else b"\xc0")
 			for charn, stuff in mostly_packed_delta.items()
 		}
-		rulebooks = delta.pop(RULEBOOKS, None)
-		if rulebooks:
-			almost_entirely_packed_delta[RULEBOOKS] = rulebooks
 		rules = delta.pop(RULES, None)
 		if rules:
 			almost_entirely_packed_delta[RULES] = concat_d(rules)

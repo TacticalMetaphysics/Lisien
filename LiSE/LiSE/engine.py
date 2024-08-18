@@ -721,6 +721,63 @@ class Engine(AbstractEngine, gORM):
 	def _get_kf(self, branch, turn, tick):
 		kf = super()._get_kf(branch, turn, tick)
 		try:
+			charrbs_kf = self._characters_rulebooks_cache.get_keyframe(
+				branch, turn, tick
+			)
+		except KeyError:
+			charrbs_kf = {}
+		try:
+			unitrbs_kf = self._units_rulebooks_cache.get_keyframe(
+				branch, turn, tick
+			)
+		except KeyError:
+			unitrbs_kf = {}
+		try:
+			charthrbs_kf = (
+				self._characters_things_rulebooks_cache.get_keyframe(
+					branch, turn, tick
+				)
+			)
+		except KeyError:
+			charthrbs_kf = {}
+		try:
+			charplrbs_kf = (
+				self._characters_places_rulebooks_cache.get_keyframe(
+					branch, turn, tick
+				)
+			)
+		except KeyError:
+			charplrbs_kf = {}
+		try:
+			charporbs_kf = (
+				self._characters_portals_rulebooks_cache.get_keyframe(
+					branch, turn, tick
+				)
+			)
+		except KeyError:
+			charporbs_kf = {}
+		for (char,), vals in kf["graph_val"].items():
+			if vals.get("name", True) is None:
+				continue
+			try:
+				vals["units"] = self._unitness_cache.get_keyframe(
+					char, branch, turn, tick
+				)
+			except KeyError:
+				vals["units"] = {}
+			vals["rulebooks"] = rbs = {}
+			for key, kf2 in [
+				("character", charrbs_kf),
+				("unit", unitrbs_kf),
+				("thing", charthrbs_kf),
+				("place", charplrbs_kf),
+				("portal", charporbs_kf),
+			]:
+				if char in kf2:
+					rbs[key] = kf2[char]
+				else:
+					rbs[key] = (char, key)
+		try:
 			kf["universal"] = self._universal_cache.get_keyframe(
 				branch, turn, tick
 			)
@@ -1276,6 +1333,20 @@ class Engine(AbstractEngine, gORM):
 		self._universal_cache.set_keyframe(branch, turn, tick, univ)
 		rbs.update(delta.pop("rulebooks", {}))
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
+		for char in self.character:
+			try:
+				charunit = self._unitness_cache.get_keyframe(char, b, r, t)
+			except KeyError:
+				charunit = {
+					unitgraph: units
+					for (unitgraph, units) in self._unitness_cache.iter_keys(
+						char, b, r, t
+					)
+				}
+			charunit.update(delta.get("units", ()))
+			self._unitness_cache.set_keyframe(
+				char, branch, turn, tick, charunit
+			)
 		try:
 			trigs = self._triggers_cache.keyframe[None,][b][r][t].copy()
 		except KeyError:
@@ -2081,6 +2152,16 @@ class Engine(AbstractEngine, gORM):
 		self._universal_cache.set_keyframe(
 			branch, turn, tick, dict(self.universal.items())
 		)
+		for char in self.character:
+			charunit = {
+				unitgraph: units
+				for (unitgraph, units) in self._unitness_cache.iter_keys(
+					char, branch, turn, tick
+				)
+			}
+			self._unitness_cache.set_keyframe(
+				char, branch, turn, tick, charunit
+			)
 		rbnames = list(self._rulebooks_cache.iter_keys(branch, turn, tick))
 		rbs = {}
 		for rbname in rbnames:
