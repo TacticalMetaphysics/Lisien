@@ -1284,7 +1284,6 @@ class Engine(AbstractEngine, gORM):
 			self._cache_arrange_thread.join()
 		if self._keyframe_on_close:
 			self.snap_keyframe()
-		self.flush()
 		for store in self.stores:
 			if hasattr(store, "save"):
 				store.save(reimport=False)
