@@ -949,6 +949,7 @@ class Engine(AbstractEngine, gORM):
 			tick += 1
 		else:
 			attribute = "presettings"
+		universals_settings = getattr(self._universal_cache, attribute)
 		avatarness_settings = getattr(self._unitness_cache, attribute)
 		things_settings = getattr(self._things_cache, attribute)
 		rulebooks_settings = getattr(self._rulebooks_cache, attribute)
@@ -976,6 +977,14 @@ class Engine(AbstractEngine, gORM):
 		portal_rulebooks_settings = getattr(
 			self._portals_rulebooks_cache, attribute
 		)
+		if (
+			branch in universals_settings
+			and turn in universals_settings[branch]
+		):
+			for _, key, val in universals_settings[branch][turn][
+				start_tick:tick
+			]:
+				delta.setdefault("universal", {})[key] = val
 		if (
 			branch in avatarness_settings
 			and turn in avatarness_settings[branch]
