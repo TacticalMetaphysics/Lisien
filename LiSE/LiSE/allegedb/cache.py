@@ -1216,8 +1216,8 @@ class Cache:
 					kfb = keyframes[b]
 					if r in kfb:
 						kfbr = kfb[r]
-						if kfbr.rev_gettable(tick):
-							kf = kfbr[tick]
+						if kfbr.rev_gettable(t):
+							kf = kfbr[t]
 							if key in kf:
 								ret = kf[key]
 								if store_hint:
