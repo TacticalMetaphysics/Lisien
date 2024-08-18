@@ -841,22 +841,6 @@ class EngineHandle:
 			for (graph, nodes) in self._real.character[char].unit.items()
 		}
 
-	@prepacked
-	def character_rulebooks_copy(self, char) -> Dict[bytes, bytes]:
-		chara = self._real.character[char]
-		return dict(
-			map(
-				self.pack_pair,
-				[
-					("character", chara.rulebook.name),
-					("unit", chara.unit.rulebook.name),
-					("thing", chara.thing.rulebook.name),
-					("place", chara.place.rulebook.name),
-					("portal", chara.portal.rulebook.name),
-				],
-			)
-		)
-
 	def set_character_stat(self, char: Key, k: Key, v) -> None:
 		self._real.character[char].stat[k] = v
 
