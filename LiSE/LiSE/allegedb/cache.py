@@ -623,6 +623,7 @@ class Cache:
 				added.update(set(kfb[trn][tck]).difference(deleted))
 			elif kfb.rev_gettable(trn) and kfb[trn]:
 				added.update(set(kfb[trn].final()).difference(deleted))
+			break
 		return added, deleted
 
 	def store(
