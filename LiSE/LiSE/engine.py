@@ -1306,6 +1306,8 @@ class Engine(AbstractEngine, gORM):
 		# TODO: This and _snap_keyframe_de_novo should both put the rulebooks and stuff into the query engine,
 		#       to be written to the database.
 		#       For which I will also need to amend the keyframe loader...
+		if then == now:
+			return
 		b, r, t = then
 		branch, turn, tick = now
 		try:
