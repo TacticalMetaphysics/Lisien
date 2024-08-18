@@ -619,11 +619,9 @@ class Cache:
 			if branc not in kf or not kf[branc].rev_gettable(trn):
 				continue
 			kfb = kf[branc]
-			if trn in kfb:
-				kfbr = kfb[trn]
-				if kfbr.rev_gettable(tck):
-					added.update(set(kfbr[tck]).difference(deleted))
-			elif kfb.rev_gettable(trn):
+			if trn in kfb and kfb[trn].rev_gettable(tck):
+				added.update(set(kfb[trn][tck]).difference(deleted))
+			elif kfb.rev_gettable(trn) and kfb[trn]:
 				added.update(set(kfb[trn].final()).difference(deleted))
 		return added, deleted
 
