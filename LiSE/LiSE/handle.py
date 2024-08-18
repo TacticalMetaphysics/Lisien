@@ -364,10 +364,10 @@ class EngineHandle:
 		if universal:
 			mostly_packed_delta[UNIVERSAL] = universal
 		for char, chardelta in delta.items():
-			chardelta = chardelta.copy()
 			if chardelta.get(b"\xa4name") == b"\xc0":
 				mostly_packed_delta[char] = b"\xc0"
 				continue
+			chardelta = chardelta.copy()
 			packd = mostly_packed_delta[char] = {}
 			if NODES in chardelta:
 				charnodes = chardelta.pop(NODES)
