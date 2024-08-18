@@ -651,8 +651,6 @@ class WindowDict(MutableMapping):
 			empty._past = self._past.copy()
 			empty._future = self._future.copy()
 			empty._keys = self._keys.copy()
-			empty.beginning = self.beginning
-			empty.end = self.end
 			empty._last = self._last
 			return empty
 
