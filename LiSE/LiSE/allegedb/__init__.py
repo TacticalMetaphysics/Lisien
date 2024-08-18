@@ -1308,6 +1308,16 @@ class ORM:
 			self._edge_val_cache.set_keyframe(
 				graph_orig_dest_index, branch_to, turn, tick, vals
 			)
+		self._keyframes_list.append((branch_to, turn, tick))
+		self._keyframes_times.add((branch_to, turn, tick))
+		if branch_to in self._keyframes_dict:
+			kdb = self._keyframes_dict[branch_to]
+			if turn in kdb:
+				kdb[turn].add(tick)
+			else:
+				kdb[turn] = {tick}
+		else:
+			self._keyframes_dict[branch_to] = {turn: {tick}}
 
 	def _snap_keyframe_from_delta(
 		self,
@@ -1603,6 +1613,7 @@ class ORM:
 			if parent is None:
 				return self._snap_keyframe_de_novo(branch, turn, tick)
 			the_kf = self._recurse_delta_keyframes((branch, turn, tick))
+			assert the_kf in self._keyframes_list
 		self._snap_keyframe_from_delta(
 			the_kf, (branch, turn, tick), self.get_delta(*the_kf, turn, tick)
 		)
