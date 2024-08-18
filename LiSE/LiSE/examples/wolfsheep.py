@@ -155,4 +155,4 @@ if __name__ == "__main__":
 	else:
 		kwargs["connect_string"] = "sqlite:///:memory:"
 	with Engine(*args, **kwargs) as engn:
-		install(engn)
+		install(engn, seed=0)
