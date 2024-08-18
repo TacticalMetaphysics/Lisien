@@ -499,8 +499,6 @@ class ELiDEApp(App):
 		self.mainmenu.closed = True
 		self.strings.save()
 		self.funcs.save()
-		if self.engine:
-			self.engine.commit()
 		if hasattr(self, "procman"):
 			self.procman.shutdown()
 		if hasattr(self, "starting_dir"):
