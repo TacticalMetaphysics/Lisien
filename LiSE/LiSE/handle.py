@@ -993,7 +993,6 @@ class EngineHandle:
 
 	def set_place(self, char: Key, place: Key, statdict: Dict) -> None:
 		self._real.character[char].place[place] = statdict
-		self._after_ret = partial(self.node_stat_copy, char, place)
 
 	def add_places_from(self, char: Key, seq: Iterable) -> None:
 		self._real.character[char].add_places_from(seq)
