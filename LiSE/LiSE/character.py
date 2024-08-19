@@ -969,7 +969,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		def __getitem__(self, k):
 			node_exists, charn, get_node, character = self._getitem_stuff
 			if not node_exists(charn, k):
-				raise KeyError
+				raise KeyError("No such node: " + str(k))
 			return get_node(character, k)
 
 		def __setitem__(self, k, v):
@@ -980,7 +980,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				self._delitem_stuff
 			)
 			if not node_exists(charn, k):
-				raise KeyError
+				raise KeyError("No such node: " + str(k))
 			if is_thing(charn, k):
 				del thingmap[k]
 			else:
