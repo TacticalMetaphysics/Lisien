@@ -1321,7 +1321,7 @@ class Engine(AbstractEngine, gORM):
 					pass
 		try:
 			rbs = (
-				self._rulebooks_cache.keyframe[None,][b].retrieve(r, t).copy()
+				self._rulebooks_cache.get_keyframe(b, r, t).copy()
 			)
 		except KeyError:
 			rbs = {}
@@ -1349,7 +1349,7 @@ class Engine(AbstractEngine, gORM):
 				char, branch, turn, tick, charunit
 			)
 		try:
-			trigs = self._triggers_cache.keyframe[None,][b][r][t].copy()
+			trigs = self._triggers_cache.get_keyframe(b, r, t).copy()
 		except KeyError:
 			trigs = {}
 			for rule in self._triggers_cache.iter_keys(b, r, t):
@@ -1359,7 +1359,7 @@ class Engine(AbstractEngine, gORM):
 					trigs[rule] = tuple()
 		try:
 			preqs = (
-				self._prereqs_cache.keyframe[None,][b].retrieve(r, t).copy()
+				self._prereqs_cache.get_keyframe(b, r, t).copy()
 			)
 		except KeyError:
 			preqs = {}
@@ -1369,7 +1369,7 @@ class Engine(AbstractEngine, gORM):
 				except KeyError:
 					preqs[rule] = tuple()
 		try:
-			acts = self._actions_cache.keyframe[None,][b].retrieve(r, t).copy()
+			acts = self._actions_cache.get_keyframe(b, r, t).copy()
 		except KeyError:
 			acts = {}
 			for rule in self._actions_cache.iter_keys(b, r, t):
@@ -1439,11 +1439,11 @@ class Engine(AbstractEngine, gORM):
 			delt = delta.get(graph, {})
 			if (graph,) in self._things_cache.keyframe:
 				try:
-					locs = self._things_cache.keyframe[graph,][b][r][t].copy()
+					locs = self._things_cache.get_keyframe((graph,), b, r, t).copy()
 				except KeyError:
 					locs = {}
 				try:
-					kf = self._node_contents_cache.keyframe[graph,][b][r][t]
+					kf = self._node_contents_cache.get_keyframe((graph,), b, r, t).copy()
 					conts = {key: set(value) for (key, value) in kf.items()}
 				except KeyError:
 					conts = {}
@@ -1463,17 +1463,11 @@ class Engine(AbstractEngine, gORM):
 			for b, r, t in self._iter_parent_btt(
 				branch_then, turn_then, tick_then
 			):
-				locs_kfs = self._things_cache.keyframe[graph,]
-				if b in locs_kfs:
-					locs_kfs_b = locs_kfs[b]
-					if r in locs_kfs_b:
-						locs_kfs_br = locs_kfs_b[r]
-						if locs_kfs_br.rev_gettable(t):
-							locs_kf = locs_kfs_br[t]
-							break
-					elif locs_kfs_b.rev_gettable(r):
-						locs_kf = locs_kfs_b[r].final()
-						break
+				try:
+					locs_kf = self._things_cache.get_keyframe((graph,), b, r, t)
+					break
+				except KeyError:
+					pass
 			else:
 				locs_kf = {}
 			locs_kf.update(locs)

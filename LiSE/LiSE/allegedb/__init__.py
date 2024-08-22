@@ -1117,38 +1117,43 @@ class ORM:
 		gvck = self._graph_val_cache.keyframe
 		gv = ret["graph_val"]
 		for k in gvck:
-			try:
-				gv[k].update(gvck[k][branch].retrieve_exact(turn, tick))
-			except KeyError:
-				pass
+			if branch in gvck[k]:
+				try:
+					gv[k].update(gvck[k][branch].retrieve_exact(turn, tick))
+				except KeyError:
+					pass
 		nck = self._nodes_cache.keyframe
 		n = ret["nodes"]
 		for k in nck:
-			try:
-				n[k] = nck[k][branch].retrieve_exact(turn, tick)
-			except KeyError:
-				pass
+			if branch in nck[k]:
+				try:
+					n[k] = nck[k][branch].retrieve_exact(turn, tick)
+				except KeyError:
+					pass
 		nvck = self._node_val_cache.keyframe
 		nv = ret["node_val"]
 		for k in nvck:
-			try:
-				nv[k] = nvck[k][branch].retrieve_exact(turn, tick)
-			except KeyError:
-				pass
+			if branch in nvck[k]:
+				try:
+					nv[k] = nvck[k][branch].retrieve_exact(turn, tick)
+				except KeyError:
+					pass
 		eck = self._edges_cache.keyframe
 		e = ret["edges"]
 		for k in eck:
-			try:
-				e[k] = eck[k][branch].retrieve_exact(turn, tick)
-			except KeyError:
-				pass
+			if branch in eck[k]:
+				try:
+					e[k] = eck[k][branch].retrieve_exact(turn, tick)
+				except KeyError:
+					pass
 		evck = self._edge_val_cache.keyframe
 		ev = ret["edge_val"]
 		for k in evck:
-			try:
-				ev[k] = evck[k][branch].retrieve_exact(turn, tick)
-			except KeyError:
-				pass
+			if branch in evck[k]:
+				try:
+					ev[k] = evck[k][branch].retrieve_exact(turn, tick)
+				except KeyError:
+					pass
 		return ret
 
 	def _init_load(self) -> None:
@@ -1273,11 +1278,11 @@ class ORM:
 		for (graph,) in self._nodes_cache.keyframe:
 			try:
 				nodes = self._nodes_cache.get_keyframe(
-					graph, branch_from, turn, tick, copy=False
+					(graph,), branch_from, turn, tick, copy=False
 				)
 			except KeyError:
 				continue
-			self._nodes_cache.set_keyframe(graph, branch_to, turn, tick, nodes)
+			self._nodes_cache.set_keyframe((graph,), branch_to, turn, tick, nodes)
 		for graph_node in self._node_val_cache.keyframe:
 			try:
 				vals = self._node_val_cache.get_keyframe(
@@ -1351,6 +1356,15 @@ class ORM:
 		edges_keyframe = {}
 		edge_val_keyframe = {}
 		graph_val_keyframe = {}
+		for (graph,) in self._nodes_cache.keyframe:
+			if graph not in nodes_keyframe:
+				nodes_keyframe[graph] = {}
+			try:
+				nodes_keyframe[graph] = self._nodes_cache.get_keyframe(
+					(graph,), *then
+				)
+			except KeyError:
+				pass
 		for graph, node in self._node_val_cache.keyframe:
 			if graph not in node_val_keyframe:
 				node_val_keyframe[graph] = {}
