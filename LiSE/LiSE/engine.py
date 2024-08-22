@@ -1320,9 +1320,7 @@ class Engine(AbstractEngine, gORM):
 				except KeyError:
 					pass
 		try:
-			rbs = (
-				self._rulebooks_cache.get_keyframe(b, r, t).copy()
-			)
+			rbs = self._rulebooks_cache.get_keyframe(b, r, t).copy()
 		except KeyError:
 			rbs = {}
 			for rule in self._rulebooks_cache.iter_keys(b, r, t):
@@ -1358,9 +1356,7 @@ class Engine(AbstractEngine, gORM):
 				except KeyError:
 					trigs[rule] = tuple()
 		try:
-			preqs = (
-				self._prereqs_cache.get_keyframe(b, r, t).copy()
-			)
+			preqs = self._prereqs_cache.get_keyframe(b, r, t).copy()
 		except KeyError:
 			preqs = {}
 			for rule in self._prereqs_cache.iter_keys(b, r, t):
@@ -1439,11 +1435,15 @@ class Engine(AbstractEngine, gORM):
 			delt = delta.get(graph, {})
 			if (graph,) in self._things_cache.keyframe:
 				try:
-					locs = self._things_cache.get_keyframe((graph,), b, r, t).copy()
+					locs = self._things_cache.get_keyframe(
+						(graph,), b, r, t
+					).copy()
 				except KeyError:
 					locs = {}
 				try:
-					kf = self._node_contents_cache.get_keyframe((graph,), b, r, t).copy()
+					kf = self._node_contents_cache.get_keyframe(
+						(graph,), b, r, t
+					).copy()
 					conts = {key: set(value) for (key, value) in kf.items()}
 				except KeyError:
 					conts = {}
@@ -1464,7 +1464,9 @@ class Engine(AbstractEngine, gORM):
 				branch_then, turn_then, tick_then
 			):
 				try:
-					locs_kf = self._things_cache.get_keyframe((graph,), b, r, t)
+					locs_kf = self._things_cache.get_keyframe(
+						(graph,), b, r, t
+					)
 					break
 				except KeyError:
 					pass
