@@ -2454,8 +2454,6 @@ class EngineProxy(AbstractEngine):
 			self.character[char]._apply_delta(delta)
 
 	def __getattr__(self, item):
-		if item == "game_start":
-			return partial(self.method.game_start, cb=self._pull_kf_now)
 		return getattr(self.method, item)
 
 	def send_bytes(self, obj, blocking=True, timeout=-1):
