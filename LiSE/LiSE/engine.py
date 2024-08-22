@@ -2117,6 +2117,8 @@ class Engine(AbstractEngine, gORM):
 				except AttributeError:
 					data = nx.from_dict_of_lists(data)
 			data.graph.update(kwargs)
+		if self._btt() not in self._keyframes_times:
+			self.snap_keyframe()
 		self._init_graph(name, "DiGraph", data)
 		self._graph_objs[name] = self.char_cls(self, name)
 
@@ -2164,7 +2166,7 @@ class Engine(AbstractEngine, gORM):
 		for rbname in rbnames:
 			try:
 				rbs[rbname] = self._rulebooks_cache.retrieve(
-					branch, turn, tick
+					rbname, branch, turn, tick
 				)
 			except KeyError:
 				rbs[rbname] = (tuple(), 0.0)
