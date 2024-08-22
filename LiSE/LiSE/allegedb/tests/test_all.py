@@ -39,7 +39,17 @@ class AbstractGraphTest:
 		for graphmaker in self.graphmakers:
 			self.engine.time = graphmaker.__name__, 0
 			g = graphmaker(graphmaker.__name__)
+			self.assertFalse(
+				self.engine.handle(
+					"node_exists", char=graphmaker.__name__, node=0
+				)
+			)
 			g.add_node(0)
+			self.assertTrue(
+				self.engine.handle(
+					"node_exists", char=graphmaker.__name__, node=0
+				)
+			)
 			self.assertIn(0, g)
 			g.add_node(1)
 			self.assertIn(1, g)
@@ -76,6 +86,11 @@ class AbstractGraphTest:
 			self.engine.branch = graphmaker.__name__ + "_no_edge"
 			self.assertIn(3, g.node)
 			self.assertIn(0, g)
+			self.assertTrue(
+				self.engine.handle(
+					"node_exists", char=graphmaker.__name__, node=0
+				)
+			)
 			self.assertIn(1, g)
 			self.assertIn(1, g.adj[0])
 			self.assertIn(1, list(g.adj[0]))
@@ -109,6 +124,11 @@ class AbstractGraphTest:
 			self.assertIn(2, g.adj[0])
 			self.assertIn(2, list(g.adj[0]))
 			self.engine.branch = graphmaker.__name__ + "_square"
+			self.assertTrue(
+				self.engine.handle(
+					"node_exists", char=graphmaker.__name__, node=0
+				)
+			)
 			self.assertIn(3, g.node)
 			self.assertIn(2, list(g.adj[0]))
 			self.engine.turn = 2
@@ -116,17 +136,40 @@ class AbstractGraphTest:
 			self.assertIn(2, list(g.node.keys()))
 			self.assertIn(2, g.adj[0])
 			self.assertIn(2, list(g.adj[0]))
+			self.assertTrue(
+				self.engine.handle(
+					"node_exists", char=graphmaker.__name__, node=0
+				)
+			)
 			g.remove_edge(2, 0)
 			self.assertNotIn(0, g.adj[2])
 			self.assertNotIn(0, list(g.adj[2]))
+			self.assertIn(0, g.node)
+			self.assertTrue(
+				self.engine.handle(
+					"node_exists", char=graphmaker.__name__, node=0
+				)
+			)
 			g.add_edge(3, 0)
 			self.assertIn(0, g.adj[3])
 			self.assertIn(0, list(g.adj[3]))
+			self.assertIn(0, g.node)
+			self.assertTrue(
+				self.engine.handle(
+					"node_exists", char=graphmaker.__name__, node=0
+				)
+			)
 			if g.is_directed():
 				self.assertIn(2, g.pred[3])
 				self.assertIn(3, g.pred[0])
 			self.engine.branch = graphmaker.__name__ + "_de_edge"
 			self.assertIn(3, g.node)
+			self.assertIn(0, g.node)
+			self.assertTrue(
+				self.engine.handle(
+					"node_exists", char=graphmaker.__name__, node=0
+				)
+			)
 			g.remove_node(3)
 			self.assertNotIn(3, g.node)
 			self.assertNotIn(3, g.adj)

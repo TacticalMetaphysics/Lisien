@@ -878,6 +878,9 @@ class EngineHandle:
 			self._real._set_btt(*origtime)
 		return ret
 
+	def node_exists(self, char: Key, node: Key) -> bool:
+		return self._real._node_exists(char, node)
+
 	def _character_nodes_stat_copy(
 		self, char: Key, btt: Tuple[str, int, int] = None
 	) -> Dict[bytes, bytes]:
@@ -1013,7 +1016,10 @@ class EngineHandle:
 		self._real.character[char].add_portals_from(seq)
 
 	def del_portal(self, char: Key, orig: Key, dest: Key) -> None:
-		self._real.character[char].remove_edge(orig, dest)
+		ch = self._real.character[char]
+		ch.remove_edge(orig, dest)
+		assert orig in ch.node
+		assert dest in ch.node
 
 	def set_portal_stat(
 		self, char: Key, orig: Key, dest: Key, k: Key, v
