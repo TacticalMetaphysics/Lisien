@@ -2240,6 +2240,9 @@ class EngineProxy(AbstractEngine):
 	def game_start(self) -> None:
 		self.handle("game_start", cb=self._upd_from_game_start)
 
+	def _node_exists(self, char, node) -> bool:
+		return self.handle("node_exists", char=char, node=node)
+
 	def _upd_from_game_start(self, command, branch, turn, tick, result):
 		(
 			start_ret,
