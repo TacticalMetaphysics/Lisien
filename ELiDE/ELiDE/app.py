@@ -496,7 +496,9 @@ class ELiDEApp(App):
 
 	def on_stop(self, *largs):
 		"""Sync the database, wrap up the game, and halt."""
-		self.mainmenu.closed = True
+		if hasattr(self, 'stopped'):
+			return
+		self.stopped = True
 		self.strings.save()
 		self.funcs.save()
 		if hasattr(self, "procman"):
