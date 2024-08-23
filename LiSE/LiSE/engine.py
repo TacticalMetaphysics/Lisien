@@ -1123,7 +1123,7 @@ class Engine(AbstractEngine, gORM):
 			branch in character_rulebooks_settings
 			and turn in character_rulebooks_settings[branch]
 		):
-			for _, (character, rulebook_type), rulebook in character_rulebooks_settings[branch][
+			for _, character, rulebook in character_rulebooks_settings[branch][
 				turn
 			][start_tick:tick]:
 				delta.setdefault(character, {})["character_rulebook"] = (
@@ -1141,7 +1141,7 @@ class Engine(AbstractEngine, gORM):
 			branch in character_thing_rulebooks_settings
 			and turn in character_thing_rulebooks_settings[branch]
 		):
-			for _, (character, rulebook_type), rulebook in character_thing_rulebooks_settings[
+			for _, character, rulebook in character_thing_rulebooks_settings[
 				branch
 			][turn][start_tick:tick]:
 				delta.setdefault(character, {})["character_thing_rulebook"] = (
@@ -1151,7 +1151,7 @@ class Engine(AbstractEngine, gORM):
 			branch in character_place_rulebooks_settings
 			and turn in character_place_rulebooks_settings[branch]
 		):
-			for _, (character, rulebook_type), rulebook in character_place_rulebooks_settings[
+			for _, character, rulebook in character_place_rulebooks_settings[
 				branch
 			][turn][start_tick:tick]:
 				delta.setdefault(character, {})["character_place_rulebook"] = (
@@ -1161,7 +1161,7 @@ class Engine(AbstractEngine, gORM):
 			branch in character_portal_rulebooks_settings
 			and turn in character_portal_rulebooks_settings[branch]
 		):
-			for _, (character, rulebook_type), rulebook in character_portal_rulebooks_settings[
+			for _, character, rulebook in character_portal_rulebooks_settings[
 				branch
 			][turn][start_tick:tick]:
 				delta.setdefault(character, {})[
