@@ -1282,7 +1282,7 @@ class Engine(AbstractEngine, gORM):
 			self.cache_arrange_queue.put("shutdown")
 		if self._cache_arrange_thread.is_alive():
 			self._cache_arrange_thread.join()
-		if self._keyframe_on_close:
+		if self._keyframe_on_close and self._btt() not in self._keyframes_times:
 			self.snap_keyframe()
 		for store in self.stores:
 			if hasattr(store, "save"):
