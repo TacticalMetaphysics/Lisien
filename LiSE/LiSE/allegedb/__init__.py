@@ -2963,3 +2963,5 @@ class ORM:
 		branch, turn, tick = nbtt()
 		exist_edge(character, orig, dest, idx, branch, turn, tick, exist)
 		store(character, orig, dest, idx, branch, turn, tick, exist)
+		if (character, orig, dest) in self._edge_objs:
+			del self._edge_objs[character, orig, dest]

@@ -204,30 +204,7 @@ class Portal(Edge, RuleFollower):
 
 		"""
 		self.clear()
-		branch, turn, tick = self.engine._nbtt()
-		self.engine._edges_cache.store(
-			self.character.name,
-			self.origin.name,
-			self.destination.name,
-			0,
-			branch,
-			turn,
-			tick,
-			None,
-		)
-		self.engine.query.exist_edge(
-			self.character.name,
-			self.origin.name,
-			self.destination.name,
-			branch,
-			turn,
-			tick,
-			False,
-		)
-		try:
-			del self.engine._edge_objs[(self.graph.name, self.orig, self.dest)]
-		except KeyError:
-			pass
+		self.engine._exist_edge(self.character.name, self.orig, self.dest, exist=None)
 
 	def unwrap(self) -> dict:
 		"""Return a dictionary representation of this entity"""
