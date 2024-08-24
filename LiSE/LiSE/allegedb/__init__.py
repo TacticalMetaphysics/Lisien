@@ -2961,7 +2961,7 @@ class ORM:
 	) -> None:
 		nbtt, exist_edge, store = self._exist_edge_stuff
 		branch, turn, tick = nbtt()
-		exist_edge(character, orig, dest, idx, branch, turn, tick, exist)
+		exist_edge(character, orig, dest, idx, branch, turn, tick, exist or False)
 		store(character, orig, dest, idx, branch, turn, tick, exist)
 		if (character, orig, dest) in self._edge_objs:
 			del self._edge_objs[character, orig, dest]
