@@ -1505,10 +1505,6 @@ class ORM:
 							for dest, vals in dests.items():
 								if dest in evkgo:
 									evkgo[dest].update(vals)
-								else:
-									evkgo[dest] = vals
-						else:
-							evkg[orig] = dests
 				else:
 					edge_val_keyframe[graph] = dgev
 			if graph in edge_val_keyframe:
