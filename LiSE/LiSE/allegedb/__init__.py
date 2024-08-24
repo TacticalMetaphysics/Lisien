@@ -1564,7 +1564,7 @@ class ORM:
 					for tick in sorted(kfd[time_from[0]][turn], reverse=True):
 						if time_from[2] <= tick:
 							return time_from[0], turn, tick
-		parent, turn_from, tick_from, turn_to, tick_to = self._branches[
+		parent, branched_turn_from, branched_tick_from, turn_to, tick_to = self._branches[
 			time_from[0]
 		]
 		if parent is None:
@@ -1572,7 +1572,7 @@ class ORM:
 			return time_from
 		else:
 			(parent, turn_from, tick_from) = self._recurse_delta_keyframes(
-				(parent, turn_from, tick_from)
+				(parent, branched_turn_from, branched_tick_from)
 			)
 			if (
 				parent,
@@ -1584,10 +1584,10 @@ class ORM:
 					(parent, time_from[1], time_from[2]),
 					self.get_delta(
 						parent,
+						branched_turn_from,
+						branched_tick_from,
 						turn_from,
-						tick_from,
-						time_from[1],
-						time_from[2],
+						tick_from
 					),
 				)
 			self._alias_kf(parent, time_from[0], turn_from, tick_from)
