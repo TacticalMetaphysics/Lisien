@@ -1590,7 +1590,7 @@ class ORM:
 		return time_from[0], turn_from, tick_from
 
 	@world_locked
-	def snap_keyframe(self) -> None:
+	def snap_keyframe(self) -> dict:
 		"""Make a copy of the complete state of the world.
 
 		You need to do this occasionally in order to keep time travel
@@ -1602,7 +1602,7 @@ class ORM:
 		"""
 		branch, turn, tick = self._btt()
 		if (branch, turn, tick) in self._keyframes_times:
-			return
+			return self._get_kf(branch, turn, tick)
 		kfd = self._keyframes_dict
 		the_kf: Optional[Tuple[str, int, int]] = None
 		if branch in kfd:
@@ -1621,7 +1621,8 @@ class ORM:
 		if the_kf is None:
 			parent, _, _, turn_to, tick_to = self._branches[branch]
 			if parent is None:
-				return self._snap_keyframe_de_novo(branch, turn, tick)
+				self._snap_keyframe_de_novo(branch, turn, tick)
+				return self._get_kf(branch, turn, tick)
 			the_kf = self._recurse_delta_keyframes((branch, turn, tick))
 			assert the_kf in self._keyframes_list
 		self._snap_keyframe_from_delta(
@@ -1629,6 +1630,7 @@ class ORM:
 		)
 		if the_kf[0] != branch:
 			self._alias_kf(the_kf[0], branch, turn, tick)
+		return self._get_kf(branch, turn, tick)
 
 	def _build_loading_windows(
 		self,

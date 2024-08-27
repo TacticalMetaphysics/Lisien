@@ -229,6 +229,9 @@ class EngineHandle:
 		self._real._set_btt(*now)
 		return self._real._get_kf(branch, turn, tick)
 
+	def snap_keyframe(self):
+		return self._real.snap_keyframe()
+
 	def copy_chars(self, chars: Optional[Iterable[Key]] = None):
 		"""Return a mapping describing several characters
 
