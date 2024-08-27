@@ -1215,7 +1215,11 @@ class RuleProxy(Signal):
 class RuleBookProxy(MutableSequence, Signal):
 	@property
 	def _cache(self):
-		return self.engine._rulebooks_cache.setdefault(self.name, [])
+		return self.engine._rulebooks_cache.setdefault(self.name, ([], 0.0))[0]
+
+	@property
+	def priority(self):
+		return self.engine._rulebooks_cache.setdefault(self.name, ([], 0.0))[1]
 
 	def __init__(self, engine, bookname):
 		super().__init__()
