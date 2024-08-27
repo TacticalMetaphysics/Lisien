@@ -725,31 +725,58 @@ class Engine(AbstractEngine, gORM):
 				branch, turn, tick
 			)
 		except KeyError:
-			kf["universal"] = {}
+			kf["universal"] = {
+				key: self._universal_cache.retrieve(key, branch, turn, tick)
+				for key in self._universal_cache.iter_keys(branch, turn, tick)
+			}
 		try:
 			kf["triggers"] = self._triggers_cache.get_keyframe(
 				branch, turn, tick
 			)
 		except KeyError:
-			kf["triggers"] = {}
+			kf["triggers"] = {
+				trigger: self._triggers_cache.retrieve(
+					trigger, branch, turn, tick
+				)
+				for trigger in self._triggers_cache.iter_keys(
+					branch, turn, tick
+				)
+			}
 		try:
 			kf["prereqs"] = self._prereqs_cache.get_keyframe(
 				branch, turn, tick
 			)
 		except KeyError:
-			kf["prereqs"] = {}
+			kf["prereqs"] = {
+				prereq: self._prereqs_cache.retrieve(
+					prereq, branch, turn, tick
+				)
+				for prereq in self._prereqs_cache.iter_keys(branch, turn, tick)
+			}
 		try:
 			kf["actions"] = self._actions_cache.get_keyframe(
 				branch, turn, tick
 			)
 		except KeyError:
-			kf["actions"] = {}
+			kf["actions"] = {
+				action: self._actions_cache.retrieve(
+					action, branch, turn, tick
+				)
+				for action in self._actions_cache.iter_keys(branch, turn, tick)
+			}
 		try:
 			kf["rulebook"] = self._rulebooks_cache.get_keyframe(
 				branch, turn, tick
 			)
 		except KeyError:
-			kf["rulebook"] = {}
+			kf["rulebook"] = {
+				rulebook: self._rulebooks_cache.retrieve(
+					rulebook, branch, turn, tick
+				)
+				for rulebook in self._rulebooks_cache.iter_keys(
+					branch, turn, tick
+				)
+			}
 		return kf
 
 	def get_delta(
