@@ -721,63 +721,6 @@ class Engine(AbstractEngine, gORM):
 	def _get_kf(self, branch, turn, tick):
 		kf = super()._get_kf(branch, turn, tick)
 		try:
-			charrbs_kf = self._characters_rulebooks_cache.get_keyframe(
-				branch, turn, tick
-			)
-		except KeyError:
-			charrbs_kf = {}
-		try:
-			unitrbs_kf = self._units_rulebooks_cache.get_keyframe(
-				branch, turn, tick
-			)
-		except KeyError:
-			unitrbs_kf = {}
-		try:
-			charthrbs_kf = (
-				self._characters_things_rulebooks_cache.get_keyframe(
-					branch, turn, tick
-				)
-			)
-		except KeyError:
-			charthrbs_kf = {}
-		try:
-			charplrbs_kf = (
-				self._characters_places_rulebooks_cache.get_keyframe(
-					branch, turn, tick
-				)
-			)
-		except KeyError:
-			charplrbs_kf = {}
-		try:
-			charporbs_kf = (
-				self._characters_portals_rulebooks_cache.get_keyframe(
-					branch, turn, tick
-				)
-			)
-		except KeyError:
-			charporbs_kf = {}
-		for (char,), vals in kf["graph_val"].items():
-			if vals.get("name", True) is None:
-				continue
-			try:
-				vals["units"] = self._unitness_cache.get_keyframe(
-					char, branch, turn, tick
-				)
-			except KeyError:
-				vals["units"] = {}
-			vals["rulebooks"] = rbs = {}
-			for key, kf2 in [
-				("character", charrbs_kf),
-				("unit", unitrbs_kf),
-				("thing", charthrbs_kf),
-				("place", charplrbs_kf),
-				("portal", charporbs_kf),
-			]:
-				if char in kf2:
-					rbs[key] = kf2[char]
-				else:
-					rbs[key] = (char, key)
-		try:
 			kf["universal"] = self._universal_cache.get_keyframe(
 				branch, turn, tick
 			)
@@ -1282,7 +1225,10 @@ class Engine(AbstractEngine, gORM):
 			self.cache_arrange_queue.put("shutdown")
 		if self._cache_arrange_thread.is_alive():
 			self._cache_arrange_thread.join()
-		if self._keyframe_on_close and self._btt() not in self._keyframes_times:
+		if (
+			self._keyframe_on_close
+			and self._btt() not in self._keyframes_times
+		):
 			self.snap_keyframe()
 		for store in self.stores:
 			if hasattr(store, "save"):
