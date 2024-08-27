@@ -1,3 +1,6 @@
+== 0.15.7 | 2024-08-27 ==
+* A variety of database corruption fixes
+
 == 0.15.6 | 2024-08-16 ==
 * Fix Thing objects occasionally forgetting their location
 
