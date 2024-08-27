@@ -1104,7 +1104,7 @@ class ORM:
 		if cache_arranger:
 			self._cache_arrange_thread.start()
 
-	def _get_kf(self, branch, turn, tick):
+	def _get_kf(self, branch, turn, tick, copy=True):
 		ret = {
 			"graph_val": {},
 			"nodes": {},
@@ -1114,46 +1114,36 @@ class ORM:
 		}
 		for graph in self._graph_cache.iter_keys(branch, turn, tick):
 			ret["graph_val"][graph,] = {"name": graph}
-		gvck = self._graph_val_cache.keyframe
 		gv = ret["graph_val"]
-		for k in gvck:
-			if branch in gvck[k]:
-				try:
-					gv[k].update(gvck[k][branch].retrieve_exact(turn, tick))
-				except KeyError:
-					pass
-		nck = self._nodes_cache.keyframe
+		for k in self._graph_val_cache.keyframe:
+			try:
+				gv[k] = self._graph_val_cache.get_keyframe(k, branch, turn, tick, copy)
+			except KeyError:
+				pass
 		n = ret["nodes"]
-		for k in nck:
-			if branch in nck[k]:
-				try:
-					n[k] = nck[k][branch].retrieve_exact(turn, tick)
-				except KeyError:
-					pass
-		nvck = self._node_val_cache.keyframe
+		for k in self._nodes_cache.keyframe:
+			try:
+				n[k] = self._nodes_cache.get_keyframe(k, branch, turn, tick, copy)
+			except KeyError:
+				pass
 		nv = ret["node_val"]
-		for k in nvck:
-			if branch in nvck[k]:
-				try:
-					nv[k] = nvck[k][branch].retrieve_exact(turn, tick)
-				except KeyError:
-					pass
-		eck = self._edges_cache.keyframe
+		for k in self._node_val_cache.keyframe:
+			try:
+				nv[k] = self._node_val_cache.get_keyframe(k, branch, turn, tick, copy)
+			except KeyError:
+				pass
 		e = ret["edges"]
-		for k in eck:
-			if branch in eck[k]:
-				try:
-					e[k] = eck[k][branch].retrieve_exact(turn, tick)
-				except KeyError:
-					pass
-		evck = self._edge_val_cache.keyframe
+		for k in self._edges_cache.keyframe:
+			try:
+				e[k] = self._edges_cache.get_keyframe(k, branch, turn, tick, copy)
+			except KeyError:
+				pass
 		ev = ret["edge_val"]
-		for k in evck:
-			if branch in evck[k]:
-				try:
-					ev[k] = evck[k][branch].retrieve_exact(turn, tick)
-				except KeyError:
-					pass
+		for k in self._edge_val_cache.keyframe:
+			try:
+				ev[k] = self._edge_val_cache.get_keyframe(k, branch, turn, tick, copy)
+			except KeyError:
+				pass
 		return ret
 
 	def _init_load(self) -> None:
