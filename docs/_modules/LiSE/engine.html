@@ -753,6 +753,40 @@
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">portal_cls</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal_cls</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
 
+	<span class="k">def</span> <span class="nf">_get_kf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+		<span class="n">kf</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_get_kf</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;universal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_universal_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
+				<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+			<span class="p">)</span>
+		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;universal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;triggers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
+				<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+			<span class="p">)</span>
+		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;triggers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;prereqs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prereqs_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
+				<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+			<span class="p">)</span>
+		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;prereqs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;actions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
+				<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+			<span class="p">)</span>
+		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;actions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
+				<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+			<span class="p">)</span>
+		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+		<span class="k">return</span> <span class="n">kf</span>
+
 <div class="viewcode-block" id="Engine.get_delta">
 <a class="viewcode-back" href="../../LiSE/index.html#LiSE.Engine.get_delta">[docs]</a>
 	<span class="k">def</span> <span class="nf">get_delta</span><span class="p">(</span>
@@ -987,6 +1021,7 @@
 			<span class="n">tick</span> <span class="o">+=</span> <span class="mi">1</span>
 		<span class="k">else</span><span class="p">:</span>
 			<span class="n">attribute</span> <span class="o">=</span> <span class="s2">&quot;presettings&quot;</span>
+		<span class="n">universals_settings</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_universal_cache</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span>
 		<span class="n">avatarness_settings</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span>
 		<span class="n">things_settings</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span>
 		<span class="n">rulebooks_settings</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span>
@@ -1014,6 +1049,14 @@
 		<span class="n">portal_rulebooks_settings</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_portals_rulebooks_cache</span><span class="p">,</span> <span class="n">attribute</span>
 		<span class="p">)</span>
+		<span class="k">if</span> <span class="p">(</span>
+			<span class="n">branch</span> <span class="ow">in</span> <span class="n">universals_settings</span>
+			<span class="ow">and</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">universals_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
+		<span class="p">):</span>
+			<span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">universals_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">][</span><span class="n">turn</span><span class="p">][</span>
+				<span class="n">start_tick</span><span class="p">:</span><span class="n">tick</span>
+			<span class="p">]:</span>
+				<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;universal&quot;</span><span class="p">,</span> <span class="p">{})[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
 		<span class="k">if</span> <span class="p">(</span>
 			<span class="n">branch</span> <span class="ow">in</span> <span class="n">avatarness_settings</span>
 			<span class="ow">and</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">avatarness_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
@@ -1225,8 +1268,10 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">cache_arrange_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;shutdown&quot;</span><span class="p">)</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_arrange_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_cache_arrange_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
-		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keyframe_on_close</span><span class="p">:</span>
+		<span class="k">if</span> <span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_keyframe_on_close</span>
+			<span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keyframes_times</span>
+		<span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">snap_keyframe</span><span class="p">()</span>
 		<span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stores</span><span class="p">:</span>
 			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="s2">&quot;save&quot;</span><span class="p">):</span>
@@ -1251,12 +1296,21 @@
 		<span class="c1"># TODO: This and _snap_keyframe_de_novo should both put the rulebooks and stuff into the query engine,</span>
 		<span class="c1">#       to be written to the database.</span>
 		<span class="c1">#       For which I will also need to amend the keyframe loader...</span>
+		<span class="k">if</span> <span class="n">then</span> <span class="o">==</span> <span class="n">now</span><span class="p">:</span>
+			<span class="k">return</span>
 		<span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">then</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">now</span>
 		<span class="k">try</span><span class="p">:</span>
-			<span class="n">rbs</span> <span class="o">=</span> <span class="p">(</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">keyframe</span><span class="p">[</span><span class="kc">None</span><span class="p">,][</span><span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-			<span class="p">)</span>
+			<span class="n">univ</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_universal_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+			<span class="n">univ</span> <span class="o">=</span> <span class="p">{}</span>
+			<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_universal_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+				<span class="k">try</span><span class="p">:</span>
+					<span class="n">univ</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_universal_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+				<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+					<span class="k">pass</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="n">rbs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 			<span class="n">rbs</span> <span class="o">=</span> <span class="p">{}</span>
 			<span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
@@ -1264,10 +1318,26 @@
 					<span class="n">rbs</span><span class="p">[</span><span class="n">rule</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
 				<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 					<span class="n">rbs</span><span class="p">[</span><span class="n">rule</span><span class="p">]</span> <span class="o">=</span> <span class="n">rule</span>
+		<span class="n">univ</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">delta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;universal&quot;</span><span class="p">,</span> <span class="p">{}))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_universal_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">univ</span><span class="p">)</span>
 		<span class="n">rbs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">delta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;rulebooks&quot;</span><span class="p">,</span> <span class="p">{}))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rbs</span><span class="p">)</span>
+		<span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">:</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">charunit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+				<span class="n">charunit</span> <span class="o">=</span> <span class="p">{</span>
+					<span class="n">unitgraph</span><span class="p">:</span> <span class="n">units</span>
+					<span class="k">for</span> <span class="p">(</span><span class="n">unitgraph</span><span class="p">,</span> <span class="n">units</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span>
+						<span class="n">char</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span>
+					<span class="p">)</span>
+				<span class="p">}</span>
+			<span class="n">charunit</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">delta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;units&quot;</span><span class="p">,</span> <span class="p">()))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span>
+				<span class="n">char</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">charunit</span>
+			<span class="p">)</span>
 		<span class="k">try</span><span class="p">:</span>
-			<span class="n">trigs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">keyframe</span><span class="p">[</span><span class="kc">None</span><span class="p">,][</span><span class="n">b</span><span class="p">][</span><span class="n">r</span><span class="p">][</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+			<span class="n">trigs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 			<span class="n">trigs</span> <span class="o">=</span> <span class="p">{}</span>
 			<span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
@@ -1276,9 +1346,7 @@
 				<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 					<span class="n">trigs</span><span class="p">[</span><span class="n">rule</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">()</span>
 		<span class="k">try</span><span class="p">:</span>
-			<span class="n">preqs</span> <span class="o">=</span> <span class="p">(</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">_prereqs_cache</span><span class="o">.</span><span class="n">keyframe</span><span class="p">[</span><span class="kc">None</span><span class="p">,][</span><span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-			<span class="p">)</span>
+			<span class="n">preqs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prereqs_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 			<span class="n">preqs</span> <span class="o">=</span> <span class="p">{}</span>
 			<span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prereqs_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
@@ -1287,7 +1355,7 @@
 				<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 					<span class="n">preqs</span><span class="p">[</span><span class="n">rule</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">()</span>
 		<span class="k">try</span><span class="p">:</span>
-			<span class="n">acts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions_cache</span><span class="o">.</span><span class="n">keyframe</span><span class="p">[</span><span class="kc">None</span><span class="p">,][</span><span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+			<span class="n">acts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 			<span class="n">acts</span> <span class="o">=</span> <span class="p">{}</span>
 			<span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
@@ -1357,11 +1425,15 @@
 			<span class="n">delt</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{})</span>
 			<span class="k">if</span> <span class="p">(</span><span class="n">graph</span><span class="p">,)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">keyframe</span><span class="p">:</span>
 				<span class="k">try</span><span class="p">:</span>
-					<span class="n">locs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">keyframe</span><span class="p">[</span><span class="n">graph</span><span class="p">,][</span><span class="n">b</span><span class="p">][</span><span class="n">r</span><span class="p">][</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+					<span class="n">locs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
+						<span class="p">(</span><span class="n">graph</span><span class="p">,),</span> <span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span>
+					<span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 				<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 					<span class="n">locs</span> <span class="o">=</span> <span class="p">{}</span>
 				<span class="k">try</span><span class="p">:</span>
-					<span class="n">kf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_contents_cache</span><span class="o">.</span><span class="n">keyframe</span><span class="p">[</span><span class="n">graph</span><span class="p">,][</span><span class="n">b</span><span class="p">][</span><span class="n">r</span><span class="p">][</span><span class="n">t</span><span class="p">]</span>
+					<span class="n">kf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_contents_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
+						<span class="p">(</span><span class="n">graph</span><span class="p">,),</span> <span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span>
+					<span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 					<span class="n">conts</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="nb">set</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">kf</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 				<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 					<span class="n">conts</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1376,12 +1448,23 @@
 							<span class="n">conts</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
 						<span class="k">else</span><span class="p">:</span>
 							<span class="n">conts</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">node</span><span class="p">}</span>
-			<span class="k">if</span> <span class="n">locs</span><span class="p">:</span>
-				<span class="n">conts</span> <span class="o">=</span> <span class="p">{</span>
-					<span class="n">key</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">conts</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-				<span class="p">}</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="n">locs</span><span class="p">)</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">_node_contents_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="n">conts</span><span class="p">)</span>
+			<span class="n">conts</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">conts</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+			<span class="n">branch_then</span><span class="p">,</span> <span class="n">turn_then</span><span class="p">,</span> <span class="n">tick_then</span> <span class="o">=</span> <span class="n">then</span>
+			<span class="k">for</span> <span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iter_parent_btt</span><span class="p">(</span>
+				<span class="n">branch_then</span><span class="p">,</span> <span class="n">turn_then</span><span class="p">,</span> <span class="n">tick_then</span>
+			<span class="p">):</span>
+				<span class="k">try</span><span class="p">:</span>
+					<span class="n">locs_kf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
+						<span class="p">(</span><span class="n">graph</span><span class="p">,),</span> <span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span>
+					<span class="p">)</span>
+					<span class="k">break</span>
+				<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+					<span class="k">pass</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">locs_kf</span> <span class="o">=</span> <span class="p">{}</span>
+			<span class="n">locs_kf</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">locs</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="n">locs_kf</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_node_contents_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="n">conts</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_characters_rulebooks_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span>
 			<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">charrbs</span>
 		<span class="p">)</span>
@@ -1650,6 +1733,10 @@
 		<span class="n">charmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span>
 		<span class="n">rulemap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span>
 		<span class="n">pool</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_trigger_pool&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">pool</span><span class="p">:</span>
+			<span class="n">submit</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">submit</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">submit</span> <span class="o">=</span> <span class="n">partial</span>
 		<span class="n">todo</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
 
 		<span class="k">def</span> <span class="nf">check_triggers</span><span class="p">(</span><span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled_fun</span><span class="p">,</span> <span class="n">entity</span><span class="p">):</span>
@@ -1704,18 +1791,9 @@
 				<span class="n">turn</span><span class="p">,</span>
 			<span class="p">)</span>
 			<span class="n">entity</span> <span class="o">=</span> <span class="n">charmap</span><span class="p">[</span><span class="n">charactername</span><span class="p">]</span>
-			<span class="k">if</span> <span class="n">pool</span><span class="p">:</span>
-				<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-					<span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
-						<span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span>
-					<span class="p">)</span>
-				<span class="p">)</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-					<span class="n">partial</span><span class="p">(</span>
-						<span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span>
-					<span class="p">)</span>
-				<span class="p">)</span>
+			<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+				<span class="n">submit</span><span class="p">(</span><span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span><span class="p">)</span>
+			<span class="p">)</span>
 
 		<span class="n">avcache_retr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">_base_retrieve</span>
 		<span class="n">node_exists</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_exists</span>
@@ -1768,18 +1846,9 @@
 				<span class="n">turn</span><span class="p">,</span>
 			<span class="p">)</span>
 			<span class="n">entity</span> <span class="o">=</span> <span class="n">get_node</span><span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="n">avn</span><span class="p">)</span>
-			<span class="k">if</span> <span class="n">pool</span><span class="p">:</span>
-				<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-					<span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
-						<span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span>
-					<span class="p">)</span>
-				<span class="p">)</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-					<span class="n">partial</span><span class="p">(</span>
-						<span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span>
-					<span class="p">)</span>
-				<span class="p">)</span>
+			<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+				<span class="n">submit</span><span class="p">(</span><span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span><span class="p">)</span>
+			<span class="p">)</span>
 		<span class="n">is_thing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_thing</span>
 		<span class="n">handled_char_thing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handled_char_thing</span>
 		<span class="k">for</span> <span class="p">(</span>
@@ -1804,18 +1873,9 @@
 				<span class="n">turn</span><span class="p">,</span>
 			<span class="p">)</span>
 			<span class="n">entity</span> <span class="o">=</span> <span class="n">get_thing</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">thingn</span><span class="p">)</span>
-			<span class="k">if</span> <span class="n">pool</span><span class="p">:</span>
-				<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-					<span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
-						<span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span>
-					<span class="p">)</span>
-				<span class="p">)</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-					<span class="n">partial</span><span class="p">(</span>
-						<span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span>
-					<span class="p">)</span>
-				<span class="p">)</span>
+			<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+				<span class="n">submit</span><span class="p">(</span><span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span><span class="p">)</span>
+			<span class="p">)</span>
 		<span class="n">handled_char_place</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handled_char_place</span>
 		<span class="k">for</span> <span class="p">(</span>
 			<span class="n">prio</span><span class="p">,</span>
@@ -1839,18 +1899,9 @@
 				<span class="n">turn</span><span class="p">,</span>
 			<span class="p">)</span>
 			<span class="n">entity</span> <span class="o">=</span> <span class="n">get_place</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">placen</span><span class="p">)</span>
-			<span class="k">if</span> <span class="n">pool</span><span class="p">:</span>
-				<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-					<span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
-						<span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span>
-					<span class="p">)</span>
-				<span class="p">)</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-					<span class="n">partial</span><span class="p">(</span>
-						<span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span>
-					<span class="p">)</span>
-				<span class="p">)</span>
+			<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+				<span class="n">submit</span><span class="p">(</span><span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span><span class="p">)</span>
+			<span class="p">)</span>
 		<span class="n">edge_exists</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edge_exists</span>
 		<span class="n">get_edge</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_edge</span>
 		<span class="n">handled_char_port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handled_char_port</span>
@@ -1878,18 +1929,9 @@
 				<span class="n">turn</span><span class="p">,</span>
 			<span class="p">)</span>
 			<span class="n">entity</span> <span class="o">=</span> <span class="n">get_edge</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">)</span>
-			<span class="k">if</span> <span class="n">pool</span><span class="p">:</span>
-				<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-					<span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
-						<span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span>
-					<span class="p">)</span>
-				<span class="p">)</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-					<span class="n">partial</span><span class="p">(</span>
-						<span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span>
-					<span class="p">)</span>
-				<span class="p">)</span>
+			<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+				<span class="n">submit</span><span class="p">(</span><span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span><span class="p">)</span>
+			<span class="p">)</span>
 		<span class="n">handled_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handled_node</span>
 		<span class="k">for</span> <span class="p">(</span>
 			<span class="n">prio</span><span class="p">,</span>
@@ -1907,18 +1949,9 @@
 				<span class="n">handled_node</span><span class="p">,</span> <span class="n">charn</span><span class="p">,</span> <span class="n">noden</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rulen</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span>
 			<span class="p">)</span>
 			<span class="n">entity</span> <span class="o">=</span> <span class="n">get_node</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">noden</span><span class="p">)</span>
-			<span class="k">if</span> <span class="n">pool</span><span class="p">:</span>
-				<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-					<span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
-						<span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span>
-					<span class="p">)</span>
-				<span class="p">)</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-					<span class="n">partial</span><span class="p">(</span>
-						<span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span>
-					<span class="p">)</span>
-				<span class="p">)</span>
+			<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+				<span class="n">submit</span><span class="p">(</span><span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span><span class="p">)</span>
+			<span class="p">)</span>
 		<span class="n">handled_portal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handled_portal</span>
 		<span class="k">for</span> <span class="p">(</span>
 			<span class="n">prio</span><span class="p">,</span>
@@ -1944,18 +1977,9 @@
 				<span class="n">turn</span><span class="p">,</span>
 			<span class="p">)</span>
 			<span class="n">entity</span> <span class="o">=</span> <span class="n">get_edge</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">)</span>
-			<span class="k">if</span> <span class="n">pool</span><span class="p">:</span>
-				<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-					<span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
-						<span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span>
-					<span class="p">)</span>
-				<span class="p">)</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-					<span class="n">partial</span><span class="p">(</span>
-						<span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span>
-					<span class="p">)</span>
-				<span class="p">)</span>
+			<span class="n">trig_futs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+				<span class="n">submit</span><span class="p">(</span><span class="n">check_triggers</span><span class="p">,</span> <span class="n">prio</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">handled</span><span class="p">,</span> <span class="n">entity</span><span class="p">)</span>
+			<span class="p">)</span>
 		<span class="k">if</span> <span class="n">pool</span><span class="p">:</span>
 			<span class="n">wait</span><span class="p">(</span><span class="n">trig_futs</span><span class="p">)</span>
 		<span class="k">else</span><span class="p">:</span>
@@ -2088,6 +2112,8 @@
 				<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
 					<span class="n">data</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_dict_of_lists</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 			<span class="n">data</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keyframes_times</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">snap_keyframe</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_init_graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;DiGraph&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_graph_objs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">char_cls</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span></div>
 
@@ -2121,12 +2147,25 @@
 	<span class="k">def</span> <span class="nf">_snap_keyframe_de_novo</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_universal_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span>
+			<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">universal</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+		<span class="p">)</span>
+		<span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">:</span>
+			<span class="n">charunit</span> <span class="o">=</span> <span class="p">{</span>
+				<span class="n">unitgraph</span><span class="p">:</span> <span class="n">units</span>
+				<span class="k">for</span> <span class="p">(</span><span class="n">unitgraph</span><span class="p">,</span> <span class="n">units</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span>
+					<span class="n">char</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+				<span class="p">)</span>
+			<span class="p">}</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span>
+				<span class="n">char</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">charunit</span>
+			<span class="p">)</span>
 		<span class="n">rbnames</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">))</span>
 		<span class="n">rbs</span> <span class="o">=</span> <span class="p">{}</span>
 		<span class="k">for</span> <span class="n">rbname</span> <span class="ow">in</span> <span class="n">rbnames</span><span class="p">:</span>
 			<span class="k">try</span><span class="p">:</span>
 				<span class="n">rbs</span><span class="p">[</span><span class="n">rbname</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
-					<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+					<span class="n">rbname</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
 				<span class="p">)</span>
 			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 				<span class="n">rbs</span><span class="p">[</span><span class="n">rbname</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">(),</span> <span class="mf">0.0</span><span class="p">)</span>
@@ -2157,6 +2196,28 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">trigs</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_prereqs_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">preqs</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_actions_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">acts</span><span class="p">)</span>
+		<span class="k">for</span> <span class="n">charname</span><span class="p">,</span> <span class="n">character</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+			<span class="n">locs</span> <span class="o">=</span> <span class="p">{}</span>
+			<span class="n">conts_mut</span> <span class="o">=</span> <span class="p">{}</span>
+			<span class="k">for</span> <span class="n">thingname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span>
+				<span class="n">charname</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+			<span class="p">):</span>
+				<span class="k">try</span><span class="p">:</span>
+					<span class="n">locname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+						<span class="n">charname</span><span class="p">,</span> <span class="n">thingname</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+					<span class="p">)</span>
+				<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+					<span class="n">locname</span> <span class="o">=</span> <span class="kc">None</span>
+				<span class="n">locs</span><span class="p">[</span><span class="n">thingname</span><span class="p">]</span> <span class="o">=</span> <span class="n">locname</span>
+				<span class="k">if</span> <span class="n">locname</span> <span class="ow">in</span> <span class="n">conts_mut</span><span class="p">:</span>
+					<span class="n">conts_mut</span><span class="p">[</span><span class="n">locname</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">thingname</span><span class="p">)</span>
+				<span class="k">else</span><span class="p">:</span>
+					<span class="n">conts_mut</span><span class="p">[</span><span class="n">locname</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">thingname</span><span class="p">}</span>
+			<span class="n">conts</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">conts_mut</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">locs</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_node_contents_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span>
+				<span class="n">charname</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">conts</span>
+			<span class="p">)</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_snap_keyframe_de_novo</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">_snap_keyframe_de_novo_graph</span><span class="p">(</span>
@@ -2176,6 +2237,8 @@
 		<span class="n">newkf</span> <span class="o">=</span> <span class="p">{}</span>
 		<span class="n">contkf</span> <span class="o">=</span> <span class="p">{}</span>
 		<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+			<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+				<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: can&#39;t nodeify booleans&quot;</span><span class="p">)</span>
 			<span class="k">if</span> <span class="s2">&quot;location&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">node</span><span class="p">:</span>
 				<span class="k">continue</span>
 			<span class="n">locn</span> <span class="o">=</span> <span class="n">node</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span>
@@ -2186,17 +2249,11 @@
 				<span class="n">contkf</span><span class="p">[</span><span class="n">locn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
 					<span class="n">name</span><span class="p">,</span>
 				<span class="p">}</span>
-		<span class="n">contents_keyframes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_contents_cache</span><span class="o">.</span><span class="n">keyframe</span>
-		<span class="n">contkfs</span> <span class="o">=</span> <span class="n">contents_keyframes</span><span class="p">[</span><span class="n">graph</span><span class="p">,][</span><span class="n">branch</span><span class="p">]</span>
-		<span class="k">if</span> <span class="n">turn</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">contkfs</span><span class="p">:</span>
-			<span class="n">contkfs</span><span class="p">[</span><span class="n">turn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">tick</span><span class="p">:</span> <span class="n">contkf</span><span class="p">}</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">contkfs</span><span class="p">[</span><span class="n">turn</span><span class="p">][</span><span class="n">tick</span><span class="p">]</span> <span class="o">=</span> <span class="n">contkf</span>
-		<span class="n">kfs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">keyframe</span><span class="p">[</span><span class="n">graph</span><span class="p">,][</span><span class="n">branch</span><span class="p">]</span>
-		<span class="k">if</span> <span class="n">turn</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kfs</span><span class="p">:</span>
-			<span class="n">kfs</span><span class="p">[</span><span class="n">turn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">tick</span><span class="p">:</span> <span class="n">newkf</span><span class="p">}</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">kfs</span><span class="p">[</span><span class="n">turn</span><span class="p">][</span><span class="n">tick</span><span class="p">]</span> <span class="o">=</span> <span class="n">newkf</span>
+		<span class="n">contkf</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">contkf</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_node_contents_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span>
+			<span class="p">(</span><span class="n">graph</span><span class="p">,),</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">contkf</span>
+		<span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">((</span><span class="n">graph</span><span class="p">,),</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">newkf</span><span class="p">)</span>
 		<span class="k">assert</span> <span class="p">(</span>
 			<span class="p">(</span><span class="n">graph</span><span class="p">,)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">keyframe</span>
 			<span class="ow">and</span> <span class="n">branch</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">keyframe</span><span class="p">[</span><span class="n">graph</span><span class="p">,]</span>

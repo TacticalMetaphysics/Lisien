@@ -1007,7 +1007,7 @@
 		<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
 			<span class="n">node_exists</span><span class="p">,</span> <span class="n">charn</span><span class="p">,</span> <span class="n">get_node</span><span class="p">,</span> <span class="n">character</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getitem_stuff</span>
 			<span class="k">if</span> <span class="ow">not</span> <span class="n">node_exists</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
-				<span class="k">raise</span> <span class="ne">KeyError</span>
+				<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No such node: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
 			<span class="k">return</span> <span class="n">get_node</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
 
 		<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
@@ -1018,7 +1018,7 @@
 				<span class="bp">self</span><span class="o">.</span><span class="n">_delitem_stuff</span>
 			<span class="p">)</span>
 			<span class="k">if</span> <span class="ow">not</span> <span class="n">node_exists</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
-				<span class="k">raise</span> <span class="ne">KeyError</span>
+				<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No such node: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
 			<span class="k">if</span> <span class="n">is_thing</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
 				<span class="k">del</span> <span class="n">thingmap</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 			<span class="k">else</span><span class="p">:</span>

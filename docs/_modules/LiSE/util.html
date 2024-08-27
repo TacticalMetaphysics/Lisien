@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LiSE.util &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=12dfc556" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=c058f7c8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
     <script src="../../_static/documentation_options.js?v=fbc7b204"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
@@ -44,22 +45,35 @@
 <span class="c1">#</span>
 <span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
 <span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
-<span class="sd">&quot;&quot;&quot;Common utility functions and data structures.</span>
+<span class="sd">&quot;&quot;&quot;Common utility functions and data structures.&quot;&quot;&quot;</span>
 
-<span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
 <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Set</span>
+<span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">ThreadPoolExecutor</span><span class="p">,</span> <span class="n">wait</span>
 <span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
-<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="p">(</span><span class="n">ge</span><span class="p">,</span> <span class="n">gt</span><span class="p">,</span> <span class="n">le</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="n">eq</span><span class="p">,</span> <span class="n">attrgetter</span><span class="p">,</span> <span class="n">add</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">mul</span><span class="p">,</span> <span class="nb">pow</span><span class="p">,</span>
-						<span class="n">truediv</span><span class="p">,</span> <span class="n">floordiv</span><span class="p">,</span> <span class="n">mod</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="p">(</span>
+	<span class="n">ge</span><span class="p">,</span>
+	<span class="n">gt</span><span class="p">,</span>
+	<span class="n">le</span><span class="p">,</span>
+	<span class="n">lt</span><span class="p">,</span>
+	<span class="n">eq</span><span class="p">,</span>
+	<span class="n">attrgetter</span><span class="p">,</span>
+	<span class="n">add</span><span class="p">,</span>
+	<span class="n">sub</span><span class="p">,</span>
+	<span class="n">mul</span><span class="p">,</span>
+	<span class="nb">pow</span><span class="p">,</span>
+	<span class="n">truediv</span><span class="p">,</span>
+	<span class="n">floordiv</span><span class="p">,</span>
+	<span class="n">mod</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span><span class="p">,</span> <span class="n">wraps</span><span class="p">,</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">textwrap</span> <span class="kn">import</span> <span class="n">dedent</span>
 <span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">monotonic</span>
 <span class="kn">from</span> <span class="nn">types</span> <span class="kn">import</span> <span class="n">MethodType</span><span class="p">,</span> <span class="n">FunctionType</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span><span class="n">Mapping</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Hashable</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">msgpack</span>
 <span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
 <span class="kn">from</span> <span class="nn">tblib</span> <span class="kn">import</span> <span class="n">Traceback</span>
@@ -69,6 +83,7 @@
 
 <span class="k">class</span> <span class="nc">FinalRule</span><span class="p">:</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A singleton sentinel for the rule iterator&quot;&quot;&quot;</span>
+
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[]</span>
 
 	<span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -81,16 +96,17 @@
 
 <span class="k">class</span> <span class="nc">MsgpackExtensionType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Type codes for packing special LiSE types into msgpack&quot;&quot;&quot;</span>
+
 	<span class="nb">tuple</span> <span class="o">=</span> <span class="mh">0x00</span>
 	<span class="nb">frozenset</span> <span class="o">=</span> <span class="mh">0x01</span>
 	<span class="nb">set</span> <span class="o">=</span> <span class="mh">0x02</span>
 	<span class="n">exception</span> <span class="o">=</span> <span class="mh">0x03</span>
-	<span class="n">character</span> <span class="o">=</span> <span class="mh">0x7f</span>
-	<span class="n">place</span> <span class="o">=</span> <span class="mh">0x7e</span>
-	<span class="n">thing</span> <span class="o">=</span> <span class="mh">0x7d</span>
-	<span class="n">portal</span> <span class="o">=</span> <span class="mh">0x7c</span>
-	<span class="n">final_rule</span> <span class="o">=</span> <span class="mh">0x7b</span>
-	<span class="n">function</span> <span class="o">=</span> <span class="mh">0x7a</span>
+	<span class="n">character</span> <span class="o">=</span> <span class="mh">0x7F</span>
+	<span class="n">place</span> <span class="o">=</span> <span class="mh">0x7E</span>
+	<span class="n">thing</span> <span class="o">=</span> <span class="mh">0x7D</span>
+	<span class="n">portal</span> <span class="o">=</span> <span class="mh">0x7C</span>
+	<span class="n">final_rule</span> <span class="o">=</span> <span class="mh">0x7B</span>
+	<span class="n">function</span> <span class="o">=</span> <span class="mh">0x7A</span>
 	<span class="n">method</span> <span class="o">=</span> <span class="mh">0x79</span>
 
 
@@ -101,14 +117,15 @@
 <span class="sd">	planning mode, and will save the randomizer&#39;s state after every call.</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
-	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;_getter&#39;</span><span class="p">,</span> <span class="s1">&#39;_wrapfun&#39;</span><span class="p">,</span> <span class="s1">&#39;_instance&#39;</span><span class="p">)</span>
+
+	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_getter&quot;</span><span class="p">,</span> <span class="s2">&quot;_wrapfun&quot;</span><span class="p">,</span> <span class="s2">&quot;_instance&quot;</span><span class="p">)</span>
 	<span class="n">_getter</span><span class="p">:</span> <span class="n">Callable</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="o">*</span><span class="n">attrs</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_getter</span> <span class="o">=</span> <span class="n">attrgetter</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="o">*</span><span class="n">attrs</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_wrapfun&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instance</span> <span class="ow">is</span> <span class="n">instance</span><span class="p">:</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_wrapfun&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instance</span> <span class="ow">is</span> <span class="n">instance</span><span class="p">:</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrapfun</span>
 		<span class="n">retfun</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getter</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span>
 
@@ -117,7 +134,7 @@
 			<span class="k">if</span> <span class="n">instance</span><span class="o">.</span><span class="n">_planning</span><span class="p">:</span>
 				<span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">PlanError</span><span class="p">(</span><span class="s2">&quot;Don&#39;t use randomization in a plan&quot;</span><span class="p">)</span>
 			<span class="n">ret</span> <span class="o">=</span> <span class="n">retfun</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-			<span class="n">instance</span><span class="o">.</span><span class="n">universal</span><span class="p">[</span><span class="s1">&#39;rando_state&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">_rando</span><span class="o">.</span><span class="n">getstate</span><span class="p">()</span>
+			<span class="n">instance</span><span class="o">.</span><span class="n">universal</span><span class="p">[</span><span class="s2">&quot;rando_state&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">_rando</span><span class="o">.</span><span class="n">getstate</span><span class="p">()</span>
 			<span class="k">return</span> <span class="n">ret</span>
 
 		<span class="bp">self</span><span class="o">.</span><span class="n">_wrapfun</span> <span class="o">=</span> <span class="n">remembering_rando_state</span>
@@ -126,7 +143,7 @@
 
 
 <span class="nd">@contextmanager</span>
-<span class="k">def</span> <span class="nf">timer</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">logfun</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">timer</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">logfun</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 	<span class="k">if</span> <span class="n">logfun</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="n">logfun</span> <span class="o">=</span> <span class="nb">print</span>
 	<span class="n">start</span> <span class="o">=</span> <span class="n">monotonic</span><span class="p">()</span>
@@ -151,19 +168,27 @@
 
 <span class="k">class</span> <span class="nc">EntityStatAccessor</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span>
-		<span class="s1">&#39;engine&#39;</span><span class="p">,</span> <span class="s1">&#39;entity&#39;</span><span class="p">,</span> <span class="s1">&#39;branch&#39;</span><span class="p">,</span> <span class="s1">&#39;turn&#39;</span><span class="p">,</span> <span class="s1">&#39;tick&#39;</span><span class="p">,</span> <span class="s1">&#39;stat&#39;</span><span class="p">,</span> <span class="s1">&#39;current&#39;</span><span class="p">,</span>
-		<span class="s1">&#39;mungers&#39;</span>
+		<span class="s2">&quot;engine&quot;</span><span class="p">,</span>
+		<span class="s2">&quot;entity&quot;</span><span class="p">,</span>
+		<span class="s2">&quot;branch&quot;</span><span class="p">,</span>
+		<span class="s2">&quot;turn&quot;</span><span class="p">,</span>
+		<span class="s2">&quot;tick&quot;</span><span class="p">,</span>
+		<span class="s2">&quot;stat&quot;</span><span class="p">,</span>
+		<span class="s2">&quot;current&quot;</span><span class="p">,</span>
+		<span class="s2">&quot;mungers&quot;</span><span class="p">,</span>
 	<span class="p">]</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-					<span class="n">entity</span><span class="p">,</span>
-					<span class="n">stat</span><span class="p">,</span>
-					<span class="n">engine</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-					<span class="n">branch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-					<span class="n">turn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-					<span class="n">tick</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-					<span class="n">current</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-					<span class="n">mungers</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">entity</span><span class="p">,</span>
+		<span class="n">stat</span><span class="p">,</span>
+		<span class="n">engine</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+		<span class="n">branch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+		<span class="n">turn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+		<span class="n">tick</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+		<span class="n">current</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+		<span class="n">mungers</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+	<span class="p">):</span>
 		<span class="k">if</span> <span class="n">engine</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">engine</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">engine</span>
 		<span class="k">if</span> <span class="n">branch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -192,7 +217,7 @@
 				<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">tick</span>
 			<span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span>
-			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span> <span class="s1">&#39;stat&#39;</span><span class="p">):</span>
+			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span> <span class="s2">&quot;stat&quot;</span><span class="p">):</span>
 				<span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="p">]</span>
 			<span class="k">else</span><span class="p">:</span>
 				<span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="p">]</span>
@@ -209,9 +234,15 @@
 
 	<span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="s2">&quot;EntityStatAccessor(</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">]</span><span class="si">{}</span><span class="s2">), </span><span class="si">{}</span><span class="s2"> mungers&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span>
-			<span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="k">else</span> <span class="s2">&quot;, branch=</span><span class="si">{}</span><span class="s2">, turn=</span><span class="si">{}</span><span class="s2">, tick=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mungers</span><span class="p">))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span>
+			<span class="s2">&quot;&quot;</span>
+			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span>
+			<span class="k">else</span> <span class="s2">&quot;, branch=</span><span class="si">{}</span><span class="s2">, turn=</span><span class="si">{}</span><span class="s2">, tick=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span>
+			<span class="p">),</span>
+			<span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mungers</span><span class="p">),</span>
+		<span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__gt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">other</span>
@@ -229,9 +260,16 @@
 		<span class="k">return</span> <span class="bp">self</span><span class="p">()</span> <span class="o">==</span> <span class="n">other</span>
 
 	<span class="k">def</span> <span class="nf">munge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">munger</span><span class="p">):</span>
-		<span class="k">return</span> <span class="n">EntityStatAccessor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span>
-									<span class="bp">self</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span><span class="p">,</span>
-									<span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mungers</span> <span class="o">+</span> <span class="p">[</span><span class="n">munger</span><span class="p">])</span>
+		<span class="k">return</span> <span class="n">EntityStatAccessor</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">tick</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">mungers</span> <span class="o">+</span> <span class="p">[</span><span class="n">munger</span><span class="p">],</span>
+		<span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">munge</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">add</span><span class="p">,</span> <span class="n">other</span><span class="p">))</span>
@@ -258,9 +296,7 @@
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">munge</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
 
 	<span class="k">def</span> <span class="nf">iter_history</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beginning</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Iterate over all the values this stat has had in the given window, inclusive.</span>
-
-<span class="sd">		&quot;&quot;&quot;</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Iterate over all the values this stat has had in the given window, inclusive.&quot;&quot;&quot;</span>
 		<span class="c1"># It might be useful to do this in a way that doesn&#39;t change the</span>
 		<span class="c1"># engine&#39;s time, perhaps for thread safety</span>
 		<span class="n">engine</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span>
@@ -275,7 +311,7 @@
 			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 				<span class="k">yield</span> <span class="kc">None</span>
 				<span class="k">continue</span>
-			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="s1">&#39;unwrap&#39;</span><span class="p">):</span>
+			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="s2">&quot;unwrap&quot;</span><span class="p">):</span>
 				<span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">unwrap</span><span class="p">()</span>
 			<span class="k">yield</span> <span class="n">y</span>
 		<span class="n">engine</span><span class="o">.</span><span class="n">turn</span> <span class="o">=</span> <span class="n">oldturn</span>
@@ -283,18 +319,18 @@
 
 
 <span class="k">def</span> <span class="nf">dedent_source</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
-	<span class="n">nlidx</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+	<span class="n">nlidx</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
 	<span class="k">if</span> <span class="n">nlidx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid source&quot;</span><span class="p">)</span>
-	<span class="k">while</span> <span class="n">source</span><span class="p">[:</span><span class="n">nlidx</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">):</span>
-		<span class="n">source</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="n">nlidx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
-		<span class="n">nlidx</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+	<span class="k">while</span> <span class="n">source</span><span class="p">[:</span><span class="n">nlidx</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;@&quot;</span><span class="p">):</span>
+		<span class="n">source</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="n">nlidx</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span>
+		<span class="n">nlidx</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
 	<span class="k">return</span> <span class="n">dedent</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_sort_set_key</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
 	<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-		<span class="k">return</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="p">)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
+		<span class="k">return</span> <span class="p">(</span><span class="mi">2</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
 	<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
 		<span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="n">v</span>
 	<span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
@@ -332,7 +368,6 @@
 <span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">class</span> <span class="nc">FakeFuture</span><span class="p">:</span>
-
 		<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_func</span> <span class="o">=</span> <span class="n">func</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_args</span> <span class="o">=</span> <span class="n">args</span>
@@ -354,6 +389,7 @@
 <span class="sd">	block, in which deserialized entities will be created as needed.</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
+
 	<span class="n">portal_cls</span><span class="p">:</span> <span class="nb">type</span>
 	<span class="n">thing_cls</span><span class="p">:</span> <span class="nb">type</span>
 	<span class="n">place_cls</span><span class="p">:</span> <span class="nb">type</span>
@@ -364,55 +400,63 @@
 	<span class="k">def</span> <span class="nf">pack</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="kn">from</span> <span class="nn">lise_ormsgpack</span> <span class="kn">import</span> <span class="n">packb</span>
+
 			<span class="k">return</span> <span class="n">packb</span>
 		<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
 			<span class="k">pass</span>
 		<span class="n">handlers</span> <span class="o">=</span> <span class="p">{</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">char_cls</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">char</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span><span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-											<span class="n">packer</span><span class="p">(</span><span class="n">char</span><span class="o">.</span><span class="n">name</span><span class="p">)),</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">place_cls</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">place</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">char_cls</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">char</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
+				<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">packer</span><span class="p">(</span><span class="n">char</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+			<span class="p">),</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">place_cls</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">place</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
 				<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-				<span class="n">packer</span><span class="p">([</span><span class="n">place</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">place</span><span class="o">.</span><span class="n">name</span><span class="p">])),</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">thing_cls</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">thing</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
+				<span class="n">packer</span><span class="p">([</span><span class="n">place</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">place</span><span class="o">.</span><span class="n">name</span><span class="p">]),</span>
+			<span class="p">),</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">thing_cls</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">thing</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
 				<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-				<span class="n">packer</span><span class="p">([</span><span class="n">thing</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">thing</span><span class="o">.</span><span class="n">name</span><span class="p">])),</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">portal_cls</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">port</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
+				<span class="n">packer</span><span class="p">([</span><span class="n">thing</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">thing</span><span class="o">.</span><span class="n">name</span><span class="p">]),</span>
+			<span class="p">),</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">portal_cls</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">port</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
 				<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">portal</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-				<span class="n">packer</span><span class="p">([</span>
-					<span class="n">port</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">port</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">port</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span>
-					<span class="n">name</span>
-				<span class="p">])),</span>
-			<span class="nb">tuple</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">tup</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span><span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">tuple</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-										<span class="n">packer</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">tup</span><span class="p">))),</span>
-			<span class="nb">frozenset</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">frozs</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span><span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">frozenset</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-											<span class="n">packer</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">frozs</span><span class="p">))),</span>
-			<span class="nb">set</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span><span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-										<span class="n">packer</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">s</span><span class="p">))),</span>
-			<span class="n">FinalRule</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">obj</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span><span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">final_rule</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-										<span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="p">),</span>
-			<span class="n">FunctionType</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">func</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
+				<span class="n">packer</span><span class="p">(</span>
+					<span class="p">[</span>
+						<span class="n">port</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+						<span class="n">port</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+						<span class="n">port</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+					<span class="p">]</span>
+				<span class="p">),</span>
+			<span class="p">),</span>
+			<span class="nb">tuple</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">tup</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
+				<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">tuple</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">packer</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">tup</span><span class="p">))</span>
+			<span class="p">),</span>
+			<span class="nb">frozenset</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">frozs</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
+				<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">frozenset</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">packer</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">frozs</span><span class="p">))</span>
+			<span class="p">),</span>
+			<span class="nb">set</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
+				<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">packer</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+			<span class="p">),</span>
+			<span class="n">FinalRule</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">obj</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
+				<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">final_rule</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span>
+			<span class="p">),</span>
+			<span class="n">FunctionType</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">func</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
 				<span class="nb">getattr</span><span class="p">(</span><span class="n">MsgpackExtensionType</span><span class="p">,</span> <span class="n">func</span><span class="o">.</span><span class="vm">__module__</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-				<span class="n">packer</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)),</span>
-			<span class="n">MethodType</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">meth</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span><span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">method</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-											<span class="n">packer</span><span class="p">(</span><span class="n">meth</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)),</span>
-			<span class="ne">Exception</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">exc</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
+				<span class="n">packer</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">),</span>
+			<span class="p">),</span>
+			<span class="n">MethodType</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">meth</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
+				<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">method</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">packer</span><span class="p">(</span><span class="n">meth</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+			<span class="p">),</span>
+			<span class="ne">Exception</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">exc</span><span class="p">:</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span>
 				<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">exception</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-				<span class="n">packer</span><span class="p">([</span>
-					<span class="n">exc</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
-					<span class="n">Traceback</span><span class="p">(</span><span class="n">exc</span><span class="o">.</span><span class="n">__traceback__</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-					<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="s2">&quot;__traceback__&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
-				<span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">exc</span><span class="o">.</span><span class="n">args</span><span class="p">)))</span>
+				<span class="n">packer</span><span class="p">(</span>
+					<span class="p">[</span>
+						<span class="n">exc</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+						<span class="n">Traceback</span><span class="p">(</span><span class="n">exc</span><span class="o">.</span><span class="n">__traceback__</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+						<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="s2">&quot;__traceback__&quot;</span><span class="p">)</span>
+						<span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+					<span class="p">]</span>
+					<span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">exc</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+				<span class="p">),</span>
+			<span class="p">),</span>
 		<span class="p">}</span>
 
 		<span class="k">def</span> <span class="nf">pack_handler</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
@@ -426,10 +470,12 @@
 				<span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
 			<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t pack </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">typ</span><span class="p">))</span>
 
-		<span class="n">packer</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">msgpack</span><span class="o">.</span><span class="n">packb</span><span class="p">,</span>
-							<span class="n">default</span><span class="o">=</span><span class="n">pack_handler</span><span class="p">,</span>
-							<span class="n">strict_types</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-							<span class="n">use_bin_type</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+		<span class="n">packer</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+			<span class="n">msgpack</span><span class="o">.</span><span class="n">packb</span><span class="p">,</span>
+			<span class="n">default</span><span class="o">=</span><span class="n">pack_handler</span><span class="p">,</span>
+			<span class="n">strict_types</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+			<span class="n">use_bin_type</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+		<span class="p">)</span>
 		<span class="k">return</span> <span class="n">packer</span>
 
 	<span class="nd">@cached_property</span>
@@ -443,50 +489,50 @@
 		<span class="n">method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span>
 		<span class="n">excs</span> <span class="o">=</span> <span class="p">{</span>
 			<span class="c1"># builtin exceptions</span>
-			<span class="s1">&#39;AssertionError&#39;</span><span class="p">:</span> <span class="ne">AssertionError</span><span class="p">,</span>
-			<span class="s1">&#39;AttributeError&#39;</span><span class="p">:</span> <span class="ne">AttributeError</span><span class="p">,</span>
-			<span class="s1">&#39;EOFError&#39;</span><span class="p">:</span> <span class="ne">EOFError</span><span class="p">,</span>
-			<span class="s1">&#39;FloatingPointError&#39;</span><span class="p">:</span> <span class="ne">FloatingPointError</span><span class="p">,</span>
-			<span class="s1">&#39;GeneratorExit&#39;</span><span class="p">:</span> <span class="ne">GeneratorExit</span><span class="p">,</span>
-			<span class="s1">&#39;ImportError&#39;</span><span class="p">:</span> <span class="ne">ImportError</span><span class="p">,</span>
-			<span class="s1">&#39;IndexError&#39;</span><span class="p">:</span> <span class="ne">IndexError</span><span class="p">,</span>
-			<span class="s1">&#39;KeyError&#39;</span><span class="p">:</span> <span class="ne">KeyError</span><span class="p">,</span>
-			<span class="s1">&#39;KeyboardInterrupt&#39;</span><span class="p">:</span> <span class="ne">KeyboardInterrupt</span><span class="p">,</span>
-			<span class="s1">&#39;MemoryError&#39;</span><span class="p">:</span> <span class="ne">MemoryError</span><span class="p">,</span>
-			<span class="s1">&#39;NameError&#39;</span><span class="p">:</span> <span class="ne">NameError</span><span class="p">,</span>
-			<span class="s1">&#39;NotImplementedError&#39;</span><span class="p">:</span> <span class="ne">NotImplementedError</span><span class="p">,</span>
-			<span class="s1">&#39;OSError&#39;</span><span class="p">:</span> <span class="ne">OSError</span><span class="p">,</span>
-			<span class="s1">&#39;OverflowError&#39;</span><span class="p">:</span> <span class="ne">OverflowError</span><span class="p">,</span>
-			<span class="s1">&#39;RecursionError&#39;</span><span class="p">:</span> <span class="ne">RecursionError</span><span class="p">,</span>
-			<span class="s1">&#39;ReferenceError&#39;</span><span class="p">:</span> <span class="ne">ReferenceError</span><span class="p">,</span>
-			<span class="s1">&#39;RuntimeError&#39;</span><span class="p">:</span> <span class="ne">RuntimeError</span><span class="p">,</span>
-			<span class="s1">&#39;StopIteration&#39;</span><span class="p">:</span> <span class="ne">StopIteration</span><span class="p">,</span>
-			<span class="s1">&#39;IndentationError&#39;</span><span class="p">:</span> <span class="ne">IndentationError</span><span class="p">,</span>
-			<span class="s1">&#39;TabError&#39;</span><span class="p">:</span> <span class="ne">TabError</span><span class="p">,</span>
-			<span class="s1">&#39;SystemError&#39;</span><span class="p">:</span> <span class="ne">SystemError</span><span class="p">,</span>
-			<span class="s1">&#39;SystemExit&#39;</span><span class="p">:</span> <span class="ne">SystemExit</span><span class="p">,</span>
-			<span class="s1">&#39;TypeError&#39;</span><span class="p">:</span> <span class="ne">TypeError</span><span class="p">,</span>
-			<span class="s1">&#39;UnboundLocalError&#39;</span><span class="p">:</span> <span class="ne">UnboundLocalError</span><span class="p">,</span>
-			<span class="s1">&#39;UnicodeError&#39;</span><span class="p">:</span> <span class="ne">UnicodeError</span><span class="p">,</span>
-			<span class="s1">&#39;UnicodeEncodeError&#39;</span><span class="p">:</span> <span class="ne">UnicodeEncodeError</span><span class="p">,</span>
-			<span class="s1">&#39;UnicodeDecodeError&#39;</span><span class="p">:</span> <span class="ne">UnicodeDecodeError</span><span class="p">,</span>
-			<span class="s1">&#39;UnicodeTranslateError&#39;</span><span class="p">:</span> <span class="ne">UnicodeTranslateError</span><span class="p">,</span>
-			<span class="s1">&#39;ValueError&#39;</span><span class="p">:</span> <span class="ne">ValueError</span><span class="p">,</span>
-			<span class="s1">&#39;ZeroDivisionError&#39;</span><span class="p">:</span> <span class="ne">ZeroDivisionError</span><span class="p">,</span>
+			<span class="s2">&quot;AssertionError&quot;</span><span class="p">:</span> <span class="ne">AssertionError</span><span class="p">,</span>
+			<span class="s2">&quot;AttributeError&quot;</span><span class="p">:</span> <span class="ne">AttributeError</span><span class="p">,</span>
+			<span class="s2">&quot;EOFError&quot;</span><span class="p">:</span> <span class="ne">EOFError</span><span class="p">,</span>
+			<span class="s2">&quot;FloatingPointError&quot;</span><span class="p">:</span> <span class="ne">FloatingPointError</span><span class="p">,</span>
+			<span class="s2">&quot;GeneratorExit&quot;</span><span class="p">:</span> <span class="ne">GeneratorExit</span><span class="p">,</span>
+			<span class="s2">&quot;ImportError&quot;</span><span class="p">:</span> <span class="ne">ImportError</span><span class="p">,</span>
+			<span class="s2">&quot;IndexError&quot;</span><span class="p">:</span> <span class="ne">IndexError</span><span class="p">,</span>
+			<span class="s2">&quot;KeyError&quot;</span><span class="p">:</span> <span class="ne">KeyError</span><span class="p">,</span>
+			<span class="s2">&quot;KeyboardInterrupt&quot;</span><span class="p">:</span> <span class="ne">KeyboardInterrupt</span><span class="p">,</span>
+			<span class="s2">&quot;MemoryError&quot;</span><span class="p">:</span> <span class="ne">MemoryError</span><span class="p">,</span>
+			<span class="s2">&quot;NameError&quot;</span><span class="p">:</span> <span class="ne">NameError</span><span class="p">,</span>
+			<span class="s2">&quot;NotImplementedError&quot;</span><span class="p">:</span> <span class="ne">NotImplementedError</span><span class="p">,</span>
+			<span class="s2">&quot;OSError&quot;</span><span class="p">:</span> <span class="ne">OSError</span><span class="p">,</span>
+			<span class="s2">&quot;OverflowError&quot;</span><span class="p">:</span> <span class="ne">OverflowError</span><span class="p">,</span>
+			<span class="s2">&quot;RecursionError&quot;</span><span class="p">:</span> <span class="ne">RecursionError</span><span class="p">,</span>
+			<span class="s2">&quot;ReferenceError&quot;</span><span class="p">:</span> <span class="ne">ReferenceError</span><span class="p">,</span>
+			<span class="s2">&quot;RuntimeError&quot;</span><span class="p">:</span> <span class="ne">RuntimeError</span><span class="p">,</span>
+			<span class="s2">&quot;StopIteration&quot;</span><span class="p">:</span> <span class="ne">StopIteration</span><span class="p">,</span>
+			<span class="s2">&quot;IndentationError&quot;</span><span class="p">:</span> <span class="ne">IndentationError</span><span class="p">,</span>
+			<span class="s2">&quot;TabError&quot;</span><span class="p">:</span> <span class="ne">TabError</span><span class="p">,</span>
+			<span class="s2">&quot;SystemError&quot;</span><span class="p">:</span> <span class="ne">SystemError</span><span class="p">,</span>
+			<span class="s2">&quot;SystemExit&quot;</span><span class="p">:</span> <span class="ne">SystemExit</span><span class="p">,</span>
+			<span class="s2">&quot;TypeError&quot;</span><span class="p">:</span> <span class="ne">TypeError</span><span class="p">,</span>
+			<span class="s2">&quot;UnboundLocalError&quot;</span><span class="p">:</span> <span class="ne">UnboundLocalError</span><span class="p">,</span>
+			<span class="s2">&quot;UnicodeError&quot;</span><span class="p">:</span> <span class="ne">UnicodeError</span><span class="p">,</span>
+			<span class="s2">&quot;UnicodeEncodeError&quot;</span><span class="p">:</span> <span class="ne">UnicodeEncodeError</span><span class="p">,</span>
+			<span class="s2">&quot;UnicodeDecodeError&quot;</span><span class="p">:</span> <span class="ne">UnicodeDecodeError</span><span class="p">,</span>
+			<span class="s2">&quot;UnicodeTranslateError&quot;</span><span class="p">:</span> <span class="ne">UnicodeTranslateError</span><span class="p">,</span>
+			<span class="s2">&quot;ValueError&quot;</span><span class="p">:</span> <span class="ne">ValueError</span><span class="p">,</span>
+			<span class="s2">&quot;ZeroDivisionError&quot;</span><span class="p">:</span> <span class="ne">ZeroDivisionError</span><span class="p">,</span>
 			<span class="c1"># LiSE exceptions</span>
-			<span class="s1">&#39;NonUniqueError&#39;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">NonUniqueError</span><span class="p">,</span>
-			<span class="s1">&#39;AmbiguousAvatarError&#39;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">AmbiguousAvatarError</span><span class="p">,</span>
-			<span class="s1">&#39;AmbiguousUserError&#39;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">AmbiguousUserError</span><span class="p">,</span>
-			<span class="s1">&#39;RulesEngineError&#39;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">RulesEngineError</span><span class="p">,</span>
-			<span class="s1">&#39;RuleError&#39;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">RuleError</span><span class="p">,</span>
-			<span class="s1">&#39;RedundantRuleError&#39;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">RedundantRuleError</span><span class="p">,</span>
-			<span class="s1">&#39;UserFunctionError&#39;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">UserFunctionError</span><span class="p">,</span>
-			<span class="s1">&#39;WorldIntegrityError&#39;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">WorldIntegrityError</span><span class="p">,</span>
-			<span class="s1">&#39;CacheError&#39;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">CacheError</span><span class="p">,</span>
-			<span class="s1">&#39;TravelException&#39;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">TravelException</span><span class="p">,</span>
-			<span class="s1">&#39;OutOfTimelineError&#39;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">OutOfTimelineError</span><span class="p">,</span>
-			<span class="s1">&#39;HistoricKeyError&#39;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">HistoricKeyError</span><span class="p">,</span>
-			<span class="s1">&#39;NotInKeyframeError&#39;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">NotInKeyframeError</span>
+			<span class="s2">&quot;NonUniqueError&quot;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">NonUniqueError</span><span class="p">,</span>
+			<span class="s2">&quot;AmbiguousAvatarError&quot;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">AmbiguousAvatarError</span><span class="p">,</span>
+			<span class="s2">&quot;AmbiguousUserError&quot;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">AmbiguousUserError</span><span class="p">,</span>
+			<span class="s2">&quot;RulesEngineError&quot;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">RulesEngineError</span><span class="p">,</span>
+			<span class="s2">&quot;RuleError&quot;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">RuleError</span><span class="p">,</span>
+			<span class="s2">&quot;RedundantRuleError&quot;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">RedundantRuleError</span><span class="p">,</span>
+			<span class="s2">&quot;UserFunctionError&quot;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">UserFunctionError</span><span class="p">,</span>
+			<span class="s2">&quot;WorldIntegrityError&quot;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">WorldIntegrityError</span><span class="p">,</span>
+			<span class="s2">&quot;CacheError&quot;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">CacheError</span><span class="p">,</span>
+			<span class="s2">&quot;TravelException&quot;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">TravelException</span><span class="p">,</span>
+			<span class="s2">&quot;OutOfTimelineError&quot;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">OutOfTimelineError</span><span class="p">,</span>
+			<span class="s2">&quot;HistoricKeyError&quot;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">HistoricKeyError</span><span class="p">,</span>
+			<span class="s2">&quot;NotInKeyframeError&quot;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">NotInKeyframeError</span><span class="p">,</span>
 		<span class="p">}</span>
 
 		<span class="k">def</span> <span class="nf">unpack_exception</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
@@ -542,28 +588,23 @@
 				<span class="k">return</span> <span class="n">portal_cls</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">)</span>
 
 		<span class="n">handlers</span> <span class="o">=</span> <span class="p">{</span>
-			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-			<span class="n">unpack_char</span><span class="p">,</span>
-			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-			<span class="n">unpack_place</span><span class="p">,</span>
-			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-			<span class="n">unpack_thing</span><span class="p">,</span>
-			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">portal</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-			<span class="n">unpack_portal</span><span class="p">,</span>
-			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">final_rule</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">obj</span><span class="p">:</span> <span class="n">final_rule</span><span class="p">,</span>
-			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">tuple</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)),</span>
-			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">frozenset</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)),</span>
-			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">set</span><span class="p">(</span><span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)),</span>
-			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)),</span>
-			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">method</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-			<span class="k">lambda</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)),</span>
-			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">exception</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-			<span class="n">unpack_exception</span>
+			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">unpack_char</span><span class="p">,</span>
+			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">unpack_place</span><span class="p">,</span>
+			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">unpack_thing</span><span class="p">,</span>
+			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">portal</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">unpack_portal</span><span class="p">,</span>
+			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">final_rule</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">obj</span><span class="p">:</span> <span class="n">final_rule</span><span class="p">,</span>
+			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">tuple</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)),</span>
+			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">frozenset</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">(</span>
+				<span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
+			<span class="p">),</span>
+			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">set</span><span class="p">(</span><span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)),</span>
+			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span>
+				<span class="n">function</span><span class="p">,</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
+			<span class="p">),</span>
+			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">method</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span>
+				<span class="n">method</span><span class="p">,</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
+			<span class="p">),</span>
+			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">exception</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">unpack_exception</span><span class="p">,</span>
 		<span class="p">}</span>
 
 		<span class="k">def</span> <span class="nf">unpack_handler</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
@@ -572,9 +613,9 @@
 			<span class="k">return</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
 
 		<span class="k">def</span> <span class="nf">unpacker</span><span class="p">(</span><span class="n">b</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">):</span>
-			<span class="n">the_unpacker</span> <span class="o">=</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">Unpacker</span><span class="p">(</span><span class="n">ext_hook</span><span class="o">=</span><span class="n">unpack_handler</span><span class="p">,</span>
-											<span class="n">raw</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-											<span class="n">strict_map_key</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+			<span class="n">the_unpacker</span> <span class="o">=</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">Unpacker</span><span class="p">(</span>
+				<span class="n">ext_hook</span><span class="o">=</span><span class="n">unpack_handler</span><span class="p">,</span> <span class="n">raw</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">strict_map_key</span><span class="o">=</span><span class="kc">False</span>
+			<span class="p">)</span>
 			<span class="n">the_unpacker</span><span class="o">.</span><span class="n">feed</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
 			<span class="c1"># Deliberately only returning the initial item;</span>
 			<span class="c1"># others are likely to be null bytes as a result of the</span>
@@ -612,11 +653,13 @@
 		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
 			<span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">die_roll</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">dice_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-					<span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-					<span class="n">d</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-					<span class="n">target</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-					<span class="n">comparator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&lt;=&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">dice_check</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+		<span class="n">d</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+		<span class="n">target</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+		<span class="n">comparator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&lt;=&quot;</span><span class="p">,</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Roll ``n`` dice with ``d`` sides, sum them, and compare</span>
 
 <span class="sd">		If ``comparator`` is provided, use it instead of the default &lt;=.</span>
@@ -626,13 +669,13 @@
 		<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">gt</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="n">ge</span><span class="p">,</span> <span class="n">le</span><span class="p">,</span> <span class="n">eq</span><span class="p">,</span> <span class="n">ne</span>
 
 		<span class="n">comps</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-			<span class="s1">&#39;&gt;&#39;</span><span class="p">:</span> <span class="n">gt</span><span class="p">,</span>
-			<span class="s1">&#39;&lt;&#39;</span><span class="p">:</span> <span class="n">lt</span><span class="p">,</span>
-			<span class="s1">&#39;&gt;=&#39;</span><span class="p">:</span> <span class="n">ge</span><span class="p">,</span>
-			<span class="s1">&#39;&lt;=&#39;</span><span class="p">:</span> <span class="n">le</span><span class="p">,</span>
-			<span class="s1">&#39;=&#39;</span><span class="p">:</span> <span class="n">eq</span><span class="p">,</span>
-			<span class="s1">&#39;==&#39;</span><span class="p">:</span> <span class="n">eq</span><span class="p">,</span>
-			<span class="s1">&#39;!=&#39;</span><span class="p">:</span> <span class="n">ne</span>
+			<span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="n">gt</span><span class="p">,</span>
+			<span class="s2">&quot;&lt;&quot;</span><span class="p">:</span> <span class="n">lt</span><span class="p">,</span>
+			<span class="s2">&quot;&gt;=&quot;</span><span class="p">:</span> <span class="n">ge</span><span class="p">,</span>
+			<span class="s2">&quot;&lt;=&quot;</span><span class="p">:</span> <span class="n">le</span><span class="p">,</span>
+			<span class="s2">&quot;=&quot;</span><span class="p">:</span> <span class="n">eq</span><span class="p">,</span>
+			<span class="s2">&quot;==&quot;</span><span class="p">:</span> <span class="n">eq</span><span class="p">,</span>
+			<span class="s2">&quot;!=&quot;</span><span class="p">:</span> <span class="n">ne</span><span class="p">,</span>
 		<span class="p">}</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="n">comparator</span><span class="p">):</span>
 			<span class="n">comparator</span> <span class="o">=</span> <span class="n">comps</span><span class="p">[</span><span class="n">comparator</span><span class="p">]</span>
@@ -651,28 +694,27 @@
 			<span class="k">return</span> <span class="kc">True</span>
 		<span class="k">return</span> <span class="n">pct</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">99</span><span class="p">)</span>
 
-	<span class="n">betavariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.betavariate&#39;</span><span class="p">)</span>
-	<span class="n">choice</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.choice&#39;</span><span class="p">)</span>
-	<span class="n">expovariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.expovariate&#39;</span><span class="p">)</span>
-	<span class="n">gammavariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.gammavariate&#39;</span><span class="p">)</span>
-	<span class="n">gauss</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.gauss&#39;</span><span class="p">)</span>
-	<span class="n">getrandbits</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.getrandbits&#39;</span><span class="p">)</span>
-	<span class="n">lognormvariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.lognormvariate&#39;</span><span class="p">)</span>
-	<span class="n">normalvariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.normalvariate&#39;</span><span class="p">)</span>
-	<span class="n">paretovariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.paretovariate&#39;</span><span class="p">)</span>
-	<span class="n">randint</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.randint&#39;</span><span class="p">)</span>
-	<span class="n">random</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.random&#39;</span><span class="p">)</span>
-	<span class="n">randrange</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.randrange&#39;</span><span class="p">)</span>
-	<span class="n">sample</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.sample&#39;</span><span class="p">)</span>
-	<span class="n">shuffle</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.shuffle&#39;</span><span class="p">)</span>
-	<span class="n">triangular</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.triangular&#39;</span><span class="p">)</span>
-	<span class="n">uniform</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.uniform&#39;</span><span class="p">)</span>
-	<span class="n">vonmisesvariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.vonmisesvariate&#39;</span><span class="p">)</span>
-	<span class="n">weibullvariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s1">&#39;_rando.weibullvariate&#39;</span><span class="p">)</span>
+	<span class="n">betavariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.betavariate&quot;</span><span class="p">)</span>
+	<span class="n">choice</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.choice&quot;</span><span class="p">)</span>
+	<span class="n">expovariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.expovariate&quot;</span><span class="p">)</span>
+	<span class="n">gammavariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.gammavariate&quot;</span><span class="p">)</span>
+	<span class="n">gauss</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.gauss&quot;</span><span class="p">)</span>
+	<span class="n">getrandbits</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.getrandbits&quot;</span><span class="p">)</span>
+	<span class="n">lognormvariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.lognormvariate&quot;</span><span class="p">)</span>
+	<span class="n">normalvariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.normalvariate&quot;</span><span class="p">)</span>
+	<span class="n">paretovariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.paretovariate&quot;</span><span class="p">)</span>
+	<span class="n">randint</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.randint&quot;</span><span class="p">)</span>
+	<span class="n">random</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.random&quot;</span><span class="p">)</span>
+	<span class="n">randrange</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.randrange&quot;</span><span class="p">)</span>
+	<span class="n">sample</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.sample&quot;</span><span class="p">)</span>
+	<span class="n">shuffle</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.shuffle&quot;</span><span class="p">)</span>
+	<span class="n">triangular</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.triangular&quot;</span><span class="p">)</span>
+	<span class="n">uniform</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.uniform&quot;</span><span class="p">)</span>
+	<span class="n">vonmisesvariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.vonmisesvariate&quot;</span><span class="p">)</span>
+	<span class="n">weibullvariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.weibullvariate&quot;</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">SpecialMappingDescriptor</span><span class="p">:</span>
-
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapclsname</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">mapps</span> <span class="o">=</span> <span class="p">{}</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">mapclsname</span> <span class="o">=</span> <span class="n">mapclsname</span>
@@ -706,7 +748,8 @@
 <span class="sd">	to be used in place of graph attributes</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
-	<span class="n">engine</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;db&#39;</span><span class="p">)</span>
+
+	<span class="n">engine</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s2">&quot;db&quot;</span><span class="p">)</span>
 	<span class="n">no_unwrap</span> <span class="o">=</span> <span class="kc">True</span>
 	<span class="n">name</span><span class="p">:</span> <span class="n">Hashable</span>
 	<span class="n">db</span><span class="p">:</span> <span class="n">AbstractEngine</span>
@@ -775,14 +818,6 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">add_thing</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 		<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Already have a thing named </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
-
-	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span> <span class="nf">thing2place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-		<span class="k">pass</span>
-
-	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span> <span class="nf">place2thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">):</span>
-		<span class="k">pass</span>
 
 	<span class="nd">@abstractmethod</span>
 	<span class="k">def</span> <span class="nf">add_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -866,18 +901,21 @@
 	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adj</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 
-	<span class="n">thing</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span><span class="s1">&#39;ThingMapping&#39;</span><span class="p">)</span>
-	<span class="n">place</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span><span class="s1">&#39;PlaceMapping&#39;</span><span class="p">)</span>
-	<span class="n">node</span> <span class="o">=</span> <span class="n">nodes</span> <span class="o">=</span> <span class="n">_node</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span><span class="s1">&#39;ThingPlaceMapping&#39;</span><span class="p">)</span>
+	<span class="n">thing</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span><span class="s2">&quot;ThingMapping&quot;</span><span class="p">)</span>
+	<span class="n">place</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span><span class="s2">&quot;PlaceMapping&quot;</span><span class="p">)</span>
+	<span class="n">node</span> <span class="o">=</span> <span class="n">nodes</span> <span class="o">=</span> <span class="n">_node</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span><span class="s2">&quot;ThingPlaceMapping&quot;</span><span class="p">)</span>
 	<span class="n">portal</span> <span class="o">=</span> <span class="n">adj</span> <span class="o">=</span> <span class="n">succ</span> <span class="o">=</span> <span class="n">edge</span> <span class="o">=</span> <span class="n">_adj</span> <span class="o">=</span> <span class="n">_succ</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span>
-		<span class="s1">&#39;PortalSuccessorsMapping&#39;</span><span class="p">)</span>
+		<span class="s2">&quot;PortalSuccessorsMapping&quot;</span>
+	<span class="p">)</span>
 	<span class="n">preportal</span> <span class="o">=</span> <span class="n">pred</span> <span class="o">=</span> <span class="n">_pred</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span>
-		<span class="s1">&#39;PortalPredecessorsMapping&#39;</span><span class="p">)</span>
-	<span class="n">unit</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span><span class="s1">&#39;UnitGraphMapping&#39;</span><span class="p">)</span>
-	<span class="n">stat</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">)</span>
+		<span class="s2">&quot;PortalPredecessorsMapping&quot;</span>
+	<span class="p">)</span>
+	<span class="n">unit</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span><span class="s2">&quot;UnitGraphMapping&quot;</span><span class="p">)</span>
+	<span class="n">stat</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s2">&quot;graph&quot;</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
 		<span class="kn">from</span> <span class="nn">.query</span> <span class="kn">import</span> <span class="n">StatusAlias</span>
+
 		<span class="k">return</span> <span class="n">StatusAlias</span><span class="p">(</span><span class="n">entity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span> <span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">do</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -906,7 +944,7 @@
 			<span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="p">:</span>
 				<span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
 				<span class="k">while</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="p">:</span>
-					<span class="n">k</span> <span class="o">=</span> <span class="n">ok</span> <span class="o">+</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ok</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">ok</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+					<span class="n">k</span> <span class="o">=</span> <span class="n">ok</span> <span class="o">+</span> <span class="p">(</span><span class="n">n</span><span class="p">,)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ok</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">ok</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
 					<span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
 			<span class="n">renamed</span><span class="p">[</span><span class="n">ok</span><span class="p">]</span> <span class="o">=</span> <span class="n">k</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
@@ -943,7 +981,7 @@
 	<span class="k">def</span> <span class="nf">_lookup_comparator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">comparator</span><span class="p">):</span>
 		<span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">comparator</span><span class="p">):</span>
 			<span class="k">return</span> <span class="n">comparator</span>
-		<span class="n">ops</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ge&#39;</span><span class="p">:</span> <span class="n">ge</span><span class="p">,</span> <span class="s1">&#39;gt&#39;</span><span class="p">:</span> <span class="n">gt</span><span class="p">,</span> <span class="s1">&#39;le&#39;</span><span class="p">:</span> <span class="n">le</span><span class="p">,</span> <span class="s1">&#39;lt&#39;</span><span class="p">:</span> <span class="n">lt</span><span class="p">,</span> <span class="s1">&#39;eq&#39;</span><span class="p">:</span> <span class="n">eq</span><span class="p">}</span>
+		<span class="n">ops</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;ge&quot;</span><span class="p">:</span> <span class="n">ge</span><span class="p">,</span> <span class="s2">&quot;gt&quot;</span><span class="p">:</span> <span class="n">gt</span><span class="p">,</span> <span class="s2">&quot;le&quot;</span><span class="p">:</span> <span class="n">le</span><span class="p">,</span> <span class="s2">&quot;lt&quot;</span><span class="p">:</span> <span class="n">lt</span><span class="p">,</span> <span class="s2">&quot;eq&quot;</span><span class="p">:</span> <span class="n">eq</span><span class="p">}</span>
 		<span class="k">if</span> <span class="n">comparator</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">:</span>
 			<span class="k">return</span> <span class="n">ops</span><span class="p">[</span><span class="n">comparator</span><span class="p">]</span>
 		<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">function</span><span class="p">,</span> <span class="n">comparator</span><span class="p">)</span>
@@ -957,7 +995,8 @@
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">comparator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_comparator</span><span class="p">(</span><span class="n">comparator</span><span class="p">)</span>
 		<span class="n">dead</span> <span class="o">=</span> <span class="p">[</span>
-			<span class="n">name</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+			<span class="n">name</span>
+			<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
 			<span class="k">if</span> <span class="n">stat</span> <span class="ow">in</span> <span class="n">node</span> <span class="ow">and</span> <span class="n">comparator</span><span class="p">(</span><span class="n">node</span><span class="p">[</span><span class="n">stat</span><span class="p">],</span> <span class="n">threshold</span><span class="p">)</span>
 		<span class="p">]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">remove_nodes_from</span><span class="p">(</span><span class="n">dead</span><span class="p">)</span>
@@ -975,7 +1014,8 @@
 		<span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">:</span>
 			<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">u</span><span class="p">]:</span>
 				<span class="k">if</span> <span class="n">stat</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">u</span><span class="p">][</span><span class="n">v</span><span class="p">]</span> <span class="ow">and</span> <span class="n">comparator</span><span class="p">(</span>
-					<span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">u</span><span class="p">][</span><span class="n">v</span><span class="p">][</span><span class="n">stat</span><span class="p">],</span> <span class="n">threshold</span><span class="p">):</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">u</span><span class="p">][</span><span class="n">v</span><span class="p">][</span><span class="n">stat</span><span class="p">],</span> <span class="n">threshold</span>
+				<span class="p">):</span>
 					<span class="n">dead</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">remove_edges_from</span><span class="p">(</span><span class="n">dead</span><span class="p">)</span>
 		<span class="k">return</span> <span class="bp">self</span>
@@ -983,7 +1023,7 @@
 	<span class="n">cull_edges</span> <span class="o">=</span> <span class="n">cull_portals</span>
 
 
-<span class="k">def</span> <span class="nf">normalize_layout</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_numpy_normalize_layout</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Make sure all the spots in a layout are where you can click.</span>
 
 <span class="sd">	Returns a copy of the layout with all spot coordinates are</span>
@@ -993,7 +1033,7 @@
 	<span class="n">xs</span> <span class="o">=</span> <span class="p">[]</span>
 	<span class="n">ys</span> <span class="o">=</span> <span class="p">[]</span>
 	<span class="n">ks</span> <span class="o">=</span> <span class="p">[]</span>
-	<span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span> <span class="ow">in</span> <span class="n">l</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+	<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="n">l</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 		<span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 		<span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 		<span class="n">ks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
@@ -1014,51 +1054,197 @@
 	<span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ks</span><span class="p">,</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">xnorm</span><span class="p">),</span> <span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">ynorm</span><span class="p">))))</span>
 
 
+<span class="k">def</span> <span class="nf">_threaded_normalize_layout</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+	<span class="vm">__doc__</span> <span class="o">=</span> <span class="n">_numpy_normalize_layout</span><span class="o">.</span><span class="vm">__doc__</span>
+
+	<span class="n">xs</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">ys</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">ks</span> <span class="o">=</span> <span class="p">[]</span>
+
+	<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="n">l</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+		<span class="n">ks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+		<span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+		<span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+	<span class="n">minx</span> <span class="o">=</span> <span class="n">miny</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+	<span class="n">maxx</span> <span class="o">=</span> <span class="n">maxy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;-inf&quot;</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="nf">calc_minx</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+		<span class="k">nonlocal</span> <span class="n">minx</span>
+		<span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">minx</span><span class="p">:</span>
+			<span class="n">minx</span> <span class="o">=</span> <span class="n">x</span>
+
+	<span class="k">def</span> <span class="nf">calc_maxx</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+		<span class="k">nonlocal</span> <span class="n">maxx</span>
+		<span class="k">if</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="n">maxx</span><span class="p">:</span>
+			<span class="n">maxx</span> <span class="o">=</span> <span class="n">x</span>
+
+	<span class="k">def</span> <span class="nf">calc_miny</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
+		<span class="k">nonlocal</span> <span class="n">miny</span>
+		<span class="k">if</span> <span class="n">y</span> <span class="o">&lt;</span> <span class="n">miny</span><span class="p">:</span>
+			<span class="n">miny</span> <span class="o">=</span> <span class="n">y</span>
+
+	<span class="k">def</span> <span class="nf">calc_maxy</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
+		<span class="k">nonlocal</span> <span class="n">maxy</span>
+		<span class="k">if</span> <span class="n">y</span> <span class="o">&gt;</span> <span class="n">maxy</span><span class="p">:</span>
+			<span class="n">maxy</span> <span class="o">=</span> <span class="n">y</span>
+
+	<span class="k">def</span> <span class="nf">calc_norm</span><span class="p">(</span><span class="n">minimum</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">coord</span><span class="p">):</span>
+		<span class="k">return</span> <span class="n">coefficient</span> <span class="o">*</span> <span class="p">(</span><span class="n">coord</span> <span class="o">-</span> <span class="n">minimum</span><span class="p">)</span>
+
+	<span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">()</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+		<span class="n">wait</span><span class="p">(</span>
+			<span class="n">chain</span><span class="p">(</span>
+				<span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">calc_minx</span><span class="p">,</span> <span class="o">*</span><span class="n">xs</span><span class="p">),</span>
+				<span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">calc_maxx</span><span class="p">,</span> <span class="o">*</span><span class="n">xs</span><span class="p">),</span>
+				<span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">calc_miny</span><span class="p">,</span> <span class="o">*</span><span class="n">ys</span><span class="p">),</span>
+				<span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">calc_maxy</span><span class="p">,</span> <span class="o">*</span><span class="n">ys</span><span class="p">),</span>
+			<span class="p">)</span>
+		<span class="p">)</span>
+		<span class="k">if</span> <span class="n">maxx</span> <span class="o">==</span> <span class="n">minx</span><span class="p">:</span>
+			<span class="n">xnorm</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+			<span class="n">xnormfuts</span> <span class="o">=</span> <span class="kc">None</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">xco</span> <span class="o">=</span> <span class="mf">0.98</span> <span class="o">/</span> <span class="p">(</span><span class="n">maxx</span> <span class="o">-</span> <span class="n">minx</span><span class="p">)</span>
+			<span class="n">xnormfuts</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">calc_norm</span><span class="p">,</span> <span class="n">minx</span><span class="p">,</span> <span class="n">xco</span><span class="p">),</span> <span class="n">xs</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">maxy</span> <span class="o">==</span> <span class="n">miny</span><span class="p">:</span>
+			<span class="n">ynorm</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
+			<span class="n">ynormfuts</span> <span class="o">=</span> <span class="kc">None</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">yco</span> <span class="o">=</span> <span class="mf">0.98</span> <span class="o">/</span> <span class="p">(</span><span class="n">maxy</span> <span class="o">-</span> <span class="n">miny</span><span class="p">)</span>
+			<span class="n">ynormfuts</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">calc_norm</span><span class="p">,</span> <span class="n">miny</span><span class="p">,</span> <span class="n">yco</span><span class="p">),</span> <span class="n">ys</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">xnormfuts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="n">wait</span><span class="p">(</span><span class="n">xnormfuts</span><span class="p">)</span>
+			<span class="n">xnorm</span> <span class="o">=</span> <span class="p">[</span><span class="n">fut</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">fut</span> <span class="ow">in</span> <span class="n">xnormfuts</span><span class="p">]</span>
+		<span class="k">if</span> <span class="n">ynormfuts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="n">wait</span><span class="p">(</span><span class="n">ynormfuts</span><span class="p">)</span>
+			<span class="n">ynorm</span> <span class="o">=</span> <span class="p">[</span><span class="n">fut</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">fut</span> <span class="ow">in</span> <span class="n">ynormfuts</span><span class="p">]</span>
+		<span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ks</span><span class="p">,</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xnorm</span><span class="p">,</span> <span class="n">ynorm</span><span class="p">)))</span>
+
+
+<span class="k">try</span><span class="p">:</span>
+	<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+	<span class="n">normalize_layout</span> <span class="o">=</span> <span class="n">_numpy_normalize_layout</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+	<span class="n">normalize_layout</span> <span class="o">=</span> <span class="n">_threaded_normalize_layout</span>
+
+
 <span class="k">def</span> <span class="nf">kf2delta</span><span class="p">(</span><span class="n">kf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-	<span class="n">ret</span> <span class="o">=</span> <span class="p">{}</span>
-	<span class="k">for</span> <span class="p">((</span><span class="n">charn</span><span class="p">,),</span> <span class="n">kvs</span><span class="p">)</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s1">&#39;graph_val&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-		<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="n">kvs</span>
-	<span class="k">for</span> <span class="p">((</span><span class="n">charn</span><span class="p">,),</span> <span class="n">existences</span><span class="p">)</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s1">&#39;nodes&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-		<span class="k">if</span> <span class="n">charn</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
-			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s1">&#39;nodes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">existences</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;nodes&#39;</span><span class="p">:</span> <span class="n">existences</span><span class="p">}</span>
-	<span class="k">for</span> <span class="p">((</span><span class="n">charn</span><span class="p">,</span> <span class="n">noden</span><span class="p">),</span> <span class="n">kvs</span><span class="p">)</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s1">&#39;node_val&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-		<span class="k">if</span> <span class="n">charn</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
-			<span class="k">if</span> <span class="s1">&#39;node_val&#39;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]:</span>
-				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s1">&#39;node_val&#39;</span><span class="p">][</span><span class="n">noden</span><span class="p">]</span> <span class="o">=</span> <span class="n">kvs</span>
+	<span class="n">ret</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;rulebook&quot;</span><span class="p">:</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;rulebook&quot;</span><span class="p">],</span> <span class="s2">&quot;universal&quot;</span><span class="p">:</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;universal&quot;</span><span class="p">]}</span>
+	<span class="n">rules</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&quot;rules&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+	<span class="k">for</span> <span class="n">funclist</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;triggers&quot;</span><span class="p">,</span> <span class="s2">&quot;prereqs&quot;</span><span class="p">,</span> <span class="s2">&quot;actions&quot;</span><span class="p">):</span>
+		<span class="k">for</span> <span class="n">rule</span><span class="p">,</span> <span class="n">funcs</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="n">funclist</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+			<span class="k">if</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">rules</span><span class="p">:</span>
+				<span class="n">rules</span><span class="p">[</span><span class="n">rule</span><span class="p">][</span><span class="n">funclist</span><span class="p">]</span> <span class="o">=</span> <span class="n">funcs</span>
 			<span class="k">else</span><span class="p">:</span>
-				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s1">&#39;node_val&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">noden</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}</span>
+				<span class="n">rules</span><span class="p">[</span><span class="n">rule</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">funclist</span><span class="p">:</span> <span class="n">funcs</span><span class="p">}</span>
+	<span class="k">for</span> <span class="p">(</span><span class="n">charn</span><span class="p">,),</span> <span class="n">kvs</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;graph_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+		<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="n">kvs</span>
+	<span class="k">for</span> <span class="p">(</span><span class="n">charn</span><span class="p">,),</span> <span class="n">existences</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;nodes&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+		<span class="k">if</span> <span class="n">charn</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
+			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;nodes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">existences</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;node_val&#39;</span><span class="p">:</span> <span class="p">{</span><span class="n">noden</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}}</span>
-	<span class="k">for</span> <span class="p">((</span><span class="n">charn</span><span class="p">,</span> <span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">),</span> <span class="n">existence</span><span class="p">)</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s1">&#39;edges&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;nodes&quot;</span><span class="p">:</span> <span class="n">existences</span><span class="p">}</span>
+	<span class="k">for</span> <span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">noden</span><span class="p">),</span> <span class="n">kvs</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;node_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+		<span class="k">if</span> <span class="n">charn</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
+			<span class="k">if</span> <span class="s2">&quot;node_val&quot;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]:</span>
+				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;node_val&quot;</span><span class="p">][</span><span class="n">noden</span><span class="p">]</span> <span class="o">=</span> <span class="n">kvs</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;node_val&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">noden</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;node_val&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">noden</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}}</span>
+	<span class="k">for</span> <span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">),</span> <span class="n">existence</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 		<span class="n">ex</span> <span class="o">=</span> <span class="n">existence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 		<span class="k">if</span> <span class="n">charn</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
-			<span class="k">if</span> <span class="s1">&#39;edges&#39;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]:</span>
-				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s1">&#39;edges&#39;</span><span class="p">][</span><span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">]</span> <span class="o">=</span> <span class="n">ex</span>
+			<span class="k">if</span> <span class="s2">&quot;edges&quot;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]:</span>
+				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">][</span><span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">]</span> <span class="o">=</span> <span class="n">ex</span>
 			<span class="k">else</span><span class="p">:</span>
-				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s1">&#39;edges&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{(</span><span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">):</span> <span class="n">ex</span><span class="p">}</span>
+				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{(</span><span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">):</span> <span class="n">ex</span><span class="p">}</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;edges&#39;</span><span class="p">:</span> <span class="p">{(</span><span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">):</span> <span class="n">ex</span><span class="p">}}</span>
-	<span class="k">for</span> <span class="p">((</span><span class="n">charn</span><span class="p">,</span> <span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">,</span> <span class="n">_</span><span class="p">),</span> <span class="n">kvs</span><span class="p">)</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s1">&#39;edge_val&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;edges&quot;</span><span class="p">:</span> <span class="p">{(</span><span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">):</span> <span class="n">ex</span><span class="p">}}</span>
+	<span class="k">for</span> <span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">,</span> <span class="n">_</span><span class="p">),</span> <span class="n">kvs</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;edge_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 		<span class="k">if</span> <span class="n">charn</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
-			<span class="k">if</span> <span class="s1">&#39;edge_val&#39;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]:</span>
-				<span class="k">if</span> <span class="n">orign</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s1">&#39;edge_val&#39;</span><span class="p">]:</span>
-					<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s1">&#39;edge_val&#39;</span><span class="p">][</span><span class="n">orign</span><span class="p">][</span><span class="n">destn</span><span class="p">]</span> <span class="o">=</span> <span class="n">kvs</span>
+			<span class="k">if</span> <span class="s2">&quot;edge_val&quot;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]:</span>
+				<span class="k">if</span> <span class="n">orign</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;edge_val&quot;</span><span class="p">]:</span>
+					<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;edge_val&quot;</span><span class="p">][</span><span class="n">orign</span><span class="p">][</span><span class="n">destn</span><span class="p">]</span> <span class="o">=</span> <span class="n">kvs</span>
 				<span class="k">else</span><span class="p">:</span>
-					<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s1">&#39;edge_val&#39;</span><span class="p">][</span><span class="n">orign</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">destn</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}</span>
+					<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;edge_val&quot;</span><span class="p">][</span><span class="n">orign</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">destn</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}</span>
 			<span class="k">else</span><span class="p">:</span>
-				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s1">&#39;edge_val&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">orign</span><span class="p">:</span> <span class="p">{</span><span class="n">destn</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}}</span>
+				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;edge_val&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">orign</span><span class="p">:</span> <span class="p">{</span><span class="n">destn</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}}</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;edge_val&#39;</span><span class="p">:</span> <span class="p">{</span><span class="n">orign</span><span class="p">:</span> <span class="p">{</span><span class="n">destn</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}}}</span>
+			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;edge_val&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">orign</span><span class="p">:</span> <span class="p">{</span><span class="n">destn</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}}}</span>
 	<span class="k">return</span> <span class="n">ret</span>
+
+
+<span class="k">def</span> <span class="nf">dicthash</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+	<span class="n">the_hash</span> <span class="o">=</span> <span class="mi">0</span>
+	<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+		<span class="n">the_hash</span> <span class="o">^=</span> <span class="nb">hash</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">):</span>
+			<span class="n">the_hash</span> <span class="o">^=</span> <span class="nb">hash</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+			<span class="n">the_hash</span> <span class="o">^=</span> <span class="n">dicthash</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+			<span class="n">the_hash</span> <span class="o">^=</span> <span class="n">listhash</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> is not hashable&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+	<span class="k">return</span> <span class="n">the_hash</span>
+
+
+<span class="k">def</span> <span class="nf">listhash</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+	<span class="n">the_hash</span> <span class="o">=</span> <span class="mi">0</span>
+	<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">L</span><span class="p">:</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">):</span>
+			<span class="n">the_hash</span> <span class="o">^=</span> <span class="nb">hash</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+			<span class="n">the_hash</span> <span class="o">^=</span> <span class="n">listhash</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+			<span class="n">the_hash</span> <span class="o">^=</span> <span class="n">dicthash</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> is not hashable&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+	<span class="k">return</span> <span class="n">the_hash</span>
+
+
+<span class="k">def</span> <span class="nf">howfast</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">wrap</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+		<span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+		<span class="k">def</span> <span class="nf">timing</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+			<span class="n">start</span> <span class="o">=</span> <span class="n">monotonic</span><span class="p">()</span>
+			<span class="n">ret</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+			<span class="n">timed</span> <span class="o">=</span> <span class="n">monotonic</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span>
+			<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outf</span><span class="p">:</span>
+				<span class="n">outf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">timed</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+			<span class="k">return</span> <span class="n">ret</span>
+
+		<span class="k">return</span> <span class="n">timing</span>
+
+	<span class="k">return</span> <span class="n">wrap</span>
+
+
+<span class="k">def</span> <span class="nf">sumlines</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+	<span class="n">total</span> <span class="o">=</span> <span class="mf">0.0</span>
+	<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">inf</span><span class="p">:</span>
+		<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">inf</span><span class="p">:</span>
+			<span class="n">total</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+	<span class="k">return</span> <span class="n">total</span>
+
+
+<span class="k">def</span> <span class="nf">meanlines</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+	<span class="n">total</span> <span class="o">=</span> <span class="mf">0.0</span>
+	<span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+	<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">inf</span><span class="p">:</span>
+		<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">inf</span><span class="p">:</span>
+			<span class="n">total</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+			<span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+	<span class="k">return</span> <span class="n">total</span> <span class="o">/</span> <span class="n">count</span>
 </pre></div>
 
           </div>
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="../../index.html">LiSE</a></h1>
 
@@ -1069,11 +1255,27 @@
 
 
 
-<h3>Navigation</h3>
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.character">character</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.node">node</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.portal">portal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.rule">rule</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.query">query</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html#module-LiSE.xcollections">xcollections</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
 </ul>
 
@@ -1086,16 +1288,6 @@
   </ul></li>
 </ul>
 </div>
-<search id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</search>
-<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -1112,8 +1304,8 @@
       &#169;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.0.2</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
     </div>
 
