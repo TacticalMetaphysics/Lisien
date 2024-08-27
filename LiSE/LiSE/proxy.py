@@ -2237,6 +2237,9 @@ class EngineProxy(AbstractEngine):
 	def main_branch(self) -> str:
 		return self.handle("main_branch")
 
+	def snap_keyframe(self) -> dict:
+		return self.handle("snap_keyframe")
+
 	def game_start(self) -> None:
 		self.handle("game_start", cb=self._upd_from_game_start)
 
