@@ -2299,10 +2299,60 @@ class EngineProxy(AbstractEngine):
 			self._universal_cache = {}
 			return
 		self._universal_cache = kf["universal"]
+		rc = self._rules_cache = {}
+		for rule, triggers in kf["triggers"].items():
+			if rule in rc:
+				rc[rule]["triggers"] = list(triggers)
+			else:
+				rc[rule] = {
+					"triggers": list(triggers),
+					"prereqs": [],
+					"actions": [],
+				}
+		for rule, prereqs in kf["prereqs"].items():
+			if rule in rc:
+				rc[rule]["prereqs"] = list(prereqs)
+			else:
+				rc[rule] = {
+					"triggers": [],
+					"prereqs": list(prereqs),
+					"actions": [],
+				}
+		for rule, actions in kf["actions"].items():
+			if rule in rc:
+				rc[rule]["actions"] = list(actions)
+			else:
+				rc[rule] = {
+					"triggers": [],
+					"prereqs": [],
+					"actions": list(actions),
+				}
 		self._char_cache = chars = {
 			graph: CharacterProxy(self, graph) for (graph,) in kf["graph_val"]
 		}
 		for (graph,), stats in kf["graph_val"].items():
+			if "character_rulebook" in stats:
+				chars[graph]._set_rulebook_proxy(
+					stats.pop("character_rulebook")
+				)
+			if "unit_rulebook" in stats:
+				chars[graph].unit._set_rulebook_proxy(
+					stats.pop("unit_rulebook")
+				)
+			if "character_thing_rulebook" in stats:
+				chars[graph].thing._set_rulebook_proxy(
+					stats.pop("character_thing_rulebook")
+				)
+			if "character_place_rulebook" in stats:
+				chars[graph].place._set_rulebook_proxy(
+					stats.pop("character_place_rulebook")
+				)
+			if "character_portal_rulebook" in stats:
+				chars[graph].portal._set_rulebook_proxy(
+					stats.pop("character_portal_rulebook")
+				)
+			if "units" in stats:
+				self._character_units_cache[graph] = stats.pop("units")
 			self._char_stat_cache[graph] = stats
 		for (char, node), stats in kf["node_val"].items():
 			if "location" in stats:
@@ -2334,6 +2384,7 @@ class EngineProxy(AbstractEngine):
 			)
 		for (char, orig, dest, _), stats in kf["edge_val"].items():
 			portal_stats[char][orig][dest] = stats
+		self._rulebooks_cache = kf["rulebook"]
 
 	def _pull_kf_now(self, *args, **kwargs):
 		self._replace_state_with_kf(self.handle("get_kf_now"))
@@ -2444,21 +2495,12 @@ class EngineProxy(AbstractEngine):
 		self.trigger.load()
 		self.function.load()
 		self.string.load()
-		self._rules_cache = self.handle("all_rules_copy")
-		for rule in self._rules_cache:
-			self._rule_obj_cache[rule] = RuleProxy(self, rule)
-		self._rulebooks_cache = self.handle("all_rulebooks_copy")
 		self._eternal_cache = self.handle("eternal_copy")
-		self._universal_cache = self.handle("universal_copy")
+		self._pull_kf_now()
 		for module in install_modules:
 			self.handle("install_module", module=module)
 		if do_game_start:
 			self.handle("do_game_start", cb=self._upd_caches)
-		deltas = self.handle("copy_chars")
-		for char, delta in deltas.items():
-			if char not in self.character:
-				self._char_cache[char] = CharacterProxy(self, char)
-			self.character[char]._apply_delta(delta)
 
 	def __getattr__(self, item):
 		return getattr(self.method, item)
