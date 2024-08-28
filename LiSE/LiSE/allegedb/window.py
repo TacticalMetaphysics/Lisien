@@ -576,8 +576,8 @@ class WindowDict(MutableMapping):
 				if rev > before[-1][0]:
 					return before[-1]
 				return recurse(before)
-			elif rev == before[-1][0]:
-				return before[-1]
+			elif rev == after[0][0]:
+				return after[0]
 			else:
 				return recurse(after)
 
