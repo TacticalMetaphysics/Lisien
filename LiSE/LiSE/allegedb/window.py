@@ -576,17 +576,18 @@ class WindowDict(MutableMapping):
 			else:
 				return recurse(after)
 
-		revs = self._past + list(reversed(self._future))
-		if len(revs) == 1:
-			result_rev, result = revs[0]
-			if rev < result_rev:
-				raise HistoricKeyError("No data ever for revision", rev)
-		else:
-			result_rev, result = recurse(revs)
-		i = revs.index((result_rev, result)) + 1
-		self._past = revs[:i]
-		self._future = list(reversed(revs[i:]))
-		return result
+		with self._lock:
+			revs = self._past + list(reversed(self._future))
+			if len(revs) == 1:
+				result_rev, result = revs[0]
+				if rev < result_rev:
+					raise HistoricKeyError("No data ever for revision", rev)
+			else:
+				result_rev, result = recurse(revs)
+			i = revs.index((result_rev, result)) + 1
+			self._past = revs[:i]
+			self._future = list(reversed(revs[i:]))
+			return result
 
 	def _seek(self, rev: int) -> None:
 		"""Arrange the caches to help look up the given revision."""
