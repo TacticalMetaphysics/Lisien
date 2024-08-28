@@ -1256,7 +1256,7 @@ class Engine(AbstractEngine, gORM):
 			self._keyframe_on_close
 			and self._btt() not in self._keyframes_times
 		):
-			self.snap_keyframe()
+			self.snap_keyframe(silent=True)
 		for store in self.stores:
 			if hasattr(store, "save"):
 				store.save(reimport=False)
@@ -2091,7 +2091,7 @@ class Engine(AbstractEngine, gORM):
 					data = nx.from_dict_of_lists(data)
 			data.graph.update(kwargs)
 		if self._btt() not in self._keyframes_times:
-			self.snap_keyframe()
+			self.snap_keyframe(silent=True)
 		self._init_graph(name, "DiGraph", data)
 		self._graph_objs[name] = self.char_cls(self, name)
 
