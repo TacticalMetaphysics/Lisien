@@ -246,13 +246,13 @@ def test_thing_place_iter():
 
 
 @patch("LiSE.handle.Engine")
-def test_get_slow_delta_overload(eng: MagicMock):
+def test_get_slow_delta_overload(_: MagicMock):
 	hand = EngineHandle()
 	eng = hand._real
 	eng.pack = msgpack.packb
 	eng.branch, eng.turn, eng.tick = data.BTT_FROM
 	eng._btt.return_value = data.BTT_FROM
-	eng._get_kf.side_effect = [data.KF_FROM, data.KF_TO]
+	eng.snap_keyframe.side_effect = [data.KF_FROM, data.KF_TO]
 	slowd = hand._get_slow_delta(data.BTT_FROM, data.BTT_TO)
 	assert slowd == data.SLOW_DELTA
 

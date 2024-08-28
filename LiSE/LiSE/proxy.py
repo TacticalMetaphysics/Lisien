@@ -2387,7 +2387,7 @@ class EngineProxy(AbstractEngine):
 		self._rulebooks_cache = kf["rulebook"]
 
 	def _pull_kf_now(self, *args, **kwargs):
-		self._replace_state_with_kf(self.handle("get_kf_now"))
+		self._replace_state_with_kf(self.handle("snap_keyframe"))
 
 	@property
 	def branch(self):

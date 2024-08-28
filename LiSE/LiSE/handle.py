@@ -225,12 +225,12 @@ class EngineHandle:
 	def get_keyframe(self, branch, turn, tick):
 		now = self._real._btt()
 		self._real._set_btt(branch, turn, tick)
-		self._real.snap_keyframe()
+		ret = self._real.snap_keyframe()
 		self._real._set_btt(*now)
-		return self._real._get_kf(branch, turn, tick)
+		return ret
 
-	def snap_keyframe(self):
-		return self._real.snap_keyframe()
+	def snap_keyframe(self, silent=False):
+		return self._real.snap_keyframe(silent=silent)
 
 	def _pack_delta(self, delta):
 		pack = self.pack
@@ -391,11 +391,9 @@ class EngineHandle:
 			return delta
 		now = self._real._btt()
 		self._real._set_btt(*btt_from)
-		self._real.snap_keyframe()
-		kf_from = self._real._get_kf(*btt_from)
+		kf_from = self._real.snap_keyframe()
 		self._real._set_btt(*btt_to)
-		self._real.snap_keyframe()
-		kf_to = self._real._get_kf(*btt_to)
+		kf_to = self._real.snap_keyframe()
 		self._real._set_btt(*now)
 		keys = []
 		ids_from = []
@@ -1151,11 +1149,7 @@ class EngineHandle:
 		new = branch not in self._real._branches
 		self._real.switch_main_branch(branch)
 		if not new:
-			return self.get_kf_now()
-
-	def get_kf_now(self) -> dict:
-		self._real.snap_keyframe()
-		return self._real._get_kf(*self._real._btt())
+			return self.snap_keyframe()
 
 	def game_start(self) -> None:
 		branch, turn, tick = self._real._btt()
@@ -1164,7 +1158,7 @@ class EngineHandle:
 				"You tried to start a game when it wasn't the start of time"
 			)
 		ret = self._real.game_start()
-		kf = self.get_kf_now()
+		kf = self.snap_keyframe()
 		delt = kf2delta(kf)
 		delt["eternal"] = dict(self._real.eternal)
 		functions = dict(self._real.function.iterplain())
