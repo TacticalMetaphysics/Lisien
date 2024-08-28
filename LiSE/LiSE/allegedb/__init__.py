@@ -1117,31 +1117,41 @@ class ORM:
 		gv = ret["graph_val"]
 		for k in self._graph_val_cache.keyframe:
 			try:
-				gv[k] = self._graph_val_cache.get_keyframe(k, branch, turn, tick, copy)
+				gv[k] = self._graph_val_cache.get_keyframe(
+					k, branch, turn, tick, copy
+				)
 			except KeyError:
 				pass
 		n = ret["nodes"]
 		for k in self._nodes_cache.keyframe:
 			try:
-				n[k] = self._nodes_cache.get_keyframe(k, branch, turn, tick, copy)
+				n[k] = self._nodes_cache.get_keyframe(
+					k, branch, turn, tick, copy
+				)
 			except KeyError:
 				pass
 		nv = ret["node_val"]
 		for k in self._node_val_cache.keyframe:
 			try:
-				nv[k] = self._node_val_cache.get_keyframe(k, branch, turn, tick, copy)
+				nv[k] = self._node_val_cache.get_keyframe(
+					k, branch, turn, tick, copy
+				)
 			except KeyError:
 				pass
 		e = ret["edges"]
 		for k in self._edges_cache.keyframe:
 			try:
-				e[k] = self._edges_cache.get_keyframe(k, branch, turn, tick, copy)
+				e[k] = self._edges_cache.get_keyframe(
+					k, branch, turn, tick, copy
+				)
 			except KeyError:
 				pass
 		ev = ret["edge_val"]
 		for k in self._edge_val_cache.keyframe:
 			try:
-				ev[k] = self._edge_val_cache.get_keyframe(k, branch, turn, tick, copy)
+				ev[k] = self._edge_val_cache.get_keyframe(
+					k, branch, turn, tick, copy
+				)
 			except KeyError:
 				pass
 		return ret
@@ -1272,7 +1282,9 @@ class ORM:
 				)
 			except KeyError:
 				continue
-			self._nodes_cache.set_keyframe((graph,), branch_to, turn, tick, nodes)
+			self._nodes_cache.set_keyframe(
+				(graph,), branch_to, turn, tick, nodes
+			)
 		for graph_node in self._node_val_cache.keyframe:
 			try:
 				vals = self._node_val_cache.get_keyframe(
@@ -1550,9 +1562,9 @@ class ORM:
 					for tick in sorted(kfd[time_from[0]][turn], reverse=True):
 						if time_from[2] <= tick:
 							return time_from[0], turn, tick
-		parent, branched_turn_from, branched_tick_from, turn_to, tick_to = self._branches[
-			time_from[0]
-		]
+		parent, branched_turn_from, branched_tick_from, turn_to, tick_to = (
+			self._branches[time_from[0]]
+		)
 		if parent is None:
 			self._snap_keyframe_de_novo(*time_from)
 			return time_from
@@ -1573,7 +1585,7 @@ class ORM:
 						branched_turn_from,
 						branched_tick_from,
 						turn_from,
-						tick_from
+						tick_from,
 					),
 				)
 			self._alias_kf(parent, time_from[0], turn_from, tick_from)
@@ -2949,7 +2961,9 @@ class ORM:
 	) -> None:
 		nbtt, exist_edge, store = self._exist_edge_stuff
 		branch, turn, tick = nbtt()
-		exist_edge(character, orig, dest, idx, branch, turn, tick, exist or False)
+		exist_edge(
+			character, orig, dest, idx, branch, turn, tick, exist or False
+		)
 		store(character, orig, dest, idx, branch, turn, tick, exist)
 		if (character, orig, dest) in self._edge_objs:
 			del self._edge_objs[character, orig, dest]
