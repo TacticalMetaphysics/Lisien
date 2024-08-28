@@ -556,23 +556,34 @@ class WindowDict(MutableMapping):
 
 		def recurse(revs: List[Tuple[int, Any]]) -> Any:
 			if len(revs) < 1:
-				raise KeyError("Can't retrieve revision", rev)
+				raise HistoricKeyError(
+					"No data ever for revision", rev, deleted=False
+				)
 			elif len(revs) == 1:
 				if revs[0][0] <= rev:
-					return revs
-				raise KeyError("Can't retrieve revision", rev)
+					return revs[0]
+				raise HistoricKeyError("Can't retrieve revision", rev)
 			pivot = len(revs) // 2
 			before = revs[:pivot]
 			after = revs[pivot:]
 			assert before and after
 			if rev < after[0][0]:
+				if rev > before[-1][0]:
+					return before[-1]
 				return recurse(before)
+			elif rev == before[-1][0]:
+				return before[-1]
 			else:
 				return recurse(after)
 
 		revs = self._past + list(reversed(self._future))
-		result_rev, result = recurse(revs)
-		i = revs.index((result_rev, result))
+		if len(revs) == 1:
+			result_rev, result = revs[0]
+			if rev < result_rev:
+				raise HistoricKeyError("No data ever for revision", rev)
+		else:
+			result_rev, result = recurse(revs)
+		i = revs.index((result_rev, result)) + 1
 		self._past = revs[:i]
 		self._future = list(reversed(revs[i:]))
 		return result
