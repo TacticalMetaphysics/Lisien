@@ -545,6 +545,38 @@ class WindowDict(MutableMapping):
 				self._seek(rev)
 		return WindowDictPastView(self._past)
 
+	def search(self, rev: int) -> Any:
+		"""Alternative access for far-away revisions
+
+		This uses a binary search, which is faster in the case of random
+		access, but not in the case of fast-forward and rewind, which are
+		more common in time travel.
+
+		"""
+
+		def recurse(revs: List[Tuple[int, Any]]) -> Any:
+			if len(revs) < 1:
+				raise KeyError("Can't retrieve revision", rev)
+			elif len(revs) == 1:
+				if revs[0][0] <= rev:
+					return revs
+				raise KeyError("Can't retrieve revision", rev)
+			pivot = len(revs) // 2
+			before = revs[:pivot]
+			after = revs[pivot:]
+			assert before and after
+			if rev < after[0][0]:
+				return recurse(before)
+			else:
+				return recurse(after)
+
+		revs = self._past + list(reversed(self._future))
+		result_rev, result = recurse(revs)
+		i = revs.index((result_rev, result))
+		self._past = revs[:i]
+		self._future = list(reversed(revs[i:]))
+		return result
+
 	def _seek(self, rev: int) -> None:
 		"""Arrange the caches to help look up the given revision."""
 		if rev == self._last:
