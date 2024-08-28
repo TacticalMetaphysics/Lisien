@@ -584,9 +584,7 @@ class WindowDict(MutableMapping):
 			if len(revs) == 1:
 				result_rev, result = revs[0]
 				if rev < result_rev:
-					raise HistoricKeyError(
-						"No data ever for revision", rev, deleted=False
-					)
+					raise HistoricKeyError("No data ever for revision", rev)
 			else:
 				result_rev, result = recurse(revs)
 			i = revs.index((result_rev, result)) + 1
@@ -601,9 +599,6 @@ class WindowDict(MutableMapping):
 			return
 		past = self._past
 		future = self._future
-		# To optimize for random access, I'd want to do binary search...
-		# but time travel *isn't* random access; most of the time you
-		# want to go only a little bit back or forward.
 		if future:
 			appender = past.append
 			popper = future.pop
