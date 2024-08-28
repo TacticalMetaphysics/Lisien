@@ -584,7 +584,9 @@ class WindowDict(MutableMapping):
 			if len(revs) == 1:
 				result_rev, result = revs[0]
 				if rev < result_rev:
-					raise HistoricKeyError("No data ever for revision", rev)
+					raise HistoricKeyError(
+						"No data ever for revision", rev, deleted=False
+					)
 			else:
 				result_rev, result = recurse(revs)
 			i = revs.index((result_rev, result)) + 1
