@@ -232,54 +232,6 @@ class EngineHandle:
 	def snap_keyframe(self):
 		return self._real.snap_keyframe()
 
-	def copy_chars(self, chars: Optional[Iterable[Key]] = None):
-		"""Return a mapping describing several characters
-
-		Each character  has the keys 'nodes', 'edges', 'units', 'rulebooks',
-		'node_val', 'edge_val', and whatever stats the character has.
-
-		By default, gets mappings for every character that
-		exists.
-
-		"""
-		if chars is None:
-			it = iter(self._real.character.keys())
-		else:
-			it = iter(chars)
-		self._real.snap_keyframe()
-		kf = self._real._get_kf(*self._get_btt())
-		ret = {}
-		for char in it:
-			chara = self._real.character[char]
-			char_d = ret[char] = {
-				"units": self._character_units_copy(char),
-				"rulebooks": {
-					"character": chara.rulebook.name,
-					"unit": chara.unit.rulebook.name,
-					"thing": chara.thing.rulebook.name,
-					"place": chara.place.rulebook.name,
-					"portal": chara.portal.rulebook.name,
-				},
-			}
-			if (char,) in kf["graph_val"]:
-				char_d.update(kf["graph_val"][char,])
-			if (char,) in kf["nodes"]:
-				char_d["nodes"] = {
-					node: ex for (node, ex) in kf["nodes"][char,].items() if ex
-				}
-		for (char, node), val in kf["node_val"].items():
-			ret.setdefault(char, {}).setdefault("node_val", {})[node] = val
-		for (char, orig, dest), ex in kf["edges"].items():
-			ret.setdefault(char, {}).setdefault("edges", {})[orig, dest] = ex[
-				0
-			]
-		for (char, orig, dest, idx), mapp in kf["edge_val"].items():
-			for key, value in mapp.items():
-				ret.setdefault(char, {}).setdefault("edge_val", {}).setdefault(
-					orig, {}
-				).setdefault(dest, {})[key] = value
-		return ret
-
 	def _pack_delta(self, delta):
 		pack = self.pack
 		slightly_packed_delta = {}
@@ -813,10 +765,6 @@ class EngineHandle:
 	def del_universal(self, k):
 		del self._real.universal[k]
 
-	@prepacked
-	def universal_copy(self):
-		return dict(map(self.pack_pair, self._real.universal.items()))
-
 	def del_character(self, char):
 		del self._real.character[char]
 
@@ -1045,27 +993,6 @@ class EngineHandle:
 		self._real.rulebook.__getitem__(rulebook)
 		return []
 
-	def rulebook_copy(
-		self, rulebook: Key, btt: Tuple[str, int, int] = None
-	) -> List[str]:
-		branch, turn, tick = self._get_btt(btt)
-		return list(
-			self._real.rulebook[rulebook]._get_cache(branch, turn, tick)[0]
-		)
-
-	def all_rulebooks_copy(
-		self, btt: Tuple[str, int, int] = None
-	) -> Dict[Key, List[str]]:
-		btt = self._get_btt(btt)
-		origtime = self._real._btt()
-		self._real._set_btt(*btt)
-		ret = {
-			rulebook: v._get_cache(*btt)[0]
-			for (rulebook, v) in self._real.rulebook.items()
-		}
-		self._real._set_btt(*origtime)
-		return ret
-
 	def set_rulebook_rule(self, rulebook: Key, i: int, rule: str) -> None:
 		self._real.rulebook[rulebook][i] = rule
 
@@ -1109,44 +1036,6 @@ class EngineHandle:
 		self, char: Key, orig: Key, dest: Key, rulebook: Key
 	) -> None:
 		self._real.character[char].portal[orig][dest].rulebook = rulebook
-
-	def rule_copy(
-		self, rule: str, btt: Tuple[str, int, int] = None
-	) -> Dict[str, List[str]]:
-		branch, turn, tick = self._get_btt(btt)
-		try:
-			triggers = list(
-				self._real._triggers_cache.retrieve(rule, branch, turn, tick)
-			)
-		except KeyError:
-			triggers = []
-		try:
-			prereqs = list(
-				self._real._prereqs_cache.retrieve(rule, branch, turn, tick)
-			)
-		except KeyError:
-			prereqs = []
-		try:
-			actions = list(
-				self._real._actions_cache.retrieve(rule, branch, turn, tick)
-			)
-		except KeyError:
-			actions = []
-		return {"triggers": triggers, "prereqs": prereqs, "actions": actions}
-
-	def all_rules_copy(
-		self, *, btt: Tuple[str, int, int] = None
-	) -> Dict[str, Dict[str, List[str]]]:
-		btt = self._get_btt(btt)
-		origtime = self._real._btt()
-		if btt != origtime:
-			self._real._set_btt(*btt)
-		ret = {
-			rule: self.rule_copy(rule, btt) for rule in self._real.rule.keys()
-		}
-		if btt != origtime:
-			self._real._set_btt(*origtime)
-		return ret
 
 	@prepacked
 	def source_copy(self, store: str) -> Dict[bytes, bytes]:
