@@ -551,6 +551,9 @@ class WindowDict(MutableMapping):
 			return
 		past = self._past
 		future = self._future
+		# To optimize for random access, I'd want to do binary search...
+		# but time travel *isn't* random access; most of the time you
+		# want to go only a little bit back or forward.
 		if future:
 			appender = past.append
 			popper = future.pop
