@@ -565,7 +565,9 @@ class WindowDict(MutableMapping):
 			elif len(revs) == 1:
 				if revs[0][0] <= rev:
 					return revs[0]
-				raise HistoricKeyError("Can't retrieve revision", rev)
+				raise HistoricKeyError(
+					"Can't retrieve revision", rev, deleted=True
+				)
 			pivot = len(revs) // 2
 			before = revs[:pivot]
 			after = revs[pivot:]
