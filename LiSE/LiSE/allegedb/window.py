@@ -552,6 +552,9 @@ class WindowDict(MutableMapping):
 		access, but not in the case of fast-forward and rewind, which are
 		more common in time travel.
 
+		This arranges the cache to optimize retrieval of the same and
+		nearby revisions, same as normal lookups.
+
 		"""
 
 		def recurse(revs: List[Tuple[int, Any]]) -> Any:
@@ -587,6 +590,7 @@ class WindowDict(MutableMapping):
 			i = revs.index((result_rev, result)) + 1
 			self._past = revs[:i]
 			self._future = list(reversed(revs[i:]))
+			self._last = rev
 			return result
 
 	def _seek(self, rev: int) -> None:
