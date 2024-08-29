@@ -216,17 +216,9 @@ class WindowDictValuesView(ABC, ValuesView):
 	_mapping: "WindowDict"
 
 	def __contains__(self, value: Any):
-		past = self._mapping._past
-		future = self._mapping._future
-		if past:
-			for rev, v in past:
-				if v == value:
-					return True
-		if future:
-			for rev, v in future:
-				if v == value:
-					return True
-		return False
+		return value in map(get1, self._mapping._past) or value in map(
+			get1, self._mapping._future
+		)
 
 	def __iter__(self):
 		past = self._mapping._past
