@@ -107,23 +107,6 @@ class HistoricKeyError(KeyError):
 		self.deleted = deleted
 
 
-def within_history(rev: int, windowdict: "WindowDict"):
-	"""Return whether the windowdict has history at the revision."""
-	if not windowdict:
-		return False
-	begin = (
-		windowdict._past[0][0]
-		if windowdict._past
-		else windowdict._future[-1][0]
-	)
-	end = (
-		windowdict._future[0][0]
-		if windowdict._future
-		else windowdict._past[-1][0]
-	)
-	return begin <= rev <= end
-
-
 class WindowDictKeysView(ABC, KeysView):
 	"""Look through all the keys a WindowDict contains."""
 
@@ -149,7 +132,7 @@ class WindowDictItemsView(ABC, ItemsView):
 	def __contains__(self, item: Tuple[int, Any]):
 		(rev, v) = item
 		mapp = self._mapping
-		if not within_history(rev, mapp):
+		if not (mapp.beginning <= rev <= mapp.end):
 			return False
 		for mrev, mv in mapp._past:
 			if mrev == rev:
