@@ -1608,6 +1608,8 @@ class ORM:
 		"""
 		branch, turn, tick = self._btt()
 		if (branch, turn, tick) in self._keyframes_times:
+			if silent:
+				return
 			return self._get_kf(branch, turn, tick)
 		kfd = self._keyframes_dict
 		the_kf: Optional[Tuple[str, int, int]] = None
