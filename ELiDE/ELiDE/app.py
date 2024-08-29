@@ -496,7 +496,7 @@ class ELiDEApp(App):
 
 	def on_stop(self, *largs):
 		"""Sync the database, wrap up the game, and halt."""
-		if hasattr(self, 'stopped'):
+		if hasattr(self, "stopped"):
 			return
 		self.stopped = True
 		self.strings.save()

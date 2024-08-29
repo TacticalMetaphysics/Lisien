@@ -204,7 +204,9 @@ class Portal(Edge, RuleFollower):
 
 		"""
 		self.clear()
-		self.engine._exist_edge(self.character.name, self.orig, self.dest, exist=None)
+		self.engine._exist_edge(
+			self.character.name, self.orig, self.dest, exist=None
+		)
 
 	def unwrap(self) -> dict:
 		"""Return a dictionary representation of this entity"""
