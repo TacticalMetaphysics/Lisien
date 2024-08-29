@@ -130,17 +130,7 @@ class WindowDictItemsView(ABC, ItemsView):
 	_mapping: "WindowDict"
 
 	def __contains__(self, item: Tuple[int, Any]):
-		(rev, v) = item
-		mapp = self._mapping
-		if not (mapp.beginning <= rev <= mapp.end):
-			return False
-		for mrev, mv in mapp._past:
-			if mrev == rev:
-				return mv == v
-		for mrev, mv in mapp._future:
-			if mrev == rev:
-				return mv == v
-		return False
+		return item in self._mapping._past or item in self._mapping._future
 
 	def __iter__(self):
 		past = self._mapping._past
