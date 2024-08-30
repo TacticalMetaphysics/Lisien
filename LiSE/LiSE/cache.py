@@ -679,11 +679,14 @@ class ThingsCache(Cache):
 					branch
 				].future(turn)
 				todo = []
-				for trn in future_location_data:
-					for tck in future_location_data[trn]:
-						char, loca, contents = future_location_data[trn][tck]
-						if char == character and loca == oldloc:
-							todo.append((trn, tck))
+				if future_location_data:
+					for trn in future_location_data:
+						for tck in future_location_data[trn]:
+							char, loca, contents = future_location_data[trn][
+								tck
+							]
+							if char == character and loca == oldloc:
+								todo.append((trn, tck))
 				for trn, tck in todo:
 					node_contents_cache.store(
 						character,
@@ -720,11 +723,14 @@ class ThingsCache(Cache):
 					branch
 				].future(turn)
 				todo = []
-				for trn in future_location_data:
-					for tck in sorted(future_location_data[trn]):
-						char, loca, contents = future_location_data[trn][tck]
-						if char == character and loca == location:
-							todo.append((trn, tck))
+				if future_location_data:
+					for trn in future_location_data:
+						for tck in sorted(future_location_data[trn]):
+							char, loca, contents = future_location_data[trn][
+								tck
+							]
+							if char == character and loca == location:
+								todo.append((trn, tck))
 				for trn, tck in todo:
 					node_contents_cache.store(
 						character,
