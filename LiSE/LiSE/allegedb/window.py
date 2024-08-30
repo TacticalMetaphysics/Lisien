@@ -21,7 +21,7 @@ of the same key and neighboring ones repeatedly and in sequence.
 
 """
 
-from abc import ABC
+from abc import abstractmethod, ABC
 from collections import deque
 from collections.abc import (
 	Mapping,
@@ -141,6 +141,75 @@ class WindowDictItemsView(ABC, ItemsView):
 			yield from future
 
 
+class WindowDictPastFutureKeysView(ABC, KeysView):
+	"""View on a WindowDict's keys relative to last lookup"""
+
+	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
+
+	def __iter__(self):
+		if not self._mapping.stack:
+			return
+		yield from map(get0, reversed(self._mapping.stack))
+
+	def __contains__(self, item: int):
+		return item in self._mapping and item in map(get0, self._mapping.stack)
+
+
+class WindowDictPastFutureItemsView(ABC, ItemsView):
+	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
+
+	@staticmethod
+	@abstractmethod
+	def _out_of_range(item: tuple, stack: list):
+		pass
+
+	def __iter__(self):
+		if not self._mapping.stack:
+			return
+		yield from reversed(self._mapping.stack)
+
+	def __contains__(self, item: Tuple[int, Any]):
+		if self._out_of_range(item, self._mapping.stack):
+			return False
+		i0, i1 = item
+		for j0, j1 in self._mapping.stack:
+			if i0 == j0:
+				return i1 == j1
+		return False
+
+
+class WindowDictPastItemsView(WindowDictPastFutureItemsView):
+	@staticmethod
+	def _out_of_range(item: Tuple[int, Any], stack: List[Tuple[int, Any]]):
+		return item[0] < stack[0][0] or item[0] > stack[-1][0]
+
+
+class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
+	"""View on a WindowDict's future items relative to last lookup"""
+
+	@staticmethod
+	def _out_of_range(item: Tuple[int, Any], stack: List[Tuple[int, Any]]):
+		return item[0] < stack[-1][0] or item[0] > stack[0][0]
+
+
+class WindowDictPastFutureValuesView(ABC, ValuesView):
+	"""Abstract class for views on the past or future values of a WindowDict"""
+
+	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
+
+	def __iter__(self):
+		stack = self._mapping.stack
+		if not stack:
+			return
+		yield from map(get1, reversed(stack))
+
+	def __contains__(self, item: Any):
+		stack = self._mapping.stack
+		if not stack:
+			return False
+		return item in map(get1, stack)
+
+
 class WindowDictValuesView(ABC, ValuesView):
 	"""Look through all the values that a WindowDict contains."""
 
@@ -158,6 +227,78 @@ class WindowDictValuesView(ABC, ValuesView):
 			yield from map(get1, past)
 		if future:
 			yield from map(get1, future)
+
+
+class WindowDictPastFutureView(ABC, Mapping):
+	"""Abstract class for historical views on WindowDict"""
+
+	__slots__ = ("stack",)
+	stack: List[Tuple[int, Any]]
+
+	def __init__(self, stack: List[Tuple[int, Any]]) -> None:
+		self.stack = stack
+
+	def __len__(self) -> int:
+		stack = self.stack
+		if not stack:
+			return 0
+		return len(stack)
+
+
+class WindowDictPastView(WindowDictPastFutureView):
+	"""Read-only mapping of just the past of a WindowDict"""
+
+	def __iter__(self) -> Iterable[int]:
+		stack = self.stack
+		if not stack:
+			return
+		yield from map(get0, reversed(stack))
+
+	def __getitem__(self, key: int) -> Any:
+		stack = self.stack
+		if not stack or key < stack[0][0] or key > stack[-1][0]:
+			raise KeyError
+		for rev, value in stack:
+			if rev == key:
+				return value
+		raise KeyError
+
+	def keys(self) -> WindowDictPastFutureKeysView:
+		return WindowDictPastFutureKeysView(self)
+
+	def items(self) -> WindowDictPastItemsView:
+		return WindowDictPastItemsView(self)
+
+	def values(self) -> WindowDictPastFutureValuesView:
+		return WindowDictPastFutureValuesView(self)
+
+
+class WindowDictFutureView(WindowDictPastFutureView):
+	"""Read-only mapping of just the future of a WindowDict"""
+
+	def __iter__(self):
+		stack = self.stack
+		if not stack:
+			return
+		yield from map(get0, reversed(stack))
+
+	def __getitem__(self, key: int):
+		stack = self.stack
+		if not stack or key < stack[-1][0] or key > stack[0][0]:
+			raise KeyError
+		for rev, value in stack:
+			if rev == key:
+				return value
+		raise KeyError
+
+	def keys(self) -> WindowDictPastFutureKeysView:
+		return WindowDictPastFutureKeysView(self)
+
+	def items(self) -> WindowDictFutureItemsView:
+		return WindowDictFutureItemsView(self)
+
+	def values(self) -> WindowDictPastFutureValuesView:
+		return WindowDictPastFutureValuesView(self)
 
 
 class WindowDictSlice:
@@ -346,6 +487,28 @@ class WindowDict(MutableMapping):
 				return None
 			return self._past[-1][0]
 		return self._future[0][0]
+
+	def future(self, rev: int = None) -> WindowDictFutureView:
+		"""Return a Mapping of items after the given revision.
+
+		Default revision is the last one looked up.
+
+		"""
+		if rev is not None:
+			with self._lock:
+				self._seek(rev)
+		return WindowDictFutureView(self._future)
+
+	def past(self, rev: int = None) -> WindowDictPastView:
+		"""Return a Mapping of items at or before the given revision.
+
+		Default revision is the last one looked up.
+
+		"""
+		if rev is not None:
+			with self._lock:
+				self._seek(rev)
+		return WindowDictPastView(self._past)
 
 	def search(self, rev: int) -> Any:
 		"""Alternative access for far-away revisions

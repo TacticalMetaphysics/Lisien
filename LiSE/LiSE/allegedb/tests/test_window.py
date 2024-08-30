@@ -40,13 +40,68 @@ def test_items(windd):
 	assert (63, 36) not in windd.items()
 
 
+def test_past(windd):
+	assert list(reversed(range(100))) == list(windd.past())
+	windd._seek(50)
+	assert list(reversed(range(51))) == list(windd.past())
+	unseen = testdata[51:]
+	seen = testdata[:51]
+	seen.reverse()
+	assert seen == list(windd.past().items())
+	for item in seen:
+		assert item[0] in windd.past()
+		assert item[0] in windd.past().keys()
+		assert item in windd.past().items()
+		assert item[1] in windd.past().values()
+	for item in windd.past().items():
+		assert item in seen
+	for item in unseen:
+		assert item[0] not in windd.past()
+		assert item[0] not in windd.past().keys()
+		assert item not in windd.past().items()
+		assert item[1] not in windd.past().values()
+
+
+def test_future(windd):
+	assert [] == list(windd.future())
+	windd._seek(-1)
+	assert list(range(100)) == list(windd.future())
+	for item in testdata:
+		assert item in windd.future().items()
+	windd._seek(50)
+	assert list(range(51, 100)) == list(windd.future())
+	unseen = testdata[51:]
+	seen = testdata[:51]
+	assert unseen == list(windd.future().items())
+	for item in unseen:
+		assert item[0] in windd.future()
+		assert item[0] in windd.future().keys()
+		assert item in windd.future().items()
+		assert item[1] in windd.future().values()
+	for item in windd.future().items():
+		assert item in unseen
+	for item in seen:
+		assert item[0] not in windd.future()
+		assert item[0] not in windd.future().keys()
+		assert item not in windd.future().items()
+		assert item[1] not in windd.future().values()
+
+
 def test_empty():
 	empty = WindowDict()
 	items = empty.items()
+	past = empty.past()
+	future = empty.future()
 	assert not items
 	assert list(items) == []
+	assert list(past) == []
+	assert list(past.items()) == []
+	assert list(future) == []
+	assert list(future.items()) == []
 	for data in testdata:
 		assert data not in items
+		assert data not in past
+		assert data not in future
 
 
 def test_slice(windd):
