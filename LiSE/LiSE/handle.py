@@ -347,7 +347,6 @@ class EngineHandle:
 		# Comparing object IDs is guaranteed never to give a false equality,
 		# because of the way keyframes are constructed.
 		# It may give a false inequality.
-		# rules, rulebooks, universal
 		for k in kf_from["universal"].keys() | kf_to["universal"].keys():
 			keys.append(("universal", k))
 			va = kf_from["universal"].get(k)
