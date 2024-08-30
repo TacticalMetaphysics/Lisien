@@ -48,6 +48,14 @@ from tblib import Traceback
 from . import exc
 
 
+class BadTimeException(Exception):
+	"""You tried to do something that would make sense at a different game-time
+
+	But doesn't make sense now
+
+	"""
+
+
 class FinalRule:
 	"""A singleton sentinel for the rule iterator"""
 
@@ -1095,113 +1103,3 @@ try:
 	normalize_layout = _numpy_normalize_layout
 except ImportError:
 	normalize_layout = _threaded_normalize_layout
-
-
-def kf2delta(kf) -> dict:
-	ret = {"rulebook": kf["rulebook"], "universal": kf["universal"]}
-	rules = ret["rules"] = {}
-	for funclist in ("triggers", "prereqs", "actions"):
-		for rule, funcs in kf[funclist].items():
-			if rule in rules:
-				rules[rule][funclist] = funcs
-			else:
-				rules[rule] = {funclist: funcs}
-	for (charn,), kvs in kf["graph_val"].items():
-		ret[charn] = kvs
-	for (charn,), existences in kf["nodes"].items():
-		if charn in ret:
-			ret[charn]["nodes"] = existences
-		else:
-			ret[charn] = {"nodes": existences}
-	for (charn, noden), kvs in kf["node_val"].items():
-		if charn in ret:
-			if "node_val" in ret[charn]:
-				ret[charn]["node_val"][noden] = kvs
-			else:
-				ret[charn]["node_val"] = {noden: kvs}
-		else:
-			ret[charn] = {"node_val": {noden: kvs}}
-	for (charn, orign, destn), existence in kf["edges"].items():
-		ex = existence[0]
-		if charn in ret:
-			if "edges" in ret[charn]:
-				ret[charn]["edges"][orign, destn] = ex
-			else:
-				ret[charn]["edges"] = {(orign, destn): ex}
-		else:
-			ret[charn] = {"edges": {(orign, destn): ex}}
-	for (charn, orign, destn, _), kvs in kf["edge_val"].items():
-		if charn in ret:
-			if "edge_val" in ret[charn]:
-				if orign in ret[charn]["edge_val"]:
-					ret[charn]["edge_val"][orign][destn] = kvs
-				else:
-					ret[charn]["edge_val"][orign] = {destn: kvs}
-			else:
-				ret[charn]["edge_val"] = {orign: {destn: kvs}}
-		else:
-			ret[charn] = {"edge_val": {orign: {destn: kvs}}}
-	return ret
-
-
-def dicthash(d):
-	the_hash = 0
-	for k, v in d.items():
-		the_hash ^= hash(k)
-		if isinstance(v, Hashable):
-			the_hash ^= hash(v)
-		elif isinstance(v, Mapping):
-			the_hash ^= dicthash(v)
-		elif isinstance(v, Sequence):
-			the_hash ^= listhash(v)
-		else:
-			raise TypeError(f"{v} is not hashable", v)
-	return the_hash
-
-
-def listhash(L):
-	the_hash = 0
-	for v in L:
-		if isinstance(v, Hashable):
-			the_hash ^= hash(v)
-		elif isinstance(v, Sequence):
-			the_hash ^= listhash(v)
-		elif isinstance(v, Mapping):
-			the_hash ^= dicthash(v)
-		else:
-			raise TypeError(f"{v} is not hashable", v)
-	return the_hash
-
-
-def howfast(fn: str):
-	def wrap(func):
-		@wraps(func)
-		def timing(*args, **kwargs):
-			start = monotonic()
-			ret = func(*args, **kwargs)
-			timed = monotonic() - start
-			with open(fn, "a") as outf:
-				outf.write(str(timed) + "\n")
-			return ret
-
-		return timing
-
-	return wrap
-
-
-def sumlines(fn: str) -> float:
-	total = 0.0
-	with open(fn, "r") as inf:
-		for line in inf:
-			total += float(line.strip())
-	return total
-
-
-def meanlines(fn: str) -> float:
-	total = 0.0
-	count = 0
-	with open(fn, "r") as inf:
-		for line in inf:
-			total += float(line.strip())
-			count += 1
-	return total / count

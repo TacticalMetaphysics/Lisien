@@ -41,7 +41,7 @@ from .allegedb import OutOfTimelineError, Key
 from .engine import Engine
 from .node import Node
 from .portal import Portal
-from .util import AbstractCharacter, timer, kf2delta
+from .util import AbstractCharacter, BadTimeException, timer
 
 SlightlyPackedDeltaType = Dict[
 	bytes,
@@ -1023,20 +1023,16 @@ class EngineHandle:
 	def game_start(self) -> None:
 		branch, turn, tick = self._real._btt()
 		if (turn, tick) != (0, 0):
-			raise Exception(
+			raise BadTimeException(
 				"You tried to start a game when it wasn't the start of time"
 			)
-		ret = self._real.game_start()
 		kf = self.snap_keyframe()
-		delt = kf2delta(kf)
-		delt["eternal"] = dict(self._real.eternal)
 		functions = dict(self._real.function.iterplain())
 		methods = dict(self._real.method.iterplain())
 		triggers = dict(self._real.trigger.iterplain())
 		prereqs = dict(self._real.prereq.iterplain())
 		actions = dict(self._real.action.iterplain())
 		return (
-			ret,
 			kf,
 			self._real.eternal,
 			functions,

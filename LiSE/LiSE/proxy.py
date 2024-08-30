@@ -51,6 +51,7 @@ from .util import (
 	AbstractEngine,
 	MsgpackExtensionType,
 	AbstractCharacter,
+	BadTimeException,
 )
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
@@ -2232,7 +2233,6 @@ class EngineProxy(AbstractEngine):
 
 	def _upd_from_game_start(self, command, branch, turn, tick, result):
 		(
-			start_ret,
 			start_kf,
 			eternal,
 			functions,
