@@ -256,11 +256,6 @@ class NodeProxy(CachingEntityProxy):
 			return self.name
 		return super().__getitem__(k)
 
-	def _get_state(self):
-		return self.engine.handle(
-			command="node_stat_copy", char=self._charname, node=self.name
-		)
-
 	def _set_item(self, k, v):
 		if k == "name":
 			raise KeyError("Nodes can't be renamed")
@@ -868,16 +863,6 @@ class SuccessorsProxy(CachingProxy):
 			and self._orig == other._orig
 		)
 
-	def _get_state(self):
-		return {
-			node: self._cache[node]
-			if node in self._cache
-			else PortalProxy(self.engine, self._charname, self._orig, node)
-			for node in self.engine.handle(
-				command="node_successors", char=self._charname, node=self._orig
-			)
-		}
-
 	def _apply_delta(self, delta):
 		raise NotImplementedError(
 			"Apply the delta on CharSuccessorsMappingProxy"
@@ -1105,11 +1090,6 @@ class CharStatProxy(CachingEntityProxy):
 		if k is None:
 			return self
 		return self._cache[k]
-
-	def _get_state(self):
-		return self.engine.handle(
-			command="character_stat_copy", char=self.name
-		)
 
 	def _set_item(self, k, v):
 		if k == "name":

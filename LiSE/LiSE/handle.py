@@ -21,9 +21,7 @@ from concurrent.futures import ThreadPoolExecutor
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from operator import itemgetter
 from re import match
-from functools import partial
 from importlib import import_module
-from threading import Thread
 from typing import (
 	Dict,
 	Tuple,
@@ -43,7 +41,7 @@ from .allegedb import OutOfTimelineError, Key
 from .engine import Engine
 from .node import Node
 from .portal import Portal
-from .util import MsgpackExtensionType, AbstractCharacter, timer, kf2delta
+from .util import AbstractCharacter, timer, kf2delta
 
 SlightlyPackedDeltaType = Dict[
 	bytes,
@@ -80,9 +78,6 @@ PREREQS: bytes = msgpack.packb("prereqs")
 ACTIONS: bytes = msgpack.packb("actions")
 LOCATION: bytes = msgpack.packb("location")
 BRANCH: bytes = msgpack.packb("branch")
-SET_CODE: bytes = MsgpackExtensionType.set.value.to_bytes(
-	1, "big", signed=False
-)
 
 
 def concat_d(r: Dict[bytes, bytes]) -> bytes:
@@ -91,50 +86,6 @@ def concat_d(r: Dict[bytes, bytes]) -> bytes:
 	for k, v in r.items():
 		resp += k + v
 	return resp
-
-
-def concat_s(s: Set[bytes]) -> bytes:
-	(
-		"""Pack a set of msgpack-encoded values into a msgpack array with ext code """
-		+ str(SET_CODE)
-	)
-	resp = msgpack.Packer().pack_array_header(len(s))
-	for v in s:
-		resp += v
-	data_len = len(resp)
-	if data_len == 1:
-		return b"\xd4" + SET_CODE + resp
-	elif data_len == 2:
-		return b"\xd5" + SET_CODE + resp
-	elif data_len == 4:
-		return b"\xd6" + SET_CODE + resp
-	elif data_len == 8:
-		return b"\xd7" + SET_CODE + resp
-	elif data_len == 16:
-		return b"\xd8" + SET_CODE + resp
-	elif data_len < 2**8:
-		return (
-			b"\xc7"
-			+ data_len.to_bytes(1, "big", signed=False)
-			+ SET_CODE
-			+ resp
-		)
-	elif data_len < 2**16:
-		return (
-			b"\xc8"
-			+ data_len.to_bytes(2, "big", signed=False)
-			+ SET_CODE
-			+ resp
-		)
-	elif data_len < 2**32:
-		return (
-			b"\xc9"
-			+ data_len.to_bytes(4, "big", signed=False)
-			+ SET_CODE
-			+ resp
-		)
-	else:
-		raise ValueError("Too long")
 
 
 def prepacked(fun: Callable) -> Callable:
@@ -221,13 +172,6 @@ class EngineHandle:
 	def time_locked(self) -> bool:
 		"""Return whether the sim-time has been prevented from advancing"""
 		return hasattr(self._real, "locktime")
-
-	def get_keyframe(self, branch, turn, tick):
-		now = self._real._btt()
-		self._real._set_btt(branch, turn, tick)
-		ret = self._real.snap_keyframe()
-		self._real._set_btt(*now)
-		return ret
 
 	def snap_keyframe(self, silent=False):
 		return self._real.snap_keyframe(silent=silent)
@@ -766,18 +710,6 @@ class EngineHandle:
 	def del_character(self, char):
 		del self._real.character[char]
 
-	@prepacked
-	def character_stat_copy(self, char):
-		if char not in self._real.character:
-			raise KeyError("no such character")
-		pack = self.pack
-		return {
-			pack(k): pack(v.unwrap())
-			if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap")
-			else pack(v)
-			for (k, v) in self._real.character[char].stat.items()
-		}
-
 	def _character_units_copy(self, char) -> Dict[bytes, Set[bytes]]:
 		pack = self._real.pack
 		return {
@@ -804,40 +736,8 @@ class EngineHandle:
 			return self._real._btt()
 		return btt
 
-	@prepacked
-	def node_stat_copy(
-		self, char: Key, node: Key, btt: Tuple[str, int, int] = None
-	) -> Dict[bytes, bytes]:
-		branch, turn, tick = self._get_btt(btt)
-		pack = self._real.pack
-		origtime = self._real._btt()
-		if (branch, turn, tick) != origtime:
-			self._real._set_btt(branch, turn, tick)
-		noden = node
-		node = self._real.character[char].node[noden]
-		ret = {
-			pack(k): pack(v.unwrap())
-			if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap")
-			else pack(v)
-			for (k, v) in node.items()
-			if k
-			not in {"character", "name", "arrival_time", "next_arrival_time"}
-		}
-		if (branch, turn, tick) != origtime:
-			self._real._set_btt(*origtime)
-		return ret
-
 	def node_exists(self, char: Key, node: Key) -> bool:
 		return self._real._node_exists(char, node)
-
-	def _character_nodes_stat_copy(
-		self, char: Key, btt: Tuple[str, int, int] = None
-	) -> Dict[bytes, bytes]:
-		pack = self._real.pack
-		return {
-			pack(node): concat_d(self.node_stat_copy(char, node, btt=btt))
-			for node in self._real.character[char].node
-		}
 
 	def update_nodes(self, char: Key, patch: Dict):
 		"""Change the stats of nodes in a character according to a
@@ -860,41 +760,10 @@ class EngineHandle:
 		"""Remove a node from a character."""
 		del self._real.character[char].node[node]
 
-	@prepacked
-	def character_nodes(
-		self, char: Key, btt: Tuple[str, int, int] = None
-	) -> Set[bytes]:
-		pack = self.pack
-		branch, turn, tick = self._get_btt(btt)
-		origtime = self._real._btt()
-		if (branch, turn, tick) != origtime:
-			self._real.time = branch, turn
-			self._real.tick = tick
-		ret = set(map(pack, self._real.character[char].node))
-		if (branch, turn, tick) != origtime:
-			self._real.time = origtime[:2]
-			self._real.tick = origtime[2]
-		return ret
-
 	def character_set_node_predecessors(
 		self, char: Key, node: Key, preds: Iterable
 	) -> None:
 		self._real.character[char].pred[node] = preds
-
-	@prepacked
-	def node_successors(
-		self, char: Key, node: Key, btt: Tuple[str, int, int] = None
-	) -> Set[bytes]:
-		branch, turn, tick = self._get_btt(btt)
-		origtime = self._real._btt()
-		if (branch, turn, tick) != origtime:
-			self._real._set_btt(branch, turn, tick)
-		ret = set(
-			map(self.pack, self._real.character[char].portal[node].keys())
-		)
-		if (branch, turn, tick) != origtime:
-			self._real._set_btt(*origtime)
-		return ret
 
 	def set_thing(self, char: Key, thing: Key, statdict: Dict) -> None:
 		self._real.character[char].thing[thing] = statdict
