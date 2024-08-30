@@ -16,9 +16,7 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Set
-from concurrent.futures import ThreadPoolExecutor, wait
 from enum import Enum
-from itertools import chain
 from operator import (
 	ge,
 	gt,
@@ -43,6 +41,7 @@ from typing import Mapping, Sequence, Iterable, Union, Callable, Dict, Hashable
 
 import msgpack
 import networkx as nx
+import numpy as np
 from tblib import Traceback
 
 from . import exc
@@ -998,7 +997,7 @@ class AbstractCharacter(Mapping):
 	cull_edges = cull_portals
 
 
-def _numpy_normalize_layout(l):
+def normalize_layout(l):
 	"""Make sure all the spots in a layout are where you can click.
 
 	Returns a copy of the layout with all spot coordinates are
@@ -1027,79 +1026,3 @@ def _numpy_normalize_layout(l):
 		yco = 0.98 / (maxy - miny)
 		ynorm = np.multiply(np.subtract(ys, [miny] * len(ys)), yco)
 	return dict(zip(ks, zip(map(float, xnorm), map(float, ynorm))))
-
-
-def _threaded_normalize_layout(l):
-	__doc__ = _numpy_normalize_layout.__doc__
-
-	xs = []
-	ys = []
-	ks = []
-
-	for k, (x, y) in l.items():
-		ks.append(k)
-		xs.append(x)
-		ys.append(y)
-
-	minx = miny = float("inf")
-	maxx = maxy = float("-inf")
-
-	def calc_minx(x):
-		nonlocal minx
-		if x < minx:
-			minx = x
-
-	def calc_maxx(x):
-		nonlocal maxx
-		if x > maxx:
-			maxx = x
-
-	def calc_miny(y):
-		nonlocal miny
-		if y < miny:
-			miny = y
-
-	def calc_maxy(y):
-		nonlocal maxy
-		if y > maxy:
-			maxy = y
-
-	def calc_norm(minimum, coefficient, coord):
-		return coefficient * (coord - minimum)
-
-	with ThreadPoolExecutor() as pool:
-		wait(
-			chain(
-				pool.map(calc_minx, *xs),
-				pool.map(calc_maxx, *xs),
-				pool.map(calc_miny, *ys),
-				pool.map(calc_maxy, *ys),
-			)
-		)
-		if maxx == minx:
-			xnorm = [0.5] * len(xs)
-			xnormfuts = None
-		else:
-			xco = 0.98 / (maxx - minx)
-			xnormfuts = pool.map(partial(calc_norm, minx, xco), xs)
-		if maxy == miny:
-			ynorm = [0.5] * len(ys)
-			ynormfuts = None
-		else:
-			yco = 0.98 / (maxy - miny)
-			ynormfuts = pool.map(partial(calc_norm, miny, yco), ys)
-		if xnormfuts is not None:
-			wait(xnormfuts)
-			xnorm = [fut.result() for fut in xnormfuts]
-		if ynormfuts is not None:
-			wait(ynormfuts)
-			ynorm = [fut.result() for fut in ynormfuts]
-		return dict(zip(ks, zip(xnorm, ynorm)))
-
-
-try:
-	import numpy as np
-
-	normalize_layout = _numpy_normalize_layout
-except ImportError:
-	normalize_layout = _threaded_normalize_layout
