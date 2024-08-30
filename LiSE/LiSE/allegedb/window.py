@@ -32,7 +32,7 @@ from collections.abc import (
 )
 from itertools import chain
 from operator import itemgetter, lt, le
-from threading import Lock
+from threading import RLock
 from typing import (
 	Union,
 	Callable,
@@ -113,15 +113,17 @@ class WindowDictKeysView(ABC, KeysView):
 	_mapping: "WindowDict"
 
 	def __contains__(self, rev: int):
-		return rev in self._mapping._keys
+		with self._mapping._lock:
+			return rev in self._mapping._keys
 
 	def __iter__(self):
-		past = self._mapping._past
-		future = self._mapping._future
-		if past:
-			yield from map(get0, past)
-		if future:
-			yield from map(get0, reversed(future))
+		with self._mapping._lock:
+			past = self._mapping._past
+			future = self._mapping._future
+			if past:
+				yield from map(get0, past)
+			if future:
+				yield from map(get0, reversed(future))
 
 
 class WindowDictItemsView(ABC, ItemsView):
@@ -130,15 +132,17 @@ class WindowDictItemsView(ABC, ItemsView):
 	_mapping: "WindowDict"
 
 	def __contains__(self, item: Tuple[int, Any]):
-		return item in self._mapping._past or item in self._mapping._future
+		with self._mapping._lock:
+			return item in self._mapping._past or item in self._mapping._future
 
 	def __iter__(self):
-		past = self._mapping._past
-		future = self._mapping._future
-		if past:
-			yield from past
-		if future:
-			yield from future
+		with self._mapping._lock:
+			past = self._mapping._past
+			future = self._mapping._future
+			if past:
+				yield from past
+			if future:
+				yield from future
 
 
 class WindowDictPastFutureKeysView(ABC, KeysView):
@@ -147,12 +151,14 @@ class WindowDictPastFutureKeysView(ABC, KeysView):
 	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
 
 	def __iter__(self):
-		if not self._mapping.stack:
-			return
-		yield from map(get0, reversed(self._mapping.stack))
+		with self._mapping.lock:
+			yield from map(get0, reversed(self._mapping.stack))
 
 	def __contains__(self, item: int):
-		return item in self._mapping and item in map(get0, self._mapping.stack)
+		with self._mapping.lock:
+			return item in self._mapping and item in map(
+				get0, self._mapping.stack
+			)
 
 
 class WindowDictPastFutureItemsView(ABC, ItemsView):
@@ -164,18 +170,18 @@ class WindowDictPastFutureItemsView(ABC, ItemsView):
 		pass
 
 	def __iter__(self):
-		if not self._mapping.stack:
-			return
-		yield from reversed(self._mapping.stack)
+		with self._mapping.lock:
+			yield from reversed(self._mapping.stack)
 
 	def __contains__(self, item: Tuple[int, Any]):
-		if self._out_of_range(item, self._mapping.stack):
+		with self._mapping.lock:
+			if self._out_of_range(item, self._mapping.stack):
+				return False
+			i0, i1 = item
+			for j0, j1 in self._mapping.stack:
+				if i0 == j0:
+					return i1 == j1
 			return False
-		i0, i1 = item
-		for j0, j1 in self._mapping.stack:
-			if i0 == j0:
-				return i1 == j1
-		return False
 
 
 class WindowDictPastItemsView(WindowDictPastFutureItemsView):
@@ -198,16 +204,12 @@ class WindowDictPastFutureValuesView(ABC, ValuesView):
 	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
 
 	def __iter__(self):
-		stack = self._mapping.stack
-		if not stack:
-			return
-		yield from map(get1, reversed(stack))
+		with self._mapping.lock:
+			yield from map(get1, reversed(self._mapping.stack))
 
 	def __contains__(self, item: Any):
-		stack = self._mapping.stack
-		if not stack:
-			return False
-		return item in map(get1, stack)
+		with self._mapping.lock:
+			return item in map(get1, self._mapping.stack)
 
 
 class WindowDictValuesView(ABC, ValuesView):
@@ -216,52 +218,56 @@ class WindowDictValuesView(ABC, ValuesView):
 	_mapping: "WindowDict"
 
 	def __contains__(self, value: Any):
-		return value in map(get1, self._mapping._past) or value in map(
-			get1, self._mapping._future
-		)
+		with self._mapping._lock:
+			return value in map(get1, self._mapping._past) or value in map(
+				get1, self._mapping._future
+			)
 
 	def __iter__(self):
-		past = self._mapping._past
-		future = self._mapping._future
-		if past:
-			yield from map(get1, past)
-		if future:
-			yield from map(get1, future)
+		with self._mapping._lock:
+			past = self._mapping._past
+			future = self._mapping._future
+			if past:
+				yield from map(get1, past)
+			if future:
+				yield from map(get1, future)
 
 
 class WindowDictPastFutureView(ABC, Mapping):
 	"""Abstract class for historical views on WindowDict"""
 
-	__slots__ = ("stack",)
+	__slots__ = ("stack", "lock")
 	stack: List[Tuple[int, Any]]
 
-	def __init__(self, stack: List[Tuple[int, Any]]) -> None:
+	def __init__(self, stack: List[Tuple[int, Any]], lock: RLock) -> None:
 		self.stack = stack
+		self.lock = lock
 
 	def __len__(self) -> int:
-		stack = self.stack
-		if not stack:
-			return 0
-		return len(stack)
+		with self.lock:
+			stack = self.stack
+			if not stack:
+				return 0
+			return len(stack)
 
 
 class WindowDictPastView(WindowDictPastFutureView):
 	"""Read-only mapping of just the past of a WindowDict"""
 
 	def __iter__(self) -> Iterable[int]:
-		stack = self.stack
-		if not stack:
-			return
-		yield from map(get0, reversed(stack))
+		with self.lock:
+			stack = self.stack
+			return map(get0, reversed(stack))
 
 	def __getitem__(self, key: int) -> Any:
-		stack = self.stack
-		if not stack or key < stack[0][0] or key > stack[-1][0]:
+		with self.lock:
+			stack = self.stack
+			if not stack or key < stack[0][0] or key > stack[-1][0]:
+				raise KeyError
+			for rev, value in stack:
+				if rev == key:
+					return value
 			raise KeyError
-		for rev, value in stack:
-			if rev == key:
-				return value
-		raise KeyError
 
 	def keys(self) -> WindowDictPastFutureKeysView:
 		return WindowDictPastFutureKeysView(self)
@@ -277,19 +283,19 @@ class WindowDictFutureView(WindowDictPastFutureView):
 	"""Read-only mapping of just the future of a WindowDict"""
 
 	def __iter__(self):
-		stack = self.stack
-		if not stack:
-			return
-		yield from map(get0, reversed(stack))
+		with self.lock:
+			stack = self.stack
+			return map(get0, reversed(stack))
 
 	def __getitem__(self, key: int):
-		stack = self.stack
-		if not stack or key < stack[-1][0] or key > stack[0][0]:
-			raise KeyError
-		for rev, value in stack:
-			if rev == key:
-				return value
-		raise KeyError
+		with self.lock:
+			stack = self.stack
+			if not stack or key < stack[-1][0] or key > stack[0][0]:
+				raise KeyError
+			for rev, value in stack:
+				if rev == key:
+					return value
+			raise KeyError("No such revision", key)
 
 	def keys(self) -> WindowDictPastFutureKeysView:
 		return WindowDictPastFutureKeysView(self)
@@ -317,22 +323,23 @@ class WindowDictSlice:
 
 	def __iter__(self):
 		dic = self.dic
-		if not dic:
-			return
-		slic = self.slic
-		if slic.step is not None:
-			for i in range(
-				slic.start or dic.beginning,
-				slic.stop or dic.end + 1,
-				slic.step,
-			):
-				yield dic[i]
-			return
-		if slic.start is None and slic.stop is None:
-			yield from map(get1, dic._past)
-			yield from map(get1, reversed(dic._future))
-			return
 		with dic._lock:
+			if not dic:
+				return
+			slic = self.slic
+			if slic.step is not None:
+				for i in range(
+					slic.start or dic.beginning,
+					slic.stop or dic.end + 1,
+					slic.step,
+				):
+					dic._seek(i)
+					yield dic._past[-1][1]
+				return
+			if slic.start is None and slic.stop is None:
+				yield from map(get1, dic._past)
+				yield from map(get1, reversed(dic._future))
+				return
 			if slic.start is not None and slic.stop is not None:
 				if slic.stop == slic.start:
 					yield dic[slic.stop]
@@ -397,23 +404,27 @@ class WindowDictReverseSlice:
 
 	def __iter__(self):
 		dic = self.dict
-		if not dic:
-			return
-		slic = self.slice
-		if slic.step is not None:
-			for i in range(
-				slic.start or dic.end, slic.stop or dic.beginning, slic.step
-			):
-				yield dic[i]
-			return
-		if slic.start is None and slic.stop is None:
-			yield from map(get1, dic._future)
-			yield from map(get1, reversed(dic._past))
-			return
 		with dic._lock:
+			if not dic:
+				return
+			slic = self.slice
+			if slic.step is not None:
+				for i in range(
+					slic.start or dic.end,
+					slic.stop or dic.beginning,
+					slic.step,
+				):
+					dic._seek(i)
+					yield dic._past[-1][1]
+				return
+			if slic.start is None and slic.stop is None:
+				yield from map(get1, dic._future)
+				yield from map(get1, reversed(dic._past))
+				return
 			if slic.start is not None and slic.stop is not None:
 				if slic.start == slic.stop:
-					yield dic[slic.stop]
+					dic._seek(slic.stop)
+					yield dic._past[-1][1]
 					return
 				if slic.start < slic.stop:
 					left, right = slic.start, slic.stop
@@ -474,19 +485,21 @@ class WindowDict(MutableMapping):
 
 	@property
 	def beginning(self) -> Optional[int]:
-		if not self._past:
-			if not self._future:
-				return None
-			return self._future[-1][0]
-		return self._past[0][0]
+		with self._lock:
+			if not self._past:
+				if not self._future:
+					return None
+				return self._future[-1][0]
+			return self._past[0][0]
 
 	@property
 	def end(self) -> Optional[int]:
-		if not self._future:
-			if not self._past:
-				return None
-			return self._past[-1][0]
-		return self._future[0][0]
+		with self._lock:
+			if not self._future:
+				if not self._past:
+					return None
+				return self._past[-1][0]
+			return self._future[0][0]
 
 	def future(self, rev: int = None) -> WindowDictFutureView:
 		"""Return a Mapping of items after the given revision.
@@ -497,7 +510,7 @@ class WindowDict(MutableMapping):
 		if rev is not None:
 			with self._lock:
 				self._seek(rev)
-		return WindowDictFutureView(self._future)
+		return WindowDictFutureView(self._future, self._lock)
 
 	def past(self, rev: int = None) -> WindowDictPastView:
 		"""Return a Mapping of items at or before the given revision.
@@ -508,7 +521,7 @@ class WindowDict(MutableMapping):
 		if rev is not None:
 			with self._lock:
 				self._seek(rev)
-		return WindowDictPastView(self._past)
+		return WindowDictPastView(self._past, self._lock)
 
 	def search(self, rev: int) -> Any:
 		"""Alternative access for far-away revisions
@@ -612,19 +625,21 @@ class WindowDict(MutableMapping):
 
 	def initial(self) -> Any:
 		"""Return the earliest value we have"""
-		if self._past:
-			return self._past[0][1]
-		if self._future:
-			return self._future[-1][1]
-		raise KeyError("No data")
+		with self._lock:
+			if self._past:
+				return self._past[0][1]
+			if self._future:
+				return self._future[-1][1]
+			raise KeyError("No data")
 
 	def final(self) -> Any:
 		"""Return the latest value we have"""
-		if self._future:
-			return self._future[0][1]
-		if self._past:
-			return self._past[-1][1]
-		raise KeyError("No data")
+		with self._lock:
+			if self._future:
+				return self._future[0][1]
+			if self._past:
+				return self._past[-1][1]
+			raise KeyError("No data")
 
 	def truncate(self, rev: int, direction: Direction = "forward") -> None:
 		"""Delete everything after the given revision, exclusive.
@@ -674,7 +689,7 @@ class WindowDict(MutableMapping):
 	def __init__(
 		self, data: Union[List[Tuple[int, Any]], Dict[int, Any]] = None
 	) -> None:
-		self._lock = Lock()
+		self._lock = RLock()
 		with self._lock:
 			if not data:
 				self._past = []
