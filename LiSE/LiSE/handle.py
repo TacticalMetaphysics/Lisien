@@ -130,18 +130,6 @@ class EngineHandle:
 
 		self._cache_arranger_started = False
 
-	@property
-	def branch(self):
-		return self._real.branch
-
-	@property
-	def turn(self):
-		return self._real.turn
-
-	@property
-	def tick(self):
-		return self._real.tick
-
 	def log(self, level: Union[str, int], message: str) -> None:
 		if isinstance(level, str):
 			level = {
