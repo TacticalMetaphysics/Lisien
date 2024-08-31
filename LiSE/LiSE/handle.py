@@ -731,13 +731,6 @@ class EngineHandle:
 	def del_character(self, char):
 		del self._real.character[char]
 
-	def _character_units_copy(self, char) -> Dict[bytes, Set[bytes]]:
-		pack = self._real.pack
-		return {
-			pack(graph): set(map(pack, nodes.keys()))
-			for (graph, nodes) in self._real.character[char].unit.items()
-		}
-
 	def set_character_stat(self, char: Key, k: Key, v) -> None:
 		self._real.character[char].stat[k] = v
 
