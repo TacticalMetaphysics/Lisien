@@ -970,9 +970,9 @@ class EngineHandle:
 		self, branch: str = None, turn: str = None
 	) -> Dict[str, List[str]]:
 		if branch is None:
-			branch = self.branch
+			branch = self._real.branch
 		if turn is None:
-			turn = self.turn
+			turn = self._real.turn
 		eng = self._real
 		# assume the caches are all sync'd
 		return {

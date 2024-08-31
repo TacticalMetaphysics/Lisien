@@ -2928,9 +2928,9 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 					engine_handle.pack(
 						(
 							cmd,
-							engine_handle.branch,
-							engine_handle.turn,
-							engine_handle.tick,
+							engine_handle._real.branch,
+							engine_handle._real.turn,
+							engine_handle._real.tick,
 							e,
 						)
 					)
@@ -2942,9 +2942,9 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 		resp = msgpack.Packer().pack_array_header(5)
 		resp += (
 			pack(cmd)
-			+ pack(engine_handle.branch)
-			+ pack(engine_handle.turn)
-			+ pack(engine_handle.tick)
+			+ pack(engine_handle._real.branch)
+			+ pack(engine_handle._real.turn)
+			+ pack(engine_handle._real.tick)
 		)
 		if hasattr(getattr(engine_handle, cmd), "prepacked"):
 			if isinstance(r, dict):
