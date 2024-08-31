@@ -660,7 +660,7 @@ class EngineHandle:
 		self._real.string.language = lang
 		return self.strings_copy(lang)
 
-	def get_string_lang_items(self, lang):
+	def get_string_lang_items(self, lang=None):
 		return list(self._real.string.lang_items(lang))
 
 	def strings_copy(self, lang=None):
