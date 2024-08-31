@@ -51,3 +51,49 @@ def test_universal(handle_initialized):
 	univ = handle_initialized.snap_keyframe()["universal"]
 	assert "foo" not in univ
 	assert univ["spam"] == "tasty"
+
+
+def test_character(handle_initialized):
+	handle_initialized.add_character(
+		"hello", {"node": {"hi": {"yes": "very yes"}}}, {"stat": "also"}
+	)
+	handle_initialized.set_character_stat("hello", "stoat", "bitter")
+	handle_initialized.del_character_stat("hello", "stat")
+	handle_initialized.del_character("physical")
+	kf = handle_initialized.snap_keyframe()
+	del kf["universal"]
+	assert kf == {
+		"graph_val": {("hello",): {"stat": None, "stoat": "bitter"}},
+		"nodes": {("hello",): {"hi": True}},
+		"node_val": {("hello", "hi"): {"name": "hi", "yes": "very yes"}},
+		"edges": {},
+		"edge_val": {},
+		"triggers": {
+			"shrubsprint": ("uncovered", "breakcover"),
+			"fight": ("sametile",),
+			"kill_kobold": ("kobold_alive",),
+			"go2kobold": ("aware",),
+			"wander": ("standing_still",),
+		},
+		"prereqs": {
+			"shrubsprint": ("not_traveling",),
+			"fight": ("kobold_alive", "aware"),
+			"kill_kobold": ("unmerciful",),
+			"go2kobold": ("kobold_alive", "kobold_not_here"),
+			"wander": (),
+		},
+		"actions": {
+			"shrubsprint": ("shrubsprint",),
+			"fight": ("fight",),
+			"kill_kobold": ("kill_kobold",),
+			"go2kobold": ("go2kobold",),
+			"wander": ("wander",),
+		},
+		"rulebook": {
+			("physical", "kobold"): (["shrubsprint"], 0.0),
+			("physical", "dwarf"): (
+				["fight", "kill_kobold", "go2kobold", "wander"],
+				0.0,
+			),
+		},
+	}
