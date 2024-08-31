@@ -58,6 +58,7 @@ def test_character(handle_initialized):
 		"hello",
 		{
 			"node": {"hi": {"yes": "very yes"}, "hello": {"you": "smart"}},
+			"thing": {"me": {"location": "hi"}},
 			"edge": {"hi": {"hello": {"good": "morning"}}},
 		},
 		{"stat": "also"},
@@ -69,10 +70,11 @@ def test_character(handle_initialized):
 	del kf["universal"]
 	assert kf == {
 		"graph_val": {("hello",): {"stat": None, "stoat": "bitter"}},
-		"nodes": {("hello",): {"hi": True, "hello": True}},
+		"nodes": {("hello",): {"hi": True, "hello": True, "me": True}},
 		"node_val": {
 			("hello", "hi"): {"name": "hi", "yes": "very yes"},
 			("hello", "hello"): {"name": "hello", "you": "smart"},
+			("hello", "me"): {"name": "me", "location": "hi"},
 		},
 		"edges": {("hello", "hi", "hello"): {0: True}},
 		"edge_val": {("hello", "hi", "hello", 0): {"good": "morning"}},
