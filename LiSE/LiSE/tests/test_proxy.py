@@ -63,33 +63,6 @@ class SetStorageTest(ProxyTest, LiSE.allegedb.tests.test_all.SetStorageTest):
 	pass
 
 
-@pytest.fixture(scope="function")
-def handle(tempdir):
-	from LiSE.handle import EngineHandle
-
-	hand = EngineHandle(
-		tempdir, connect_string="sqlite:///:memory:", random_seed=69105
-	)
-	yield hand
-	hand.close()
-
-
-@pytest.fixture(
-	scope="function",
-	params=[
-		lambda eng: kobold.inittest(
-			eng, shrubberies=20, kobold_sprint_chance=0.9
-		),
-		# college.install,
-		# sickle.install
-	],
-)
-def handle_initialized(request, handle):
-	with handle._real.advancing():
-		request.param(handle._real)
-	yield handle
-
-
 def test_fast_delta(handle_initialized):
 	hand = handle_initialized
 

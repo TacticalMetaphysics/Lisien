@@ -19,6 +19,34 @@ import tempfile
 import pytest
 
 from LiSE import Engine
+from ..examples import kobold
+
+
+@pytest.fixture(scope="function")
+def handle(tempdir):
+	from LiSE.handle import EngineHandle
+
+	hand = EngineHandle(
+		tempdir, connect_string="sqlite:///:memory:", random_seed=69105
+	)
+	yield hand
+	hand.close()
+
+
+@pytest.fixture(
+	scope="function",
+	params=[
+		lambda eng: kobold.inittest(
+			eng, shrubberies=20, kobold_sprint_chance=0.9
+		),
+		# college.install,
+		# sickle.install
+	],
+)
+def handle_initialized(request, handle):
+	with handle._real.advancing():
+		request.param(handle._real)
+	yield handle
 
 
 @pytest.fixture(scope="function")
