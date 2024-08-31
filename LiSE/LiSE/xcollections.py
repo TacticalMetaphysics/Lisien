@@ -99,14 +99,19 @@ class StringStore(MutableMapping, Signal):
 		self.query = query
 		self._prefix = prefix
 		self._language = lang
-		try:
-			self._load_language(lang)
-		except FileNotFoundError:
-			self._cache = {}
+		self._load_language(lang)
 
 	def _load_language(self, lang):
-		with open(os.path.join(self._prefix, lang + ".json"), "r") as inf:
-			self._cache = json.load(inf)
+		if hasattr(self, "_cache"):
+			with open(
+				os.path.join(self._prefix, self.language + ".json"), "w"
+			) as outf:
+				json.dump(self._cache, outf)
+		try:
+			with open(os.path.join(self._prefix, lang + ".json"), "r") as inf:
+				self._cache = json.load(inf)
+		except FileNotFoundError:
+			self._cache = {}
 		self._language = lang
 
 	def __iter__(self):
