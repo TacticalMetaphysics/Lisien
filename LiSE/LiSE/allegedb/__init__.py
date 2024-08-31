@@ -2880,6 +2880,9 @@ class ORM:
 		"""
 		# make sure the graph exists before deleting anything
 		graph = self.graph[name]
+		for orig in list(graph.adj):
+			for dest in list(graph.adj[orig]):
+				del graph.adj[orig][dest]
 		for node in list(graph.node):
 			del graph.node[node]
 		for stat in set(graph.graph) - {"name"}:
