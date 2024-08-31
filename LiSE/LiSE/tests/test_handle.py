@@ -65,6 +65,8 @@ def test_character(handle_initialized):
 	)
 	handle_initialized.set_character_stat("hello", "stoat", "bitter")
 	handle_initialized.del_character_stat("hello", "stat")
+	handle_initialized.set_node_stat("hello", "hi", "no", "very no")
+	handle_initialized.del_node_stat("hello", "hi", "yes")
 	handle_initialized.del_character("physical")
 	kf = handle_initialized.snap_keyframe()
 	del kf["universal"]
@@ -72,7 +74,7 @@ def test_character(handle_initialized):
 		"graph_val": {("hello",): {"stat": None, "stoat": "bitter"}},
 		"nodes": {("hello",): {"hi": True, "hello": True, "me": True}},
 		"node_val": {
-			("hello", "hi"): {"name": "hi", "yes": "very yes"},
+			("hello", "hi"): {"name": "hi", "no": "very no"},
 			("hello", "hello"): {"name": "hello", "you": "smart"},
 			("hello", "me"): {"name": "me", "location": "hi"},
 		},
