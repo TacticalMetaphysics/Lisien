@@ -664,8 +664,6 @@ class EngineHandle:
 		return list(self._real.string.lang_items(lang))
 
 	def strings_copy(self, lang=None):
-		if lang is None:
-			lang = self._real.string.language
 		return dict(self._real.string.lang_items(lang))
 
 	def set_string(self, k, v):
