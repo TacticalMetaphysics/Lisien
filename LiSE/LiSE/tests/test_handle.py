@@ -55,7 +55,12 @@ def test_universal(handle_initialized):
 
 def test_character(handle_initialized):
 	handle_initialized.add_character(
-		"hello", {"node": {"hi": {"yes": "very yes"}}}, {"stat": "also"}
+		"hello",
+		{
+			"node": {"hi": {"yes": "very yes"}, "hello": {"you": "smart"}},
+			"edge": {"hi": {"hello": {"good": "morning"}}},
+		},
+		{"stat": "also"},
 	)
 	handle_initialized.set_character_stat("hello", "stoat", "bitter")
 	handle_initialized.del_character_stat("hello", "stat")
@@ -64,10 +69,13 @@ def test_character(handle_initialized):
 	del kf["universal"]
 	assert kf == {
 		"graph_val": {("hello",): {"stat": None, "stoat": "bitter"}},
-		"nodes": {("hello",): {"hi": True}},
-		"node_val": {("hello", "hi"): {"name": "hi", "yes": "very yes"}},
-		"edges": {},
-		"edge_val": {},
+		"nodes": {("hello",): {"hi": True, "hello": True}},
+		"node_val": {
+			("hello", "hi"): {"name": "hi", "yes": "very yes"},
+			("hello", "hello"): {"name": "hello", "you": "smart"},
+		},
+		"edges": {("hello", "hi", "hello"): {0: True}},
+		"edge_val": {("hello", "hi", "hello", 0): {"good": "morning"}},
 		"triggers": {
 			"shrubsprint": ("uncovered", "breakcover"),
 			"fight": ("sametile",),
