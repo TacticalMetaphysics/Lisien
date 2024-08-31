@@ -250,6 +250,9 @@ class EngineHandle:
 		universal = delta.pop(UNIVERSAL, None)
 		if universal:
 			mostly_packed_delta[UNIVERSAL] = universal
+		if RULEBOOK in delta:
+			mostly_packed_delta[RULEBOOK] = delta.pop(RULEBOOK)
+		rules = delta.pop(RULES, {})
 		for char, chardelta in delta.items():
 			if chardelta.get(b"\xa4name") == b"\xc0":
 				mostly_packed_delta[char] = b"\xc0"
@@ -289,9 +292,10 @@ class EngineHandle:
 			charn: (concat_d(stuff) if stuff != b"\xc0" else b"\xc0")
 			for charn, stuff in mostly_packed_delta.items()
 		}
-		rules = delta.pop(RULES, None)
 		if rules:
-			almost_entirely_packed_delta[RULES] = concat_d(rules)
+			almost_entirely_packed_delta[RULES] = concat_d(
+				{rule: concat_d(funcls) for (rule, funcls) in rules.items()}
+			)
 		return concat_d(almost_entirely_packed_delta)
 
 	@prepacked
@@ -412,6 +416,38 @@ class EngineHandle:
 				ids_to.append(id(vb))
 				values_from.append(va)
 				values_to.append(vb)
+		for rulebook in kf_from["rulebook"].keys() | kf_to["rulebook"].keys():
+			va = kf_from["rulebook"].get(rulebook, ())
+			vb = kf_to["rulebook"].get(rulebook, ())
+			keys.append(("rulebook", rulebook))
+			ids_from.append(id(va))
+			ids_to.append(id(vb))
+			values_from.append(va)
+			values_to.append(vb)
+		for rule in kf_from["triggers"].keys() | kf_to["triggers"].keys():
+			va = kf_from["triggers"].get(rule, ())
+			vb = kf_to["triggers"].get(rule, ())
+			keys.append(("triggers", rule))
+			ids_from.append(id(va))
+			ids_to.append(id(vb))
+			values_from.append(va)
+			values_to.append(vb)
+		for rule in kf_from["prereqs"].keys() | kf_to["prereqs"].keys():
+			va = kf_from["prereqs"].get(rule, ())
+			vb = kf_to["prereqs"].get(rule, ())
+			keys.append(("prereqs", rule))
+			ids_from.append(id(va))
+			ids_to.append(id(vb))
+			values_from.append(va)
+			values_to.append(vb)
+		for rule in kf_from["actions"].keys() | kf_to["actions"].keys():
+			va = kf_from["actions"].get(rule, ())
+			vb = kf_to["actions"].get(rule, ())
+			keys.append(("actions", rule))
+			ids_from.append(id(va))
+			ids_to.append(id(vb))
+			values_from.append(va)
+			values_to.append(vb)
 		values_changed = np.array(ids_from) != np.array(ids_to)
 
 		def pack_one(k, va, vb, deleted_nodes, deleted_edges):

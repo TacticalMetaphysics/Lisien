@@ -780,7 +780,7 @@ STUDENT_INITIAL_COPY = {
 }
 
 KF_FROM = {
-	"rulebooks": {"somerules": ["onerule", "anotherrule"]},
+	"rulebook": {"somerules": ["onerule", "anotherrule"]},
 	"triggers": {"onerule": ["foo", "bar"], "anotherrule": ["bar", "bas"]},
 	"prereqs": {"onerule": ["qux", "quux"], "anotherrule": ["quux", "quuux"]},
 	"actions": {
@@ -10122,16 +10122,12 @@ KF_FROM = {
 		("physical", (24, 23), (24, 22), 0): {},
 		("physical", (24, 24), (24, 23), 0): {},
 	},
-	"triggers": {},
-	"prereqs": {},
-	"actions": {},
-	"rulebook": {},
 }
 
 BTT_FROM = ("trunk1", 7, 421)
 
 KF_TO = {
-	"rulebooks": {"somerules": ["anotherrule", "thirdrule"]},
+	"rulebook": {"somerules": ["anotherrule", "thirdrule"]},
 	"triggers": {"onerule": ["foo"], "anotherrule": ["bar", "bas", "foo"]},
 	"prereqs": {"onerule": ["qux", "quux", "quuux"], "anotherrule": ["quux"]},
 	"actions": {
@@ -21325,14 +21321,7 @@ KF_TO = {
 		("physical", (24, 24), (23, 24), 0): {},
 		("physical", (24, 24), (24, 23), 0): {},
 	},
-	"triggers": {},
-	"prereqs": {},
-	"actions": {},
-	"rulebook": {},
 }
-
-BTT_TO = ("trunk", 15, 186)
-
 SLOW_DELTA = {
 	"physical": {
 		"nodes": {(0, 0): False, "sheep8": True},
@@ -22596,4 +22585,33 @@ SLOW_DELTA = {
 			}
 		}
 	},
+	"rulebook": {"somerules": ("anotherrule", "thirdrule")},
+	"rules": {
+		"anotherrule": {
+			"actions": (
+				"ham",
+				"baked beans",
+				"spam",
+				"spam",
+				"spam",
+			),
+			"prereqs": ("quux",),
+			"triggers": (
+				"bar",
+				"bas",
+				"foo",
+			),
+		},
+		"onerule": {
+			"actions": ("eggs",),
+			"prereqs": (
+				"qux",
+				"quux",
+				"quuux",
+			),
+			"triggers": ("foo",),
+		},
+	},
 }
+
+BTT_TO = ("trunk", 15, 186)
