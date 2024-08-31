@@ -61,6 +61,7 @@ def test_character(handle_initialized):
 				"hi": {"yes": "very yes"},
 				"hello": {"you": "smart"},
 				"morning": {"good": 100},
+				"salutations": {},
 			},
 			"thing": {"me": {"location": "hi"}},
 			"edge": {"hi": {"hello": {"good": "morning"}}},
@@ -73,6 +74,7 @@ def test_character(handle_initialized):
 	handle_initialized.set_node_stat("hello", "hi", "no", "very no")
 	handle_initialized.del_node_stat("hello", "hi", "yes")
 	handle_initialized.del_character("physical")
+	handle_initialized.del_node("hello", "salutations")
 	handle_initialized.update_nodes(
 		"hello",
 		{"hi": {"tainted": True}, "bye": {"toodles": False}, "morning": None},
