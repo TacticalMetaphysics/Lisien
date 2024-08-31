@@ -16526,6 +16526,7 @@ KF_TO = {
 		},
 	},
 	"edges": {
+		("physical", (1, 0), (0, 1)): {0: True},
 		("physical", (0, 1), (0, 2)): {0: True},
 		("physical", (0, 1), (1, 1)): {0: True},
 		("physical", (0, 2), (0, 3)): {0: True},
@@ -18925,6 +18926,7 @@ KF_TO = {
 	},
 	"edge_val": {
 		("physical", (0, 1), (0, 2), 0): {"foo": "bar"},
+		("physical", (0, 1), (1, 0), 0): {"spam": "disgusting"},
 		("physical", (0, 1), (1, 1), 0): {},
 		("physical", (0, 2), (0, 3), 0): {},
 		("physical", (0, 2), (1, 2), 0): {},
@@ -22055,8 +22057,11 @@ SLOW_DELTA = {
 			((0, 0), (1, 0)): False,
 			((1, 0), (0, 0)): False,
 			((0, 0), (0, 1)): False,
+			((1, 0), (0, 1)): True,
 		},
-		"edge_val": {(0, 1): {(0, 2): {"foo": "bar"}}},
+		"edge_val": {
+			(0, 1): {(0, 2): {"foo": "bar"}, (1, 0): {"spam": "disgusting"}},
+		},
 		"bare_places": (
 			(0, 1),
 			(0, 2),
