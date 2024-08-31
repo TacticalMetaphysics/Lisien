@@ -47,12 +47,16 @@ from typing import Any, List, Callable, Tuple
 
 from sqlalchemy import select, and_, Table
 from sqlalchemy.sql.functions import func
-from .alchemy import meta, gather_sql
+import msgpack
 
+from .alchemy import meta, gather_sql
 from .allegedb import query
 from .exc import IntegrityError, OperationalError
 from .util import EntityStatAccessor
 import LiSE
+
+
+NONE = msgpack.packb(None)
 
 
 def windows_union(windows: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
@@ -1767,7 +1771,7 @@ class QueryEngine(query.QueryEngine):
 
 	def universal_del(self, key, branch, turn, tick):
 		key = self.pack(key)
-		self.call_one("universals_insert", key, branch, turn, tick, None)
+		self.call_one("universals_insert", key, branch, turn, tick, NONE)
 		self._increc()
 
 	def comparison(

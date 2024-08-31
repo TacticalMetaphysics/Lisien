@@ -1301,7 +1301,12 @@ class Engine(AbstractEngine, gORM):
 					rbs[rule] = self._rulebooks_cache.retrieve(rule, b, r, t)
 				except KeyError:
 					rbs[rule] = rule
-		univ.update(delta.pop("universal", {}))
+		for k, v in delta.pop("universal", {}).items():
+			if v is None:
+				if k in univ:
+					del univ[k]
+			else:
+				univ[k] = v
 		self._universal_cache.set_keyframe(branch, turn, tick, univ)
 		rbs.update(delta.pop("rulebooks", {}))
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
