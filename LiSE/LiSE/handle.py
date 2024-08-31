@@ -763,7 +763,7 @@ class EngineHandle:
 			"EngineHandle.update_nodes", self.debug
 		):
 			for n, npatch in patch.items():
-				if patch is None:
+				if npatch is None:
 					del node[n]
 				elif n not in node:
 					node[n] = npatch
