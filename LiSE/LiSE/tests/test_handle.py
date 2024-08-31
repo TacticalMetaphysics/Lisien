@@ -63,6 +63,7 @@ def test_character(handle_initialized):
 		},
 		{"stat": "also"},
 	)
+	assert handle_initialized.node_exists("hello", "hi")
 	handle_initialized.set_character_stat("hello", "stoat", "bitter")
 	handle_initialized.del_character_stat("hello", "stat")
 	handle_initialized.set_node_stat("hello", "hi", "no", "very no")
