@@ -15,29 +15,10 @@
 import re
 from functools import reduce
 from collections import defaultdict
-from ..engine import Engine
 from ..query import windows_intersection
 import pytest
-import os
-import shutil
-import tempfile
 
 pytestmark = [pytest.mark.slow, pytest.mark.big]
-
-
-@pytest.fixture(scope="module")
-def college24_premade():
-	directory = tempfile.mkdtemp(".")
-	shutil.unpack_archive(
-		os.path.join(
-			os.path.abspath(os.path.dirname(__file__)),
-			"college24_premade.tar.xz",
-		),
-		directory,
-	)
-	with Engine(directory) as eng:
-		yield eng
-	shutil.rmtree(directory)
 
 
 def roommate_collisions(college24_premade):

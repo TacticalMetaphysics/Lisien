@@ -12,9 +12,13 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from LiSE import Engine
-import pytest
+import os
+import shutil
 import tempfile
+
+import pytest
+
+from LiSE import Engine
 
 
 @pytest.fixture(scope="function")
@@ -27,3 +31,18 @@ def tempdir():
 def engy(tempdir):
 	with Engine(tempdir, random_seed=69105, enforce_end_of_time=False) as eng:
 		yield eng
+
+
+@pytest.fixture(scope="module")
+def college24_premade():
+	directory = tempfile.mkdtemp(".")
+	shutil.unpack_archive(
+		os.path.join(
+			os.path.abspath(os.path.dirname(__file__)),
+			"college24_premade.tar.xz",
+		),
+		directory,
+	)
+	with Engine(directory) as eng:
+		yield eng
+	shutil.rmtree(directory)

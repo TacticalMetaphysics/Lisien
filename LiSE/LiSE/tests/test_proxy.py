@@ -23,7 +23,6 @@ import LiSE.allegedb.tests.test_all
 from LiSE.tests import data
 import pytest
 import LiSE.examples.kobold as kobold
-import LiSE.examples.college as college
 import shutil
 import tempfile
 import msgpack
@@ -119,11 +118,8 @@ def test_fast_delta(handle_initialized):
 	assert hand.unpack(diff4) == slowd4, "Fast delta differs from slow delta"
 
 
-@pytest.mark.slow
-def test_serialize_deleted(engy):
-	eng = engy
-	with eng.advancing():
-		college.install(eng)
+def test_serialize_deleted(college24_premade):
+	eng = college24_premade
 	d0r0s0 = eng.character["dorm0room0student0"]
 	roommate = d0r0s0.stat["roommate"]
 	del eng.character[roommate.name]
