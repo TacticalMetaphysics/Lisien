@@ -79,6 +79,9 @@ def test_character(handle_initialized):
 		"hello",
 		{"hi": {"tainted": True}, "bye": {"toodles": False}, "morning": None},
 	)
+	handle_initialized.character_set_node_predecessors(
+		"hello", "bye", {"hi": {"is-an-edge": True}}
+	)
 	kf = handle_initialized.snap_keyframe()
 	del kf["universal"]
 	assert kf == {
@@ -92,8 +95,14 @@ def test_character(handle_initialized):
 			("hello", "me"): {"name": "me", "location": "hi"},
 			("hello", "bye"): {"name": "bye", "toodles": False},
 		},
-		"edges": {("hello", "hi", "hello"): {0: True}},
-		"edge_val": {("hello", "hi", "hello", 0): {"good": "morning"}},
+		"edges": {
+			("hello", "hi", "hello"): {0: True},
+			("hello", "bye", "hi"): {0: True},
+		},
+		"edge_val": {
+			("hello", "hi", "hello", 0): {"good": "morning"},
+			("hello", "bye", "hi", 0): {},
+		},
 		"triggers": {
 			"shrubsprint": ("uncovered", "breakcover"),
 			"fight": ("sametile",),
