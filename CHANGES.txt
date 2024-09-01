@@ -1,3 +1,7 @@
+== 0.15.8 | 2024-09-01 ==
+* More data corruption fixes
+* More concurrency fixes
+
 == 0.15.7 | 2024-08-27 ==
 * A variety of database corruption fixes
 
