@@ -88,6 +88,8 @@ def test_character(handle_initialized):
 	handle_initialized.character_set_node_predecessors(
 		"hello", "bye", {"hi": {"is-an-edge": True}}
 	)
+	handle_initialized.add_thing("hello", "neal", "hi", {})
+	handle_initialized.set_thing_location("hello", "neal", "moon")
 	kf = handle_initialized.snap_keyframe()
 	del kf["universal"]
 	assert kf == {
@@ -100,6 +102,7 @@ def test_character(handle_initialized):
 				"bye": True,
 				"evening": True,
 				"moon": True,
+				"neal": True,
 			}
 		},
 		"node_val": {
@@ -117,6 +120,7 @@ def test_character(handle_initialized):
 				"phase": "waxing gibbous",
 				"location": "evening",
 			},
+			("hello", "neal"): {"name": "neal", "location": "moon"},
 		},
 		"edges": {
 			("hello", "hi", "hello"): {0: True},
