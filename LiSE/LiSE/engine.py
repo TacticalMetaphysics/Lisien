@@ -1060,6 +1060,8 @@ class Engine(AbstractEngine, gORM):
 			for chara, thing, location in things_settings[branch][turn][
 				start_tick:tick
 			]:
+				if chara in delta and delta[chara] is None:
+					continue
 				thingd = (
 					delta.setdefault(chara, {})
 					.setdefault("node_val", {})
@@ -2099,6 +2101,12 @@ class Engine(AbstractEngine, gORM):
 			self.snap_keyframe(silent=True)
 		self._init_graph(name, "DiGraph", data)
 		self._graph_objs[name] = self.char_cls(self, name)
+
+	def del_graph(self, name: Key) -> None:
+		graph = self.graph[name]
+		for thing in list(graph.thing):
+			del graph.thing[thing]
+		super().del_graph(name)
 
 	def del_character(self, name: Key) -> None:
 		"""Remove the Character from the database entirely.
