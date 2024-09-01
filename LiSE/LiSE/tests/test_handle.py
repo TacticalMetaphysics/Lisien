@@ -79,6 +79,9 @@ def test_character(handle_initialized):
 		"hello",
 		{"hi": {"tainted": True}, "bye": {"toodles": False}, "morning": None},
 	)
+	handle_initialized.set_thing(
+		"hello", "evening", {"location": "bye", "moon": 1.0}
+	)
 	handle_initialized.character_set_node_predecessors(
 		"hello", "bye", {"hi": {"is-an-edge": True}}
 	)
@@ -87,13 +90,24 @@ def test_character(handle_initialized):
 	assert kf == {
 		"graph_val": {("hello",): {"stat": None, "stoat": "bitter"}},
 		"nodes": {
-			("hello",): {"hi": True, "hello": True, "me": True, "bye": True}
+			("hello",): {
+				"hi": True,
+				"hello": True,
+				"me": True,
+				"bye": True,
+				"evening": True,
+			}
 		},
 		"node_val": {
 			("hello", "hi"): {"name": "hi", "no": "very no", "tainted": True},
 			("hello", "hello"): {"name": "hello", "you": "smart"},
 			("hello", "me"): {"name": "me", "location": "hi"},
 			("hello", "bye"): {"name": "bye", "toodles": False},
+			("hello", "evening"): {
+				"name": "evening",
+				"moon": 1.0,
+				"location": "bye",
+			},
 		},
 		"edges": {
 			("hello", "hi", "hello"): {0: True},
