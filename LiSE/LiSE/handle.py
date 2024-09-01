@@ -787,10 +787,6 @@ class EngineHandle:
 	) -> None:
 		self._real.character[char].add_thing(thing, loc, **statdict)
 
-	def add_things_from(self, char: Key, seq: Iterable) -> None:
-		for thing in seq:
-			self.add_thing(char, *thing)
-
 	def set_thing_location(self, char: Key, thing: Key, loc: Key) -> None:
 		self._real.character[char].thing[thing]["location"] = loc
 
