@@ -29,7 +29,7 @@ dependencies = [
 	"networkx>=2.4,<4",
 	"sqlalchemy>=1.4,<3",
 	"numpy>=1.19.5,<3",
-	"tblib>=1.7.0,<2"
+	"tblib>=1.7.0,<4"
 ]
 
 [project.urls]
