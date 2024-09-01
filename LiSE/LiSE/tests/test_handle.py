@@ -82,6 +82,9 @@ def test_character(handle_initialized):
 	handle_initialized.set_thing(
 		"hello", "evening", {"location": "bye", "moon": 1.0}
 	)
+	handle_initialized.add_thing(
+		"hello", "moon", "evening", {"phase": "waxing gibbous"}
+	)
 	handle_initialized.character_set_node_predecessors(
 		"hello", "bye", {"hi": {"is-an-edge": True}}
 	)
@@ -96,6 +99,7 @@ def test_character(handle_initialized):
 				"me": True,
 				"bye": True,
 				"evening": True,
+				"moon": True,
 			}
 		},
 		"node_val": {
@@ -107,6 +111,11 @@ def test_character(handle_initialized):
 				"name": "evening",
 				"moon": 1.0,
 				"location": "bye",
+			},
+			("hello", "moon"): {
+				"name": "moon",
+				"phase": "waxing gibbous",
+				"location": "evening",
 			},
 		},
 		"edges": {
