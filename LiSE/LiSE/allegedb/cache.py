@@ -774,8 +774,11 @@ class Cache:
 			if keycache_key in keycache:
 				thiskeycache = keycache[keycache_key]
 				if turn in thiskeycache:
-					del thiskeycache[turn]
-				thiskeycache.truncate(turn)
+					thiskeycache[turn].truncate(tick)
+					if not thiskeycache[turn]:
+						del thiskeycache[turn]
+				else:
+					thiskeycache.truncate(turn)
 				if not thiskeycache:
 					del keycache[keycache_key]
 			if not db._no_kc:
