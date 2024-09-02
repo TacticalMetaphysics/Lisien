@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-include-package-data=true
+include-package-data=false
 
 [project]
 name = "LiSE"
