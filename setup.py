@@ -23,7 +23,8 @@ for subpkg in ["LiSE", "ELiDE"]:
 		for line in inf:
 			if line == "]\n":
 				break
-			deps.append(line)
+			_, dep, _ = line.split('"')
+			deps.append(dep)
 		else:
 			raise ValueError("%s dependencies never ended" % subpkg)
 
