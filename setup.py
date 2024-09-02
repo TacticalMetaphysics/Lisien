@@ -1,10 +1,10 @@
 import os
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
-with open(
-	os.path.join(os.path.dirname(__file__), "LiSE", "pyproject.toml"), "rt"
-) as inf:
+here = os.path.dirname(__file__)
+
+with open(os.path.join(here, "LiSE", "pyproject.toml"), "rt") as inf:
 	for line in inf:
 		if line.startswith("version"):
 			_, version, _ = line.split('"')
@@ -15,9 +15,10 @@ with open(
 setup(
 	name="ELiDE_bundle",
 	version=version,
-	packages=["LiSE", "ELiDE", "LiSE.allegedb"],
+	packages=find_packages(os.path.join(here, "LiSE"))
+	+ find_packages(os.path.join(here, "ELiDE")),
 	package_dir={
-		"LiSE": os.path.join(os.path.dirname(__file__), "LiSE", "LiSE"),
-		"ELiDE": os.path.join(os.path.dirname(__file__), "ELiDE", "ELiDE"),
+		"LiSE": os.path.join(here, "LiSE", "LiSE"),
+		"ELiDE": os.path.join(here, "ELiDE", "ELiDE"),
 	},
 )
