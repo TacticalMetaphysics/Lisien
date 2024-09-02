@@ -24,7 +24,8 @@ for subpkg in ["LiSE", "ELiDE"]:
 			if line == "]\n":
 				break
 			_, dep, _ = line.split('"')
-			deps.append(dep)
+			if not dep.startswith("LiSE"):
+				deps.append(dep)
 		else:
 			raise ValueError("%s dependencies never ended" % subpkg)
 
