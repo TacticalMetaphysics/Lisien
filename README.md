@@ -80,32 +80,10 @@ tester knew to look for it.
 
 # Setup
 
-## Windows
-
-The Microsoft Store version of Python is currently incompatible with ELiDE; please
-use [the python.org version](https://www.python.org/downloads/)
-instead.
+In a command line, with [Python](https://python.org) already installed:
 
 ```
-git clone https://github.com/TacticalMetaphysics/LiSE.git
-python -m pip install --user --upgrade LiSE\LiSE LiSE\ELiDE 
-```
-
-## Linux
-```
-sudo apt install python3 python3-pip
-git clone https://github.com/TacticalMetaphysics/LiSE.git
-python -m pip install --user --upgrade LiSE/LiSE LiSE/ELiDE
-```
-
-## Mac
-```
-# if you don't have https://brew.sh installed:
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-# if you don't have python 3 installed: 
-brew install python pip3
-git clone https://github.com/TacticalMetaphysics/LiSE.git
-python -m pip install --user --upgrade LiSE/LiSE LiSE/ELiDE
+python -m pip install --user --upgrade git+https://github.com/TacticalMetaphysics/LiSE
 ```
 
 # Getting started
