@@ -88,7 +88,7 @@ python -m pip install --user --upgrade git+https://github.com/TacticalMetaphysic
 
 # Getting started
 
-You could now start the graphical frontend with ``python3 -mELiDE``,
+You could now start the graphical frontend with ``python -m ELiDE``,
 but this might not be very useful, as you don't have any world state
 to edit yet. You could laboriously assemble a gameworld by hand, but
 instead let's generate one, Parable of the Polygons by Nicky Case.
