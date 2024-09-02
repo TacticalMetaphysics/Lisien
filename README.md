@@ -88,9 +88,7 @@ instead.
 
 ```
 git clone https://github.com/TacticalMetaphysics/LiSE.git
-cd LiSE
-python -m pip install kivy -r LiSE\requirements.txt
-set PYTHONPATH=%cd%\LiSE;%cd%\ELiDE  # only works in cmd.exe, not powershell. Has to be run once per cmd.exe session
+python -m pip install --user --upgrade LiSE\LiSE LiSE\ELiDE 
 ```
 
 ## Linux
@@ -98,8 +96,7 @@ set PYTHONPATH=%cd%\LiSE;%cd%\ELiDE  # only works in cmd.exe, not powershell. Ha
 sudo apt install python3 python3-pip
 pip3 install --user kivy pygments -r LiSE/requirements.txt
 git clone https://github.com/TacticalMetaphysics/LiSE.git
-cd LiSE
-export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE  # has to be run once per terminal session
+python -m pip install --user --upgrade LiSE/LiSE LiSE/ELiDE
 ```
 
 ## Mac
@@ -109,9 +106,7 @@ export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE  # has to be run once per terminal sessio
 # if you don't have python 3 installed: 
 brew install python pip3
 git clone https://github.com/TacticalMetaphysics/LiSE.git
-cd LiSE
-python -m pip install --user kivy pygments -r LiSE/requirements.txt
-export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE  # has to be run once per terminal session
+python -m pip install --user --upgrade LiSE/LiSE LiSE/ELiDE
 ```
 
 # Getting started
