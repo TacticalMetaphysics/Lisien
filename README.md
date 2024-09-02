@@ -94,7 +94,6 @@ python -m pip install --user --upgrade LiSE\LiSE LiSE\ELiDE
 ## Linux
 ```
 sudo apt install python3 python3-pip
-pip3 install --user kivy pygments -r LiSE/requirements.txt
 git clone https://github.com/TacticalMetaphysics/LiSE.git
 python -m pip install --user --upgrade LiSE/LiSE LiSE/ELiDE
 ```
