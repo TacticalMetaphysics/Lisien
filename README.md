@@ -80,43 +80,17 @@ tester knew to look for it.
 
 # Setup
 
-## Windows
-
-The Microsoft Store version of Python is currently incompatible with ELiDE; please
-use [the python.org version](https://www.python.org/downloads/)
-instead.
+In a command line, with [Python](https://python.org) already installed:
 
 ```
-git clone https://github.com/TacticalMetaphysics/LiSE.git
-cd LiSE
-python -m pip install kivy -r LiSE\requirements.txt
-set PYTHONPATH=%cd%\LiSE;%cd%\ELiDE  # only works in cmd.exe, not powershell. Has to be run once per cmd.exe session
+python -m pip install --user --upgrade git+https://github.com/TacticalMetaphysics/LiSE
 ```
 
-## Linux
-```
-sudo apt install python3 python3-pip
-pip3 install --user kivy pygments -r LiSE/requirements.txt
-git clone https://github.com/TacticalMetaphysics/LiSE.git
-cd LiSE
-export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE  # has to be run once per terminal session
-```
-
-## Mac
-```
-# if you don't have https://brew.sh installed:
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-# if you don't have python 3 installed: 
-brew install python pip3
-git clone https://github.com/TacticalMetaphysics/LiSE.git
-cd LiSE
-python -m pip install --user kivy pygments -r LiSE/requirements.txt
-export PYTHONPATH=$PWD/LiSE:$PWD/ELiDE  # has to be run once per terminal session
-```
+Run it again whenever you want the latest LiSE code.
 
 # Getting started
 
-You could now start the graphical frontend with ``python3 -mELiDE``,
+You could now start the graphical frontend with ``python -m ELiDE``,
 but this might not be very useful, as you don't have any world state
 to edit yet. You could laboriously assemble a gameworld by hand, but
 instead let's generate one, Parable of the Polygons by Nicky Case.
