@@ -35,16 +35,13 @@ for subpkg in ["LiSE", "ELiDE"]:
 			raise ValueError("%s dependencies never ended" % subpkg)
 
 setup(
-	name="LiSE",
-	version=vers["LiSE"],
-	packages=find_packages(os.path.join(here, "LiSE")),
-	package_dir={"LiSE": os.path.join(here, "LiSE", "LiSE")},
-	install_requires=deps["LiSE"],
-)
-setup(
-	name="ELiDE",
-	version=vers["ELiDE"],
-	packages=find_packages(os.path.join(here, "ELiDE")),
-	package_dir={"ELiDE": os.path.join(here, "ELiDE", "ELiDE")},
-	install_requires=deps["ELiDE"],
+	name="LiSE_with_ELiDE",
+	version=max((vers["LiSE"], vers["ELiDE"])),
+	packages=find_packages(os.path.join(here, "LiSE"))
+	+ find_packages(os.path.join(here, "ELiDE")),
+	package_dir={
+		"LiSE": os.path.join(here, "LiSE", "LiSE"),
+		"ELiDE": os.path.join(here, "ELiDE", "ELiDE"),
+	},
+	install_requires=deps["LiSE"] + deps["ELiDE"],
 )
