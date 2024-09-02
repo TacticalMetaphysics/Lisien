@@ -86,6 +86,8 @@ In a command line, with [Python](https://python.org) already installed:
 python -m pip install --user --upgrade git+https://github.com/TacticalMetaphysics/LiSE
 ```
 
+Run it again whenever you want the latest LiSE code.
+
 # Getting started
 
 You could now start the graphical frontend with ``python -m ELiDE``,
