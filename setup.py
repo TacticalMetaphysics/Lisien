@@ -19,7 +19,7 @@ for subpkg in ["LiSE", "ELiDE"]:
 		for line in inf:
 			if line.startswith("version"):
 				_, version, _ = line.split('"')
-				vers[subpkg] = version
+				vers[subpkg] = tuple(map(int, version.split(".")))
 			if line.startswith("dependencies"):
 				break
 		else:
@@ -44,7 +44,7 @@ with open(os.path.join(here, "ELiDE", "MANIFEST.in"), "rt") as inf:
 
 setup(
 	name="LiSE_with_ELiDE",
-	version=max((vers["LiSE"], vers["ELiDE"])),
+	version=".".join(map(str, max((vers["LiSE"], vers["ELiDE"])))) + "dev",
 	packages=find_packages(os.path.join(here, "LiSE"))
 	+ find_packages(os.path.join(here, "ELiDE")),
 	package_dir={
