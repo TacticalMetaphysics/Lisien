@@ -19,8 +19,5 @@ setup(
 	package_dir={
 		"LiSE": os.path.join(os.path.dirname(__file__), "LiSE", "LiSE"),
 		"ELiDE": os.path.join(os.path.dirname(__file__), "ELiDE", "ELiDE"),
-		"allegedb": os.path.join(
-			os.path.dirname(__file__), "LiSE", "LiSE", "allegedb"
-		),
 	},
 )
