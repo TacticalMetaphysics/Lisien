@@ -7,7 +7,7 @@ include-package-data=true
 
 [project]
 name = "ELiDE"
-version = "0.15.9"
+version = "0.15.10"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
