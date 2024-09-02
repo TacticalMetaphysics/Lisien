@@ -33,6 +33,14 @@ for subpkg in ["LiSE", "ELiDE"]:
 				deps[subpkg].append(dep)
 		else:
 			raise ValueError("%s dependencies never ended" % subpkg)
+datas = []
+with open(os.path.join(here, "ELiDE", "MANIFEST.in"), "rt") as inf:
+	for line in inf:
+		datas.append(
+			os.path.join(
+				here, "ELiDE", line.removeprefix("include ").removesuffix("\n")
+			)
+		)
 
 setup(
 	name="LiSE_with_ELiDE",
@@ -40,8 +48,10 @@ setup(
 	packages=find_packages(os.path.join(here, "LiSE"))
 	+ find_packages(os.path.join(here, "ELiDE")),
 	package_dir={
-		"LiSE": os.path.join(here, "LiSE", "LiSE"),
-		"ELiDE": os.path.join(here, "ELiDE", "ELiDE"),
+		"LiSE": "LiSE/LiSE",
+		"ELiDE": "ELiDE/ELiDE",
 	},
 	install_requires=deps["LiSE"] + deps["ELiDE"],
+	package_data={"ELiDE": datas},
+	include_package_data=True,
 )
