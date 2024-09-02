@@ -21,7 +21,7 @@ for subpkg in ["LiSE", "ELiDE"]:
 		else:
 			raise ValueError("Couldn't get %s dependencies" % subpkg)
 		for line in inf:
-			if line == "]":
+			if line.endswith("]"):
 				break
 			deps.append(line)
 		else:
