@@ -92,6 +92,9 @@ def test_character(handle_initialized):
 		"hello", "bye", {"hi": {"is-an-edge": True}}
 	)
 	handle_initialized.add_thing("hello", "neal", "hi", {})
+	handle_initialized.add_character("astronauts", {}, {})
+	handle_initialized.add_unit("astronauts", "hello", "neal")
+	handle_initialized.set_character_rulebook("astronauts", "nasa")
 	handle_initialized.set_thing_location("hello", "neal", "moon")
 	handle_initialized.set_place("hello", "earth", {})
 	handle_initialized.add_portal("hello", "moon", "earth", {})

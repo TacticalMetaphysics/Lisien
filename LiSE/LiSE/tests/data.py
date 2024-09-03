@@ -22622,7 +22622,13 @@ SLOW_DELTA = {
 BTT_TO = ("trunk", 15, 186)
 
 KEYFRAME0 = {
-	"graph_val": {("hello",): {"stat": None, "stoat": "bitter"}},
+	"graph_val": {
+		("hello",): {"stat": None, "stoat": "bitter"},
+		("astronauts",): {
+			"units": {"hello": {"neal": True}},
+			"character_rulebook": "nasa",
+		},
+	},
 	"nodes": {
 		("hello",): {
 			"hi": True,
@@ -22633,7 +22639,8 @@ KEYFRAME0 = {
 			"moon": True,
 			"neal": True,
 			"earth": True,
-		}
+		},
+		("astronauts",): {},
 	},
 	"node_val": {
 		("hello", "hi"): {"name": "hi", "no": "very no", "tainted": True},
@@ -22692,6 +22699,7 @@ KEYFRAME0 = {
 		),
 	},
 }
+
 KEYFRAME1 = {
 	"graph_val": {("hello",): {"stat": "also"}, ("physical",): {}},
 	"nodes": {
