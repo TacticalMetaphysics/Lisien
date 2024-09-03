@@ -1,3 +1,4 @@
+import networkx as nx
 import pytest
 
 
@@ -90,6 +91,9 @@ def test_character(handle_initialized):
 	)
 	handle_initialized.add_thing("hello", "neal", "hi", {})
 	handle_initialized.set_thing_location("hello", "neal", "moon")
+	handle_initialized.add_place("hello", "earth")
+	handle_initialized.add_portal("hello", "moon", "earth")
+	assert handle_initialized.thing_travel_to("hello", "neal", "earth") == 1
 	kf = handle_initialized.snap_keyframe()
 	del kf["universal"]
 	assert kf == {
