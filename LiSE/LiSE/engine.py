@@ -1053,9 +1053,12 @@ class Engine(AbstractEngine, gORM):
 			for chara, graph, node, is_av in avatarness_settings[branch][turn][
 				start_tick:tick
 			]:
-				delta.setdefault(chara, {}).setdefault("units", {}).setdefault(
-					graph, {}
-				)[node] = is_av
+				chardelt = delta.setdefault(chara, {})
+				if chardelt is None:
+					continue
+				chardelt.setdefault("units", {}).setdefault(graph, {})[
+					node
+				] = is_av
 		if branch in things_settings and turn in things_settings[branch]:
 			for chara, thing, location in things_settings[branch][turn][
 				start_tick:tick
@@ -1098,9 +1101,10 @@ class Engine(AbstractEngine, gORM):
 			for _, character, rulebook in character_rulebooks_settings[branch][
 				turn
 			][start_tick:tick]:
-				delta.setdefault(character, {})["character_rulebook"] = (
-					rulebook
-				)
+				chardelt = delta.setdefault(character, {})
+				if chardelt is None:
+					continue
+				chardelt["character_rulebook"] = rulebook
 		if (
 			branch in avatar_rulebooks_settings
 			and turn in avatar_rulebooks_settings[branch]
@@ -1108,7 +1112,10 @@ class Engine(AbstractEngine, gORM):
 			for _, character, rulebook in avatar_rulebooks_settings[branch][
 				turn
 			][start_tick:tick]:
-				delta.setdefault(character, {})["unit_rulebook"] = rulebook
+				chardelt = delta.setdefault(character, {})
+				if chardelt is None:
+					continue
+				chardelt["unit_rulebook"] = rulebook
 		if (
 			branch in character_thing_rulebooks_settings
 			and turn in character_thing_rulebooks_settings[branch]
@@ -1116,9 +1123,10 @@ class Engine(AbstractEngine, gORM):
 			for _, character, rulebook in character_thing_rulebooks_settings[
 				branch
 			][turn][start_tick:tick]:
-				delta.setdefault(character, {})["character_thing_rulebook"] = (
-					rulebook
-				)
+				chardelt = delta.setdefault(character, {})
+				if chardelt is None:
+					continue
+				chardelt["character_thing_rulebook"] = rulebook
 		if (
 			branch in character_place_rulebooks_settings
 			and turn in character_place_rulebooks_settings[branch]
@@ -1126,9 +1134,10 @@ class Engine(AbstractEngine, gORM):
 			for _, character, rulebook in character_place_rulebooks_settings[
 				branch
 			][turn][start_tick:tick]:
-				delta.setdefault(character, {})["character_place_rulebook"] = (
-					rulebook
-				)
+				chardelt = delta.setdefault(character, {})
+				if chardelt is None:
+					continue
+				chardelt["character_place_rulebook"] = rulebook
 		if (
 			branch in character_portal_rulebooks_settings
 			and turn in character_portal_rulebooks_settings[branch]
@@ -1136,9 +1145,10 @@ class Engine(AbstractEngine, gORM):
 			for _, character, rulebook in character_portal_rulebooks_settings[
 				branch
 			][turn][start_tick:tick]:
-				delta.setdefault(character, {})[
-					"character_portal_rulebook"
-				] = rulebook
+				chardelt = delta.setdefault(character, {})
+				if chardelt is None:
+					continue
+				chardelt["character_portal_rulebook"] = rulebook
 
 		if (
 			branch in node_rulebooks_settings
@@ -1147,9 +1157,12 @@ class Engine(AbstractEngine, gORM):
 			for character, node, rulebook in node_rulebooks_settings[branch][
 				turn
 			][start_tick:tick]:
-				delta.setdefault(character, {}).setdefault(
-					"node_val", {}
-				).setdefault(node, {})["rulebook"] = rulebook
+				chardelt = delta.setdefault(character, {})
+				if chardelt is None:
+					continue
+				chardelt.setdefault("node_val", {}).setdefault(node, {})[
+					"rulebook"
+				] = rulebook
 		if (
 			branch in portal_rulebooks_settings
 			and turn in portal_rulebooks_settings[branch]
@@ -1157,11 +1170,12 @@ class Engine(AbstractEngine, gORM):
 			for character, orig, dest, rulebook in portal_rulebooks_settings[
 				branch
 			][turn][start_tick:tick]:
-				delta.setdefault(character, {}).setdefault(
-					"edge_val", {}
-				).setdefault(orig, {}).setdefault(dest, {})[
-					"rulebook"
-				] = rulebook
+				chardelt = delta.setdefault(character, {})
+				if chardelt is None:
+					continue
+				chardelt.setdefault("edge_val", {}).setdefault(
+					orig, {}
+				).setdefault(dest, {})["rulebook"] = rulebook
 		return delta
 
 	def _del_rulebook(self, rulebook):
