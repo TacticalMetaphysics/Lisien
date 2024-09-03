@@ -55,6 +55,7 @@ def test_universal(handle_initialized):
 
 
 def test_character(handle_initialized):
+	origtime = handle_initialized.get_btt()
 	handle_initialized.add_character(
 		"hello",
 		{
@@ -91,8 +92,8 @@ def test_character(handle_initialized):
 	)
 	handle_initialized.add_thing("hello", "neal", "hi", {})
 	handle_initialized.set_thing_location("hello", "neal", "moon")
-	handle_initialized.add_place("hello", "earth")
-	handle_initialized.add_portal("hello", "moon", "earth")
+	handle_initialized.set_place("hello", "earth", {})
+	handle_initialized.add_portal("hello", "moon", "earth", {})
 	assert handle_initialized.thing_travel_to("hello", "neal", "earth") == 1
 	kf = handle_initialized.snap_keyframe()
 	del kf["universal"]
@@ -107,6 +108,7 @@ def test_character(handle_initialized):
 				"evening": True,
 				"moon": True,
 				"neal": True,
+				"earth": True,
 			}
 		},
 		"node_val": {
@@ -125,14 +127,17 @@ def test_character(handle_initialized):
 				"location": "evening",
 			},
 			("hello", "neal"): {"name": "neal", "location": "moon"},
+			("hello", "earth"): {"name": "earth"},
 		},
 		"edges": {
 			("hello", "hi", "hello"): {0: True},
 			("hello", "bye", "hi"): {0: True},
+			("hello", "moon", "earth"): {0: True},
 		},
 		"edge_val": {
 			("hello", "hi", "hello", 0): {"good": "morning"},
 			("hello", "bye", "hi", 0): {},
+			("hello", "moon", "earth", 0): {},
 		},
 		"triggers": {
 			"shrubsprint": ("uncovered", "breakcover"),
