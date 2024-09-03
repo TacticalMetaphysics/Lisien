@@ -95,9 +95,9 @@ def test_character(handle_initialized):
 	handle_initialized.set_place("hello", "earth", {})
 	handle_initialized.add_portal("hello", "moon", "earth", {})
 	assert handle_initialized.thing_travel_to("hello", "neal", "earth") == 1
-	kf = handle_initialized.snap_keyframe()
-	del kf["universal"]
-	assert kf == {
+	kf0 = handle_initialized.snap_keyframe()
+	del kf0["universal"]
+	assert kf0 == {
 		"graph_val": {("hello",): {"stat": None, "stoat": "bitter"}},
 		"nodes": {
 			("hello",): {
@@ -168,10 +168,11 @@ def test_character(handle_initialized):
 			),
 		},
 	}
+	desttime = handle_initialized.get_btt()
 	handle_initialized.time_travel(*origtime)
-	kf = handle_initialized.snap_keyframe()
-	del kf["universal"]
-	assert kf == {
+	kf1 = handle_initialized.snap_keyframe()
+	del kf1["universal"]
+	assert kf1 == {
 		"graph_val": {("hello",): {"stat": "also"}, ("physical",): {}},
 		"nodes": {
 			("physical",): {
@@ -1330,3 +1331,7 @@ def test_character(handle_initialized):
 			),
 		},
 	}
+	handle_initialized.time_travel(*desttime)
+	kf2 = handle_initialized.snap_keyframe()
+	del kf2["universal"]
+	assert kf2 == kf0
