@@ -560,7 +560,7 @@
 <a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.app.ELiDEApp.on_stop">[docs]</a>
 	<span class="k">def</span> <span class="nf">on_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">largs</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Sync the database, wrap up the game, and halt.&quot;&quot;&quot;</span>
-		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;stopped&#39;</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;stopped&quot;</span><span class="p">):</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">stopped</span> <span class="o">=</span> <span class="kc">True</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>

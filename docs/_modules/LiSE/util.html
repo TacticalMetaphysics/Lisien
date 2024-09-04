@@ -49,9 +49,7 @@
 
 <span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
 <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Set</span>
-<span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">ThreadPoolExecutor</span><span class="p">,</span> <span class="n">wait</span>
 <span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="p">(</span>
 	<span class="n">ge</span><span class="p">,</span>
 	<span class="n">gt</span><span class="p">,</span>
@@ -76,9 +74,18 @@
 
 <span class="kn">import</span> <span class="nn">msgpack</span>
 <span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">tblib</span> <span class="kn">import</span> <span class="n">Traceback</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">exc</span>
+
+
+<span class="k">class</span> <span class="nc">BadTimeException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;You tried to do something that would make sense at a different game-time</span>
+
+<span class="sd">	But doesn&#39;t make sense now</span>
+
+<span class="sd">	&quot;&quot;&quot;</span>
 
 
 <span class="k">class</span> <span class="nc">FinalRule</span><span class="p">:</span>
@@ -1023,7 +1030,7 @@
 	<span class="n">cull_edges</span> <span class="o">=</span> <span class="n">cull_portals</span>
 
 
-<span class="k">def</span> <span class="nf">_numpy_normalize_layout</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">normalize_layout</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Make sure all the spots in a layout are where you can click.</span>
 
 <span class="sd">	Returns a copy of the layout with all spot coordinates are</span>
@@ -1052,192 +1059,6 @@
 		<span class="n">yco</span> <span class="o">=</span> <span class="mf">0.98</span> <span class="o">/</span> <span class="p">(</span><span class="n">maxy</span> <span class="o">-</span> <span class="n">miny</span><span class="p">)</span>
 		<span class="n">ynorm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="p">[</span><span class="n">miny</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">)),</span> <span class="n">yco</span><span class="p">)</span>
 	<span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ks</span><span class="p">,</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">xnorm</span><span class="p">),</span> <span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">ynorm</span><span class="p">))))</span>
-
-
-<span class="k">def</span> <span class="nf">_threaded_normalize_layout</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
-	<span class="vm">__doc__</span> <span class="o">=</span> <span class="n">_numpy_normalize_layout</span><span class="o">.</span><span class="vm">__doc__</span>
-
-	<span class="n">xs</span> <span class="o">=</span> <span class="p">[]</span>
-	<span class="n">ys</span> <span class="o">=</span> <span class="p">[]</span>
-	<span class="n">ks</span> <span class="o">=</span> <span class="p">[]</span>
-
-	<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="n">l</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-		<span class="n">ks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
-		<span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-		<span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-
-	<span class="n">minx</span> <span class="o">=</span> <span class="n">miny</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
-	<span class="n">maxx</span> <span class="o">=</span> <span class="n">maxy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;-inf&quot;</span><span class="p">)</span>
-
-	<span class="k">def</span> <span class="nf">calc_minx</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-		<span class="k">nonlocal</span> <span class="n">minx</span>
-		<span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">minx</span><span class="p">:</span>
-			<span class="n">minx</span> <span class="o">=</span> <span class="n">x</span>
-
-	<span class="k">def</span> <span class="nf">calc_maxx</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-		<span class="k">nonlocal</span> <span class="n">maxx</span>
-		<span class="k">if</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="n">maxx</span><span class="p">:</span>
-			<span class="n">maxx</span> <span class="o">=</span> <span class="n">x</span>
-
-	<span class="k">def</span> <span class="nf">calc_miny</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
-		<span class="k">nonlocal</span> <span class="n">miny</span>
-		<span class="k">if</span> <span class="n">y</span> <span class="o">&lt;</span> <span class="n">miny</span><span class="p">:</span>
-			<span class="n">miny</span> <span class="o">=</span> <span class="n">y</span>
-
-	<span class="k">def</span> <span class="nf">calc_maxy</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
-		<span class="k">nonlocal</span> <span class="n">maxy</span>
-		<span class="k">if</span> <span class="n">y</span> <span class="o">&gt;</span> <span class="n">maxy</span><span class="p">:</span>
-			<span class="n">maxy</span> <span class="o">=</span> <span class="n">y</span>
-
-	<span class="k">def</span> <span class="nf">calc_norm</span><span class="p">(</span><span class="n">minimum</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">coord</span><span class="p">):</span>
-		<span class="k">return</span> <span class="n">coefficient</span> <span class="o">*</span> <span class="p">(</span><span class="n">coord</span> <span class="o">-</span> <span class="n">minimum</span><span class="p">)</span>
-
-	<span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">()</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
-		<span class="n">wait</span><span class="p">(</span>
-			<span class="n">chain</span><span class="p">(</span>
-				<span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">calc_minx</span><span class="p">,</span> <span class="o">*</span><span class="n">xs</span><span class="p">),</span>
-				<span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">calc_maxx</span><span class="p">,</span> <span class="o">*</span><span class="n">xs</span><span class="p">),</span>
-				<span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">calc_miny</span><span class="p">,</span> <span class="o">*</span><span class="n">ys</span><span class="p">),</span>
-				<span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">calc_maxy</span><span class="p">,</span> <span class="o">*</span><span class="n">ys</span><span class="p">),</span>
-			<span class="p">)</span>
-		<span class="p">)</span>
-		<span class="k">if</span> <span class="n">maxx</span> <span class="o">==</span> <span class="n">minx</span><span class="p">:</span>
-			<span class="n">xnorm</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
-			<span class="n">xnormfuts</span> <span class="o">=</span> <span class="kc">None</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">xco</span> <span class="o">=</span> <span class="mf">0.98</span> <span class="o">/</span> <span class="p">(</span><span class="n">maxx</span> <span class="o">-</span> <span class="n">minx</span><span class="p">)</span>
-			<span class="n">xnormfuts</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">calc_norm</span><span class="p">,</span> <span class="n">minx</span><span class="p">,</span> <span class="n">xco</span><span class="p">),</span> <span class="n">xs</span><span class="p">)</span>
-		<span class="k">if</span> <span class="n">maxy</span> <span class="o">==</span> <span class="n">miny</span><span class="p">:</span>
-			<span class="n">ynorm</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
-			<span class="n">ynormfuts</span> <span class="o">=</span> <span class="kc">None</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">yco</span> <span class="o">=</span> <span class="mf">0.98</span> <span class="o">/</span> <span class="p">(</span><span class="n">maxy</span> <span class="o">-</span> <span class="n">miny</span><span class="p">)</span>
-			<span class="n">ynormfuts</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">calc_norm</span><span class="p">,</span> <span class="n">miny</span><span class="p">,</span> <span class="n">yco</span><span class="p">),</span> <span class="n">ys</span><span class="p">)</span>
-		<span class="k">if</span> <span class="n">xnormfuts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-			<span class="n">wait</span><span class="p">(</span><span class="n">xnormfuts</span><span class="p">)</span>
-			<span class="n">xnorm</span> <span class="o">=</span> <span class="p">[</span><span class="n">fut</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">fut</span> <span class="ow">in</span> <span class="n">xnormfuts</span><span class="p">]</span>
-		<span class="k">if</span> <span class="n">ynormfuts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-			<span class="n">wait</span><span class="p">(</span><span class="n">ynormfuts</span><span class="p">)</span>
-			<span class="n">ynorm</span> <span class="o">=</span> <span class="p">[</span><span class="n">fut</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">fut</span> <span class="ow">in</span> <span class="n">ynormfuts</span><span class="p">]</span>
-		<span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ks</span><span class="p">,</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xnorm</span><span class="p">,</span> <span class="n">ynorm</span><span class="p">)))</span>
-
-
-<span class="k">try</span><span class="p">:</span>
-	<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-
-	<span class="n">normalize_layout</span> <span class="o">=</span> <span class="n">_numpy_normalize_layout</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-	<span class="n">normalize_layout</span> <span class="o">=</span> <span class="n">_threaded_normalize_layout</span>
-
-
-<span class="k">def</span> <span class="nf">kf2delta</span><span class="p">(</span><span class="n">kf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-	<span class="n">ret</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;rulebook&quot;</span><span class="p">:</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;rulebook&quot;</span><span class="p">],</span> <span class="s2">&quot;universal&quot;</span><span class="p">:</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;universal&quot;</span><span class="p">]}</span>
-	<span class="n">rules</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&quot;rules&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-	<span class="k">for</span> <span class="n">funclist</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;triggers&quot;</span><span class="p">,</span> <span class="s2">&quot;prereqs&quot;</span><span class="p">,</span> <span class="s2">&quot;actions&quot;</span><span class="p">):</span>
-		<span class="k">for</span> <span class="n">rule</span><span class="p">,</span> <span class="n">funcs</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="n">funclist</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-			<span class="k">if</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">rules</span><span class="p">:</span>
-				<span class="n">rules</span><span class="p">[</span><span class="n">rule</span><span class="p">][</span><span class="n">funclist</span><span class="p">]</span> <span class="o">=</span> <span class="n">funcs</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="n">rules</span><span class="p">[</span><span class="n">rule</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">funclist</span><span class="p">:</span> <span class="n">funcs</span><span class="p">}</span>
-	<span class="k">for</span> <span class="p">(</span><span class="n">charn</span><span class="p">,),</span> <span class="n">kvs</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;graph_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-		<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="n">kvs</span>
-	<span class="k">for</span> <span class="p">(</span><span class="n">charn</span><span class="p">,),</span> <span class="n">existences</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;nodes&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-		<span class="k">if</span> <span class="n">charn</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
-			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;nodes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">existences</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;nodes&quot;</span><span class="p">:</span> <span class="n">existences</span><span class="p">}</span>
-	<span class="k">for</span> <span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">noden</span><span class="p">),</span> <span class="n">kvs</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;node_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-		<span class="k">if</span> <span class="n">charn</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
-			<span class="k">if</span> <span class="s2">&quot;node_val&quot;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]:</span>
-				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;node_val&quot;</span><span class="p">][</span><span class="n">noden</span><span class="p">]</span> <span class="o">=</span> <span class="n">kvs</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;node_val&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">noden</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;node_val&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">noden</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}}</span>
-	<span class="k">for</span> <span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">),</span> <span class="n">existence</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-		<span class="n">ex</span> <span class="o">=</span> <span class="n">existence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-		<span class="k">if</span> <span class="n">charn</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
-			<span class="k">if</span> <span class="s2">&quot;edges&quot;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]:</span>
-				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">][</span><span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">]</span> <span class="o">=</span> <span class="n">ex</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{(</span><span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">):</span> <span class="n">ex</span><span class="p">}</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;edges&quot;</span><span class="p">:</span> <span class="p">{(</span><span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">):</span> <span class="n">ex</span><span class="p">}}</span>
-	<span class="k">for</span> <span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">orign</span><span class="p">,</span> <span class="n">destn</span><span class="p">,</span> <span class="n">_</span><span class="p">),</span> <span class="n">kvs</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;edge_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-		<span class="k">if</span> <span class="n">charn</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
-			<span class="k">if</span> <span class="s2">&quot;edge_val&quot;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]:</span>
-				<span class="k">if</span> <span class="n">orign</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;edge_val&quot;</span><span class="p">]:</span>
-					<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;edge_val&quot;</span><span class="p">][</span><span class="n">orign</span><span class="p">][</span><span class="n">destn</span><span class="p">]</span> <span class="o">=</span> <span class="n">kvs</span>
-				<span class="k">else</span><span class="p">:</span>
-					<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;edge_val&quot;</span><span class="p">][</span><span class="n">orign</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">destn</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">][</span><span class="s2">&quot;edge_val&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">orign</span><span class="p">:</span> <span class="p">{</span><span class="n">destn</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}}</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">ret</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;edge_val&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">orign</span><span class="p">:</span> <span class="p">{</span><span class="n">destn</span><span class="p">:</span> <span class="n">kvs</span><span class="p">}}}</span>
-	<span class="k">return</span> <span class="n">ret</span>
-
-
-<span class="k">def</span> <span class="nf">dicthash</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
-	<span class="n">the_hash</span> <span class="o">=</span> <span class="mi">0</span>
-	<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-		<span class="n">the_hash</span> <span class="o">^=</span> <span class="nb">hash</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
-		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">):</span>
-			<span class="n">the_hash</span> <span class="o">^=</span> <span class="nb">hash</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
-			<span class="n">the_hash</span> <span class="o">^=</span> <span class="n">dicthash</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
-			<span class="n">the_hash</span> <span class="o">^=</span> <span class="n">listhash</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> is not hashable&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
-	<span class="k">return</span> <span class="n">the_hash</span>
-
-
-<span class="k">def</span> <span class="nf">listhash</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
-	<span class="n">the_hash</span> <span class="o">=</span> <span class="mi">0</span>
-	<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">L</span><span class="p">:</span>
-		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">):</span>
-			<span class="n">the_hash</span> <span class="o">^=</span> <span class="nb">hash</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
-			<span class="n">the_hash</span> <span class="o">^=</span> <span class="n">listhash</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
-			<span class="n">the_hash</span> <span class="o">^=</span> <span class="n">dicthash</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> is not hashable&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
-	<span class="k">return</span> <span class="n">the_hash</span>
-
-
-<span class="k">def</span> <span class="nf">howfast</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-	<span class="k">def</span> <span class="nf">wrap</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
-		<span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
-		<span class="k">def</span> <span class="nf">timing</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-			<span class="n">start</span> <span class="o">=</span> <span class="n">monotonic</span><span class="p">()</span>
-			<span class="n">ret</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-			<span class="n">timed</span> <span class="o">=</span> <span class="n">monotonic</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span>
-			<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outf</span><span class="p">:</span>
-				<span class="n">outf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">timed</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-			<span class="k">return</span> <span class="n">ret</span>
-
-		<span class="k">return</span> <span class="n">timing</span>
-
-	<span class="k">return</span> <span class="n">wrap</span>
-
-
-<span class="k">def</span> <span class="nf">sumlines</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-	<span class="n">total</span> <span class="o">=</span> <span class="mf">0.0</span>
-	<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">inf</span><span class="p">:</span>
-		<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">inf</span><span class="p">:</span>
-			<span class="n">total</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
-	<span class="k">return</span> <span class="n">total</span>
-
-
-<span class="k">def</span> <span class="nf">meanlines</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-	<span class="n">total</span> <span class="o">=</span> <span class="mf">0.0</span>
-	<span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-	<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">inf</span><span class="p">:</span>
-		<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">inf</span><span class="p">:</span>
-			<span class="n">total</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
-			<span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-	<span class="k">return</span> <span class="n">total</span> <span class="o">/</span> <span class="n">count</span>
 </pre></div>
 
           </div>
