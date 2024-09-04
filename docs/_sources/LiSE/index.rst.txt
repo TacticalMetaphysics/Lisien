@@ -2,7 +2,7 @@ engine
 ------
 .. automodule:: LiSE.engine
 
-	.. autoclass:: LiSE.Engine
+	.. autoclass:: LiSE.engine.Engine
 
 		.. autoproperty:: LiSE.Engine.branch
 

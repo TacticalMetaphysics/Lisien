@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LiSE.query &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=12dfc556" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=c058f7c8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
     <script src="../../_static/documentation_options.js?v=fbc7b204"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
@@ -79,12 +80,16 @@
 
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="kn">import</span> <span class="n">select</span><span class="p">,</span> <span class="n">and_</span><span class="p">,</span> <span class="n">Table</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.sql.functions</span> <span class="kn">import</span> <span class="n">func</span>
-<span class="kn">from</span> <span class="nn">.alchemy</span> <span class="kn">import</span> <span class="n">meta</span><span class="p">,</span> <span class="n">gather_sql</span>
+<span class="kn">import</span> <span class="nn">msgpack</span>
 
+<span class="kn">from</span> <span class="nn">.alchemy</span> <span class="kn">import</span> <span class="n">meta</span><span class="p">,</span> <span class="n">gather_sql</span>
 <span class="kn">from</span> <span class="nn">.allegedb</span> <span class="kn">import</span> <span class="n">query</span>
 <span class="kn">from</span> <span class="nn">.exc</span> <span class="kn">import</span> <span class="n">IntegrityError</span><span class="p">,</span> <span class="n">OperationalError</span>
 <span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">EntityStatAccessor</span>
 <span class="kn">import</span> <span class="nn">LiSE</span>
+
+
+<span class="n">NONE</span> <span class="o">=</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">packb</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">windows_union</span><span class="p">(</span><span class="n">windows</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
@@ -1802,7 +1807,7 @@
 
 	<span class="k">def</span> <span class="nf">universal_del</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
 		<span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">call_one</span><span class="p">(</span><span class="s2">&quot;universals_insert&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">call_one</span><span class="p">(</span><span class="s2">&quot;universals_insert&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">NONE</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_increc</span><span class="p">()</span>
 
 	<span class="k">def</span> <span class="nf">comparison</span><span class="p">(</span>
@@ -2249,7 +2254,7 @@
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="../../index.html">LiSE</a></h1>
 
@@ -2260,7 +2265,16 @@
 
 
 
-<h3>Navigation</h3>
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
@@ -2284,16 +2298,6 @@
   </ul></li>
 </ul>
 </div>
-<search id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</search>
-<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -2310,8 +2314,8 @@
       &#169;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.0.2</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
     </div>
 

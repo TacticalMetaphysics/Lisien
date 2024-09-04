@@ -760,31 +760,58 @@
 				<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
 			<span class="p">)</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;universal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;universal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+				<span class="n">key</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_universal_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
+				<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_universal_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
+			<span class="p">}</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;triggers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
 				<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
 			<span class="p">)</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;triggers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;triggers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+				<span class="n">trigger</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+					<span class="n">trigger</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+				<span class="p">)</span>
+				<span class="k">for</span> <span class="n">trigger</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span>
+					<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+				<span class="p">)</span>
+			<span class="p">}</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;prereqs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prereqs_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
 				<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
 			<span class="p">)</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;prereqs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;prereqs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+				<span class="n">prereq</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prereqs_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+					<span class="n">prereq</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+				<span class="p">)</span>
+				<span class="k">for</span> <span class="n">prereq</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prereqs_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
+			<span class="p">}</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;actions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
 				<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
 			<span class="p">)</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;actions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;actions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+				<span class="n">action</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+					<span class="n">action</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+				<span class="p">)</span>
+				<span class="k">for</span> <span class="n">action</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
+			<span class="p">}</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
 				<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
 			<span class="p">)</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+			<span class="n">kf</span><span class="p">[</span><span class="s2">&quot;rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+				<span class="n">rulebook</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+					<span class="n">rulebook</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+				<span class="p">)</span>
+				<span class="k">for</span> <span class="n">rulebook</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span>
+					<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+				<span class="p">)</span>
+			<span class="p">}</span>
 		<span class="k">return</span> <span class="n">kf</span>
 
 <div class="viewcode-block" id="Engine.get_delta">
@@ -1064,13 +1091,18 @@
 			<span class="k">for</span> <span class="n">chara</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">is_av</span> <span class="ow">in</span> <span class="n">avatarness_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">][</span><span class="n">turn</span><span class="p">][</span>
 				<span class="n">start_tick</span><span class="p">:</span><span class="n">tick</span>
 			<span class="p">]:</span>
-				<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">chara</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;units&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
-					<span class="n">graph</span><span class="p">,</span> <span class="p">{}</span>
-				<span class="p">)[</span><span class="n">node</span><span class="p">]</span> <span class="o">=</span> <span class="n">is_av</span>
+				<span class="n">chardelt</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">chara</span><span class="p">,</span> <span class="p">{})</span>
+				<span class="k">if</span> <span class="n">chardelt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+					<span class="k">continue</span>
+				<span class="n">chardelt</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;units&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{})[</span>
+					<span class="n">node</span>
+				<span class="p">]</span> <span class="o">=</span> <span class="n">is_av</span>
 		<span class="k">if</span> <span class="n">branch</span> <span class="ow">in</span> <span class="n">things_settings</span> <span class="ow">and</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">things_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">]:</span>
 			<span class="k">for</span> <span class="n">chara</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">location</span> <span class="ow">in</span> <span class="n">things_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">][</span><span class="n">turn</span><span class="p">][</span>
 				<span class="n">start_tick</span><span class="p">:</span><span class="n">tick</span>
 			<span class="p">]:</span>
+				<span class="k">if</span> <span class="n">chara</span> <span class="ow">in</span> <span class="n">delta</span> <span class="ow">and</span> <span class="n">delta</span><span class="p">[</span><span class="n">chara</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+					<span class="k">continue</span>
 				<span class="n">thingd</span> <span class="o">=</span> <span class="p">(</span>
 					<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">chara</span><span class="p">,</span> <span class="p">{})</span>
 					<span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;node_val&quot;</span><span class="p">,</span> <span class="p">{})</span>
@@ -1107,9 +1139,10 @@
 			<span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span> <span class="ow">in</span> <span class="n">character_rulebooks_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">][</span>
 				<span class="n">turn</span>
 			<span class="p">][</span><span class="n">start_tick</span><span class="p">:</span><span class="n">tick</span><span class="p">]:</span>
-				<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})[</span><span class="s2">&quot;character_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-					<span class="n">rulebook</span>
-				<span class="p">)</span>
+				<span class="n">chardelt</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})</span>
+				<span class="k">if</span> <span class="n">chardelt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+					<span class="k">continue</span>
+				<span class="n">chardelt</span><span class="p">[</span><span class="s2">&quot;character_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rulebook</span>
 		<span class="k">if</span> <span class="p">(</span>
 			<span class="n">branch</span> <span class="ow">in</span> <span class="n">avatar_rulebooks_settings</span>
 			<span class="ow">and</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">avatar_rulebooks_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
@@ -1117,7 +1150,10 @@
 			<span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span> <span class="ow">in</span> <span class="n">avatar_rulebooks_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">][</span>
 				<span class="n">turn</span>
 			<span class="p">][</span><span class="n">start_tick</span><span class="p">:</span><span class="n">tick</span><span class="p">]:</span>
-				<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})[</span><span class="s2">&quot;unit_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rulebook</span>
+				<span class="n">chardelt</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})</span>
+				<span class="k">if</span> <span class="n">chardelt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+					<span class="k">continue</span>
+				<span class="n">chardelt</span><span class="p">[</span><span class="s2">&quot;unit_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rulebook</span>
 		<span class="k">if</span> <span class="p">(</span>
 			<span class="n">branch</span> <span class="ow">in</span> <span class="n">character_thing_rulebooks_settings</span>
 			<span class="ow">and</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">character_thing_rulebooks_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
@@ -1125,9 +1161,10 @@
 			<span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span> <span class="ow">in</span> <span class="n">character_thing_rulebooks_settings</span><span class="p">[</span>
 				<span class="n">branch</span>
 			<span class="p">][</span><span class="n">turn</span><span class="p">][</span><span class="n">start_tick</span><span class="p">:</span><span class="n">tick</span><span class="p">]:</span>
-				<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})[</span><span class="s2">&quot;character_thing_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-					<span class="n">rulebook</span>
-				<span class="p">)</span>
+				<span class="n">chardelt</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})</span>
+				<span class="k">if</span> <span class="n">chardelt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+					<span class="k">continue</span>
+				<span class="n">chardelt</span><span class="p">[</span><span class="s2">&quot;character_thing_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rulebook</span>
 		<span class="k">if</span> <span class="p">(</span>
 			<span class="n">branch</span> <span class="ow">in</span> <span class="n">character_place_rulebooks_settings</span>
 			<span class="ow">and</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">character_place_rulebooks_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
@@ -1135,9 +1172,10 @@
 			<span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span> <span class="ow">in</span> <span class="n">character_place_rulebooks_settings</span><span class="p">[</span>
 				<span class="n">branch</span>
 			<span class="p">][</span><span class="n">turn</span><span class="p">][</span><span class="n">start_tick</span><span class="p">:</span><span class="n">tick</span><span class="p">]:</span>
-				<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})[</span><span class="s2">&quot;character_place_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-					<span class="n">rulebook</span>
-				<span class="p">)</span>
+				<span class="n">chardelt</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})</span>
+				<span class="k">if</span> <span class="n">chardelt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+					<span class="k">continue</span>
+				<span class="n">chardelt</span><span class="p">[</span><span class="s2">&quot;character_place_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rulebook</span>
 		<span class="k">if</span> <span class="p">(</span>
 			<span class="n">branch</span> <span class="ow">in</span> <span class="n">character_portal_rulebooks_settings</span>
 			<span class="ow">and</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">character_portal_rulebooks_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
@@ -1145,9 +1183,10 @@
 			<span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span> <span class="ow">in</span> <span class="n">character_portal_rulebooks_settings</span><span class="p">[</span>
 				<span class="n">branch</span>
 			<span class="p">][</span><span class="n">turn</span><span class="p">][</span><span class="n">start_tick</span><span class="p">:</span><span class="n">tick</span><span class="p">]:</span>
-				<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})[</span>
-					<span class="s2">&quot;character_portal_rulebook&quot;</span>
-				<span class="p">]</span> <span class="o">=</span> <span class="n">rulebook</span>
+				<span class="n">chardelt</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})</span>
+				<span class="k">if</span> <span class="n">chardelt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+					<span class="k">continue</span>
+				<span class="n">chardelt</span><span class="p">[</span><span class="s2">&quot;character_portal_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rulebook</span>
 
 		<span class="k">if</span> <span class="p">(</span>
 			<span class="n">branch</span> <span class="ow">in</span> <span class="n">node_rulebooks_settings</span>
@@ -1156,9 +1195,12 @@
 			<span class="k">for</span> <span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">rulebook</span> <span class="ow">in</span> <span class="n">node_rulebooks_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">][</span>
 				<span class="n">turn</span>
 			<span class="p">][</span><span class="n">start_tick</span><span class="p">:</span><span class="n">tick</span><span class="p">]:</span>
-				<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
-					<span class="s2">&quot;node_val&quot;</span><span class="p">,</span> <span class="p">{}</span>
-				<span class="p">)</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="p">{})[</span><span class="s2">&quot;rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rulebook</span>
+				<span class="n">chardelt</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})</span>
+				<span class="k">if</span> <span class="n">chardelt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+					<span class="k">continue</span>
+				<span class="n">chardelt</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;node_val&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="p">{})[</span>
+					<span class="s2">&quot;rulebook&quot;</span>
+				<span class="p">]</span> <span class="o">=</span> <span class="n">rulebook</span>
 		<span class="k">if</span> <span class="p">(</span>
 			<span class="n">branch</span> <span class="ow">in</span> <span class="n">portal_rulebooks_settings</span>
 			<span class="ow">and</span> <span class="n">turn</span> <span class="ow">in</span> <span class="n">portal_rulebooks_settings</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
@@ -1166,11 +1208,12 @@
 			<span class="k">for</span> <span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">rulebook</span> <span class="ow">in</span> <span class="n">portal_rulebooks_settings</span><span class="p">[</span>
 				<span class="n">branch</span>
 			<span class="p">][</span><span class="n">turn</span><span class="p">][</span><span class="n">start_tick</span><span class="p">:</span><span class="n">tick</span><span class="p">]:</span>
-				<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
-					<span class="s2">&quot;edge_val&quot;</span><span class="p">,</span> <span class="p">{}</span>
-				<span class="p">)</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="p">{})[</span>
-					<span class="s2">&quot;rulebook&quot;</span>
-				<span class="p">]</span> <span class="o">=</span> <span class="n">rulebook</span>
+				<span class="n">chardelt</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="p">{})</span>
+				<span class="k">if</span> <span class="n">chardelt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+					<span class="k">continue</span>
+				<span class="n">chardelt</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;edge_val&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+					<span class="n">orig</span><span class="p">,</span> <span class="p">{}</span>
+				<span class="p">)</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="p">{})[</span><span class="s2">&quot;rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rulebook</span>
 		<span class="k">return</span> <span class="n">delta</span>
 
 	<span class="k">def</span> <span class="nf">_del_rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">):</span>
@@ -1272,7 +1315,7 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">_keyframe_on_close</span>
 			<span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keyframes_times</span>
 		<span class="p">):</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">snap_keyframe</span><span class="p">()</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">snap_keyframe</span><span class="p">(</span><span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 		<span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stores</span><span class="p">:</span>
 			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="s2">&quot;save&quot;</span><span class="p">):</span>
 				<span class="n">store</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">reimport</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -1318,7 +1361,12 @@
 					<span class="n">rbs</span><span class="p">[</span><span class="n">rule</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
 				<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 					<span class="n">rbs</span><span class="p">[</span><span class="n">rule</span><span class="p">]</span> <span class="o">=</span> <span class="n">rule</span>
-		<span class="n">univ</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">delta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;universal&quot;</span><span class="p">,</span> <span class="p">{}))</span>
+		<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">delta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;universal&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+			<span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+				<span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">univ</span><span class="p">:</span>
+					<span class="k">del</span> <span class="n">univ</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">univ</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_universal_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">univ</span><span class="p">)</span>
 		<span class="n">rbs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">delta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;rulebooks&quot;</span><span class="p">,</span> <span class="p">{}))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rbs</span><span class="p">)</span>
@@ -2113,10 +2161,16 @@
 					<span class="n">data</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_dict_of_lists</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 			<span class="n">data</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keyframes_times</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">snap_keyframe</span><span class="p">()</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">snap_keyframe</span><span class="p">(</span><span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_init_graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;DiGraph&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_graph_objs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">char_cls</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span></div>
 
+
+	<span class="k">def</span> <span class="nf">del_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+		<span class="k">for</span> <span class="n">thing</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">thing</span><span class="p">):</span>
+			<span class="k">del</span> <span class="n">graph</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">thing</span><span class="p">]</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">del_graph</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Engine.del_character">
 <a class="viewcode-back" href="../../LiSE/index.html#LiSE.Engine.del_character">[docs]</a>
