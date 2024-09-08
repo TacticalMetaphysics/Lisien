@@ -37,6 +37,7 @@ import msgpack
 import numpy as np
 
 from .allegedb import OutOfTimelineError, Key
+from .allegedb.cache import StructuredDefaultDict, PickyDefaultDict
 from .engine import Engine
 from .node import Node
 from .portal import Portal
@@ -318,8 +319,29 @@ class EngineHandle:
 		btt_from: Tuple[str, int, int] = None,
 		btt_to: Tuple[str, int, int] = None,
 	) -> SlightlyPackedDeltaType:
+		def newgraph():
+			return {
+				# null mungers mean KeyError, which is correct
+				NODES: PickyDefaultDict(
+					bytes, args_munger=None, kwargs_munger=None
+				),
+				EDGES: PickyDefaultDict(
+					bytes, args_munger=None, kwargs_munger=None
+				),
+				NODE_VAL: StructuredDefaultDict(
+					1, bytes, args_munger=None, kwargs_munger=None
+				),
+				EDGE_VAL: StructuredDefaultDict(
+					2, bytes, args_munger=None, kwargs_munger=None
+				),
+			}
+
 		pack = self._real.pack
-		delta: Dict[bytes, Any] = {}
+		delta: Dict[bytes, Any] = {
+			UNIVERSAL: PickyDefaultDict(bytes),
+			RULES: StructuredDefaultDict(1, bytes),
+			RULEBOOK: PickyDefaultDict(bytes),
+		}
 		btt_from = self._get_btt(btt_from)
 		btt_to = self._get_btt(btt_to)
 		if btt_from == btt_to:
@@ -454,98 +476,55 @@ class EngineHandle:
 				return
 			v = pack(vb)
 			if k[0] == "universal":
-				_, key = k
-				key = pack(key)
-				if UNIVERSAL not in delta:
-					delta[UNIVERSAL] = {key: v}
-				else:
-					delta[UNIVERSAL][key] = v
+				key = pack(k[1])
+				delta[UNIVERSAL][key] = v
 			elif k[0] == "triggers":
 				rule = pack(k[1])
-				if RULES not in delta:
-					delta[RULES] = {rule: {TRIGGERS: v}}
-				elif rule not in delta[RULES]:
-					delta[RULES][rule] = {TRIGGERS: v}
-				else:
-					delta[RULES][rule][TRIGGERS] = v
+				delta[RULES][rule][TRIGGERS] = v
 			elif k[0] == "prereqs":
 				rule = pack(k[1])
-				if RULES not in delta:
-					delta[RULES] = {rule: {PREREQS: v}}
-				elif rule not in delta[RULES]:
-					delta[RULES][rule] = {PREREQS: v}
-				else:
-					delta[RULES][rule][PREREQS] = v
+				delta[RULES][rule][PREREQS] = v
 			elif k[0] == "actions":
 				rule = pack(k[1])
-				if RULES not in delta:
-					delta[RULES] = {rule: {ACTIONS: v}}
-				elif rule not in delta[RULES]:
-					delta[RULES][rule] = {ACTIONS: v}
-				else:
-					delta[RULES][rule][ACTIONS] = v
+				delta[RULES][rule][ACTIONS] = v
 			elif k[0] == "rulebook":
 				rulebook = pack(k[1])
-				if RULEBOOK not in delta:
-					delta[RULEBOOK] = {rulebook: v}
-				else:
-					delta[RULEBOOK][rulebook] = v
+				delta[RULEBOOK][rulebook] = v
 			elif k[0] == "node":
 				_, graph, node, key = k
 				if graph in deleted_nodes and node in deleted_nodes[graph]:
 					return
 				graph, node, key = map(pack, (graph, node, key))
 				if graph not in delta:
-					delta[graph] = {NODE_VAL: {node: {key: v}}}
-				elif NODE_VAL not in delta[graph]:
-					delta[graph][NODE_VAL] = {node: {key: v}}
-				elif node not in delta[graph][NODE_VAL]:
-					delta[graph][NODE_VAL][node] = {key: v}
-				else:
-					delta[graph][NODE_VAL][node][key] = v
+					delta[graph] = newgraph()
+				delta[graph][NODE_VAL][node][key] = v
 			elif k[0] == "edge":
 				_, graph, orig, dest, key = k
 				if (graph, orig, dest) in deleted_edges:
 					return
 				graph, orig, dest, key = map(pack, (graph, orig, dest, key))
 				if graph not in delta:
-					delta[graph] = {
-						EDGE_VAL: {orig: {dest: {key: v}}},
-					}
-				elif EDGE_VAL not in delta[graph]:
-					delta[graph][EDGE_VAL] = {orig: {dest: {key: v}}}
-				elif orig not in delta[graph][EDGE_VAL]:
-					delta[graph][EDGE_VAL][orig] = {dest: {key: v}}
-				elif dest not in delta[graph][EDGE_VAL][orig]:
-					delta[graph][EDGE_VAL][orig][dest] = {key: v}
-				else:
-					delta[graph][EDGE_VAL][orig][dest][key] = v
+					delta[graph] = newgraph()
+				delta[graph][EDGE_VAL][orig][dest][key] = v
 			else:
 				assert k[0] == "graph"
 				_, graph, key = k
 				graph, key = map(pack, (graph, key))
-				if graph in delta:
-					delta[graph][key] = v
-				else:
-					delta[graph] = {key: v}
+				if graph not in delta:
+					delta[graph] = newgraph()
+				delta[graph][key] = v
 
 		def pack_node(graph, node, existence):
 			grap, node = map(pack, (graph, node))
 			if grap not in delta:
-				delta[grap] = {NODES: {node: existence}}
-			elif NODES not in delta[grap]:
-				delta[grap][NODES] = {node: existence}
-			else:
-				delta[grap][NODES][node] = existence
+				delta[grap] = newgraph()
+			delta[grap][NODES][node] = existence
 
 		def pack_edge(graph, orig, dest, existence):
 			graph, origdest = map(pack, (graph, (orig, dest)))
 			if graph not in delta:
-				delta[graph] = {EDGES: {origdest: existence}}
-			elif EDGES not in delta[graph]:
-				delta[graph][EDGES] = {origdest: existence}
-			else:
-				delta[graph][EDGES][origdest] = existence
+				delta[graph] = newgraph()
+			delta[graph][EDGES][origdest] = existence
 
 		futs = []
 		with ThreadPoolExecutor() as pool:
@@ -582,6 +561,33 @@ class EngineHandle:
 				kf_to["edges"].keys() - kf_from["edges"].keys()
 			):
 				futs.append(pool.submit(pack_edge, graph, orig, dest, TRUE))
+		if not delta[UNIVERSAL]:
+			del delta[UNIVERSAL]
+		if not delta[RULEBOOK]:
+			del delta[RULEBOOK]
+		todel = []
+		for rule_name, rule in delta[RULES].items():
+			if not rule[TRIGGERS]:
+				del rule[TRIGGERS]
+			if not rule[PREREQS]:
+				del rule[PREREQS]
+			if not rule[ACTIONS]:
+				del rule[ACTIONS]
+			if not rule:
+				todel.append(rule_name)
+		for deleterule in todel:
+			del delta[deleterule]
+		if not delta[RULES]:
+			del delta[RULES]
+		for key, mapp in delta.items():
+			if key in {RULES, RULEBOOKS, ETERNAL, UNIVERSAL}:
+				continue
+			todel = []
+			for keey, mappp in mapp.items():
+				if not mappp:
+					todel.append(keey)
+			for todo in todel:
+				del mapp[todo]
 		return delta
 
 	@prepacked
