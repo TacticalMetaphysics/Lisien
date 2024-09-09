@@ -17,7 +17,6 @@ ordinary method calls.
 
 """
 
-from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from operator import itemgetter
@@ -36,7 +35,6 @@ from typing import (
 
 import msgpack
 import numpy as np
-from docutils.parsers.rst.states import Struct
 
 from .allegedb import OutOfTimelineError, Key
 from .allegedb.cache import StructuredDefaultDict, PickyDefaultDict
