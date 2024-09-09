@@ -17,6 +17,7 @@ ordinary method calls.
 
 """
 
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from operator import itemgetter
@@ -324,33 +325,23 @@ class EngineHandle:
 		) -> np.array:
 			return np.array(ids_from) != np.array(ids_to)
 
-		def newgraph():
-			return {
-				# null mungers mean KeyError, which is correct
-				NODES: PickyDefaultDict(
-					bytes, args_munger=None, kwargs_munger=None
-				),
-				EDGES: PickyDefaultDict(
-					bytes, args_munger=None, kwargs_munger=None
-				),
-				NODE_VAL: StructuredDefaultDict(
-					1, bytes, args_munger=None, kwargs_munger=None
-				),
-				EDGE_VAL: StructuredDefaultDict(
-					2, bytes, args_munger=None, kwargs_munger=None
-				),
-			}
-
 		pack = self._real.pack
-		delta: Dict[bytes, Any] = {
-			UNIVERSAL: PickyDefaultDict(bytes),
-			RULES: StructuredDefaultDict(1, bytes),
-			RULEBOOK: PickyDefaultDict(bytes),
-		}
+		delta: Dict[bytes, dict] = defaultdict(
+			lambda: {
+				# null mungers mean KeyError, which is correct
+				NODES: PickyDefaultDict(bytes, None, None),
+				EDGES: PickyDefaultDict(bytes, None, None),
+				NODE_VAL: StructuredDefaultDict(1, bytes, None, None),
+				EDGE_VAL: StructuredDefaultDict(2, bytes, None, None),
+			}
+		)
+		delta[UNIVERSAL] = PickyDefaultDict(bytes)
+		delta[RULES] = StructuredDefaultDict(1, bytes, None, None)
+		delta[RULEBOOK] = PickyDefaultDict(bytes)
 		btt_from = self._get_btt(btt_from)
 		btt_to = self._get_btt(btt_to)
 		if btt_from == btt_to:
-			return delta
+			return {}
 		now = self._real._btt()
 		self._real._set_btt(*btt_from)
 		kf_from = self._real.snap_keyframe()
@@ -499,35 +490,25 @@ class EngineHandle:
 				if graph in deleted_nodes and node in deleted_nodes[graph]:
 					return
 				graph, node, key = map(pack, (graph, node, key))
-				if graph not in delta:
-					delta[graph] = newgraph()
 				delta[graph][NODE_VAL][node][key] = v
 			elif k[0] == "edge":
 				_, graph, orig, dest, key = k
 				if (graph, orig, dest) in deleted_edges:
 					return
 				graph, orig, dest, key = map(pack, (graph, orig, dest, key))
-				if graph not in delta:
-					delta[graph] = newgraph()
 				delta[graph][EDGE_VAL][orig][dest][key] = v
 			else:
 				assert k[0] == "graph"
 				_, graph, key = k
 				graph, key = map(pack, (graph, key))
-				if graph not in delta:
-					delta[graph] = newgraph()
 				delta[graph][key] = v
 
 		def pack_node(graph, node, existence):
 			grap, node = map(pack, (graph, node))
-			if grap not in delta:
-				delta[grap] = newgraph()
 			delta[grap][NODES][node] = existence
 
 		def pack_edge(graph, orig, dest, existence):
 			graph, origdest = map(pack, (graph, (orig, dest)))
-			if graph not in delta:
-				delta[graph] = newgraph()
 			delta[graph][EDGES][origdest] = existence
 
 		futs = []
