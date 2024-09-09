@@ -36,6 +36,7 @@ from typing import (
 
 import msgpack
 import numpy as np
+from docutils.parsers.rst.states import Struct
 
 from .allegedb import OutOfTimelineError, Key
 from .allegedb.cache import StructuredDefaultDict, PickyDefaultDict
@@ -325,19 +326,41 @@ class EngineHandle:
 		) -> np.array:
 			return np.array(ids_from) != np.array(ids_to)
 
+		class CharacterDict(dict):
+			def __getitem__(self, item):
+				if item in self:
+					return super().__getitem__(item)
+				return {
+					NODES: lambda: self.setdefault(
+						NODES, PickyDefaultDict(bytes, None, None)
+					),
+					EDGES: lambda: self.setdefault(
+						EDGES, PickyDefaultDict(bytes, None, None)
+					),
+					NODE_VAL: lambda: self.setdefault(
+						NODE_VAL, StructuredDefaultDict(1, bytes, None, None)
+					),
+					EDGE_VAL: lambda: self.setdefault(
+						EDGE_VAL, StructuredDefaultDict(2, bytes, None, None)
+					),
+				}[item]()
+
+		class DeltaDict(dict):
+			def __getitem__(self, item):
+				if item in self:
+					return super().__getitem__(item)
+				ret_d = {
+					UNIVERSAL: lambda: PickyDefaultDict(bytes, None, None),
+					RULES: lambda: StructuredDefaultDict(1, bytes, None, None),
+					RULEBOOK: lambda: PickyDefaultDict(bytes, None, None),
+				}
+				if item in ret_d:
+					return self.setdefault(item, ret_d[item]())
+				else:
+					return self.setdefault(item, CharacterDict())
+
 		pack = self._real.pack
-		delta: Dict[bytes, dict] = defaultdict(
-			lambda: {
-				# null mungers mean KeyError, which is correct
-				NODES: PickyDefaultDict(bytes, None, None),
-				EDGES: PickyDefaultDict(bytes, None, None),
-				NODE_VAL: StructuredDefaultDict(1, bytes, None, None),
-				EDGE_VAL: StructuredDefaultDict(2, bytes, None, None),
-			}
-		)
-		delta[UNIVERSAL] = PickyDefaultDict(bytes)
-		delta[RULES] = StructuredDefaultDict(1, bytes, None, None)
-		delta[RULEBOOK] = PickyDefaultDict(bytes)
+		delta = DeltaDict()
 		btt_from = self._get_btt(btt_from)
 		btt_to = self._get_btt(btt_to)
 		if btt_from == btt_to:
@@ -549,38 +572,6 @@ class EngineHandle:
 				kf_to["edges"].keys() - kf_from["edges"].keys()
 			):
 				futs.append(pool.submit(pack_edge, graph, orig, dest, TRUE))
-		if not delta[UNIVERSAL]:
-			del delta[UNIVERSAL]
-		if not delta[RULEBOOK]:
-			del delta[RULEBOOK]
-		todel = []
-		for rule_name, rule in delta[RULES].items():
-			if not rule[TRIGGERS]:
-				del rule[TRIGGERS]
-			if not rule[PREREQS]:
-				del rule[PREREQS]
-			if not rule[ACTIONS]:
-				del rule[ACTIONS]
-			if not rule:
-				todel.append(rule_name)
-		for deleterule in todel:
-			del delta[deleterule]
-		if not delta[RULES]:
-			del delta[RULES]
-		graphtodel = []
-		for key, mapp in delta.items():
-			if key in {RULES, RULEBOOKS, ETERNAL, UNIVERSAL}:
-				continue
-			todel = []
-			for keey, mappp in mapp.items():
-				if not mappp:
-					todel.append(keey)
-			for todo in todel:
-				del mapp[todo]
-			if not mapp:
-				graphtodel.append(key)
-		for todo in graphtodel:
-			del delta[todo]
 		return delta
 
 	@prepacked
