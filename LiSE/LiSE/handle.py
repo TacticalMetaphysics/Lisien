@@ -22,6 +22,7 @@ from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from operator import itemgetter
 from re import match
 from importlib import import_module
+from types import FunctionType
 from typing import (
 	Dict,
 	Tuple,
@@ -489,7 +490,7 @@ class EngineHandle:
 
 		class SingletonPacker:
 			@staticmethod
-			def __call__(kee, v_a, v_b, deleted_nodes, deleted_edges):
+			def pack(kee, v_a, v_b, deleted_nodes, deleted_edges):
 				if v_a == v_b:
 					return
 				v = pack(v_b)
@@ -546,8 +547,6 @@ class EngineHandle:
 				graf, key = map(pack, (graf, key))
 				delta[graf][key] = v
 
-		pack_one = SingletonPacker()
-
 		def pack_node(graf, nod, existence):
 			grap, nod = map(pack, (graf, nod))
 			delta[grap][NODES][nod] = existence
@@ -579,7 +578,7 @@ class EngineHandle:
 			):
 				futs.append(
 					pool.submit(
-						pack_one,
+						SingletonPacker.pack,
 						k,
 						va,
 						vb,
