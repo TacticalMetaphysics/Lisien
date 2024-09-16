@@ -1779,11 +1779,10 @@ class Engine(AbstractEngine, gORM):
 			return False
 
 		def check_triggers(
-			prio, rulebook, rule, handled_fun, entity, neighbors
+			prio, rulebook, rule, handled_fun, entity, neighbors=None
 		):
-			if not (
+			if neighbors is not None and not (
 				any(changed(neighbor) for neighbor in neighbors)
-				or changed(entity)
 			):
 				return False
 			for trigger in rule.triggers:
@@ -1894,6 +1893,16 @@ class Engine(AbstractEngine, gORM):
 				turn,
 			)
 			entity = get_node(graphn, avn)
+			if rule.neighborhood is not None:
+				neighbors = [entity]
+				i = 0
+				for _ in range(rule.neighborhood):
+					j = len(neighbors)
+					for neighbor in neighbors[i:]:
+						neighbors.extend(neighbor.neighbors())
+					i = j
+			else:
+				neighbors = None
 			trig_futs.append(
 				submit(
 					check_triggers,
@@ -1902,7 +1911,7 @@ class Engine(AbstractEngine, gORM):
 					rule,
 					handled,
 					entity,
-					entity.neighbors(),
+					neighbors,
 				)
 			)
 		is_thing = self._is_thing
@@ -1929,6 +1938,16 @@ class Engine(AbstractEngine, gORM):
 				turn,
 			)
 			entity = get_thing(charn, thingn)
+			if rule.neighborhood is not None:
+				neighbors = [entity]
+				i = 0
+				for _ in range(rule.neighborhood):
+					j = len(neighbors)
+					for neighbor in neighbors[i:]:
+						neighbors.extend(neighbor.neighbors())
+					i = j
+			else:
+				neighbors = None
 			trig_futs.append(
 				submit(
 					check_triggers,
@@ -1937,7 +1956,7 @@ class Engine(AbstractEngine, gORM):
 					rule,
 					handled,
 					entity,
-					entity.neighbors(),
+					neighbors,
 				)
 			)
 		handled_char_place = self._handled_char_place
@@ -1963,6 +1982,16 @@ class Engine(AbstractEngine, gORM):
 				turn,
 			)
 			entity = get_place(charn, placen)
+			if rule.neighborhood is not None:
+				neighbors = [entity]
+				i = 0
+				for _ in range(rule.neighborhood):
+					j = len(neighbors)
+					for neighbor in neighbors[i:]:
+						neighbors.extend(neighbor.neighbors())
+					i = j
+			else:
+				neighbors = None
 			trig_futs.append(
 				submit(
 					check_triggers,
@@ -1971,7 +2000,7 @@ class Engine(AbstractEngine, gORM):
 					rule,
 					handled,
 					entity,
-					entity.neighbors(),
+					neighbors,
 				)
 			)
 		edge_exists = self._edge_exists
@@ -2002,9 +2031,7 @@ class Engine(AbstractEngine, gORM):
 			)
 			entity = get_edge(charn, orign, destn)
 			trig_futs.append(
-				submit(
-					check_triggers, prio, rulebook, rule, handled, entity, ()
-				)
+				submit(check_triggers, prio, rulebook, rule, handled, entity)
 			)
 		handled_node = self._handled_node
 		for (
@@ -2052,9 +2079,7 @@ class Engine(AbstractEngine, gORM):
 			)
 			entity = get_edge(charn, orign, destn)
 			trig_futs.append(
-				submit(
-					check_triggers, prio, rulebook, rule, handled, entity, ()
-				)
+				submit(check_triggers, prio, rulebook, rule, handled, entity)
 			)
 		if pool:
 			wait(trig_futs)
