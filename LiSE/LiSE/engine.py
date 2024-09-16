@@ -1838,7 +1838,9 @@ class Engine(AbstractEngine, gORM):
 			)
 			entity = charmap[charactername]
 			trig_futs.append(
-				submit(check_triggers, prio, rulebook, rule, handled, entity)
+				submit(
+					check_triggers, prio, rulebook, rule, handled, entity, ()
+				)
 			)
 
 		avcache_retr = self._unitness_cache._base_retrieve
