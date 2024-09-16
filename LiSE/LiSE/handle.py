@@ -17,7 +17,7 @@ ordinary method calls.
 
 """
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from operator import itemgetter
 from re import match
@@ -370,123 +370,111 @@ class EngineHandle:
 		self._real._set_btt(*btt_to)
 		kf_to = self._real.snap_keyframe()
 		self._real._set_btt(*now)
-		keys = []
+		keys: list[tuple] = []
 		ids_from = []
 		ids_to = []
 		values_from = []
 		values_to = []
+
 		# Comparing object IDs is guaranteed never to give a false equality,
 		# because of the way keyframes are constructed.
 		# It may give a false inequality.
-		for k in kf_from["universal"].keys() | kf_to["universal"].keys():
-			keys.append(("universal", k))
-			va = kf_from["universal"].get(k)
-			vb = kf_to["universal"].get(k)
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
-		for rule in kf_from["triggers"].keys() | kf_to["triggers"].keys():
-			a = kf_from["triggers"].get(rule, ())
-			b = kf_to["triggers"].get(rule, ())
-			keys.append(("triggers", rule))
-			ids_from.append(id(a))
-			ids_to.append(id(b))
-			values_from.append(a)
-			values_to.append(b)
-		for rule in kf_from["prereqs"].keys() | kf_to["prereqs"].keys():
-			a = kf_from["prereqs"].get(rule, ())
-			b = kf_to["prereqs"].get(rule, ())
-			keys.append(("prereqs", rule))
-			ids_from.append(id(a))
-			ids_to.append(id(b))
-			values_from.append(a)
-			values_to.append(b)
-		for rule in kf_from["actions"].keys() | kf_to["actions"].keys():
-			a = kf_from["actions"].get(rule, ())
-			b = kf_to["actions"].get(rule, ())
-			keys.append(("actions", rule))
-			ids_from.append(id(a))
-			ids_to.append(id(b))
-			values_from.append(a)
-			values_to.append(b)
-		for rulebook in kf_from["rulebook"].keys() | kf_to["rulebook"].keys():
-			a = kf_from["rulebook"].get(rulebook, ())
-			b = kf_to["rulebook"].get(rulebook, ())
-			keys.append(("rulebook", rulebook))
-			ids_from.append(id(a))
-			ids_to.append(id(b))
-			values_from.append(a)
-			values_to.append(b)
-		for graph in kf_from["graph_val"].keys() | kf_to["graph_val"].keys():
-			a = kf_from["graph_val"].get(graph, {})
-			b = kf_to["graph_val"].get(graph, {})
-			for k in a.keys() | b.keys():
-				keys.append(("graph", graph[0], k))
-				va = a.get(k)
-				vb = b.get(k)
+		def collect_universal_ids():
+			for k in kf_from["universal"].keys() | kf_to["universal"].keys():
+				keys.append(("universal", k))
+				va = kf_from["universal"].get(k)
+				vb = kf_to["universal"].get(k)
 				ids_from.append(id(va))
 				ids_to.append(id(vb))
 				values_from.append(va)
 				values_to.append(vb)
-		for graph, node in (
-			kf_from["node_val"].keys() | kf_to["node_val"].keys()
-		):
-			a = kf_from["node_val"].get((graph, node), {})
-			b = kf_to["node_val"].get((graph, node), {})
-			for k in a.keys() | b.keys():
-				keys.append(("node", graph, node, k))
-				va = a.get(k)
-				vb = b.get(k)
-				ids_from.append(id(va))
-				ids_to.append(id(vb))
-				values_from.append(va)
-				values_to.append(vb)
-		for graph, orig, dest, i in (
-			kf_from["edge_val"].keys() | kf_to["edge_val"].keys()
-		):
-			a = kf_from["edge_val"].get((graph, orig, dest, i), {})
-			b = kf_to["edge_val"].get((graph, orig, dest, i), {})
-			for k in a.keys() | b.keys():
-				keys.append(("edge", graph, orig, dest, k))
-				va = a.get(k)
-				vb = b.get(k)
-				ids_from.append(id(va))
-				ids_to.append(id(vb))
-				values_from.append(va)
-				values_to.append(vb)
-		for rulebook in kf_from["rulebook"].keys() | kf_to["rulebook"].keys():
-			va = kf_from["rulebook"].get(rulebook, ())
-			vb = kf_to["rulebook"].get(rulebook, ())
-			keys.append(("rulebook", rulebook))
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
-		for rule in kf_from["triggers"].keys() | kf_to["triggers"].keys():
-			va = kf_from["triggers"].get(rule, ())
-			vb = kf_to["triggers"].get(rule, ())
-			keys.append(("triggers", rule))
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
-		for rule in kf_from["prereqs"].keys() | kf_to["prereqs"].keys():
-			va = kf_from["prereqs"].get(rule, ())
-			vb = kf_to["prereqs"].get(rule, ())
-			keys.append(("prereqs", rule))
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
-		for rule in kf_from["actions"].keys() | kf_to["actions"].keys():
-			va = kf_from["actions"].get(rule, ())
-			vb = kf_to["actions"].get(rule, ())
-			keys.append(("actions", rule))
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
+
+		def collect_triggers_ids():
+			for rule in kf_from["triggers"].keys() | kf_to["triggers"].keys():
+				a = kf_from["triggers"].get(rule, ())
+				b = kf_to["triggers"].get(rule, ())
+				keys.append(("triggers", rule))
+				ids_from.append(id(a))
+				ids_to.append(id(b))
+				values_from.append(a)
+				values_to.append(b)
+
+		def collect_prereqs_ids():
+			for rule in kf_from["prereqs"].keys() | kf_to["prereqs"].keys():
+				a = kf_from["prereqs"].get(rule, ())
+				b = kf_to["prereqs"].get(rule, ())
+				keys.append(("prereqs", rule))
+				ids_from.append(id(a))
+				ids_to.append(id(b))
+				values_from.append(a)
+				values_to.append(b)
+
+		def collect_actions_ids():
+			for rule in kf_from["actions"].keys() | kf_to["actions"].keys():
+				a = kf_from["actions"].get(rule, ())
+				b = kf_to["actions"].get(rule, ())
+				keys.append(("actions", rule))
+				ids_from.append(id(a))
+				ids_to.append(id(b))
+				values_from.append(a)
+				values_to.append(b)
+
+		def collect_rulebook_ids():
+			for rulebook in (
+				kf_from["rulebook"].keys() | kf_to["rulebook"].keys()
+			):
+				a = kf_from["rulebook"].get(rulebook, ())
+				b = kf_to["rulebook"].get(rulebook, ())
+				keys.append(("rulebook", rulebook))
+				ids_from.append(id(a))
+				ids_to.append(id(b))
+				values_from.append(a)
+				values_to.append(b)
+
+		def collect_graph_val_ids():
+			for graph in (
+				kf_from["graph_val"].keys() | kf_to["graph_val"].keys()
+			):
+				a = kf_from["graph_val"].get(graph, {})
+				b = kf_to["graph_val"].get(graph, {})
+				for k in a.keys() | b.keys():
+					keys.append(("graph", graph[0], k))
+					va = a.get(k)
+					vb = b.get(k)
+					ids_from.append(id(va))
+					ids_to.append(id(vb))
+					values_from.append(va)
+					values_to.append(vb)
+
+		def collect_node_val_ids():
+			for graph, node in (
+				kf_from["node_val"].keys() | kf_to["node_val"].keys()
+			):
+				a = kf_from["node_val"].get((graph, node), {})
+				b = kf_to["node_val"].get((graph, node), {})
+				for k in a.keys() | b.keys():
+					keys.append(("node", graph, node, k))
+					va = a.get(k)
+					vb = b.get(k)
+					ids_from.append(id(va))
+					ids_to.append(id(vb))
+					values_from.append(va)
+					values_to.append(vb)
+
+		def collect_edge_val_ids():
+			for graph, orig, dest, i in (
+				kf_from["edge_val"].keys() | kf_to["edge_val"].keys()
+			):
+				a = kf_from["edge_val"].get((graph, orig, dest, i), {})
+				b = kf_to["edge_val"].get((graph, orig, dest, i), {})
+				for k in a.keys() | b.keys():
+					keys.append(("edge", graph, orig, dest, k))
+					va = a.get(k)
+					vb = b.get(k)
+					ids_from.append(id(va))
+					ids_to.append(id(vb))
+					values_from.append(va)
+					values_to.append(vb)
 
 		class SingletonPacker:
 			@staticmethod
@@ -557,6 +545,21 @@ class EngineHandle:
 
 		futs = []
 		with ThreadPoolExecutor() as pool:
+			wait(
+				[
+					pool.submit(fun)
+					for fun in [
+						collect_universal_ids,
+						collect_triggers_ids,
+						collect_prereqs_ids,
+						collect_actions_ids,
+						collect_rulebook_ids,
+						collect_graph_val_ids,
+						collect_node_val_ids,
+						collect_edge_val_ids,
+					]
+				]
+			)
 			values_changed_fut = pool.submit(
 				get_values_changed, ids_from, ids_to
 			)
