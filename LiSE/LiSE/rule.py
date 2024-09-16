@@ -224,10 +224,10 @@ class ActionList(RuleFuncList):
 		return self.rule.engine.query.set_rule_actions
 
 
-class RuleFuncListDescriptor(object):
+class RuleFuncListDescriptor:
 	"""Descriptor that lets you get and set a whole RuleFuncList at once"""
 
-	__slots__ = ["cls"]
+	__slots__ = ("cls",)
 
 	def __init__(self, cls):
 		self.cls = cls
@@ -255,7 +255,7 @@ class RuleFuncListDescriptor(object):
 		raise TypeError("Rules must have their function lists")
 
 
-class Rule(object):
+class Rule:
 	"""Stuff that might happen in the simulation under some conditions
 
 	Rules are comprised of three lists of functions:
