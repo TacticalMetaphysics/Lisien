@@ -183,7 +183,6 @@ def test_rule_neighborhood(engy, branched):
 	engy.next_turn()
 	if branched:
 		engy.branch = "eeeee"
-	engy.next_turn()
 
 	@char.place.rule
 	def it_ran(node):
