@@ -277,6 +277,18 @@ class Rule:
 	prereqs = RuleFuncListDescriptor(PrereqList)
 	actions = RuleFuncListDescriptor(ActionList)
 
+	@property
+	def neighborhood(self):
+		return self.engine._neighborhoods_cache.retrieve(
+			self.name, *self.engine._btt()
+		)
+
+	@neighborhood.setter
+	def neighborhood(self, neighbors: int):
+		btt = self.engine._nbtt()
+		self.engine._neighborhoods_cache.store(self.name, *btt, neighbors)
+		self.engine.query.set_rule_neighborhood(self.name, *btt, neighbors)
+
 	def __init__(
 		self,
 		engine,
@@ -284,6 +296,7 @@ class Rule:
 		triggers=None,
 		prereqs=None,
 		actions=None,
+		neighborhood=None,
 		create=True,
 	):
 		"""Store the engine and my name, make myself a record in the database
@@ -303,13 +316,23 @@ class Rule:
 			prereqs = tuple(self._fun_names_iter("prereq", prereqs or []))
 			actions = tuple(self._fun_names_iter("action", actions or []))
 			self.engine.query.set_rule(
-				name, branch, turn, tick, triggers, prereqs, actions
+				name,
+				branch,
+				turn,
+				tick,
+				triggers,
+				prereqs,
+				actions,
+				neighborhood,
 			)
 			self.engine._triggers_cache.store(
 				name, branch, turn, tick, triggers
 			)
 			self.engine._prereqs_cache.store(name, branch, turn, tick, prereqs)
 			self.engine._actions_cache.store(name, branch, turn, tick, actions)
+			self.engine._neighborhoods_cache.store(
+				name, branch, turn, tick, neighborhood
+			)
 
 	def __eq__(self, other):
 		return hasattr(other, "name") and self.name == other.name

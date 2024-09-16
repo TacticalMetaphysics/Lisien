@@ -1093,6 +1093,7 @@ class ConnectionHolder(query.ConnectionHolder):
 			"rule_triggers",
 			"rule_prereqs",
 			"rule_actions",
+			"rule_neighborhood",
 			"turns_completed",
 		):
 			try:
@@ -1293,6 +1294,9 @@ class QueryEngine(query.QueryEngine):
 
 	def rule_actions_dump(self):
 		return self._rule_dump("actions")
+
+	def rule_neighborhood_dump(self):
+		return self._rule_dump("neighborhood")
 
 	characters = characters_dump = query.QueryEngine.graphs_dump
 
@@ -1809,6 +1813,7 @@ class QueryEngine(query.QueryEngine):
 	set_rule_triggers = partialmethod(_set_rule_something, "triggers")
 	set_rule_prereqs = partialmethod(_set_rule_something, "prereqs")
 	set_rule_actions = partialmethod(_set_rule_something, "actions")
+	set_rule_neighborhood = partialmethod(_set_rule_something, "neighborhood")
 
 	def set_rule(
 		self,
@@ -1819,6 +1824,7 @@ class QueryEngine(query.QueryEngine):
 		triggers=None,
 		prereqs=None,
 		actions=None,
+		neighborhood=None,
 	):
 		try:
 			self.call_one("rules_insert", rule)
@@ -1828,6 +1834,7 @@ class QueryEngine(query.QueryEngine):
 		self.set_rule_triggers(rule, branch, turn, tick, triggers or [])
 		self.set_rule_prereqs(rule, branch, turn, tick, prereqs or [])
 		self.set_rule_actions(rule, branch, turn, tick, actions or [])
+		self.set_rule_neighborhood(rule, branch, turn, tick, neighborhood)
 
 	def set_rulebook(self, name, branch, turn, tick, rules=None, prio=0.0):
 		name, rules = map(self.pack, (name, rules or []))

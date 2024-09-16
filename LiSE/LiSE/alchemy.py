@@ -105,6 +105,20 @@ def tables_for_meta(meta):
 		sqlite_with_rowid=False,
 	)
 
+	# Table for rules' neighborhoods, which govern when triggers should be
+	# checked -- when that makes sense. Basically just rules on character.place
+	Table(
+		"rule_neighborhood",
+		meta,
+		Column("rule", TEXT, primary_key=True),
+		Column("branch", TEXT, primary_key=True, default="trunk"),
+		Column("turn", INT, primary_key=True, default=0),
+		Column("tick", INT, primary_key=True, default=0),
+		Column("neighborhood", TEXT, default=b"\xc0"),
+		ForeignKeyConstraint(("rule",), ["rules.rule"]),
+		sqlite_with_rowid=False,
+	)
+
 	# Table for rules' prereqs, functions with veto power over a rule
 	# being followed
 	Table(

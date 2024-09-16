@@ -474,6 +474,7 @@ class Engine(AbstractEngine, gORM):
 		self._triggers_cache.load(q.rule_triggers_dump())
 		self._prereqs_cache.load(q.rule_prereqs_dump())
 		self._actions_cache.load(q.rule_actions_dump())
+		self._neighborhoods_cache.load(q.rule_neighborhood_dump())
 		store_crh = self._character_rules_handled_cache.store
 		for row in q.character_rules_handled_dump():
 			store_crh(*row, loading=True)
@@ -637,6 +638,8 @@ class Engine(AbstractEngine, gORM):
 		self._prereqs_cache.name = "prereqs_cache"
 		self._actions_cache = InitializedEntitylessCache(self)
 		self._actions_cache.name = "actions_cache"
+		self._neighborhoods_cache = InitializedEntitylessCache(self)
+		self._neighborhoods_cache.name = "neighborhoods_cache"
 		self._node_rules_handled_cache = NodeRulesHandledCache(self)
 		self._node_rules_handled_cache.name = "node_rules_handled_cache"
 		self._portal_rules_handled_cache = PortalRulesHandledCache(self)
