@@ -271,6 +271,54 @@ class Origs(Mapping):
 		return OrigsValues(self)
 
 
+class NeighborValues(ValuesView):
+	_mapping: "NeighborMapping"
+
+	def __contains__(self, item):
+		return item.name in self._mapping
+
+
+class NeighborMapping(Mapping):
+	__slots__ = ("_pn", "_ecnb")
+
+	def __init__(self, node: "Node"):
+		name = node.name
+		character = node.character
+		engine = node.engine
+		self._nn = (character.node, name)
+		self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
+
+	def __iter__(self):
+		edges_cache, charname, name, btt = self._ecnb
+		seen = set()
+		for succ in edges_cache.iter_successors(charname, name, *btt()):
+			yield succ
+			seen.add(succ)
+		for pred in edges_cache.iter_predecessors(charname, name, *btt()):
+			if pred in seen:
+				continue
+			yield pred
+			seen.add(pred)
+
+	def __contains__(self, item):
+		edges_cache, charname, name, btt = self._ecnb
+		return edges_cache.has_predecessor(
+			charname, name, item, *btt()
+		) or edges_cache.has_successor(charname, name, item, *btt())
+
+	def __len__(self):
+		return len(set(iter(self)))
+
+	def __getitem__(self, item):
+		node, name = self._nn
+		if item not in self:
+			raise KeyError(f"{item} is not a neighbor of {name}")
+		return node[item]
+
+	def values(self):
+		return NeighborValues(self)
+
+
 class Node(graph.Node, rule.RuleFollower):
 	"""The fundamental graph component, which portals go between.
 
@@ -333,6 +381,13 @@ class Node(graph.Node, rule.RuleFollower):
 	def __init__(self, character, name):
 		super().__init__(character, name)
 		self.db = character.engine
+
+	@property
+	def neighbor(self) -> NeighborMapping:
+		return NeighborMapping(self)
+
+	def neighbors(self):
+		return self.neighbor.values()
 
 	@property
 	def portal(self) -> Dests:
