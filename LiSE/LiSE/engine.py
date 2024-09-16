@@ -1751,6 +1751,7 @@ class Engine(AbstractEngine, gORM):
 				return True  # I only know what neighbors of nodes are, so far
 			branch, turn, _ = self._btt()
 			nvbranches = self._node_val_cache.settings
+			entikey = (entity.character.name, entity.name)
 			# get the last turn, even if it's in a prior branch
 			if turn == self._branches[branch][0]:
 				branch = self._branch_parents[branch]
@@ -1759,24 +1760,20 @@ class Engine(AbstractEngine, gORM):
 					# There can't be any changes, can there?
 					return False
 				turn_then = self._branches[branch][2]
-				if branch in nvbranches and turn_then in nvbranches[branch]:
-					for char, node, _, _ in nvbranches[branch][turn_then]:
-						if (
-							char == entity.character.name
-							and node == entity.name
-						):
-							return True
-				return False
+				return (
+					branch in nvbranches
+					and turn_then in nvbranches[branch]
+					and entikey in nvbranches[branch][turn_then].entikeys
+				)
 			else:
 				turn_then = turn - 1
 			if branch not in nvbranches:
 				return False
-			nvturns = nvbranches[branch]
-			if turn_then in nvturns:
-				for char, node, _, _ in nvturns[turn_then].values():
-					if char == entity.character.name and node == entity.name:
-						return True
-			return False
+			return (
+				branch in nvbranches
+				and turn_then in nvbranches[branch]
+				and entikey in nvbranches[branch][turn_then].entikeys
+			)
 
 		def check_triggers(
 			prio, rulebook, rule, handled_fun, entity, neighbors=None

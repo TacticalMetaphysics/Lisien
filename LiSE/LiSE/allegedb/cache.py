@@ -22,6 +22,7 @@ from .window import (
 	FuturistWindowDict,
 	TurnDict,
 	SettingsTurnDict,
+	EntikeySettingsTurnDict,
 )
 from collections import OrderedDict, defaultdict, deque
 from threading import RLock
@@ -273,9 +274,9 @@ class Cache:
 		"""Key-value dictionaries representing my state at a given time"""
 		self.shallowest = OrderedDict()
 		"""A dictionary for plain, unstructured hinting."""
-		self.settings = PickyDefaultDict(SettingsTurnDict)
+		self.settings = PickyDefaultDict(EntikeySettingsTurnDict)
 		"""All the ``entity[key] = value`` settings on some turn"""
-		self.presettings = PickyDefaultDict(SettingsTurnDict)
+		self.presettings = PickyDefaultDict(EntikeySettingsTurnDict)
 		"""The values prior to ``entity[key] = value`` settings on some turn"""
 		self.time_entity = {}
 		self._kc_lru = OrderedDict()

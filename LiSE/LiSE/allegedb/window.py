@@ -830,6 +830,34 @@ class TurnDict(FuturistWindowDict):
 		FuturistWindowDict.__setitem__(self, turn, value)
 
 
+class EntikeyWindowDict(WindowDict):
+	__slots__ = ("_past", "_future", "entikeys")
+
+	def __init__(
+		self, data: Union[List[Tuple[int, Any]], Dict[int, Any]] = None
+	) -> None:
+		if data:
+			if hasattr(data, "values") and callable(data.values):
+				self.entikeys = {value[:-2] for value in data.values()}
+			else:
+				self.entikeys = {value[:-2] for value in data}
+		else:
+			self.entikeys = set()
+		super().__init__(data)
+
+	def __setitem__(self, rev: int, v: tuple) -> None:
+		self.entikeys.add(v[:-2])
+		super().__setitem__(rev, v)
+
+	def __delitem__(self, rev: int) -> None:
+		entikey = self[rev][:-2]
+		super().__delitem__(rev)
+		for tup in self.values():
+			if tup[:-2] == entikey:
+				return
+		self.entikeys.remove(entikey)
+
+
 class SettingsTurnDict(WindowDict):
 	"""A WindowDict that contains a span of time, indexed as turns and ticks
 
@@ -875,3 +903,7 @@ class SettingsTurnDict(WindowDict):
 			self[turn][tick] = value
 		else:
 			self[turn] = {tick: value}
+
+
+class EntikeySettingsTurnDict(SettingsTurnDict):
+	cls = EntikeyWindowDict
