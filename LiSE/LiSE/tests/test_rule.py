@@ -180,10 +180,6 @@ def test_rule_neighborhood(engy, branched):
 	"""Test a rule applied to all nodes of a character with a neighborhood"""
 	char = engy.new_character("char", nx.grid_2d_graph(5, 5))
 
-	engy.next_turn()
-	if branched:
-		engy.branch = "eeeee"
-
 	@char.place.rule
 	def it_ran(node):
 		node["it_ran"] = True
@@ -200,6 +196,8 @@ def test_rule_neighborhood(engy, branched):
 	char.place[3, 3]["should_run"] = True
 
 	engy.next_turn()
+	if branched:
+		engy.branch = "eeeee"
 
 	for nabor in [(2, 3), (4, 3), (3, 4), (3, 2)]:
 		assert char.place[nabor]["it_ran"]
