@@ -1838,7 +1838,7 @@ class Engine(AbstractEngine, gORM):
 			entity = charmap[charactername]
 			trig_futs.append(
 				submit(
-					check_triggers, prio, rulebook, rule, handled, entity, ()
+					check_triggers, prio, rulebook, rule, handled, entity, None
 				)
 			)
 
