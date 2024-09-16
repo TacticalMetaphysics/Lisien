@@ -279,7 +279,7 @@ class NeighborValues(ValuesView):
 
 
 class NeighborMapping(Mapping):
-	__slots__ = ("_pn", "_ecnb")
+	__slots__ = ("_nn", "_ecnb")
 
 	def __init__(self, node: "Node"):
 		name = node.name
