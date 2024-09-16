@@ -15,6 +15,7 @@
 """Test the API of the Rule objects and mappings"""
 
 import networkx as nx
+import pytest
 
 
 def something_dot_rule_test(something, engy):
@@ -174,11 +175,14 @@ def test_rule_priority(engy):
 	assert engy.universal["list"] == ["first", "second", "second", "first"]
 
 
-def test_rule_neighborhood(engy):
+@pytest.mark.parametrize("branched", [True, False])
+def test_rule_neighborhood(engy, branched):
 	"""Test a rule applied to all nodes of a character with a neighborhood"""
 	char = engy.new_character("char", nx.grid_2d_graph(5, 5))
 
 	engy.next_turn()
+	if branched:
+		engy.branch = "eeeee"
 	engy.next_turn()
 
 	@char.place.rule
