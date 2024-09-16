@@ -320,11 +320,6 @@ class EngineHandle:
 		btt_from: Tuple[str, int, int] = None,
 		btt_to: Tuple[str, int, int] = None,
 	) -> SlightlyPackedDeltaType:
-		def get_values_changed(
-			ids_from: list[int], ids_to: list[int]
-		) -> np.array:
-			return np.array(ids_from) != np.array(ids_to)
-
 		class CharacterDict(dict):
 			def __getitem__(self, item):
 				if item in self:
@@ -359,7 +354,6 @@ class EngineHandle:
 					return self.setdefault(item, CharacterDict())
 
 		pack = self._real.pack
-		delta = DeltaDict()
 		btt_from = self._get_btt(btt_from)
 		btt_to = self._get_btt(btt_to)
 		if btt_from == btt_to:
@@ -375,6 +369,7 @@ class EngineHandle:
 		ids_to = []
 		values_from = []
 		values_to = []
+		delta = DeltaDict()
 
 		# Comparing object IDs is guaranteed never to give a false equality,
 		# because of the way keyframes are constructed.
@@ -476,6 +471,9 @@ class EngineHandle:
 					values_from.append(va)
 					values_to.append(vb)
 
+		def get_values_changed() -> np.array:
+			return np.array(ids_from) != np.array(ids_to)
+
 		class SingletonPacker:
 			@staticmethod
 			def pack(kee, v_a, v_b, deleted_nodes, deleted_edges):
@@ -560,9 +558,7 @@ class EngineHandle:
 					]
 				]
 			)
-			values_changed_fut = pool.submit(
-				get_values_changed, ids_from, ids_to
-			)
+			values_changed_fut = pool.submit(get_values_changed)
 			nodes_intersection = (
 				kf_from["nodes"].keys() & kf_to["nodes"].keys()
 			)
