@@ -392,7 +392,3 @@ Python interpreter embedded into your application, the LiSE
 license only covers LiSE itself, and not any code run outside
 of that Python interpreter. You must still release any modifications
 you make to LiSE, but the embedding application remains your own.
-
-Previous versions of this README voided the copyright to this software upon its
-author's death. As of 16 September, 2024, I, Zachary Spector, no longer will
-this.
