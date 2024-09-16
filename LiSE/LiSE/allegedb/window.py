@@ -845,8 +845,8 @@ class SettingsTurnDict(WindowDict):
 	cls = WindowDict
 
 	def __setitem__(self, turn: int, value: Any) -> None:
-		if type(value) is not WindowDict:
-			value = WindowDict(value)
+		if not isinstance(value, self.cls):
+			value = self.cls(value)
 		WindowDict.__setitem__(self, turn, value)
 
 	def retrieve(self, turn: int, tick: int) -> Any:
