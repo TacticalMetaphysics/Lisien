@@ -14,9 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Test the API of the Rule objects and mappings"""
 
-import pytest
-import os
-from LiSE.engine import Engine
+import networkx as nx
 
 
 def something_dot_rule_test(something, engy):
@@ -174,3 +172,34 @@ def test_rule_priority(engy):
 	engy.next_turn()
 
 	assert engy.universal["list"] == ["first", "second", "second", "first"]
+
+
+def test_rule_neighborhood(engy):
+	"""Test a rule applied to all nodes of a character with a neighborhood"""
+	char = engy.new_character("char", nx.grid_2d_graph(5, 5))
+
+	engy.next_turn()
+	engy.next_turn()
+
+	@char.place.rule
+	def it_ran(node):
+		node["it_ran"] = True
+
+	@it_ran.trigger
+	def should_it_run(node):
+		node["trigger_evaluated"] = True
+		for neighbor in node.neighbors():
+			if neighbor.get("should_run"):
+				return True
+		return False
+
+	it_ran.neighborhood = 1
+	char.place[3, 3]["should_run"] = True
+
+	engy.next_turn()
+
+	for nabor in [(2, 3), (4, 3), (3, 4), (3, 2)]:
+		assert char.place[nabor]["it_ran"]
+
+	for outer in [(1, 1), (4, 4)]:
+		assert "trigger_evaluated" not in char.place[outer]
