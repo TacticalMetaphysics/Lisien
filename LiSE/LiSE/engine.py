@@ -1845,7 +1845,28 @@ class Engine(AbstractEngine, gORM):
 		make_node = self._make_node
 		thing_cls = self.thing_cls
 		place_cls = self.place_cls
+		portal_cls = self.portal_cls
 		node_objs = self._node_objs
+
+		def get_neighbors(
+			entity: Union[place_cls, thing_cls], neighborhood: Optional[int]
+		) -> Optional[list[Union[place_cls, thing_cls, portal_cls]]]:
+			if neighborhood is None:
+				return None
+			neighbors = [entity]
+			i = 0
+			for _ in range(neighborhood):
+				j = len(neighbors)
+				for neighbor in neighbors[i:]:
+					neighbors.extend(
+						chain(
+							neighbor.neighbors(),
+							neighbor.contents(),
+							neighbor.portals(),
+						)
+					)
+				i = j
+			return neighbors
 
 		def get_node(graphn, noden):
 			key = (graphn, noden)
@@ -1891,22 +1912,6 @@ class Engine(AbstractEngine, gORM):
 				turn,
 			)
 			entity = get_node(graphn, avn)
-			if rule.neighborhood is not None:
-				neighbors = [entity]
-				i = 0
-				for _ in range(rule.neighborhood):
-					j = len(neighbors)
-					for neighbor in neighbors[i:]:
-						neighbors.extend(
-							chain(
-								neighbor.neighbors(),
-								neighbor.contents(),
-								neighbor.portals(),
-							)
-						)
-					i = j
-			else:
-				neighbors = None
 			trig_futs.append(
 				submit(
 					check_triggers,
@@ -1915,7 +1920,7 @@ class Engine(AbstractEngine, gORM):
 					rule,
 					handled,
 					entity,
-					neighbors,
+					get_neighbors(entity, rule.neighborhood),
 				)
 			)
 		is_thing = self._is_thing
@@ -1942,22 +1947,6 @@ class Engine(AbstractEngine, gORM):
 				turn,
 			)
 			entity = get_thing(charn, thingn)
-			if rule.neighborhood is not None:
-				neighbors = [entity]
-				i = 0
-				for _ in range(rule.neighborhood):
-					j = len(neighbors)
-					for neighbor in neighbors[i:]:
-						neighbors.extend(
-							chain(
-								neighbor.neighbors(),
-								neighbor.contents(),
-								neighbor.portals(),
-							)
-						)
-					i = j
-			else:
-				neighbors = None
 			trig_futs.append(
 				submit(
 					check_triggers,
@@ -1966,7 +1955,7 @@ class Engine(AbstractEngine, gORM):
 					rule,
 					handled,
 					entity,
-					neighbors,
+					get_neighbors(entity, rule.neighborhood),
 				)
 			)
 		handled_char_place = self._handled_char_place
@@ -1992,22 +1981,6 @@ class Engine(AbstractEngine, gORM):
 				turn,
 			)
 			entity = get_place(charn, placen)
-			if rule.neighborhood is not None:
-				neighbors = [entity]
-				i = 0
-				for _ in range(rule.neighborhood):
-					j = len(neighbors)
-					for neighbor in neighbors[i:]:
-						neighbors.extend(
-							chain(
-								neighbor.neighbors(),
-								neighbor.contents(),
-								neighbor.portals(),
-							)
-						)
-					i = j
-			else:
-				neighbors = None
 			trig_futs.append(
 				submit(
 					check_triggers,
@@ -2016,7 +1989,7 @@ class Engine(AbstractEngine, gORM):
 					rule,
 					handled,
 					entity,
-					neighbors,
+					get_neighbors(entity, rule.neighborhood),
 				)
 			)
 		edge_exists = self._edge_exists
