@@ -20,7 +20,8 @@ have a lot in common.
 """
 
 from __future__ import annotations
-from collections.abc import Mapping, ValuesView
+from collections.abc import Mapping, ValuesView, Set
+from itertools import chain
 from typing import Optional, Union, Iterator, List
 
 import networkx as nx
@@ -271,6 +272,39 @@ class Origs(Mapping):
 		return OrigsValues(self)
 
 
+class Portals(Set):
+	__slots__ = ("_pn", "_ecnb")
+
+	def __init__(self, node):
+		name = node.name
+		character = node.character
+		engine = node.engine
+		self._pn = (character.portal, name)
+		self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
+
+	def __contains__(self, x):
+		edges_cache, charname, name, btt_f = self._ecnb
+		btt = btt_f()
+		return edges_cache.has_predecessor(
+			charname, name, x, *btt
+		) or edges_cache.has_successor(charname, name, x, *btt)
+
+	def __len__(self):
+		edges_cache, charname, name, btt_f = self._ecnb
+		btt = btt_f()
+		return edges_cache.count_predecessors(
+			charname, name, *btt
+		) + edges_cache.count_successors(charname, name, *btt)
+
+	def __iter__(self):
+		edges_cache, charname, name, btt_f = self._ecnb
+		btt = btt_f()
+		return chain(
+			edges_cache.iter_successors(charname, name, *btt),
+			edges_cache.iter_predecessors(charname, name, *btt),
+		)
+
+
 class NeighborValues(ValuesView):
 	_mapping: "NeighborMapping"
 
@@ -407,6 +441,10 @@ class Node(graph.Node, rule.RuleFollower):
 
 		"""
 		return Origs(self)
+
+	def portals(self) -> Portals:
+		"""A set-like object of portals connected to this node."""
+		return Portals(self)
 
 	@property
 	def content(self) -> NodeContent:
