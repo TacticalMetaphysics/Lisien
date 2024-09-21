@@ -48,13 +48,13 @@ class UserMapping(Mapping):
 
 	__slots__ = ["node"]
 
-	def __init__(self, node):
+	def __init__(self, node) -> None:
 		"""Store the node"""
 		self.node = node
 
 	engine = getatt("node.engine")
 
-	def _user_names(self):
+	def _user_names(self) -> Iterator[Key]:
 		node = self.node
 		engine = self.engine
 		charn = node.character.name
@@ -84,7 +84,7 @@ class UserMapping(Mapping):
 						break
 
 	@property
-	def only(self):
+	def only(self) -> Node:
 		"""If there's only one unit, return it.
 
 		Otherwise, raise ``AmbiguousUserError``, a type of ``AttributeError``.
@@ -94,21 +94,21 @@ class UserMapping(Mapping):
 			raise AmbiguousUserError("No users, or more than one")
 		return next(iter(self.values()))
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[Key]:
 		yield from self._user_names()
 
-	def __len__(self):
+	def __len__(self) -> int:
 		n = 0
 		for user in self._user_names():
 			n += 1
 		return n
 
-	def __bool__(self):
+	def __bool__(self) -> bool:
 		for user in self._user_names():
 			return True
 		return False
 
-	def __contains__(self, item):
+	def __contains__(self, item) -> bool:
 		if item in self.engine.character:
 			item = self.engine.character[item]
 		if hasattr(item, "unit"):
@@ -117,7 +117,7 @@ class UserMapping(Mapping):
 			return charn in item.unit and nn in item.unit[charn]
 		return False
 
-	def __getitem__(self, k):
+	def __getitem__(self, k) -> Node:
 		ret = self.engine.character[k]
 		node = self.node
 		charn = node.character.name
@@ -131,7 +131,7 @@ class UserMapping(Mapping):
 class NodeContentValues(ValuesView):
 	_mapping: "NodeContent"
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[Thing]:
 		node = self._mapping.node
 		nodem = node.character.node
 		try:
@@ -143,7 +143,7 @@ class NodeContentValues(ValuesView):
 				return
 			yield nodem[name]
 
-	def __contains__(self, item):
+	def __contains__(self, item) -> bool:
 		try:
 			return item.location == self._mapping.node
 		except AttributeError:
@@ -153,10 +153,10 @@ class NodeContentValues(ValuesView):
 class NodeContent(Mapping):
 	__slots__ = ("node",)
 
-	def __init__(self, node):
+	def __init__(self, node) -> None:
 		self.node = node
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator:
 		try:
 			it = self.node.engine._node_contents_cache.retrieve(
 				self.node.character.name,
@@ -167,7 +167,7 @@ class NodeContent(Mapping):
 			return
 		yield from it
 
-	def __len__(self):
+	def __len__(self) -> int:
 		try:
 			return len(
 				self.node.engine._node_contents_cache.retrieve(
@@ -179,25 +179,25 @@ class NodeContent(Mapping):
 		except KeyError:
 			return 0
 
-	def __contains__(self, item):
+	def __contains__(self, item) -> bool:
 		try:
 			return self.node.character.thing[item].location == self.node
 		except KeyError:
 			return False
 
-	def __getitem__(self, item):
+	def __getitem__(self, item) -> Thing:
 		if item not in self:
 			raise KeyError
 		return self.node.character.thing[item]
 
-	def values(self):
+	def values(self) -> NodeContentValues:
 		return NodeContentValues(self)
 
 
 class DestsValues(ValuesView):
 	_mapping: "Dests"
 
-	def __contains__(self, item):
+	def __contains__(self, item) -> bool:
 		_, name = self._mapping._pn
 		return item.origin.name == name
 
@@ -205,37 +205,38 @@ class DestsValues(ValuesView):
 class Dests(Mapping):
 	__slots__ = ("_ecnb", "_pn")
 
-	def __init__(self, node):
+	def __init__(self, node) -> None:
 		name = node.name
 		character = node.character
 		engine = node.engine
 		self._pn = (character.portal, name)
 		self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator:
 		edges_cache, charname, name, btt = self._ecnb
-		yield from edges_cache.iter_successors(charname, name, *btt())
+		for portal in edges_cache.iter_successors(charname, name, *btt()):
+			yield portal.destination
 
-	def __len__(self):
+	def __len__(self) -> int:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.count_successors(charname, name, *btt())
 
-	def __contains__(self, item):
+	def __contains__(self, item) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.has_successor(charname, name, item, *btt())
 
-	def __getitem__(self, item):
+	def __getitem__(self, item) -> "LiSE.portal.Portal":
 		portal, name = self._pn
 		return portal[name][item]
 
-	def values(self):
+	def values(self) -> DestsValues:
 		return DestsValues(self)
 
 
 class OrigsValues(ValuesView):
 	_mapping: "Origs"
 
-	def __contains__(self, item):
+	def __contains__(self, item) -> bool:
 		_, name = self._mapping._pn
 		return item.destination.name == name
 
@@ -243,60 +244,61 @@ class OrigsValues(ValuesView):
 class Origs(Mapping):
 	__slots__ = ("_pn", "_ecnb")
 
-	def __init__(self, node):
+	def __init__(self, node) -> None:
 		name = node.name
 		character = node.character
 		engine = node.engine
 		self._pn = (character.portal, name)
 		self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[Node]:
 		edges_cache, charname, name, btt = self._ecnb
-		return edges_cache.iter_predecessors(charname, name, *btt())
+		for pred in edges_cache.iter_predecessors(charname, name, *btt()):
+			yield pred.origin
 
-	def __contains__(self, item):
+	def __contains__(self, item) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.has_predecessor(charname, name, item, *btt())
 
-	def __len__(self):
+	def __len__(self) -> int:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.count_predecessors(charname, name, *btt())
 
-	def __getitem__(self, item):
+	def __getitem__(self, item) -> Node:
 		if item not in self:
 			raise KeyError
 		portal, name = self._pn
 		return portal[item][name]
 
-	def values(self):
+	def values(self) -> OrigsValues:
 		return OrigsValues(self)
 
 
 class Portals(Set):
 	__slots__ = ("_pn", "_ecnb")
 
-	def __init__(self, node):
+	def __init__(self, node) -> None:
 		name = node.name
 		character = node.character
 		engine = node.engine
 		self._pn = (character.portal, name)
 		self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
 
-	def __contains__(self, x):
+	def __contains__(self, x) -> bool:
 		edges_cache, charname, name, btt_f = self._ecnb
 		btt = btt_f()
 		return edges_cache.has_predecessor(
 			charname, name, x, *btt
 		) or edges_cache.has_successor(charname, name, x, *btt)
 
-	def __len__(self):
+	def __len__(self) -> int:
 		edges_cache, charname, name, btt_f = self._ecnb
 		btt = btt_f()
 		return edges_cache.count_predecessors(
 			charname, name, *btt
 		) + edges_cache.count_successors(charname, name, *btt)
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator["LiSE.portal.Portal"]:
 		edges_cache, charname, name, btt_f = self._ecnb
 		btt = btt_f()
 		return chain(
@@ -308,21 +310,21 @@ class Portals(Set):
 class NeighborValues(ValuesView):
 	_mapping: "NeighborMapping"
 
-	def __contains__(self, item):
+	def __contains__(self, item) -> bool:
 		return item.name in self._mapping
 
 
 class NeighborMapping(Mapping):
 	__slots__ = ("_nn", "_ecnb")
 
-	def __init__(self, node: "Node"):
+	def __init__(self, node: Node) -> None:
 		name = node.name
 		character = node.character
 		engine = node.engine
 		self._nn = (character.node, name)
 		self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[Node]:
 		edges_cache, charname, name, btt = self._ecnb
 		seen = set()
 		for succ in edges_cache.iter_successors(charname, name, *btt()):
@@ -334,22 +336,22 @@ class NeighborMapping(Mapping):
 			yield pred
 			seen.add(pred)
 
-	def __contains__(self, item):
+	def __contains__(self, item) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.has_predecessor(
 			charname, name, item, *btt()
 		) or edges_cache.has_successor(charname, name, item, *btt())
 
-	def __len__(self):
+	def __len__(self) -> int:
 		return len(set(iter(self)))
 
-	def __getitem__(self, item):
+	def __getitem__(self, item) -> Node:
 		node, name = self._nn
 		if item not in self:
 			raise KeyError(f"{item} is not a neighbor of {name}")
 		return node[item]
 
-	def values(self):
+	def values(self) -> NeighborValues:
 		return NeighborValues(self)
 
 
