@@ -1862,7 +1862,6 @@ class Engine(AbstractEngine, gORM):
 						chain(
 							neighbor.neighbors(),
 							neighbor.contents(),
-							neighbor.portals(),
 						)
 					)
 				i = j
