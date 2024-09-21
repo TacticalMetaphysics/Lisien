@@ -214,8 +214,7 @@ class Dests(Mapping):
 
 	def __iter__(self) -> Iterator:
 		edges_cache, charname, name, btt = self._ecnb
-		for portal in edges_cache.iter_successors(charname, name, *btt()):
-			yield portal.destination
+		return edges_cache.iter_successors(charname, name, *btt())
 
 	def __len__(self) -> int:
 		edges_cache, charname, name, btt = self._ecnb
@@ -253,8 +252,7 @@ class Origs(Mapping):
 
 	def __iter__(self) -> Iterator[Node]:
 		edges_cache, charname, name, btt = self._ecnb
-		for pred in edges_cache.iter_predecessors(charname, name, *btt()):
-			yield pred.origin
+		return edges_cache.iter_predecessors(charname, name, *btt())
 
 	def __contains__(self, item) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
