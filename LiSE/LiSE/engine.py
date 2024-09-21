@@ -26,6 +26,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial
 from collections import defaultdict
+from itertools import chain
 from types import FunctionType, ModuleType, MethodType
 from typing import Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
@@ -1896,7 +1897,13 @@ class Engine(AbstractEngine, gORM):
 				for _ in range(rule.neighborhood):
 					j = len(neighbors)
 					for neighbor in neighbors[i:]:
-						neighbors.extend(neighbor.neighbors())
+						neighbors.extend(
+							chain(
+								neighbor.neighbors(),
+								neighbor.contents(),
+								neighbor.portals(),
+							)
+						)
 					i = j
 			else:
 				neighbors = None
@@ -1941,7 +1948,13 @@ class Engine(AbstractEngine, gORM):
 				for _ in range(rule.neighborhood):
 					j = len(neighbors)
 					for neighbor in neighbors[i:]:
-						neighbors.extend(neighbor.neighbors())
+						neighbors.extend(
+							chain(
+								neighbor.neighbors(),
+								neighbor.contents(),
+								neighbor.portals(),
+							)
+						)
 					i = j
 			else:
 				neighbors = None
@@ -1985,7 +1998,13 @@ class Engine(AbstractEngine, gORM):
 				for _ in range(rule.neighborhood):
 					j = len(neighbors)
 					for neighbor in neighbors[i:]:
-						neighbors.extend(neighbor.neighbors())
+						neighbors.extend(
+							chain(
+								neighbor.neighbors(),
+								neighbor.contents(),
+								neighbor.portals(),
+							)
+						)
 					i = j
 			else:
 				neighbors = None
