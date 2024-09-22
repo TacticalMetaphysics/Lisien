@@ -1862,6 +1862,15 @@ class Engine(AbstractEngine, gORM):
 			entity: Union[place_cls, thing_cls, portal_cls],
 			neighborhood: Optional[int],
 		) -> Optional[list[Union[place_cls, thing_cls, portal_cls]]]:
+			"""Get a list of neighbors within the neighborhood
+
+			The list contains LiSE entity objects -- Thing, Place, or Portal.
+
+			This is not great for perf or memory, because it means those entities
+			get instantiated even if I don't need them. It was just convenient
+			to implement this way.
+
+			"""
 			if neighborhood is None:
 				return None
 			neighbors = [entity]
