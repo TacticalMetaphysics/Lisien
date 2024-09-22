@@ -1908,6 +1908,23 @@ class Engine(AbstractEngine, gORM):
 				i = j
 			return neighbors
 
+		def get_effective_neighbors(entity, neighborhood):
+			def get_key(ent):
+				if isinstance(ent, portal_cls):
+					return (ent.origin.name, ent.destination.name)
+				return (ent.name,)
+
+			now = self._btt()
+			self.turn -= 1
+			last_turn_neighbors = get_neighbors(entity, neighborhood)
+			self._set_btt(*now)
+			this_turn_neighbors = get_neighbors(entity, neighborhood)
+			if set(map(get_key, last_turn_neighbors)) != set(
+				map(get_key, this_turn_neighbors)
+			):
+				return None
+			return this_turn_neighbors
+
 		def get_node(graphn, noden):
 			key = (graphn, noden)
 			if key not in node_objs:
@@ -1960,7 +1977,7 @@ class Engine(AbstractEngine, gORM):
 					rule,
 					handled,
 					entity,
-					get_neighbors(entity, rule.neighborhood),
+					get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		is_thing = self._is_thing
@@ -1995,7 +2012,7 @@ class Engine(AbstractEngine, gORM):
 					rule,
 					handled,
 					entity,
-					get_neighbors(entity, rule.neighborhood),
+					get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		handled_char_place = self._handled_char_place
@@ -2029,7 +2046,7 @@ class Engine(AbstractEngine, gORM):
 					rule,
 					handled,
 					entity,
-					get_neighbors(entity, rule.neighborhood),
+					get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		edge_exists = self._edge_exists
@@ -2067,7 +2084,7 @@ class Engine(AbstractEngine, gORM):
 					rule,
 					handled,
 					entity,
-					get_neighbors(entity, rule.neighborhood),
+					get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		handled_node = self._handled_node
@@ -2095,7 +2112,7 @@ class Engine(AbstractEngine, gORM):
 					rule,
 					handled,
 					entity,
-					get_neighbors(entity, rule.neighborhood),
+					get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		handled_portal = self._handled_portal
@@ -2131,7 +2148,7 @@ class Engine(AbstractEngine, gORM):
 					rule,
 					handled,
 					entity,
-					get_neighbors(entity, rule.neighborhood),
+					get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		if pool:
