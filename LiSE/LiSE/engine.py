@@ -1923,6 +1923,9 @@ class Engine(AbstractEngine, gORM):
 					return (ent.origin.name, ent.destination.name)
 				return (ent.name,)
 
+			if neighborhood is None:
+				return None
+
 			now = self._btt()
 			self.turn -= 1
 			last_turn_neighbors = get_neighbors(entity, neighborhood)
