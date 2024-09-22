@@ -1933,7 +1933,7 @@ class Engine(AbstractEngine, gORM):
 				return None
 
 			now = self._btt()
-			self.turn -= 1
+			self._oturn -= 1
 			last_turn_neighbors = get_neighbors(entity, neighborhood)
 			self._set_btt(*now)
 			this_turn_neighbors = get_neighbors(entity, neighborhood)
