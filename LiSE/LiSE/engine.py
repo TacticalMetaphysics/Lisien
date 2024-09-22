@@ -1737,6 +1737,10 @@ class Engine(AbstractEngine, gORM):
 		#  start a new branch, copying handled rules
 		from collections import defaultdict
 
+		thing_cls = self.thing_cls
+		place_cls = self.place_cls
+		portal_cls = self.portal_cls
+
 		branch, turn, tick = self._btt()
 		charmap = self.character
 		rulemap = self.rule
@@ -1747,12 +1751,21 @@ class Engine(AbstractEngine, gORM):
 			submit = partial
 		todo = defaultdict(list)
 
-		def changed(entity):
-			if not isinstance(entity, self.node_cls):
-				return True  # I only know what neighbors of nodes are, so far
+		def changed(entity: Union[thing_cls, place_cls, portal_cls]) -> bool:
+			if isinstance(entity, thing_cls) or isinstance(entity, place_cls):
+				vbranches = self._node_val_cache.settings
+				entikey = (entity.character.name, entity.name)
+			elif not isinstance(entity, portal_cls):
+				raise TypeError("Unknown entity type")
+			else:
+				vbranches = self._edge_val_cache.settings
+				entikey = (
+					entity.character.name,
+					entity.origin.name,
+					entity.destination.name,
+					0,
+				)
 			branch, turn, _ = self._btt()
-			nvbranches = self._node_val_cache.settings
-			entikey = (entity.character.name, entity.name)
 			# get the last turn, even if it's in a prior branch
 			if turn == self._branches[branch][0]:
 				branch = self._branch_parents[branch]
@@ -1762,18 +1775,18 @@ class Engine(AbstractEngine, gORM):
 					return False
 				turn_then = self._branches[branch][2]
 				return (
-					branch in nvbranches
-					and turn_then in nvbranches[branch]
-					and entikey in nvbranches[branch][turn_then].entikeys
+					branch in vbranches
+					and turn_then in vbranches[branch]
+					and entikey in vbranches[branch][turn_then].entikeys
 				)
 			else:
 				turn_then = turn - 1
-			if branch not in nvbranches:
+			if branch not in vbranches:
 				return False
 			return (
-				branch in nvbranches
-				and turn_then in nvbranches[branch]
-				and entikey in nvbranches[branch][turn_then].entikeys
+				branch in vbranches
+				and turn_then in vbranches[branch]
+				and entikey in vbranches[branch][turn_then].entikeys
 			)
 
 		def check_triggers(
@@ -1843,27 +1856,55 @@ class Engine(AbstractEngine, gORM):
 		avcache_retr = self._unitness_cache._base_retrieve
 		node_exists = self._node_exists
 		make_node = self._make_node
-		thing_cls = self.thing_cls
-		place_cls = self.place_cls
-		portal_cls = self.portal_cls
 		node_objs = self._node_objs
 
 		def get_neighbors(
-			entity: Union[place_cls, thing_cls], neighborhood: Optional[int]
+			entity: Union[place_cls, thing_cls, portal_cls],
+			neighborhood: Optional[int],
 		) -> Optional[list[Union[place_cls, thing_cls, portal_cls]]]:
 			if neighborhood is None:
 				return None
 			neighbors = [entity]
+			seen = set()
+			if isinstance(entity, place_cls) or isinstance(entity, thing_cls):
+				seen.add(entity.name)
+			else:
+				seen.add((entity.origin.name, entity.destination.name))
 			i = 0
 			for _ in range(neighborhood):
 				j = len(neighbors)
 				for neighbor in neighbors[i:]:
-					neighbors.extend(
-						chain(
-							neighbor.neighbors(),
-							neighbor.contents(),
-						)
-					)
+					if isinstance(neighbor, portal_cls):
+						for place in (neighbor.origin, neighbor.destination):
+							for neighbor_place in chain(
+								place.neighbors(), place.contents()
+							):
+								if neighbor_place.name not in seen:
+									neighbors.append(neighbor_place)
+									seen.add(neighbor_place.name)
+							for neighbor_portal in place.portals():
+								portal_key = (
+									neighbor_portal.origin.name,
+									neighbor_portal.destination.name,
+								)
+								if portal_key not in seen:
+									neighbors.append(neighbor_portal)
+									seen.add(portal_key)
+					else:
+						for neighbor_place in chain(
+							neighbor.neighbors(), neighbor.contents()
+						):
+							if neighbor_place.name not in seen:
+								neighbors.append(neighbor_place)
+								seen.add(neighbor_place.name)
+						for neighbor_portal in neighbor.portals():
+							portal_key = (
+								neighbor_portal.origin.name,
+								neighbor_portal.destination.name,
+							)
+							if portal_key not in seen:
+								neighbors.append(neighbor_portal)
+								seen.add(portal_key)
 				i = j
 			return neighbors
 
@@ -2019,7 +2060,15 @@ class Engine(AbstractEngine, gORM):
 			)
 			entity = get_edge(charn, orign, destn)
 			trig_futs.append(
-				submit(check_triggers, prio, rulebook, rule, handled, entity)
+				submit(
+					check_triggers,
+					prio,
+					rulebook,
+					rule,
+					handled,
+					entity,
+					get_neighbors(entity, rule.neighborhood),
+				)
 			)
 		handled_node = self._handled_node
 		for (
@@ -2039,7 +2088,15 @@ class Engine(AbstractEngine, gORM):
 			)
 			entity = get_node(charn, noden)
 			trig_futs.append(
-				submit(check_triggers, prio, rulebook, rule, handled, entity)
+				submit(
+					check_triggers,
+					prio,
+					rulebook,
+					rule,
+					handled,
+					entity,
+					get_neighbors(entity, rule.neighborhood),
+				)
 			)
 		handled_portal = self._handled_portal
 		for (
@@ -2067,7 +2124,15 @@ class Engine(AbstractEngine, gORM):
 			)
 			entity = get_edge(charn, orign, destn)
 			trig_futs.append(
-				submit(check_triggers, prio, rulebook, rule, handled, entity)
+				submit(
+					check_triggers,
+					prio,
+					rulebook,
+					rule,
+					handled,
+					entity,
+					get_neighbors(entity, rule.neighborhood),
+				)
 			)
 		if pool:
 			wait(trig_futs)
