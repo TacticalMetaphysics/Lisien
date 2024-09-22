@@ -1918,6 +1918,12 @@ class Engine(AbstractEngine, gORM):
 			return neighbors
 
 		def get_effective_neighbors(entity, neighborhood):
+			"""Get neighbors unless that's a different set of entities since last turn
+
+			In which case return None
+
+			"""
+
 			def get_key(ent):
 				if isinstance(ent, portal_cls):
 					return (ent.origin.name, ent.destination.name)
