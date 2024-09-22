@@ -2,8 +2,8 @@ import os
 import tempfile
 import shutil
 
-from ..engine import Engine
-from ..examples.college import install
+from LiSE.engine import Engine
+from LiSE.examples.college import install
 
 outpath = os.path.join(
 	os.path.abspath(os.path.dirname(__file__)), "college24_premade.tar.xz"

@@ -128,21 +128,22 @@ def install(eng):
 	sloth.prereq(class_in_session)
 
 	@eng.rule
-	def learn(node):
-		for user in node.user.values():
+	def learn(unit):
+		for user in unit.user.values():
 			if "xp" in user.stat:
 				user.stat["xp"] += 1
 
 	@learn.trigger
-	def in_class(node):
-		classroom = node.engine.character["physical"].place["classroom"]
-		if hasattr(node, "location"):
-			assert node == node.character.unit["physical"].only
-			return node.location == classroom
+	def in_class(unit):
+		classroom = unit.engine.character["physical"].place["classroom"]
+		if hasattr(unit, "location"):
+			assert unit == unit.character.unit["physical"].only
+			return unit.location == classroom
 		else:
-			return node.character.unit["physical"].only.location == classroom
+			return unit.character.unit["physical"].only.location == classroom
 
 	learn.prereq(class_in_session)
+	learn.neighborhood = 0
 
 	@learn.prereq
 	def pay_attention(node):
