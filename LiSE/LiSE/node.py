@@ -273,36 +273,43 @@ class Origs(Mapping):
 
 
 class Portals(Set):
-	__slots__ = ("_pn", "_ecnb")
+	__slots__ = ("_pn", "_pecnb")
 
 	def __init__(self, node) -> None:
 		name = node.name
 		character = node.character
 		engine = node.engine
 		self._pn = (character.portal, name)
-		self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
+		self._pecnb = (
+			engine._get_edge,
+			engine._edges_cache,
+			character,
+			character.name,
+			name,
+			engine._btt,
+		)
 
 	def __contains__(self, x) -> bool:
-		edges_cache, charname, name, btt_f = self._ecnb
+		_, edges_cache, _, charname, name, btt_f = self._pecnb
 		btt = btt_f()
 		return edges_cache.has_predecessor(
 			charname, name, x, *btt
 		) or edges_cache.has_successor(charname, name, x, *btt)
 
 	def __len__(self) -> int:
-		edges_cache, charname, name, btt_f = self._ecnb
+		_, edges_cache, _, charname, name, btt_f = self._pecnb
 		btt = btt_f()
 		return edges_cache.count_predecessors(
 			charname, name, *btt
 		) + edges_cache.count_successors(charname, name, *btt)
 
 	def __iter__(self) -> Iterator["LiSE.portal.Portal"]:
-		edges_cache, charname, name, btt_f = self._ecnb
+		get_edge, edges_cache, character, charname, name, btt_f = self._pecnb
 		btt = btt_f()
-		return chain(
-			edges_cache.iter_successors(charname, name, *btt),
-			edges_cache.iter_predecessors(charname, name, *btt),
-		)
+		for dest in edges_cache.iter_successors(charname, name, *btt):
+			yield get_edge(character, name, dest, 0)
+		for orig in edges_cache.iter_predecessors(charname, name, *btt):
+			yield get_edge(character, orig, name, 0)
 
 
 class NeighborValues(ValuesView):
