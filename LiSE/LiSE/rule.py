@@ -595,6 +595,8 @@ class RuleMapping(MutableMapping, Signal):
 	):
 		def wrap(name, neighborhood, always, v):
 			name = name if name is not None else v.__name__
+			if name == "truth":
+				raise ValueError("Illegal rule name")
 			self[name] = v
 			r = self[name]
 			if always:
@@ -786,28 +788,28 @@ class AllRules(MutableMapping, Signal):
 		del self._cache[k]
 		self.send(self, key=k, rule=None)
 
-	def __call__(self, v=None, name=None, always=False):
+	def __call__(
+		self,
+		v=None,
+		name=None,
+		neighborhood: Optional[int] = None,
+		always=False,
+	):
+		def r(name, neighborhood, always, v):
+			if name is None:
+				name = v.__name__
+			if name == "truth":
+				raise ValueError("Illegal rule name")
+			self[name] = v
+			ret = self[name]
+			if always:
+				ret.triggers.append("truth")
+			ret.neighborhood = neighborhood
+			return ret
+
 		if v is None:
-
-			def r(f):
-				nonlocal name
-				if name is None:
-					name = f.__name__
-				self[name] = f
-				ret = self[name]
-				if always:
-					ret.triggers.append("truth")
-				return ret
-
-			return r
-		k = name if name is not None else v.__name__
-		if k == "truth":
-			raise ValueError("Illegal rule name")
-		self[k] = v
-		ret = self[k]
-		if always:
-			ret.triggers.append("truth")
-		return ret
+			return partial(r, name, neighborhood, always)
+		return r(name, neighborhood, always, v)
 
 	def new_empty(self, name):
 		"""Make a new rule with no actions or anything, and return it."""
