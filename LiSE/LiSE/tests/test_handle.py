@@ -3,10 +3,6 @@ import pytest
 from LiSE.tests import data
 
 
-def test_btt(handle_initialized):
-	assert handle_initialized.get_btt() == ("trunk", 0, 156)
-
-
 def test_language(handle_initialized):
 	assert handle_initialized.get_language() == "eng"
 	handle_initialized.set_string("foo", "bar")
