@@ -32,9 +32,7 @@ def install(eng):
 		home = poly.location
 		similar = 0
 		n = 0
-		for n, neighbor_home in enumerate(
-			map(attrgetter("destination"), home.portal.values()), 1
-		):
+		for n, neighbor_home in enumerate(home.neighbors(), 1):
 			# assume only 1 poly per home for now; this is faithful to the original
 			try:
 				neighbor = next(iter(neighbor_home.contents()))
