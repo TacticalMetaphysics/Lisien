@@ -83,7 +83,7 @@ from abc import ABC, abstractmethod
 from functools import partial, cached_property
 from inspect import getsource
 from ast import parse
-from typing import Callable
+from typing import Callable, Optional
 
 from astunparse import unparse
 from blinker import Signal
@@ -586,18 +586,25 @@ class RuleMapping(MutableMapping, Signal):
 		else:
 			self.rulebook.append(v)
 
-	def __call__(self, v=None, name=None, always=False):
-		def wrap(name, always, v):
+	def __call__(
+		self,
+		v: Optional[callable] = None,
+		name: Optional[str] = None,
+		neighborhood: Optional[int] = None,
+		always: bool = False,
+	):
+		def wrap(name, neighborhood, always, v):
 			name = name if name is not None else v.__name__
 			self[name] = v
 			r = self[name]
 			if always:
 				r.always()
+			r.neighborhood = neighborhood
 			return r
 
 		if v is None:
-			return partial(wrap, name, always)
-		return wrap(name, always, v)
+			return partial(wrap, name, neighborhood, always)
+		return wrap(name, neighborhood, always, v)
 
 	def __delitem__(self, k):
 		i = self.rulebook.index(k)
