@@ -168,9 +168,8 @@ rules of the simulation:
 		similar = 0
 		n = 0
 		# iterate over portals leading outward from home
-		for neighbor_portal in home.portal.values():
+		for neighbor_home in home.neighbors():
 			n += 1
-			neighbor_home = neighbor_portal.destination
 			# there's really only 1 polygon per home right now, but this will still work if there are more
 			for neighbor in neighbor_home.contents():
 				if neighbor.user is poly.user:
