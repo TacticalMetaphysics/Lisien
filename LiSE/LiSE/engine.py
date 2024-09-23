@@ -1886,7 +1886,12 @@ class Engine(AbstractEngine, gORM):
 					if isinstance(neighbor, portal_cls):
 						for place in (neighbor.origin, neighbor.destination):
 							for neighbor_place in chain(
-								place.neighbors(), place.contents()
+								place.neighbors(),
+								place.contents(),
+								filter(
+									None,
+									(getattr(neighbor, "location", None),),
+								),
 							):
 								if neighbor_place.name not in seen:
 									neighbors.append(neighbor_place)
@@ -1901,7 +1906,11 @@ class Engine(AbstractEngine, gORM):
 									seen.add(portal_key)
 					else:
 						for neighbor_place in chain(
-							neighbor.neighbors(), neighbor.contents()
+							neighbor.neighbors(),
+							neighbor.contents(),
+							filter(
+								None, (getattr(neighbor, "location", None),)
+							),
 						):
 							if neighbor_place.name not in seen:
 								neighbors.append(neighbor_place)
