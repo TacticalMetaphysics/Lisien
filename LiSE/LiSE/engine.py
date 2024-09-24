@@ -1907,6 +1907,12 @@ class Engine(AbstractEngine, gORM):
 				)
 				return seen
 
+			def get_thing_location_tup(name: Key) -> tuple:
+				try:
+					return (self._things_cache.retrieve(charn, placen, *btt),)
+				except KeyError:
+					return ()
+
 			if neighborhood is None:
 				return None
 			if hasattr(entity, "name"):
@@ -1921,18 +1927,10 @@ class Engine(AbstractEngine, gORM):
 					if len(neighbor) == 2:
 						orign, destn = neighbor
 						for placen in (orign, destn):
-							try:
-								locn = (
-									self._things_cache.retrieve(
-										charn, placen, *btt
-									),
-								)
-							except KeyError:
-								locn = ()
 							for neighbor_place in chain(
 								get_place_neighbors(placen),
 								get_place_contents(placen),
-								locn,
+								get_thing_location_tup(placen),
 							):
 								if neighbor_place not in seen:
 									neighbors.append((neighbor_place,))
@@ -1943,18 +1941,10 @@ class Engine(AbstractEngine, gORM):
 									seen.add(neighbor_portal)
 					else:
 						(neighbor,) = neighbor
-						try:
-							locn = (
-								self._things_cache.retrieve(
-									charn, neighbor, *btt
-								),
-							)
-						except KeyError:
-							locn = ()
 						for neighbor_place in chain(
 							get_place_neighbors(neighbor),
 							get_place_contents(neighbor),
-							locn,
+							get_thing_location_tup(neighbor_place),
 						):
 							if neighbor_place not in seen:
 								neighbors.append((neighbor_place,))
