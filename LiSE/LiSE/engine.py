@@ -609,6 +609,7 @@ class Engine(AbstractEngine, gORM):
 		from .rule import AllRuleBooks, AllRules
 
 		super()._init_caches()
+		self._neighbors_cache = {}
 		self._things_cache = ThingsCache(self)
 		self._node_contents_cache = NodeContentsCache(self)
 		self.character = self.graph = CharacterMapping(self)
@@ -1916,6 +1917,16 @@ class Engine(AbstractEngine, gORM):
 			if neighborhood is None:
 				return None
 			if hasattr(entity, "name"):
+				cache_key = (charn, entity.name, *btt)
+			else:
+				cache_key = (
+					charn,
+					entity.origin.name,
+					entity.destination.name,
+				)
+			if cache_key in self._neighbors_cache:
+				return self._neighbors_cache[cache_key]
+			if hasattr(entity, "name"):
 				neighbors = [(entity.name,)]
 			else:
 				neighbors = [(entity.origin.name, entity.destination.name)]
@@ -1954,6 +1965,7 @@ class Engine(AbstractEngine, gORM):
 								neighbors.append(neighbor_portal)
 								seen.add(neighbor_portal)
 				i = j
+			self._neighbors_cache[cache_key] = neighbors
 			return neighbors
 
 		def get_effective_neighbors(entity, neighborhood):
