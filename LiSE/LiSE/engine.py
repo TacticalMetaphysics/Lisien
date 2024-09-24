@@ -1944,7 +1944,7 @@ class Engine(AbstractEngine, gORM):
 						for neighbor_place in chain(
 							get_place_neighbors(neighbor),
 							get_place_contents(neighbor),
-							get_thing_location_tup(neighbor_place),
+							get_thing_location_tup(neighbor),
 						):
 							if neighbor_place not in seen:
 								neighbors.append((neighbor_place,))
