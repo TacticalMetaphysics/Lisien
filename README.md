@@ -267,7 +267,7 @@ some of the shapes, like so:
 ```python
 	# this needs to replace any existing rule code you've written,
 	# it won't work so well together with eg. @phys.thing.rule
-	@tri.unit.rule
+	@tri.unit.rule(neighborhood=1)
 	def tri_relocate(poly):
 		"""Move to a random unoccupied place"""
 		unoccupied = [place for place in poly.character.place.values() if not place.content]
@@ -281,7 +281,7 @@ some of the shapes, like so:
 		return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
 	
 	
-	@sq.unit.rule
+	@sq.unit.rule(neighborhood=1)
 	def sq_relocate(poly):
 		"""Move to a random unoccupied place"""
 		unoccupied = [place for place in poly.character.place.values() if not place.content]
@@ -318,7 +318,7 @@ entities:
 ```python
 	# this needs to replace any existing rule code you've written,
 	# it won't work so well together with eg. @phys.thing.rule
-	@eng.rule
+	@eng.rule(neighborhood=1)
 	def relocate(poly):
 		"""Move to a random unoccupied place"""
 		unoccupied = [place for place in poly.character.place.values() if not place.content]
