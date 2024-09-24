@@ -177,7 +177,7 @@ rules of the simulation:
 		return cmp(poly.user.stat[stat], similar / n)
 	
 	
-	@phys.thing.rule
+	@phys.thing.rule(neighborhood=1)
 	def relocate(poly):
 		"""Move to a random unoccupied place"""
 		unoccupied = [place for place in poly.character.place.values() if not place.content]
@@ -228,6 +228,12 @@ set those:
 Here we diverge from the original simulation a bit by setting these
 values differently for the different shapes, demonstrating an
 advantage of units.
+
+The argument `neighborhood=1` to `@phys.thing.rule` tells it that it only
+needs to check its triggers if something changed in either the location of
+the thing in question, or its neighbor places. `neighborhood=2` would include
+neighbors of those neighbors as well, and so on. You never really *need* this,
+but it makes this simulation go fast.
 
 Run ``python3 polygons.py`` to generate the simulation. To view it,
 run ``python3 -m ELiDE`` in the same directory.  Just click the big
