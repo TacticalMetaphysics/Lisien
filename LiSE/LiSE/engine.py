@@ -1860,7 +1860,7 @@ class Engine(AbstractEngine, gORM):
 		def get_neighbors(
 			entity: Union[place_cls, thing_cls, portal_cls],
 			neighborhood: Optional[int],
-		) -> Optional[list[Union[tuple[Key], tuple[Key, Key]]]]:
+		) -> Optional[list[Union[Tuple[Key], Tuple[Key, Key]]]]:
 			"""Get a list of neighbors within the neighborhood
 
 			Neighbors are given by a tuple containing only their name,
@@ -1883,7 +1883,7 @@ class Engine(AbstractEngine, gORM):
 					seen.add(pred)
 				return seen
 
-			def get_place_contents(name: Key) -> set[Key]:
+			def get_place_contents(name: Key) -> Set[Key]:
 				try:
 					return self._node_contents_cache.retrieve(
 						charn, name, *btt
@@ -1891,8 +1891,8 @@ class Engine(AbstractEngine, gORM):
 				except KeyError:
 					return set()
 
-			def get_place_portals(name: Key) -> set[tuple[Key, Key]]:
-				seen: set[tuple[Key, Key]] = set()
+			def get_place_portals(name: Key) -> Set[Tuple[Key, Key]]:
+				seen: set[Tuple[Key, Key]] = set()
 				seen.update(
 					(name, dest)
 					for dest in self._edges_cache.iter_successors(
@@ -1907,7 +1907,7 @@ class Engine(AbstractEngine, gORM):
 				)
 				return seen
 
-			def get_thing_location_tup(name: Key) -> Union[(), tuple[Key]]:
+			def get_thing_location_tup(name: Key) -> Union[(), Tuple[Key]]:
 				try:
 					return (self._things_cache.retrieve(charn, name, *btt),)
 				except KeyError:
