@@ -1927,7 +1927,10 @@ class Engine(AbstractEngine, gORM):
 			if cache_key in self._neighbors_cache:
 				return self._neighbors_cache[cache_key]
 			if hasattr(entity, "name"):
-				neighbors = [(entity.name,)]
+				if hasattr(entity, "location"):
+					neighbors = [(entity.name,), (entity.location.name,)]
+				else:
+					neighbors = [(entity.name,)]
 			else:
 				neighbors = [(entity.origin.name, entity.destination.name)]
 			seen = set(neighbors)
@@ -1946,6 +1949,12 @@ class Engine(AbstractEngine, gORM):
 								if neighbor_place not in seen:
 									neighbors.append((neighbor_place,))
 									seen.add(neighbor_place)
+								for neighbor_thing in get_place_contents(
+									neighbor_place
+								):
+									if neighbor_thing not in seen:
+										neighbors.append((neighbor_thing,))
+										seen.add(neighbor_thing)
 							for neighbor_portal in get_place_portals(placen):
 								if neighbor_portal not in seen:
 									neighbors.append(neighbor_portal)
@@ -1960,6 +1969,12 @@ class Engine(AbstractEngine, gORM):
 							if neighbor_place not in seen:
 								neighbors.append((neighbor_place,))
 								seen.add(neighbor_place)
+							for neighbor_thing in get_place_contents(
+								neighbor_place
+							):
+								if neighbor_thing not in seen:
+									neighbors.append((neighbor_thing,))
+									seen.add(neighbor_thing)
 						for neighbor_portal in get_place_portals(neighbor):
 							if neighbor_portal not in seen:
 								neighbors.append(neighbor_portal)
