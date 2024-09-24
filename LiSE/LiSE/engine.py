@@ -1907,9 +1907,9 @@ class Engine(AbstractEngine, gORM):
 				)
 				return seen
 
-			def get_thing_location_tup(name: Key) -> tuple:
+			def get_thing_location_tup(name: Key) -> Union[(), tuple[Key]]:
 				try:
-					return (self._things_cache.retrieve(charn, placen, *btt),)
+					return (self._things_cache.retrieve(charn, name, *btt),)
 				except KeyError:
 					return ()
 
