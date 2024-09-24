@@ -1751,18 +1751,17 @@ class Engine(AbstractEngine, gORM):
 			submit = partial
 		todo = defaultdict(list)
 
-		def changed(entity: Union[thing_cls, place_cls, portal_cls]) -> bool:
-			if isinstance(entity, thing_cls) or isinstance(entity, place_cls):
+		def changed(entity: tuple) -> bool:
+			if len(entity) == 1:
 				vbranches = self._node_val_cache.settings
-				entikey = (entity.character.name, entity.name)
-			elif not isinstance(entity, portal_cls):
+				entikey = (charn, entity[0])
+			elif len(entity) != 2:
 				raise TypeError("Unknown entity type")
 			else:
 				vbranches = self._edge_val_cache.settings
 				entikey = (
-					entity.character.name,
-					entity.origin.name,
-					entity.destination.name,
+					charn,
+					*entity,
 					0,
 				)
 			branch, turn, _ = self._btt()
@@ -1861,68 +1860,109 @@ class Engine(AbstractEngine, gORM):
 		def get_neighbors(
 			entity: Union[place_cls, thing_cls, portal_cls],
 			neighborhood: Optional[int],
-		) -> Optional[list[Union[place_cls, thing_cls, portal_cls]]]:
+		) -> Optional[list[Union[tuple[Key], tuple[Key, Key]]]]:
 			"""Get a list of neighbors within the neighborhood
 
-			The list contains LiSE entity objects -- Thing, Place, or Portal.
-
-			This is not great for perf or memory, because it means those entities
-			get instantiated even if I don't need them. It was just convenient
-			to implement this way.
+			Neighbors are given by a tuple containing only their name,
+			if they are Places or Things, or their origin's and destination's
+			names, if they are Portals.
 
 			"""
+			charn = entity.character.name
+			btt = self._btt()
+
+			def get_place_neighbors(name: Key) -> set[Key]:
+				seen: set[Key] = set()
+				for succ in self._edges_cache.iter_successors(
+					charn, name, *btt
+				):
+					seen.add(succ)
+				for pred in self._edges_cache.iter_predecessors(
+					charn, name, *btt
+				):
+					seen.add(pred)
+				return seen
+
+			def get_place_contents(name: Key) -> set[Key]:
+				try:
+					return self._node_contents_cache.retrieve(
+						charn, name, *btt
+					)
+				except KeyError:
+					return set()
+
+			def get_place_portals(name: Key) -> set[tuple[Key, Key]]:
+				seen: set[tuple[Key, Key]] = set()
+				seen.update(
+					(name, dest)
+					for dest in self._edges_cache.iter_successors(
+						charn, name, *btt
+					)
+				)
+				seen.update(
+					(orig, name)
+					for orig in self._edges_cache.iter_predecessors(
+						charn, name, *btt
+					)
+				)
+				return seen
+
 			if neighborhood is None:
 				return None
-			neighbors = [entity]
-			seen = set()
-			if isinstance(entity, place_cls) or isinstance(entity, thing_cls):
-				seen.add(entity.name)
+			if hasattr(entity, "name"):
+				neighbors = [(entity.name,)]
 			else:
-				seen.add((entity.origin.name, entity.destination.name))
+				neighbors = [(entity.origin.name, entity.destination.name)]
+			seen = set(neighbors)
 			i = 0
 			for _ in range(neighborhood):
 				j = len(neighbors)
 				for neighbor in neighbors[i:]:
-					if isinstance(neighbor, portal_cls):
-						for place in (neighbor.origin, neighbor.destination):
-							for neighbor_place in chain(
-								place.neighbors(),
-								place.contents(),
-								filter(
-									None,
-									(getattr(neighbor, "location", None),),
-								),
-							):
-								if neighbor_place.name not in seen:
-									neighbors.append(neighbor_place)
-									seen.add(neighbor_place.name)
-							for neighbor_portal in place.portals():
-								portal_key = (
-									neighbor_portal.origin.name,
-									neighbor_portal.destination.name,
+					if len(neighbor) == 2:
+						orign, destn = neighbor
+						for placen in (orign, destn):
+							try:
+								locn = (
+									self._things_cache.retrieve(
+										charn, placen, *btt
+									),
 								)
-								if portal_key not in seen:
+							except KeyError:
+								locn = ()
+							for neighbor_place in chain(
+								get_place_neighbors(placen),
+								get_place_contents(placen),
+								locn,
+							):
+								if neighbor_place not in seen:
+									neighbors.append((neighbor_place,))
+									seen.add(neighbor_place)
+							for neighbor_portal in get_place_portals(placen):
+								if neighbor_portal not in seen:
 									neighbors.append(neighbor_portal)
-									seen.add(portal_key)
+									seen.add(neighbor_portal)
 					else:
-						for neighbor_place in chain(
-							neighbor.neighbors(),
-							neighbor.contents(),
-							filter(
-								None, (getattr(neighbor, "location", None),)
-							),
-						):
-							if neighbor_place.name not in seen:
-								neighbors.append(neighbor_place)
-								seen.add(neighbor_place.name)
-						for neighbor_portal in neighbor.portals():
-							portal_key = (
-								neighbor_portal.origin.name,
-								neighbor_portal.destination.name,
+						(neighbor,) = neighbor
+						try:
+							locn = (
+								self._things_cache.retrieve(
+									charn, neighbor, *btt
+								),
 							)
-							if portal_key not in seen:
+						except KeyError:
+							locn = ()
+						for neighbor_place in chain(
+							get_place_neighbors(neighbor),
+							get_place_contents(neighbor),
+							locn,
+						):
+							if neighbor_place not in seen:
+								neighbors.append((neighbor_place,))
+								seen.add(neighbor_place)
+						for neighbor_portal in get_place_portals(neighbor):
+							if neighbor_portal not in seen:
 								neighbors.append(neighbor_portal)
-								seen.add(portal_key)
+								seen.add(neighbor_portal)
 				i = j
 			return neighbors
 
@@ -1932,12 +1972,6 @@ class Engine(AbstractEngine, gORM):
 			In which case return None
 
 			"""
-
-			def get_key(ent):
-				if isinstance(ent, portal_cls):
-					return (ent.origin.name, ent.destination.name)
-				return (ent.name,)
-
 			if neighborhood is None:
 				return None
 
@@ -1947,9 +1981,7 @@ class Engine(AbstractEngine, gORM):
 			last_turn_neighbors = get_neighbors(entity, neighborhood)
 			self._set_btt(*now)
 			this_turn_neighbors = get_neighbors(entity, neighborhood)
-			if set(map(get_key, last_turn_neighbors)) != set(
-				map(get_key, this_turn_neighbors)
-			):
+			if set(last_turn_neighbors) != set(this_turn_neighbors):
 				return None
 			return this_turn_neighbors
 
