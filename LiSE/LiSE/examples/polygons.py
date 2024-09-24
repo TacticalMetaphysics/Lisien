@@ -45,7 +45,7 @@ def install(eng):
 			return True
 		return cmp(poly.character.stat[stat], similar / n)
 
-	@eng.rule
+	@eng.rule(neighborhood=1)
 	def relocate(poly):
 		"""Move to a random unoccupied place"""
 		if "unoccupied" not in poly.engine.universal:
