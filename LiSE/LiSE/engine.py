@@ -1993,6 +1993,10 @@ class Engine(AbstractEngine, gORM):
 				return None
 
 			branch_now, turn_now, tick_now = self._btt()
+			if turn_now <= 0:
+				# everything's "created" at the start of the game,
+				# and therefore, there's been a "change" to the neighborhood
+				return None
 			with self.world_lock:
 				self.load_at(branch_now, turn_now - 1, 0)
 				self._oturn -= 1
