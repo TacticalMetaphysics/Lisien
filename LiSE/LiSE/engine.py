@@ -1939,10 +1939,12 @@ class Engine(AbstractEngine, gORM):
 			if cache_key in self._neighbors_cache:
 				return self._neighbors_cache[cache_key]
 			if hasattr(entity, "name"):
-				if hasattr(entity, "location"):
-					neighbors = [(entity.name,), (entity.location.name,)]
-				else:
-					neighbors = [(entity.name,)]
+				neighbors = [(entity.name,)]
+				while hasattr(entity, "location"):
+					entity = entity.location
+					neighbors.append(
+						entity.name,
+					)
 			else:
 				neighbors = [(entity.origin.name, entity.destination.name)]
 			seen = set(neighbors)
