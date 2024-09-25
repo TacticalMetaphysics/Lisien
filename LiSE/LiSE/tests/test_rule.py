@@ -198,13 +198,13 @@ def test_rule_neighborhood(engy, branched, rulebook):
 	assert it_ran.neighborhood == 1
 	if rulebook:
 		engy.rulebook["it_ran"] = [it_ran]
-	char.place[3, 3]["should_run"] = True
 
 	engy.next_turn()
 	if rulebook:
 		char.place.rulebook = "it_ran"
 	else:
 		char.place.rule(it_ran)
+	char.place[3, 3]["should_run"] = True
 	assert it_ran.neighborhood == 1
 	engy.next_turn()
 	if branched:
