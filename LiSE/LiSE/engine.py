@@ -1781,10 +1781,9 @@ class Engine(AbstractEngine, gORM):
 			# get the last turn, even if it's in a prior branch
 			if turn == self._branches[branch][0]:
 				branch = self._branch_parents[branch]
-				if branch is None:
-					# It's the start of the game.
-					# There can't be any changes, can there?
-					return False
+				assert (
+					branch is not None
+				), "Tried to check for changes at the start of the game"
 				turn_then = self._branches[branch][2]
 			else:
 				turn_then = turn - 1
