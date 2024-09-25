@@ -195,6 +195,7 @@ def test_rule_neighborhood(engy, branched, rulebook):
 		return False
 
 	it_ran.neighborhood = 1
+	assert it_ran.neighborhood == 1
 	if rulebook:
 		engy.rulebook["it_ran"] = [it_ran]
 	char.place[3, 3]["should_run"] = True
@@ -204,6 +205,7 @@ def test_rule_neighborhood(engy, branched, rulebook):
 		char.place.rulebook = "it_ran"
 	else:
 		char.place.rule(it_ran)
+	assert it_ran.neighborhood == 1
 	engy.next_turn()
 	if branched:
 		engy.branch = "eeeee"
