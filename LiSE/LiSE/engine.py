@@ -506,7 +506,7 @@ class Engine(AbstractEngine, gORM):
 	def load_at(self, branch: str, turn: int, tick: int) -> None:
 		"""Load history data at the given time
 
-		Will load the keyframe prior to that timee, and all history
+		Will load the keyframe prior to that time, and all history
 		data following, up to (but not including) the keyframe thereafter.
 
 		"""
