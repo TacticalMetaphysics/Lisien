@@ -590,23 +590,30 @@ class RuleMapping(MutableMapping, Signal):
 		self,
 		v: Optional[callable] = None,
 		name: Optional[str] = None,
-		neighborhood: Optional[int] = None,
+		*,
+		neighborhood: Optional[int] = -1,
 		always: bool = False,
 	):
-		def wrap(name, neighborhood, always, v):
+		def wrap(name, v, **kwargs):
 			name = name if name is not None else v.__name__
 			if name == "truth":
 				raise ValueError("Illegal rule name")
 			self[name] = v
 			r = self[name]
-			if always:
+			if kwargs.get("always"):
 				r.always()
-			r.neighborhood = neighborhood
+			if "neighborhood" in kwargs:
+				r.neighborhood = kwargs["neighborhood"]
 			return r
 
+		kwargs = {}
+		if always:
+			kwargs["always"] = True
+		if neighborhood is not -1:
+			kwargs["neighborhood"] = neighborhood
 		if v is None:
-			return partial(wrap, name, neighborhood, always)
-		return wrap(name, neighborhood, always, v)
+			return partial(wrap, name, **kwargs)
+		return wrap(name, v, **kwargs)
 
 	def __delitem__(self, k):
 		i = self.rulebook.index(k)
@@ -792,24 +799,31 @@ class AllRules(MutableMapping, Signal):
 		self,
 		v=None,
 		name=None,
-		neighborhood: Optional[int] = None,
+		*,
+		neighborhood: Optional[int] = -1,
 		always=False,
 	):
-		def r(name, neighborhood, always, v):
+		def r(name, v, **kwargs):
 			if name is None:
 				name = v.__name__
 			if name == "truth":
 				raise ValueError("Illegal rule name")
 			self[name] = v
 			ret = self[name]
-			if always:
+			if kwargs.get("always"):
 				ret.triggers.append("truth")
-			ret.neighborhood = neighborhood
+			if "neighborhood" in kwargs:
+				ret.neighborhood = neighborhood
 			return ret
 
+		kwargs = {}
+		if always:
+			kwargs["always"] = True
+		if neighborhood is not -1:
+			kwargs["neighborhood"] = neighborhood
 		if v is None:
-			return partial(r, name, neighborhood, always)
-		return r(name, neighborhood, always, v)
+			return partial(r, name, **kwargs)
+		return r(name, v, **kwargs)
 
 	def new_empty(self, name):
 		"""Make a new rule with no actions or anything, and return it."""
