@@ -1935,6 +1935,7 @@ class Engine(AbstractEngine, gORM):
 					charn,
 					entity.origin.name,
 					entity.destination.name,
+					*btt,
 				)
 			if cache_key in self._neighbors_cache:
 				return self._neighbors_cache[cache_key]
