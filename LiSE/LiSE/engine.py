@@ -1942,9 +1942,7 @@ class Engine(AbstractEngine, gORM):
 				neighbors = [(entity.name,)]
 				while hasattr(entity, "location"):
 					entity = entity.location
-					neighbors.append(
-						entity.name,
-					)
+					neighbors.append((entity.name,))
 			else:
 				neighbors = [(entity.origin.name, entity.destination.name)]
 			seen = set(neighbors)
