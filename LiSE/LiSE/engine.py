@@ -506,10 +506,12 @@ class Engine(AbstractEngine, gORM):
 	def load_at(self, branch: str, turn: int, tick: int) -> None:
 		"""Load history data at the given time
 
-		Will load the keyframe prior to that timee, and all history
+		Will load the keyframe prior to that time, and all history
 		data following, up to (but not including) the keyframe thereafter.
 
 		"""
+		if self._time_is_loaded(branch, turn, tick):
+			return
 		(
 			latest_past_keyframe,
 			earliest_future_keyframe,
@@ -1498,6 +1500,8 @@ class Engine(AbstractEngine, gORM):
 		self.close()
 
 	def _set_branch(self, v: str) -> None:
+		if not isinstance(v, str):
+			raise TypeError("Branch names must be strings")
 		oldrando = self.universal.get("rando_state")
 		super()._set_branch(v)
 		if v not in self._turns_completed:
@@ -1508,6 +1512,10 @@ class Engine(AbstractEngine, gORM):
 		self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
 	def _set_turn(self, v: int) -> None:
+		if not isinstance(v, int):
+			raise TypeError("Turns must be integers")
+		if v < 0:
+			raise ValueError("Turns can't be negative")
 		turn_end = self._branch_end_plan[self.branch]
 		if v > turn_end + 1:
 			raise exc.OutOfTimelineError(
@@ -1529,6 +1537,10 @@ class Engine(AbstractEngine, gORM):
 		self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
 	def _set_tick(self, v: int) -> None:
+		if not isinstance(v, int):
+			raise TypeError("Ticks must be integers")
+		if v < 0:
+			raise ValueError("Ticks can't be negative")
 		tick_end = self._turn_end_plan[self.branch, self.turn]
 		if v > tick_end + 1:
 			raise exc.OutOfTimelineError(
@@ -1923,14 +1935,15 @@ class Engine(AbstractEngine, gORM):
 					charn,
 					entity.origin.name,
 					entity.destination.name,
+					*btt,
 				)
 			if cache_key in self._neighbors_cache:
 				return self._neighbors_cache[cache_key]
 			if hasattr(entity, "name"):
-				if hasattr(entity, "location"):
-					neighbors = [(entity.name,), (entity.location.name,)]
-				else:
-					neighbors = [(entity.name,)]
+				neighbors = [(entity.name,)]
+				while hasattr(entity, "location"):
+					entity = entity.location
+					neighbors.append((entity.name,))
 			else:
 				neighbors = [(entity.origin.name, entity.destination.name)]
 			seen = set(neighbors)
@@ -1992,12 +2005,18 @@ class Engine(AbstractEngine, gORM):
 			if neighborhood is None:
 				return None
 
-			now = self._btt()
-			self._oturn -= 1
-			self._otick = 0
-			last_turn_neighbors = get_neighbors(entity, neighborhood)
-			self._set_btt(*now)
-			this_turn_neighbors = get_neighbors(entity, neighborhood)
+			branch_now, turn_now, tick_now = self._btt()
+			if turn_now <= 0:
+				# everything's "created" at the start of the game,
+				# and therefore, there's been a "change" to the neighborhood
+				return None
+			with self.world_lock:
+				self.load_at(branch_now, turn_now - 1, 0)
+				self._oturn -= 1
+				self._otick = 0
+				last_turn_neighbors = get_neighbors(entity, neighborhood)
+				self._set_btt(branch_now, turn_now, tick_now)
+				this_turn_neighbors = get_neighbors(entity, neighborhood)
 			if set(last_turn_neighbors) != set(this_turn_neighbors):
 				return None
 			return this_turn_neighbors
