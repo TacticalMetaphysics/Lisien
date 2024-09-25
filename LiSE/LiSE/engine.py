@@ -510,6 +510,8 @@ class Engine(AbstractEngine, gORM):
 		data following, up to (but not including) the keyframe thereafter.
 
 		"""
+		if self._time_is_loaded(branch, turn, tick):
+			return
 		(
 			latest_past_keyframe,
 			earliest_future_keyframe,
@@ -2008,8 +2010,7 @@ class Engine(AbstractEngine, gORM):
 				# and therefore, there's been a "change" to the neighborhood
 				return None
 			with self.world_lock:
-				if not self._time_is_loaded(branch_now, turn_now - 1, 0):
-					self.load_at(branch_now, turn_now - 1, 0)
+				self.load_at(branch_now, turn_now - 1, 0)
 				self._oturn -= 1
 				self._otick = 0
 				last_turn_neighbors = get_neighbors(entity, neighborhood)
