@@ -2006,7 +2006,7 @@ class Engine(AbstractEngine, gORM):
 				return None
 
 			branch_now, turn_now, tick_now = self._btt()
-			if turn_now <= 0:
+			if turn_now <= 1:
 				# everything's "created" at the start of the game,
 				# and therefore, there's been a "change" to the neighborhood
 				return None
