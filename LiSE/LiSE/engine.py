@@ -1992,12 +1992,14 @@ class Engine(AbstractEngine, gORM):
 			if neighborhood is None:
 				return None
 
-			now = self._btt()
-			self._oturn -= 1
-			self._otick = 0
-			last_turn_neighbors = get_neighbors(entity, neighborhood)
-			self._set_btt(*now)
-			this_turn_neighbors = get_neighbors(entity, neighborhood)
+			branch_now, turn_now, tick_now = self._btt()
+			with self.world_lock:
+				self.load_at(branch_now, turn_now - 1, 0)
+				self._oturn -= 1
+				self._otick = 0
+				last_turn_neighbors = get_neighbors(entity, neighborhood)
+				self._set_btt(branch_now, turn_now, tick_now)
+				this_turn_neighbors = get_neighbors(entity, neighborhood)
 			if set(last_turn_neighbors) != set(this_turn_neighbors):
 				return None
 			return this_turn_neighbors
