@@ -1786,11 +1786,6 @@ class Engine(AbstractEngine, gORM):
 					# There can't be any changes, can there?
 					return False
 				turn_then = self._branches[branch][2]
-				return (
-					branch in vbranches
-					and turn_then in vbranches[branch]
-					and entikey in vbranches[branch][turn_then].entikeys
-				)
 			else:
 				turn_then = turn - 1
 			if branch not in vbranches:
