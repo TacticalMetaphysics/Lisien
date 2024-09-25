@@ -1498,6 +1498,8 @@ class Engine(AbstractEngine, gORM):
 		self.close()
 
 	def _set_branch(self, v: str) -> None:
+		if not isinstance(v, str):
+			raise TypeError("Branch names must be strings")
 		oldrando = self.universal.get("rando_state")
 		super()._set_branch(v)
 		if v not in self._turns_completed:
@@ -1508,6 +1510,10 @@ class Engine(AbstractEngine, gORM):
 		self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
 	def _set_turn(self, v: int) -> None:
+		if not isinstance(v, int):
+			raise TypeError("Turns must be integers")
+		if v < 0:
+			raise ValueError("Turns can't be negative")
 		turn_end = self._branch_end_plan[self.branch]
 		if v > turn_end + 1:
 			raise exc.OutOfTimelineError(
@@ -1529,6 +1535,10 @@ class Engine(AbstractEngine, gORM):
 		self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
 	def _set_tick(self, v: int) -> None:
+		if not isinstance(v, int):
+			raise TypeError("Ticks must be integers")
+		if v < 0:
+			raise ValueError("Ticks can't be negative")
 		tick_end = self._turn_end_plan[self.branch, self.turn]
 		if v > tick_end + 1:
 			raise exc.OutOfTimelineError(
