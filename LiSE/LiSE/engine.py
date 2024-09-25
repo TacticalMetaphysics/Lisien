@@ -1790,11 +1790,10 @@ class Engine(AbstractEngine, gORM):
 				turn_then = turn - 1
 			if branch not in vbranches:
 				return False
-			return (
-				branch in vbranches
-				and turn_then in vbranches[branch]
-				and entikey in vbranches[branch][turn_then].entikeys
-			)
+			vbranchesb = vbranches[branch]
+			if turn_then not in vbranchesb:
+				return False
+			return entikey in vbranchesb[turn_then].entikeys
 
 		def check_triggers(
 			prio, rulebook, rule, handled_fun, entity, neighbors=None
