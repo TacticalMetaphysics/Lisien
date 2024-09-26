@@ -64,9 +64,9 @@ def test_rule_neighborhood(engy, branched, rulebook):
 		char.place.rule(it_ran)
 	char.place[3, 3]["should_run"] = True
 	assert it_ran.neighborhood == 1
-	engy.next_turn()
 	if branched:
 		engy.branch = "eeeee"
+	engy.next_turn()
 
 	for nabor in [(2, 3), (4, 3), (3, 4), (3, 2)]:
 		assert char.place[nabor]["it_ran"]
