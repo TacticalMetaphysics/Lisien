@@ -1,3 +1,7 @@
+from itertools import product
+
+import networkx as nx
+
 import pytest
 
 from LiSE.character import grid_2d_8graph
@@ -27,3 +31,45 @@ def test_sim_start(three3):
 	assert three3.stat["it_ran"] == 9
 	eng.next_turn()
 	assert three3.stat["it_ran"] == 9  # still!
+
+
+@pytest.mark.parametrize(
+	("branched", "rulebook"), product(*[(True, False)] * 2)
+)
+def test_rule_neighborhood(engy, branched, rulebook):
+	"""Test a rule applied to all nodes of a character with a neighborhood"""
+	char = engy.new_character("char", nx.grid_2d_graph(5, 5))
+
+	@engy.rule
+	def it_ran(node):
+		node["it_ran"] = True
+
+	@it_ran.trigger
+	def should_it_run(node):
+		node["trigger_evaluated"] = True
+		for neighbor in node.neighbors():
+			if neighbor.get("should_run"):
+				return True
+		return False
+
+	it_ran.neighborhood = 1
+	assert it_ran.neighborhood == 1
+	if rulebook:
+		engy.rulebook["it_ran"] = [it_ran]
+
+	engy.next_turn()
+	if rulebook:
+		char.place.rulebook = "it_ran"
+	else:
+		char.place.rule(it_ran)
+	char.place[3, 3]["should_run"] = True
+	assert it_ran.neighborhood == 1
+	if branched:
+		engy.branch = "eeeee"
+	engy.next_turn()
+
+	for nabor in [(2, 3), (4, 3), (3, 4), (3, 2)]:
+		assert char.place[nabor]["it_ran"]
+
+	for outer in [(1, 1), (4, 4)]:
+		assert "trigger_evaluated" not in char.place[outer]

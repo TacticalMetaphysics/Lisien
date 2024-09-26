@@ -1778,21 +1778,16 @@ class Engine(AbstractEngine, gORM):
 					0,
 				)
 			branch, turn, _ = self._btt()
-			# get the last turn, even if it's in a prior branch
-			if turn == self._branches[branch][0]:
-				branch = self._branch_parents[branch]
-				assert (
-					branch is not None
-				), "Tried to check for changes at the start of the game"
-				turn_then = self._branches[branch][2]
-			else:
-				turn_then = turn - 1
+			turn -= 1
+			if turn <= self._branches[branch][1]:
+				branch = self._branches[branch][0]
+				assert branch is not None
 			if branch not in vbranches:
 				return False
 			vbranchesb = vbranches[branch]
-			if turn_then not in vbranchesb:
+			if turn not in vbranchesb:
 				return False
-			return entikey in vbranchesb[turn_then].entikeys
+			return entikey in vbranchesb[turn].entikeys
 
 		def check_triggers(
 			prio, rulebook, rule, handled_fun, entity, neighbors=None
