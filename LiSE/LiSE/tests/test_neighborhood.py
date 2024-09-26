@@ -1,3 +1,5 @@
+from itertools import product
+
 import networkx as nx
 
 import pytest
@@ -32,7 +34,7 @@ def test_sim_start(three3):
 
 
 @pytest.mark.parametrize(
-	("branched", "rulebook"), ([True, False], [True, False])
+	("branched", "rulebook"), product(*[(True, False)] * 2)
 )
 def test_rule_neighborhood(engy, branched, rulebook):
 	"""Test a rule applied to all nodes of a character with a neighborhood"""
