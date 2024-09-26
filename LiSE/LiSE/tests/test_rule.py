@@ -175,12 +175,14 @@ def test_rule_priority(engy):
 	assert engy.universal["list"] == ["first", "second", "second", "first"]
 
 
-@pytest.mark.parametrize("branched", [True, False])
-def test_rule_neighborhood(engy, branched):
+@pytest.mark.parametrize(
+	("branched", "rulebook"), ([True, False], [True, False])
+)
+def test_rule_neighborhood(engy, branched, rulebook):
 	"""Test a rule applied to all nodes of a character with a neighborhood"""
 	char = engy.new_character("char", nx.grid_2d_graph(5, 5))
 
-	@char.place.rule
+	@engy.rule
 	def it_ran(node):
 		node["it_ran"] = True
 
@@ -193,8 +195,17 @@ def test_rule_neighborhood(engy, branched):
 		return False
 
 	it_ran.neighborhood = 1
-	char.place[3, 3]["should_run"] = True
+	assert it_ran.neighborhood == 1
+	if rulebook:
+		engy.rulebook["it_ran"] = [it_ran]
 
+	engy.next_turn()
+	if rulebook:
+		char.place.rulebook = "it_ran"
+	else:
+		char.place.rule(it_ran)
+	char.place[3, 3]["should_run"] = True
+	assert it_ran.neighborhood == 1
 	engy.next_turn()
 	if branched:
 		engy.branch = "eeeee"

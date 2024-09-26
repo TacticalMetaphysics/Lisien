@@ -1781,25 +1781,18 @@ class Engine(AbstractEngine, gORM):
 			# get the last turn, even if it's in a prior branch
 			if turn == self._branches[branch][0]:
 				branch = self._branch_parents[branch]
-				if branch is None:
-					# It's the start of the game.
-					# There can't be any changes, can there?
-					return False
+				assert (
+					branch is not None
+				), "Tried to check for changes at the start of the game"
 				turn_then = self._branches[branch][2]
-				return (
-					branch in vbranches
-					and turn_then in vbranches[branch]
-					and entikey in vbranches[branch][turn_then].entikeys
-				)
 			else:
 				turn_then = turn - 1
 			if branch not in vbranches:
 				return False
-			return (
-				branch in vbranches
-				and turn_then in vbranches[branch]
-				and entikey in vbranches[branch][turn_then].entikeys
-			)
+			vbranchesb = vbranches[branch]
+			if turn_then not in vbranchesb:
+				return False
+			return entikey in vbranchesb[turn_then].entikeys
 
 		def check_triggers(
 			prio, rulebook, rule, handled_fun, entity, neighbors=None
@@ -2006,7 +1999,7 @@ class Engine(AbstractEngine, gORM):
 				return None
 
 			branch_now, turn_now, tick_now = self._btt()
-			if turn_now <= 0:
+			if turn_now <= 1:
 				# everything's "created" at the start of the game,
 				# and therefore, there's been a "change" to the neighborhood
 				return None
