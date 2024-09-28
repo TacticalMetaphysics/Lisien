@@ -3000,9 +3000,9 @@ def worker_subprocess(input_pipe, output_pipe, logq):
 			if logq:
 				logq.close()
 			return 0
-		(method, args, kwargs) = unpack(inst)
+		(uid, method, args, kwargs) = unpack(inst)
 		ret = getattr(eng, method)(*args, **kwargs)
-		output_pipe.send_bytes(compress(pack(ret)))
+		output_pipe.send_bytes(compress(pack((uid, ret))))
 
 
 class RedundantProcessError(ProcessError):
