@@ -25,13 +25,16 @@ import sys
 import os
 from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial
+from multiprocessing import Process, Pipe, Queue
 from collections import defaultdict
 from itertools import chain
+from threading import Thread
 from types import FunctionType, ModuleType, MethodType
 from typing import Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
 from abc import ABC, abstractmethod
 from random import Random
+import zlib
 
 import networkx as nx
 from networkx import (
@@ -66,6 +69,7 @@ from .query import (
 	QueryResultEndTurn,
 	CombinedQueryResult,
 )
+from .proxy import worker_subprocess
 from .character import Character
 from .node import Place, Thing
 from .portal import Portal
@@ -287,6 +291,8 @@ class Engine(AbstractEngine, gORM):
 	:param parallel_triggers: Whether to evaluate trigger functions in threads.
 		This has performance benefits if you are using a free-threaded build of
 		Python (without a GIL). Default ``True``.
+	:param worker_processes: How many subprocesses to use as workers for
+	parallel processing. When ``0`` (the default), use only threads.
 
 	"""
 
@@ -333,6 +339,7 @@ class Engine(AbstractEngine, gORM):
 		cache_arranger: bool = False,
 		enforce_end_of_time: bool = True,
 		parallel_triggers: bool = True,
+		worker_processes: int = 0,
 	):
 		if logfun is None:
 			from logging import getLogger
@@ -418,6 +425,33 @@ class Engine(AbstractEngine, gORM):
 		self.flush_interval = flush_interval
 		if parallel_triggers:
 			self._trigger_pool = ThreadPoolExecutor()
+		if worker_processes > 0:
+
+			def sync_log_forever(q):
+				while True:
+					self.log(*q.get())
+
+			self._worker_processes = wp = []
+			self._worker_inputs = wi = []
+			self._worker_outputs = wo = []
+			self._worker_log_queues = wl = []
+			self._worker_log_threads = wlt = []
+			for _ in range(worker_processes):
+				inpipe, outpipe = Pipe()
+				logq = Queue()
+				logthread = Thread(
+					target=sync_log_forever, args=(logq,), daemon=True
+				)
+				proc = Process(
+					target=worker_subprocess, args=(inpipe, outpipe, logq)
+				)
+				wi.append(inpipe)
+				wo.append(outpipe)
+				wl.append(logq)
+				wlt.append(logthread)
+				wp.append(proc)
+				logthread.start()
+				proc.start()
 		self._rules_iter = self._follow_rules()
 		self._rando = Random()
 		if "rando_state" in self.universal:
@@ -501,6 +535,32 @@ class Engine(AbstractEngine, gORM):
 		self._rules_cache = {
 			name: Rule(self, name, create=False) for name in q.rules_dump()
 		}
+		if hasattr(self, "_worker_processes"):
+			for inpipe in self._worker_inputs:
+				inpipe.put(
+					zlib.compress(
+						self.pack(
+							(
+								"_upd_from_game_start",
+								(
+									None,
+									None,
+									None,
+									None,
+									(
+										self.snap_keyframe(),
+										self.eternal,
+										dict(self.function.iterplain()),
+										dict(self.method.iterplain()),
+										dict(self.trigger.iterplain()),
+										dict(self.prereq.iterplain()),
+										dict(self.action.iterplain()),
+									),
+								),
+							)
+						)
+					)
+				)
 
 	@world_locked
 	def load_at(self, branch: str, turn: int, tick: int) -> None:

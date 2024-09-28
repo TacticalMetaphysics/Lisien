@@ -36,7 +36,7 @@ from multiprocessing import Process, Pipe, Queue, ProcessError
 from concurrent.futures import ThreadPoolExecutor
 from queue import Empty
 from time import monotonic
-from typing import Hashable, Tuple, Optional
+from typing import Hashable, Tuple, Optional, Union
 
 from blinker import Signal
 import zlib
@@ -51,9 +51,7 @@ from .util import (
 	AbstractEngine,
 	MsgpackExtensionType,
 	AbstractCharacter,
-	BadTimeException,
 )
-from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
 from .node import NodeContent, UserMapping, Place, Thing
 from .portal import Portal
@@ -2887,18 +2885,20 @@ class EngineProxy(AbstractEngine):
 				yield thing.name
 
 
-def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
+def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
 	"""Loop to handle one command at a time and pipe results back"""
+	from .handle import EngineHandle
+
 	engine_handle = EngineHandle(*args, logq=logq, loglevel=loglevel, **kwargs)
 	compress = zlib.compress
 	decompress = zlib.decompress
 	pack = engine_handle.pack
 
 	while True:
-		inst = decompress(handle_out_pipe.recv_bytes())
+		inst = decompress(input_pipe.recv_bytes())
 		if inst == b"shutdown":
-			handle_out_pipe.close()
-			handle_in_pipe.close()
+			input_pipe.close()
+			output_pipe.close()
 			if logq:
 				logq.close()
 			return 0
@@ -2923,7 +2923,7 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 		except AssertionError:
 			raise
 		except Exception as e:
-			handle_in_pipe.send_bytes(
+			output_pipe.send_bytes(
 				compress(
 					engine_handle.pack(
 						(
@@ -2966,10 +2966,43 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 				resp += r
 		else:
 			resp += pack(r)
-		handle_in_pipe.send_bytes(compress(resp))
+		output_pipe.send_bytes(compress(resp))
 		if hasattr(engine_handle, "_after_ret"):
 			engine_handle._after_ret()
 			del engine_handle._after_ret
+
+
+def worker_subprocess(input_pipe, output_pipe, logq):
+	def log(level: Union[str, int], message: str) -> None:
+		if isinstance(level, str):
+			level = {
+				"debug": 10,
+				"info": 20,
+				"warning": 30,
+				"error": 40,
+				"critical": 50,
+			}[level.lower()]
+		if logq is not None:
+			logq.put((level, message))
+		else:
+			print(message)
+
+	eng = EngineProxy(output_pipe, input_pipe, log)
+	pack = eng.pack
+	unpack = eng.unpack
+	compress = zlib.compress
+	decompress = zlib.decompress
+	while True:
+		inst = decompress(input_pipe.recv_bytes())
+		if inst == b"shutdown":
+			input_pipe.close()
+			output_pipe.close()
+			if logq:
+				logq.close()
+			return 0
+		(method, args, kwargs) = unpack(inst)
+		ret = getattr(eng, method)(*args, **kwargs)
+		output_pipe.send_bytes(compress(pack(ret)))
 
 
 class RedundantProcessError(ProcessError):
@@ -3032,7 +3065,7 @@ class EngineProcessManager(object):
 			self.logger.addHandler(handler)
 		self._p = Process(
 			name="LiSE Life Simulator Engine (core)",
-			target=subprocess,
+			target=engine_subprocess,
 			args=(
 				args,
 				kwargs,
