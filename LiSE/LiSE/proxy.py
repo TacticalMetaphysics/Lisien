@@ -3080,7 +3080,8 @@ def worker_subprocess(prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue):
 			return 0
 		(uid, method, args, kwargs) = unpack(decompress(inst))
 		ret = getattr(eng, method)(*args, **kwargs)
-		out_pipe.send_bytes(compress(pack((uid, ret))))
+		if uid >= 0:
+			out_pipe.send_bytes(compress(pack((uid, ret))))
 
 
 class RedundantProcessError(ProcessError):
