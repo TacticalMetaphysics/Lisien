@@ -29,7 +29,7 @@ from types import MethodType
 from inspect import getsource
 from ast import parse, Expr, Module
 import json
-import importlib
+import importlib.util
 import sys, os
 
 from blinker import Signal
@@ -171,23 +171,10 @@ class FunctionStore(Signal):
 				"FunctionStore can only work with pure Python source code"
 			)
 		super().__init__()
-		self._filename = fullname = os.path.abspath(os.path.realpath(filename))
-		path, filename = os.path.split(fullname)
-		modname = filename[:-3]
-		if sys.path[0] != path:
-			if path in sys.path:
-				sys.path.remove(path)
-			sys.path.insert(0, path)
+		self._filename = os.path.abspath(os.path.realpath(filename))
 		try:
-			if modname in sys.modules:
-				self._module = sys.modules[modname]
-			else:
-				self._module = importlib.import_module(modname)
-			self._ast = parse(self._module.__loader__.get_data(fullname))
-			self._ast_idx = {}
-			for i, node in enumerate(self._ast.body):
-				self._ast_idx[node.name] = i
-		except (FileNotFoundError, ModuleNotFoundError):
+			self.reimport()
+		except (FileNotFoundError, ModuleNotFoundError) as ex:
 			self._module = None
 			self._ast = Module(body=[])
 			self._ast_idx = {}
@@ -241,13 +228,24 @@ class FunctionStore(Signal):
 			outf.write("# encoding: utf-8")
 			Unparser(self._ast, outf)
 		if reimport:
-			importlib.invalidate_caches()
-			path, filename = os.path.split(self._filename)
-			modname = filename[:-3]
-			if modname in sys.modules:
-				del sys.modules[modname]
-			self._module = importlib.import_module(filename[:-3])
+			self.reimport()
 		self._need_save = False
+
+	def reimport(self):
+		importlib.invalidate_caches()
+		path, filename = os.path.split(self._filename)
+		modname = filename[:-3]
+		if modname in sys.modules:
+			del sys.modules[modname]
+		modname = filename[:-3]
+		spec = importlib.util.spec_from_file_location(modname, self._filename)
+		self._module = importlib.util.module_from_spec(spec)
+		sys.modules[modname] = self._module
+		spec.loader.exec_module(self._module)
+		self._ast = parse(self._module.__loader__.get_data(self._filename))
+		self._ast_idx = {}
+		for i, node in enumerate(self._ast.body):
+			self._ast_idx[node.name] = i
 
 	def iterplain(self):
 		for name, idx in self._ast_idx.items():
