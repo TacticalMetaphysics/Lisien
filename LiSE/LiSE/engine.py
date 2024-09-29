@@ -438,6 +438,7 @@ class Engine(AbstractEngine, gORM):
 			initial_payload = zlib.compress(
 				self.pack(
 					(
+						-1,
 						"_upd_from_game_start",
 						(
 							None,
@@ -454,6 +455,7 @@ class Engine(AbstractEngine, gORM):
 								dict(self.action.iterplain()),
 							),
 						),
+						None,
 					)
 				)
 			)
