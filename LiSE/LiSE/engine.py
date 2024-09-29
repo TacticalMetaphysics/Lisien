@@ -343,7 +343,7 @@ class Engine(AbstractEngine, gORM):
 		cache_arranger: bool = False,
 		enforce_end_of_time: bool = True,
 		parallel_triggers: bool = True,
-		worker_processes: int = 0,
+		worker_processes: int = 4,
 	):
 		if logfun is None:
 			from logging import getLogger
@@ -1407,12 +1407,10 @@ class Engine(AbstractEngine, gORM):
 		if hasattr(self, "_worker_processes"):
 			for pipe in self._worker_inputs:
 				pipe.send(b"shutdown")
-			for proc, watcher, thread in zip(
+			for proc, watcher in zip(
 				self._worker_processes,
 				self._worker_out_watchers,
-				self._worker_log_threads,
 			):
-				thread.join()
 				watcher.join()
 				proc.join()
 		self._closed = True
