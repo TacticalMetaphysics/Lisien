@@ -454,7 +454,9 @@ class Engine(AbstractEngine, gORM):
 					target=worker_subprocess,
 					args=(prefix, inpipe, outpipe, logq),
 				)
-				watchthread = Thread(target=self._watch_pipe, args=(i,))
+				watchthread = Thread(
+					target=self._watch_pipe, args=(i,), daemon=True
+				)
 				wi.append(inpipe)
 				wo.append(outpipe)
 				wow.append(watchthread)
@@ -1407,11 +1409,7 @@ class Engine(AbstractEngine, gORM):
 		if hasattr(self, "_worker_processes"):
 			for pipe in self._worker_inputs:
 				pipe.send(b"shutdown")
-			for proc, watcher in zip(
-				self._worker_processes,
-				self._worker_out_watchers,
-			):
-				watcher.join()
+			for proc in self._worker_processes:
 				proc.join()
 		self._closed = True
 
