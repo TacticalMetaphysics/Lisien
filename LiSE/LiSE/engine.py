@@ -441,30 +441,7 @@ class Engine(AbstractEngine, gORM):
 			for store in self.stores:
 				store.save(reimport=False)
 
-			initial_payload = zlib.compress(
-				self.pack(
-					(
-						-1,
-						"_upd_from_game_start",
-						(
-							None,
-							None,
-							None,
-							None,
-							(
-								self.snap_keyframe(),
-								self.eternal,
-								dict(self.function.iterplain()),
-								dict(self.method.iterplain()),
-								dict(self.trigger.iterplain()),
-								dict(self.prereq.iterplain()),
-								dict(self.action.iterplain()),
-							),
-						),
-						{},
-					)
-				)
-			)
+			initial_payload = self._get_worker_kf_payload(-1)
 
 			self._worker_processes = wp = []
 			self._worker_inputs = wi = []
@@ -517,6 +494,33 @@ class Engine(AbstractEngine, gORM):
 				self.universal["rando_state"] = rando_state
 		if cache_arranger:
 			self._start_cache_arranger()
+
+	def _get_worker_kf_payload(self, uid: int = -1) -> bytes:
+		# I'm not using the uid at the moment, because this doesn't return anything
+		return zlib.compress(
+			self.pack(
+				(
+					uid,
+					"_upd_from_game_start",
+					(
+						None,
+						None,
+						None,
+						None,
+						(
+							self.snap_keyframe(),
+							self.eternal,
+							dict(self.function.iterplain()),
+							dict(self.method.iterplain()),
+							dict(self.trigger.iterplain()),
+							dict(self.prereq.iterplain()),
+							dict(self.action.iterplain()),
+						),
+					),
+					{},
+				)
+			)
+		)
 
 	def _listen_to_subproxy(self, uid: int, cb: callable) -> None:
 		def listener(sub_uid, ret):
@@ -1933,16 +1937,31 @@ class Engine(AbstractEngine, gORM):
 				return False
 			return entikey in vbranchesb[turn].entikeys
 
-		if hasattr(self, "_worker_processes") and self.turn > 1:
+		if hasattr(self, "_worker_processes") and self.turn > 0:
 			# Update the worker processes so their world state matches mine.
-			self._call_every_subproxy(
-				"_upd_caches",
-				None,
-				None,
-				None,
-				None,
-				(None, self._get_turn_delta(self.branch, self.turn - 1)),
-			)
+			if hasattr(self, "_last_updated_workers"):
+				branch_from, turn_from, tick_from = self._last_updated_workers
+				if branch_from == self.branch:
+					delt = self.get_delta(
+						branch, turn_from, tick_from, self.turn, self.tick
+					)
+					self._call_every_subproxy(
+						"_upd_caches",
+						None,
+						None,
+						None,
+						None,
+						(None, delt),
+					)
+				else:
+					payload = self._get_worker_kf_payload()
+					for pipe in self._worker_inputs:
+						pipe.send_bytes(payload)
+			else:
+				payload = self._get_worker_kf_payload()
+				for pipe in self._worker_inputs:
+					pipe.send_bytes(payload)
+			self._last_updated_workers = self._btt()
 			# Now we can evaluate trigger functions in the worker processes,
 			# in parallel.
 
