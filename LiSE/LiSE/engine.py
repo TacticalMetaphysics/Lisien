@@ -468,20 +468,21 @@ class Engine(AbstractEngine, gORM):
 			self._worker_returned_values = {}
 			self._top_uid = 0
 			for i in range(worker_processes):
-				inpipe, outpipe = Pipe()
+				inpipe_there, inpipe_here = Pipe(duplex=False)
+				outpipe_here, outpipe_there = Pipe(duplex=False)
 				logq = Queue()
 				logthread = Thread(
 					target=sync_log_forever, args=(logq,), daemon=True
 				)
 				proc = Process(
 					target=worker_subprocess,
-					args=(prefix, inpipe, outpipe, logq),
+					args=(prefix, inpipe_there, outpipe_there, logq),
 				)
 				watchthread = Thread(
 					target=self._watch_pipe, args=(i,), daemon=True
 				)
-				wi.append(inpipe)
-				wo.append(outpipe)
+				wi.append(inpipe_here)
+				wo.append(outpipe_here)
 				wow.append(watchthread)
 				wl.append(logq)
 				wlt.append(logthread)
@@ -489,7 +490,7 @@ class Engine(AbstractEngine, gORM):
 				logthread.start()
 				watchthread.start()
 				proc.start()
-				inpipe.send_bytes(initial_payload)
+				inpipe_here.send_bytes(initial_payload)
 		self._rules_iter = self._follow_rules()
 		self._rando = Random()
 		if "rando_state" in self.universal:
