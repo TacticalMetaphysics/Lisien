@@ -3008,6 +3008,7 @@ def worker_subprocess(prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue):
 	while True:
 		inst = in_pipe.recv_bytes()
 		if inst == b"shutdown":
+			out_pipe.send(b"done")
 			in_pipe.close()
 			out_pipe.close()
 			if logq:

@@ -549,6 +549,8 @@ class Engine(AbstractEngine, gORM):
 		subs = self._worker_subscribers
 		while True:
 			recvd = wout[i].recv_bytes()
+			if recvd == b"done":
+				return
 			ret = unpack(recvd)
 			for sub in subs[i]:
 				sub(*ret)
