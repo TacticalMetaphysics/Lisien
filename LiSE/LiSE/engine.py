@@ -1404,6 +1404,17 @@ class Engine(AbstractEngine, gORM):
 				del sys.modules[modname]
 		self.commit()
 		self.query.close()
+		if hasattr(self, "_worker_processes"):
+			for pipe in self._worker_inputs:
+				pipe.send(b"shutdown")
+			for proc, watcher, thread in zip(
+				self._worker_processes,
+				self._worker_out_watchers,
+				self._worker_log_threads,
+			):
+				thread.join()
+				watcher.join()
+				proc.join()
 		self._closed = True
 
 	def _snap_keyframe_from_delta(
