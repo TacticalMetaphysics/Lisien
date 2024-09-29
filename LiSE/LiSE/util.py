@@ -384,12 +384,24 @@ class AbstractEngine(ABC):
 				MsgpackExtensionType.graph.value,
 				packer(
 					[
-						graf.__class__.__name__,
+						"Graph",
 						graf._node,
 						graf._adj,
 						graf.graph,
 					]
 				),
+			),
+			nx.DiGraph: lambda graf: msgpack.ExtType(
+				MsgpackExtensionType.graph.value,
+				packer(["DiGraph", graf._node, graf._adj, graf.graph]),
+			),
+			nx.MultiGraph: lambda graf: msgpack.ExtType(
+				MsgpackExtensionType.graph.value,
+				packer(["MultiGraph", graf._node, graf._adj, graf.graph]),
+			),
+			nx.MultiDiGraph: lambda graf: msgpack.ExtType(
+				MsgpackExtensionType.graph.value,
+				packer(["MultiDiGraph", graf._node, graf._adj, graf.graph]),
 			),
 			self.char_cls: lambda char: msgpack.ExtType(
 				MsgpackExtensionType.character.value, packer(char.name)
