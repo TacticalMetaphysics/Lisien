@@ -972,9 +972,7 @@ class Engine(AbstractEngine, gORM):
 			if not isinstance(arg, int):
 				raise TypeError("turn and tick must be int")
 		if turn_from == turn_to:
-			return self._get_turn_delta(
-				branch, turn_to, tick_to, start_tick=tick_from
-			)
+			return self._get_turn_delta(branch, turn_to, tick_from, tick_to)
 		delta = super().get_delta(
 			branch, turn_from, tick_from, turn_to, tick_to
 		)
@@ -1126,8 +1124,8 @@ class Engine(AbstractEngine, gORM):
 		self,
 		branch: str = None,
 		turn: int = None,
-		tick: int = None,
-		start_tick=0,
+		tick_from=0,
+		tick_to: int = None,
 	) -> DeltaDict:
 		"""Get a dictionary of changes to the world within a given turn
 
@@ -1140,23 +1138,23 @@ class Engine(AbstractEngine, gORM):
 		:arg branch: branch of history, defaulting to the present branch
 		:arg turn: turn within the branch, defaulting to the present
 				   turn
-		:arg tick: tick at which to stop the delta, defaulting to the
+		:arg tick_from: tick at which to start the delta, default 0
+		:arg tick_to: tick at which to stop the delta, defaulting to the
 				   present tick if it's the present turn, or the end
 				   tick if it's any other turn
-		:arg start_tick: tick at which to start the delta, default 0
 
 		"""
 		branch = branch or self.branch
 		turn = turn or self.turn
-		if tick is None:
+		if tick_to is None:
 			if turn == self.turn:
-				tick = self.tick
+				tick_to = self.tick
 			else:
-				tick = self._turn_end[turn]
-		delta = super()._get_turn_delta(branch, turn, start_tick, tick)
-		if start_tick < tick:
+				tick_to = self._turn_end[turn]
+		delta = super()._get_turn_delta(branch, turn, tick_from, tick_to)
+		if tick_from < tick_to:
 			attribute = "settings"
-			tick += 1
+			tick_to += 1
 		else:
 			attribute = "presettings"
 		universals_settings = getattr(self._universal_cache, attribute)
@@ -1192,7 +1190,7 @@ class Engine(AbstractEngine, gORM):
 			and turn in universals_settings[branch]
 		):
 			for _, key, val in universals_settings[branch][turn][
-				start_tick:tick
+				tick_from:tick_to
 			]:
 				delta.setdefault("universal", {})[key] = val
 		if (
@@ -1200,7 +1198,7 @@ class Engine(AbstractEngine, gORM):
 			and turn in avatarness_settings[branch]
 		):
 			for chara, graph, node, is_av in avatarness_settings[branch][turn][
-				start_tick:tick
+				tick_from:tick_to
 			]:
 				chardelt = delta.setdefault(chara, {})
 				if chardelt is None:
@@ -1210,7 +1208,7 @@ class Engine(AbstractEngine, gORM):
 				] = is_av
 		if branch in things_settings and turn in things_settings[branch]:
 			for chara, thing, location in things_settings[branch][turn][
-				start_tick:tick
+				tick_from:tick_to
 			]:
 				if chara in delta and delta[chara] is None:
 					continue
@@ -1223,23 +1221,23 @@ class Engine(AbstractEngine, gORM):
 		delta["rulebooks"] = rbdif = {}
 		if branch in rulebooks_settings and turn in rulebooks_settings[branch]:
 			for _, rulebook, rules in rulebooks_settings[branch][turn][
-				start_tick:tick
+				tick_from:tick_to
 			]:
 				rbdif[rulebook] = rules
 		delta["rules"] = rdif = {}
 		if branch in triggers_settings and turn in triggers_settings[branch]:
 			for _, rule, funs in triggers_settings[branch][turn][
-				start_tick:tick
+				tick_from:tick_to
 			]:
 				rdif.setdefault(rule, {})["triggers"] = funs
 		if branch in prereqs_settings and turn in prereqs_settings[branch]:
 			for _, rule, funs in prereqs_settings[branch][turn][
-				start_tick:tick
+				tick_from:tick_to
 			]:
 				rdif.setdefault(rule, {})["prereqs"] = funs
 		if branch in actions_settings and turn in actions_settings[branch]:
 			for _, rule, funs in actions_settings[branch][turn][
-				start_tick:tick
+				tick_from:tick_to
 			]:
 				rdif.setdefault(rule, {})["actions"] = funs
 
@@ -1249,7 +1247,7 @@ class Engine(AbstractEngine, gORM):
 		):
 			for _, character, rulebook in character_rulebooks_settings[branch][
 				turn
-			][start_tick:tick]:
+			][tick_from:tick_to]:
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
@@ -1260,7 +1258,7 @@ class Engine(AbstractEngine, gORM):
 		):
 			for _, character, rulebook in avatar_rulebooks_settings[branch][
 				turn
-			][start_tick:tick]:
+			][tick_from:tick_to]:
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
@@ -1271,7 +1269,7 @@ class Engine(AbstractEngine, gORM):
 		):
 			for _, character, rulebook in character_thing_rulebooks_settings[
 				branch
-			][turn][start_tick:tick]:
+			][turn][tick_from:tick_to]:
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
@@ -1282,7 +1280,7 @@ class Engine(AbstractEngine, gORM):
 		):
 			for _, character, rulebook in character_place_rulebooks_settings[
 				branch
-			][turn][start_tick:tick]:
+			][turn][tick_from:tick_to]:
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
@@ -1293,7 +1291,7 @@ class Engine(AbstractEngine, gORM):
 		):
 			for _, character, rulebook in character_portal_rulebooks_settings[
 				branch
-			][turn][start_tick:tick]:
+			][turn][tick_from:tick_to]:
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
@@ -1305,7 +1303,7 @@ class Engine(AbstractEngine, gORM):
 		):
 			for character, node, rulebook in node_rulebooks_settings[branch][
 				turn
-			][start_tick:tick]:
+			][tick_from:tick_to]:
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
@@ -1318,7 +1316,7 @@ class Engine(AbstractEngine, gORM):
 		):
 			for character, orig, dest, rulebook in portal_rulebooks_settings[
 				branch
-			][turn][start_tick:tick]:
+			][turn][tick_from:tick_to]:
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
