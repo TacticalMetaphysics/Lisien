@@ -1141,15 +1141,18 @@ class Engine(AbstractEngine, gORM):
 		:arg turn: turn within the branch, defaulting to the present
 				   turn
 		:arg tick: tick at which to stop the delta, defaulting to the
-				   present tick
+				   present tick if it's the present turn, or the end
+				   tick if it's any other turn
 		:arg start_tick: tick at which to start the delta, default 0
 
 		"""
 		branch = branch or self.branch
 		turn = turn or self.turn
-		tick = tick or self.tick
-		if tick == start_tick:
-			return {}
+		if tick is None:
+			if turn == self.turn:
+				tick = self.tick
+			else:
+				tick = self._turn_end[turn]
 		delta = super()._get_turn_delta(branch, turn, start_tick, tick)
 		if start_tick < tick:
 			attribute = "settings"
