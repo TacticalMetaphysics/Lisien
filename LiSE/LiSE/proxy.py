@@ -2888,7 +2888,8 @@ class EngineProxy(AbstractEngine):
 		self._commit_lock.acquire()
 		self._commit_lock.release()
 		self.handle("close")
-		self.send_bytes(b"shutdown")
+		with self._handle_out_lock:
+			self._handle_out.send_bytes(b"shutdown")
 		self.closed = True
 
 	def _node_contents(self, character, node):
