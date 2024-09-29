@@ -94,6 +94,7 @@ def inittest(
 			shrub_places.remove(thing["location"])
 			assert thing["location"] not in shrub_places
 		whereto = thing.engine.choice(shrub_places)
+		thing["destination"] = whereto
 		thing.travel_to(whereto)
 
 	@shrubsprint.trigger
@@ -112,13 +113,10 @@ def inittest(
 
 	@shrubsprint.prereq
 	def not_traveling(thing):
-		if thing.next_location is not None:
-			thing.engine.info(
-				"kobold already travelling to {}".format(thing.next_location)
-			)
-			return False
-		else:
-			return True
+		return (
+			"destination" not in thing
+			or thing["destination"] == thing.location
+		)
 
 	@engine.method
 	def set_kill_flag(eng):
@@ -195,12 +193,14 @@ def inittest(
 
 	@wander.trigger
 	def standing_still(thing):
-		return thing.next_location is None
+		return (
+			"destination" not in thing
+			or thing["destination"] == thing.location
+		)
 
 
 if __name__ == "__main__":
 	from LiSE.engine import Engine
-	from os import remove
 
 	with Engine(random_seed=69105, clear=True) as engine:
 		inittest(engine, shrubberies=20, kobold_sprint_chance=0.9)
