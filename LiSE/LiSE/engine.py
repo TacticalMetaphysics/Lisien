@@ -28,7 +28,7 @@ from functools import partial
 from multiprocessing import Process, Pipe, Queue
 from collections import defaultdict
 from itertools import chain
-from threading import Thread
+from threading import Thread, Lock
 from time import sleep
 from types import FunctionType, ModuleType, MethodType
 from typing import Union, Tuple, Any, Set, List, Type, Optional
@@ -446,10 +446,10 @@ class Engine(AbstractEngine, gORM):
 			self._worker_processes = wp = []
 			self._worker_inputs = wi = []
 			self._worker_outputs = wo = []
+			self._worker_locks = wlk = []
 			self._worker_out_watchers = wow = []
 			self._worker_log_queues = wl = []
 			self._worker_log_threads = wlt = []
-			self._worker_subscribers = defaultdict(list)
 			self._worker_returned_values = {}
 			self._top_uid = 0
 			for i in range(worker_processes):
@@ -470,6 +470,7 @@ class Engine(AbstractEngine, gORM):
 				wo.append(outpipe_here)
 				wow.append(watchthread)
 				wl.append(logq)
+				wlk.append(Lock())
 				wlt.append(logthread)
 				wp.append(proc)
 				logthread.start()
@@ -523,23 +524,19 @@ class Engine(AbstractEngine, gORM):
 			)
 		)
 
-	def _listen_to_subproxy(self, uid: int, cb: callable) -> None:
-		i = uid % len(self._worker_processes)
-		self._worker_subscribers[i].append(cb)
-
 	def _store_returned_value(self, uid: int, ret: Any) -> None:
 		self._worker_returned_values[uid] = ret
 
 	def _call_a_subproxy(self, uid, method: str, *args, **kwargs):
 		argbytes = self.pack((uid, method, args, kwargs))
-		self._worker_inputs[uid % len(self._worker_inputs)].send_bytes(
-			zlib.compress(argbytes)
-		)
-		if uid >= 0:
-			self._listen_to_subproxy(uid, self._store_returned_value)
-			while uid not in self._worker_returned_values:
-				sleep(SUBPROXY_POLL_SLEEP_TIME)
-			return self._worker_returned_values.pop(uid)
+		print(f"uid {uid} calling method {method}")
+		i = uid % len(self._worker_inputs)
+		with self._worker_locks[i]:
+			self._worker_inputs[i].send_bytes(zlib.compress(argbytes))
+			print(f"waiting for uid {uid}, method {method}")
+			return self.unpack(
+				zlib.decompress(self._worker_outputs[i].recv_bytes())
+			)
 
 	def _call_any_subproxy(self, method: str, *args, **kwargs):
 		uid = self._top_uid = self._top_uid + 1
