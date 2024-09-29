@@ -539,9 +539,13 @@ class Engine(AbstractEngine, gORM):
 		return self._call_a_subproxy(uid, method, *args, **kwargs)
 
 	def _call_every_subproxy(self, method: str, *args, **kwargs):
+		ret = []
 		for _ in range(len(self._worker_processes)):
 			self._top_uid += 1
-			yield self._call_a_subproxy(self._top_uid, method, *args, **kwargs)
+			ret.append(
+				self._call_a_subproxy(self._top_uid, method, *args, **kwargs)
+			)
+		return ret
 
 	def _watch_pipe(self, i: int) -> None:
 		wout = self._worker_outputs
