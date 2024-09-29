@@ -435,6 +435,29 @@ class Engine(AbstractEngine, gORM):
 				while True:
 					self.log(*q.get())
 
+			initial_payload = zlib.compress(
+				self.pack(
+					(
+						"_upd_from_game_start",
+						(
+							None,
+							None,
+							None,
+							None,
+							(
+								self.snap_keyframe(),
+								self.eternal,
+								dict(self.function.iterplain()),
+								dict(self.method.iterplain()),
+								dict(self.trigger.iterplain()),
+								dict(self.prereq.iterplain()),
+								dict(self.action.iterplain()),
+							),
+						),
+					)
+				)
+			)
+
 			self._worker_processes = wp = []
 			self._worker_inputs = wi = []
 			self._worker_outputs = wo = []
@@ -466,6 +489,7 @@ class Engine(AbstractEngine, gORM):
 				logthread.start()
 				watchthread.start()
 				proc.start()
+				inpipe.send_bytes(initial_payload)
 		self._rules_iter = self._follow_rules()
 		self._rando = Random()
 		if "rando_state" in self.universal:
@@ -590,32 +614,6 @@ class Engine(AbstractEngine, gORM):
 		self._rules_cache = {
 			name: Rule(self, name, create=False) for name in q.rules_dump()
 		}
-		if hasattr(self, "_worker_processes"):
-			for inpipe in self._worker_inputs:
-				inpipe.send_bytes(
-					zlib.compress(
-						self.pack(
-							(
-								"_upd_from_game_start",
-								(
-									None,
-									None,
-									None,
-									None,
-									(
-										self.snap_keyframe(),
-										self.eternal,
-										dict(self.function.iterplain()),
-										dict(self.method.iterplain()),
-										dict(self.trigger.iterplain()),
-										dict(self.prereq.iterplain()),
-										dict(self.action.iterplain()),
-									),
-								),
-							)
-						)
-					)
-				)
 
 	@world_locked
 	def load_at(self, branch: str, turn: int, tick: int) -> None:
