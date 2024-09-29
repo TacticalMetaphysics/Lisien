@@ -342,7 +342,10 @@ class WindowDictSlice:
 				return
 			if slic.start is not None and slic.stop is not None:
 				if slic.stop == slic.start:
-					yield dic[slic.stop]
+					try:
+						yield dic[slic.stop]
+					except HistoricKeyError:
+						pass
 					return
 				past = dic._past
 				future = dic._future
