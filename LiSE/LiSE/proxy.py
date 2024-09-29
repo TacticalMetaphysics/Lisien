@@ -37,7 +37,7 @@ from multiprocessing import Process, Pipe, Queue, ProcessError
 from concurrent.futures import ThreadPoolExecutor
 from queue import Empty
 from time import monotonic
-from typing import Hashable, Tuple, Optional, Union
+from typing import Hashable, Tuple, Optional, Iterator
 
 from blinker import Signal
 import zlib
@@ -187,6 +187,36 @@ class ProxyUserMapping(UserMapping):
 				yield user
 
 
+class ProxyNeighborMapping(Mapping):
+	__slots__ = ("_node",)
+
+	def __init__(self, node: "NodeProxy") -> None:
+		self._node = node
+
+	def __iter__(self) -> Iterator[Key]:
+		seen = set()
+		for k in self._node.character.adj[self._node.name]:
+			yield k
+			seen.add(k)
+		for k in self._node.character.pred[self._node.name]:
+			if k not in seen:
+				yield k
+
+	def __len__(self) -> int:
+		return len(
+			self._node.character.adj[self._node.name].keys()
+			| self._node.character.pred[self._node.name].keys()
+		)
+
+	def __getitem__(self, item: Key) -> "NodeProxy":
+		if (
+			item in self._node.character.adj[self._node.name]
+			or item in self._node.character.pred[self._node.name]
+		):
+			return self._node.character.node[item]
+		raise KeyError("Not a neighbor")
+
+
 class NodeProxy(CachingEntityProxy):
 	rulebook = RulebookProxyDescriptor()
 
@@ -288,6 +318,13 @@ class NodeProxy(CachingEntityProxy):
 
 	def contents(self):
 		return self.content.values()
+
+	@property
+	def neighbor(self):
+		return ProxyNeighborMapping(self)
+
+	def neighbors(self):
+		return self.neighbor.values()
 
 	def add_thing(self, name, **kwargs):
 		return self.character.add_thing(name, self.name, **kwargs)
@@ -2485,10 +2522,12 @@ class EngineProxy(AbstractEngine):
 			self.string.load()
 			self._eternal_cache = self.handle("eternal_copy")
 			self._pull_kf_now()
-		for module in install_modules:
-			self.handle("install_module", module=module)
-		if do_game_start:
-			self.handle("do_game_start", cb=self._upd_caches)
+			for module in install_modules:
+				self.handle("install_module", module=module)
+			if do_game_start:
+				self.handle("do_game_start", cb=self._upd_caches)
+		else:
+			self.worker = True
 
 	def __getattr__(self, item):
 		return getattr(self.method, item)
@@ -2546,6 +2585,8 @@ class EngineProxy(AbstractEngine):
 		``handle``.`.
 
 		"""
+		if hasattr(self, "worker"):
+			return
 		if self.closed:
 			raise RedundantProcessError(f"Already closed: {id(self)}")
 		if "command" in kwargs:
