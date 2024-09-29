@@ -524,26 +524,22 @@ class Engine(AbstractEngine, gORM):
 		)
 
 	def _listen_to_subproxy(self, uid: int, cb: callable) -> None:
-		def listener(sub_uid, ret):
-			if sub_uid != uid:
-				return
-			cb(sub_uid, ret)
-
 		i = uid % len(self._worker_processes)
-		self._worker_subscribers[i].append(listener)
+		self._worker_subscribers[i].append(cb)
 
 	def _store_returned_value(self, uid: int, ret: Any) -> None:
 		self._worker_returned_values[uid] = ret
 
 	def _call_a_subproxy(self, uid, method: str, *args, **kwargs):
 		argbytes = self.pack((uid, method, args, kwargs))
-		self._listen_to_subproxy(uid, self._store_returned_value)
 		self._worker_inputs[uid % len(self._worker_inputs)].send_bytes(
 			zlib.compress(argbytes)
 		)
-		while uid not in self._worker_returned_values:
-			sleep(SUBPROXY_POLL_SLEEP_TIME)
-		return self._worker_returned_values.pop(uid)
+		if uid >= 0:
+			self._listen_to_subproxy(uid, self._store_returned_value)
+			while uid not in self._worker_returned_values:
+				sleep(SUBPROXY_POLL_SLEEP_TIME)
+			return self._worker_returned_values.pop(uid)
 
 	def _call_any_subproxy(self, method: str, *args, **kwargs):
 		uid = self._top_uid = self._top_uid + 1
@@ -567,9 +563,13 @@ class Engine(AbstractEngine, gORM):
 			recvd = wout[i].recv_bytes()
 			if recvd == b"done":
 				return
-			ret = unpack(decompress(recvd))
+			uid, ret = unpack(decompress(recvd))
+			if uid == -1:
+				# Generally happens when I've overwritten the worker's state
+				continue
 			for sub in subs[i]:
-				sub(*ret)
+				sub(uid, ret)
+			del subs[i]
 
 	def _start_cache_arranger(self) -> None:
 		for branch, (
