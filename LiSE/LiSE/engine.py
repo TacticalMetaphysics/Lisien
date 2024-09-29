@@ -1410,9 +1410,8 @@ class Engine(AbstractEngine, gORM):
 		self.commit()
 		self.query.close()
 		if hasattr(self, "_worker_processes"):
-			for pipe in self._worker_inputs:
+			for pipe, proc in zip(self._worker_inputs, self._worker_processes):
 				pipe.send_bytes(b"shutdown")
-			for proc in self._worker_processes:
 				proc.join()
 		self._closed = True
 
