@@ -2908,14 +2908,14 @@ def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
 	pack = engine_handle.pack
 
 	while True:
-		inst = decompress(input_pipe.recv_bytes())
+		inst = input_pipe.recv_bytes()
 		if inst == b"shutdown":
 			input_pipe.close()
 			output_pipe.close()
 			if logq:
 				logq.close()
 			return 0
-		instruction = engine_handle.unpack(inst)
+		instruction = engine_handle.unpack(decompress(inst))
 		if isinstance(instruction, dict) and "__use_msgspec__" in instruction:
 			import msgspec.msgpack
 

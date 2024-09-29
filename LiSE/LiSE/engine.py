@@ -343,7 +343,7 @@ class Engine(AbstractEngine, gORM):
 		cache_arranger: bool = False,
 		enforce_end_of_time: bool = True,
 		parallel_triggers: bool = True,
-		worker_processes: int = 4,
+		worker_processes: int = 1,
 	):
 		if logfun is None:
 			from logging import getLogger
