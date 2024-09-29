@@ -476,6 +476,7 @@ class Engine(AbstractEngine, gORM):
 				watchthread.start()
 				proc.start()
 				inpipe_here.send_bytes(initial_payload)
+			self._last_updated_workers = self._btt()
 		self._rules_iter = self._follow_rules()
 		self._rando = Random()
 		if "rando_state" in self.universal:
