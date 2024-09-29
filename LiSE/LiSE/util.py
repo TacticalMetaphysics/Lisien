@@ -75,6 +75,7 @@ class MsgpackExtensionType(Enum):
 	frozenset = 0x01
 	set = 0x02
 	exception = 0x03
+	graph = 0x04
 	character = 0x7F
 	place = 0x7E
 	thing = 0x7D
@@ -379,6 +380,17 @@ class AbstractEngine(ABC):
 		except ImportError:
 			pass
 		handlers = {
+			nx.Graph: lambda graf: msgpack.ExtType(
+				MsgpackExtensionType.graph.value,
+				packer(
+					[
+						graf.__class__.__name__,
+						graf._node,
+						graf._adj,
+						graf.graph,
+					]
+				),
+			),
 			self.char_cls: lambda char: msgpack.ExtType(
 				MsgpackExtensionType.character.value, packer(char.name)
 			),
@@ -509,6 +521,19 @@ class AbstractEngine(ABC):
 			"NotInKeyframeError": exc.NotInKeyframeError,
 		}
 
+		def unpack_graph(ext):
+			cls, node, adj, graph = unpacker(ext)
+			blank = {
+				"Graph": nx.Graph,
+				"DiGraph": nx.DiGraph,
+				"MultiGraph": nx.MultiGraph,
+				"MultiDiGraph": nx.MultiDiGraph,
+			}[cls]()
+			blank._node = node
+			blank._adj = adj
+			blank.graph = graph
+			return blank
+
 		def unpack_exception(ext):
 			data = unpacker(ext)
 			if data[0] not in excs:
@@ -562,6 +587,7 @@ class AbstractEngine(ABC):
 				return portal_cls(char, orign, destn)
 
 		handlers = {
+			MsgpackExtensionType.graph.value: unpack_graph,
 			MsgpackExtensionType.character.value: unpack_char,
 			MsgpackExtensionType.place.value: unpack_place,
 			MsgpackExtensionType.thing.value: unpack_thing,
