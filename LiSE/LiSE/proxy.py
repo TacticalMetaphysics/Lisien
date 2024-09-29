@@ -3089,7 +3089,6 @@ class EngineProcessManager(object):
 				loglevel,
 			),
 		)
-		self._p.daemon = True
 		self._p.start()
 		self._logthread = Thread(
 			target=self.sync_log_forever, name="log", daemon=True
