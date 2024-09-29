@@ -2532,6 +2532,9 @@ class EngineProxy(AbstractEngine):
 	def __getattr__(self, item):
 		return getattr(self.method, item)
 
+	def _reimport_triggers(self):
+		self.trigger.reimport()
+
 	def _eval_trigger(self, name, entity):
 		return getattr(self.trigger, name)(entity)
 
@@ -2831,6 +2834,9 @@ class EngineProxy(AbstractEngine):
 		self._char_cache[char] = character = CharacterProxy(self, char)
 		self._char_stat_cache[char] = attr
 		placedata = data.get("place", data.get("node", {}))
+		assert char not in self._character_places_cache
+		self._character_places_cache[char] = {}
+		assert char not in self._node_stat_cache
 		for place, stats in placedata.items():
 			assert place not in self._character_places_cache[char]
 			assert place not in self._node_stat_cache[char]

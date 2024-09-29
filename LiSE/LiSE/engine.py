@@ -47,7 +47,7 @@ from networkx import (
 )
 from blinker import Signal
 
-from .allegedb import ORM as gORM
+from .allegedb import ORM as gORM, KeyframeTuple
 from .allegedb import (
 	StatDict,
 	NodeValDict,
@@ -112,6 +112,9 @@ class NextTurn(Signal):
 
 	def __call__(self) -> Tuple[List, DeltaDict]:
 		engine = self.engine
+		if hasattr(engine, "_worker_processes"):
+			engine.trigger.save(reimport=False)
+			engine._call_every_subproxy("_reimport_triggers")
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._turns_completed[start_branch]
 		if start_turn < latest_turn:
@@ -435,6 +438,9 @@ class Engine(AbstractEngine, gORM):
 				while True:
 					self.log(*q.get())
 
+			for store in self.stores:
+				store.save(reimport=False)
+
 			initial_payload = zlib.compress(
 				self.pack(
 					(
@@ -550,12 +556,13 @@ class Engine(AbstractEngine, gORM):
 	def _watch_pipe(self, i: int) -> None:
 		wout = self._worker_outputs
 		unpack = self.unpack
+		decompress = zlib.decompress
 		subs = self._worker_subscribers
 		while True:
 			recvd = wout[i].recv_bytes()
 			if recvd == b"done":
 				return
-			ret = unpack(recvd)
+			ret = unpack(decompress(recvd))
 			for sub in subs[i]:
 				sub(*ret)
 
@@ -572,6 +579,16 @@ class Engine(AbstractEngine, gORM):
 				self.cache_arrange_queue.put((branch, turn_end, tick_end))
 		if not self._cache_arrange_thread.is_alive():
 			self._cache_arrange_thread.start()
+
+	def _init_graph(
+		self,
+		name: Key,
+		type_s="DiGraph",
+		data: Union[Graph, nx.Graph, dict, KeyframeTuple] = None,
+	) -> None:
+		super()._init_graph(name, type_s, data)
+		if hasattr(self, "_worker_processes"):
+			self._call_every_subproxy("add_character", name, data)
 
 	def _init_load(self) -> None:
 		from .rule import Rule
