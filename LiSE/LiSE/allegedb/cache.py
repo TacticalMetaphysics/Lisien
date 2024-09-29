@@ -1616,7 +1616,7 @@ class EdgesCache(Cache):
 					if trn in kfgb:
 						kfgbr = kfgb[trn]
 						if kfgbr.rev_gettable(tck):
-							if kfgbr[tick][0]:
+							if kfgbr[tck][0]:
 								added.add(orig)
 							continue
 					if kfgb.rev_gettable(trn):
