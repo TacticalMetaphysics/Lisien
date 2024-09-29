@@ -3006,14 +3006,14 @@ def worker_subprocess(prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue):
 	compress = zlib.compress
 	decompress = zlib.decompress
 	while True:
-		inst = decompress(in_pipe.recv_bytes())
+		inst = in_pipe.recv_bytes()
 		if inst == b"shutdown":
 			in_pipe.close()
 			out_pipe.close()
 			if logq:
 				logq.close()
 			return 0
-		(uid, method, args, kwargs) = unpack(inst)
+		(uid, method, args, kwargs) = unpack(decompress(inst))
 		ret = getattr(eng, method)(*args, **kwargs)
 		out_pipe.send_bytes(compress(pack((uid, ret))))
 
