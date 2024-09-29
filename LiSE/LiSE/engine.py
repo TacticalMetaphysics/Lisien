@@ -528,7 +528,7 @@ class Engine(AbstractEngine, gORM):
 		argbytes = self.pack((uid, method, args, kwargs))
 		self._listen_to_subproxy(uid, self._store_returned_value)
 		self._worker_inputs[uid % len(self._worker_inputs)].send_bytes(
-			argbytes
+			zlib.compress(argbytes)
 		)
 		while uid not in self._worker_returned_values:
 			sleep(SUBPROXY_POLL_SLEEP_TIME)
