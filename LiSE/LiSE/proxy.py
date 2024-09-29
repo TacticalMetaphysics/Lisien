@@ -25,6 +25,7 @@ call its ``start`` method with the same arguments you'd give a real
 
 """
 
+import os
 import sys
 import logging
 from abc import abstractmethod
@@ -52,7 +53,7 @@ from .util import (
 	MsgpackExtensionType,
 	AbstractCharacter,
 )
-from .xcollections import AbstractLanguageDescriptor
+from .xcollections import AbstractLanguageDescriptor, FunctionStore
 from .node import NodeContent, UserMapping, Place, Thing
 from .portal import Portal
 
@@ -2400,6 +2401,7 @@ class EngineProxy(AbstractEngine):
 		install_modules=(),
 		submit_func=None,
 		threads=None,
+		prefix=None,
 	):
 		self.closed = False
 		if submit_func:
@@ -2419,11 +2421,18 @@ class EngineProxy(AbstractEngine):
 		self.universal = GlobalVarProxy(self)
 		self.rulebook = AllRuleBooksProxy(self)
 		self.rule = AllRulesProxy(self)
-		self.method = FuncStoreProxy(self, "method")
-		self.action = FuncStoreProxy(self, "action")
-		self.prereq = FuncStoreProxy(self, "prereq")
-		self.trigger = FuncStoreProxy(self, "trigger")
-		self.function = FuncStoreProxy(self, "function")
+		if prefix is None:
+			self.method = FuncStoreProxy(self, "method")
+			self.action = FuncStoreProxy(self, "action")
+			self.prereq = FuncStoreProxy(self, "prereq")
+			self.trigger = FuncStoreProxy(self, "trigger")
+			self.function = FuncStoreProxy(self, "function")
+		else:
+			self.method = FunctionStore(os.path.join(prefix, "method.py"))
+			self.action = FunctionStore(os.path.join(prefix, "action.py"))
+			self.prereq = FunctionStore(os.path.join(prefix, "prereq.py"))
+			self.trigger = FunctionStore(os.path.join(prefix, "trigger.py"))
+			self.function = FunctionStore(os.path.join(prefix, "function.py"))
 		self.string = StringStoreProxy(self)
 		self.rando = RandoProxy(self)
 
@@ -2462,19 +2471,20 @@ class EngineProxy(AbstractEngine):
 		self._rule_obj_cache = {}
 		self._rulebook_obj_cache = {}
 		self._char_cache = {}
-		self.send_bytes(self.pack({"command": "get_btt"}))
-		received = self.unpack(self.recv_bytes())
-		self._branch, self._turn, self._tick = received[-1]
-		self.send_bytes(self.pack({"command": "branches"}))
-		self._branches = self.unpack(self.recv_bytes())[-1]
-		self.method.load()
-		self.action.load()
-		self.prereq.load()
-		self.trigger.load()
-		self.function.load()
-		self.string.load()
-		self._eternal_cache = self.handle("eternal_copy")
-		self._pull_kf_now()
+		if prefix is None:
+			self.send_bytes(self.pack({"command": "get_btt"}))
+			received = self.unpack(self.recv_bytes())
+			self._branch, self._turn, self._tick = received[-1]
+			self.send_bytes(self.pack({"command": "branches"}))
+			self._branches = self.unpack(self.recv_bytes())[-1]
+			self.method.load()
+			self.action.load()
+			self.prereq.load()
+			self.trigger.load()
+			self.function.load()
+			self.string.load()
+			self._eternal_cache = self.handle("eternal_copy")
+			self._pull_kf_now()
 		for module in install_modules:
 			self.handle("install_module", module=module)
 		if do_game_start:
@@ -2482,6 +2492,9 @@ class EngineProxy(AbstractEngine):
 
 	def __getattr__(self, item):
 		return getattr(self.method, item)
+
+	def _eval_trigger(self, name, entity):
+		return getattr(self.trigger, name)(entity)
 
 	def send_bytes(self, obj, blocking=True, timeout=-1):
 		compressed = zlib.compress(obj)
@@ -2972,7 +2985,7 @@ def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
 			del engine_handle._after_ret
 
 
-def worker_subprocess(input_pipe, output_pipe, logq):
+def worker_subprocess(prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue):
 	def log(level: Union[str, int], message: str) -> None:
 		if isinstance(level, str):
 			level = {
@@ -2987,22 +3000,22 @@ def worker_subprocess(input_pipe, output_pipe, logq):
 		else:
 			print(message)
 
-	eng = EngineProxy(output_pipe, input_pipe, log)
+	eng = EngineProxy(None, None, log, prefix=prefix)
 	pack = eng.pack
 	unpack = eng.unpack
 	compress = zlib.compress
 	decompress = zlib.decompress
 	while True:
-		inst = decompress(input_pipe.recv_bytes())
+		inst = decompress(in_pipe.recv_bytes())
 		if inst == b"shutdown":
-			input_pipe.close()
-			output_pipe.close()
+			in_pipe.close()
+			out_pipe.close()
 			if logq:
 				logq.close()
 			return 0
 		(uid, method, args, kwargs) = unpack(inst)
 		ret = getattr(eng, method)(*args, **kwargs)
-		output_pipe.send_bytes(compress(pack((uid, ret))))
+		out_pipe.send_bytes(compress(pack((uid, ret))))
 
 
 class RedundantProcessError(ProcessError):

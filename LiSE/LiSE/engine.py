@@ -29,6 +29,7 @@ from multiprocessing import Process, Pipe, Queue
 from collections import defaultdict
 from itertools import chain
 from threading import Thread
+from time import sleep
 from types import FunctionType, ModuleType, MethodType
 from typing import Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
@@ -75,6 +76,9 @@ from .node import Place, Thing
 from .portal import Portal
 from .query import QueryEngine
 from . import exc
+
+
+SUBPROXY_POLL_SLEEP_TIME = 0.001
 
 
 class InnerStopIteration(StopIteration):
@@ -434,23 +438,31 @@ class Engine(AbstractEngine, gORM):
 			self._worker_processes = wp = []
 			self._worker_inputs = wi = []
 			self._worker_outputs = wo = []
+			self._worker_out_watchers = wow = []
 			self._worker_log_queues = wl = []
 			self._worker_log_threads = wlt = []
-			for _ in range(worker_processes):
+			self._worker_subscribers = defaultdict(list)
+			self._worker_returned_values = {}
+			self._top_uid = 0
+			for i in range(worker_processes):
 				inpipe, outpipe = Pipe()
 				logq = Queue()
 				logthread = Thread(
 					target=sync_log_forever, args=(logq,), daemon=True
 				)
 				proc = Process(
-					target=worker_subprocess, args=(inpipe, outpipe, logq)
+					target=worker_subprocess,
+					args=(prefix, inpipe, outpipe, logq),
 				)
+				watchthread = Thread(target=self._watch_pipe, args=(i,))
 				wi.append(inpipe)
 				wo.append(outpipe)
+				wow.append(watchthread)
 				wl.append(logq)
 				wlt.append(logthread)
 				wp.append(proc)
 				logthread.start()
+				watchthread.start()
 				proc.start()
 		self._rules_iter = self._follow_rules()
 		self._rando = Random()
@@ -470,6 +482,47 @@ class Engine(AbstractEngine, gORM):
 				self.universal["rando_state"] = rando_state
 		if cache_arranger:
 			self._start_cache_arranger()
+
+	def _listen_to_subproxy(self, uid: int, cb: callable) -> None:
+		def listener(sub_uid, ret):
+			if sub_uid != uid:
+				return
+			cb(sub_uid, ret)
+
+		i = uid % len(self._worker_processes)
+		self._worker_subscribers[i].append(listener)
+
+	def _store_returned_value(self, uid: int, ret: Any) -> None:
+		self._worker_returned_values[uid] = ret
+
+	def _call_a_subproxy(self, uid, method: str, *args, **kwargs):
+		argbytes = self.pack((uid, method, args, kwargs))
+		self._listen_to_subproxy(uid, self._store_returned_value)
+		self._worker_inputs[uid % len(self._worker_inputs)].send_bytes(
+			argbytes
+		)
+		while uid not in self._worker_returned_values:
+			sleep(SUBPROXY_POLL_SLEEP_TIME)
+		return self._worker_returned_values.pop(uid)
+
+	def _call_any_subproxy(self, method: str, *args, **kwargs):
+		uid = self._top_uid = self._top_uid + 1
+		return self._call_a_subproxy(uid, method, *args, **kwargs)
+
+	def _call_every_subproxy(self, method: str, *args, **kwargs):
+		for _ in range(len(self._worker_processes)):
+			self._top_uid += 1
+			yield self._call_a_subproxy(self._top_uid, method, *args, **kwargs)
+
+	def _watch_pipe(self, i: int) -> None:
+		wout = self._worker_outputs
+		unpack = self.unpack
+		subs = self._worker_subscribers
+		while True:
+			recvd = wout[i].recv_bytes()
+			ret = unpack(recvd)
+			for sub in subs[i]:
+				sub(*ret)
 
 	def _start_cache_arranger(self) -> None:
 		for branch, (
@@ -537,7 +590,7 @@ class Engine(AbstractEngine, gORM):
 		}
 		if hasattr(self, "_worker_processes"):
 			for inpipe in self._worker_inputs:
-				inpipe.put(
+				inpipe.send_bytes(
 					zlib.compress(
 						self.pack(
 							(
@@ -1849,6 +1902,19 @@ class Engine(AbstractEngine, gORM):
 				return False
 			return entikey in vbranchesb[turn].entikeys
 
+		if hasattr(self, "_worker_processes") and self.turn > 1:
+			# Update the worker processes so their world state matches mine.
+			self._call_every_subproxy(
+				"_upd_caches",
+				None,
+				None,
+				None,
+				None,
+				(None, self._get_turn_delta(self.branch, self.turn - 1)),
+			)
+			# Now we can evaluate trigger functions in the worker processes,
+			# in parallel.
+
 		def check_triggers(
 			prio, rulebook, rule, handled_fun, entity, neighbors=None
 		):
@@ -1857,7 +1923,14 @@ class Engine(AbstractEngine, gORM):
 			):
 				return False
 			for trigger in rule.triggers:
-				res = trigger(entity)
+				if trigger.__name__ == "truth":
+					res = True
+				elif hasattr(self, "_worker_processes"):
+					res = self._call_any_subproxy(
+						"_eval_trigger", trigger.__name__, entity
+					)
+				else:
+					res = trigger(entity)
 				if res:
 					todo[prio, rulebook].append((rule, handled_fun, entity))
 					return True
