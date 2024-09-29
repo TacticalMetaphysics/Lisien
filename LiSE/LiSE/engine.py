@@ -476,7 +476,8 @@ class Engine(AbstractEngine, gORM):
 				logthread.start()
 				watchthread.start()
 				proc.start()
-				inpipe_here.send_bytes(initial_payload)
+				with wlk[-1]:
+					inpipe_here.send_bytes(initial_payload)
 			self._last_updated_workers = self._btt()
 		self._rules_iter = self._follow_rules()
 		self._rando = Random()
@@ -1434,9 +1435,19 @@ class Engine(AbstractEngine, gORM):
 		self.commit()
 		self.query.close()
 		if hasattr(self, "_worker_processes"):
-			for pipe, proc in zip(self._worker_inputs, self._worker_processes):
-				pipe.send_bytes(b"shutdown")
-				proc.join()
+			for lock, pipein, pipeout, proc in zip(
+				self._worker_locks,
+				self._worker_inputs,
+				self._worker_outputs,
+				self._worker_processes,
+			):
+				with lock:
+					pipein.send_bytes(b"shutdown")
+					recvd = pipeout.recv_bytes()
+					assert (
+						recvd == b"done"
+					), f"expected 'done', got {self.unpack(zlib.decompress(recvd))}"
+					proc.join()
 		self._closed = True
 
 	def _snap_keyframe_from_delta(
@@ -1953,12 +1964,16 @@ class Engine(AbstractEngine, gORM):
 					)
 				else:
 					payload = self._get_worker_kf_payload()
-					for pipe in self._worker_inputs:
-						pipe.send_bytes(payload)
+					for lock, pipe in zip(
+						self._worker_locks, self._worker_inputs
+					):
+						with lock:
+							pipe.send_bytes(payload)
 			else:
 				payload = self._get_worker_kf_payload()
-				for pipe in self._worker_inputs:
-					pipe.send_bytes(payload)
+				for lock, pipe in zip(self._worker_locks, self._worker_inputs):
+					with lock:
+						pipe.send_bytes(payload)
 			self._last_updated_workers = self._btt()
 			# Now we can evaluate trigger functions in the worker processes,
 			# in parallel.
