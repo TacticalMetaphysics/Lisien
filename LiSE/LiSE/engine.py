@@ -447,7 +447,6 @@ class Engine(AbstractEngine, gORM):
 			self._worker_inputs = wi = []
 			self._worker_outputs = wo = []
 			self._worker_locks = wlk = []
-			self._worker_out_watchers = wow = []
 			self._worker_log_queues = wl = []
 			self._worker_log_threads = wlt = []
 			self._worker_returned_values = {}
@@ -463,18 +462,13 @@ class Engine(AbstractEngine, gORM):
 					target=worker_subprocess,
 					args=(prefix, inpipe_there, outpipe_there, logq),
 				)
-				watchthread = Thread(
-					target=self._watch_pipe, args=(i,), daemon=True
-				)
 				wi.append(inpipe_here)
 				wo.append(outpipe_here)
-				wow.append(watchthread)
 				wl.append(logq)
 				wlk.append(Lock())
 				wlt.append(logthread)
 				wp.append(proc)
 				logthread.start()
-				watchthread.start()
 				proc.start()
 				with wlk[-1]:
 					inpipe_here.send_bytes(initial_payload)
@@ -551,23 +545,6 @@ class Engine(AbstractEngine, gORM):
 				self._call_a_subproxy(self._top_uid, method, *args, **kwargs)
 			)
 		return ret
-
-	def _watch_pipe(self, i: int) -> None:
-		wout = self._worker_outputs
-		unpack = self.unpack
-		decompress = zlib.decompress
-		subs = self._worker_subscribers
-		while True:
-			recvd = wout[i].recv_bytes()
-			if recvd == b"done":
-				return
-			uid, ret = unpack(decompress(recvd))
-			if uid == -1:
-				# Generally happens when I've overwritten the worker's state
-				continue
-			for sub in subs[i]:
-				sub(uid, ret)
-			del subs[i]
 
 	def _start_cache_arranger(self) -> None:
 		for branch, (
