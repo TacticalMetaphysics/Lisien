@@ -73,7 +73,11 @@ def install(
 	# be followed before mate is
 	@species.unit.rule
 	def dieoff(critter):
-		ret = "malaria" if critter["from_malaria"] else "anemia"
+		ret = (
+			"malaria"
+			if not (critter["sickle_a"] or critter["sickle_b"])
+			else "anemia"
+		)
 		critter.delete()
 		# assert (critter.name not in critter.character.node)
 		return ret
@@ -130,19 +134,13 @@ def install(
 
 	@dieoff.trigger
 	def sickle2(critter):
-		r = critter["sickle_a"] and critter["sickle_b"]
-		if r:
-			critter["from_malaria"] = False
-		return r
+		return critter["sickle_a"] and critter["sickle_b"]
 
 	@dieoff.trigger
 	def malaria(critter):
-		r = critter.engine.random() < critter.user.only.stat[
+		return critter.engine.random() < critter.user.only.stat[
 			"malaria_chance"
 		] and not (critter["sickle_a"] or critter["sickle_b"])
-		if r:
-			critter["from_malaria"] = True
-		return r
 
 	# it would make more sense to keep using species.avatar.rule, this
 	# is just a test
