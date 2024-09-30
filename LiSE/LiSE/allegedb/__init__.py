@@ -61,7 +61,7 @@ Graph = DiGraph  # until I implement other graph types...
 StatDict = Dict[Key, Any]
 NodeValDict = Dict[Key, StatDict]
 EdgeValDict = Dict[Key, Dict[Key, StatDict]]
-DeltaDict = Dict[Key, Union[StatDict, NodeValDict, EdgeValDict]]
+DeltaDict = Dict[Key, Union[StatDict, NodeValDict, EdgeValDict, None]]
 KeyframeTuple = Tuple[Key, str, int, int, NodeValDict, EdgeValDict, StatDict]
 
 
