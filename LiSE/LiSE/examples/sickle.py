@@ -148,12 +148,15 @@ def install(
 	def wander(critter):
 		dests = list(critter.character.place.keys())
 		dests.remove(critter["location"])
-		dest = critter.engine.choice(dests)
+		dest = critter["destination"] = critter.engine.choice(dests)
 		critter.travel_to(dest)
 
 	@wander.trigger
 	def not_travelling(critter):
-		return critter.next_location is None
+		return (
+			"destination" not in critter
+			or critter["destination"] == critter.location
+		)
 
 	@wander.prereq
 	def big_map(critter):

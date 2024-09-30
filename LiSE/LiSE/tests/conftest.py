@@ -55,13 +55,14 @@ def tempdir():
 		yield d
 
 
-@pytest.fixture(scope="function")
-def engy(tempdir):
+@pytest.fixture(scope="function", params=["parallel", "serial"])
+def engy(tempdir, request):
 	with Engine(
 		tempdir,
 		random_seed=69105,
 		enforce_end_of_time=False,
-		parallel_triggers=False,
+		parallel_triggers=request.param == "parallel",
+		worker_processes=2 if request.param == "parallel" else 0,
 	) as eng:
 		yield eng
 

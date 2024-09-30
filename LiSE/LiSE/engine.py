@@ -1585,7 +1585,7 @@ class Engine(AbstractEngine, gORM):
 			else:
 				locs = {}
 				conts = {}
-			if "node_val" in delt:
+			if delt is not None and "node_val" in delt:
 				for node, val in delt["node_val"].items():
 					if "location" in val:
 						locs[node] = loc = val["location"]
@@ -2549,7 +2549,8 @@ class Engine(AbstractEngine, gORM):
 		for thing in list(graph.thing):
 			del graph.thing[thing]
 		super().del_graph(name)
-		self._call_every_subproxy("del_graph", name)
+		if hasattr(self, "_worker_subprocesses"):
+			self._call_every_subproxy("del_graph", name)
 
 	def del_character(self, name: Key) -> None:
 		"""Remove the Character from the database entirely.
