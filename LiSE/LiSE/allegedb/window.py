@@ -88,14 +88,14 @@ def update_backward_window(
 ):
 	"""Iterate backward over time in ``branchd``, call ``updfun`` on the values"""
 	if turn_from in branchd:
-		for future_state in reversed(branchd[turn_from][:tick_from]):
+		for future_state in reversed(branchd[turn_from][: tick_from + 1]):
 			updfun(*future_state)
 	for midturn in range(turn_from - 1, turn_to, -1):
 		if midturn in branchd:
 			for future_state in reversed(branchd[midturn][:]):
 				updfun(*future_state)
 	if turn_to in branchd:
-		for future_state in reversed(branchd[turn_to][tick_to + 1 :]):
+		for future_state in reversed(branchd[turn_to][tick_to:]):
 			updfun(*future_state)
 
 
@@ -342,7 +342,10 @@ class WindowDictSlice:
 				return
 			if slic.start is not None and slic.stop is not None:
 				if slic.stop == slic.start:
-					yield dic[slic.stop]
+					try:
+						yield dic[slic.stop]
+					except HistoricKeyError:
+						pass
 					return
 				past = dic._past
 				future = dic._future

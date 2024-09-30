@@ -61,7 +61,7 @@ Graph = DiGraph  # until I implement other graph types...
 StatDict = Dict[Key, Any]
 NodeValDict = Dict[Key, StatDict]
 EdgeValDict = Dict[Key, Dict[Key, StatDict]]
-DeltaDict = Dict[Key, Union[StatDict, NodeValDict, EdgeValDict]]
+DeltaDict = Dict[Key, Union[StatDict, NodeValDict, EdgeValDict, None]]
 KeyframeTuple = Tuple[Key, str, int, int, NodeValDict, EdgeValDict, StatDict]
 
 
@@ -604,30 +604,31 @@ class ORM:
 			delta: DeltaDict, graph: Key, key: Key, val: Any
 		) -> None:
 			"""Change a delta to say that a graph stat was set to a certain value"""
-			delta.setdefault(graph, {})[key] = val
+			if (graphstat := delta.setdefault(graph, {})) is not None:
+				graphstat[key] = val
 
 		def setnode(
 			delta: DeltaDict, graph: Key, node: Key, exists: Optional[bool]
 		) -> None:
 			"""Change a delta to say that a node was created or deleted"""
-			delta.setdefault(graph, {}).setdefault("nodes", {})[node] = bool(
-				exists
-			)
+			if (graphstat := delta.setdefault(graph, {})) is not None:
+				graphstat.setdefault("nodes", {})[node] = bool(exists)
 
 		def setnodeval(
 			delta: DeltaDict, graph: Key, node: Key, key: Key, value: Any
 		) -> None:
 			"""Change a delta to say that a node stat was set to a certain value"""
-			if (
-				graph in delta
-				and "nodes" in delta[graph]
-				and node in delta[graph]["nodes"]
-				and not delta[graph]["nodes"][node]
-			):
-				return
-			delta.setdefault(graph, {}).setdefault("node_val", {}).setdefault(
-				node, {}
-			)[key] = value
+			if (graphstat := delta.setdefault(graph, {})) is not None:
+				if (
+					graph in delta
+					and "nodes" in delta[graph]
+					and node in delta[graph]["nodes"]
+					and not delta[graph]["nodes"][node]
+				):
+					return
+				graphstat.setdefault("node_val", {}).setdefault(node, {})[
+					key
+				] = value
 
 		def setedge(
 			delta: DeltaDict,
@@ -639,14 +640,15 @@ class ORM:
 			exists: Optional[bool],
 		) -> None:
 			"""Change a delta to say that an edge was created or deleted"""
-			if is_multigraph(graph):
-				delta.setdefault(graph, {}).setdefault("edges", {})[
-					orig, dest, idx
-				] = bool(exists)
-			else:
-				delta.setdefault(graph, {}).setdefault("edges", {})[
-					orig, dest
-				] = bool(exists)
+			if (graphstat := delta.setdefault(graph, {})) is not None:
+				if is_multigraph(graph):
+					graphstat.setdefault("edges", {})[orig, dest, idx] = bool(
+						exists
+					)
+				else:
+					graphstat.setdefault("edges", {})[orig, dest] = bool(
+						exists
+					)
 
 		def setedgeval(
 			delta: DeltaDict,
@@ -659,32 +661,31 @@ class ORM:
 			value: Any,
 		) -> None:
 			"""Change a delta to say that an edge stat was set to a certain value"""
-			if is_multigraph(graph):
-				if (
-					graph in delta
-					and "edges" in delta[graph]
-					and orig in delta[graph]["edges"]
-					and dest in delta[graph]["edges"][orig]
-					and idx in delta[graph]["edges"][orig][dest]
-					and not delta[graph]["edges"][orig][dest][idx]
-				):
-					return
-				delta.setdefault(graph, {}).setdefault(
-					"edge_val", {}
-				).setdefault(orig, {}).setdefault(dest, {}).setdefault(
-					idx, {}
-				)[key] = value
-			else:
-				if (
-					graph in delta
-					and "edges" in delta[graph]
-					and (orig, dest) in delta[graph]["edges"]
-					and not delta[graph]["edges"][orig, dest]
-				):
-					return
-				delta.setdefault(graph, {}).setdefault(
-					"edge_val", {}
-				).setdefault(orig, {}).setdefault(dest, {})[key] = value
+			if (graphstat := delta.setdefault(graph, {})) is not None:
+				if is_multigraph(graph):
+					if (
+						graph in delta
+						and "edges" in delta[graph]
+						and orig in delta[graph]["edges"]
+						and dest in delta[graph]["edges"][orig]
+						and idx in delta[graph]["edges"][orig][dest]
+						and not delta[graph]["edges"][orig][dest][idx]
+					):
+						return
+					graphstat.setdefault("edge_val", {}).setdefault(
+						orig, {}
+					).setdefault(dest, {}).setdefault(idx, {})[key] = value
+				else:
+					if (
+						graph in delta
+						and "edges" in delta[graph]
+						and (orig, dest) in delta[graph]["edges"]
+						and not delta[graph]["edges"][orig, dest]
+					):
+						return
+					graphstat.setdefault("edge_val", {}).setdefault(
+						orig, {}
+					).setdefault(dest, {})[key] = value
 
 		from functools import partial
 
@@ -1421,7 +1422,7 @@ class ORM:
 			# apply the delta to the keyframes, then save the keyframes back
 			# into the caches, and possibly copy them to another branch as well
 			deltg = delta.get(graph, {})
-			if "nodes" in deltg:
+			if deltg is not None and "nodes" in deltg:
 				dn = deltg.pop("nodes")
 				if graph in nodes_keyframe:
 					nkg = nodes_keyframe[graph]
@@ -1448,7 +1449,7 @@ class ORM:
 				for node, ex in nodes_keyframe[graph].items():
 					if ex and node not in nvkg:
 						nvkg[node] = {"name": node}
-			if "node_val" in deltg:
+			if deltg is not None and "node_val" in deltg:
 				dnv = deltg.pop("node_val")
 				if graph in node_val_keyframe:
 					nvg = node_val_keyframe[graph]
@@ -1470,7 +1471,7 @@ class ORM:
 			if graph in node_val_keyframe:
 				for node, val in node_val_keyframe[graph].items():
 					self._node_val_cache.set_keyframe((graph, node), *now, val)
-			if "edges" in deltg:
+			if deltg is not None and "edges" in deltg:
 				dge = deltg.pop("edges")
 				ekg = edges_keyframe.setdefault(graph, {})
 				evkg = edge_val_keyframe.setdefault(graph, {})
@@ -1497,7 +1498,7 @@ class ORM:
 						)
 						if ex and dest not in edge_val_keyframe[graph][orig]:
 							edge_val_keyframe[graph][orig][dest] = {}
-			if "edge_val" in deltg:
+			if deltg is not None and "edge_val" in deltg:
 				dgev = deltg.pop("edge_val")
 				if graph in edge_val_keyframe:
 					evkg = edge_val_keyframe[graph]

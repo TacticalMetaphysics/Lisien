@@ -25,13 +25,17 @@ import sys
 import os
 from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial
+from multiprocessing import Process, Pipe, Queue
 from collections import defaultdict
 from itertools import chain
+from threading import Thread, Lock
+from time import sleep
 from types import FunctionType, ModuleType, MethodType
 from typing import Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
 from abc import ABC, abstractmethod
 from random import Random
+import zlib
 
 import networkx as nx
 from networkx import (
@@ -43,7 +47,7 @@ from networkx import (
 )
 from blinker import Signal
 
-from .allegedb import ORM as gORM
+from .allegedb import ORM as gORM, KeyframeTuple
 from .allegedb import (
 	StatDict,
 	NodeValDict,
@@ -66,11 +70,15 @@ from .query import (
 	QueryResultEndTurn,
 	CombinedQueryResult,
 )
+from .proxy import worker_subprocess
 from .character import Character
 from .node import Place, Thing
 from .portal import Portal
 from .query import QueryEngine
 from . import exc
+
+
+SUBPROXY_POLL_SLEEP_TIME = 0.001
 
 
 class InnerStopIteration(StopIteration):
@@ -104,6 +112,9 @@ class NextTurn(Signal):
 
 	def __call__(self) -> Tuple[List, DeltaDict]:
 		engine = self.engine
+		if hasattr(engine, "_worker_processes"):
+			engine.trigger.save(reimport=False)
+			engine._call_every_subproxy("_reimport_triggers")
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._turns_completed[start_branch]
 		if start_turn < latest_turn:
@@ -287,6 +298,8 @@ class Engine(AbstractEngine, gORM):
 	:param parallel_triggers: Whether to evaluate trigger functions in threads.
 		This has performance benefits if you are using a free-threaded build of
 		Python (without a GIL). Default ``True``.
+	:param worker_processes: How many subprocesses to use as workers for
+	parallel processing. When ``0`` (the default), use only threads.
 
 	"""
 
@@ -333,6 +346,7 @@ class Engine(AbstractEngine, gORM):
 		cache_arranger: bool = False,
 		enforce_end_of_time: bool = True,
 		parallel_triggers: bool = True,
+		worker_processes: int = 0,
 	):
 		if logfun is None:
 			from logging import getLogger
@@ -418,6 +432,47 @@ class Engine(AbstractEngine, gORM):
 		self.flush_interval = flush_interval
 		if parallel_triggers:
 			self._trigger_pool = ThreadPoolExecutor()
+		if worker_processes > 0:
+
+			def sync_log_forever(q):
+				while True:
+					self.log(*q.get())
+
+			for store in self.stores:
+				store.save(reimport=False)
+
+			initial_payload = self._get_worker_kf_payload(-1)
+
+			self._worker_processes = wp = []
+			self._worker_inputs = wi = []
+			self._worker_outputs = wo = []
+			self._worker_locks = wlk = []
+			self._worker_log_queues = wl = []
+			self._worker_log_threads = wlt = []
+			self._worker_returned_values = {}
+			self._top_uid = 0
+			for i in range(worker_processes):
+				inpipe_there, inpipe_here = Pipe(duplex=False)
+				outpipe_here, outpipe_there = Pipe(duplex=False)
+				logq = Queue()
+				logthread = Thread(
+					target=sync_log_forever, args=(logq,), daemon=True
+				)
+				proc = Process(
+					target=worker_subprocess,
+					args=(prefix, inpipe_there, outpipe_there, logq),
+				)
+				wi.append(inpipe_here)
+				wo.append(outpipe_here)
+				wl.append(logq)
+				wlk.append(Lock())
+				wlt.append(logthread)
+				wp.append(proc)
+				logthread.start()
+				proc.start()
+				with wlk[-1]:
+					inpipe_here.send_bytes(initial_payload)
+			self._last_updated_workers = self._btt()
 		self._rules_iter = self._follow_rules()
 		self._rando = Random()
 		if "rando_state" in self.universal:
@@ -437,6 +492,60 @@ class Engine(AbstractEngine, gORM):
 		if cache_arranger:
 			self._start_cache_arranger()
 
+	def _get_worker_kf_payload(self, uid: int = -1) -> bytes:
+		# I'm not using the uid at the moment, because this doesn't return anything
+		return zlib.compress(
+			self.pack(
+				(
+					uid,
+					"_upd_from_game_start",
+					(
+						None,
+						None,
+						None,
+						None,
+						(
+							self.snap_keyframe(),
+							self.eternal,
+							dict(self.function.iterplain()),
+							dict(self.method.iterplain()),
+							dict(self.trigger.iterplain()),
+							dict(self.prereq.iterplain()),
+							dict(self.action.iterplain()),
+						),
+					),
+					{},
+				)
+			)
+		)
+
+	def _store_returned_value(self, uid: int, ret: Any) -> None:
+		self._worker_returned_values[uid] = ret
+
+	def _call_a_subproxy(self, uid, method: str, *args, **kwargs):
+		argbytes = self.pack((uid, method, args, kwargs))
+		i = uid % len(self._worker_inputs)
+		with self._worker_locks[i]:
+			self._worker_inputs[i].send_bytes(zlib.compress(argbytes))
+			got_uid, ret = self.unpack(
+				zlib.decompress(self._worker_outputs[i].recv_bytes())
+			)
+			assert got_uid == uid
+			return ret
+
+	def _call_any_subproxy(self, method: str, *args, **kwargs):
+		uid = self._top_uid = self._top_uid + 1
+		return self._call_a_subproxy(uid, method, *args, **kwargs)
+
+	def _call_every_subproxy(self, method: str, *args, **kwargs):
+		ret = []
+		for _ in range(len(self._worker_processes)):
+			ret.append(
+				self._call_a_subproxy(self._top_uid, method, *args, **kwargs)
+			)
+			self._top_uid += 1
+		return ret
+
 	def _start_cache_arranger(self) -> None:
 		for branch, (
 			parent,
@@ -450,6 +559,16 @@ class Engine(AbstractEngine, gORM):
 				self.cache_arrange_queue.put((branch, turn_end, tick_end))
 		if not self._cache_arrange_thread.is_alive():
 			self._cache_arrange_thread.start()
+
+	def _init_graph(
+		self,
+		name: Key,
+		type_s="DiGraph",
+		data: Union[Graph, nx.Graph, dict, KeyframeTuple] = None,
+	) -> None:
+		super()._init_graph(name, type_s, data)
+		if hasattr(self, "_worker_processes"):
+			self._call_every_subproxy("add_character", name, data)
 
 	def _init_load(self) -> None:
 		from .rule import Rule
@@ -833,9 +952,7 @@ class Engine(AbstractEngine, gORM):
 			if not isinstance(arg, int):
 				raise TypeError("turn and tick must be int")
 		if turn_from == turn_to:
-			return self._get_turn_delta(
-				branch, turn_to, tick_to, start_tick=tick_from
-			)
+			return self._get_turn_delta(branch, turn_to, tick_from, tick_to)
 		delta = super().get_delta(
 			branch, turn_from, tick_from, turn_to, tick_to
 		)
@@ -987,8 +1104,8 @@ class Engine(AbstractEngine, gORM):
 		self,
 		branch: str = None,
 		turn: int = None,
-		tick: int = None,
-		start_tick=0,
+		tick_from=0,
+		tick_to: int = None,
 	) -> DeltaDict:
 		"""Get a dictionary of changes to the world within a given turn
 
@@ -1001,20 +1118,23 @@ class Engine(AbstractEngine, gORM):
 		:arg branch: branch of history, defaulting to the present branch
 		:arg turn: turn within the branch, defaulting to the present
 				   turn
-		:arg tick: tick at which to stop the delta, defaulting to the
-				   present tick
-		:arg start_tick: tick at which to start the delta, default 0
+		:arg tick_from: tick at which to start the delta, default 0
+		:arg tick_to: tick at which to stop the delta, defaulting to the
+				   present tick if it's the present turn, or the end
+				   tick if it's any other turn
 
 		"""
 		branch = branch or self.branch
 		turn = turn or self.turn
-		tick = tick or self.tick
-		if tick == start_tick:
-			return {}
-		delta = super()._get_turn_delta(branch, turn, start_tick, tick)
-		if start_tick < tick:
+		if tick_to is None:
+			if turn == self.turn:
+				tick_to = self.tick
+			else:
+				tick_to = self._turn_end[turn]
+		delta = super()._get_turn_delta(branch, turn, tick_from, tick_to)
+		if tick_from < tick_to:
 			attribute = "settings"
-			tick += 1
+			tick_to += 1
 		else:
 			attribute = "presettings"
 		universals_settings = getattr(self._universal_cache, attribute)
@@ -1050,7 +1170,7 @@ class Engine(AbstractEngine, gORM):
 			and turn in universals_settings[branch]
 		):
 			for _, key, val in universals_settings[branch][turn][
-				start_tick:tick
+				tick_from:tick_to
 			]:
 				delta.setdefault("universal", {})[key] = val
 		if (
@@ -1058,7 +1178,7 @@ class Engine(AbstractEngine, gORM):
 			and turn in avatarness_settings[branch]
 		):
 			for chara, graph, node, is_av in avatarness_settings[branch][turn][
-				start_tick:tick
+				tick_from:tick_to
 			]:
 				chardelt = delta.setdefault(chara, {})
 				if chardelt is None:
@@ -1068,7 +1188,7 @@ class Engine(AbstractEngine, gORM):
 				] = is_av
 		if branch in things_settings and turn in things_settings[branch]:
 			for chara, thing, location in things_settings[branch][turn][
-				start_tick:tick
+				tick_from:tick_to
 			]:
 				if chara in delta and delta[chara] is None:
 					continue
@@ -1081,23 +1201,23 @@ class Engine(AbstractEngine, gORM):
 		delta["rulebooks"] = rbdif = {}
 		if branch in rulebooks_settings and turn in rulebooks_settings[branch]:
 			for _, rulebook, rules in rulebooks_settings[branch][turn][
-				start_tick:tick
+				tick_from:tick_to
 			]:
 				rbdif[rulebook] = rules
 		delta["rules"] = rdif = {}
 		if branch in triggers_settings and turn in triggers_settings[branch]:
 			for _, rule, funs in triggers_settings[branch][turn][
-				start_tick:tick
+				tick_from:tick_to
 			]:
 				rdif.setdefault(rule, {})["triggers"] = funs
 		if branch in prereqs_settings and turn in prereqs_settings[branch]:
 			for _, rule, funs in prereqs_settings[branch][turn][
-				start_tick:tick
+				tick_from:tick_to
 			]:
 				rdif.setdefault(rule, {})["prereqs"] = funs
 		if branch in actions_settings and turn in actions_settings[branch]:
 			for _, rule, funs in actions_settings[branch][turn][
-				start_tick:tick
+				tick_from:tick_to
 			]:
 				rdif.setdefault(rule, {})["actions"] = funs
 
@@ -1107,7 +1227,7 @@ class Engine(AbstractEngine, gORM):
 		):
 			for _, character, rulebook in character_rulebooks_settings[branch][
 				turn
-			][start_tick:tick]:
+			][tick_from:tick_to]:
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
@@ -1118,7 +1238,7 @@ class Engine(AbstractEngine, gORM):
 		):
 			for _, character, rulebook in avatar_rulebooks_settings[branch][
 				turn
-			][start_tick:tick]:
+			][tick_from:tick_to]:
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
@@ -1129,7 +1249,7 @@ class Engine(AbstractEngine, gORM):
 		):
 			for _, character, rulebook in character_thing_rulebooks_settings[
 				branch
-			][turn][start_tick:tick]:
+			][turn][tick_from:tick_to]:
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
@@ -1140,7 +1260,7 @@ class Engine(AbstractEngine, gORM):
 		):
 			for _, character, rulebook in character_place_rulebooks_settings[
 				branch
-			][turn][start_tick:tick]:
+			][turn][tick_from:tick_to]:
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
@@ -1151,7 +1271,7 @@ class Engine(AbstractEngine, gORM):
 		):
 			for _, character, rulebook in character_portal_rulebooks_settings[
 				branch
-			][turn][start_tick:tick]:
+			][turn][tick_from:tick_to]:
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
@@ -1163,7 +1283,7 @@ class Engine(AbstractEngine, gORM):
 		):
 			for character, node, rulebook in node_rulebooks_settings[branch][
 				turn
-			][start_tick:tick]:
+			][tick_from:tick_to]:
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
@@ -1176,7 +1296,7 @@ class Engine(AbstractEngine, gORM):
 		):
 			for character, orig, dest, rulebook in portal_rulebooks_settings[
 				branch
-			][turn][start_tick:tick]:
+			][turn][tick_from:tick_to]:
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
@@ -1291,6 +1411,20 @@ class Engine(AbstractEngine, gORM):
 				del sys.modules[modname]
 		self.commit()
 		self.query.close()
+		if hasattr(self, "_worker_processes"):
+			for lock, pipein, pipeout, proc in zip(
+				self._worker_locks,
+				self._worker_inputs,
+				self._worker_outputs,
+				self._worker_processes,
+			):
+				with lock:
+					pipein.send_bytes(b"shutdown")
+					recvd = pipeout.recv_bytes()
+					assert (
+						recvd == b"done"
+					), f"expected 'done', got {self.unpack(zlib.decompress(recvd))}"
+					proc.join()
 		self._closed = True
 
 	def _snap_keyframe_from_delta(
@@ -1451,7 +1585,7 @@ class Engine(AbstractEngine, gORM):
 			else:
 				locs = {}
 				conts = {}
-			if "node_val" in delt:
+			if delt is not None and "node_val" in delt:
 				for node, val in delt["node_val"].items():
 					if "location" in val:
 						locs[node] = loc = val["location"]
@@ -1789,6 +1923,38 @@ class Engine(AbstractEngine, gORM):
 				return False
 			return entikey in vbranchesb[turn].entikeys
 
+		if hasattr(self, "_worker_processes") and self.turn > 0:
+			# Update the worker processes so their world state matches mine.
+			if hasattr(self, "_last_updated_workers"):
+				branch_from, turn_from, tick_from = self._last_updated_workers
+				if branch_from == self.branch:
+					delt = self.get_delta(
+						branch, turn_from, tick_from, self.turn, self.tick
+					)
+					self._call_every_subproxy(
+						"_upd_caches",
+						None,
+						None,
+						None,
+						None,
+						(None, delt),
+					)
+				else:
+					payload = self._get_worker_kf_payload()
+					for lock, pipe in zip(
+						self._worker_locks, self._worker_inputs
+					):
+						with lock:
+							pipe.send_bytes(payload)
+			else:
+				payload = self._get_worker_kf_payload()
+				for lock, pipe in zip(self._worker_locks, self._worker_inputs):
+					with lock:
+						pipe.send_bytes(payload)
+			self._last_updated_workers = self._btt()
+			# Now we can evaluate trigger functions in the worker processes,
+			# in parallel.
+
 		def check_triggers(
 			prio, rulebook, rule, handled_fun, entity, neighbors=None
 		):
@@ -1797,7 +1963,18 @@ class Engine(AbstractEngine, gORM):
 			):
 				return False
 			for trigger in rule.triggers:
-				res = trigger(entity)
+				if trigger.__name__ == "truth":
+					res = True
+				elif hasattr(self, "_worker_processes"):
+					res = self._call_any_subproxy(
+						"_eval_trigger", trigger.__name__, entity
+					)
+					realres = trigger(entity)
+					assert (
+						res == realres
+					), f"{trigger} returned {res} from subproxy, but should have returned {realres}"
+				else:
+					res = trigger(entity)
 				if res:
 					todo[prio, rulebook].append((rule, handled_fun, entity))
 					return True
@@ -2372,6 +2549,8 @@ class Engine(AbstractEngine, gORM):
 		for thing in list(graph.thing):
 			del graph.thing[thing]
 		super().del_graph(name)
+		if hasattr(self, "_worker_subprocesses"):
+			self._call_every_subproxy("del_graph", name)
 
 	def del_character(self, name: Key) -> None:
 		"""Remove the Character from the database entirely.

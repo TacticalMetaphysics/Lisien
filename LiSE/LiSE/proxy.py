@@ -25,6 +25,7 @@ call its ``start`` method with the same arguments you'd give a real
 
 """
 
+import os
 import sys
 import logging
 from abc import abstractmethod
@@ -36,7 +37,7 @@ from multiprocessing import Process, Pipe, Queue, ProcessError
 from concurrent.futures import ThreadPoolExecutor
 from queue import Empty
 from time import monotonic
-from typing import Hashable, Tuple, Optional
+from typing import Hashable, Tuple, Optional, Iterator
 
 from blinker import Signal
 import zlib
@@ -51,10 +52,8 @@ from .util import (
 	AbstractEngine,
 	MsgpackExtensionType,
 	AbstractCharacter,
-	BadTimeException,
 )
-from .handle import EngineHandle
-from .xcollections import AbstractLanguageDescriptor
+from .xcollections import AbstractLanguageDescriptor, FunctionStore
 from .node import NodeContent, UserMapping, Place, Thing
 from .portal import Portal
 
@@ -188,6 +187,36 @@ class ProxyUserMapping(UserMapping):
 				yield user
 
 
+class ProxyNeighborMapping(Mapping):
+	__slots__ = ("_node",)
+
+	def __init__(self, node: "NodeProxy") -> None:
+		self._node = node
+
+	def __iter__(self) -> Iterator[Key]:
+		seen = set()
+		for k in self._node.character.adj[self._node.name]:
+			yield k
+			seen.add(k)
+		for k in self._node.character.pred[self._node.name]:
+			if k not in seen:
+				yield k
+
+	def __len__(self) -> int:
+		return len(
+			self._node.character.adj[self._node.name].keys()
+			| self._node.character.pred[self._node.name].keys()
+		)
+
+	def __getitem__(self, item: Key) -> "NodeProxy":
+		if (
+			item in self._node.character.adj[self._node.name]
+			or item in self._node.character.pred[self._node.name]
+		):
+			return self._node.character.node[item]
+		raise KeyError("Not a neighbor")
+
+
 class NodeProxy(CachingEntityProxy):
 	rulebook = RulebookProxyDescriptor()
 
@@ -289,6 +318,13 @@ class NodeProxy(CachingEntityProxy):
 
 	def contents(self):
 		return self.content.values()
+
+	@property
+	def neighbor(self):
+		return ProxyNeighborMapping(self)
+
+	def neighbors(self):
+		return self.neighbor.values()
 
 	def add_thing(self, name, **kwargs):
 		return self.character.add_thing(name, self.name, **kwargs)
@@ -2402,6 +2438,7 @@ class EngineProxy(AbstractEngine):
 		install_modules=(),
 		submit_func=None,
 		threads=None,
+		prefix=None,
 	):
 		self.closed = False
 		if submit_func:
@@ -2421,11 +2458,18 @@ class EngineProxy(AbstractEngine):
 		self.universal = GlobalVarProxy(self)
 		self.rulebook = AllRuleBooksProxy(self)
 		self.rule = AllRulesProxy(self)
-		self.method = FuncStoreProxy(self, "method")
-		self.action = FuncStoreProxy(self, "action")
-		self.prereq = FuncStoreProxy(self, "prereq")
-		self.trigger = FuncStoreProxy(self, "trigger")
-		self.function = FuncStoreProxy(self, "function")
+		if prefix is None:
+			self.method = FuncStoreProxy(self, "method")
+			self.action = FuncStoreProxy(self, "action")
+			self.prereq = FuncStoreProxy(self, "prereq")
+			self.trigger = FuncStoreProxy(self, "trigger")
+			self.function = FuncStoreProxy(self, "function")
+		else:
+			self.method = FunctionStore(os.path.join(prefix, "method.py"))
+			self.action = FunctionStore(os.path.join(prefix, "action.py"))
+			self.prereq = FunctionStore(os.path.join(prefix, "prereq.py"))
+			self.trigger = FunctionStore(os.path.join(prefix, "trigger.py"))
+			self.function = FunctionStore(os.path.join(prefix, "function.py"))
 		self.string = StringStoreProxy(self)
 		self.rando = RandoProxy(self)
 
@@ -2464,26 +2508,35 @@ class EngineProxy(AbstractEngine):
 		self._rule_obj_cache = {}
 		self._rulebook_obj_cache = {}
 		self._char_cache = {}
-		self.send_bytes(self.pack({"command": "get_btt"}))
-		received = self.unpack(self.recv_bytes())
-		self._branch, self._turn, self._tick = received[-1]
-		self.send_bytes(self.pack({"command": "branches"}))
-		self._branches = self.unpack(self.recv_bytes())[-1]
-		self.method.load()
-		self.action.load()
-		self.prereq.load()
-		self.trigger.load()
-		self.function.load()
-		self.string.load()
-		self._eternal_cache = self.handle("eternal_copy")
-		self._pull_kf_now()
-		for module in install_modules:
-			self.handle("install_module", module=module)
-		if do_game_start:
-			self.handle("do_game_start", cb=self._upd_caches)
+		if prefix is None:
+			self.send_bytes(self.pack({"command": "get_btt"}))
+			received = self.unpack(self.recv_bytes())
+			self._branch, self._turn, self._tick = received[-1]
+			self.send_bytes(self.pack({"command": "branches"}))
+			self._branches = self.unpack(self.recv_bytes())[-1]
+			self.method.load()
+			self.action.load()
+			self.prereq.load()
+			self.trigger.load()
+			self.function.load()
+			self.string.load()
+			self._eternal_cache = self.handle("eternal_copy")
+			self._pull_kf_now()
+			for module in install_modules:
+				self.handle("install_module", module=module)
+			if do_game_start:
+				self.handle("do_game_start", cb=self._upd_caches)
+		else:
+			self.worker = True
 
 	def __getattr__(self, item):
 		return getattr(self.method, item)
+
+	def _reimport_triggers(self):
+		self.trigger.reimport()
+
+	def _eval_trigger(self, name, entity):
+		return getattr(self.trigger, name)(entity)
 
 	def send_bytes(self, obj, blocking=True, timeout=-1):
 		compressed = zlib.compress(obj)
@@ -2535,6 +2588,8 @@ class EngineProxy(AbstractEngine):
 		``handle``.`.
 
 		"""
+		if hasattr(self, "worker"):
+			return
 		if self.closed:
 			raise RedundantProcessError(f"Already closed: {id(self)}")
 		if "command" in kwargs:
@@ -2779,6 +2834,9 @@ class EngineProxy(AbstractEngine):
 		self._char_cache[char] = character = CharacterProxy(self, char)
 		self._char_stat_cache[char] = attr
 		placedata = data.get("place", data.get("node", {}))
+		assert char not in self._character_places_cache
+		self._character_places_cache[char] = {}
+		assert char not in self._node_stat_cache
 		for place, stats in placedata.items():
 			assert place not in self._character_places_cache[char]
 			assert place not in self._node_stat_cache[char]
@@ -2877,7 +2935,8 @@ class EngineProxy(AbstractEngine):
 		self._commit_lock.acquire()
 		self._commit_lock.release()
 		self.handle("close")
-		self.send_bytes(b"shutdown")
+		with self._handle_out_lock:
+			self._handle_out.send_bytes(b"shutdown")
 		self.closed = True
 
 	def _node_contents(self, character, node):
@@ -2887,22 +2946,24 @@ class EngineProxy(AbstractEngine):
 				yield thing.name
 
 
-def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
+def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
 	"""Loop to handle one command at a time and pipe results back"""
+	from .handle import EngineHandle
+
 	engine_handle = EngineHandle(*args, logq=logq, loglevel=loglevel, **kwargs)
 	compress = zlib.compress
 	decompress = zlib.decompress
 	pack = engine_handle.pack
 
 	while True:
-		inst = decompress(handle_out_pipe.recv_bytes())
+		inst = input_pipe.recv_bytes()
 		if inst == b"shutdown":
-			handle_out_pipe.close()
-			handle_in_pipe.close()
+			input_pipe.close()
+			output_pipe.close()
 			if logq:
 				logq.close()
 			return 0
-		instruction = engine_handle.unpack(inst)
+		instruction = engine_handle.unpack(decompress(inst))
 		if isinstance(instruction, dict) and "__use_msgspec__" in instruction:
 			import msgspec.msgpack
 
@@ -2923,7 +2984,7 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 		except AssertionError:
 			raise
 		except Exception as e:
-			handle_in_pipe.send_bytes(
+			output_pipe.send_bytes(
 				compress(
 					engine_handle.pack(
 						(
@@ -2966,10 +3027,64 @@ def subprocess(args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel):
 				resp += r
 		else:
 			resp += pack(r)
-		handle_in_pipe.send_bytes(compress(resp))
+		output_pipe.send_bytes(compress(resp))
 		if hasattr(engine_handle, "_after_ret"):
 			engine_handle._after_ret()
 			del engine_handle._after_ret
+
+
+class WorkerLogger:
+	def __init__(self, logq):
+		self._logq = logq
+
+	def debug(self, msg):
+		if not self._logq:
+			print(msg)
+		self._logq.put((10, msg))
+
+	def info(self, msg):
+		if not self._logq:
+			print(msg)
+		self._logq.put((20, msg))
+
+	def warning(self, msg):
+		if not self._logq:
+			print(msg)
+		self._logq.put((30, msg))
+
+	def error(self, msg):
+		if not self._logq:
+			print(msg)
+		self._logq.put((40, msg))
+
+	def critical(self, msg):
+		if not self._logq:
+			print(msg)
+		self._logq.put((50, msg))
+
+
+def worker_subprocess(prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue):
+	eng = EngineProxy(None, None, WorkerLogger(logq), prefix=prefix)
+	pack = eng.pack
+	unpack = eng.unpack
+	compress = zlib.compress
+	decompress = zlib.decompress
+	while True:
+		inst = in_pipe.recv_bytes()
+		if inst == b"shutdown":
+			out_pipe.send_bytes(b"done")
+			in_pipe.close()
+			out_pipe.close()
+			if logq:
+				logq.close()
+			return 0
+		(uid, method, args, kwargs) = unpack(decompress(inst))
+		try:
+			ret = getattr(eng, method)(*args, **kwargs)
+		except Exception as ex:
+			ret = ex
+		if uid >= 0:
+			out_pipe.send_bytes(compress(pack((uid, ret))))
 
 
 class RedundantProcessError(ProcessError):
@@ -3032,7 +3147,7 @@ class EngineProcessManager(object):
 			self.logger.addHandler(handler)
 		self._p = Process(
 			name="LiSE Life Simulator Engine (core)",
-			target=subprocess,
+			target=engine_subprocess,
 			args=(
 				args,
 				kwargs,
@@ -3042,7 +3157,6 @@ class EngineProcessManager(object):
 				loglevel,
 			),
 		)
-		self._p.daemon = True
 		self._p.start()
 		self._logthread = Thread(
 			target=self.sync_log_forever, name="log", daemon=True

@@ -771,25 +771,6 @@ class Thing(Node):
 			v = v.name
 		self["location"] = v
 
-	@property
-	def next_location(self) -> Optional[Node]:
-		branch = self.engine.branch
-		turn = self.engine._things_cache.turn_after(
-			self.character.name, self.name, *self.engine.time
-		)
-		if turn is None:
-			return None
-		return self.engine._get_node(
-			self.character,
-			self.engine._things_cache.retrieve(
-				self.character.name,
-				self.name,
-				branch,
-				turn,
-				self.engine._turn_end_plan[branch, turn],
-			),
-		)
-
 	def go_to_place(self, place: Union[Node, Key], weight: Key = None) -> int:
 		"""Assuming I'm in a node that has a :class:`Portal` direct
 		to the given node, schedule myself to travel to the
@@ -818,7 +799,9 @@ class Thing(Node):
 			self["location"] = placen
 		return turns
 
-	def follow_path(self, path: list, weight: Key = None) -> int:
+	def follow_path(
+		self, path: list, weight: Key = None, stat: Key = None
+	) -> int:
 		"""Go to several nodes in succession, deciding how long to
 		spend in each by consulting the ``weight`` stat of the
 		:class:`Portal` connecting the one node to the next,
