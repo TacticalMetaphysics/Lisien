@@ -540,10 +540,10 @@ class Engine(AbstractEngine, gORM):
 	def _call_every_subproxy(self, method: str, *args, **kwargs):
 		ret = []
 		for _ in range(len(self._worker_processes)):
-			self._top_uid += 1
 			ret.append(
 				self._call_a_subproxy(self._top_uid, method, *args, **kwargs)
 			)
+			self._top_uid += 1
 		return ret
 
 	def _start_cache_arranger(self) -> None:
