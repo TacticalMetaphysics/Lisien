@@ -29,7 +29,6 @@ from multiprocessing import Process, Pipe, Queue
 from collections import defaultdict
 from itertools import chain
 from threading import Thread, Lock
-from time import sleep
 from types import FunctionType, ModuleType, MethodType
 from typing import Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
