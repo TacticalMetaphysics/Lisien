@@ -524,11 +524,9 @@ class Engine(AbstractEngine, gORM):
 
 	def _call_a_subproxy(self, uid, method: str, *args, **kwargs):
 		argbytes = self.pack((uid, method, args, kwargs))
-		print(f"uid {uid} calling method {method}")
 		i = uid % len(self._worker_inputs)
 		with self._worker_locks[i]:
 			self._worker_inputs[i].send_bytes(zlib.compress(argbytes))
-			print(f"waiting for uid {uid}, method {method}")
 			return self.unpack(
 				zlib.decompress(self._worker_outputs[i].recv_bytes())
 			)

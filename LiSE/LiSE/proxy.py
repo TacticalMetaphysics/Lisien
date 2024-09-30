@@ -3079,7 +3079,6 @@ def worker_subprocess(prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue):
 				logq.close()
 			return 0
 		(uid, method, args, kwargs) = unpack(decompress(inst))
-		print(f"{uid}   {method}(*{args}, **{kwargs})")
 		try:
 			ret = getattr(eng, method)(*args, **kwargs)
 		except Exception as ex:
