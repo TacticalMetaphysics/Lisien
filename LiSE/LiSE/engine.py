@@ -527,9 +527,11 @@ class Engine(AbstractEngine, gORM):
 		i = uid % len(self._worker_inputs)
 		with self._worker_locks[i]:
 			self._worker_inputs[i].send_bytes(zlib.compress(argbytes))
-			return self.unpack(
+			got_uid, ret = self.unpack(
 				zlib.decompress(self._worker_outputs[i].recv_bytes())
 			)
+			assert got_uid == uid
+			return ret
 
 	def _call_any_subproxy(self, method: str, *args, **kwargs):
 		uid = self._top_uid = self._top_uid + 1
@@ -1967,6 +1969,10 @@ class Engine(AbstractEngine, gORM):
 					res = self._call_any_subproxy(
 						"_eval_trigger", trigger.__name__, entity
 					)
+					realres = trigger(entity)
+					assert (
+						res == realres
+					), f"{trigger} returned {res} from subproxy, but should have returned {realres}"
 				else:
 					res = trigger(entity)
 				if res:
