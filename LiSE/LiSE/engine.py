@@ -1986,7 +1986,6 @@ class Engine(AbstractEngine, gORM):
 			lock.release()
 
 	def _update_worker_process_state(self, i):
-		# Update the worker processes so their world state matches mine.
 		branch_from, turn_from, tick_from = self._worker_updated_btts[i]
 		if branch_from == self.branch:
 			delt = self.get_delta(
