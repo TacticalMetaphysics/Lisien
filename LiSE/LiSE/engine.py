@@ -291,7 +291,7 @@ class Engine(AbstractEngine, gORM):
 		time travelling to a point after the time that's been simulated.
 		Default ``True``. You normally want this, but it could cause problems
 		if you're not using the rules engine.
-	:param parallel_triggers: Whether to evaluate trigger functions in threads.
+	:param threaded_triggers: Whether to evaluate trigger functions in threads.
 		This has performance benefits if you are using a free-threaded build of
 		Python (without a GIL). Default ``True``.
 	:param worker_processes: How many subprocesses to use as workers for
@@ -349,7 +349,7 @@ class Engine(AbstractEngine, gORM):
 		keyframe_on_close: bool = True,
 		cache_arranger: bool = False,
 		enforce_end_of_time: bool = True,
-		parallel_triggers: bool = True,
+		threaded_triggers: bool = True,
 		worker_processes: int = None,
 	):
 		if logfun is None:
@@ -434,7 +434,7 @@ class Engine(AbstractEngine, gORM):
 		self.query.keyframe_interval = keyframe_interval
 		self.query.snap_keyframe = self.snap_keyframe
 		self.flush_interval = flush_interval
-		if parallel_triggers:
+		if threaded_triggers:
 			self._trigger_pool = ThreadPoolExecutor()
 		if worker_processes is None:
 			worker_processes = os.cpu_count() or 0
