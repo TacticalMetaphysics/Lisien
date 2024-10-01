@@ -23,7 +23,8 @@ from __future__ import annotations
 import shutil
 import sys
 import os
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import Executor, Future, ThreadPoolExecutor
+from concurrent.futures import wait as futwait
 from functools import partial
 from multiprocessing import Process, Pipe, Queue
 from collections import defaultdict
@@ -108,9 +109,6 @@ class NextTurn(Signal):
 
 	def __call__(self) -> Tuple[List, DeltaDict]:
 		engine = self.engine
-		if hasattr(engine, "_worker_processes"):
-			engine.trigger.save(reimport=False)
-			engine._call_every_subproxy("_reimport_triggers")
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._turns_completed[start_branch]
 		if start_turn < latest_turn:
@@ -220,6 +218,57 @@ class NullSchema(AbstractSchema):
 
 	def stat_permitted(self, turn, entity, key, value):
 		return True
+
+
+class LiSEProcessPoolExecutor(Executor):
+	def __init__(self, eng: "Engine"):
+		self.eng = eng
+		self._futs = []
+
+	def _call_in_subprocess(
+		self, method, func_name, future: Future, *args, **kwargs
+	):
+		uid = self.eng._top_uid = self.eng._top_uid + 1
+		i = uid % len(self.eng._worker_inputs)
+		argbytes = zlib.compress(
+			self.eng.pack((uid, method, (func_name, *args), kwargs))
+		)
+		with self.eng._worker_locks[i]:
+			self.eng._update_worker_process_state(i)
+			self.eng._worker_inputs[i].send_bytes(argbytes)
+			output = self.eng._worker_outputs[i].recv_bytes()
+		got_uid, result = self.eng.unpack(zlib.decompress(output))
+		assert got_uid == uid
+		if isinstance(result, Exception):
+			future.set_exception(result)
+		else:
+			future.set_result(result)
+
+	def submit(
+		self, fn: Union[FunctionType, MethodType], /, *args, **kwargs
+	) -> Future:
+		if fn.__module__ is self.eng.function._module:
+			method = "_call_function"
+		elif fn.__module__ is self.eng.method._module:
+			method = "_call_method"
+		else:
+			raise ValueError(
+				"Function is not stored in this LiSE engine. "
+				"Use the engine's attributes `function` and `method` to store it."
+			)
+		ret = Future()
+		ret._t = Thread(
+			target=self._call_in_subprocess,
+			args=(method, fn.__name__, ret, *args),
+			kwargs=kwargs,
+		)
+		ret._t.start()
+		self._futs.append(ret)
+		return ret
+
+	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
+		if wait:
+			futwait(self._futs)
 
 
 class Engine(AbstractEngine, gORM):
@@ -455,7 +504,6 @@ class Engine(AbstractEngine, gORM):
 			self._worker_locks = wlk = []
 			self._worker_log_queues = wl = []
 			self._worker_log_threads = wlt = []
-			self._worker_returned_values = {}
 			self._top_uid = 0
 			for i in range(worker_processes):
 				inpipe_there, inpipe_here = Pipe(duplex=False)
@@ -478,7 +526,11 @@ class Engine(AbstractEngine, gORM):
 				proc.start()
 				with wlk[-1]:
 					inpipe_here.send_bytes(initial_payload)
-			self._last_updated_workers = self._btt()
+			self.pool = LiSEProcessPoolExecutor(self)
+			self.trigger.connect(self._reimport_trigger_functions)
+			self.function.connect(self._reimport_worker_functions)
+			self.method.connect(self._reimport_worker_methods)
+			self._worker_updated_btts = [self._btt()] * worker_processes
 		self._rules_iter = self._follow_rules()
 		self._rando = Random()
 		if "rando_state" in self.universal:
@@ -497,6 +549,30 @@ class Engine(AbstractEngine, gORM):
 				self.universal["rando_state"] = rando_state
 		if cache_arranger:
 			self._start_cache_arranger()
+
+	def _reimport_trigger_functions(self, *args, attr, **kwargs):
+		if attr is not None:
+			return
+		payload = zlib.compress(self.pack((-1, "_reimport_triggers", (), {})))
+		for lock, pipe in zip(self._worker_locks, self._worker_inputs):
+			with lock:
+				pipe.send_bytes(payload)
+
+	def _reimport_worker_functions(self, *args, attr, **kwargs):
+		if attr is not None:
+			return
+		payload = zlib.compress(self.pack((-1, "_reimport_functions", (), {})))
+		for lock, pipe in zip(self._worker_locks, self._worker_inputs):
+			with lock:
+				pipe.send_bytes(payload)
+
+	def _reimport_worker_methods(self, *args, attr, **kwargs):
+		if attr is not None:
+			return
+		payload = zlib.compress(self.pack((-1, "_reimport_methods", (), {})))
+		for lock, pipe in zip(self._worker_locks, self._worker_inputs):
+			with lock:
+				pipe.send_bytes(payload)
 
 	def _get_worker_kf_payload(self, uid: int = -1) -> bytes:
 		# I'm not using the uid at the moment, because this doesn't return anything
@@ -525,19 +601,15 @@ class Engine(AbstractEngine, gORM):
 			)
 		)
 
-	def _store_returned_value(self, uid: int, ret: Any) -> None:
-		self._worker_returned_values[uid] = ret
-
 	def _call_a_subproxy(self, uid, method: str, *args, **kwargs):
-		argbytes = self.pack((uid, method, args, kwargs))
+		argbytes = zlib.compress(self.pack((uid, method, args, kwargs)))
 		i = uid % len(self._worker_inputs)
 		with self._worker_locks[i]:
-			self._worker_inputs[i].send_bytes(zlib.compress(argbytes))
-			got_uid, ret = self.unpack(
-				zlib.decompress(self._worker_outputs[i].recv_bytes())
-			)
-			assert got_uid == uid
-			return ret
+			self._worker_inputs[i].send_bytes(argbytes)
+			output = self._worker_outputs[i].recv_bytes()
+		got_uid, ret = self.unpack(zlib.decompress(output))
+		assert got_uid == uid
+		return ret
 
 	def _call_any_subproxy(self, method: str, *args, **kwargs):
 		uid = self._top_uid = self._top_uid + 1
@@ -1884,6 +1956,57 @@ class Engine(AbstractEngine, gORM):
 			character, orig, dest, rulebook, rule, branch, turn, tick
 		)
 
+	def _update_all_worker_process_states(self):
+		for lock in self._worker_locks:
+			lock.acquire()
+		kf_payload = None
+		for i in range(len(self._worker_processes)):
+			branch_from, turn_from, tick_from = self._worker_updated_btts[i]
+			if branch_from == self.branch:
+				delt = self.get_delta(
+					branch_from, turn_from, tick_from, self.turn, self.tick
+				)
+				argbytes = zlib.compress(
+					self.pack(
+						(
+							-1,
+							"_upd_caches",
+							(None, None, None, None, (None, delt)),
+							{},
+						)
+					)
+				)
+				self._worker_inputs[i].send_bytes(argbytes)
+			else:
+				if kf_payload is None:
+					kf_payload = self._get_worker_kf_payload()
+				self._worker_inputs[i].send_bytes(kf_payload)
+			self._worker_updated_btts[i] = self._btt()
+		for lock in self._worker_locks:
+			lock.release()
+
+	def _update_worker_process_state(self, i):
+		# Update the worker processes so their world state matches mine.
+		branch_from, turn_from, tick_from = self._worker_updated_btts[i]
+		if branch_from == self.branch:
+			delt = self.get_delta(
+				branch_from, turn_from, tick_from, self.turn, self.tick
+			)
+			argbytes = zlib.compress(
+				self.pack(
+					(
+						-1,
+						"_upd_caches",
+						(None, None, None, None, (None, delt)),
+						{},
+					)
+				)
+			)
+			self._worker_inputs[i].send_bytes(argbytes)
+		else:
+			self._worker_inputs[i].send_bytes(self._get_worker_kf_payload())
+		self._worker_updated_btts[i] = self._btt()
+
 	def _follow_rules(self):
 		# TODO: roll back changes done by rules that raise an exception
 		# TODO: if there's a paradox while following some rule,
@@ -1930,34 +2053,7 @@ class Engine(AbstractEngine, gORM):
 			return entikey in vbranchesb[turn].entikeys
 
 		if hasattr(self, "_worker_processes") and self.turn > 0:
-			# Update the worker processes so their world state matches mine.
-			if hasattr(self, "_last_updated_workers"):
-				branch_from, turn_from, tick_from = self._last_updated_workers
-				if branch_from == self.branch:
-					delt = self.get_delta(
-						branch, turn_from, tick_from, self.turn, self.tick
-					)
-					self._call_every_subproxy(
-						"_upd_caches",
-						None,
-						None,
-						None,
-						None,
-						(None, delt),
-					)
-				else:
-					payload = self._get_worker_kf_payload()
-					for lock, pipe in zip(
-						self._worker_locks, self._worker_inputs
-					):
-						with lock:
-							pipe.send_bytes(payload)
-			else:
-				payload = self._get_worker_kf_payload()
-				for lock, pipe in zip(self._worker_locks, self._worker_inputs):
-					with lock:
-						pipe.send_bytes(payload)
-			self._last_updated_workers = self._btt()
+			self._update_all_worker_process_states()
 			# Now we can evaluate trigger functions in the worker processes,
 			# in parallel.
 
@@ -2419,7 +2515,7 @@ class Engine(AbstractEngine, gORM):
 				)
 			)
 		if pool:
-			wait(trig_futs)
+			futwait(trig_futs)
 		else:
 			for part in trig_futs:
 				part()

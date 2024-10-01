@@ -37,6 +37,7 @@ from multiprocessing import Process, Pipe, Queue, ProcessError
 from concurrent.futures import ThreadPoolExecutor
 from queue import Empty
 from time import monotonic
+from types import MethodType
 from typing import Hashable, Tuple, Optional, Iterator
 
 from blinker import Signal
@@ -2537,6 +2538,18 @@ class EngineProxy(AbstractEngine):
 
 	def _eval_trigger(self, name, entity):
 		return getattr(self.trigger, name)(entity)
+
+	def _call_function(self, name: str, *args, **kwargs):
+		return getattr(self.function, name)(*args, **kwargs)
+
+	def _reimport_functions(self):
+		self.function.reimport()
+
+	def _call_method(self, name: str, *args, **kwargs):
+		return MethodType(getattr(self.method, name), self)(*args, **kwargs)
+
+	def _reimport_methods(self):
+		self.method.reimport()
 
 	def send_bytes(self, obj, blocking=True, timeout=-1):
 		compressed = zlib.compress(obj)
