@@ -153,7 +153,7 @@ class NextTurn(Signal):
 						engine.universal["last_result_idx"] = 0
 						branch, turn, tick = engine._btt()
 						self.send(engine, branch=branch, turn=turn, tick=tick)
-						return res, engine.get_delta(
+						return list(res), engine.get_delta(
 							branch=start_branch,
 							turn_from=start_turn,
 							turn_to=turn,
