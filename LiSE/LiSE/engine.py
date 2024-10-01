@@ -77,9 +77,6 @@ from .query import QueryEngine
 from . import exc
 
 
-SUBPROXY_POLL_SLEEP_TIME = 0.001
-
-
 class InnerStopIteration(StopIteration):
 	pass
 
