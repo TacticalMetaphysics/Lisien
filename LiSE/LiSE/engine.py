@@ -301,8 +301,9 @@ class Engine(AbstractEngine, gORM):
 		may or may not run in parallel, depending on your Python interpreter.
 		However, note that ``worker_processes=0`` implies that trigger
 		functions operate on bare LiSE objects, and can therefore have
-		side effects. If you don't want this, use ``worker_processes=1``
-		instead.
+		side effects. If you don't want this, instead use
+		``worker_processes=1``, which *does* disable parallelism in the case
+		of trigger functions.
 
 	"""
 
