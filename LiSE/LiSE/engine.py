@@ -295,7 +295,7 @@ class Engine(AbstractEngine, gORM):
 		This has performance benefits if you are using a free-threaded build of
 		Python (without a GIL). Default ``True``.
 	:param worker_processes: How many subprocesses to use as workers for
-	parallel processing. When ``0`` (the default), use only threads.
+		parallel processing. When ``0`` (the default), use only threads.
 
 	"""
 
