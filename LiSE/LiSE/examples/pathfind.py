@@ -57,8 +57,10 @@ def install(eng, seed=None):
 			try:
 				result = fut.result()
 				thing = fut.thing
+				print(f"got path {result} for thing {thing.name}")
 				thing.follow_path(result)
 			except NetworkXNoPath:
+				print(f"got no path for thing {fut.thing.name}")
 				continue
 
 	@go_places.trigger

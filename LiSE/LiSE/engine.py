@@ -233,13 +233,13 @@ class LiSEProcessPoolExecutor(Executor):
 		self._fut_manager_thread = Thread(
 			target=self._manage_futs, daemon=True
 		)
-		self._fut_manager_thread.start()
 		self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
+		self._uid_to_fut: dict[int, Future] = {}
+		self._fut_manager_thread.start()
 
 	def _call_in_subprocess(
-		self, method, func_name, future: Future, *args, **kwargs
+		self, uid, method, func_name, future: Future, *args, **kwargs
 	):
-		uid = self.eng._top_uid = self.eng._top_uid + 1
 		i = uid % len(self.eng._worker_inputs)
 		argbytes = zlib.compress(
 			self.eng.pack((uid, method, (func_name, *args), kwargs))
@@ -251,6 +251,7 @@ class LiSEProcessPoolExecutor(Executor):
 		got_uid, result = self.eng.unpack(zlib.decompress(output))
 		assert got_uid == uid
 		self._how_many_futs_running -= 1
+		del self._uid_to_fut[uid]
 		if isinstance(result, Exception):
 			future.set_exception(result)
 		else:
@@ -268,13 +269,16 @@ class LiSEProcessPoolExecutor(Executor):
 				"Function is not stored in this LiSE engine. "
 				"Use the engine's attributes `function` and `method` to store it."
 			)
+		uid = self.eng._top_uid = self.eng._top_uid + 1
 		ret = Future()
+		ret.uid = uid
 		ret._t = Thread(
 			target=self._call_in_subprocess,
-			args=(method, fn.__name__, ret, *args),
+			args=(uid, method, fn.__name__, ret, *args),
 			kwargs=kwargs,
 		)
 		self._futs.append(ret)
+		self._uid_to_fut[uid] = ret
 		self._futs_to_start.put(ret)
 		return ret
 
@@ -289,7 +293,7 @@ class LiSEProcessPoolExecutor(Executor):
 					break
 				if not fut.running():
 					fut._t.start()
-					fut._state = "RUNNING"
+					fut.set_running_or_notify_cancel()
 					self._how_many_futs_running += 1
 			sleep(0.001)
 
