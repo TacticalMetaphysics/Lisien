@@ -29,7 +29,9 @@ from functools import partial
 from multiprocessing import Process, Pipe, Queue
 from collections import defaultdict
 from itertools import chain
+from queue import SimpleQueue, Empty
 from threading import Thread, Lock
+from time import sleep
 from types import FunctionType, ModuleType, MethodType
 from typing import Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
@@ -227,6 +229,12 @@ class LiSEProcessPoolExecutor(Executor):
 	def __init__(self, eng: "Engine"):
 		self.eng = eng
 		self._futs = []
+		self._how_many_futs_running = 0
+		self._fut_manager_thread = Thread(
+			target=self._manage_futs, daemon=True
+		)
+		self._fut_manager_thread.start()
+		self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
 
 	def _call_in_subprocess(
 		self, method, func_name, future: Future, *args, **kwargs
@@ -242,6 +250,7 @@ class LiSEProcessPoolExecutor(Executor):
 			output = self.eng._worker_outputs[i].recv_bytes()
 		got_uid, result = self.eng.unpack(zlib.decompress(output))
 		assert got_uid == uid
+		self._how_many_futs_running -= 1
 		if isinstance(result, Exception):
 			future.set_exception(result)
 		else:
@@ -265,9 +274,24 @@ class LiSEProcessPoolExecutor(Executor):
 			args=(method, fn.__name__, ret, *args),
 			kwargs=kwargs,
 		)
-		ret._t.start()
 		self._futs.append(ret)
+		self._futs_to_start.put(ret)
 		return ret
+
+	def _manage_futs(self):
+		while True:
+			while self._how_many_futs_running < len(
+				self.eng._worker_processes
+			):
+				try:
+					fut = self._futs_to_start.get()
+				except Empty:
+					break
+				if not fut.running():
+					fut._t.start()
+					fut._state = "RUNNING"
+					self._how_many_futs_running += 1
+			sleep(0.001)
 
 	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
 		if wait:

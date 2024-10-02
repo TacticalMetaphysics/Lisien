@@ -82,7 +82,7 @@ def test_wolfsheep(tempdir):
 
 def test_pathfind(tempdir):
 	with Engine(tempdir) as eng:
-		pathfind.install(eng)
+		pathfind.install(eng, 69105)
 		locs = [
 			thing.location.name
 			for thing in sorted(
