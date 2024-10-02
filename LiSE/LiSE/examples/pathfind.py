@@ -58,7 +58,7 @@ def install(eng, seed=None):
 				result = fut.result()
 				thing = fut.thing
 				print(f"got path {result} for thing {thing.name}")
-				thing.follow_path(result)
+				thing.follow_path(result, check=False)
 			except NetworkXNoPath:
 				print(f"got no path for thing {fut.thing.name}")
 				continue
