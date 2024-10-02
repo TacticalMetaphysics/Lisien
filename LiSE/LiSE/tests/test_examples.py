@@ -84,7 +84,7 @@ def test_pathfind(tempdir):
 	with Engine(tempdir) as eng:
 		pathfind.install(eng)
 		locs = [
-			thing.location
+			thing.location.name
 			for thing in sorted(
 				eng.character["physical"].thing.values(), key=lambda t: t.name
 			)
@@ -92,7 +92,7 @@ def test_pathfind(tempdir):
 		for i in range(10):
 			eng.next_turn()
 		assert locs != [
-			thing.location
+			thing.location.name
 			for thing in sorted(
 				eng.character["physical"].thing.values(), key=lambda t: t.name
 			)
