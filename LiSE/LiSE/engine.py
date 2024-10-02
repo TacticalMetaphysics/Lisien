@@ -296,9 +296,6 @@ class LiSEProcessPoolExecutor(Executor):
 					fut._t.start()
 					fut.set_running_or_notify_cancel()
 					self._how_many_futs_running += 1
-			print(
-				f"There are now {self._how_many_futs_running} futures running."
-			)
 			sleep(0.001)
 
 	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
