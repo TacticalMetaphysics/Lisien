@@ -250,9 +250,9 @@ class LiSEProcessPoolExecutor(Executor):
 	def submit(
 		self, fn: Union[FunctionType, MethodType], /, *args, **kwargs
 	) -> Future:
-		if fn.__module__ is self.eng.function._module:
+		if fn.__module__ == "function":
 			method = "_call_function"
-		elif fn.__module__ is self.eng.method._module:
+		elif fn.__module__ == "method":
 			method = "_call_method"
 		else:
 			raise ValueError(
