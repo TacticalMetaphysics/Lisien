@@ -2769,16 +2769,16 @@ class EngineProxy(AbstractEngine):
 		return self.handle("is_ancestor_of", parent=parent, child=child)
 
 	def branches(self) -> set:
-		return self.handle("branches")
+		return self._branches
 
 	def branch_start(self, branch: str) -> Tuple[int, int]:
-		return self.handle("branch_start", branch=branch)
+		return self._branches[branch][1]
 
 	def branch_end(self, branch: str) -> Tuple[int, int]:
-		return self.handle("branch_end", branch=branch)
+		return self._branches[branch][2]
 
 	def branch_parent(self, branch: str) -> Optional[str]:
-		return self.handle("branch_parent", branch=branch)
+		return self._branches[branch][0]
 
 	def apply_choices(self, choices, dry_run=False, perfectionist=False):
 		return self.handle(
@@ -2830,7 +2830,9 @@ class EngineProxy(AbstractEngine):
 	def add_character(self, char, data=None, **attr):
 		if char in self._char_cache:
 			raise KeyError("Character already exists")
-		assert char not in self._char_stat_cache
+		assert (
+			char not in self._char_stat_cache
+		), "Tried to create a character when there was already stat data for it"
 		if data is None:
 			data = {}
 		if not isinstance(data, dict):
@@ -2847,42 +2849,79 @@ class EngineProxy(AbstractEngine):
 		self._char_cache[char] = character = CharacterProxy(self, char)
 		self._char_stat_cache[char] = attr
 		placedata = data.get("place", data.get("node", {}))
-		assert char not in self._character_places_cache
-		self._character_places_cache[char] = {}
-		assert char not in self._node_stat_cache
 		for place, stats in placedata.items():
-			assert place not in self._character_places_cache[char]
-			assert place not in self._node_stat_cache[char]
-			self._character_places_cache[char][place] = PlaceProxy(
-				character, place
-			)
+			assert (
+				char not in self._character_places_cache
+				or place not in self._character_places_cache[char]
+			), "Tried to create a character when there was already place data for it"
+			assert (
+				char not in self._node_stat_cache
+				or place not in self._node_stat_cache[char]
+			), "Tried to create a character when there was already node-value data for it"
+			if char in self._character_places_cache:
+				self._character_places_cache[char][place] = PlaceProxy(
+					character, place
+				)
+			else:
+				self._character_places_cache[char] = {
+					place: PlaceProxy(character, place)
+				}
 			self._node_stat_cache[char][place] = stats
 		thingdata = data.get("thing", {})
 		for thing, stats in thingdata.items():
-			assert thing not in self._things_cache[char]
-			assert thing not in self._node_stat_cache[char]
+			assert (
+				char not in self._things_cache
+				or thing not in self._things_cache[char]
+			), "Tried to create a character when there was already thing data for it"
+			assert (
+				char not in self._node_stat_cache
+				or thing not in self._node_stat_cache[char]
+			), "Tried to create a character when there was already node-stat data for it"
 			if "location" not in stats:
 				raise ValueError("Things must always have locations")
-			if "arrival_time" in stats or "next_arrival_time" in stats:
-				raise ValueError("The arrival_time stats are read-only")
 			loc = stats.pop("location")
-			self._things_cache[char][thing] = ThingProxy(char, thing, loc)
-			self._node_stat_cache[char][thing] = stats
+			if char in self._things_cache:
+				self._things_cache[char][thing] = ThingProxy(
+					character, thing, loc
+				)
+			else:
+				self._things_cache[char] = {
+					thing: ThingProxy(character, thing, loc)
+				}
+			if char in self._node_stat_cache:
+				self._node_stat_cache[char][thing] = stats
+			else:
+				self._node_stat_cache[char] = {thing: stats}
 		portdata = data.get("edge", data.get("portal", data.get("adj", {})))
 		for orig, dests in portdata.items():
-			assert orig not in self._character_portals_cache.successors[char]
-			assert orig not in self._portal_stat_cache[char]
+			assert (
+				char not in self._character_portals_cache.successors
+				or orig not in self._character_portals_cache.successors[char]
+			), "Tried to create a character when there was already successor data for it"
+			assert (
+				char not in self._portal_stat_cache
+				or orig not in self._portal_stat_cache[char]
+			), "Tried to create a character when there was already portal-stat data for it"
 			for dest, stats in dests.items():
 				assert (
-					dest
-					not in self._character_portals_cache.successors[char][orig]
-				)
-				assert dest not in self._portal_stat_cache[char][orig]
+					(
+						char not in self._character_portals_cache.successors
+						or dest
+						not in self._character_portals_cache.successors[char][
+							orig
+						]
+					)
+					and (
+						char not in self._portal_stat_cache
+						or orig not in self._portal_stat_cache[char]
+						or dest not in self._portal_stat_cache[char][orig]
+					)
+				), "Tried to create a character when there was already portal data for it"
 				self._character_portals_cache.store(
 					char,
 					orig,
 					dest,
-					PortalProxy(self.character[char], orig, dest),
+					PortalProxy(character, orig, dest),
 				)
 				self._portal_stat_cache[char][orig][dest] = stats
 		self.handle(
