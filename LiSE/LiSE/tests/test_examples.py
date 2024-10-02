@@ -83,5 +83,17 @@ def test_wolfsheep(tempdir):
 def test_pathfind(tempdir):
 	with Engine(tempdir) as eng:
 		pathfind.install(eng)
+		locs = [
+			thing.location
+			for thing in sorted(
+				eng.character["physical"].thing.values(), key=lambda t: t.name
+			)
+		]
 		for i in range(10):
 			eng.next_turn()
+		assert locs != [
+			thing.location
+			for thing in sorted(
+				eng.character["physical"].thing.values(), key=lambda t: t.name
+			)
+		]
