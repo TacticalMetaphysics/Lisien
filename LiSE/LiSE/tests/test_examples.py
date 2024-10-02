@@ -83,5 +83,5 @@ def test_wolfsheep(tempdir):
 def test_pathfind(tempdir):
 	with Engine(tempdir) as eng:
 		pathfind.install(eng)
-	for i in range(10):
-		eng.next_turn()
+		for i in range(10):
+			eng.next_turn()
