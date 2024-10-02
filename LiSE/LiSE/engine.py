@@ -499,6 +499,7 @@ class Engine(AbstractEngine, gORM):
 			for store in self.stores:
 				store.save(reimport=False)
 
+			branches_payload = zlib.compress(self.pack(self._branches))
 			initial_payload = self._get_worker_kf_payload(-1)
 
 			self._worker_processes = wp = []
@@ -528,6 +529,7 @@ class Engine(AbstractEngine, gORM):
 				logthread.start()
 				proc.start()
 				with wlk[-1]:
+					inpipe_here.send_bytes(branches_payload)
 					inpipe_here.send_bytes(initial_payload)
 			self.pool = LiSEProcessPoolExecutor(self)
 			self.trigger.connect(self._reimport_trigger_functions)

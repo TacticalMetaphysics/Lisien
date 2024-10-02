@@ -3082,6 +3082,7 @@ def worker_subprocess(prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue):
 	unpack = eng.unpack
 	compress = zlib.compress
 	decompress = zlib.decompress
+	eng._branches = eng.unpack(zlib.decompress(in_pipe.recv_bytes()))
 	while True:
 		inst = in_pipe.recv_bytes()
 		if inst == b"shutdown":
