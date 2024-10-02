@@ -29,7 +29,7 @@ def install(eng, seed=None):
 				desty += 1
 			else:
 				destx = desty = 0
-		ret = node.shortest_path(node.character.place[destx, desty])
+		ret = node.location.shortest_path(node.character.place[destx, desty])
 		print(f"{node.name}'s shortest path to {destx, desty} is {ret}")
 		return ret
 
