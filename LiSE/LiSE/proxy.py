@@ -38,8 +38,9 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Empty
 from time import monotonic
 from types import MethodType
-from typing import Hashable, Tuple, Optional, Iterator
+from typing import Hashable, Tuple, Optional, Iterator, List, Union
 
+import networkx as nx
 from blinker import Signal
 import zlib
 import msgpack
@@ -332,6 +333,31 @@ class NodeProxy(CachingEntityProxy):
 
 	def new_thing(self, name, **kwargs):
 		return self.character.new_thing(name, self.name, **kwargs)
+
+	def shortest_path(
+		self, dest: Union[Key, "NodeProxy"], weight: Key = None
+	) -> List[Key]:
+		"""Return a list of node names leading from me to ``dest``.
+
+		Raise ``ValueError`` if ``dest`` is not a node in my character
+		or the name of one.
+
+		"""
+		return nx.shortest_path(
+			self.character, self.name, self._plain_dest_name(dest), weight
+		)
+
+	def _plain_dest_name(self, dest):
+		if isinstance(dest, NodeProxy):
+			if dest.character != self.character:
+				raise ValueError(
+					"{} not in {}".format(dest.name, self.character.name)
+				)
+			return dest.name
+		else:
+			if dest in self.character.node:
+				return dest
+			raise ValueError("{} not in {}".format(dest, self.character.name))
 
 
 class PlaceProxy(NodeProxy):
