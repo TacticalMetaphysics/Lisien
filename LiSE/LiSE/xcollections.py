@@ -246,6 +246,7 @@ class FunctionStore(Signal):
 		self._ast_idx = {}
 		for i, node in enumerate(self._ast.body):
 			self._ast_idx[node.name] = i
+		self.send(self, attr=None, val=None)
 
 	def iterplain(self):
 		for name, idx in self._ast_idx.items():

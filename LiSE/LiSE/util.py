@@ -42,6 +42,7 @@ from typing import Mapping, Sequence, Iterable, Union, Callable, Dict, Hashable
 import msgpack
 import networkx as nx
 import numpy as np
+from networkx.exception import NetworkXException
 from tblib import Traceback
 
 from . import exc
@@ -517,6 +518,21 @@ class AbstractEngine(ABC):
 			"UnicodeTranslateError": UnicodeTranslateError,
 			"ValueError": ValueError,
 			"ZeroDivisionError": ZeroDivisionError,
+			# networkx exceptions
+			"HasACycle": nx.exception.HasACycle,
+			"NodeNotFound": nx.exception.NodeNotFound,
+			"PowerIterationFailedConvergence": nx.exception.PowerIterationFailedConvergence,
+			"ExceededMaxIterations": nx.exception.ExceededMaxIterations,
+			"AmbiguousSolution": nx.exception.AmbiguousSolution,
+			"NetworkXAlgorithmError": nx.exception.NetworkXAlgorithmError,
+			"NetworkXException": nx.exception.NetworkXException,
+			"NetworkXError": nx.exception.NetworkXError,
+			"NetworkXNoCycle": nx.exception.NetworkXNoCycle,
+			"NetworkXNoPath": nx.exception.NetworkXNoPath,
+			"NetworkXNotImplemented": nx.exception.NetworkXNotImplemented,
+			"NetworkXPointlessConcept": nx.exception.NetworkXPointlessConcept,
+			"NetworkXUnbounded": nx.exception.NetworkXUnbounded,
+			"NetworkXUnfeasible": nx.exception.NetworkXUnfeasible,
 			# LiSE exceptions
 			"NonUniqueError": exc.NonUniqueError,
 			"AmbiguousAvatarError": exc.AmbiguousAvatarError,
@@ -769,6 +785,10 @@ class AbstractCharacter(Mapping):
 	@staticmethod
 	def is_directed():
 		return True
+
+	@staticmethod
+	def is_multigraph():
+		return False
 
 	@abstractmethod
 	def add_place(self, name, **kwargs):

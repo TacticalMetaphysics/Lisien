@@ -23,13 +23,15 @@ from __future__ import annotations
 import shutil
 import sys
 import os
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import Executor, Future, ThreadPoolExecutor
+from concurrent.futures import wait as futwait
 from functools import partial
 from multiprocessing import Process, Pipe, Queue
 from collections import defaultdict
 from itertools import chain
+from queue import SimpleQueue, Empty
 from threading import Thread, Lock
-from time import sleep
+from time import sleep, time
 from types import FunctionType, ModuleType, MethodType
 from typing import Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
@@ -78,9 +80,6 @@ from .query import QueryEngine
 from . import exc
 
 
-SUBPROXY_POLL_SLEEP_TIME = 0.001
-
-
 class InnerStopIteration(StopIteration):
 	pass
 
@@ -112,9 +111,9 @@ class NextTurn(Signal):
 
 	def __call__(self) -> Tuple[List, DeltaDict]:
 		engine = self.engine
-		if hasattr(engine, "_worker_processes"):
-			engine.trigger.save(reimport=False)
-			engine._call_every_subproxy("_reimport_triggers")
+		for store in engine.stores:
+			if getattr(store, "_need_save", None):
+				store.save()
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._turns_completed[start_branch]
 		if start_turn < latest_turn:
@@ -157,7 +156,7 @@ class NextTurn(Signal):
 						engine.universal["last_result_idx"] = 0
 						branch, turn, tick = engine._btt()
 						self.send(engine, branch=branch, turn=turn, tick=tick)
-						return res, engine.get_delta(
+						return list(res), engine.get_delta(
 							branch=start_branch,
 							turn_from=start_turn,
 							turn_to=turn,
@@ -224,6 +223,86 @@ class NullSchema(AbstractSchema):
 
 	def stat_permitted(self, turn, entity, key, value):
 		return True
+
+
+class LiSEProcessPoolExecutor(Executor):
+	def __init__(self, eng: "Engine"):
+		self.eng = eng
+		self._how_many_futs_running = 0
+		self._fut_manager_thread = Thread(
+			target=self._manage_futs, daemon=True
+		)
+		self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
+		self._uid_to_fut: dict[int, Future] = {}
+		self._fut_manager_thread.start()
+
+	def _call_in_subprocess(
+		self, uid, method, func_name, future: Future, *args, **kwargs
+	):
+		i = uid % len(self.eng._worker_inputs)
+		argbytes = zlib.compress(
+			self.eng.pack((uid, method, (func_name, *args), kwargs))
+		)
+		with self.eng._worker_locks[i]:
+			self.eng._update_worker_process_state(i)
+			self.eng._worker_inputs[i].send_bytes(argbytes)
+			output = self.eng._worker_outputs[i].recv_bytes()
+		got_uid, result = self.eng.unpack(zlib.decompress(output))
+		assert got_uid == uid
+		self._how_many_futs_running -= 1
+		del self._uid_to_fut[uid]
+		if isinstance(result, Exception):
+			future.set_exception(result)
+		else:
+			future.set_result(result)
+
+	def submit(
+		self, fn: Union[FunctionType, MethodType], /, *args, **kwargs
+	) -> Future:
+		if fn.__module__ == "function":
+			method = "_call_function"
+		elif fn.__module__ == "method":
+			method = "_call_method"
+		else:
+			raise ValueError(
+				"Function is not stored in this LiSE engine. "
+				"Use the engine's attributes `function` and `method` to store it."
+			)
+		uid = self.eng._top_uid
+		ret = Future()
+		ret.uid = uid
+		ret._t = Thread(
+			target=self._call_in_subprocess,
+			args=(uid, method, fn.__name__, ret, *args),
+			kwargs=kwargs,
+		)
+		self.eng._top_uid += 1
+		self._uid_to_fut[uid] = ret
+		self._futs_to_start.put(ret)
+		return ret
+
+	def _manage_futs(self):
+		while True:
+			while self._how_many_futs_running < len(
+				self.eng._worker_processes
+			):
+				try:
+					fut = self._futs_to_start.get()
+				except Empty:
+					break
+				if not fut.running():
+					fut._t.start()
+					fut.set_running_or_notify_cancel()
+					self._how_many_futs_running += 1
+			sleep(0.001)
+
+	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
+		if cancel_futures:
+			for fut in self._uid_to_fut.values():
+				fut.cancel()
+		if wait:
+			futwait(self._uid_to_fut.values())
+		self._uid_to_fut = {}
 
 
 class Engine(AbstractEngine, gORM):
@@ -295,11 +374,19 @@ class Engine(AbstractEngine, gORM):
 		time travelling to a point after the time that's been simulated.
 		Default ``True``. You normally want this, but it could cause problems
 		if you're not using the rules engine.
-	:param parallel_triggers: Whether to evaluate trigger functions in threads.
+	:param threaded_triggers: Whether to evaluate trigger functions in threads.
 		This has performance benefits if you are using a free-threaded build of
 		Python (without a GIL). Default ``True``.
 	:param worker_processes: How many subprocesses to use as workers for
-	parallel processing. When ``0`` (the default), use only threads.
+		parallel processing. When ``None`` (the default), use as many
+		subprocesses as we have CPU cores. When ``0``, parallel processing
+		is not necessarily disabled; threads may still be used, which
+		may or may not run in parallel, depending on your Python interpreter.
+		However, note that ``worker_processes=0`` implies that trigger
+		functions operate on bare LiSE objects, and can therefore have
+		side effects. If you don't want this, instead use
+		``worker_processes=1``, which *does* disable parallelism in the case
+		of trigger functions.
 
 	"""
 
@@ -345,8 +432,8 @@ class Engine(AbstractEngine, gORM):
 		keyframe_on_close: bool = True,
 		cache_arranger: bool = False,
 		enforce_end_of_time: bool = True,
-		parallel_triggers: bool = True,
-		worker_processes: int = 0,
+		threaded_triggers: bool = True,
+		worker_processes: int = None,
 	):
 		if logfun is None:
 			from logging import getLogger
@@ -430,8 +517,10 @@ class Engine(AbstractEngine, gORM):
 		self.query.keyframe_interval = keyframe_interval
 		self.query.snap_keyframe = self.snap_keyframe
 		self.flush_interval = flush_interval
-		if parallel_triggers:
+		if threaded_triggers:
 			self._trigger_pool = ThreadPoolExecutor()
+		if worker_processes is None:
+			worker_processes = os.cpu_count() or 0
 		if worker_processes > 0:
 
 			def sync_log_forever(q):
@@ -441,6 +530,7 @@ class Engine(AbstractEngine, gORM):
 			for store in self.stores:
 				store.save(reimport=False)
 
+			branches_payload = zlib.compress(self.pack(self._branches))
 			initial_payload = self._get_worker_kf_payload(-1)
 
 			self._worker_processes = wp = []
@@ -449,7 +539,6 @@ class Engine(AbstractEngine, gORM):
 			self._worker_locks = wlk = []
 			self._worker_log_queues = wl = []
 			self._worker_log_threads = wlt = []
-			self._worker_returned_values = {}
 			self._top_uid = 0
 			for i in range(worker_processes):
 				inpipe_there, inpipe_here = Pipe(duplex=False)
@@ -471,8 +560,13 @@ class Engine(AbstractEngine, gORM):
 				logthread.start()
 				proc.start()
 				with wlk[-1]:
+					inpipe_here.send_bytes(branches_payload)
 					inpipe_here.send_bytes(initial_payload)
-			self._last_updated_workers = self._btt()
+			self.pool = LiSEProcessPoolExecutor(self)
+			self.trigger.connect(self._reimport_trigger_functions)
+			self.function.connect(self._reimport_worker_functions)
+			self.method.connect(self._reimport_worker_methods)
+			self._worker_updated_btts = [self._btt()] * worker_processes
 		self._rules_iter = self._follow_rules()
 		self._rando = Random()
 		if "rando_state" in self.universal:
@@ -491,6 +585,30 @@ class Engine(AbstractEngine, gORM):
 				self.universal["rando_state"] = rando_state
 		if cache_arranger:
 			self._start_cache_arranger()
+
+	def _reimport_trigger_functions(self, *args, attr, **kwargs):
+		if attr is not None:
+			return
+		payload = zlib.compress(self.pack((-1, "_reimport_triggers", (), {})))
+		for lock, pipe in zip(self._worker_locks, self._worker_inputs):
+			with lock:
+				pipe.send_bytes(payload)
+
+	def _reimport_worker_functions(self, *args, attr, **kwargs):
+		if attr is not None:
+			return
+		payload = zlib.compress(self.pack((-1, "_reimport_functions", (), {})))
+		for lock, pipe in zip(self._worker_locks, self._worker_inputs):
+			with lock:
+				pipe.send_bytes(payload)
+
+	def _reimport_worker_methods(self, *args, attr, **kwargs):
+		if attr is not None:
+			return
+		payload = zlib.compress(self.pack((-1, "_reimport_methods", (), {})))
+		for lock, pipe in zip(self._worker_locks, self._worker_inputs):
+			with lock:
+				pipe.send_bytes(payload)
 
 	def _get_worker_kf_payload(self, uid: int = -1) -> bytes:
 		# I'm not using the uid at the moment, because this doesn't return anything
@@ -519,31 +637,42 @@ class Engine(AbstractEngine, gORM):
 			)
 		)
 
-	def _store_returned_value(self, uid: int, ret: Any) -> None:
-		self._worker_returned_values[uid] = ret
-
 	def _call_a_subproxy(self, uid, method: str, *args, **kwargs):
-		argbytes = self.pack((uid, method, args, kwargs))
+		argbytes = zlib.compress(self.pack((uid, method, args, kwargs)))
 		i = uid % len(self._worker_inputs)
 		with self._worker_locks[i]:
-			self._worker_inputs[i].send_bytes(zlib.compress(argbytes))
-			got_uid, ret = self.unpack(
-				zlib.decompress(self._worker_outputs[i].recv_bytes())
-			)
-			assert got_uid == uid
-			return ret
+			self._worker_inputs[i].send_bytes(argbytes)
+			output = self._worker_outputs[i].recv_bytes()
+		got_uid, ret = self.unpack(zlib.decompress(output))
+		assert got_uid == uid
+		return ret
 
 	def _call_any_subproxy(self, method: str, *args, **kwargs):
-		uid = self._top_uid = self._top_uid + 1
+		uid = self._top_uid
+		self._top_uid += 1
 		return self._call_a_subproxy(uid, method, *args, **kwargs)
 
 	def _call_every_subproxy(self, method: str, *args, **kwargs):
 		ret = []
+		for lock in self._worker_locks:
+			lock.acquire()
+		uids = []
 		for _ in range(len(self._worker_processes)):
-			ret.append(
-				self._call_a_subproxy(self._top_uid, method, *args, **kwargs)
+			uids.append(self._top_uid)
+			argbytes = zlib.compress(
+				self.pack((self._top_uid, method, args, kwargs))
 			)
+			i = self._top_uid % len(self._worker_processes)
 			self._top_uid += 1
+			self._worker_inputs[i].send_bytes(argbytes)
+		for uid in uids:
+			i = uid % len(self._worker_processes)
+			outbytes = self._worker_outputs[i].recv_bytes()
+			got_uid, retval = self.unpack(zlib.decompress(outbytes))
+			assert got_uid == uid
+			ret.append(retval)
+		for lock in self._worker_locks:
+			lock.release()
 		return ret
 
 	def _start_cache_arranger(self) -> None:
@@ -1878,6 +2007,68 @@ class Engine(AbstractEngine, gORM):
 			character, orig, dest, rulebook, rule, branch, turn, tick
 		)
 
+	def _update_all_worker_process_states(self, clobber=False):
+		for lock in self._worker_locks:
+			lock.acquire()
+		kf_payload = None
+		for i in range(len(self._worker_processes)):
+			branch_from, turn_from, tick_from = self._worker_updated_btts[i]
+			if not clobber and branch_from == self.branch:
+				delt = self.get_delta(
+					branch_from, turn_from, tick_from, self.turn, self.tick
+				)
+				argbytes = zlib.compress(
+					self.pack(
+						(
+							-1,
+							"_upd",
+							(
+								None,
+								self.branch,
+								self.turn,
+								self.tick,
+								(None, delt),
+							),
+							{},
+						)
+					)
+				)
+				self._worker_inputs[i].send_bytes(argbytes)
+			else:
+				if kf_payload is None:
+					kf_payload = self._get_worker_kf_payload()
+				self._worker_inputs[i].send_bytes(kf_payload)
+			self._worker_updated_btts[i] = self._btt()
+		for lock in self._worker_locks:
+			lock.release()
+
+	def _update_worker_process_state(self, i):
+		branch_from, turn_from, tick_from = self._worker_updated_btts[i]
+		if branch_from == self.branch:
+			delt = self.get_delta(
+				branch_from, turn_from, tick_from, self.turn, self.tick
+			)
+			argbytes = zlib.compress(
+				self.pack(
+					(
+						-1,
+						"_upd",
+						(
+							None,
+							self.branch,
+							self.turn,
+							self.tick,
+							(None, delt),
+						),
+						{},
+					)
+				)
+			)
+			self._worker_inputs[i].send_bytes(argbytes)
+		else:
+			self._worker_inputs[i].send_bytes(self._get_worker_kf_payload())
+		self._worker_updated_btts[i] = self._btt()
+
 	def _follow_rules(self):
 		# TODO: roll back changes done by rules that raise an exception
 		# TODO: if there's a paradox while following some rule,
@@ -1924,34 +2115,7 @@ class Engine(AbstractEngine, gORM):
 			return entikey in vbranchesb[turn].entikeys
 
 		if hasattr(self, "_worker_processes") and self.turn > 0:
-			# Update the worker processes so their world state matches mine.
-			if hasattr(self, "_last_updated_workers"):
-				branch_from, turn_from, tick_from = self._last_updated_workers
-				if branch_from == self.branch:
-					delt = self.get_delta(
-						branch, turn_from, tick_from, self.turn, self.tick
-					)
-					self._call_every_subproxy(
-						"_upd_caches",
-						None,
-						None,
-						None,
-						None,
-						(None, delt),
-					)
-				else:
-					payload = self._get_worker_kf_payload()
-					for lock, pipe in zip(
-						self._worker_locks, self._worker_inputs
-					):
-						with lock:
-							pipe.send_bytes(payload)
-			else:
-				payload = self._get_worker_kf_payload()
-				for lock, pipe in zip(self._worker_locks, self._worker_inputs):
-					with lock:
-						pipe.send_bytes(payload)
-			self._last_updated_workers = self._btt()
+			self._update_all_worker_process_states()
 			# Now we can evaluate trigger functions in the worker processes,
 			# in parallel.
 
@@ -2413,7 +2577,7 @@ class Engine(AbstractEngine, gORM):
 				)
 			)
 		if pool:
-			wait(trig_futs)
+			futwait(trig_futs)
 		else:
 			for part in trig_futs:
 				part()

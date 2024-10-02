@@ -37,8 +37,10 @@ from multiprocessing import Process, Pipe, Queue, ProcessError
 from concurrent.futures import ThreadPoolExecutor
 from queue import Empty
 from time import monotonic
-from typing import Hashable, Tuple, Optional, Iterator
+from types import MethodType
+from typing import Hashable, Tuple, Optional, Iterator, List, Union
 
+import networkx as nx
 from blinker import Signal
 import zlib
 import msgpack
@@ -331,6 +333,31 @@ class NodeProxy(CachingEntityProxy):
 
 	def new_thing(self, name, **kwargs):
 		return self.character.new_thing(name, self.name, **kwargs)
+
+	def shortest_path(
+		self, dest: Union[Key, "NodeProxy"], weight: Key = None
+	) -> List[Key]:
+		"""Return a list of node names leading from me to ``dest``.
+
+		Raise ``ValueError`` if ``dest`` is not a node in my character
+		or the name of one.
+
+		"""
+		return nx.shortest_path(
+			self.character, self.name, self._plain_dest_name(dest), weight
+		)
+
+	def _plain_dest_name(self, dest):
+		if isinstance(dest, NodeProxy):
+			if dest.character != self.character:
+				raise ValueError(
+					"{} not in {}".format(dest.name, self.character.name)
+				)
+			return dest.name
+		else:
+			if dest in self.character.node:
+				return dest
+			raise ValueError("{} not in {}".format(dest, self.character.name))
 
 
 class PlaceProxy(NodeProxy):
@@ -2538,6 +2565,18 @@ class EngineProxy(AbstractEngine):
 	def _eval_trigger(self, name, entity):
 		return getattr(self.trigger, name)(entity)
 
+	def _call_function(self, name: str, *args, **kwargs):
+		return getattr(self.function, name)(*args, **kwargs)
+
+	def _reimport_functions(self):
+		self.function.reimport()
+
+	def _call_method(self, name: str, *args, **kwargs):
+		return MethodType(getattr(self.method, name), self)(*args, **kwargs)
+
+	def _reimport_methods(self):
+		self.method.reimport()
+
 	def send_bytes(self, obj, blocking=True, timeout=-1):
 		compressed = zlib.compress(obj)
 		self._handle_out_lock.acquire(blocking, timeout)
@@ -2756,16 +2795,16 @@ class EngineProxy(AbstractEngine):
 		return self.handle("is_ancestor_of", parent=parent, child=child)
 
 	def branches(self) -> set:
-		return self.handle("branches")
+		return self._branches
 
 	def branch_start(self, branch: str) -> Tuple[int, int]:
-		return self.handle("branch_start", branch=branch)
+		return self._branches[branch][1]
 
 	def branch_end(self, branch: str) -> Tuple[int, int]:
-		return self.handle("branch_end", branch=branch)
+		return self._branches[branch][2]
 
 	def branch_parent(self, branch: str) -> Optional[str]:
-		return self.handle("branch_parent", branch=branch)
+		return self._branches[branch][0]
 
 	def apply_choices(self, choices, dry_run=False, perfectionist=False):
 		return self.handle(
@@ -2817,7 +2856,9 @@ class EngineProxy(AbstractEngine):
 	def add_character(self, char, data=None, **attr):
 		if char in self._char_cache:
 			raise KeyError("Character already exists")
-		assert char not in self._char_stat_cache
+		assert (
+			char not in self._char_stat_cache
+		), "Tried to create a character when there was already stat data for it"
 		if data is None:
 			data = {}
 		if not isinstance(data, dict):
@@ -2834,42 +2875,79 @@ class EngineProxy(AbstractEngine):
 		self._char_cache[char] = character = CharacterProxy(self, char)
 		self._char_stat_cache[char] = attr
 		placedata = data.get("place", data.get("node", {}))
-		assert char not in self._character_places_cache
-		self._character_places_cache[char] = {}
-		assert char not in self._node_stat_cache
 		for place, stats in placedata.items():
-			assert place not in self._character_places_cache[char]
-			assert place not in self._node_stat_cache[char]
-			self._character_places_cache[char][place] = PlaceProxy(
-				character, place
-			)
+			assert (
+				char not in self._character_places_cache
+				or place not in self._character_places_cache[char]
+			), "Tried to create a character when there was already place data for it"
+			assert (
+				char not in self._node_stat_cache
+				or place not in self._node_stat_cache[char]
+			), "Tried to create a character when there was already node-value data for it"
+			if char in self._character_places_cache:
+				self._character_places_cache[char][place] = PlaceProxy(
+					character, place
+				)
+			else:
+				self._character_places_cache[char] = {
+					place: PlaceProxy(character, place)
+				}
 			self._node_stat_cache[char][place] = stats
 		thingdata = data.get("thing", {})
 		for thing, stats in thingdata.items():
-			assert thing not in self._things_cache[char]
-			assert thing not in self._node_stat_cache[char]
+			assert (
+				char not in self._things_cache
+				or thing not in self._things_cache[char]
+			), "Tried to create a character when there was already thing data for it"
+			assert (
+				char not in self._node_stat_cache
+				or thing not in self._node_stat_cache[char]
+			), "Tried to create a character when there was already node-stat data for it"
 			if "location" not in stats:
 				raise ValueError("Things must always have locations")
-			if "arrival_time" in stats or "next_arrival_time" in stats:
-				raise ValueError("The arrival_time stats are read-only")
 			loc = stats.pop("location")
-			self._things_cache[char][thing] = ThingProxy(char, thing, loc)
-			self._node_stat_cache[char][thing] = stats
+			if char in self._things_cache:
+				self._things_cache[char][thing] = ThingProxy(
+					character, thing, loc
+				)
+			else:
+				self._things_cache[char] = {
+					thing: ThingProxy(character, thing, loc)
+				}
+			if char in self._node_stat_cache:
+				self._node_stat_cache[char][thing] = stats
+			else:
+				self._node_stat_cache[char] = {thing: stats}
 		portdata = data.get("edge", data.get("portal", data.get("adj", {})))
 		for orig, dests in portdata.items():
-			assert orig not in self._character_portals_cache.successors[char]
-			assert orig not in self._portal_stat_cache[char]
+			assert (
+				char not in self._character_portals_cache.successors
+				or orig not in self._character_portals_cache.successors[char]
+			), "Tried to create a character when there was already successor data for it"
+			assert (
+				char not in self._portal_stat_cache
+				or orig not in self._portal_stat_cache[char]
+			), "Tried to create a character when there was already portal-stat data for it"
 			for dest, stats in dests.items():
 				assert (
-					dest
-					not in self._character_portals_cache.successors[char][orig]
-				)
-				assert dest not in self._portal_stat_cache[char][orig]
+					(
+						char not in self._character_portals_cache.successors
+						or dest
+						not in self._character_portals_cache.successors[char][
+							orig
+						]
+					)
+					and (
+						char not in self._portal_stat_cache
+						or orig not in self._portal_stat_cache[char]
+						or dest not in self._portal_stat_cache[char][orig]
+					)
+				), "Tried to create a character when there was already portal data for it"
 				self._character_portals_cache.store(
 					char,
 					orig,
 					dest,
-					PortalProxy(self.character[char], orig, dest),
+					PortalProxy(character, orig, dest),
 				)
 				self._portal_stat_cache[char][orig][dest] = stats
 		self.handle(
@@ -3069,20 +3147,26 @@ def worker_subprocess(prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue):
 	unpack = eng.unpack
 	compress = zlib.compress
 	decompress = zlib.decompress
+	eng._branches = eng.unpack(zlib.decompress(in_pipe.recv_bytes()))
 	while True:
 		inst = in_pipe.recv_bytes()
 		if inst == b"shutdown":
-			out_pipe.send_bytes(b"done")
 			in_pipe.close()
-			out_pipe.close()
 			if logq:
 				logq.close()
+			out_pipe.send_bytes(b"done")
+			out_pipe.close()
 			return 0
 		(uid, method, args, kwargs) = unpack(decompress(inst))
 		try:
 			ret = getattr(eng, method)(*args, **kwargs)
 		except Exception as ex:
 			ret = ex
+			if uid < 0:
+				import traceback
+
+				traceback.print_exc(file=sys.stderr)
+				raise
 		if uid >= 0:
 			out_pipe.send_bytes(compress(pack((uid, ret))))
 

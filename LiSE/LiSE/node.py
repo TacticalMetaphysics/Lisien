@@ -800,7 +800,7 @@ class Thing(Node):
 		return turns
 
 	def follow_path(
-		self, path: list, weight: Key = None, stat: Key = None
+		self, path: list, weight: Key = None, check: bool = True
 	) -> int:
 		"""Go to several nodes in succession, deciding how long to
 		spend in each by consulting the ``weight`` stat of the
@@ -810,43 +810,58 @@ class Thing(Node):
 		Return the total number of turns the travel will take. Raise
 		:class:`TravelException` if I can't follow the whole path,
 		either because some of its nodes don't exist, or because I'm
-		scheduled to be somewhere else.
+		scheduled to be somewhere else. Set ``check=False`` if
+		you're really sure the path is correct, and this function
+		will be faster.
 
 		"""
 		if len(path) < 2:
 			raise ValueError("Paths need at least 2 nodes")
 		eng = self.character.engine
 		with eng.plan():
-			prevplace = path.pop(0)
-			if prevplace != self["location"]:
-				raise ValueError("Path does not start at my present location")
-			subpath = [prevplace]
-			for place in path:
-				if (
-					prevplace not in self.character.portal
-					or place not in self.character.portal[prevplace]
-				):
-					raise TravelException(
-						"Couldn't follow portal from {} to {}".format(
-							prevplace, place
-						),
-						path=subpath,
-						traveller=self,
+			if check:
+				prevplace = path.pop(0)
+				if prevplace != self["location"]:
+					raise ValueError(
+						"Path does not start at my present location"
 					)
-				subpath.append(place)
-				prevplace = place
+				subpath = [prevplace]
+				for place in path:
+					if (
+						prevplace not in self.character.portal
+						or place not in self.character.portal[prevplace]
+					):
+						raise TravelException(
+							"Couldn't follow portal from {} to {}".format(
+								prevplace, place
+							),
+							path=subpath,
+							traveller=self,
+						)
+					subpath.append(place)
+					prevplace = place
+			else:
+				subpath = path.copy()
 			turns_total = 0
 			prevsubplace = subpath.pop(0)
 			subsubpath = [prevsubplace]
 			for subplace in subpath:
-				portal = self.character.portal[prevsubplace][subplace]
-				turn_inc = 1 if weight is None else portal.get(weight, 1)
+				if weight is not None:
+					turn_inc = self.engine._edge_val_cache.retrieve(
+						self.character.name,
+						prevsubplace,
+						subplace,
+						0,
+						*self.engine._btt(),
+					)
+				else:
+					turn_inc = 0
 				eng.turn += turn_inc
-				self.location = subplace
+				self["location"] = subplace
 				turns_total += turn_inc
 				subsubpath.append(subplace)
 				prevsubplace = subplace
-			self.location = subplace
+			self["location"] = subplace
 		return turns_total
 
 	def travel_to(

@@ -3,7 +3,14 @@ import pytest
 
 from LiSE import Engine
 from LiSE.handle import EngineHandle
-from LiSE.examples import college, kobold, polygons, sickle, wolfsheep
+from LiSE.examples import (
+	college,
+	kobold,
+	polygons,
+	sickle,
+	wolfsheep,
+	pathfind,
+)
 
 pytestmark = [pytest.mark.big]
 
@@ -71,3 +78,22 @@ def test_wolfsheep(tempdir):
 	hand = EngineHandle(tempdir, random_seed=69105)
 	hand.next_turn()
 	hand.close()
+
+
+def test_pathfind(tempdir):
+	with Engine(tempdir) as eng:
+		pathfind.install(eng, 69105)
+		locs = [
+			thing.location.name
+			for thing in sorted(
+				eng.character["physical"].thing.values(), key=lambda t: t.name
+			)
+		]
+		for i in range(10):
+			eng.next_turn()
+		assert locs != [
+			thing.location.name
+			for thing in sorted(
+				eng.character["physical"].thing.values(), key=lambda t: t.name
+			)
+		]
