@@ -3129,7 +3129,8 @@ def worker_subprocess(prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue):
 			out_pipe.close()
 			if logq:
 				logq.close()
-			out_pipe.send_bytes(b"done")
+			if not out_pipe.closed():
+				out_pipe.send_bytes(b"done")
 			return 0
 		(uid, method, args, kwargs) = unpack(decompress(inst))
 		try:
