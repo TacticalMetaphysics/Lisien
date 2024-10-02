@@ -29,7 +29,9 @@ def install(eng, seed=None):
 				desty += 1
 			else:
 				destx = desty = 0
-		return node.shortest_path(node.character.place[destx, desty])
+		ret = node.shortest_path(node.character.place[destx, desty])
+		print(f"{node.name}'s shortest path to {destx, desty} is {ret}")
+		return ret
 
 	@phys.rule
 	def go_places(char):
