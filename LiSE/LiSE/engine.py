@@ -1961,13 +1961,13 @@ class Engine(AbstractEngine, gORM):
 			character, orig, dest, rulebook, rule, branch, turn, tick
 		)
 
-	def _update_all_worker_process_states(self):
+	def _update_all_worker_process_states(self, clobber=False):
 		for lock in self._worker_locks:
 			lock.acquire()
 		kf_payload = None
 		for i in range(len(self._worker_processes)):
 			branch_from, turn_from, tick_from = self._worker_updated_btts[i]
-			if branch_from == self.branch:
+			if not clobber and branch_from == self.branch:
 				delt = self.get_delta(
 					branch_from, turn_from, tick_from, self.turn, self.tick
 				)
