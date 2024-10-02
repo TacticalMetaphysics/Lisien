@@ -18,9 +18,9 @@ def install(eng, seed=None):
 
 	@eng.function
 	def find_path_somewhere(node):
-		x, y = node.name
-		destx = 100 - x
-		desty = 100 - y
+		x, y = node.location.name
+		destx = 100 - int(x)
+		desty = 100 - int(y)
 		while (destx, desty) not in node.character.place:
 			if destx < 99:
 				destx += 1
@@ -35,7 +35,7 @@ def install(eng, seed=None):
 	def go_places(char):
 		futs = []
 		with char.engine.pool as pool:
-			for thing in char.thing:
+			for thing in char.thing.values():
 				fut = pool.submit(
 					char.engine.function.find_path_somewhere, thing
 				)
