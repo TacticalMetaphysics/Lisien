@@ -53,15 +53,16 @@ def install(eng, seed=None):
 				)
 				fut.thing = thing
 				futs.append(fut)
-		for fut in futs:
-			try:
-				result = fut.result()
-				thing = fut.thing
-				print(f"got path {result} for thing {thing.name}")
-				thing.follow_path(result, check=False)
-			except NetworkXNoPath:
-				print(f"got no path for thing {fut.thing.name}")
-				continue
+		with char.engine.batch():
+			for fut in futs:
+				try:
+					result = fut.result()
+					thing = fut.thing
+					print(f"got path {result} for thing {thing.name}")
+					thing.follow_path(result, check=False)
+				except NetworkXNoPath:
+					print(f"got no path for thing {fut.thing.name}")
+					continue
 
 	@go_places.trigger
 	def turn_one_only(char):
