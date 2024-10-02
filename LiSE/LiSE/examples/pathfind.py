@@ -18,6 +18,9 @@ def install(eng, seed=None):
 
 	@eng.function
 	def find_path_somewhere(node):
+		from networkx.algorithms import astar_path
+		from math import sqrt
+
 		x, y = node.location.name
 		destx = 100 - int(x)
 		desty = 100 - int(y)
@@ -29,7 +32,12 @@ def install(eng, seed=None):
 				desty += 1
 			else:
 				destx = desty = 0
-		ret = node.location.shortest_path(node.character.place[destx, desty])
+		ret = astar_path(
+			node.character,
+			node.location.name,
+			(destx, desty),
+			lambda a, b: sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2),
+		)
 		print(f"{node.name}'s shortest path to {destx, desty} is {ret}")
 		return ret
 
