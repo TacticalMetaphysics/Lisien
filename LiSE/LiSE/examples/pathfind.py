@@ -9,7 +9,7 @@ def install(eng, seed=None):
 	grid: nx.Graph = nx.grid_2d_graph(100, 100)
 
 	for node in list(grid):
-		if random.choice((True, False)):
+		if random.random() < 0.1:
 			grid.remove_node(node)
 		elif random.random() < 0.1:
 			grid.add_node(f"{node}_inhabitant", location=node)
