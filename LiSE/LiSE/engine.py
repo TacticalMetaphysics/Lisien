@@ -617,16 +617,31 @@ class Engine(AbstractEngine, gORM):
 		return ret
 
 	def _call_any_subproxy(self, method: str, *args, **kwargs):
-		uid = self._top_uid = self._top_uid + 1
+		uid = self._top_uid
+		self._top_uid += 1
 		return self._call_a_subproxy(uid, method, *args, **kwargs)
 
 	def _call_every_subproxy(self, method: str, *args, **kwargs):
 		ret = []
+		for lock in self._worker_locks:
+			lock.acquire()
+		uids = []
 		for _ in range(len(self._worker_processes)):
-			ret.append(
-				self._call_a_subproxy(self._top_uid, method, *args, **kwargs)
+			uids.append(self._top_uid)
+			argbytes = zlib.compress(
+				self.pack((self._top_uid, method, args, kwargs))
 			)
+			i = self._top_uid % len(self._worker_processes)
 			self._top_uid += 1
+			self._worker_inputs[i].send_bytes(argbytes)
+		for uid in uids:
+			i = uid % len(self._worker_processes)
+			outbytes = self._worker_outputs[i].recv_bytes()
+			got_uid, retval = self.unpack(zlib.decompress(outbytes))
+			assert got_uid == uid
+			ret.append(retval)
+		for lock in self._worker_locks:
+			lock.release()
 		return ret
 
 	def _start_cache_arranger(self) -> None:
