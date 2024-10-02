@@ -31,7 +31,7 @@ from collections import defaultdict
 from itertools import chain
 from queue import SimpleQueue, Empty
 from threading import Thread, Lock
-from time import sleep
+from time import sleep, time
 from types import FunctionType, ModuleType, MethodType
 from typing import Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
@@ -228,7 +228,6 @@ class NullSchema(AbstractSchema):
 class LiSEProcessPoolExecutor(Executor):
 	def __init__(self, eng: "Engine"):
 		self.eng = eng
-		self._futs = []
 		self._how_many_futs_running = 0
 		self._fut_manager_thread = Thread(
 			target=self._manage_futs, daemon=True
@@ -278,7 +277,6 @@ class LiSEProcessPoolExecutor(Executor):
 			kwargs=kwargs,
 		)
 		self.eng._top_uid += 1
-		self._futs.append(ret)
 		self._uid_to_fut[uid] = ret
 		self._futs_to_start.put(ret)
 		return ret
@@ -299,8 +297,12 @@ class LiSEProcessPoolExecutor(Executor):
 			sleep(0.001)
 
 	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
+		if cancel_futures:
+			for fut in self._uid_to_fut.values():
+				fut.cancel()
 		if wait:
-			futwait(self._futs)
+			futwait(self._uid_to_fut.values())
+		self._uid_to_fut = {}
 
 
 class Engine(AbstractEngine, gORM):
