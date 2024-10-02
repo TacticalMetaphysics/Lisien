@@ -35,6 +35,8 @@ def install(eng, seed=None):
 
 	@phys.rule
 	def go_places(char):
+		from networkx.exception import NetworkXNoPath
+
 		futs = []
 		with char.engine.pool as pool:
 			for thing in char.thing.values():
@@ -44,9 +46,12 @@ def install(eng, seed=None):
 				fut.thing = thing
 				futs.append(fut)
 		for fut in futs:
-			result = fut.result()
-			thing = fut.thing
-			thing.follow_path(result)
+			try:
+				result = fut.result()
+				thing = fut.thing
+				thing.follow_path(result)
+			except NetworkXNoPath:
+				continue
 
 	@go_places.trigger
 	def turn_one_only(char):
