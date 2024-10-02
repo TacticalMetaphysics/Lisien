@@ -269,7 +269,7 @@ class LiSEProcessPoolExecutor(Executor):
 				"Function is not stored in this LiSE engine. "
 				"Use the engine's attributes `function` and `method` to store it."
 			)
-		uid = self.eng._top_uid = self.eng._top_uid + 1
+		uid = self.eng._top_uid
 		ret = Future()
 		ret.uid = uid
 		ret._t = Thread(
@@ -277,6 +277,7 @@ class LiSEProcessPoolExecutor(Executor):
 			args=(uid, method, fn.__name__, ret, *args),
 			kwargs=kwargs,
 		)
+		self.eng._top_uid += 1
 		self._futs.append(ret)
 		self._uid_to_fut[uid] = ret
 		self._futs_to_start.put(ret)
@@ -295,6 +296,9 @@ class LiSEProcessPoolExecutor(Executor):
 					fut._t.start()
 					fut.set_running_or_notify_cancel()
 					self._how_many_futs_running += 1
+			print(
+				f"There are now {self._how_many_futs_running} futures running."
+			)
 			sleep(0.001)
 
 	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
