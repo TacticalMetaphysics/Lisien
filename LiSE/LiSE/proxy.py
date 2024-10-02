@@ -3097,6 +3097,11 @@ def worker_subprocess(prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue):
 			ret = getattr(eng, method)(*args, **kwargs)
 		except Exception as ex:
 			ret = ex
+			if uid < 0:
+				import traceback
+
+				traceback.print_exc(file=sys.stderr)
+				raise
 		if uid >= 0:
 			out_pipe.send_bytes(compress(pack((uid, ret))))
 
