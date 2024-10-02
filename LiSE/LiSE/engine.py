@@ -109,6 +109,9 @@ class NextTurn(Signal):
 
 	def __call__(self) -> Tuple[List, DeltaDict]:
 		engine = self.engine
+		for store in engine.stores:
+			if getattr(store, "_need_save", None):
+				store.save()
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._turns_completed[start_branch]
 		if start_turn < latest_turn:
@@ -1970,8 +1973,14 @@ class Engine(AbstractEngine, gORM):
 					self.pack(
 						(
 							-1,
-							"_upd_caches",
-							(None, None, None, None, (None, delt)),
+							"_upd",
+							(
+								None,
+								self.branch,
+								self.turn,
+								self.tick,
+								(None, delt),
+							),
 							{},
 						)
 					)
@@ -1995,8 +2004,14 @@ class Engine(AbstractEngine, gORM):
 				self.pack(
 					(
 						-1,
-						"_upd_caches",
-						(None, None, None, None, (None, delt)),
+						"_upd",
+						(
+							None,
+							self.branch,
+							self.turn,
+							self.tick,
+							(None, delt),
+						),
 						{},
 					)
 				)
