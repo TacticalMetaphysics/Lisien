@@ -786,6 +786,10 @@ class AbstractCharacter(Mapping):
 	def is_directed():
 		return True
 
+	@staticmethod
+	def is_multigraph():
+		return False
+
 	@abstractmethod
 	def add_place(self, name, **kwargs):
 		pass
