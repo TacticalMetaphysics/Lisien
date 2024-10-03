@@ -846,7 +846,6 @@ class Engine(AbstractEngine, gORM):
 		from .xcollections import (
 			FunctionStore,
 			CharacterMapping,
-			UniversalMapping,
 		)
 		from .cache import (
 			NodeContentsCache,
