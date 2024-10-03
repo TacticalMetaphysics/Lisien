@@ -852,7 +852,7 @@ class Thing(Node):
 						*self.engine._btt(),
 					)
 				else:
-					turn_inc = 0
+					turn_inc = 1
 				eng.turn += turn_inc
 				self["location"] = subplace
 				turns_total += turn_inc
