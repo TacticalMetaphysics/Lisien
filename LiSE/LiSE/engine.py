@@ -523,6 +523,7 @@ class Engine(AbstractEngine, gORM):
 		self.commit_interval = commit_interval
 		self.query.keyframe_interval = keyframe_interval
 		self.query.snap_keyframe = self.snap_keyframe
+		self.query.kf_interval_override = self._detect_kf_interval_override
 		self.flush_interval = flush_interval
 		if threaded_triggers:
 			self._trigger_pool = ThreadPoolExecutor()
@@ -592,6 +593,13 @@ class Engine(AbstractEngine, gORM):
 				self.universal["rando_state"] = rando_state
 		if cache_arranger:
 			self._start_cache_arranger()
+
+	def _detect_kf_interval_override(self):
+		if getattr(self, "_no_kc", False):
+			self._kf_overridden = True
+			return True
+		if getattr(self, "_kf_overridden", False):
+			return False
 
 	def _reimport_trigger_functions(self, *args, attr, **kwargs):
 		if attr is not None:
