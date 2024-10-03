@@ -22,6 +22,7 @@ from sqlalchemy import (
 	ForeignKeyConstraint,
 	INT,
 	TEXT,
+	BLOB,
 	BOOLEAN,
 	MetaData,
 	ForeignKey,
@@ -38,8 +39,8 @@ def tables_for_meta(meta):
 	Table(
 		"global",
 		meta,
-		Column("key", TEXT, primary_key=True),
-		Column("value", TEXT, nullable=True),
+		Column("key", BLOB, primary_key=True),
+		Column("value", BLOB, nullable=True),
 		sqlite_with_rowid=False,
 	)
 	Table(
@@ -72,7 +73,7 @@ def tables_for_meta(meta):
 	Table(
 		"graphs",
 		meta,
-		Column("graph", TEXT, primary_key=True),
+		Column("graph", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True),
 		Column("turn", INT, primary_key=True),
 		Column("tick", INT, primary_key=True),
@@ -86,7 +87,7 @@ def tables_for_meta(meta):
 	Table(
 		"keyframes",
 		meta,
-		Column("graph", TEXT, ForeignKey("graphs.graph"), primary_key=True),
+		Column("graph", BLOB, ForeignKey("graphs.graph"), primary_key=True),
 		Column(
 			"branch",
 			TEXT,
@@ -96,16 +97,16 @@ def tables_for_meta(meta):
 		),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
-		Column("nodes", TEXT),
-		Column("edges", TEXT),
-		Column("graph_val", TEXT),
+		Column("nodes", BLOB),
+		Column("edges", BLOB),
+		Column("graph_val", BLOB),
 		sqlite_with_rowid=False,
 	)
 	Table(
 		"graph_val",
 		meta,
-		Column("graph", TEXT, ForeignKey("graphs.graph"), primary_key=True),
-		Column("key", TEXT, primary_key=True),
+		Column("graph", BLOB, ForeignKey("graphs.graph"), primary_key=True),
+		Column("key", BLOB, primary_key=True),
 		Column(
 			"branch",
 			TEXT,
@@ -115,14 +116,14 @@ def tables_for_meta(meta):
 		),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
-		Column("value", TEXT, nullable=True),
+		Column("value", BLOB),
 		sqlite_with_rowid=False,
 	)
 	Table(
 		"nodes",
 		meta,
-		Column("graph", TEXT, ForeignKey("graphs.graph"), primary_key=True),
-		Column("node", TEXT, primary_key=True),
+		Column("graph", BLOB, ForeignKey("graphs.graph"), primary_key=True),
+		Column("node", BLOB, primary_key=True),
 		Column(
 			"branch",
 			TEXT,
@@ -138,9 +139,9 @@ def tables_for_meta(meta):
 	Table(
 		"node_val",
 		meta,
-		Column("graph", TEXT, primary_key=True),
-		Column("node", TEXT, primary_key=True),
-		Column("key", TEXT, primary_key=True),
+		Column("graph", BLOB, primary_key=True),
+		Column("node", BLOB, primary_key=True),
+		Column("key", BLOB, primary_key=True),
 		Column(
 			"branch",
 			TEXT,
@@ -150,16 +151,16 @@ def tables_for_meta(meta):
 		),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
-		Column("value", TEXT, nullable=True),
+		Column("value", BLOB),
 		ForeignKeyConstraint(["graph", "node"], ["nodes.graph", "nodes.node"]),
 		sqlite_with_rowid=False,
 	)
 	Table(
 		"edges",
 		meta,
-		Column("graph", TEXT, ForeignKey("graphs.graph"), primary_key=True),
-		Column("orig", TEXT, primary_key=True),
-		Column("dest", TEXT, primary_key=True),
+		Column("graph", BLOB, ForeignKey("graphs.graph"), primary_key=True),
+		Column("orig", BLOB, primary_key=True),
+		Column("dest", BLOB, primary_key=True),
 		Column("idx", INT, primary_key=True),
 		Column(
 			"branch",
@@ -178,11 +179,11 @@ def tables_for_meta(meta):
 	Table(
 		"edge_val",
 		meta,
-		Column("graph", TEXT, primary_key=True),
-		Column("orig", TEXT, primary_key=True),
-		Column("dest", TEXT, primary_key=True),
+		Column("graph", BLOB, primary_key=True),
+		Column("orig", BLOB, primary_key=True),
+		Column("dest", BLOB, primary_key=True),
 		Column("idx", INT, primary_key=True),
-		Column("key", TEXT, primary_key=True),
+		Column("key", BLOB, primary_key=True),
 		Column(
 			"branch",
 			TEXT,
@@ -192,7 +193,7 @@ def tables_for_meta(meta):
 		),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
-		Column("value", TEXT, nullable=True),
+		Column("value", BLOB),
 		ForeignKeyConstraint(
 			["graph", "orig", "dest", "idx"],
 			["edges.graph", "edges.orig", "edges.dest", "edges.idx"],

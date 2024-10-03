@@ -41,7 +41,7 @@ from sqlalchemy import (
 	TEXT,
 	BOOLEAN,
 	FLOAT,
-	BINARY,
+	BLOB,
 )
 from sqlalchemy import MetaData
 from sqlalchemy.sql.ddl import CreateTable, CreateIndex
@@ -63,11 +63,11 @@ def tables_for_meta(meta):
 	Table(
 		"universals",
 		meta,
-		Column("key", TEXT, primary_key=True),
+		Column("key", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
-		Column("value", TEXT),
+		Column("value", BLOB),
 		sqlite_with_rowid=False,
 	)
 
@@ -82,11 +82,11 @@ def tables_for_meta(meta):
 	Table(
 		"rulebooks",
 		meta,
-		Column("rulebook", TEXT, primary_key=True),
+		Column("rulebook", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
-		Column("rules", BINARY, default=b"\x90"),  # empty array
+		Column("rules", BLOB, default=b"\x90"),  # empty array
 		Column("priority", FLOAT, default=0.0),
 		sqlite_with_rowid=False,
 	)
@@ -100,7 +100,7 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
-		Column("triggers", TEXT, default="[]"),
+		Column("triggers", BLOB, default=b"\x90"),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
 		sqlite_with_rowid=False,
 	)
@@ -114,7 +114,7 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
-		Column("neighborhood", TEXT, default=b"\xc0"),
+		Column("neighborhood", BLOB, default=b"\xc0"),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
 		sqlite_with_rowid=False,
 	)
@@ -128,7 +128,7 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
-		Column("prereqs", TEXT, default="[]"),
+		Column("prereqs", BLOB, default=b"\x90"),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
 		sqlite_with_rowid=False,
 	)
@@ -142,7 +142,7 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
-		Column("actions", TEXT, default="[]"),
+		Column("actions", BLOB, default=b"\x90"),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
 		sqlite_with_rowid=False,
 	)
@@ -162,11 +162,11 @@ def tables_for_meta(meta):
 		Table(
 			name,
 			meta,
-			Column("character", TEXT, primary_key=True),
+			Column("character", BLOB, primary_key=True),
 			Column("branch", TEXT, primary_key=True, default="trunk"),
 			Column("turn", INT, primary_key=True, default=0),
 			Column("tick", INT, primary_key=True, default=0),
-			Column("rulebook", TEXT),
+			Column("rulebook", BLOB),
 			ForeignKeyConstraint(("character",), ["graphs.graph"]),
 			ForeignKeyConstraint(("rulebook",), ["rulebooks.rulebook"]),
 			sqlite_with_rowid=False,
@@ -177,9 +177,9 @@ def tables_for_meta(meta):
 	nrh = Table(
 		"node_rules_handled",
 		meta,
-		Column("character", TEXT, primary_key=True),
-		Column("node", TEXT, primary_key=True),
-		Column("rulebook", TEXT, primary_key=True),
+		Column("character", BLOB, primary_key=True),
+		Column("node", BLOB, primary_key=True),
+		Column("rulebook", BLOB, primary_key=True),
 		Column("rule", TEXT, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
@@ -195,10 +195,10 @@ def tables_for_meta(meta):
 	porh = Table(
 		"portal_rules_handled",
 		meta,
-		Column("character", TEXT, primary_key=True),
-		Column("orig", TEXT, primary_key=True),
-		Column("dest", TEXT, primary_key=True),
-		Column("rulebook", TEXT, primary_key=True),
+		Column("character", BLOB, primary_key=True),
+		Column("orig", BLOB, primary_key=True),
+		Column("dest", BLOB, primary_key=True),
+		Column("rulebook", BLOB, primary_key=True),
 		Column("rule", TEXT, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
@@ -218,13 +218,13 @@ def tables_for_meta(meta):
 	Table(
 		"things",
 		meta,
-		Column("character", TEXT, primary_key=True),
-		Column("thing", TEXT, primary_key=True),
+		Column("character", BLOB, primary_key=True),
+		Column("thing", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		# when location is null, this node is not a thing, but a place
-		Column("location", TEXT),
+		Column("location", BLOB),
 		ForeignKeyConstraint(
 			("character", "thing"), ["nodes.graph", "nodes.node"]
 		),
@@ -238,12 +238,12 @@ def tables_for_meta(meta):
 	Table(
 		"node_rulebook",
 		meta,
-		Column("character", TEXT, primary_key=True),
-		Column("node", TEXT, primary_key=True),
+		Column("character", BLOB, primary_key=True),
+		Column("node", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
-		Column("rulebook", TEXT),
+		Column("rulebook", BLOB),
 		ForeignKeyConstraint(
 			("character", "node"), ["nodes.graph", "nodes.node"]
 		),
@@ -259,13 +259,13 @@ def tables_for_meta(meta):
 	Table(
 		"portal_rulebook",
 		meta,
-		Column("character", TEXT, primary_key=True),
-		Column("orig", TEXT, primary_key=True),
-		Column("dest", TEXT, primary_key=True),
+		Column("character", BLOB, primary_key=True),
+		Column("orig", BLOB, primary_key=True),
+		Column("dest", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
-		Column("rulebook", TEXT),
+		Column("rulebook", BLOB),
 		ForeignKeyConstraint(
 			("character", "orig", "dest"),
 			["edges.graph", "edges.orig", "edges.dest"],
@@ -287,9 +287,9 @@ def tables_for_meta(meta):
 	Table(
 		"units",
 		meta,
-		Column("character_graph", TEXT, primary_key=True),
-		Column("unit_graph", TEXT, primary_key=True),
-		Column("unit_node", TEXT, primary_key=True),
+		Column("character_graph", BLOB, primary_key=True),
+		Column("unit_graph", BLOB, primary_key=True),
+		Column("unit_node", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
@@ -304,8 +304,8 @@ def tables_for_meta(meta):
 	crh = Table(
 		"character_rules_handled",
 		meta,
-		Column("character", TEXT),
-		Column("rulebook", TEXT),
+		Column("character", BLOB),
+		Column("rulebook", BLOB),
 		Column("rule", TEXT),
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
@@ -320,10 +320,10 @@ def tables_for_meta(meta):
 	arh = Table(
 		"unit_rules_handled",
 		meta,
-		Column("character", TEXT),
-		Column("graph", TEXT),
-		Column("unit", TEXT),
-		Column("rulebook", TEXT),
+		Column("character", BLOB),
+		Column("graph", BLOB),
+		Column("unit", BLOB),
+		Column("rulebook", BLOB),
 		Column("rule", TEXT),
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
@@ -338,9 +338,9 @@ def tables_for_meta(meta):
 	ctrh = Table(
 		"character_thing_rules_handled",
 		meta,
-		Column("character", TEXT),
-		Column("thing", TEXT),
-		Column("rulebook", TEXT),
+		Column("character", BLOB),
+		Column("thing", BLOB),
+		Column("rulebook", BLOB),
 		Column("rule", TEXT),
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
@@ -361,9 +361,9 @@ def tables_for_meta(meta):
 	cprh = Table(
 		"character_place_rules_handled",
 		meta,
-		Column("character", TEXT),
-		Column("place", TEXT),
-		Column("rulebook", TEXT),
+		Column("character", BLOB),
+		Column("place", BLOB),
+		Column("rulebook", BLOB),
 		Column("rule", TEXT),
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
@@ -384,10 +384,10 @@ def tables_for_meta(meta):
 	cporh = Table(
 		"character_portal_rules_handled",
 		meta,
-		Column("character", TEXT),
-		Column("orig", TEXT),
-		Column("dest", TEXT),
-		Column("rulebook", TEXT),
+		Column("character", BLOB),
+		Column("orig", BLOB),
+		Column("dest", BLOB),
+		Column("rulebook", BLOB),
 		Column("rule", TEXT),
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
