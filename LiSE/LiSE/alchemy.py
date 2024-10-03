@@ -167,8 +167,6 @@ def tables_for_meta(meta):
 			Column("turn", INT, primary_key=True, default=0),
 			Column("tick", INT, primary_key=True, default=0),
 			Column("rulebook", BLOB),
-			ForeignKeyConstraint(("character",), ["graphs.graph"]),
-			ForeignKeyConstraint(("rulebook",), ["rulebooks.rulebook"]),
 			sqlite_with_rowid=False,
 		)
 
@@ -184,9 +182,6 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT),
-		ForeignKeyConstraint(
-			("character", "node"), ["nodes.graph", "nodes.node"]
-		),
 		sqlite_with_rowid=False,
 	)
 
@@ -203,10 +198,6 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT),
-		ForeignKeyConstraint(
-			("character", "orig", "dest"),
-			["edges.graph", "edges.orig", "edges.dest"],
-		),
 		sqlite_with_rowid=False,
 	)
 
@@ -225,12 +216,6 @@ def tables_for_meta(meta):
 		Column("tick", INT, primary_key=True, default=0),
 		# when location is null, this node is not a thing, but a place
 		Column("location", BLOB),
-		ForeignKeyConstraint(
-			("character", "thing"), ["nodes.graph", "nodes.node"]
-		),
-		ForeignKeyConstraint(
-			("character", "location"), ["nodes.graph", "nodes.node"]
-		),
 		sqlite_with_rowid=False,
 	)
 
@@ -244,9 +229,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("rulebook", BLOB),
-		ForeignKeyConstraint(
-			("character", "node"), ["nodes.graph", "nodes.node"]
-		),
 		sqlite_with_rowid=False,
 	)
 
@@ -266,10 +248,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("rulebook", BLOB),
-		ForeignKeyConstraint(
-			("character", "orig", "dest"),
-			["edges.graph", "edges.orig", "edges.dest"],
-		),
 		sqlite_with_rowid=False,
 	)
 
@@ -294,10 +272,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("is_unit", BOOLEAN),
-		ForeignKeyConstraint(("character_graph",), ["graphs.graph"]),
-		ForeignKeyConstraint(
-			("unit_graph", "unit_node"), ["nodes.graph", "nodes.node"]
-		),
 		sqlite_with_rowid=False,
 	)
 
@@ -310,10 +284,6 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
 		Column("tick", INT),
-		ForeignKeyConstraint(
-			("character", "rulebook"),
-			["character_rulebook.character", "character_rulebook.rulebook"],
-		),
 		sqlite_with_rowid=True,
 	)
 
@@ -328,10 +298,6 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
 		Column("tick", INT),
-		ForeignKeyConstraint(
-			("character", "rulebook"),
-			["unit_rulebook.character", "unit_rulebook.rulebook"],
-		),
 		sqlite_with_rowid=True,
 	)
 
@@ -345,16 +311,6 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
 		Column("tick", INT),
-		ForeignKeyConstraint(
-			("character", "rulebook"),
-			[
-				"character_thing_rulebook.character",
-				"character_thing_rulebook.rulebook",
-			],
-		),
-		ForeignKeyConstraint(
-			("character", "thing"), ["things.character", "things.thing"]
-		),
 		sqlite_with_rowid=True,
 	)
 
@@ -368,16 +324,6 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
 		Column("tick", INT),
-		ForeignKeyConstraint(
-			("character", "rulebook"),
-			[
-				"character_place_rulebook.character",
-				"character_place_rulebook.rulebook",
-			],
-		),
-		ForeignKeyConstraint(
-			("character", "place"), ["nodes.graph", "nodes.node"]
-		),
 		sqlite_with_rowid=True,
 	)
 
@@ -392,17 +338,6 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
 		Column("tick", INT),
-		ForeignKeyConstraint(
-			("character", "rulebook"),
-			[
-				"character_portal_rulebook.character",
-				"character_portal_rulebook.rulebook",
-			],
-		),
-		ForeignKeyConstraint(
-			("character", "orig", "dest"),
-			["edges.graph", "edges.orig", "edges.dest"],
-		),
 		sqlite_with_rowid=True,
 	)
 

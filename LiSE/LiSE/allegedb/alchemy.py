@@ -49,11 +49,10 @@ def tables_for_meta(meta):
 		Column(
 			"branch",
 			TEXT,
-			ForeignKey("branches.parent"),
 			primary_key=True,
 			default="trunk",
 		),
-		Column("parent", TEXT, default="trunk", nullable=True, unique=True),
+		Column("parent", TEXT, default="trunk", nullable=True),
 		Column("parent_turn", INT, default=0),
 		Column("parent_tick", INT, default=0),
 		Column("end_turn", INT, default=0),
@@ -73,7 +72,7 @@ def tables_for_meta(meta):
 	Table(
 		"graphs",
 		meta,
-		Column("graph", BLOB, primary_key=True, unique=True),
+		Column("graph", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True),
 		Column("turn", INT, primary_key=True),
 		Column("tick", INT, primary_key=True),
@@ -87,7 +86,7 @@ def tables_for_meta(meta):
 	Table(
 		"keyframes",
 		meta,
-		Column("graph", BLOB, ForeignKey("graphs.graph"), primary_key=True),
+		Column("graph", BLOB, primary_key=True),
 		Column(
 			"branch",
 			TEXT,
@@ -105,7 +104,7 @@ def tables_for_meta(meta):
 	Table(
 		"graph_val",
 		meta,
-		Column("graph", BLOB, ForeignKey("graphs.graph"), primary_key=True),
+		Column("graph", BLOB, primary_key=True),
 		Column("key", BLOB, primary_key=True),
 		Column(
 			"branch",
@@ -122,7 +121,7 @@ def tables_for_meta(meta):
 	Table(
 		"nodes",
 		meta,
-		Column("graph", BLOB, ForeignKey("graphs.graph"), primary_key=True),
+		Column("graph", BLOB, primary_key=True),
 		Column("node", BLOB, primary_key=True),
 		Column(
 			"branch",
@@ -157,7 +156,7 @@ def tables_for_meta(meta):
 	Table(
 		"edges",
 		meta,
-		Column("graph", BLOB, ForeignKey("graphs.graph"), primary_key=True),
+		Column("graph", BLOB, primary_key=True),
 		Column("orig", BLOB, primary_key=True),
 		Column("dest", BLOB, primary_key=True),
 		Column("idx", INT, primary_key=True),
