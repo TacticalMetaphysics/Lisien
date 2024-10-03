@@ -60,7 +60,12 @@ from .allegedb import (
 )
 from .allegedb.window import update_window, update_backward_window
 from .util import sort_set, AbstractEngine, final_rule, normalize_layout
-from .xcollections import StringStore, FunctionStore, MethodStore
+from .xcollections import (
+	StringStore,
+	FunctionStore,
+	MethodStore,
+	UniversalMapping,
+)
 from .query import (
 	Query,
 	_make_side_sel,
