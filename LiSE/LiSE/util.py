@@ -467,6 +467,8 @@ class AbstractEngine(ABC):
 				return handlers[typ](obj)
 			elif isinstance(obj, Mapping):
 				return dict(obj)
+			elif isinstance(obj, list):
+				return list(obj)
 			raise TypeError("Can't pack {}".format(typ))
 
 		packer = partial(

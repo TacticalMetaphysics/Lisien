@@ -15,6 +15,7 @@
 """allegedb's special implementations of the NetworkX graph objects"""
 
 from abc import ABC
+from itertools import chain
 
 import networkx
 from networkx.exception import NetworkXError
@@ -516,7 +517,7 @@ class GraphNodeMapping(AllegedMapping):
 			del self.db._node_objs[key]
 
 	def update(self, m, /, **kwargs):
-		for node, value in m.items() | kwargs.items():
+		for node, value in chain(m.items(), kwargs.items()):
 			if value is None:
 				del self[node]
 			elif node not in self:
