@@ -28,6 +28,7 @@ from sqlalchemy import (
 	ForeignKey,
 	select,
 	func,
+	Constraint,
 )
 from sqlalchemy.sql import bindparam, and_, or_
 
@@ -152,7 +153,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("value", BLOB),
-		ForeignKeyConstraint(["graph", "node"], ["nodes.graph", "nodes.node"]),
 		sqlite_with_rowid=False,
 	)
 	Table(
@@ -172,8 +172,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("extant", BOOLEAN),
-		ForeignKeyConstraint(["graph", "orig"], ["nodes.graph", "nodes.node"]),
-		ForeignKeyConstraint(["graph", "dest"], ["nodes.graph", "nodes.node"]),
 		sqlite_with_rowid=False,
 	)
 	Table(
@@ -194,10 +192,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("value", BLOB),
-		ForeignKeyConstraint(
-			["graph", "orig", "dest", "idx"],
-			["edges.graph", "edges.orig", "edges.dest", "edges.idx"],
-		),
 		sqlite_with_rowid=False,
 	)
 	Table(
