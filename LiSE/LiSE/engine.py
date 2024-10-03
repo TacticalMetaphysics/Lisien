@@ -599,6 +599,7 @@ class Engine(AbstractEngine, gORM):
 			self._kf_overridden = True
 			return True
 		if getattr(self, "_kf_overridden", False):
+			self._kf_overridden = False
 			return False
 
 	def _reimport_trigger_functions(self, *args, attr, **kwargs):
