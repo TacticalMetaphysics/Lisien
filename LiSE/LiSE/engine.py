@@ -31,7 +31,7 @@ from collections import defaultdict
 from itertools import chain
 from queue import SimpleQueue, Empty
 from threading import Thread, Lock
-from time import sleep
+from time import sleep, time
 from types import FunctionType, ModuleType, MethodType
 from typing import Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
@@ -60,13 +60,7 @@ from .allegedb import (
 )
 from .allegedb.window import update_window, update_backward_window
 from .util import sort_set, AbstractEngine, final_rule, normalize_layout
-from .xcollections import (
-	StringStore,
-	FunctionStore,
-	MethodStore,
-	UniversalMappingDescriptor,
-	EternalMappingDescriptor,
-)
+from .xcollections import StringStore, FunctionStore, MethodStore
 from .query import (
 	Query,
 	_make_side_sel,
@@ -409,8 +403,6 @@ class Engine(AbstractEngine, gORM):
 		"rules",
 	]
 	illegal_node_names = ["nodes", "node_val", "edges", "edge_val", "things"]
-	eternal = EternalMappingDescriptor()
-	universal = UniversalMappingDescriptor()
 
 	def __getattr__(self, item):
 		meth = super().__getattribute__("method").__getattr__(item)
@@ -513,6 +505,7 @@ class Engine(AbstractEngine, gORM):
 		self._things_cache.setdb = self.query.set_thing_loc
 		self._universal_cache.setdb = self.query.universal_set
 		self._rulebooks_cache.setdb = self.query.rulebook_set
+		self.eternal = self.query.globl
 		if hasattr(self, "_string_prefix"):
 			self.string = StringStore(
 				self.query,
@@ -930,6 +923,7 @@ class Engine(AbstractEngine, gORM):
 		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
 		self._turns_completed_previous = self._turns_completed.copy()
 		"""The last turn when the rules engine ran in each branch"""
+		self.universal = UniversalMapping(self)
 		if hasattr(self, "_action_file"):
 			self.action = FunctionStore(self._action_file)
 		if hasattr(self, "_prereq_file"):

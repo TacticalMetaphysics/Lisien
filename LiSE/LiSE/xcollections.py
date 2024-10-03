@@ -330,36 +330,6 @@ class UniversalMapping(MutableMapping, Signal):
 		self.send(self, key=k, val=None)
 
 
-class UniversalMappingDescriptor:
-	def __get__(self, inst, typ=None):
-		if not hasattr(self, "_me"):
-			self._me = UniversalMapping(inst)
-		return self._me
-
-	def __set__(self, inst, v: dict):
-		if not hasattr(self, "_me"):
-			self._me = UniversalMapping(inst)
-		me = self._me
-		for todel in me.keys() - v.keys():
-			del me[todel]
-		me.update(v)
-
-
-class EternalMappingDescriptor:
-	def __get__(self, inst, typ=None):
-		if not hasattr(self, "_me"):
-			self._me = inst.query.globl
-		return self._me
-
-	def __set__(self, inst, v: dict):
-		if not hasattr(self, "_me"):
-			self._me = inst.query.globl
-		me = self._me
-		for todel in me.keys() - v.keys():
-			del me[todel]
-		me.update(v)
-
-
 class CharacterMapping(GraphsMapping, Signal):
 	"""A mapping by which to access :class:`Character` objects.
 
