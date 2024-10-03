@@ -1155,7 +1155,9 @@ class Cache:
 										shallowest[args] = ret
 									return ret
 								else:
-									return NotInKeyframeError("No value")
+									return NotInKeyframeError(
+										f"No value for {entikey} at {b, r, t}"
+									)
 						ret = brancs[r][t]
 						if store_hint:
 							shallowest[args] = ret
@@ -1175,7 +1177,9 @@ class Cache:
 										shallowest[args] = ret
 									return ret
 								else:
-									return NotInKeyframeError("No value")
+									return NotInKeyframeError(
+										f"No value for {entikey} at {b, r, t}"
+									)
 							elif brancs.rev_before(r - 1) == kfb.rev_before(
 								r - 1
 							):
@@ -1189,7 +1193,9 @@ class Cache:
 											shallowest[args] = ret
 										return ret
 									else:
-										return NotInKeyframeError("No value")
+										return NotInKeyframeError(
+											f"No value for {entikey} at {b, r, t}"
+										)
 						ret = brancs[r - 1].final()
 						if store_hint:
 							shallowest[args] = ret
@@ -1206,7 +1212,9 @@ class Cache:
 								shallowest[args] = ret
 							return ret
 						else:
-							return NotInKeyframeError("No value")
+							return NotInKeyframeError(
+								f"No value for {entikey} at {b, r, t}"
+							)
 					elif b in keyframes and keyframes[b].rev_gettable(r - 1):
 						finl = keyframes[b][r - 1].final()
 						if key in finl:
@@ -1215,7 +1223,9 @@ class Cache:
 								shallowest[args] = ret
 							return ret
 						else:
-							return NotInKeyframeError("No value")
+							return NotInKeyframeError(
+								f"No value for {entikey} at {b, r, t}"
+							)
 				elif b in keyframes:
 					kfb = keyframes[b]
 					if r in kfb:
@@ -1228,7 +1238,9 @@ class Cache:
 									shallowest[args] = ret
 								return ret
 							else:
-								return NotInKeyframeError("No value")
+								return NotInKeyframeError(
+									f"No value for {entikey} at {b, r, t}"
+								)
 					if kfb.rev_gettable(r - 1):
 						kfbr = kfb[r]
 						kf = kfbr.final()
@@ -1238,7 +1250,9 @@ class Cache:
 								shallowest[args] = ret
 							return ret
 						else:
-							return NotInKeyframeError("No value")
+							return NotInKeyframeError(
+								f"No value for {entikey} at {b, r, t}"
+							)
 		else:
 			for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
 				if b in keyframes:
@@ -1253,7 +1267,9 @@ class Cache:
 									shallowest[args] = ret
 								return ret
 							else:
-								return NotInKeyframeError("No value")
+								return NotInKeyframeError(
+									f"No value for {entikey} at {b, r, t}"
+								)
 					if kfb.rev_gettable(r - 1):
 						kfbr = kfb[r]
 						kf = kfbr.final()
@@ -1263,7 +1279,9 @@ class Cache:
 								shallowest[args] = ret
 							return ret
 						else:
-							return NotInKeyframeError("No value")
+							return NotInKeyframeError(
+								f"No value for {entikey} at {b, r, t}"
+							)
 		return KeyError("No value, ever")
 
 	def retrieve(self, *args):
