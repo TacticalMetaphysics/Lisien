@@ -73,7 +73,7 @@ def tables_for_meta(meta):
 	Table(
 		"graphs",
 		meta,
-		Column("graph", BLOB, primary_key=True),
+		Column("graph", BLOB, primary_key=True, unique=True),
 		Column("branch", TEXT, primary_key=True),
 		Column("turn", INT, primary_key=True),
 		Column("tick", INT, primary_key=True),
