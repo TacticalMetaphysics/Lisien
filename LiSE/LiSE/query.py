@@ -1155,6 +1155,7 @@ class QueryEngine(query.QueryEngine):
 		"character_portal_rules_handled",
 		"turns_completed",
 	)
+	kf_interval_override: callable
 
 	def __init__(self, dbstring, connect_args, pack=None, unpack=None):
 		super().__init__(
@@ -1176,7 +1177,10 @@ class QueryEngine(query.QueryEngine):
 
 	def _increc(self):
 		self._records += 1
-		if (
+		override = self.kf_interval_override()
+		if override is True:
+			return
+		if override is False or (
 			self.keyframe_interval is not None
 			and self._records % self.keyframe_interval == 0
 		):
