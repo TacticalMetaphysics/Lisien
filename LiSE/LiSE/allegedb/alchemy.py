@@ -28,7 +28,6 @@ from sqlalchemy import (
 	ForeignKey,
 	select,
 	func,
-	Sequence,
 )
 from sqlalchemy.sql import bindparam, and_, or_
 
@@ -194,16 +193,14 @@ def tables_for_meta(meta):
 		Column("value", BLOB),
 		sqlite_with_rowid=False,
 	)
-	plan_id_seq = Sequence("plan_id_seq")
 	Table(
 		"plans",
 		meta,
 		Column(
 			"id",
 			INT,
-			plan_id_seq,
-			server_default=plan_id_seq.next_value(),
 			primary_key=True,
+			autoincrement=False,
 		),
 		Column("branch", TEXT),
 		Column("turn", INT),
