@@ -297,8 +297,8 @@ class LiSEProcessPoolExecutor(Executor):
 				except Empty:
 					break
 				if not fut.running():
-					fut._t.start()
 					fut.set_running_or_notify_cancel()
+					fut._t.start()
 					self._how_many_futs_running += 1
 			sleep(0.001)
 
