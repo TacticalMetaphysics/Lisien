@@ -515,6 +515,15 @@ class GraphNodeMapping(AllegedMapping):
 		if node in self.db._node_objs:
 			del self.db._node_objs[key]
 
+	def update(self, m, /, **kwargs):
+		for node, value in m.items() | kwargs.items():
+			if value is None:
+				del self[node]
+			elif node not in self:
+				self[node] = value
+			else:
+				self[node].update(value)
+
 
 class GraphEdgeMapping(AllegedMapping):
 	"""Provides an adjacency mapping and possibly a predecessor mapping
