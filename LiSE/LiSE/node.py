@@ -29,7 +29,7 @@ from networkx import shortest_path, shortest_path_length
 
 from .allegedb import graph, Key, HistoricKeyError
 
-from .util import getatt
+from .util import getatt, AbstractCharacter
 from .query import StatusAlias
 from . import rule
 from .exc import AmbiguousUserError, TravelException
@@ -117,7 +117,7 @@ class UserMapping(Mapping):
 			return charn in item.unit and nn in item.unit[charn]
 		return False
 
-	def __getitem__(self, k) -> Node:
+	def __getitem__(self, k) -> AbstractCharacter:
 		ret = self.engine.character[k]
 		node = self.node
 		charn = node.character.name
