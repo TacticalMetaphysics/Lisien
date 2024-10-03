@@ -53,7 +53,7 @@ def tables_for_meta(meta):
 			primary_key=True,
 			default="trunk",
 		),
-		Column("parent", TEXT, default="trunk", nullable=True),
+		Column("parent", TEXT, default="trunk", nullable=True, unique=True),
 		Column("parent_turn", INT, default=0),
 		Column("parent_tick", INT, default=0),
 		Column("end_turn", INT, default=0),
