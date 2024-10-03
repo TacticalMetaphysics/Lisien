@@ -2548,7 +2548,9 @@ class EngineProxy(AbstractEngine):
 			self.function.load()
 			self.string.load()
 			self._eternal_cache = self.handle("eternal_copy")
+			self._initialized = False
 			self._pull_kf_now()
+			self._initialized = True
 			for module in install_modules:
 				self.handle("install_module", module=module)
 			if do_game_start:
@@ -3148,6 +3150,7 @@ def worker_subprocess(prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue):
 	compress = zlib.compress
 	decompress = zlib.decompress
 	eng._branches = eng.unpack(zlib.decompress(in_pipe.recv_bytes()))
+	eng._initialized = False
 	while True:
 		inst = in_pipe.recv_bytes()
 		if inst == b"shutdown":
@@ -3169,6 +3172,7 @@ def worker_subprocess(prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue):
 				raise
 		if uid >= 0:
 			out_pipe.send_bytes(compress(pack((uid, ret))))
+		eng._initialized = True
 
 
 class RedundantProcessError(ProcessError):
