@@ -222,20 +222,20 @@ class ConnectionHolder:
 		if hasattr(statement, "positiontup"):
 			if self._use_duckdb:
 				try:
-					return self.transaction.execute(str(statement), largs)
+					return self.connection.execute(str(statement), largs)
 				except IntegrityError:
 					self.transaction.rollback()
 					self.transaction = self.connection.begin()
 					raise
 			else:
-				return self.transaction.execute(
+				return self.connection.execute(
 					self.sql[k], dict(zip(statement.positiontup, largs))
 				)
 		elif largs:
 			raise TypeError("{} is a DDL query, I think".format(k))
 		if self._use_duckdb:
 			try:
-				return self.transaction.execute(str(statement))
+				return self.connection.execute(str(statement))
 			except IntegrityError:
 				self.transaction.rollback()
 				self.transaction = self.connection.begin()
@@ -247,12 +247,12 @@ class ConnectionHolder:
 		statement = self.sql[k].compile(dialect=self.engine.dialect)
 		if self._use_duckdb:
 			try:
-				return self.transaction.executemany(str(statement), largs)
+				return self.connection.executemany(str(statement), largs)
 			except IntegrityError:
 				self.transaction.rollback()
 				self.transaction = self.connection.begin()
 				raise
-		return self.transaction.execute(
+		return self.connection.execute(
 			self.sql[k],
 			[dict(zip(statement.positiontup, larg)) for larg in largs],
 		)
