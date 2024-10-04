@@ -193,17 +193,6 @@ class ConnectionHolder:
 			elif inst[0] == "one":
 				try:
 					res = self.call_one(inst[1], *inst[2])
-					if self._use_duckdb and hasattr(self, "_any_graphs"):
-						any_graphs = self.connection.execute(
-							"SELECT * FROM graphs;"
-						).fetchall()
-						print(any_graphs)
-						if self._any_graphs:
-							assert (
-								any_graphs
-							), f"Lost graphs after running {inst[1]}"
-						elif any_graphs:
-							self._any_graphs = True
 					if not silent:
 						if hasattr(res, "returns_rows"):
 							if res.returns_rows:
@@ -392,7 +381,6 @@ class QueryEngine(object):
 		"""Declare a new graph by this name of this type."""
 		graph = self.pack(graph)
 		ret = self.call_one("graphs_insert", graph, branch, turn, tick, typ)
-		self._holder._any_graphs = None
 		return ret
 
 	def keyframes_insert(
