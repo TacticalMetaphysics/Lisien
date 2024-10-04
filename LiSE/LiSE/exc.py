@@ -26,6 +26,15 @@ try:
 except ImportError:
 	from sqlite3 import OperationalError
 
+	OperationalError = (OperationalError,)
+
+try:
+	import duckdb
+
+	OperationalError += (duckdb.CatalogException, duckdb.TransactionException)
+except ImportError:
+	pass
+
 
 class NonUniqueError(Exception):
 	"""You tried to look up the only one of something but there wasn't just one"""

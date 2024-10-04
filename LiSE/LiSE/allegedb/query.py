@@ -151,7 +151,10 @@ class ConnectionHolder:
 				duckdb.IntegrityError,
 				duckdb.ConstraintException,
 			)
-			OperationalError = duckdb.TransactionException
+			OperationalError = (
+				duckdb.TransactionException,
+				duckdb.CatalogException,
+			)
 
 			self.connection = duckdb.connect(dbstring)
 			self.transaction = self.connection.begin()
