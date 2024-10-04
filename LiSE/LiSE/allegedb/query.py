@@ -486,22 +486,22 @@ class QueryEngine(object):
 			yield (unpack(k), unpack(v))
 
 	def get_branch(self):
-		v = self.call_one("global_get", self.pack("branch"))[0]
-		if v is None:
+		v = self.call_one("global_get", self.pack("branch"))
+		if not v:
 			return self.globl["main_branch"]
-		return self.unpack(v[0])
+		return self.unpack(v[0][0])
 
 	def get_turn(self):
-		v = self.call_one("global_get", self.pack("turn"))[0]
-		if v is None:
+		v = self.call_one("global_get", self.pack("turn"))
+		if not v:
 			return 0
-		return self.unpack(v[0])
+		return self.unpack(v[0][0])
 
 	def get_tick(self):
-		v = self.call_one("global_get", self.pack("tick"))[0]
-		if v is None:
+		v = self.call_one("global_get", self.pack("tick"))
+		if not v:
 			return 0
-		return self.unpack(v[0])
+		return self.unpack(v[0][0])
 
 	def global_set(self, key, value):
 		"""Set ``key`` to ``value`` globally (not at any particular branch or
