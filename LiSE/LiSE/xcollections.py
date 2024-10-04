@@ -227,9 +227,9 @@ class FunctionStore(Signal):
 		with open(self._filename, "w", encoding="utf-8") as outf:
 			outf.write("# encoding: utf-8")
 			Unparser(self._ast, outf)
+		self._need_save = False
 		if reimport:
 			self.reimport()
-		self._need_save = False
 
 	def reimport(self):
 		importlib.invalidate_caches()
