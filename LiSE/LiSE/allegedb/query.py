@@ -117,8 +117,11 @@ class ConnectionHolder:
 			self.gather = gather
 
 	def commit(self):
-		self.transaction.commit()
-		self.transaction = self.connection.begin()
+		if hasattr(self, "transaction"):
+			self.transaction.commit()
+			self.transaction = self.connection.begin()
+		else:
+			self.connection.commit()
 
 	def init_table(self, tbl):
 		return self.call_one("create_{}".format(tbl))
@@ -157,7 +160,7 @@ class ConnectionHolder:
 			)
 
 			self.connection = duckdb.connect(dbstring)
-			self.transaction = self.connection.begin()
+			# self.transaction = self.connection.begin()
 		else:
 			self.connection = self.engine.connect()
 			self.transaction = self.connection.begin()
@@ -165,7 +168,8 @@ class ConnectionHolder:
 			inst = self.inq.get()
 			if inst == "shutdown":
 				self.commit()
-				self.transaction.close()
+				if hasattr(self, "transaction"):
+					self.transaction.close()
 				self.connection.close()
 				self.engine.dispose()
 				self.existence_lock.release()
@@ -189,6 +193,17 @@ class ConnectionHolder:
 			elif inst[0] == "one":
 				try:
 					res = self.call_one(inst[1], *inst[2])
+					if self._use_duckdb and hasattr(self, "_any_graphs"):
+						any_graphs = self.connection.execute(
+							"SELECT * FROM graphs;"
+						).fetchall()
+						print(any_graphs)
+						if self._any_graphs:
+							assert (
+								any_graphs
+							), f"Lost graphs after running {inst[1]}"
+						elif any_graphs:
+							self._any_graphs = True
 					if not silent:
 						if hasattr(res, "returns_rows"):
 							if res.returns_rows:
@@ -227,8 +242,9 @@ class ConnectionHolder:
 				try:
 					return self.connection.execute(str(statement), largs)
 				except IntegrityError:
-					self.transaction.rollback()
-					self.transaction = self.connection.begin()
+					if hasattr(self, "transaction"):
+						self.transaction.rollback()
+						self.transaction = self.connection.begin()
 					raise
 			else:
 				return self.connection.execute(
@@ -240,8 +256,9 @@ class ConnectionHolder:
 			try:
 				return self.connection.execute(str(statement))
 			except IntegrityError:
-				self.transaction.rollback()
-				self.transaction = self.connection.begin()
+				if hasattr(self, "transaction"):
+					self.transaction.rollback()
+					self.transaction = self.connection.begin()
 				raise
 		else:
 			return self.connection.execute(self.sql[k])
@@ -252,8 +269,9 @@ class ConnectionHolder:
 			try:
 				return self.connection.executemany(str(statement), largs)
 			except IntegrityError:
-				self.transaction.rollback()
-				self.transaction = self.connection.begin()
+				if hasattr(self, "transaction"):
+					self.transaction.rollback()
+					self.transaction = self.connection.begin()
 				raise
 		return self.connection.execute(
 			self.sql[k],
@@ -373,7 +391,9 @@ class QueryEngine(object):
 	def new_graph(self, graph, branch, turn, tick, typ):
 		"""Declare a new graph by this name of this type."""
 		graph = self.pack(graph)
-		return self.call_one("graphs_insert", graph, branch, turn, tick, typ)
+		ret = self.call_one("graphs_insert", graph, branch, turn, tick, typ)
+		self._holder._any_graphs = None
+		return ret
 
 	def keyframes_insert(
 		self, graph, branch, turn, tick, nodes, edges, graph_val
@@ -461,7 +481,10 @@ class QueryEngine(object):
 
 	def have_branch(self, branch):
 		"""Return whether the branch thus named exists in the database."""
-		return bool(self.call_one("ctbranch", branch)[0][0])
+		try:
+			return bool(self.call_one("ctbranch", branch)[0][0])
+		except IndexError:
+			return False
 
 	def all_branches(self):
 		"""Return all the branch data in tuples of (branch, parent,
@@ -512,7 +535,10 @@ class QueryEngine(object):
 		try:
 			return self.call_one("global_insert", key, value)
 		except IntegrityError:
-			return self.call_one("global_update", value, key)
+			self.commit()
+			self.call_one("global_del", key)
+			self.commit()
+			return self.call_one("global_insert", key, value)
 
 	def global_del(self, key):
 		"""Delete the global record for the key."""
@@ -686,10 +712,6 @@ class QueryEngine(object):
 		self._flush_graph_val()
 		self.call_one("graph_val_del_time", branch, turn, tick)
 		self._btts.discard((branch, turn, tick))
-
-	def graphs_types(self):
-		for graph, typ in self.call_one("graphs_types"):
-			yield (self.unpack(graph), typ)
 
 	def graphs_dump(self):
 		unpack = self.unpack
