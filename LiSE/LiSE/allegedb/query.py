@@ -698,6 +698,8 @@ class QueryEngine(object):
 		if not self._nodes2set:
 			return
 		pack = self.pack
+		if not self._nodes2set:
+			return
 		self.call_many(
 			"nodes_insert",
 			(
