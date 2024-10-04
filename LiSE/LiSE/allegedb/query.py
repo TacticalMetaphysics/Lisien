@@ -240,7 +240,7 @@ class ConnectionHolder:
 				self.connection.rollback()
 				raise
 		else:
-			return self.connection.execute(statement)
+			return self.connection.execute(self.sql[k])
 
 	def call_many(self, k, largs):
 		statement = self.sql[k].compile(dialect=self.engine.dialect)
@@ -251,7 +251,7 @@ class ConnectionHolder:
 				self.connection.rollback()
 				raise
 		return self.connection.execute(
-			statement,
+			self.sql[k],
 			[dict(zip(statement.positiontup, larg)) for larg in largs],
 		)
 
