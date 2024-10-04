@@ -306,10 +306,18 @@ class QueryEngine(object):
 		self._holder = self.holder_cls(
 			dbstring, connect_args, self._inq, self._outq, self.tables, gather
 		)
+		if pack is None:
+
+			def pack(v):
+				return repr(v).encode()
 
 		if unpack is None:
-			from ast import literal_eval as unpack
-		self.pack = pack or repr
+			from ast import literal_eval
+
+			def unpack(v):
+				return literal_eval(v.decode())
+
+		self.pack = pack
 		self.unpack = unpack
 		self._branches = {}
 		self._nodevals2set = []
