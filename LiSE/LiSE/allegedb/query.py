@@ -18,7 +18,6 @@ doesn't pollute the other files so much.
 
 """
 
-from ast import literal_eval
 from threading import Thread, Lock
 from time import monotonic
 from typing import Tuple, Any, Iterator, Hashable
@@ -300,19 +299,17 @@ class QueryEngine(object):
 	)
 
 	def __init__(
-		self,
-		dbstring,
-		connect_args,
-		pack=repr,
-		unpack=literal_eval,
-		gather=None,
+		self, dbstring, connect_args, pack=None, unpack=None, gather=None
 	):
 		self._inq = Queue()
 		self._outq = Queue()
 		self._holder = self.holder_cls(
 			dbstring, connect_args, self._inq, self._outq, self.tables, gather
 		)
-		self.pack = pack
+
+		if unpack is None:
+			from ast import literal_eval as unpack
+		self.pack = pack or repr
 		self.unpack = unpack
 		self._branches = {}
 		self._nodevals2set = []
