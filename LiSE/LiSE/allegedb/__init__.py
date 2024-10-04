@@ -1977,7 +1977,8 @@ class ORM:
 					updload(branch, turn, tick)
 
 		snap_keyframe = self._snap_keyframe_de_novo_graph
-		for graph in self.graph:
+		graphs = {graph for (graph, _, _, _, _) in self.query.graphs_dump()}
+		for graph in graphs:
 			stuff = keyframed[graph] = get_keyframe(
 				graph, past_branch, past_turn, past_tick
 			)
