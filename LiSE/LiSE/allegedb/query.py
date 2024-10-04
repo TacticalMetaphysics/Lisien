@@ -254,7 +254,7 @@ class ConnectionHolder:
 			[dict(zip(statement.positiontup, larg)) for larg in largs],
 		)
 
-	def initdb(self):
+	def initdb(self, commit=True):
 		"""Create tables and indices as needed."""
 		for table in (
 			"branches",
@@ -276,7 +276,8 @@ class ConnectionHolder:
 				pass
 			except Exception as ex:
 				return ex
-		self.commit()
+		if commit:
+			self.commit()
 
 
 class QueryEngine(object):

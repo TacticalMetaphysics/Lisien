@@ -1063,12 +1063,12 @@ class ConnectionHolder(query.ConnectionHolder):
 	def gather(self, meta):
 		return gather_sql(meta)
 
-	def initdb(self):
+	def initdb(self, commit=True):
 		"""Set up the database schema, both for allegedb and the special
 		extensions for LiSE
 
 		"""
-		super().initdb()
+		super().initdb(commit=False)
 		init_table = self.init_table
 		for table in (
 			"universals",
@@ -1110,6 +1110,8 @@ class ConnectionHolder(query.ConnectionHolder):
 			return ValueError(
 				f"Unsupported database schema version: {ver}", ver
 			)
+		if commit:
+			self.commit()
 
 
 class QueryEngine(query.QueryEngine):
