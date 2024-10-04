@@ -2126,7 +2126,7 @@ class QueryEngine(query.QueryEngine):
 
 class QueryEngineProxy:
 	def __init__(
-		self, dbstring, connect_args, alchemy, pack=None, unpack=None
+		self, dbstring, connect_args, alchemy, pack=repr, unpack=literal_eval
 	):
 		self._inq = Queue()
 		self._outq = Queue()
