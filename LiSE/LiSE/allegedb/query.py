@@ -303,7 +303,6 @@ class QueryEngine(object):
 	def __init__(
 		self, dbstring, connect_args, pack=None, unpack=None, gather=None
 	):
-		dbstring = dbstring or "sqlite:///:memory:"
 		self._inq = Queue()
 		self._outq = Queue()
 		self._holder = self.holder_cls(
