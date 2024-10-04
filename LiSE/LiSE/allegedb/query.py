@@ -157,6 +157,7 @@ class ConnectionHolder:
 			OperationalError = (
 				duckdb.TransactionException,
 				duckdb.CatalogException,
+				duckdb.Error,
 			)
 
 			self.connection = duckdb.connect(dbstring)
@@ -228,6 +229,8 @@ class ConnectionHolder:
 		statement = self.sql[k].compile(dialect=self.engine.dialect)
 		if hasattr(statement, "positiontup"):
 			if self._use_duckdb:
+				import duckdb
+
 				try:
 					return self.connection.execute(str(statement), largs)
 				except IntegrityError:
