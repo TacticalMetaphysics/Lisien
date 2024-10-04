@@ -249,7 +249,8 @@ class ConnectionHolder:
 			try:
 				return self.connection.executemany(str(statement), largs)
 			except IntegrityError:
-				self.connection.rollback()
+				self.transaction.rollback()
+				self.transaction = self.connection.begin()
 				raise
 		return self.connection.execute(
 			self.sql[k],
