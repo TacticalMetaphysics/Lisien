@@ -274,7 +274,7 @@ class ConnectionHolder:
 			"global",
 		):
 			try:
-				ret = self.init_table(table)
+				self.init_table(table)
 			except OperationalError:
 				pass
 			except Exception as ex:
