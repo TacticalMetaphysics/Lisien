@@ -29,7 +29,8 @@ dependencies = [
 	"networkx>=2.4,<4",
 	"sqlalchemy>=1.4,<3",
 	"numpy>=1.19.5,<3",
-	"tblib>=1.7.0,<4"
+	"tblib>=1.7.0,<4",
+	"duckdb>=1.1.1,<2",
 ]
 
 [project.urls]
