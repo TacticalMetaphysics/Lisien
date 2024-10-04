@@ -35,7 +35,6 @@ Other comparison operators like ``>`` and ``<`` work as well.
 
 """
 
-from ast import literal_eval
 import operator
 from collections.abc import MutableMapping, Sequence, Set
 from itertools import chain
@@ -1158,7 +1157,7 @@ class QueryEngine(query.QueryEngine):
 	)
 	kf_interval_override: callable
 
-	def __init__(self, dbstring, connect_args, pack=repr, unpack=literal_eval):
+	def __init__(self, dbstring, connect_args, pack=None, unpack=None):
 		super().__init__(
 			dbstring, connect_args, pack, unpack, gather=gather_sql
 		)
