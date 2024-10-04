@@ -367,6 +367,15 @@ def queries_for_table_dict(table):
 				table["turns"].c.turn == bindparam("b_turn"),
 			)
 		),
+		"update_branch_spans": table["branches"]
+		.update()
+		.values(
+			parent_turn=bindparam("parent_turn"),
+			parent_tick=bindparam("parent_tick"),
+			end_turn=bindparam("end_turn"),
+			end_tick=bindparam("end_tick"),
+		)
+		.where(table["branches"].c.branch == bindparam("b_branch")),
 		"keyframes_list": select(
 			table["keyframes"].c.graph,
 			table["keyframes"].c.branch,

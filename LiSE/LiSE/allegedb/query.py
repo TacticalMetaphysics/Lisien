@@ -540,6 +540,18 @@ class QueryEngine(object):
 			branch,
 		)
 
+	def update_branch_spans(
+		self, branch, parent_turn, parent_tick, end_turn, end_tick
+	):
+		return self.call_one(
+			"update_branch_spans",
+			parent_turn,
+			parent_tick,
+			end_turn,
+			end_tick,
+			branch,
+		)
+
 	def set_branch(
 		self, branch, parent, parent_turn, parent_tick, end_turn, end_tick
 	):
@@ -554,9 +566,10 @@ class QueryEngine(object):
 				end_tick,
 			)
 		except IntegrityError:
-			self.update_branch(
-				branch, parent, parent_turn, parent_tick, end_turn, end_tick
+			self.update_branch_spans(
+				branch, parent_turn, parent_tick, end_turn, end_tick
 			)
+		self.commit()
 
 	def new_turn(self, branch, turn, end_tick=0, plan_end_tick=0):
 		return self.call_one(
