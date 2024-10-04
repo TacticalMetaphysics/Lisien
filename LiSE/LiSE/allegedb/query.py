@@ -102,8 +102,6 @@ class GlobalKeyValueStore(MutableMapping):
 
 
 class ConnectionHolder:
-	strings: dict
-
 	def __init__(
 		self, dbstring, connect_args, inq, outq, fn, tables, gather=None
 	):
