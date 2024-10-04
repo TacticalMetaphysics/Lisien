@@ -216,9 +216,9 @@ def queries_for_table_dict(table):
 			tab.c.graph == bindparam("graph"),
 			tab.c.branch == bindparam("b_branch"),
 			or_(
-				tab.c.turn > bindparam("turn_from_a"),
+				tab.c.turn > bindparam("b_turn_from_a"),
 				and_(
-					tab.c.turn == bindparam("turn_from_b"),
+					tab.c.turn == bindparam("b_turn_from_b"),
 					tab.c.tick >= bindparam("tick_from"),
 				),
 			),
@@ -228,9 +228,9 @@ def queries_for_table_dict(table):
 		return and_(
 			tick_to_end_clause(tab),
 			or_(
-				tab.c.turn < bindparam("turn_to_a"),
+				tab.c.turn < bindparam("b_turn_to_a"),
 				and_(
-					tab.c.turn == bindparam("turn_to_b"),
+					tab.c.turn == bindparam("b_turn_to_b"),
 					tab.c.tick <= bindparam("tick_to"),
 				),
 			),
@@ -258,9 +258,9 @@ def queries_for_table_dict(table):
 				table["edge_val"].c.key == bindparam("key"),
 				table["edge_val"].c.branch == bindparam("b_branch"),
 				or_(
-					table["edge_val"].c.turn > bindparam("turn"),
+					table["edge_val"].c.turn > bindparam("b_turn"),
 					and_(
-						table["edge_val"].c.turn == bindparam("turn"),
+						table["edge_val"].c.turn == bindparam("b_turn"),
 						table["edge_val"].c.tick >= bindparam("tick"),
 					),
 				),
@@ -279,9 +279,9 @@ def queries_for_table_dict(table):
 				table["edges"].c.idx == bindparam("idx"),
 				table["edges"].c.branch == bindparam("b_branch"),
 				or_(
-					table["edges"].c.turn > bindparam("turn"),
+					table["edges"].c.turn > bindparam("b_turn"),
 					and_(
-						table["edges"].c.turn == bindparam("turn"),
+						table["edges"].c.turn == bindparam("b_turn"),
 						table["edges"].c.tick >= bindparam("tick"),
 					),
 				),
@@ -295,9 +295,9 @@ def queries_for_table_dict(table):
 				table["nodes"].c.node == bindparam("node"),
 				table["nodes"].c.branch == bindparam("b_branch"),
 				or_(
-					table["nodes"].c.turn > bindparam("turn"),
+					table["nodes"].c.turn > bindparam("b_turn"),
 					and_(
-						table["nodes"].c.turn == bindparam("turn"),
+						table["nodes"].c.turn == bindparam("b_turn"),
 						table["nodes"].c.tick >= bindparam("tick"),
 					),
 				),
@@ -312,9 +312,9 @@ def queries_for_table_dict(table):
 				table["node_val"].c.key == bindparam("key"),
 				table["node_val"].c.branch == bindparam("b_branch"),
 				or_(
-					table["node_val"].c.turn > bindparam("turn"),
+					table["node_val"].c.turn > bindparam("b_turn"),
 					and_(
-						table["node_val"].c.turn == bindparam("turn"),
+						table["node_val"].c.turn == bindparam("b_turn"),
 						table["node_val"].c.tick >= bindparam("tick"),
 					),
 				),
@@ -328,9 +328,9 @@ def queries_for_table_dict(table):
 				table["graph_val"].c.key == bindparam("key"),
 				table["graph_val"].c.branch == bindparam("b_branch"),
 				or_(
-					table["graph_val"].c.turn > bindparam("turn"),
+					table["graph_val"].c.turn > bindparam("b_turn"),
 					and_(
-						table["graph_val"].c.turn == bindparam("turn"),
+						table["graph_val"].c.turn == bindparam("b_turn"),
 						table["graph_val"].c.tick >= bindparam("tick"),
 					),
 				),
@@ -364,7 +364,7 @@ def queries_for_table_dict(table):
 		.where(
 			and_(
 				table["turns"].c.branch == bindparam("b_branch"),
-				table["turns"].c.turn == bindparam("turn"),
+				table["turns"].c.turn == bindparam("b_turn"),
 			)
 		),
 		"keyframes_list": select(
@@ -381,7 +381,7 @@ def queries_for_table_dict(table):
 			and_(
 				table["keyframes"].c.graph == bindparam("graph"),
 				table["keyframes"].c.branch == bindparam("b_branch"),
-				table["keyframes"].c.turn == bindparam("turn"),
+				table["keyframes"].c.turn == bindparam("b_turn"),
 				table["keyframes"].c.tick == bindparam("tick"),
 			)
 		),
@@ -473,7 +473,7 @@ def queries_for_table_dict(table):
 				r[t.name + "_del_time"] = t.delete().where(
 					and_(
 						t.c.branch == bindparam("b_branch"),
-						t.c.turn == bindparam("turn"),
+						t.c.turn == bindparam("b_turn"),
 						t.c.tick == bindparam("tick"),
 					)
 				)
