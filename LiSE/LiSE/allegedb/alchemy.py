@@ -38,7 +38,7 @@ def tables_for_meta(meta):
 		"global",
 		meta,
 		Column("key", BLOB, primary_key=True),
-		Column("value", BLOB, nullable=True),
+		Column("value", BLOB),
 	)
 	Table(
 		"branches",
