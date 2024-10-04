@@ -243,7 +243,7 @@ def queries_for_table_dict(table):
 		"global_update": table["global"]
 		.update()
 		.values(value=bindparam("value"))
-		.where(table["global"].c.key == bindparam("key")),
+		.where(table["global"].c.key == bindparam("b_key")),
 		"graph_type": select(table["graphs"].c.type).where(
 			table["graphs"].c.graph == bindparam("graph")
 		),
