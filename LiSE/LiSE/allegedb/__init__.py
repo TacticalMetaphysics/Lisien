@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM"""
 
+from ast import literal_eval
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
 import gc
@@ -1009,8 +1010,8 @@ class ORM:
 			self.query = self.query_engine_cls(
 				dbstring,
 				connect_args,
-				getattr(self, "pack", None),
-				getattr(self, "unpack", None),
+				getattr(self, "pack", repr),
+				getattr(self, "unpack", literal_eval),
 			)
 		if clear:
 			self.query.truncate_all()
