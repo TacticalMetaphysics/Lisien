@@ -19,13 +19,11 @@ from sqlalchemy import (
 	Table,
 	Column,
 	CheckConstraint,
-	ForeignKeyConstraint,
 	INT,
 	TEXT,
 	BLOB,
 	BOOLEAN,
 	MetaData,
-	ForeignKey,
 	select,
 	func,
 )
@@ -73,7 +71,7 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, primary_key=True),
 		Column("turn", INT, primary_key=True),
 		Column("tick", INT, primary_key=True),
-		Column("type", TEXT, default="Graph", nullable=True),
+		Column("type", TEXT, default="Graph"),
 		CheckConstraint(
 			"type IN "
 			"('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph', 'Deleted')"
@@ -86,7 +84,6 @@ def tables_for_meta(meta):
 		Column(
 			"branch",
 			TEXT,
-			ForeignKey("branches.branch"),
 			primary_key=True,
 			default="trunk",
 		),
@@ -104,7 +101,6 @@ def tables_for_meta(meta):
 		Column(
 			"branch",
 			TEXT,
-			ForeignKey("branches.branch"),
 			primary_key=True,
 			default="trunk",
 		),
@@ -120,7 +116,6 @@ def tables_for_meta(meta):
 		Column(
 			"branch",
 			TEXT,
-			ForeignKey("branches.branch"),
 			primary_key=True,
 			default="trunk",
 		),
@@ -137,7 +132,6 @@ def tables_for_meta(meta):
 		Column(
 			"branch",
 			TEXT,
-			ForeignKey("branches.branch"),
 			primary_key=True,
 			default="trunk",
 		),
@@ -155,7 +149,6 @@ def tables_for_meta(meta):
 		Column(
 			"branch",
 			TEXT,
-			ForeignKey("branches.branch"),
 			primary_key=True,
 			default="trunk",
 		),
@@ -174,7 +167,6 @@ def tables_for_meta(meta):
 		Column(
 			"branch",
 			TEXT,
-			ForeignKey("branches.branch"),
 			primary_key=True,
 			default="trunk",
 		),
@@ -201,7 +193,6 @@ def tables_for_meta(meta):
 		Column("plan_id", INT, primary_key=True),
 		Column("turn", INT, primary_key=True),
 		Column("tick", INT, primary_key=True),
-		ForeignKeyConstraint(("plan_id",), ("plans.id",)),
 	)
 	return meta.tables
 
@@ -354,6 +345,9 @@ def queries_for_table_dict(table):
 			end_turn=bindparam("end_turn"),
 			end_tick=bindparam("end_tick"),
 		)
+		.where(table["branches"].c.branch == bindparam("b_branch")),
+		"ctbranch": select(func.count(table["branches"].c.branch))
+		.select_from(table["branches"])
 		.where(table["branches"].c.branch == bindparam("b_branch")),
 		"update_turns": table["turns"]
 		.update()

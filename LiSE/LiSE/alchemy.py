@@ -31,7 +31,6 @@ from json import dumps
 from sqlalchemy import (
 	Table,
 	Column,
-	ForeignKeyConstraint,
 	select,
 	bindparam,
 	func,
@@ -98,7 +97,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("triggers", BLOB, default=b"\x90"),
-		ForeignKeyConstraint(("rule",), ["rules.rule"]),
 	)
 
 	# Table for rules' neighborhoods, which govern when triggers should be
@@ -111,7 +109,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("neighborhood", BLOB, default=b"\xc0"),
-		ForeignKeyConstraint(("rule",), ["rules.rule"]),
 	)
 
 	# Table for rules' prereqs, functions with veto power over a rule
@@ -124,7 +121,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("prereqs", BLOB, default=b"\x90"),
-		ForeignKeyConstraint(("rule",), ["rules.rule"]),
 	)
 
 	# Table for rules' actions, the functions that do what the rule
@@ -137,7 +133,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("actions", BLOB, default=b"\x90"),
-		ForeignKeyConstraint(("rule",), ["rules.rule"]),
 	)
 
 	# The top level of the LiSE world model, the character. Includes
