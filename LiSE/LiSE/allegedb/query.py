@@ -139,16 +139,27 @@ class ConnectionHolder:
 				self.engine = create_engine(
 					dbstring, connect_args=connect_args, poolclass=NullPool
 				)
+				self._use_duckdb = False
 			except ArgumentError:
-				self.engine = create_engine(
-					"sqlite:///" + dbstring,
-					connect_args=connect_args,
-					poolclass=NullPool,
-				)
+				self.engine = create_engine("sqlite:///:memory:")
+				self._use_duckdb = True
 		self.meta = MetaData()
 		self.sql = gather_sql(self.meta)
-		self.connection = self.engine.connect()
-		self.transaction = self.connection.begin()
+		if self._use_duckdb:
+			import duckdb
+
+			global IntegrityError, OperationalError
+			IntegrityError = (
+				duckdb.IntegrityError,
+				duckdb.ConstraintException,
+			)
+			OperationalError = duckdb.TransactionException
+
+			self.connection = duckdb.connect(dbstring)
+			self.transaction = self.connection.begin()
+		else:
+			self.connection = self.engine.connect()
+			self.transaction = self.connection.begin()
 		while True:
 			inst = self.inq.get()
 			if inst == "shutdown":
@@ -185,7 +196,7 @@ class ConnectionHolder:
 							else:
 								self.outq.put(None)
 						else:
-							o = list(res)
+							o = res.fetchall()
 							self.outq.put(o)
 				except Exception as ex:
 					if not silent:
@@ -211,15 +222,35 @@ class ConnectionHolder:
 	def call_one(self, k, *largs):
 		statement = self.sql[k].compile(dialect=self.engine.dialect)
 		if hasattr(statement, "positiontup"):
-			return self.connection.execute(
-				statement, dict(zip(statement.positiontup, largs))
-			)
+			if self._use_duckdb:
+				try:
+					return self.connection.execute(str(statement), largs)
+				except IntegrityError:
+					self.connection.rollback()
+					raise
+			else:
+				return self.connection.execute(
+					statement, dict(zip(statement.positiontup, largs))
+				)
 		elif largs:
 			raise TypeError("{} is a DDL query, I think".format(k))
-		return self.connection.execute(self.sql[k])
+		if self._use_duckdb:
+			try:
+				return self.connection.execute(str(statement))
+			except IntegrityError:
+				self.connection.rollback()
+				raise
+		else:
+			return self.connection.execute(statement)
 
 	def call_many(self, k, largs):
 		statement = self.sql[k].compile(dialect=self.engine.dialect)
+		if self._use_duckdb:
+			try:
+				return self.connection.executemany(str(statement), largs)
+			except IntegrityError:
+				self.connection.rollback()
+				raise
 		return self.connection.execute(
 			statement,
 			[dict(zip(statement.positiontup, larg)) for larg in largs],

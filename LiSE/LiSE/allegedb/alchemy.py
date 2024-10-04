@@ -41,7 +41,6 @@ def tables_for_meta(meta):
 		meta,
 		Column("key", BLOB, primary_key=True),
 		Column("value", BLOB, nullable=True),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"branches",
@@ -58,7 +57,6 @@ def tables_for_meta(meta):
 		Column("end_turn", INT, default=0),
 		Column("end_tick", INT, default=0),
 		CheckConstraint("branch<>parent"),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"turns",
@@ -67,7 +65,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True),
 		Column("end_tick", INT),
 		Column("plan_end_tick", INT),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"graphs",
@@ -81,7 +78,6 @@ def tables_for_meta(meta):
 			"type IN "
 			"('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph', 'Deleted')"
 		),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"keyframes",
@@ -99,7 +95,6 @@ def tables_for_meta(meta):
 		Column("nodes", BLOB),
 		Column("edges", BLOB),
 		Column("graph_val", BLOB),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"graph_val",
@@ -116,7 +111,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("value", BLOB),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"nodes",
@@ -133,7 +127,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("extant", BOOLEAN),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"node_val",
@@ -151,7 +144,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("value", BLOB),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"edges",
@@ -170,7 +162,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("extant", BOOLEAN),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"edge_val",
@@ -190,7 +181,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("value", BLOB),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"plans",
@@ -212,7 +202,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True),
 		Column("tick", INT, primary_key=True),
 		ForeignKeyConstraint(("plan_id",), ("plans.id",)),
-		sqlite_with_rowid=False,
 	)
 	return meta.tables
 
