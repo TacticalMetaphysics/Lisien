@@ -224,7 +224,8 @@ class ConnectionHolder:
 				try:
 					return self.connection.execute(str(statement), largs)
 				except IntegrityError:
-					self.connection.rollback()
+					self.transaction.rollback()
+					self.transaction = self.connection.begin()
 					raise
 			else:
 				return self.connection.execute(
