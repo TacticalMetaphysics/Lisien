@@ -279,6 +279,10 @@ class ConnectionHolder:
 				pass
 			except Exception as ex:
 				return ex
+		try:
+			self.call_one("branches_insert", "trunk", None, 0, 0, 0, 0)
+		except IntegrityError:
+			pass
 		if commit:
 			self.commit()
 
