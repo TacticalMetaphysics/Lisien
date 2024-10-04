@@ -41,7 +41,7 @@ from collections.abc import MutableMapping, Sequence, Set
 from itertools import chain
 from operator import gt, lt, eq, ne, le, ge
 from functools import partialmethod
-from time import monotonic
+from time import monotonic, sleep
 from queue import Queue
 from threading import Thread
 from typing import Any, List, Callable, Tuple
@@ -1175,6 +1175,16 @@ class QueryEngine(query.QueryEngine):
 		self._portal_rules_handled = []
 		self._unitness = []
 		self._location = []
+		while not hasattr(self._holder, "_use_duckdb"):
+			sleep(0.001)
+		if self._holder._use_duckdb:
+			global IntegrityError
+			import duckdb
+
+			IntegrityError = (
+				duckdb.ConstraintException,
+				duckdb.IntegrityError,
+			)
 
 	def _increc(self):
 		self._records += 1
@@ -2122,105 +2132,3 @@ class QueryEngine(query.QueryEngine):
 			self._char_portal_rules_handled = []
 			self._node_rules_handled = []
 			self._portal_rules_handled = []
-
-
-class QueryEngineProxy:
-	def __init__(
-		self, dbstring, connect_args, alchemy, pack=repr, unpack=literal_eval
-	):
-		self._inq = Queue()
-		self._outq = Queue()
-		self._dbstring = dbstring
-		self._connect_args = connect_args
-		self._alchemy = alchemy
-		self._pack = pack
-		self._unpack = unpack
-		self.globl = self.GlobalsProxy(self._inq, self._outq)
-		self._thread = Thread(target=self._subthread, daemon=True)
-		self._thread.start()
-
-	def _subthread(self):
-		real = QueryEngine(
-			self._dbstring,
-			self._connect_args,
-			self._alchemy,
-			pack=self._pack,
-			unpack=self._unpack,
-		)
-		while True:
-			func, args, kwargs = self._inq.get()
-			if func == "get_global":
-				if args not in real.globl:
-					output = KeyError()
-				else:
-					output = real.globl[args]
-			elif func == "set_global":
-				k, v = args
-				real.globl[k] = v
-				continue
-			elif func == "list_globals":
-				output = list(real.globl)
-			elif func == "len_globals":
-				output = len(real.globl)
-			elif func == "del_global":
-				if args in real.globl:
-					del real.globl[args]
-					output = None
-				else:
-					output = KeyError()
-			else:
-				try:
-					output = getattr(real, func)(*args, **kwargs)
-				except Exception as ex:
-					output = ex
-			if hasattr(output, "__next__"):
-				output = list(output)
-			self._outq.put(output)
-			if func == "close":
-				return
-
-	class Caller:
-		def __init__(self, func, inq, outq):
-			self._func = func
-			self._inq = inq
-			self._outq = outq
-
-		def __call__(self, *args, **kwargs):
-			self._inq.put((self._func, args, kwargs))
-			ret = self._outq.get()
-			if isinstance(ret, Exception):
-				raise ret
-			return ret
-
-	class GlobalsProxy(MutableMapping):
-		def __init__(self, inq, outq):
-			self._inq = inq
-			self._outq = outq
-
-		def __iter__(self):
-			self._inq.put(("list_globals", None, None))
-			return iter(self._outq.get())
-
-		def __len__(self):
-			self._inq.put(("len_globals", None, None))
-			return self._outq.get()
-
-		def __getitem__(self, item):
-			self._inq.put(("get_global", item, None))
-			ret = self._outq.get()
-			if isinstance(ret, Exception):
-				raise ret
-			return ret
-
-		def __setitem__(self, key, value):
-			self._inq.put(("set_global", (key, value), None))
-
-		def __delitem__(self, key):
-			self._inq.put(("del_global", key, None))
-			ret = self._outq.get()
-			if isinstance(ret, Exception):
-				raise ret
-
-	def __getattr__(self, item):
-		if hasattr(QueryEngine, item) and callable(getattr(QueryEngine, item)):
-			return self.Caller(item, self._inq, self._outq)
