@@ -1530,7 +1530,7 @@ class ParquetDBHolder:
 
 	def set_turn(
 		self, branch: str, turn: int, end_tick: int, plan_end_tick: int
-	):
+	) -> None:
 		try:
 			self.update_turn(branch, turn, end_tick, plan_end_tick)
 		except IndexError:
@@ -1541,6 +1541,23 @@ class ParquetDBHolder:
 					"end_tick": end_tick,
 					"plan_end_tick": plan_end_tick,
 				}
+			)
+
+	def set_turn_completed(self, branch: str, turn: int) -> None:
+		import pyarrow.compute as pc
+
+		try:
+			id_ = self._db.read(
+				"turns_completed",
+				filters=[
+					pc.field("branch") == branch,
+					pc.field("turn") == turn,
+				],
+			)["id"][0]
+			self._db.update({"id": id_, "branch": branch, "turn": turn})
+		except IndexError:
+			self._db.create(
+				{"branch": branch, "turn": turn}, "turns_completed"
 			)
 
 	@staticmethod
