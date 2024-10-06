@@ -1479,6 +1479,31 @@ class ParquetDBHolder:
 			dataset_name="branches",
 		)
 
+	def set_branch(
+		self,
+		branch: str,
+		parent: str,
+		parent_turn: int,
+		parent_tick: int,
+		end_turn: int,
+		end_tick: int,
+	) -> None:
+		try:
+			self.update_branch(
+				branch, parent, parent_turn, parent_tick, end_turn, end_tick
+			)
+		except IndexError:
+			self.insert1(
+				"branches",
+				{
+					"branch": branch,
+					"parent": parent,
+					"parent_tick": parent_tick,
+					"end_turn": end_turn,
+					"end_tick": end_tick,
+				},
+			)
+
 	@staticmethod
 	def echo(it):
 		return it
@@ -1657,6 +1682,19 @@ class ParquetQueryEngine:
 	):
 		return self.call(
 			"update_branch",
+			branch,
+			parent,
+			parent_turn,
+			parent_tick,
+			end_turn,
+			end_tick,
+		)
+
+	def set_branch(
+		self, branch, parent, parent_turn, parent_tick, end_turn, end_tick
+	):
+		return self.call(
+			"set_branch",
 			branch,
 			parent,
 			parent_turn,
