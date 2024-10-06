@@ -281,8 +281,8 @@ class QueryEngine(object):
 
 		if pack is None:
 
-			def pack(o: Any) -> bytes:
-				return repr(o).encode()
+			def pack(s: str) -> bytes:
+				return repr(s).encode()
 
 		if unpack is None:
 			from ast import literal_eval

@@ -38,15 +38,18 @@ Other comparison operators like ``>`` and ``<`` work as well.
 import operator
 from collections import defaultdict
 from collections.abc import Sequence, Set
+from collections.abc import MutableMapping, Sequence, Set
+from operator import gt, lt, eq, ne, le, ge, itemgetter
 from functools import partialmethod
 from itertools import chain
-from operator import eq, ge, gt, le, lt, ne
 from time import monotonic
-from typing import Any, Callable, List, Tuple
+from queue import Queue
+from threading import Thread, Lock, RLock
+from typing import Any, List, Callable, Tuple, Iterator
 
-import msgpack
-from sqlalchemy import Table, and_, select
+from sqlalchemy import select, and_, Table
 from sqlalchemy.sql.functions import func
+import msgpack
 
 import lisien
 
@@ -1064,347 +1067,284 @@ class ParquetDBHolder:
 	import pyarrow as pa
 
 	schema = {
-		"branches": pa.schema(
-			[
-				("branch", pa.string()),
-				("parent", pa.string()),
-				("parent_turn", pa.uint64()),
-				("parent_tick", pa.uint64()),
-				("end_turn", pa.uint64()),
-				("end_tick", pa.uint64()),
-			]
-		),
-		"global": pa.schema([("key", pa.binary()), ("value", pa.binary())]),
-		"turns": pa.schema(
-			[
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("end_tick", pa.uint64()),
-				("plan_end_tick", pa.uint64()),
-			]
-		),
-		"graphs": pa.schema(
-			[
-				("graph", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("type", pa.string()),
-			]
-		),
-		"keyframes": pa.schema(
-			[
-				("graph", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("nodes", pa.large_binary()),
-				("edges", pa.large_binary()),
-				("graph_val", pa.large_binary()),
-			]
-		),
-		"graph_val": pa.schema(
-			[
-				("graph", pa.binary()),
-				("key", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("value", pa.binary()),
-			]
-		),
-		"nodes": pa.schema(
-			[
-				("graph", pa.binary()),
-				("node", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("extant", pa.bool_()),
-			]
-		),
-		"node_val": pa.schema(
-			[
-				("graph", pa.binary()),
-				("node", pa.binary()),
-				("key", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("value", pa.binary()),
-			]
-		),
-		"edges": pa.schema(
-			[
-				("graph", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("idx", pa.uint64()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("extant", pa.bool_()),
-			]
-		),
-		"edge_val": pa.schema(
-			[
-				("graph", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("idx", pa.uint64()),
-				("key", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("value", pa.binary()),
-			]
-		),
-		"plans": pa.schema(
-			[
-				("id", pa.uint64()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-			]
-		),
-		"plan_ticks": pa.schema(
-			[("id", pa.uint64()), ("turn", pa.uint64()), ("tick", pa.uint64())]
-		),
-		"universals": pa.schema(
-			[
-				("key", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("value", pa.binary()),
-			]
-		),
-		"rules": pa.schema([("rule", pa.string())]),
-		"rulebooks": pa.schema(
-			[
-				("rulebook", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("rules", pa.binary()),
-				("binary", pa.float64()),
-			]
-		),
-		"rule_triggers": pa.schema(
-			[
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("triggers", pa.binary()),
-			]
-		),
-		"rule_neighborhood": pa.schema(
-			[
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("neighborhood", pa.binary()),
-			]
-		),
-		"rule_prereqs": pa.schema(
-			[
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("prereqs", pa.binary()),
-			]
-		),
-		"rule_actions": pa.schema(
-			[
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("actions", pa.binary()),
-			]
-		),
-		"character_rulebook": pa.schema(
-			[
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("rulebook", pa.binary()),
-			]
-		),
-		"unit_rulebook": pa.schema(
-			[
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("rulebook", pa.binary()),
-			]
-		),
-		"character_thing_rulebook": pa.schema(
-			[
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("rulebook", pa.binary()),
-			]
-		),
-		"character_place_rulebook": pa.schema(
-			[
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("rulebook", pa.binary()),
-			]
-		),
-		"character_portal_rulebook": pa.schema(
-			[
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("rulebook", pa.binary()),
-			]
-		),
-		"character_rules_handled": pa.schema(
-			[
-				("character", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-			]
-		),
-		"unit_rules_handled": pa.schema(
-			[
-				("character", pa.binary()),
-				("graph", pa.binary()),
-				("unit", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-			]
-		),
-		"character_thing_rules_handled": pa.schema(
-			[
-				("character", pa.binary()),
-				("thing", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-			]
-		),
-		"character_place_rules_handled": pa.schema(
-			[
-				("character", pa.binary()),
-				("place", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-			]
-		),
-		"character_portal_rules_handled": pa.schema(
-			[
-				("character", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-			]
-		),
-		"node_rules_handled": pa.schema(
-			[
-				("character", pa.binary()),
-				("node", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-			]
-		),
-		"portal_rules_handled": pa.schema(
-			[
-				("character", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-			]
-		),
-		"things": pa.schema(
-			[
-				("character", pa.binary()),
-				("thing", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("location", pa.binary()),
-			]
-		),
-		"node_rulebook": pa.schema(
-			[
-				("character", pa.binary()),
-				("node", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("rulebook", pa.binary()),
-			]
-		),
-		"portal_rulebook": pa.schema(
-			[
-				("character", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("rulebook", pa.binary()),
-			]
-		),
-		"units": pa.schema(
-			[
-				("character_graph", pa.binary()),
-				("unit_graph", pa.binary()),
-				("unit_node", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.uint64()),
-				("tick", pa.uint64()),
-				("is_unit", pa.bool_()),
-			]
-		),
-		"turns_completed": pa.schema(
-			[("branch", pa.string()), ("turn", pa.uint64())]
-		),
+		"branches": [
+			("branch", pa.string()),
+			("parent", pa.string()),
+			("parent_turn", pa.uint64()),
+			("parent_tick", pa.uint64()),
+			("end_turn", pa.uint64()),
+			("end_tick", pa.uint64()),
+		],
+		"global": [("key", pa.binary()), ("value", pa.binary())],
+		"turns": [
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("end_tick", pa.uint64()),
+			("plan_end_tick", pa.uint64()),
+		],
+		"graphs": [
+			("graph", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("type", pa.string()),
+		],
+		"keyframes": [
+			("graph", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("nodes", pa.large_binary()),
+			("edges", pa.large_binary()),
+			("graph_val", pa.large_binary()),
+		],
+		"graph_val": [
+			("graph", pa.binary()),
+			("key", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("value", pa.binary()),
+		],
+		"nodes": [
+			("graph", pa.binary()),
+			("node", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("extant", pa.bool_()),
+		],
+		"node_val": [
+			("graph", pa.binary()),
+			("node", pa.binary()),
+			("key", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("value", pa.binary()),
+		],
+		"edges": [
+			("graph", pa.binary()),
+			("orig", pa.binary()),
+			("dest", pa.binary()),
+			("idx", pa.uint64()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("extant", pa.bool_()),
+		],
+		"edge_val": [
+			("graph", pa.binary()),
+			("orig", pa.binary()),
+			("dest", pa.binary()),
+			("idx", pa.uint64()),
+			("key", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("value", pa.binary()),
+		],
+		"plans": [
+			("plan_id", pa.uint64()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+		],
+		"plan_ticks": [
+			("plan_id", pa.uint64()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+		],
+		"universals": [
+			("key", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("value", pa.binary()),
+		],
+		"rules": [("rule", pa.string())],
+		"rulebooks": [
+			("rulebook", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("rules", pa.binary()),
+			("binary", pa.float64()),
+		],
+		"rule_triggers": [
+			("rule", pa.string()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("triggers", pa.binary()),
+		],
+		"rule_neighborhood": [
+			("rule", pa.string()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("neighborhood", pa.binary()),
+		],
+		"rule_prereqs": [
+			("rule", pa.string()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("prereqs", pa.binary()),
+		],
+		"rule_actions": [
+			("rule", pa.string()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("actions", pa.binary()),
+		],
+		"character_rulebook": [
+			("character", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("rulebook", pa.binary()),
+		],
+		"unit_rulebook": [
+			("character", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("rulebook", pa.binary()),
+		],
+		"character_thing_rulebook": [
+			("character", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("rulebook", pa.binary()),
+		],
+		"character_place_rulebook": [
+			("character", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("rulebook", pa.binary()),
+		],
+		"character_portal_rulebook": [
+			("character", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("rulebook", pa.binary()),
+		],
+		"character_rules_handled": [
+			("character", pa.binary()),
+			("rulebook", pa.binary()),
+			("rule", pa.string()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+		],
+		"unit_rules_handled": [
+			("character", pa.binary()),
+			("graph", pa.binary()),
+			("unit", pa.binary()),
+			("rulebook", pa.binary()),
+			("rule", pa.string()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+		],
+		"character_thing_rules_handled": [
+			("character", pa.binary()),
+			("thing", pa.binary()),
+			("rulebook", pa.binary()),
+			("rule", pa.string()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+		],
+		"character_place_rules_handled": [
+			("character", pa.binary()),
+			("place", pa.binary()),
+			("rulebook", pa.binary()),
+			("rule", pa.string()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+		],
+		"character_portal_rules_handled": [
+			("character", pa.binary()),
+			("orig", pa.binary()),
+			("dest", pa.binary()),
+			("rulebook", pa.binary()),
+			("rule", pa.string()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+		],
+		"node_rules_handled": [
+			("character", pa.binary()),
+			("node", pa.binary()),
+			("rulebook", pa.binary()),
+			("rule", pa.string()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+		],
+		"portal_rules_handled": [
+			("character", pa.binary()),
+			("orig", pa.binary()),
+			("dest", pa.binary()),
+			("rulebook", pa.binary()),
+			("rule", pa.string()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+		],
+		"things": [
+			("character", pa.binary()),
+			("thing", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("location", pa.binary()),
+		],
+		"node_rulebook": [
+			("character", pa.binary()),
+			("node", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("rulebook", pa.binary()),
+		],
+		"portal_rulebook": [
+			("character", pa.binary()),
+			("orig", pa.binary()),
+			("dest", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("rulebook", pa.binary()),
+		],
+		"units": [
+			("character_graph", pa.binary()),
+			("unit_graph", pa.binary()),
+			("unit_node", pa.binary()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("is_unit", pa.bool_()),
+		],
+		"turns_completed": [("branch", pa.string()), ("turn", pa.uint64())],
 	}
 	initial = {
 		"global": [
 			{
+				"id": 0,
 				"key": b"\xb4_lise_schema_version",
 				"value": b"\x00",
 			},
-			{"key": b"\xa6branch", "value": b"\xa5trunk"},
-			{"key": b"\xa4turn", "value": b"\x00"},
-			{"key": b"\xa4tick", "value": b"\x00"},
+			{"id": 1, "key": b"\xa6branch", "value": b"\xa5trunk"},
+			{"id": 2, "key": b"\xa4turn", "value": b"\x00"},
+			{"id": 3, "key": b"\xa4tick", "value": b"\x00"},
 		]
 	}
 
@@ -1414,17 +1354,209 @@ class ParquetDBHolder:
 		self._inq = inq
 		self._outq = outq
 		self._db = ParquetDB(path)
+		self.lock = RLock()
+		self.existence_lock = Lock()
+		self.existence_lock.acquire()
 
 	def initdb(self):
+		import pyarrow as pa
+
 		db = self._db
 		initial = self.initial
 		for table, schema in self.schema.items():
 			if db.dataset_exists(table):
 				continue
 			if table in initial:
-				db.create(initial[table], table_name=table, schema=schema)
+				db.create(
+					[{"dataset_name": table}, *initial[table]],
+					table_name=table,
+					schema=pa.schema(schema),
+				)
 			else:
-				db.create(table_name=table, schema=schema)
+				db.create(
+					{"dataset_name": table},
+					table_name=table,
+					schema=pa.schema(schema),
+				)
+
+	def insert(self, table: str, data: list) -> None:
+		db = self._db
+		top_id = max(db.read(table, columns=["id"]), key=itemgetter("id"))[
+			"id"
+		]
+		for i, datum in enumerate(data, start=top_id + 1):
+			datum["id"] = i
+		db.update(data, dataset_name=table)
+
+	def dump(self, table: str) -> list:
+		return self._db.read(table=table)
+
+	def list_keyframes(self) -> list:
+		return self._db.read(
+			table="keyframes", columns=["graph", "branch", "turn", "tick"]
+		)
+
+	def get_keyframe(
+		self, graph: bytes, branch: str, turn: int, tick: int
+	) -> None:
+		import pyarrow.compute as pc
+
+		return self._db.read(
+			"keyframes",
+			filters=[
+				pc.field("graph") == pc.scalar(graph),
+				pc.field("branch") == pc.scalar(graph),
+				pc.field("turn") == pc.scalar(turn),
+				pc.field("tick") == pc.scalar(tick),
+			],
+		)
+
+	def insert1(self, table: str, data: dict):
+		return self.insert(table, [data])
+
+	def graph_exists(self, graph: bytes) -> bool:
+		import pyarrow.compute as pc
+
+		return bool(
+			self._db.read(
+				"graphs", filters=[pc.field("graph") == pc.scalar(graph)]
+			)
+		)
+
+	def new_graph(self, graph: bytes) -> None:
+		return self.insert1("graphs", {"graph": graph})
+
+	def keyframes_insert(self, **kwargs) -> None:
+		return self.insert1(
+			"keyframes",
+			kwargs,
+		)
+
+	def keyframes_insert_many(self, data):
+		return self.insert("keyframes", data)
+
+	@staticmethod
+	def echo(it):
+		return it
+
+	def run(self):
+		inq = self._inq
+		outq = self._outq
+		while True:
+			inst = inq.get()
+			if inst == "shutdown":
+				self.existence_lock.release()
+				return
+			elif inst == "commit":
+				pass
+			elif not isinstance(inst, (str, tuple)):
+				raise TypeError("Can't use SQLAlchemy with ParquetDB")
+			outq.put(getattr(self, inst[0])(*inst[1], **inst[2]))
+
+
+class ParquetQueryEngine:
+	holder_cls = ParquetDBHolder
+
+	def __init__(self, path, pack=None, unpack=None):
+		self._inq = Queue()
+		self._outq = Queue()
+		self._holder = self.holder_cls(path, self._inq, self._outq)
+
+		if pack is None:
+
+			def pack(s: str) -> bytes:
+				return repr(s).encode()
+
+		if unpack is None:
+			from ast import literal_eval
+
+			def unpack(b: bytes) -> Any:
+				return literal_eval(b.decode())
+
+		self.pack = pack
+		self.unpack = unpack
+		self._branches = {}
+		self._nodevals2set = []
+		self._edgevals2set = []
+		self._graphvals2set = []
+		self._nodes2set = []
+		self._edges2set = []
+		self._btts = set()
+		self._t = Thread(target=self._holder.run, daemon=True)
+		self._t.start()
+
+	def echo(self, something: Any) -> Any:
+		self._inq.put(("echo", something))
+		return self._outq.get()
+
+	def call(self, method, *args, **kwargs):
+		with self._holder.lock:
+			self._inq.put((method, args, kwargs))
+			return self._outq.get()
+
+	def call_silent(self, method, *args, **kwargs):
+		self._inq.put(("silent", method, args, kwargs))
+
+	def new_graph(
+		self, graph: Key, branch: str, turn: int, tick: int, typ: str
+	) -> None:
+		graph = self.pack(graph)
+		return self.call("new_graph", graph, branch, turn, tick, typ)
+
+	def keyframes_insert(
+		self,
+		graph: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		nodes: list,
+		edges: list,
+		graph_val: list,
+	) -> None:
+		graph, nodes, edges, graph_val = map(
+			self.pack, (graph, nodes, edges, graph_val)
+		)
+		return self.call(
+			"keyframes_insert",
+			graph=graph,
+			branch=branch,
+			turn=turn,
+			tick=tick,
+			nodes=nodes,
+			edges=edges,
+			graph_val=graph_val,
+		)
+
+	def keyframes_insert_many(self, many):
+		return self.call("keyframes_insert_many", many)
+
+	def keyframes_dump(self):
+		unpack = self.unpack
+		for graph, branch, turn, tick, nodes, edges, graph_val in self.call(
+			"dump", "keyframes"
+		):
+			yield (
+				unpack(graph),
+				branch,
+				turn,
+				tick,
+				unpack(nodes),
+				unpack(edges),
+				unpack(graph_val),
+			)
+
+	def keyframes_list(self) -> Iterator:  # change name pls
+		unpack = self.unpack
+		for graph, branch, turn, tick in self.call("list_keyframes"):
+			yield unpack(graph), branch, turn, tick
+
+	def get_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int
+	) -> dict:
+		unpack = self.unpack
+
+	def initdb(self):
+		self.call("initdb")
 
 
 class ConnectionHolder(query.ConnectionHolder):
