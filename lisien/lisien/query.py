@@ -1356,6 +1356,7 @@ class ParquetDBHolder:
 			{"key": b"\xa6branch", "value": b"\xa5trunk"},
 			{"key": b"\xa4turn", "value": b"\x00"},
 			{"key": b"\xa4tick", "value": b"\x00"},
+			{"key": b"\xa8language", "value": b"\xa3eng"},
 		]
 	}
 
