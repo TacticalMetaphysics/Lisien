@@ -1399,7 +1399,17 @@ class ParquetDBHolder:
 			[("branch", pa.string()), ("turn", pa.uint64())]
 		),
 	}
-	initial = {}
+	initial = {
+		"global": [
+			{
+				"key": b"\xb4_lise_schema_version",
+				"value": b"\x00",
+			},
+			{"key": b"\xa6branch", "value": b"\xa5trunk"},
+			{"key": b"\xa4turn", "value": b"\x00"},
+			{"key": b"\xa4tick", "value": b"\x00"},
+		]
+	}
 
 	def __init__(self, path, inq, outq):
 		from parquetdb import ParquetDB
