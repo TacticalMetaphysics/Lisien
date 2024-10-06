@@ -2388,121 +2388,245 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		self,
 	) -> Iterator[Tuple[Key, str, int, int, Tuple[List[Key], float]]]:
 		unpack = self.unpack
-		for rulebook, branch, turn, tick, rules, prio in self.call(
-			"dump", "rulebooks"
-		):
-			yield unpack(rulebook), branch, turn, tick, unpack(rules), prio
+		for d in self.call("dump", "rulebooks"):
+			yield (
+				unpack(d["rulebook"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				unpack(d["rules"]),
+				d["priority"],
+			)
+
+	def _rule_dump(self, typ):
+		unpack = self.unpack
+		for d in self.call("dump", "rule_" + typ):
+			yield (
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				unpack(d["typ"]),
+			)
 
 	def rule_triggers_dump(
 		self,
 	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
-		pass
+		return self._rule_dump("triggers")
 
 	def rule_prereqs_dump(
 		self,
 	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
-		pass
+		return self._rule_dump("prereqs")
 
 	def rule_actions_dump(
 		self,
 	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
-		pass
+		return self._rule_dump("actions")
 
 	def rule_neighborhood_dump(
 		self,
 	) -> Iterator[Tuple[Key, str, int, int, int]]:
-		pass
+		for d in self.call("dump", "rule_neighborhood"):
+			yield (
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				d["neighborhood"],
+			)
 
 	def node_rulebook_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
-		pass
+		unpack = self.unpack
+		for d in self.call("dump", "node_rulebook"):
+			yield (
+				unpack(d["character"]),
+				unpack(d["node"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				unpack(d["rulebook"]),
+			)
 
 	def portal_rulebook_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, str, int, int, Key]]:
-		pass
+		unpack = self.unpack
+		for d in self.call("dump", "portal_rulebook"):
+			yield (
+				unpack(d["character"]),
+				unpack(d["orig"]),
+				unpack(d["dest"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				unpack(d["rulebook"]),
+			)
+
+	def _character_rulebook_dump(self, typ):
+		unpack = self.unpack
+		for d in self.call("dump", f"{typ}_rulebook"):
+			yield (
+				unpack(d["character"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				unpack(d["rulebook"]),
+			)
 
 	def character_rulebook_dump(
 		self,
 	) -> Iterator[Tuple[Key, str, int, int, Key]]:
-		pass
+		return self._character_rulebook_dump("character")
 
 	def unit_rulebook_dump(self) -> Iterator[Tuple[Key, str, int, int, Key]]:
-		pass
+		return self._character_rulebook_dump("unit")
 
 	def character_thing_rulebook_dump(
 		self,
 	) -> Iterator[Tuple[Key, str, int, int, Key]]:
-		pass
+		return self._character_rulebook_dump("character_thing")
 
 	def character_place_rulebook_dump(
 		self,
 	) -> Iterator[Tuple[Key, str, int, int, Key]]:
-		pass
+		return self._character_rulebook_dump("character_place")
 
 	def character_portal_rulebook_dump(
 		self,
 	) -> Iterator[Tuple[Key, str, int, int, Key]]:
-		pass
+		return self._character_rulebook_dump("character_portal")
 
 	def character_rules_changed_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, str, str, int, int, int, int]]:
-		pass
+		unpack = self.unpack
+		for d in self.call("dump", "character_rules_handled"):
+			yield (
+				unpack(d["character"]),
+				unpack(d["rulebook"]),
+				unpack(d["rule"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+			)
 
 	def unit_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
-		pass
+		unpack = self.unpack
+		for d in self.call("dump", "unit_rules_handled"):
+			yield (
+				unpack(d["character"]),
+				unpack(d["graph"]),
+				unpack(d["unit"]),
+				unpack(d["rulebook"]),
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
+			)
 
 	def unit_rules_changes_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, str, Key, Key, str, int, int, int, int]]:
-		pass
+		raise NotImplementedError
 
 	def character_thing_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
-		pass
+		unpack = self.unpack
+		for d in self.call("dump", "character_thing_rules_handled"):
+			yield (
+				unpack(d["character"]),
+				unpack(d["thing"]),
+				unpack(d["rulebook"]),
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
+			)
 
 	def character_place_rules_changes_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
-		pass
+		raise NotImplementedError
 
 	def character_portal_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
-		pass
+		unpack = self.unpack
+		for d in self.call("dump", "character_portal_rules_handled"):
+			yield (
+				unpack(d["character"]),
+				unpack(d["orig"]),
+				unpack(d["dest"]),
+				unpack(d["rulebook"]),
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
+			)
 
 	def character_portal_rules_changes_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, str, Key, Key, str, int, int, int, int]]:
-		pass
+		raise NotImplementedError
 
 	def node_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
-		pass
+		unpack = self.unpack
+		for d in self.call("dump", "node_rules_handled"):
+			yield (
+				unpack(d["character"]),
+				unpack(d["node"]),
+				unpack(d["rulebook"]),
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
+			)
 
 	def node_rules_changes_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int, int, int]]:
-		pass
+		raise NotImplementedError
 
 	def portal_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
-		pass
+		unpack = self.unpack
+		for d in self.call("dump", "portal_rules_handled"):
+			yield (
+				unpack(d["character"]),
+				unpack(d["orig"]),
+				unpack(d["dest"]),
+				unpack(d["rulebook"]),
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
+			)
 
 	def portal_rules_changes_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int, int, int]]:
-		pass
+		raise NotImplementedError
 
 	def things_dump(self) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
-		pass
+		unpack = self.unpack
+		for d in self.call("dump", "things"):
+			yield (
+				unpack(d["character"]),
+				unpack(d["thing"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				unpack(d["location"]),
+			)
 
 	def load_things(
 		self,
@@ -2518,7 +2642,17 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	def units_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, str, int, int, bool]]:
-		pass
+		unpack = self.unpack
+		for d in self.call("dump", "units"):
+			yield (
+				unpack(d["character_graph"]),
+				unpack(d["unit_graph"]),
+				unpack(d["unit_node"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				d["is_unit"],
+			)
 
 	def universal_set(
 		self, key: Key, branch: str, turn: int, tick: int, val: Any
