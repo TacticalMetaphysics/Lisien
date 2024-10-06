@@ -1456,9 +1456,12 @@ class ParquetDBHolder:
 	def get_global(self, key: bytes) -> bytes:
 		import pyarrow.compute as pc
 
-		return self._db.read("global", filters=[pc.field("key") == key])[
-			"value"
-		][0].as_py()
+		try:
+			return self._db.read("global", filters=[pc.field("key") == key])[
+				"value"
+			][0].as_py()
+		except IndexError as ex:
+			raise KeyError(f"No such global: {key}") from ex
 
 	def set_global(self, key: bytes, value: bytes):
 		try:
