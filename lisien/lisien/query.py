@@ -1342,9 +1342,9 @@ class ParquetDBHolder:
 				"key": b"\xb4_lise_schema_version",
 				"value": b"\x00",
 			},
-			{"id": 1, "key": b"\xa6branch", "value": b"\xa5trunk"},
-			{"id": 2, "key": b"\xa4turn", "value": b"\x00"},
-			{"id": 3, "key": b"\xa4tick", "value": b"\x00"},
+			{"key": b"\xa6branch", "value": b"\xa5trunk"},
+			{"key": b"\xa4turn", "value": b"\x00"},
+			{"key": b"\xa4tick", "value": b"\x00"},
 		]
 	}
 
