@@ -1884,6 +1884,39 @@ class ParquetQueryEngine:
 			)
 			self._edges2set = []
 
+	def _flush_edge_val(self):
+		if not self._edgevals2set:
+			return
+		pack = self.pack
+		with self._holder.lock:
+			self.call(
+				"insert",
+				[
+					{
+						"graph": pack(graph),
+						"orig": pack(orig),
+						"dest": pack(dest),
+						"idx": idx,
+						"key": pack(key),
+						"branch": branch,
+						"turn": turn,
+						"tick": tick,
+						"value": pack(value),
+					}
+					for (
+						graph,
+						orig,
+						dest,
+						idx,
+						key,
+						branch,
+						turn,
+						tick,
+						value,
+					) in self._edgevals2set
+				],
+			)
+
 	def initdb(self):
 		self.call("initdb")
 
