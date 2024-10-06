@@ -18,21 +18,22 @@ doesn't pollute the other files so much.
 
 """
 
+from abc import abstractmethod
+from typing import Tuple, Any, Iterator, Hashable, List
 import os
 from collections import defaultdict
 from collections.abc import MutableMapping
 from queue import Empty, Queue
 from threading import Lock, Thread
 from time import monotonic
-from typing import Any, Hashable, Iterator, List, Tuple
 
-from sqlalchemy import MetaData, create_engine
+from sqlalchemy import create_engine, MetaData
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.exc import ArgumentError, IntegrityError, OperationalError
 from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import Select
 
-from . import wrap
+from . import wrap, Key
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 wrappath = os.path.dirname(wrap.__file__)
@@ -250,7 +251,360 @@ class ConnectionHolder:
 		self.commit()
 
 
-class QueryEngine(object):
+class AbstractQueryEngine:
+	pack: callable
+	unpack: callable
+
+	@abstractmethod
+	def echo(self, string: str) -> str:
+		pass
+
+	@abstractmethod
+	def new_graph(
+		self, graph: Key, branch: str, turn: str, tick: str, typ: str
+	):
+		pass
+
+	@abstractmethod
+	def keyframes_insert(
+		self,
+		graph: Key,
+		branch: str,
+		turn: str,
+		tick: str,
+		nodes: list,
+		edges: list,
+		graph_val: list,
+	):
+		pass
+
+	@abstractmethod
+	def keyframes_insert_many(self, many: list):
+		pass
+
+	@abstractmethod
+	def keyframes_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, list, list]]:
+		pass
+
+	@abstractmethod
+	def keyframes_list(self) -> Iterator[Tuple[Key, str, int, int]]:
+		pass
+
+	@abstractmethod
+	def get_keyframe(self) -> Tuple[list, list, list]:
+		pass
+
+	@abstractmethod
+	def graph_type(self) -> str:
+		pass
+
+	@abstractmethod
+	def have_branch(self, branch: str) -> bool:
+		pass
+
+	@abstractmethod
+	def all_branches(self) -> Iterator[str]:
+		pass
+
+	@abstractmethod
+	def global_get(self, key: Key) -> Any:
+		pass
+
+	@abstractmethod
+	def global_items(self) -> Iterator[Tuple[Key, Any]]:
+		pass
+
+	@abstractmethod
+	def get_branch(self) -> str:
+		pass
+
+	@abstractmethod
+	def get_turn(self) -> int:
+		pass
+
+	@abstractmethod
+	def get_tick(self) -> int:
+		pass
+
+	@abstractmethod
+	def global_set(self, key: Key, value: Any):
+		pass
+
+	@abstractmethod
+	def global_del(self, key: Key):
+		pass
+
+	@abstractmethod
+	def new_branch(
+		self, branch: str, parent: str, parent_turn: int, parent_tick: int
+	):
+		pass
+
+	@abstractmethod
+	def update_branch(
+		self,
+		branch: str,
+		parent: str,
+		parent_turn: int,
+		parent_tick: int,
+		end_turn: int,
+		end_tick: int,
+	):
+		pass
+
+	@abstractmethod
+	def set_branch(
+		self,
+		branch: str,
+		parent: str,
+		parent_turn: int,
+		parent_tick: int,
+		end_turn: int,
+		end_tick: int,
+	):
+		pass
+
+	@abstractmethod
+	def new_turn(
+		self, branch: str, turn: int, end_tick: int = 0, plan_end_tick: int = 0
+	):
+		pass
+
+	@abstractmethod
+	def update_turn(
+		self, branch: str, turn: int, end_tick: int, plan_end_tick: int
+	):
+		pass
+
+	@abstractmethod
+	def set_turn(
+		self, branch: str, turn: int, end_tick: int, plan_end_tick: int
+	):
+		pass
+
+	@abstractmethod
+	def set_turn_completed(self, branch: str, turn: int):
+		pass
+
+	@abstractmethod
+	def turns_dump(self):
+		pass
+
+	@abstractmethod
+	def graph_val_dump(self) -> Iterator[GraphValRowType]:
+		pass
+
+	@abstractmethod
+	def load_graph_val(
+		self,
+		graph: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		pass
+
+	@abstractmethod
+	def graph_val_set(
+		self, graph: Key, key: Key, branch: str, turn: int, tick: int, val: Any
+	):
+		pass
+
+	@abstractmethod
+	def graph_val_del_time(self, branch: str, turn: int, tick: int):
+		pass
+
+	@abstractmethod
+	def graphs_types(self) -> Iterator[Tuple[Key, str]]:
+		pass
+
+	@abstractmethod
+	def graphs_dump(self) -> Iterator[Tuple[Key, str, int, int, str]]:
+		pass
+
+	@abstractmethod
+	def exist_node(
+		self,
+		graph: Key,
+		node: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		extant: bool,
+	):
+		pass
+
+	@abstractmethod
+	def nodes_del_time(self, branch: str, turn: int, tick: int):
+		pass
+
+	@abstractmethod
+	def nodes_dump(self) -> Iterator[NodeRowType]:
+		pass
+
+	@abstractmethod
+	def load_nodes(
+		self,
+		graph: str,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		pass
+
+	@abstractmethod
+	def node_val_dump(self) -> Iterator[NodeValRowType]:
+		pass
+
+	@abstractmethod
+	def load_node_val(
+		self,
+		graph: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	) -> Iterator[NodeValRowType]:
+		pass
+
+	@abstractmethod
+	def node_val_set(
+		self,
+		graph: Key,
+		node: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		value: Any,
+	):
+		pass
+
+	@abstractmethod
+	def node_val_del_time(self, branch: str, turn: int, tick: int):
+		pass
+
+	@abstractmethod
+	def edges_dump(self) -> Iterator[EdgeRowType]:
+		pass
+
+	@abstractmethod
+	def load_edges(
+		self,
+		graph: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	) -> Iterator[EdgeRowType]:
+		pass
+
+	@abstractmethod
+	def exist_edge(
+		self,
+		graph: Key,
+		orig: Key,
+		dest: Key,
+		idx: int,
+		branch: str,
+		turn: int,
+		tick: int,
+		extant: bool,
+	):
+		pass
+
+	@abstractmethod
+	def edges_del_time(self, branch: str, turn: int, tick: int):
+		pass
+
+	@abstractmethod
+	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
+		pass
+
+	@abstractmethod
+	def load_edge_val(
+		self,
+		graph: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	) -> Iterator[EdgeValRowType]:
+		pass
+
+	@abstractmethod
+	def edge_val_set(
+		self,
+		graph: Key,
+		orig: Key,
+		dest: Key,
+		idx: int,
+		key: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		value: Any,
+	):
+		pass
+
+	@abstractmethod
+	def edge_val_del_time(self, branch: str, turn: int, tick: int):
+		pass
+
+	@abstractmethod
+	def plans_dump(self) -> Iterator:
+		pass
+
+	@abstractmethod
+	def plans_insert(self, plan_id: int, branch: str, turn: int, tick: int):
+		pass
+
+	@abstractmethod
+	def plans_insert_many(self, many: List[Tuple[int, str, int, int]]):
+		pass
+
+	@abstractmethod
+	def plan_ticks_insert(self, plan_id: int, turn: int, tick: int):
+		pass
+
+	@abstractmethod
+	def plan_ticks_insert_many(self, many: List[Tuple[int, int, int]]):
+		pass
+
+	@abstractmethod
+	def plan_ticks_dump(self) -> Iterator:
+		pass
+
+	@abstractmethod
+	def flush(self):
+		pass
+
+	@abstractmethod
+	def commit(self):
+		pass
+
+	@abstractmethod
+	def close(self):
+		pass
+
+	@abstractmethod
+	def initdb(self):
+		pass
+
+	@abstractmethod
+	def truncate_all(self):
+		pass
+
+
+class QueryEngine(AbstractQueryEngine):
 	flush_edges_t = 0
 	holder_cls = ConnectionHolder
 	tables = (
