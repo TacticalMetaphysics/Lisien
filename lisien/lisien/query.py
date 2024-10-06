@@ -38,6 +38,7 @@ Other comparison operators like ``>`` and ``<`` work as well.
 import operator
 from collections import defaultdict
 from collections.abc import Sequence, Set
+from abc import abstractmethod
 from collections.abc import MutableMapping, Sequence, Set
 from operator import gt, lt, eq, ne, le, ge, itemgetter
 from functools import partialmethod
@@ -53,8 +54,9 @@ import msgpack
 
 import lisien
 
-from .alchemy import gather_sql, meta
-from .allegedb import Key, query
+from .alchemy import meta, gather_sql
+from .allegedb import query, Key
+from .allegedb.query import AbstractQueryEngine
 from .exc import OperationalError
 from .util import EntityStatAccessor
 
@@ -1579,7 +1581,447 @@ class ParquetDBHolder:
 			outq.put(getattr(self, inst[0])(*inst[1], **inst[2]))
 
 
-class ParquetQueryEngine:
+class AbstractLiSEQueryEngine(AbstractQueryEngine):
+	@abstractmethod
+	def universals_dump(self) -> Iterator[Tuple[Key, str, int, int, Any]]:
+		pass
+
+	@abstractmethod
+	def rulebooks_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, Tuple[List[Key], float]]]:
+		pass
+
+	@abstractmethod
+	def rule_triggers_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
+		pass
+
+	@abstractmethod
+	def rule_prereqs_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
+		pass
+
+	@abstractmethod
+	def rule_actions_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
+		pass
+
+	@abstractmethod
+	def rule_neighborhood_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, int]]:
+		pass
+
+	@abstractmethod
+	def node_rulebook_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
+		pass
+
+	@abstractmethod
+	def portal_rulebook_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, str, int, int, Key]]:
+		pass
+
+	@abstractmethod
+	def character_rulebook_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+		pass
+
+	@abstractmethod
+	def unit_rulebook_dump(self) -> Iterator[Tuple[Key, str, int, int, Key]]:
+		pass
+
+	@abstractmethod
+	def character_thing_rulebook_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+		pass
+
+	@abstractmethod
+	def character_place_rulebook_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+		pass
+
+	@abstractmethod
+	def character_portal_rulebook_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+		pass
+
+	@abstractmethod
+	def character_rules_changed_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, str, str, int, int, int, int]]:
+		pass
+
+	@abstractmethod
+	def unit_rules_handled_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
+		pass
+
+	@abstractmethod
+	def unit_rules_changes_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, str, Key, Key, str, int, int, int, int]]:
+		pass
+
+	@abstractmethod
+	def character_thing_rules_handled_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
+		pass
+
+	@abstractmethod
+	def character_place_rules_changes_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
+		pass
+
+	@abstractmethod
+	def character_portal_rules_handled_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
+		pass
+
+	@abstractmethod
+	def character_portal_rules_changes_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, str, Key, Key, str, int, int, int, int]]:
+		pass
+
+	@abstractmethod
+	def node_rules_handled_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
+		pass
+
+	@abstractmethod
+	def node_rules_changes_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int, int, int]]:
+		pass
+
+	@abstractmethod
+	def portal_rules_handled_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
+		pass
+
+	@abstractmethod
+	def portal_rules_changes_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int, int, int]]:
+		pass
+
+	@abstractmethod
+	def things_dump(self) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
+		pass
+
+	@abstractmethod
+	def load_things(
+		self,
+		character: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
+		pass
+
+	@abstractmethod
+	def units_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, str, int, int, bool]]:
+		pass
+
+	@abstractmethod
+	def universal_set(
+		self, key: Key, branch: str, turn: int, tick: int, val: Any
+	):
+		pass
+
+	@abstractmethod
+	def universal_del(
+		self, key: Key, branch: str, turn: int, tick: int, val: Any
+	):
+		pass
+
+	@abstractmethod
+	def comparison(
+		self,
+		entity0: Key,
+		stat0: Key,
+		entity1: Key,
+		stat1: Key = None,
+		oper: str = "eq",
+		windows: list = None,
+	):
+		pass
+
+	@abstractmethod
+	def count_all_table(self, tbl: str) -> int:
+		pass
+
+	@abstractmethod
+	def set_rule_triggers(
+		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
+	):
+		pass
+
+	@abstractmethod
+	def set_rule_prereqs(
+		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
+	):
+		pass
+
+	@abstractmethod
+	def set_rule_actions(
+		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
+	):
+		pass
+
+	@abstractmethod
+	def set_rule_neightborhood(
+		self, rule: str, branch: str, turn: int, tick: int, neighborhood: int
+	):
+		pass
+
+	@abstractmethod
+	def set_rule(
+		self,
+		rule: str,
+		branch: str,
+		turn: int,
+		tick: int,
+		triggers: List[str],
+		prereqs: List[str],
+		actions: List[str],
+		neighborhood: int,
+	):
+		pass
+
+	@abstractmethod
+	def set_rulebook(
+		self,
+		name: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		rules: List[str] = None,
+		prio: float = 0.0,
+	):
+		pass
+
+	@abstractmethod
+	def set_character_rulebook(
+		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+	):
+		pass
+
+	@abstractmethod
+	def set_unit_rulebook(
+		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+	):
+		pass
+
+	@abstractmethod
+	def set_character_thing_rulebook(
+		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+	):
+		pass
+
+	@abstractmethod
+	def set_character_place_rulebook(
+		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+	):
+		pass
+
+	@abstractmethod
+	def set_character_portal_rulebook(
+		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+	):
+		pass
+
+	@abstractmethod
+	def rulebooks(self) -> Iterator[Key]:
+		pass
+
+	@abstractmethod
+	def set_node_rulebook(
+		self,
+		character: Key,
+		node: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		rulebook: Key,
+	):
+		pass
+
+	@abstractmethod
+	def set_portal_rulebook(
+		self,
+		character: Key,
+		orig: Key,
+		dest: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		rulebook: Key,
+	):
+		pass
+
+	@abstractmethod
+	def handled_character_rule(
+		self,
+		character: Key,
+		rulebook: Key,
+		rule: str,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pass
+
+	@abstractmethod
+	def handled_unit_rule(
+		self,
+		character: Key,
+		rulebook: Key,
+		rule: str,
+		graph: Key,
+		unit: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pass
+
+	@abstractmethod
+	def handled_character_thing_rule(
+		self,
+		character: Key,
+		rulebook: Key,
+		rule: str,
+		thing: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pass
+
+	@abstractmethod
+	def handled_character_place_rule(
+		self,
+		character: Key,
+		rulebook: Key,
+		rule: str,
+		place: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pass
+
+	@abstractmethod
+	def handled_character_portal_rule(
+		self,
+		character: Key,
+		rulebook: Key,
+		rule: str,
+		orig: Key,
+		dest: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pass
+
+	@abstractmethod
+	def handled_node_rule(
+		self,
+		character: Key,
+		node: Key,
+		rulebook: Key,
+		rule: str,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pass
+
+	@abstractmethod
+	def handled_portal_rule(
+		self,
+		character: Key,
+		orig: Key,
+		dest: Key,
+		rulebook: Key,
+		rule: str,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pass
+
+	@abstractmethod
+	def set_thing_loc(
+		self,
+		character: Key,
+		thing: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		loc: Key,
+	):
+		pass
+
+	@abstractmethod
+	def unit_set(
+		self,
+		character: Key,
+		graph: Key,
+		node: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		isav: bool,
+	):
+		pass
+
+	@abstractmethod
+	def rulebook_set(
+		self,
+		rulebook: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		rules: List[str],
+	):
+		pass
+
+	@abstractmethod
+	def turns_completed_dump(self) -> Iterator[Tuple[str, int]]:
+		pass
+
+	@abstractmethod
+	def complete_turn(
+		self, branch: str, turn: int, discard_rules: bool = False
+	):
+		pass
+
+
+class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	holder_cls = ParquetDBHolder
 
 	def __init__(self, path, pack=None, unpack=None):
@@ -1989,7 +2431,7 @@ class ConnectionHolder(query.ConnectionHolder):
 			)
 
 
-class QueryEngine(query.QueryEngine):
+class QueryEngine(query.QueryEngine, AbstractLiSEQueryEngine):
 	exist_edge_t = 0
 	path = lisien.__path__[0]
 	IntegrityError = IntegrityError
@@ -3446,14 +3888,6 @@ class QueryEngine(query.QueryEngine):
 		)
 		self._portal_rules_handled = []
 
-	def get_rulebook_char(self, rulemap, character):
-		character = self.pack(character)
-		for (book,) in self.call_one(
-			"rulebook_get_{}".format(rulemap), character
-		):
-			return self.unpack(book)
-		raise KeyError("No rulebook")
-
 	def set_thing_loc(self, character, thing, branch, turn, tick, loc):
 		(character, thing) = map(self.pack, (character, thing))
 		loc = self.pack(loc)
@@ -3466,17 +3900,6 @@ class QueryEngine(query.QueryEngine):
 			(character, graph, node, branch, turn, tick, isav)
 		)
 		self._increc()
-
-	def rulebooks_rules(self):
-		for rulebook, rule in self.call_one("rulebooks_rules"):
-			yield map(self.unpack, (rulebook, rule))
-
-	def rulebook_get(self, rulebook, idx):
-		return self.unpack(
-			self.call_one("rulebook_get", self.pack(rulebook), idx).fetchone()[
-				0
-			]
-		)
 
 	def rulebook_set(self, rulebook, branch, turn, tick, rules):
 		# what if the rulebook has other values set afterward? wipe them out, right?
@@ -3491,14 +3914,6 @@ class QueryEngine(query.QueryEngine):
 			self.call_one(
 				"rulebooks_update", rules, rulebook, branch, turn, tick
 			)
-
-	def rulebook_del_time(self, branch, turn, tick):
-		self.call_one("rulebooks_del_time", branch, turn, tick)
-
-	def branch_descendants(self, branch):
-		for child in self.call_one("branch_children", branch):
-			yield child
-			yield from self.branch_descendants(child)
 
 	def turns_completed_dump(self):
 		return self.call_one("turns_completed_dump")
