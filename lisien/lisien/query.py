@@ -1765,6 +1765,9 @@ class ParquetQueryEngine:
 	def set_turn(self, branch, turn, end_tick, plan_end_tick):
 		return self.call("set_turn", branch, turn, end_tick, plan_end_tick)
 
+	def turns_dump(self):
+		return self.call("dump", "turns")
+
 	def initdb(self):
 		self.call("initdb")
 
