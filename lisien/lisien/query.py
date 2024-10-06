@@ -1695,19 +1695,13 @@ class AbstractLiSEQueryEngine(AbstractQueryEngine):
 		pass
 
 	@abstractmethod
-	def unit_rules_changes_dump(
-		self,
-	) -> Iterator[Tuple[Key, Key, str, Key, Key, str, int, int, int, int]]:
-		pass
-
-	@abstractmethod
 	def character_thing_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
 		pass
 
 	@abstractmethod
-	def character_place_rules_changes_dump(
+	def character_place_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
 		pass
@@ -1719,7 +1713,7 @@ class AbstractLiSEQueryEngine(AbstractQueryEngine):
 		pass
 
 	@abstractmethod
-	def character_portal_rules_changes_dump(
+	def character_portal_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, str, Key, Key, str, int, int, int, int]]:
 		pass
@@ -1731,7 +1725,7 @@ class AbstractLiSEQueryEngine(AbstractQueryEngine):
 		pass
 
 	@abstractmethod
-	def node_rules_changes_dump(
+	def node_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int, int, int]]:
 		pass
@@ -1740,12 +1734,6 @@ class AbstractLiSEQueryEngine(AbstractQueryEngine):
 	def portal_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
-		pass
-
-	@abstractmethod
-	def portal_rules_changes_dump(
-		self,
-	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int, int, int]]:
 		pass
 
 	@abstractmethod
@@ -2581,11 +2569,6 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				d["tick"],
 			)
 
-	def unit_rules_changes_dump(
-		self,
-	) -> Iterator[Tuple[Key, Key, str, Key, Key, str, int, int, int, int]]:
-		raise NotImplementedError
-
 	def character_thing_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
@@ -2601,10 +2584,20 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				d["tick"],
 			)
 
-	def character_place_rules_changes_dump(
+	def character_place_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
-		raise NotImplementedError
+		unpack = self.unpack
+		for d in self.call("dump", "character_place_rules_handled"):
+			yield (
+				unpack(d["character"]),
+				unpack(d["place"]),
+				unpack(d["rulebook"]),
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
+			)
 
 	def character_portal_rules_handled_dump(
 		self,
