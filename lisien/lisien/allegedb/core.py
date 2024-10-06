@@ -17,7 +17,6 @@
 import gc
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
-from itertools import chain, pairwise
 from threading import RLock
 from typing import (
 	Any,
@@ -37,9 +36,20 @@ from blinker import Signal
 from ..util import HistoricKeyError, Key, sort_set
 from .cache import (
 	KeyframeError,
+HistoricKeyError,
 	PickyDefaultDict,
 	TurnEndDict,
 	TurnEndPlanDict,
+)
+from .query import (
+	Key,
+	QueryEngine,
+	TimeError,
+	NodeRowType,
+	EdgeRowType,
+	GraphValRowType,
+	NodeValRowType,
+	EdgeValRowType,
 )
 from .graph import DiGraph, Edge, GraphsMapping, Node
 from .query import QueryEngine, TimeError
