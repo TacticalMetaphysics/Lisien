@@ -1393,7 +1393,7 @@ class ParquetDBHolder:
 		self._db.create(data, dataset_name=table)
 
 	def dump(self, table: str) -> list:
-		return self._db.read(table=table).to_pylist()
+		return self._db.read(dataset_name=table).to_pylist()
 
 	def list_keyframes(self) -> list:
 		return self._db.read(
@@ -2156,9 +2156,8 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 
 	def global_items(self):
 		unpack = self.unpack
-		yield from (
-			(unpack(k), unpack(v)) for (k, v) in self.call("dump", "global")
-		)
+		for d in self.call("dump", "global"):
+			yield unpack(d["key"]), unpack(d["value"])
 
 	def get_branch(self):
 		return self.unpack(self.call("get_global", b"\xa6branch"))
