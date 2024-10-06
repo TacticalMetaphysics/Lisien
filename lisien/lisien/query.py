@@ -1380,13 +1380,7 @@ class ParquetDBHolder:
 				)
 
 	def insert(self, table: str, data: list) -> None:
-		db = self._db
-		top_id = max(db.read(table, columns=["id"]), key=itemgetter("id"))[
-			"id"
-		]
-		for i, datum in enumerate(data, start=top_id + 1):
-			datum["id"] = i
-		db.update(data, dataset_name=table)
+		self._db.create(data, dataset_name=table)
 
 	def dump(self, table: str) -> list:
 		return self._db.read(table=table).to_pylist()
@@ -1448,17 +1442,42 @@ class ParquetDBHolder:
 		][0].as_py()
 
 	def set_global(self, key: bytes, value: bytes):
-		import pyarrow.compute as pc
-
 		try:
-			id_ = self._db.read(
-				"global", filters=[pc.field("key") == key], columns=["id"]
-			)["id"][0].as_py()
+			id_ = self.filter_get_id("global", "key", key)
 			return self._db.update(
 				{"id": id_, "key": key, "value": value}, "global"
 			)
 		except IndexError:
 			return self._db.create({"key": key, "value": value}, "global")
+
+	def filter_get_id(self, table, keyfield, value):
+		import pyarrow.compute as pc
+
+		return self._db.read(
+			table, filters=[pc.field(keyfield) == value], columns=["id"]
+		)["id"][0].as_py()
+
+	def update_branch(
+		self,
+		branch: str,
+		parent: str,
+		parent_turn: int,
+		parent_tick: int,
+		end_turn: int,
+		end_tick: int,
+	) -> None:
+		id_ = self.filter_get_id("branches", "branch", branch)
+		return self._db.update(
+			{
+				"id": id_,
+				"parent": parent,
+				"parent_turn": parent_turn,
+				"parent_tick": parent_tick,
+				"end_turn": end_turn,
+				"end_tick": end_tick,
+			},
+			dataset_name="branches",
+		)
 
 	@staticmethod
 	def echo(it):
@@ -1601,6 +1620,9 @@ class ParquetQueryEngine:
 		pack = self.pack
 		return self.call("set_global", pack(key), pack(value))
 
+	def global_del(self, key):
+		return self.call("del_global", self.pack(key))
+
 	def global_items(self):
 		unpack = self.unpack
 		yield from (
@@ -1615,6 +1637,33 @@ class ParquetQueryEngine:
 
 	def get_tick(self):
 		return self.unpack(self.call("get_global", b"\xa4tick"))
+
+	def new_branch(self, branch, parent, parent_turn, parent_tick):
+		return self.call(
+			"insert1",
+			"branches",
+			{
+				"branch": branch,
+				"parent": parent,
+				"parent_turn": parent_turn,
+				"parent_tick": parent_tick,
+				"end_turn": parent_turn,
+				"end_tick": parent_tick,
+			},
+		)
+
+	def update_branch(
+		self, branch, parent, parent_turn, parent_tick, end_turn, end_tick
+	):
+		return self.call(
+			"update_branch",
+			branch,
+			parent,
+			parent_turn,
+			parent_tick,
+			end_turn,
+			end_tick,
+		)
 
 	def initdb(self):
 		self.call("initdb")
