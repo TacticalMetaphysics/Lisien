@@ -1443,19 +1443,24 @@ class ParquetDBHolder:
 
 	def set_global(self, key: bytes, value: bytes):
 		try:
-			id_ = self.filter_get_id("global", "key", key)
+			id_ = self.field_get_id("global", "key", key)
 			return self._db.update(
 				{"id": id_, "key": key, "value": value}, "global"
 			)
 		except IndexError:
 			return self._db.create({"key": key, "value": value}, "global")
 
-	def filter_get_id(self, table, keyfield, value):
+	def field_get_id(self, table, keyfield, value):
 		import pyarrow.compute as pc
 
 		return self._db.read(
 			table, filters=[pc.field(keyfield) == value], columns=["id"]
 		)["id"][0].as_py()
+
+	def filter_get_id(self, table, filters):
+		return self._db.read(table, filters=filters, columns=["id"])["id"][
+			0
+		].as_py()
 
 	def update_branch(
 		self,
@@ -1466,7 +1471,7 @@ class ParquetDBHolder:
 		end_turn: int,
 		end_tick: int,
 	) -> None:
-		id_ = self.filter_get_id("branches", "branch", branch)
+		id_ = self.field_get_id("branches", "branch", branch)
 		return self._db.update(
 			{
 				"id": id_,
@@ -1503,6 +1508,25 @@ class ParquetDBHolder:
 					"end_tick": end_tick,
 				},
 			)
+
+	def update_turn(
+		self, branch: str, turn: int, end_tick: int, plan_end_tick: int
+	):
+		import pyarrow.compute as pc
+
+		id_ = self.filter_get_id(
+			"turns", [pc.field("branch") == branch, pc.field("turn") == turn]
+		)
+		return self._db.update(
+			{
+				"id": id,
+				"branch": branch,
+				"turn": turn,
+				"end_tick": end_tick,
+				"plan_end_tick": plan_end_tick,
+			},
+			dataset_name="turns",
+		)
 
 	@staticmethod
 	def echo(it):
@@ -1702,6 +1726,9 @@ class ParquetQueryEngine:
 			end_turn,
 			end_tick,
 		)
+
+	def update_turn(self, branch, turn, end_tick, plan_end_tick):
+		return self.call("update_turn", branch, turn, end_tick, plan_end_tick)
 
 	def initdb(self):
 		self.call("initdb")
