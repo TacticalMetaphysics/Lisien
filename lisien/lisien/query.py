@@ -1775,6 +1775,7 @@ class ParquetQueryEngine:
 		with self._holder.lock:
 			self.call(
 				"insert",
+				"graph_val",
 				[
 					{
 						"graph": pack(graph),
@@ -1803,6 +1804,7 @@ class ParquetQueryEngine:
 		with self._holder.lock:
 			self.call(
 				"insert",
+				"nodes",
 				[
 					{
 						"graph": pack(graph),
@@ -1831,6 +1833,7 @@ class ParquetQueryEngine:
 		with self._holder.lock:
 			self.call(
 				"insert",
+				"node_val",
 				[
 					{
 						"graph": pack(graph),
@@ -1861,6 +1864,7 @@ class ParquetQueryEngine:
 		with self._holder.lock:
 			self.call(
 				"insert",
+				"edges",
 				[
 					{
 						"graph": pack(graph),
@@ -1891,6 +1895,7 @@ class ParquetQueryEngine:
 		with self._holder.lock:
 			self.call(
 				"insert",
+				"edge_val",
 				[
 					{
 						"graph": pack(graph),
