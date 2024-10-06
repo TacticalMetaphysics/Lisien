@@ -3110,7 +3110,18 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		pass
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
-		pass
+		unpack = self.unpack
+		for d in self.call("dump", "edge_val"):
+			yield (
+				unpack(d["character"]),
+				unpack(d["orig"]),
+				unpack(d["dest"]),
+				d["idx"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				unpack(d["value"]),
+			)
 
 	def load_edge_val(
 		self,
