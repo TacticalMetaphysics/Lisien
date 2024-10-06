@@ -45,7 +45,7 @@ from itertools import chain
 from time import monotonic
 from queue import Queue
 from threading import Thread, Lock, RLock
-from typing import Any, List, Callable, Tuple, Iterator
+from typing import Any, List, Callable, Tuple, Iterator, Optional
 
 from sqlalchemy import select, and_, Table
 from sqlalchemy.sql.functions import func
@@ -1338,10 +1338,10 @@ class ParquetDBHolder:
 	initial = {
 		"global": [
 			{
-				"id": 0,
 				"key": b"\xb4_lise_schema_version",
 				"value": b"\x00",
 			},
+			{"key": b"\xabmain_branch", "value": b"\xa5trunk"},
 			{"key": b"\xa6branch", "value": b"\xa5trunk"},
 			{"key": b"\xa4turn", "value": b"\x00"},
 			{"key": b"\xa4tick", "value": b"\x00"},
@@ -1389,7 +1389,7 @@ class ParquetDBHolder:
 		db.update(data, dataset_name=table)
 
 	def dump(self, table: str) -> list:
-		return self._db.read(table=table)
+		return self._db.read(table=table).to_pylist()
 
 	def list_keyframes(self) -> list:
 		return self._db.read(
@@ -1398,17 +1398,22 @@ class ParquetDBHolder:
 
 	def get_keyframe(
 		self, graph: bytes, branch: str, turn: int, tick: int
-	) -> None:
+	) -> Tuple[bytes, bytes, bytes]:
 		import pyarrow.compute as pc
 
-		return self._db.read(
+		rec = self._db.read(
 			"keyframes",
 			filters=[
 				pc.field("graph") == pc.scalar(graph),
-				pc.field("branch") == pc.scalar(graph),
+				pc.field("branch") == pc.scalar(branch),
 				pc.field("turn") == pc.scalar(turn),
 				pc.field("tick") == pc.scalar(tick),
 			],
+		)
+		return (
+			rec["nodes"][0].to_py(),
+			rec["edges"][0].to_py(),
+			rec["graph_val"][0].to_py(),
 		)
 
 	def insert1(self, table: str, data: dict):
@@ -1441,6 +1446,16 @@ class ParquetDBHolder:
 		return self._db.read("global", filters=[pc.field("key") == key])[
 			"value"
 		][0].as_py()
+
+	def set_global(self, key: bytes, value: bytes):
+		import pyarrow.compute as pc
+
+		id_ = self._db.read("global", filters=[pc.field("key") == key])["id"][
+			0
+		].as_py()
+		return self._db.update(
+			{"id": id_, "key": key, "value": value}, "global"
+		)
 
 	@staticmethod
 	def echo(it):
@@ -1559,8 +1574,44 @@ class ParquetQueryEngine:
 
 	def get_keyframe(
 		self, graph: Key, branch: str, turn: int, tick: int
-	) -> dict:
+	) -> Optional[Tuple[dict, dict, dict]]:
 		unpack = self.unpack
+		stuff = self.call("get_keyframe", self.pack(graph), branch, turn, tick)
+		if not stuff:
+			return
+		nodes, edges, val = stuff[0]
+		return unpack(nodes), unpack(edges), unpack(val)
+
+	def graph_type(self, graph):
+		raise NotImplementedError
+
+	def have_branch(self, branch):
+		raise NotImplementedError
+
+	def all_branches(self):
+		return self.call("dump", "branches")
+
+	def global_get(self, key):
+		return self.unpack(self.call("get_global", self.pack(key)))
+
+	def global_set(self, key, value):
+		pack = self.pack
+		return self.call("set_global", pack(key), pack(value))
+
+	def global_items(self):
+		unpack = self.unpack
+		yield from (
+			(unpack(k), unpack(v)) for (k, v) in self.call("dump", "global")
+		)
+
+	def get_branch(self):
+		return self.unpack(self.call("get_global", b"\xa6branch"))
+
+	def get_turn(self):
+		return self.unpack(self.call("get_global", b"\xa4turn"))
+
+	def get_tick(self):
+		return self.unpack(self.call("get_global", b"\xa4tick"))
 
 	def initdb(self):
 		self.call("initdb")
