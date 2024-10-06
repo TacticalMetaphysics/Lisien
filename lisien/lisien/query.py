@@ -3033,7 +3033,16 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		pass
 
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
-		pass
+		unpack = self.unpack
+		for d in self.call("dump", "node_val"):
+			yield (
+				unpack(d["character"]),
+				unpack(d["node"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				unpack(d["value"]),
+			)
 
 	def load_node_val(
 		self,
