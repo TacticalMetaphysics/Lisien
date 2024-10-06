@@ -1677,6 +1677,12 @@ class AbstractLiSEQueryEngine(AbstractQueryEngine):
 		pass
 
 	@abstractmethod
+	def character_rules_handled_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, str, str, int, int]]:
+		pass
+
+	@abstractmethod
 	def character_rules_changed_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, str, str, int, int, int, int]]:
@@ -2545,9 +2551,9 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	) -> Iterator[Tuple[Key, str, int, int, Key]]:
 		return self._character_rulebook_dump("character_portal")
 
-	def character_rules_changed_dump(
+	def character_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, str, str, int, int, int, int]]:
+	) -> Iterator[Tuple[Key, Key, str, str, int, int]]:
 		unpack = self.unpack
 		for d in self.call("dump", "character_rules_handled"):
 			yield (
