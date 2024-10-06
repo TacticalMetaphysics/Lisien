@@ -2171,8 +2171,16 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	def have_branch(self, branch):
 		raise NotImplementedError
 
-	def all_branches(self):
-		return self.call("dump", "branches")
+	def all_branches(self) -> Iterator[Tuple[str, str, int, int, int, int]]:
+		for d in self.call("dump", "branches"):
+			yield (
+				d["branch"],
+				d["parent"],
+				d["parent_turn"],
+				d["parent_tick"],
+				d["end_turn"],
+				d["end_tick"],
+			)
 
 	def global_get(self, key):
 		return self.unpack(self.call("get_global", self.pack(key)))
