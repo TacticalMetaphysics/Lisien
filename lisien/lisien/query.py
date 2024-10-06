@@ -1772,48 +1772,87 @@ class ParquetQueryEngine:
 		if not self._graphvals2set:
 			return
 		pack = self.pack
-		self.call(
-			"insert",
-			[
-				{
-					"graph": pack(graph),
-					"key": pack(key),
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-					"value": pack(value),
-				}
-				for (
-					graph,
-					key,
-					branch,
-					turn,
-					tick,
-					value,
-				) in self._graphvals2set
-			],
-		)
-		self._graphvals2set = []
+		with self._holder.lock:
+			self.call(
+				"insert",
+				[
+					{
+						"graph": pack(graph),
+						"key": pack(key),
+						"branch": branch,
+						"turn": turn,
+						"tick": tick,
+						"value": pack(value),
+					}
+					for (
+						graph,
+						key,
+						branch,
+						turn,
+						tick,
+						value,
+					) in self._graphvals2set
+				],
+			)
+			self._graphvals2set = []
 
 	def _flush_nodes(self):
 		if not self._nodes2set:
 			return
 		pack = self.pack
-		self.call(
-			"insert",
-			[
-				{
-					"graph": pack(graph),
-					"key": pack(key),
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-					"extant": bool(extant),
-				}
-				for (graph, key, branch, turn, tick, extant) in self._nodes2set
-			],
-		)
-		self._nodes2set = []
+		with self._holder.lock:
+			self.call(
+				"insert",
+				[
+					{
+						"graph": pack(graph),
+						"key": pack(key),
+						"branch": branch,
+						"turn": turn,
+						"tick": tick,
+						"extant": bool(extant),
+					}
+					for (
+						graph,
+						key,
+						branch,
+						turn,
+						tick,
+						extant,
+					) in self._nodes2set
+				],
+			)
+			self._nodes2set = []
+
+	def _flush_node_val(self):
+		if not self._nodevals2set:
+			return
+		pack = self.pack
+		with self._holder.lock:
+			self.call(
+				"insert",
+				[
+					{
+						"graph": pack(graph),
+						"node": pack(node),
+						"key": pack(key),
+						"branch": branch,
+						"turn": turn,
+						"tick": tick,
+						"value": pack(value),
+					}
+					for (
+						graph,
+						node,
+						key,
+						branch,
+						turn,
+						tick,
+						value,
+					) in self._nodevals2set
+				],
+			)
+			self._nodevals2set = []
 
 	def initdb(self):
 		self.call("initdb")
