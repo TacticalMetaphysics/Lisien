@@ -38,6 +38,13 @@ from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 wrappath = os.path.dirname(wrap.__file__)
 
+Key = Union[str, int, float, Tuple["Key"], FrozenSet["Key"]]
+"""Type hint for things LiSE can use as keys
+
+They have to be serializable using LiSE's particular msgpack schema,
+as well as hashable.
+
+"""
 NodeRowType = Tuple[Hashable, Hashable, str, int, int, bool]
 EdgeRowType = Tuple[Hashable, Hashable, Hashable, int, str, int, int, bool]
 GraphValRowType = Tuple[Hashable, Hashable, str, int, int, Any]
