@@ -1435,6 +1435,13 @@ class ParquetDBHolder:
 	def keyframes_insert_many(self, data):
 		return self.insert("keyframes", data)
 
+	def get_global(self, key: bytes) -> bytes:
+		import pyarrow.compute as pc
+
+		return self._db.read("global", filters=[pc.field("key") == key])[
+			"value"
+		][0].as_py()
+
 	@staticmethod
 	def echo(it):
 		return it
