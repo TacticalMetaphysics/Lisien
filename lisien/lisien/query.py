@@ -1422,6 +1422,8 @@ class ParquetDBHolder:
 		db = self._db
 		initial = self.initial
 		for table, schema in self.schema.items():
+			if db.dataset_exists(table):
+				continue
 			if table in initial:
 				db.create(initial[table], table_name=table, schema=schema)
 			else:
