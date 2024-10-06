@@ -88,6 +88,7 @@ from .query import (
 	QueryResultMidTurn,
 	StatusAlias,
 	_make_side_sel,
+	ParquetQueryEngine,
 )
 from .util import AbstractEngine, final_rule, normalize_layout, sort_set
 from .xcollections import (
@@ -429,6 +430,9 @@ class Engine(AbstractEngine, gORM, Executor):
 
 		self.log = logfun
 		self._prefix = prefix
+		if connect_string is None:
+			self.query_engine_cls = ParquetQueryEngine
+			connect_string = os.path.join(os.path.abspath(prefix), "world")
 		if connect_args is None:
 			connect_args = {}
 		if not os.path.exists(prefix):

@@ -2032,7 +2032,7 @@ class AbstractLiSEQueryEngine(AbstractQueryEngine):
 class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	holder_cls = ParquetDBHolder
 
-	def __init__(self, path, pack=None, unpack=None):
+	def __init__(self, path, _, pack=None, unpack=None):
 		self._inq = Queue()
 		self._outq = Queue()
 		self._holder = self.holder_cls(path, self._inq, self._outq)
