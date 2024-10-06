@@ -2116,7 +2116,19 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		self, graph: Key, branch: str, turn: int, tick: int, typ: str
 	) -> None:
 		graph = self.pack(graph)
-		return self.call("new_graph", graph, branch, turn, tick, typ)
+		with self._holder.lock:
+			self.call("new_graph", graph)
+			self.call(
+				"insert1",
+				"graphs",
+				{
+					"graph": graph,
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+					"type": typ,
+				},
+			)
 
 	def keyframes_insert(
 		self,
