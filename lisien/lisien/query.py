@@ -1068,13 +1068,10 @@ class ParquetDBHolder:
 			[
 				("branch", pa.string()),
 				("parent", pa.string()),
-				(
-					"parent_turn",
-					pa.uint64(),
-					("parent_tick", pa.uint64()),
-					("end_turn", pa.uint64()),
-					("end_tick", pa.uint64()),
-				),
+				("parent_turn", pa.uint64()),
+				("parent_tick", pa.uint64()),
+				("end_turn", pa.uint64()),
+				("end_tick", pa.uint64()),
 			]
 		),
 		"global": pa.schema([("key", pa.binary()), ("value", pa.binary())]),
