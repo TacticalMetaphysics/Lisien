@@ -1795,6 +1795,26 @@ class ParquetQueryEngine:
 		)
 		self._graphvals2set = []
 
+	def _flush_nodes(self):
+		if not self._nodes2set:
+			return
+		pack = self.pack
+		self.call(
+			"insert",
+			[
+				{
+					"graph": pack(graph),
+					"key": pack(key),
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+					"extant": bool(extant),
+				}
+				for (graph, key, branch, turn, tick, extant) in self._nodes2set
+			],
+		)
+		self._nodes2set = []
+
 	def initdb(self):
 		self.call("initdb")
 
