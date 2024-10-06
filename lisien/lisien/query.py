@@ -1768,6 +1768,33 @@ class ParquetQueryEngine:
 	def turns_dump(self):
 		return self.call("dump", "turns")
 
+	def _flush_graph_val(self):
+		if not self._graphvals2set:
+			return
+		pack = self.pack
+		self.call(
+			"insert",
+			[
+				{
+					"graph": pack(graph),
+					"key": pack(key),
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+					"value": pack(value),
+				}
+				for (
+					graph,
+					key,
+					branch,
+					turn,
+					tick,
+					value,
+				) in self._graphvals2set
+			],
+		)
+		self._graphvals2set = []
+
 	def initdb(self):
 		self.call("initdb")
 
