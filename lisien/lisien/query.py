@@ -1179,7 +1179,7 @@ class ParquetDBHolder:
 			("turn", pa.uint64()),
 			("tick", pa.uint64()),
 			("rules", pa.binary()),
-			("binary", pa.float64()),
+			("priority", pa.float64()),
 		],
 		"rule_triggers": [
 			("rule", pa.string()),
@@ -1569,12 +1569,6 @@ class ParquetDBHolder:
 			self._db.create(
 				{"branch": branch, "turn": turn}, "turns_completed"
 			)
-
-	def universals_dump(self):
-		return self._db.read(dataset_name="universals").to_pylist()
-
-	def rulebooks_dump(self):
-		return self._db.read(dataset_name="rulebooks").to_pylist()
 
 	@staticmethod
 	def echo(it):
@@ -2388,13 +2382,17 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 
 	def universals_dump(self) -> Iterator[Tuple[Key, str, int, int, Any]]:
 		unpack = self.unpack
-		for key, branch, turn, tick, value in self.call("universals_dump"):
+		for key, branch, turn, tick, value in self.call("dump", "universals"):
 			yield unpack(key), branch, turn, tick, unpack(value)
 
 	def rulebooks_dump(
 		self,
 	) -> Iterator[Tuple[Key, str, int, int, Tuple[List[Key], float]]]:
-		pass
+		unpack = self.unpack
+		for rulebook, branch, turn, tick, rules, prio in self.call(
+			"dump", "rulebooks"
+		):
+			yield unpack(rulebook), branch, turn, tick, unpack(rules), prio
 
 	def rule_triggers_dump(
 		self,
