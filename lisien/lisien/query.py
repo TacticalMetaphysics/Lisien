@@ -2615,11 +2615,6 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				d["tick"],
 			)
 
-	def character_portal_rules_changes_dump(
-		self,
-	) -> Iterator[Tuple[Key, Key, str, Key, Key, str, int, int, int, int]]:
-		raise NotImplementedError
-
 	def node_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
@@ -2634,11 +2629,6 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				d["turn"],
 				d["tick"],
 			)
-
-	def node_rules_changes_dump(
-		self,
-	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int, int, int]]:
-		raise NotImplementedError
 
 	def portal_rules_handled_dump(
 		self,
@@ -2655,11 +2645,6 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				d["turn"],
 				d["tick"],
 			)
-
-	def portal_rules_changes_dump(
-		self,
-	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int, int, int]]:
-		raise NotImplementedError
 
 	def things_dump(self) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
 		unpack = self.unpack
