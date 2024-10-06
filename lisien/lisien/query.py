@@ -1922,6 +1922,14 @@ class ParquetQueryEngine:
 				],
 			)
 
+	def flush(self):
+		with self._holder.lock:  # it's reentrant, this is fine
+			self._flush_graph_val()
+			self._flush_nodes()
+			self._flush_node_val()
+			self._flush_edges()
+			self._flush_edge_val()
+
 	def initdb(self):
 		self.call("initdb")
 
