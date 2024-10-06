@@ -1450,12 +1450,15 @@ class ParquetDBHolder:
 	def set_global(self, key: bytes, value: bytes):
 		import pyarrow.compute as pc
 
-		id_ = self._db.read("global", filters=[pc.field("key") == key])["id"][
-			0
-		].as_py()
-		return self._db.update(
-			{"id": id_, "key": key, "value": value}, "global"
-		)
+		try:
+			id_ = self._db.read(
+				"global", filters=[pc.field("key") == key], columns=["id"]
+			)["id"][0].as_py()
+			return self._db.update(
+				{"id": id_, "key": key, "value": value}, "global"
+			)
+		except IndexError:
+			return self._db.create({"key": key, "value": value}, "global")
 
 	@staticmethod
 	def echo(it):
