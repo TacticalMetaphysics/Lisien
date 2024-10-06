@@ -19,11 +19,11 @@ doesn't pollute the other files so much.
 """
 
 from abc import abstractmethod
-from typing import Tuple, Any, Iterator, Hashable, List
+from typing import Tuple, Any, Iterator, Hashable, List, Union, FrozenSet
 import os
 from collections import defaultdict
 from collections.abc import MutableMapping
-from queue import Empty, Queue
+from queue import Queue
 from threading import Lock, Thread
 from time import monotonic
 
@@ -33,7 +33,7 @@ from sqlalchemy.exc import ArgumentError, IntegrityError, OperationalError
 from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import Select
 
-from . import wrap, Key
+from . import wrap
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 wrappath = os.path.dirname(wrap.__file__)
