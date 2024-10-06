@@ -3052,7 +3052,17 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		pass
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
-		pass
+		unpack = self.unpack
+		for d in self.call("dump", "edges"):
+			yield (
+				unpack(d["character"]),
+				unpack(d["orig"]),
+				unpack(d["dest"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				d["extant"],
+			)
 
 	def load_edges(
 		self,
