@@ -3152,7 +3152,8 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		pass
 
 	def plans_dump(self) -> Iterator:
-		pass
+		for d in self.call("dump", "plans"):
+			yield d["plan_id"], d["branch"], d["turn"], d["tick"]
 
 	def plans_insert(self, plan_id: int, branch: str, turn: int, tick: int):
 		pass
