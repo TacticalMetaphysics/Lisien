@@ -3001,7 +3001,16 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		pass
 
 	def nodes_dump(self) -> Iterator[NodeRowType]:
-		pass
+		unpack = self.unpack
+		for d in self.call("dump", "nodes"):
+			yield (
+				unpack(d["graph"]),
+				unpack(d["node"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				d["extant"],
+			)
 
 	def load_nodes(
 		self,
