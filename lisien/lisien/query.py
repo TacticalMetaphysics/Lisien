@@ -2923,7 +2923,8 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		pass
 
 	def turns_completed_dump(self) -> Iterator[Tuple[str, int]]:
-		pass
+		for d in self.call("dump", "turns_completed"):
+			yield d["branch"], d["turn"]
 
 	def complete_turn(
 		self, branch: str, turn: int, discard_rules: bool = False
