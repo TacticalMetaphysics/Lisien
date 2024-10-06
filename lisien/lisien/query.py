@@ -2109,8 +2109,8 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 
 	def global_keys(self):
 		unpack = self.unpack
-		for key in self.call("global_keys"):
-			yield unpack(key)
+		for d in self.call("global_keys"):
+			yield unpack(d["key"])
 
 	def new_graph(
 		self, graph: Key, branch: str, turn: int, tick: int, typ: str
