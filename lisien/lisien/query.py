@@ -55,7 +55,15 @@ import msgpack
 import lisien
 
 from .alchemy import meta, gather_sql
-from .allegedb import query, Key
+from .allegedb import (
+	query,
+	Key,
+	EdgeValRowType,
+	EdgeRowType,
+	NodeValRowType,
+	NodeRowType,
+	GraphValRowType,
+)
 from .allegedb.query import AbstractQueryEngine
 from .exc import OperationalError
 from .util import EntityStatAccessor
@@ -2371,6 +2379,567 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 			self._flush_node_val()
 			self._flush_edges()
 			self._flush_edge_val()
+
+	def universals_dump(self) -> Iterator[Tuple[Key, str, int, int, Any]]:
+		pass
+
+	def rulebooks_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, Tuple[List[Key], float]]]:
+		pass
+
+	def rule_triggers_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
+		pass
+
+	def rule_prereqs_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
+		pass
+
+	def rule_actions_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
+		pass
+
+	def rule_neighborhood_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, int]]:
+		pass
+
+	def node_rulebook_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
+		pass
+
+	def portal_rulebook_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, str, int, int, Key]]:
+		pass
+
+	def character_rulebook_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+		pass
+
+	def unit_rulebook_dump(self) -> Iterator[Tuple[Key, str, int, int, Key]]:
+		pass
+
+	def character_thing_rulebook_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+		pass
+
+	def character_place_rulebook_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+		pass
+
+	def character_portal_rulebook_dump(
+		self,
+	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+		pass
+
+	def character_rules_changed_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, str, str, int, int, int, int]]:
+		pass
+
+	def unit_rules_handled_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
+		pass
+
+	def unit_rules_changes_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, str, Key, Key, str, int, int, int, int]]:
+		pass
+
+	def character_thing_rules_handled_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
+		pass
+
+	def character_place_rules_changes_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
+		pass
+
+	def character_portal_rules_handled_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
+		pass
+
+	def character_portal_rules_changes_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, str, Key, Key, str, int, int, int, int]]:
+		pass
+
+	def node_rules_handled_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
+		pass
+
+	def node_rules_changes_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int, int, int]]:
+		pass
+
+	def portal_rules_handled_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
+		pass
+
+	def portal_rules_changes_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int, int, int]]:
+		pass
+
+	def things_dump(self) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
+		pass
+
+	def load_things(
+		self,
+		character: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
+		pass
+
+	def units_dump(
+		self,
+	) -> Iterator[Tuple[Key, Key, Key, str, int, int, bool]]:
+		pass
+
+	def universal_set(
+		self, key: Key, branch: str, turn: int, tick: int, val: Any
+	):
+		pass
+
+	def universal_del(
+		self, key: Key, branch: str, turn: int, tick: int, val: Any
+	):
+		pass
+
+	def comparison(
+		self,
+		entity0: Key,
+		stat0: Key,
+		entity1: Key,
+		stat1: Key = None,
+		oper: str = "eq",
+		windows: list = None,
+	):
+		pass
+
+	def count_all_table(self, tbl: str) -> int:
+		pass
+
+	def set_rule_triggers(
+		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
+	):
+		pass
+
+	def set_rule_prereqs(
+		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
+	):
+		pass
+
+	def set_rule_actions(
+		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
+	):
+		pass
+
+	def set_rule_neightborhood(
+		self, rule: str, branch: str, turn: int, tick: int, neighborhood: int
+	):
+		pass
+
+	def set_rule(
+		self,
+		rule: str,
+		branch: str,
+		turn: int,
+		tick: int,
+		triggers: List[str],
+		prereqs: List[str],
+		actions: List[str],
+		neighborhood: int,
+	):
+		pass
+
+	def set_rulebook(
+		self,
+		name: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		rules: List[str] = None,
+		prio: float = 0.0,
+	):
+		pass
+
+	def set_character_rulebook(
+		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+	):
+		pass
+
+	def set_unit_rulebook(
+		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+	):
+		pass
+
+	def set_character_thing_rulebook(
+		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+	):
+		pass
+
+	def set_character_place_rulebook(
+		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+	):
+		pass
+
+	def set_character_portal_rulebook(
+		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+	):
+		pass
+
+	def rulebooks(self) -> Iterator[Key]:
+		pass
+
+	def set_node_rulebook(
+		self,
+		character: Key,
+		node: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		rulebook: Key,
+	):
+		pass
+
+	def set_portal_rulebook(
+		self,
+		character: Key,
+		orig: Key,
+		dest: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		rulebook: Key,
+	):
+		pass
+
+	def handled_character_rule(
+		self,
+		character: Key,
+		rulebook: Key,
+		rule: str,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pass
+
+	def handled_unit_rule(
+		self,
+		character: Key,
+		rulebook: Key,
+		rule: str,
+		graph: Key,
+		unit: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pass
+
+	def handled_character_thing_rule(
+		self,
+		character: Key,
+		rulebook: Key,
+		rule: str,
+		thing: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pass
+
+	def handled_character_place_rule(
+		self,
+		character: Key,
+		rulebook: Key,
+		rule: str,
+		place: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pass
+
+	def handled_character_portal_rule(
+		self,
+		character: Key,
+		rulebook: Key,
+		rule: str,
+		orig: Key,
+		dest: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pass
+
+	def handled_node_rule(
+		self,
+		character: Key,
+		node: Key,
+		rulebook: Key,
+		rule: str,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pass
+
+	def handled_portal_rule(
+		self,
+		character: Key,
+		orig: Key,
+		dest: Key,
+		rulebook: Key,
+		rule: str,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pass
+
+	def set_thing_loc(
+		self,
+		character: Key,
+		thing: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		loc: Key,
+	):
+		pass
+
+	def unit_set(
+		self,
+		character: Key,
+		graph: Key,
+		node: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		isav: bool,
+	):
+		pass
+
+	def rulebook_set(
+		self,
+		rulebook: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		rules: List[str],
+	):
+		pass
+
+	def turns_completed_dump(self) -> Iterator[Tuple[str, int]]:
+		pass
+
+	def complete_turn(
+		self, branch: str, turn: int, discard_rules: bool = False
+	):
+		pass
+
+	def new_turn(
+		self, branch: str, turn: int, end_tick: int = 0, plan_end_tick: int = 0
+	):
+		pass
+
+	def set_turn_completed(self, branch: str, turn: int):
+		pass
+
+	def graph_val_dump(self) -> Iterator[GraphValRowType]:
+		pass
+
+	def load_graph_val(
+		self,
+		graph: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		pass
+
+	def graph_val_set(
+		self, graph: Key, key: Key, branch: str, turn: int, tick: int, val: Any
+	):
+		pass
+
+	def graph_val_del_time(self, branch: str, turn: int, tick: int):
+		pass
+
+	def graphs_types(self) -> Iterator[Tuple[Key, str]]:
+		pass
+
+	def graphs_dump(self) -> Iterator[Tuple[Key, str, int, int, str]]:
+		pass
+
+	def exist_node(
+		self,
+		graph: Key,
+		node: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		extant: bool,
+	):
+		pass
+
+	def nodes_del_time(self, branch: str, turn: int, tick: int):
+		pass
+
+	def nodes_dump(self) -> Iterator[NodeRowType]:
+		pass
+
+	def load_nodes(
+		self,
+		graph: str,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		pass
+
+	def node_val_dump(self) -> Iterator[NodeValRowType]:
+		pass
+
+	def load_node_val(
+		self,
+		graph: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	) -> Iterator[NodeValRowType]:
+		pass
+
+	def node_val_set(
+		self,
+		graph: Key,
+		node: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		value: Any,
+	):
+		pass
+
+	def node_val_del_time(self, branch: str, turn: int, tick: int):
+		pass
+
+	def edges_dump(self) -> Iterator[EdgeRowType]:
+		pass
+
+	def load_edges(
+		self,
+		graph: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	) -> Iterator[EdgeRowType]:
+		pass
+
+	def exist_edge(
+		self,
+		graph: Key,
+		orig: Key,
+		dest: Key,
+		idx: int,
+		branch: str,
+		turn: int,
+		tick: int,
+		extant: bool,
+	):
+		pass
+
+	def edges_del_time(self, branch: str, turn: int, tick: int):
+		pass
+
+	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
+		pass
+
+	def load_edge_val(
+		self,
+		graph: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	) -> Iterator[EdgeValRowType]:
+		pass
+
+	def edge_val_set(
+		self,
+		graph: Key,
+		orig: Key,
+		dest: Key,
+		idx: int,
+		key: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		value: Any,
+	):
+		pass
+
+	def edge_val_del_time(self, branch: str, turn: int, tick: int):
+		pass
+
+	def plans_dump(self) -> Iterator:
+		pass
+
+	def plans_insert(self, plan_id: int, branch: str, turn: int, tick: int):
+		pass
+
+	def plans_insert_many(self, many: List[Tuple[int, str, int, int]]):
+		pass
+
+	def plan_ticks_insert(self, plan_id: int, turn: int, tick: int):
+		pass
+
+	def plan_ticks_insert_many(self, many: List[Tuple[int, int, int]]):
+		pass
+
+	def plan_ticks_dump(self) -> Iterator:
+		pass
+
+	def truncate_all(self):
+		pass
+
+	def close(self):
+		pass
+
+	def commit(self):
+		pass
 
 	def initdb(self):
 		self.call("initdb")
