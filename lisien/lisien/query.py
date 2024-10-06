@@ -1399,9 +1399,15 @@ class ParquetDBHolder:
 			return set()
 
 	def list_keyframes(self) -> list:
-		return self._db.read(
-			table="keyframes", columns=["graph", "branch", "turn", "tick"]
-		)
+		from pyarrow.lib import ArrowInvalid
+
+		try:
+			return self._db.read(
+				dataset_name="keyframes",
+				columns=["graph", "branch", "turn", "tick"],
+			).to_pylist()
+		except ArrowInvalid:
+			return []
 
 	def get_keyframe(
 		self, graph: bytes, branch: str, turn: int, tick: int
