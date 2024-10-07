@@ -1391,6 +1391,11 @@ class ParquetDBHolder:
 	def insert(self, table: str, data: list) -> None:
 		self._db.create(data, dataset_name=table)
 
+	def truncate_all(self):
+		for table in self.schema:
+			if self._db.dataset_exists(table):
+				self._db.drop_dataset(table)
+
 	def dump(self, table: str) -> list:
 		return self._db.read(dataset_name=table).to_pylist()
 
@@ -3834,7 +3839,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 			yield d["plan_id"], d["turn"], d["tick"]
 
 	def truncate_all(self):
-		pass
+		self.call("truncate_all")
 
 	def close(self):
 		self.call("close")
