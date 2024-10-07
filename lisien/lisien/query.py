@@ -1447,15 +1447,18 @@ class ParquetDBHolder:
 	def get_keyframe(
 		self, graph: bytes, branch: str, turn: int, tick: int
 	) -> Optional[Tuple[bytes, bytes, bytes]]:
-		rec = self._db.read(
-			"keyframes",
-			filters=[
-				pc.field("graph") == pc.scalar(graph),
-				pc.field("branch") == pc.scalar(branch),
-				pc.field("turn") == pc.scalar(turn),
-				pc.field("tick") == pc.scalar(tick),
-			],
-		)
+		try:
+			rec = self._db.read(
+				"keyframes",
+				filters=[
+					pc.field("graph") == pc.scalar(graph),
+					pc.field("branch") == pc.scalar(branch),
+					pc.field("turn") == pc.scalar(turn),
+					pc.field("tick") == pc.scalar(tick),
+				],
+			)
+		except ArrowInvalid:
+			return None
 		if not rec.num_rows:
 			return None
 		return (
