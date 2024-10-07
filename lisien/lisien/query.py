@@ -3318,7 +3318,19 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		tick: int,
 		loc: Key,
 	):
-		pass
+		pack = self.pack
+		self.call(
+			"insert1",
+			"things",
+			dict(
+				character=pack(character),
+				thing=pack(thing),
+				branch=branch,
+				turn=turn,
+				tick=tick,
+				loc=pack(loc),
+			),
+		)
 
 	def unit_set(
 		self,
