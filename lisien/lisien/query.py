@@ -1557,6 +1557,16 @@ class ParquetDBHolder:
 				},
 			)
 
+	def have_branch(self, branch: str) -> bool:
+		try:
+			return bool(
+				self._db.read(
+					"branches", filters=[pc.field("branch") == branch]
+				).rowcount
+			)
+		except ArrowInvalid:
+			return False
+
 	def update_turn(
 		self, branch: str, turn: int, end_tick: int, plan_end_tick: int
 	):
@@ -2246,8 +2256,8 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		nodes, edges, val = stuff[0]
 		return unpack(nodes), unpack(edges), unpack(val)
 
-	def have_branch(self, branch):
-		raise NotImplementedError
+	def have_branch(self, branch: str) -> bool:
+		return self.call("have_branch", branch)
 
 	def all_branches(self) -> Iterator[Tuple[str, str, int, int, int, int]]:
 		for d in self.call("dump", "branches"):
