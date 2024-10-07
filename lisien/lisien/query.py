@@ -1464,8 +1464,14 @@ class ParquetDBHolder:
 			rec["graph_val"][0].as_py(),
 		)
 
+	class InsertException(ValueError):
+		pass
+
 	def insert1(self, table: str, data: dict):
-		return self.insert(table, [data])
+		try:
+			return self.insert(table, [data])
+		except Exception as ex:
+			return ex
 
 	def set_rulebook_on_character(self, rbtyp, char, branch, turn, tick, rb):
 		self.insert1(
@@ -3624,7 +3630,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		pack = self.pack
 		self.call(
 			"insert1",
-			"universal",
+			"universals",
 			{
 				"key": pack(key),
 				"branch": branch,
