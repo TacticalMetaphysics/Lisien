@@ -1433,6 +1433,18 @@ class ParquetDBHolder:
 	def insert1(self, table: str, data: dict):
 		return self.insert(table, [data])
 
+	def set_rulebook_on_character(self, rbtyp, char, branch, turn, tick, rb):
+		self.insert1(
+			f"{rbtyp}_rulebook",
+			{
+				"character": char,
+				"branch": branch,
+				"turn": turn,
+				"tick": tick,
+				"rb": rb,
+			},
+		)
+
 	def graph_exists(self, graph: bytes) -> bool:
 		import pyarrow.compute as pc
 
@@ -2146,6 +2158,20 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 					"type": typ,
 				},
 			)
+
+	def set_rulebook_on_character(
+		self, rbtyp: str, char: Key, branch: str, turn: int, tick: int, rb: Key
+	):
+		pack = self.pack
+		self.call(
+			"set_rulebook_on_character",
+			rbtyp,
+			pack(char),
+			branch,
+			turn,
+			tick,
+			pack(rb),
+		)
 
 	def keyframes_insert(
 		self,
