@@ -1399,7 +1399,9 @@ class ParquetDBHolder:
 				)
 
 	def insert(self, table: str, data: list) -> None:
-		self._db.create(data, dataset_name=table)
+		self._db.create(
+			data, dataset_name=table, schema=pa.schema(self.schema[table])
+		)
 
 	def truncate_all(self):
 		for table in self.schema:
