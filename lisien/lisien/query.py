@@ -1447,12 +1447,16 @@ class ParquetDBHolder:
 
 	def graph_exists(self, graph: bytes) -> bool:
 		import pyarrow.compute as pc
+		from pyarrow.lib import ArrowInvalid
 
-		return bool(
-			self._db.read(
-				"graphs", filters=[pc.field("graph") == pc.scalar(graph)]
-			).num_rows
-		)
+		try:
+			return bool(
+				self._db.read(
+					"graphs", filters=[pc.field("graph") == pc.scalar(graph)]
+				).num_rows
+			)
+		except ArrowInvalid:
+			return False
 
 	def new_graph(self, graph: bytes) -> None:
 		return self.insert1("graphs", {"graph": graph})
@@ -1509,19 +1513,18 @@ class ParquetDBHolder:
 
 	def field_get_id(self, table, keyfield, value):
 		import pyarrow.compute as pc
+
+		return self.filter_get_id(table, filters=[pc.field(keyfield) == value])
+
+	def filter_get_id(self, table, filters):
 		from pyarrow.lib import ArrowInvalid
 
 		try:
-			return self._db.read(
-				table, filters=[pc.field(keyfield) == value], columns=["id"]
-			)["id"][0].as_py()
-		except (IndexError, ArrowInvalid) as ex:
-			raise KeyError(f"{keyfield} is never {value}") from ex
-
-	def filter_get_id(self, table, filters):
-		return self._db.read(table, filters=filters, columns=["id"])["id"][
-			0
-		].as_py()
+			return self._db.read(table, filters=filters, columns=["id"])["id"][
+				0
+			].as_py()
+		except (IndexError, ArrowInvalid):
+			return None
 
 	def update_branch(
 		self,
@@ -1578,6 +1581,16 @@ class ParquetDBHolder:
 		id_ = self.filter_get_id(
 			"turns", [pc.field("branch") == branch, pc.field("turn") == turn]
 		)
+		if id_ is None:
+			return self._db.create(
+				{
+					"branch": branch,
+					"turn": turn,
+					"end_tick": end_tick,
+					"plan_end_tick": plan_end_tick,
+				},
+				dataset_name="turns",
+			)
 		return self._db.update(
 			{
 				"id": id_,
@@ -1592,9 +1605,11 @@ class ParquetDBHolder:
 	def set_turn(
 		self, branch: str, turn: int, end_tick: int, plan_end_tick: int
 	) -> None:
+		from pyarrow.lib import ArrowInvalid
+
 		try:
 			self.update_turn(branch, turn, end_tick, plan_end_tick)
-		except IndexError:
+		except (ArrowInvalid, IndexError):
 			self._db.create(
 				{
 					"branch": branch,
@@ -1606,6 +1621,7 @@ class ParquetDBHolder:
 
 	def set_turn_completed(self, branch: str, turn: int) -> None:
 		import pyarrow.compute as pc
+		from pyarrow.lib import ArrowInvalid
 
 		try:
 			id_ = self._db.read(
@@ -1616,7 +1632,7 @@ class ParquetDBHolder:
 				],
 			)["id"][0]
 			self._db.update({"id": id_, "branch": branch, "turn": turn})
-		except IndexError:
+		except (ArrowInvalid, IndexError):
 			self._db.create(
 				{"branch": branch, "turn": turn}, "turns_completed"
 			)
