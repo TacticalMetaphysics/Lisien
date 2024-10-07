@@ -1744,21 +1744,9 @@ class AbstractLiSEQueryEngine(AbstractQueryEngine):
 		pass
 
 	@abstractmethod
-	def character_portal_rules_handled_dump(
-		self,
-	) -> Iterator[Tuple[Key, Key, str, Key, Key, str, int, int, int, int]]:
-		pass
-
-	@abstractmethod
 	def node_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
-		pass
-
-	@abstractmethod
-	def node_rules_handled_dump(
-		self,
-	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int, int, int]]:
 		pass
 
 	@abstractmethod
