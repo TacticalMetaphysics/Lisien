@@ -2229,6 +2229,13 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		self._graphvals2set = []
 		self._nodes2set = []
 		self._edges2set = []
+		self._char_rules_handled = []
+		self._unit_rules_handled = []
+		self._char_thing_rules_handled = []
+		self._char_place_rules_handled = []
+		self._char_portal_rules_handled = []
+		self._node_rules_handled = []
+		self._portal_rules_handled = []
 		self._btts = set()
 		self.globl = ParquetGlobalMapping(self)
 		self._t = Thread(target=self._holder.run, daemon=True)
@@ -3402,7 +3409,15 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	def complete_turn(
 		self, branch: str, turn: int, discard_rules: bool = False
 	):
-		pass
+		self.call("insert1", "turns_completed", dict(branch=branch, turn=turn))
+		if discard_rules:
+			self._char_rules_handled = []
+			self._unit_rules_handled = []
+			self._char_thing_rules_handled = []
+			self._char_place_rules_handled = []
+			self._char_portal_rules_handled = []
+			self._node_rules_handled = []
+			self._portal_rules_handled = []
 
 	def new_turn(
 		self, branch: str, turn: int, end_tick: int = 0, plan_end_tick: int = 0
