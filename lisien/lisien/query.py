@@ -2966,6 +2966,8 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 			},
 		)
 
+	new_character = graphs_insert = new_graph
+
 	def set_rulebook_on_character(
 		self, rbtyp: str, char: Key, branch: str, turn: int, tick: int, rb: Key
 	):
