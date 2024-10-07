@@ -3365,7 +3365,18 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		tick: int,
 		rules: List[str],
 	):
-		pass
+		pack = self.pack
+		self.call(
+			"insert1",
+			"rulebooks",
+			dict(
+				rulebook=pack(rulebook),
+				branch=branch,
+				turn=turn,
+				tick=tick,
+				rules=pack(rules),
+			),
+		)
 
 	def turns_completed_dump(self) -> Iterator[Tuple[str, int]]:
 		for d in self.call("dump", "turns_completed"):
