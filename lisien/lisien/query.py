@@ -3000,7 +3000,19 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		rules: List[str] = None,
 		prio: float = 0.0,
 	):
-		pass
+		pack = self.pack
+		self.call(
+			"insert1",
+			"rulebooks",
+			{
+				"name": pack(name),
+				"branch": branch,
+				"turn": turn,
+				"tick": tick,
+				"rules": pack(rules),
+				"priority": prio,
+			},
+		)
 
 	def set_character_rulebook(
 		self, char: Key, branch: str, turn: int, tick: int, rb: Key
