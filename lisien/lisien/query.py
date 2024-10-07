@@ -1881,9 +1881,7 @@ class AbstractLiSEQueryEngine(AbstractQueryEngine):
 		pass
 
 	@abstractmethod
-	def universal_del(
-		self, key: Key, branch: str, turn: int, tick: int, val: Any
-	):
+	def universal_del(self, key: Key, branch: str, turn: int, tick: int):
 		pass
 
 	@abstractmethod
@@ -2904,10 +2902,8 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		pack = self.pack
 		self.call("universal_set", pack(key), branch, turn, tick, pack(val))
 
-	def universal_del(
-		self, key: Key, branch: str, turn: int, tick: int, val: Any
-	):
-		pass
+	def universal_del(self, key: Key, branch: str, turn: int, tick: int):
+		self.universal_set(key, branch, turn, tick, b"\xc0")
 
 	def comparison(
 		self,
