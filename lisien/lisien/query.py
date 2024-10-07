@@ -1736,6 +1736,11 @@ class AbstractLiSEQueryEngine(AbstractQueryEngine):
 			windows=windows,
 		)
 
+	_records: int
+	kf_interval_override: callable
+	keyframe_interval: int
+	snap_keyframe: callable
+
 	def _increc(self):
 		self._records += 1
 		override = self.kf_interval_override()
