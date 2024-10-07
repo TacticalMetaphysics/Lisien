@@ -1948,6 +1948,133 @@ class ParquetDBHolder:
 						d["extant"],
 					)
 
+	def load_node_val_tick_to_end(
+		self, graph: bytes, branch: str, turn_from: int, tick_from: int
+	) -> List[Tuple[bytes, bytes, str, int, int, bytes]]:
+		return list(
+			self._iter_node_val_tick_to_end(
+				graph, branch, turn_from, tick_from
+			)
+		)
+
+	def _iter_node_val_tick_to_end(
+		self, graph: bytes, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, bytes, str, int, int, bytes]]:
+		try:
+			results = self._db.read(
+				"node_val",
+				filters=[
+					pc.field("graph") == graph,
+					pc.field("branch") == branch,
+					pc.field("turn_from") >= turn_from,
+				],
+			)
+		except ArrowInvalid:
+			return
+		for d in results.to_pylist():
+			if d["turn"] == turn_from:
+				if d["tick"] >= tick_from:
+					yield (
+						d["node"],
+						d["key"],
+						d["branch"],
+						d["turn"],
+						d["tick"],
+					)
+			else:
+				yield d["node"], d["key"], d["branch"], d["turn"], d["tick"]
+
+	def load_node_val_tick_to_tick(
+		self,
+		graph: bytes,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, bytes, str, int, int, bytes]]:
+		return list(
+			self._iter_node_val_tick_to_tick(
+				graph, branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_node_val_tick_to_tick(
+		self,
+		graph: bytes,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[Tuple[bytes, bytes, str, int, int, bytes]]:
+		if turn_from == turn_to:
+			try:
+				results = self._db.read(
+					"node_val",
+					filters=[
+						pc.field("graph") == graph,
+						pc.field("branch") == branch,
+						pc.field("turn") == turn_from,
+						pc.field("tick") >= tick_from,
+						pc.field("tick") <= tick_to,
+					],
+				)
+			except ArrowInvalid:
+				return
+			for d in results.to_pylist():
+				yield (
+					d["node"],
+					d["key"],
+					d["branch"],
+					d["turn"],
+					d["tick"],
+					d["value"],
+				)
+		else:
+			try:
+				results = self._db.read(
+					"node_val",
+					filters=[
+						pc.field("graph") == graph,
+						pc.field("branch") == branch,
+						pc.field("turn") >= turn_from,
+						pc.field("turn") <= turn_to,
+					],
+				)
+			except ArrowInvalid:
+				return
+			for d in results.to_pylist():
+				if d["turn"] == turn_from:
+					if d["tick"] >= tick_from:
+						yield (
+							d["node"],
+							d["key"],
+							d["branch"],
+							d["turn"],
+							d["tick"],
+							d["value"],
+						)
+				elif d["turn"] == turn_to:
+					if d["tick"] <= tick_to:
+						yield (
+							d["node"],
+							d["key"],
+							d["branch"],
+							d["turn"],
+							d["tick"],
+							d["value"],
+						)
+				else:
+					yield (
+						d["node"],
+						d["key"],
+						d["branch"],
+						d["turn"],
+						d["tick"],
+						d["value"],
+					)
+
 	def load_edges_tick_to_end(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> List[Tuple[bytes, bytes, int, int, int, bool]]:
