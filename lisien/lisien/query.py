@@ -4048,7 +4048,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				branch=branch,
 				turn=turn,
 				tick=tick,
-				loc=pack(loc),
+				location=pack(loc),
 			),
 		)
 
