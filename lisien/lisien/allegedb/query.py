@@ -925,6 +925,8 @@ class QueryEngine(AbstractQueryEngine):
 				turn_to,
 				tick_to,
 			)
+		for key, turn, tick, value in it:
+			yield graph, unpack(key), branch, turn, tick, unpack(value)
 
 	def _flush_graph_val(self):
 		"""Send all new and changed graph values to the database."""
