@@ -304,10 +304,6 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def graph_type(self) -> str:
-		pass
-
-	@abstractmethod
 	def have_branch(self, branch: str) -> bool:
 		pass
 

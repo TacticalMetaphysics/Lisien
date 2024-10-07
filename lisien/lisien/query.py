@@ -2246,9 +2246,6 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		nodes, edges, val = stuff[0]
 		return unpack(nodes), unpack(edges), unpack(val)
 
-	def graph_type(self, graph):
-		raise NotImplementedError
-
 	def have_branch(self, branch):
 		raise NotImplementedError
 
