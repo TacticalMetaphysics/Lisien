@@ -1452,7 +1452,26 @@ class ParquetDBHolder:
 		)
 
 	def keyframes_insert_many(self, data):
-		return self.insert("keyframes", data)
+		return self.insert(
+			"keyframes",
+			[
+				dict(
+					zip(
+						(
+							"graph",
+							"branch",
+							"turn",
+							"tick",
+							"node",
+							"edge",
+							"graph_val",
+						),
+						datum,
+					)
+				)
+				for datum in data
+			],
+		)
 
 	def get_global(self, key: bytes) -> bytes:
 		import pyarrow.compute as pc
@@ -2159,7 +2178,30 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		)
 
 	def keyframes_insert_many(self, many):
-		return self.call("keyframes_insert_many", many)
+		pack = self.pack
+		return self.call(
+			"keyframes_insert_many",
+			[
+				{
+					"graph": pack(graph),
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+					"nodes": pack(nodes),
+					"edges": pack(edges),
+					"graph_val": pack(graph_val),
+				}
+				for (
+					graph,
+					branch,
+					turn,
+					tick,
+					nodes,
+					edges,
+					graph_val,
+				) in many
+			],
+		)
 
 	def keyframes_dump(self):
 		unpack = self.unpack
