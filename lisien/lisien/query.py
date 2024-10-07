@@ -1681,6 +1681,31 @@ class ParquetDBHolder:
 				else:
 					yield d["thing"], d["turn"], d["tick"], d["location"]
 
+	def universal_set(
+		self, key: bytes, branch: str, turn: int, tick: int, val: bytes
+	):
+		id_ = self.filter_get_id(
+			"universals",
+			[
+				pc.field("key") == key,
+				pc.field("branch") == branch,
+				pc.field("turn") == turn,
+				pc.field("tick") == tick,
+			],
+		)
+		item = {
+			"key": key,
+			"branch": branch,
+			"turn": turn,
+			"tick": tick,
+			"value": val,
+		}
+		if id_ is None:
+			self.insert1("universals", item)
+		else:
+			item["id"] = id_
+			self._db.update(item, "universals")
+
 	@staticmethod
 	def echo(it):
 		return it
@@ -2876,7 +2901,8 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	def universal_set(
 		self, key: Key, branch: str, turn: int, tick: int, val: Any
 	):
-		pass
+		pack = self.pack
+		self.call("universal_set", pack(key), branch, turn, tick, pack(val))
 
 	def universal_del(
 		self, key: Key, branch: str, turn: int, tick: int, val: Any
