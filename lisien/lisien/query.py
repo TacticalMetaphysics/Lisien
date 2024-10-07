@@ -1408,6 +1408,57 @@ class ParquetDBHolder:
 			if self._db.dataset_exists(table):
 				self._db.drop_dataset(table)
 
+	def del_units_after(self, many):
+		ids = []
+		for character, graph, node, branch, turn, tick in many:
+			try:
+				result = self._db.read(
+					"units",
+					filters=[
+						pc.field("character_graph") == character,
+						pc.field("unit_graph") == graph,
+						pc.field("unit_node") == node,
+						pc.field("branch") == branch,
+						pc.field("turn") >= turn,
+					],
+					columns=["id", "turn", "tick"],
+				)
+			except ArrowInvalid:
+				continue
+			for d in result.to_pylist():
+				if d["turn"] == turn:
+					if d["tick"] > tick:
+						ids.append(d["id"])
+				else:
+					ids.append(d["id"])
+		if ids:
+			self._db.delete(ids, "units")
+
+	def del_things_after(self, many):
+		ids = []
+		for character, thing, branch, turn, tick in many:
+			try:
+				result = self._db.read(
+					"things",
+					filters=[
+						pc.field("character") == character,
+						pc.field("thing") == thing,
+						pc.field("branch") == branch,
+						pc.field("turn") >= turn,
+					],
+					columns=["id", "turn", "tick"],
+				)
+			except ArrowInvalid:
+				continue
+			for d in result.to_pylist():
+				if d["turn"] == turn:
+					if d["tick"] > tick:
+						ids.append(d["id"])
+				else:
+					ids.append(d["id"])
+		if ids:
+			self._db.delete(ids, "things")
+
 	def dump(self, table: str) -> list:
 		return self._db.read(dataset_name=table).to_pylist()
 
@@ -2433,7 +2484,7 @@ class AbstractLiSEQueryEngine(AbstractQueryEngine):
 
 	_records: int
 	kf_interval_override: callable
-	keyframe_interval: int
+	keyframe_interval: Optional[int]
 	snap_keyframe: callable
 
 	def _increc(self):
@@ -2904,6 +2955,17 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		self._outq = Queue()
 		self._holder = self.holder_cls(path, self._inq, self._outq)
 		self._records = 0
+		self.keyframe_interval = None
+		self.snap_keyframe = lambda: None
+		self._char_rules_handled = []
+		self._unit_rules_handled = []
+		self._char_thing_rules_handled = []
+		self._char_place_rules_handled = []
+		self._char_portal_rules_handled = []
+		self._node_rules_handled = []
+		self._portal_rules_handled = []
+		self._unitness = []
+		self._location = []
 
 		if pack is None:
 
@@ -3321,6 +3383,70 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 			self._flush_node_val()
 			self._flush_edges()
 			self._flush_edge_val()
+			put = self._inq.put
+			if self._unitness:
+				put(
+					(
+						"silent",
+						"del_units_after",
+						[
+							(character, graph, node, branch, turn, tick)
+							for (
+								character,
+								graph,
+								node,
+								branch,
+								turn,
+								tick,
+								_,
+							) in self._unitness
+						],
+					)
+				)
+				put(("silent", "insert", "units", self._unitness))
+				self._unitness = []
+			if self._location:
+				put(
+					(
+						"silent",
+						"del_things_after",
+						[
+							(character, thing, branch, turn, tick)
+							for (
+								character,
+								thing,
+								branch,
+								turn,
+								tick,
+								_,
+							) in self._location
+						],
+					)
+				)
+				put(("silent", "insert", "things", self._location))
+				self._location = []
+			for attr, cmd in [
+				("_char_rules_handled", "character_rules_handled"),
+				("_unit_rules_handled", "unit_rules_handled"),
+				(
+					"_char_thing_rules_handled",
+					"character_thing_rules_handled",
+				),
+				(
+					"_char_place_rules_handled",
+					"character_place_rules_handled",
+				),
+				(
+					"_char_portal_rules_handled",
+					"character_portal_rules_handled",
+				),
+				("_node_rules_handled", "_node_rules_handled"),
+				("_portal_rules_handled", "portal_rules_handled"),
+			]:
+				if getattr(self, attr):
+					put(("silent", "insert", cmd, getattr(self, attr)))
+				setattr(self, attr, [])
+		assert self.call("echo", "flushed") == "flushed"
 
 	def universals_dump(self) -> Iterator[Tuple[Key, str, int, int, Any]]:
 		unpack = self.unpack
@@ -3876,17 +4002,8 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		tick: int,
 	):
 		pack = self.pack
-		self.call(
-			"insert1",
-			"character_rules_handled",
-			{
-				"character": pack(character),
-				"rulebook": pack(rulebook),
-				"rule": rule,
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-			},
+		self._char_rules_handled.append(
+			(pack(character), pack(rulebook), rule, branch, turn, tick)
 		)
 
 	def handled_unit_rule(
@@ -3901,19 +4018,17 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		tick: int,
 	):
 		pack = self.pack
-		self.call(
-			"insert1",
-			"unit_rules_handled",
-			{
-				"character": pack(character),
-				"graph": pack(graph),
-				"unit": pack(unit),
-				"rulebook": pack(rulebook),
-				"rule": rule,
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-			},
+		self._unit_rules_handled.append(
+			(
+				pack(character),
+				pack(rulebook),
+				rule,
+				pack(graph),
+				pack(unit),
+				branch,
+				turn,
+				tick,
+			)
 		)
 
 	def handled_character_thing_rule(
@@ -3927,18 +4042,16 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		tick: int,
 	):
 		pack = self.pack
-		self.call(
-			"insert1",
-			"character_thing_rules_handled",
-			{
-				"character": pack(character),
-				"rulebook": pack(rulebook),
-				"rule": rule,
-				"thing": pack(thing),
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-			},
+		self._char_thing_rules_handled.append(
+			(
+				pack(character),
+				pack(rulebook),
+				rule,
+				pack(thing),
+				branch,
+				turn,
+				tick,
+			)
 		)
 
 	def handled_character_place_rule(
@@ -3952,18 +4065,16 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		tick: int,
 	):
 		pack = self.pack
-		self.call(
-			"insert1",
-			"character_place_rules_handled",
-			dict(
-				character=pack(character),
-				rulebook=pack(rulebook),
-				rule=rule,
-				place=pack(place),
-				branch=branch,
-				turn=turn,
-				tick=tick,
-			),
+		self._char_place_rules_handled.append(
+			(
+				pack(character),
+				pack(rulebook),
+				rule,
+				pack(place),
+				branch,
+				turn,
+				tick,
+			)
 		)
 
 	def handled_character_portal_rule(
@@ -3978,19 +4089,17 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		tick: int,
 	):
 		pack = self.pack
-		self.call(
-			"insert1",
-			"character_portal_rules_handled",
-			dict(
-				character=pack(character),
-				rulebook=pack(rulebook),
-				rule=rule,
-				orig=pack(orig),
-				dest=pack(dest),
-				branch=branch,
-				turn=turn,
-				tick=tick,
-			),
+		self._char_portal_rules_handled.append(
+			(
+				pack(character),
+				pack(rulebook),
+				rule,
+				pack(orig),
+				pack(dest),
+				branch,
+				turn,
+				tick,
+			)
 		)
 
 	def handled_node_rule(
@@ -4004,18 +4113,16 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		tick: int,
 	):
 		pack = self.pack
-		self.call(
-			"insert1",
-			"node_rules_handled",
-			dict(
-				character=pack(character),
-				node=pack(node),
-				rulebook=pack(rulebook),
-				rule=rule,
-				branch=branch,
-				turn=turn,
-				tick=tick,
-			),
+		self._node_rules_handled.append(
+			(
+				pack(character),
+				pack(node),
+				pack(rulebook),
+				rule,
+				branch,
+				turn,
+				tick,
+			)
 		)
 
 	def handled_portal_rule(
@@ -4030,19 +4137,17 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		tick: int,
 	):
 		pack = self.pack
-		self.call(
-			"insert1",
-			"portal_rules_handled",
-			dict(
-				character=pack(character),
-				orig=pack(orig),
-				dest=pack(dest),
-				rulebook=pack(rulebook),
-				rule=rule,
-				branch=branch,
-				turn=turn,
-				tick=tick,
-			),
+		self._portal_rules_handled.append(
+			(
+				pack(character),
+				pack(orig),
+				pack(dest),
+				pack(rulebook),
+				rule,
+				branch,
+				turn,
+				tick,
+			)
 		)
 
 	def set_thing_loc(
@@ -4055,17 +4160,8 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		loc: Key,
 	):
 		pack = self.pack
-		self.call(
-			"insert1",
-			"things",
-			dict(
-				character=pack(character),
-				thing=pack(thing),
-				branch=branch,
-				turn=turn,
-				tick=tick,
-				location=pack(loc),
-			),
+		self._location.append(
+			(pack(character), pack(thing), branch, turn, tick, pack(loc))
 		)
 
 	def unit_set(
