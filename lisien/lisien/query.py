@@ -1766,39 +1766,104 @@ class ParquetDBHolder:
 				else:
 					yield d["key"], d["turn"], d["tick"], d["value"]
 
-	def load_edges_tick_to_end(self, graph: bytes, branch: str, turn_from: int, tick_from: int):
-		for d in self._db.read("edges", filters=[pc.field("graph") == graph, pc.field("branch") == branch, pc.field("turn_from") >= turn_from]):
+	def load_edges_tick_to_end(
+		self, graph: bytes, branch: str, turn_from: int, tick_from: int
+	):
+		for d in self._db.read(
+			"edges",
+			filters=[
+				pc.field("graph") == graph,
+				pc.field("branch") == branch,
+				pc.field("turn_from") >= turn_from,
+			],
+		):
 			if d["turn"] == turn_from:
 				if d["tick"] >= tick_from:
-					yield d["orig"], d["dest"], d["idx"], d["turn"], d["tick"], d["extant"]
+					yield (
+						d["orig"],
+						d["dest"],
+						d["idx"],
+						d["turn"],
+						d["tick"],
+						d["extant"],
+					)
 			else:
-				yield d["orig"], d["dest"], d["idx"], d["turn"], d["tick"], d["extant"]
+				yield (
+					d["orig"],
+					d["dest"],
+					d["idx"],
+					d["turn"],
+					d["tick"],
+					d["extant"],
+				)
 
-	def load_edges_tick_to_tick(self, graph: bytes, branch: str, turn_from: int, tick_from: int, turn_to: int, tick_to: int):
+	def load_edges_tick_to_tick(
+		self,
+		graph: bytes,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	):
 		if turn_from == turn_to:
-			for d in self._db.read("edges",
-			                       filters=[pc.field("graph") == graph,
-			                                pc.field("branch") == branch,
-			                                pc.field("turn") == turn_from,
-			                                pc.field("tick") >= tick_from,
-			                                pc.field("tick") <= tick_to]):
-				yield d["orig"], d["dest"], d["idx"], d[
-					"turn"], d["tick"], d["extant"]
+			for d in self._db.read(
+				"edges",
+				filters=[
+					pc.field("graph") == graph,
+					pc.field("branch") == branch,
+					pc.field("turn") == turn_from,
+					pc.field("tick") >= tick_from,
+					pc.field("tick") <= tick_to,
+				],
+			):
+				yield (
+					d["orig"],
+					d["dest"],
+					d["idx"],
+					d["turn"],
+					d["tick"],
+					d["extant"],
+				)
 		else:
-			for d in self._db.read("edges", filters=[
-				pc.field("graph") == graph, pc.field("branch") == branch,
-				pc.field("turn") >= turn_from, pc.field("turn") <= turn_to]):
+			for d in self._db.read(
+				"edges",
+				filters=[
+					pc.field("graph") == graph,
+					pc.field("branch") == branch,
+					pc.field("turn") >= turn_from,
+					pc.field("turn") <= turn_to,
+				],
+			):
 				if d["turn"] == turn_from:
 					if d["tick"] >= tick_from:
-						yield d["orig"], d["dest"], d["idx"], d[
-							"turn"], d["tick"], d["extant"]
+						yield (
+							d["orig"],
+							d["dest"],
+							d["idx"],
+							d["turn"],
+							d["tick"],
+							d["extant"],
+						)
 				elif d["turn"] == turn_to:
 					if d["tick"] <= tick_to:
-						yield d["orig"], d["dest"], d["idx"], d[
-							"turn"], d["tick"], d["extant"]
+						yield (
+							d["orig"],
+							d["dest"],
+							d["idx"],
+							d["turn"],
+							d["tick"],
+							d["extant"],
+						)
 				else:
-					yield d["orig"], d["dest"], d["idx"], d[
-						"turn"], d["tick"], d["extant"]
+					yield (
+						d["orig"],
+						d["dest"],
+						d["idx"],
+						d["turn"],
+						d["tick"],
+						d["extant"],
+					)
 
 	def _del_time(self, table: str, branch: str, turn: int, tick: int):
 		id_ = self.filter_get_id(
