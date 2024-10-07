@@ -1766,6 +1766,105 @@ class ParquetDBHolder:
 				else:
 					yield d["key"], d["turn"], d["tick"], d["value"]
 
+	def load_nodes_tick_to_end(
+		self, graph: bytes, branch: str, turn_from: int, tick_from: int
+	):
+		for d in self._db.read(
+			"nodes",
+			filters=[
+				pc.field("graph") == graph,
+				pc.field("branch") == branch,
+				pc.field("turn") >= turn_from,
+			],
+		):
+			if d["turn"] == turn_from:
+				if d["tick"] >= tick_from:
+					yield (
+						d["graph"],
+						d["node"],
+						d["branch"],
+						d["turn"],
+						d["tick"],
+						d["extant"],
+					)
+			else:
+				yield (
+					d["graph"],
+					d["node"],
+					d["branch"],
+					d["turn"],
+					d["tick"],
+					d["extant"],
+				)
+
+	def load_nodes_tick_to_tick(
+		self,
+		graph: bytes,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	):
+		if turn_from == turn_to:
+			for d in self._db.read(
+				"nodes",
+				filters=[
+					pc.field("graph") == graph,
+					pc.field("branch") == branch,
+					pc.field("turn") == turn_from,
+					pc.field("tick") >= tick_from,
+					pc.field("tick") <= tick_to,
+				],
+			):
+				yield (
+					d["graph"],
+					d["node"],
+					d["branch"],
+					d["turn"],
+					d["tick"],
+					d["extant"],
+				)
+		else:
+			for d in self._db.read(
+				"nodes",
+				filters=[
+					pc.field("graph") == graph,
+					pc.field("branch") == branch,
+					pc.field("turn") >= turn_from,
+					pc.field("turn") <= turn_to,
+				],
+			):
+				if d["turn"] == turn_from:
+					if d["tick"] >= tick_from:
+						yield (
+							d["graph"],
+							d["node"],
+							d["branch"],
+							d["turn"],
+							d["tick"],
+							d["extant"],
+						)
+				elif d["turn"] == turn_to:
+					if d["tick"] <= tick_to:
+						yield (
+							d["graph"],
+							d["node"],
+							d["branch"],
+							d["turn"],
+							d["tick"],
+							d["extant"],
+						)
+				else:
+					yield (
+						d["graph"],
+						d["node"],
+						d["branch"],
+						d["turn"],
+						d["tick"],
+						d["extant"],
+					)
+
 	def load_edges_tick_to_end(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	):
@@ -3872,7 +3971,31 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		turn_to: int = None,
 		tick_to: int = None,
 	):
-		pass
+		if (turn_to is None) ^ (tick_to is None):
+			raise TypeError("I need both or neither of turn_to and tick_to")
+		self._flush_nodes()
+		pack = self.pack
+		unpack = self.unpack
+		if turn_to is None:
+			it = self.call(
+				"load_nodes_tick_to_end",
+				pack(graph),
+				branch,
+				turn_from,
+				tick_from,
+			)
+		else:
+			it = self.call_one(
+				"load_nodes_tick_to_tick",
+				pack(graph),
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+		for node, turn, tick, extant in it:
+			yield graph, unpack(node), branch, turn, tick, extant
 
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
 		unpack = self.unpack
