@@ -1465,14 +1465,12 @@ class ParquetDBHolder:
 			raise KeyError(f"No such global: {key}") from ex
 
 	def set_global(self, key: bytes, value: bytes):
-		from pyarrow.lib import ArrowInvalid
-
 		try:
 			id_ = self.field_get_id("global", "key", key)
 			return self._db.update(
 				{"id": id_, "key": key, "value": value}, "global"
 			)
-		except ArrowInvalid:
+		except KeyError:
 			return self._db.create({"key": key, "value": value}, "global")
 
 	def global_keys(self):
@@ -1480,10 +1478,14 @@ class ParquetDBHolder:
 
 	def field_get_id(self, table, keyfield, value):
 		import pyarrow.compute as pc
+		from pyarrow.lib import ArrowInvalid
 
-		return self._db.read(
-			table, filters=[pc.field(keyfield) == value], columns=["id"]
-		)["id"][0].as_py()
+		try:
+			return self._db.read(
+				table, filters=[pc.field(keyfield) == value], columns=["id"]
+			)["id"][0].as_py()
+		except (IndexError, ArrowInvalid) as ex:
+			raise KeyError(f"{keyfield} is never {value}") from ex
 
 	def filter_get_id(self, table, filters):
 		return self._db.read(table, filters=filters, columns=["id"])["id"][
