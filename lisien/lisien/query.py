@@ -1579,6 +1579,7 @@ class ParquetDBHolder:
 				{
 					"branch": branch,
 					"parent": parent,
+					"parent_turn": parent_turn,
 					"parent_tick": parent_tick,
 					"end_turn": end_turn,
 					"end_tick": end_tick,

@@ -2921,13 +2921,13 @@ class EngineProxy(AbstractEngine):
 	def _reimport_methods(self):
 		self.method.reimport()
 
-	def send_bytes(self, obj, blocking=True, timeout=-1):
+	def send_bytes(self, obj, blocking=True, timeout=1):
 		compressed = zlib.compress(obj)
 		self._handle_out_lock.acquire(blocking, timeout)
 		self._handle_out.send_bytes(compressed)
 		self._handle_out_lock.release()
 
-	def recv_bytes(self, blocking=True, timeout=-1):
+	def recv_bytes(self, blocking=True, timeout=1):
 		self._handle_in_lock.acquire(blocking, timeout)
 		data = self._handle_in.recv_bytes()
 		self._handle_in_lock.release()
