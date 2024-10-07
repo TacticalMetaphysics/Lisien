@@ -1726,6 +1726,24 @@ class ParquetDBHolder:
 
 
 class AbstractLiSEQueryEngine(AbstractQueryEngine):
+	def comparison(
+		self,
+		entity0: Key,
+		stat0: Key,
+		entity1: Key,
+		stat1: Key = None,
+		oper: str = "eq",
+		windows: list = None,
+	):
+		if windows is None:
+			windows = []
+		stat1 = stat1 or stat0
+		return comparisons[oper](
+			leftside=entity0.status(stat0),
+			rightside=entity1.status(stat1),
+			windows=windows,
+		)
+
 	@abstractmethod
 	def universals_dump(self) -> Iterator[Tuple[Key, str, int, int, Any]]:
 		pass
@@ -2904,17 +2922,6 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 
 	def universal_del(self, key: Key, branch: str, turn: int, tick: int):
 		self.universal_set(key, branch, turn, tick, b"\xc0")
-
-	def comparison(
-		self,
-		entity0: Key,
-		stat0: Key,
-		entity1: Key,
-		stat1: Key = None,
-		oper: str = "eq",
-		windows: list = None,
-	):
-		pass
 
 	def count_all_table(self, tbl: str) -> int:
 		pass
@@ -4637,24 +4644,6 @@ class QueryEngine(query.QueryEngine, AbstractLiSEQueryEngine):
 		key = self.pack(key)
 		self.call_one("universals_insert", key, branch, turn, tick, NONE)
 		self._increc()
-
-	def comparison(
-		self,
-		entity0,
-		stat0,
-		entity1,
-		stat1=None,
-		oper="eq",
-		windows: list = None,
-	):
-		if windows is None:
-			windows = []
-		stat1 = stat1 or stat0
-		return comparisons[oper](
-			leftside=entity0.status(stat0),
-			rightside=entity1.status(stat1),
-			windows=windows,
-		)
 
 	def count_all_table(self, tbl):
 		return self.call_one("{}_count".format(tbl)).fetchone()[0]
