@@ -3422,10 +3422,24 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	def new_turn(
 		self, branch: str, turn: int, end_tick: int = 0, plan_end_tick: int = 0
 	):
-		pass
+		self.call(
+			"insert1",
+			"turns",
+			dict(
+				branch=branch,
+				turn=turn,
+				end_tick=end_tick,
+				plan_end_tick=plan_end_tick,
+			),
+		)
 
 	def set_turn_completed(self, branch: str, turn: int):
-		pass
+		try:
+			self.call(
+				"insert1", "turns_completed", dict(branch=branch, turn=turn)
+			)
+		except ArrowInvalid:
+			pass
 
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
 		unpack = self.unpack
