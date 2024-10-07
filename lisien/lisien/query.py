@@ -1779,6 +1779,12 @@ class ParquetDBHolder:
 			raise KeyError("No value at this time")
 		self._db.delete([id_], table)
 
+	def nodes_del_time(self, branch: str, turn: int, tick: int):
+		self._del_time("nodes", branch, turn, tick)
+
+	def edges_del_time(self, branch: str, turn: int, tick: int):
+		self._del_time("edges", branch, turn, tick)
+
 	def graph_val_del_time(self, branch: str, turn: int, tick: int):
 		self._del_time("graph_val", branch, turn, tick)
 
@@ -3621,7 +3627,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		pass
 
 	def nodes_del_time(self, branch: str, turn: int, tick: int):
-		pass
+		self.call("nodes_del_time", branch, turn, tick)
 
 	def nodes_dump(self) -> Iterator[NodeRowType]:
 		unpack = self.unpack
@@ -3736,7 +3742,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		pass
 
 	def edges_del_time(self, branch: str, turn: int, tick: int):
-		pass
+		self.call("edges_del_time", branch, turn, tick)
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
 		unpack = self.unpack
