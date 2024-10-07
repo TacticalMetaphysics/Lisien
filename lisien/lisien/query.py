@@ -1473,7 +1473,7 @@ class ParquetDBHolder:
 				"branch": branch,
 				"turn": turn,
 				"tick": tick,
-				"rb": rb,
+				"rulebook": rb,
 			},
 		)
 
@@ -3317,6 +3317,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	) -> Iterator[Tuple[Key, str, int, int, Tuple[List[Key], float]]]:
 		unpack = self.unpack
 		for d in self.call("dump", "rulebooks"):
+			print(d)
 			yield (
 				unpack(d["rulebook"]),
 				d["branch"],
@@ -3728,7 +3729,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 			"insert1",
 			"rulebooks",
 			{
-				"name": pack(name),
+				"rulebook": pack(name),
 				"branch": branch,
 				"turn": turn,
 				"tick": tick,
