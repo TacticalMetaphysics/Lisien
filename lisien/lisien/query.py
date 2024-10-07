@@ -3339,7 +3339,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				d["branch"],
 				d["turn"],
 				d["tick"],
-				unpack(d["typ"]),
+				unpack(d[typ]),
 			)
 
 	def rule_triggers_dump(
