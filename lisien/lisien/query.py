@@ -2407,7 +2407,11 @@ class ParquetDBHolder:
 				pass
 			elif not isinstance(inst, (str, tuple)):
 				raise TypeError("Can't use SQLAlchemy with ParquetDB")
-			outq.put(getattr(self, inst[0])(*inst[1], **inst[2]))
+			try:
+				res = getattr(self, inst[0])(*inst[1], **inst[2])
+			except Exception as ex:
+				res = ex
+			outq.put(res)
 
 
 class AbstractLiSEQueryEngine(AbstractQueryEngine):
@@ -2941,7 +2945,10 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	def call(self, method, *args, **kwargs):
 		with self._holder.lock:
 			self._inq.put((method, args, kwargs))
-			return self._outq.get()
+			ret = self._outq.get()
+			if isinstance(ret, Exception):
+				raise ret
+			return ret
 
 	def call_silent(self, method, *args, **kwargs):
 		self._inq.put(("silent", method, args, kwargs))
