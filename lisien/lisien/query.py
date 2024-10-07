@@ -1503,7 +1503,7 @@ class ParquetDBHolder:
 			return self._db.read("global", filters=[pc.field("key") == key])[
 				"value"
 			][0].as_py()
-		except IndexError as ex:
+		except (ArrowInvalid, IndexError) as ex:
 			raise KeyError(f"No such global: {key}") from ex
 
 	def set_global(self, key: bytes, value: bytes):
@@ -1512,11 +1512,17 @@ class ParquetDBHolder:
 			return self._db.update(
 				{"id": id_, "key": key, "value": value}, "global"
 			)
-		except KeyError:
+		except (ArrowInvalid, KeyError):
 			return self._db.create({"key": key, "value": value}, "global")
 
 	def global_keys(self):
-		return self._db.read("global", columns=["key"]).to_pylist()
+		try:
+			return [
+				d["key"]
+				for d in self._db.read("global", columns=["key"]).to_pylist()
+			]
+		except (ArrowInvalid, KeyError):
+			return []
 
 	def field_get_id(self, table, keyfield, value):
 		return self.filter_get_id(table, filters=[pc.field(keyfield) == value])
@@ -2947,8 +2953,8 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 
 	def global_keys(self):
 		unpack = self.unpack
-		for d in self.call("global_keys"):
-			yield unpack(d["key"])
+		for key in self.call("global_keys"):
+			yield unpack(key)
 
 	def new_graph(
 		self, graph: Key, branch: str, turn: int, tick: int, typ: str
