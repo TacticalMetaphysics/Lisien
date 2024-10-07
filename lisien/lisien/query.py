@@ -75,9 +75,6 @@ from .util import EntityStatAccessor
 IntegrityError = query.IntegrityError
 
 
-pa.log_memory_allocations(False)
-
-
 NONE = msgpack.packb(None)
 
 
