@@ -2053,6 +2053,12 @@ class AbstractLiSEQueryEngine(AbstractQueryEngine):
 	):
 		pass
 
+	@abstractmethod
+	def set_rulebook_on_character(
+		self, rbtyp: str, char: Key, branch: str, turn: int, tick: int, rb: Key
+	):
+		pass
+
 
 class ParquetGlobalMapping(MutableMapping):
 	def __init__(self, query_engine: "ParquetQueryEngine"):
