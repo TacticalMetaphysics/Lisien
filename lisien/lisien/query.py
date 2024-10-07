@@ -1637,15 +1637,28 @@ class ParquetDBHolder:
 
 	def load_things_tick_to_end(
 		self, character: bytes, branch: str, turn_from: int, tick_from: int
-	):
-		for d in self._db.read(
-			"things",
-			filters=[
-				pc.field("character") == character,
-				pc.field("branch") == branch,
-				pc.field("turn") >= turn_from,
-			],
-		):
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_things_tick_to_end(
+				character, branch, turn_from, tick_from
+			)
+		)
+
+	def _iter_things_tick_to_end(
+		self, character: bytes, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, int, int, bytes]]:
+		try:
+			results = self._db.read(
+				"things",
+				filters=[
+					pc.field("character") == character,
+					pc.field("branch") == branch,
+					pc.field("turn") >= turn_from,
+				],
+			)
+		except ArrowInvalid:
+			return
+		for d in results.to_pylist():
 			if d["turn"] == turn_from:
 				if d["tick"] >= tick_from:
 					yield d["thing"], d["turn"], d["tick"], d["location"]
@@ -1660,29 +1673,52 @@ class ParquetDBHolder:
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_things_tick_to_tick(
+				character, branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_things_tick_to_tick(
+		self,
+		character: bytes,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
 	):
 		if turn_from == turn_to:
-			for d in self._db.read(
-				"things",
-				filters=[
-					pc.field("character") == character,
-					pc.field("branch") == branch,
-					pc.field("turn") == turn_from,
-					pc.field("tick") >= tick_from,
-					pc.field("tick") <= tick_to,
-				],
-			):
+			try:
+				results = self._db.read(
+					"things",
+					filters=[
+						pc.field("character") == character,
+						pc.field("branch") == branch,
+						pc.field("turn") == turn_from,
+						pc.field("tick") >= tick_from,
+						pc.field("tick") <= tick_to,
+					],
+				)
+			except ArrowInvalid:
+				return
+			for d in results.to_pylist():
 				yield d["thing"], d["turn"], d["tick"], d["location"]
 		else:
-			for d in self._db.read(
-				"things",
-				filters=[
-					pc.field("character") == character,
-					pc.field("branch") == branch,
-					pc.field("turn_from") >= turn_from,
-					pc.field("turn_to") <= turn_to,
-				],
-			):
+			try:
+				results = self._db.read(
+					"things",
+					filters=[
+						pc.field("character") == character,
+						pc.field("branch") == branch,
+						pc.field("turn_from") >= turn_from,
+						pc.field("turn_to") <= turn_to,
+					],
+				)
+			except ArrowInvalid:
+				return
+			for d in results.to_pylist():
 				if d["turn"] == turn_from:
 					if d["tick"] >= tick_from:
 						yield d["thing"], d["turn"], d["tick"], d["location"]
@@ -1694,15 +1730,28 @@ class ParquetDBHolder:
 
 	def load_graph_val_tick_to_end(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	):
-		for d in self._db.read(
-			"graph_val",
-			filters=[
-				pc.field("graph") == graph,
-				pc.field("branch") == branch,
-				pc.field("turn") >= turn_from,
-			],
-		):
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_graph_val_tick_to_end(
+				graph, branch, turn_from, tick_from
+			)
+		)
+
+	def _iter_graph_val_tick_to_end(
+		self, graph: bytes, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, int, int, bytes]]:
+		try:
+			results = self._db.read(
+				"graph_val",
+				filters=[
+					pc.field("graph") == graph,
+					pc.field("branch") == branch,
+					pc.field("turn") >= turn_from,
+				],
+			)
+		except ArrowInvalid:
+			return
+		for d in results.to_pylist():
 			if d["turn"] == turn_from:
 				if d["tick"] >= tick_from:
 					yield d["key"], d["turn"], d["tick"], d["value"]
@@ -1717,29 +1766,52 @@ class ParquetDBHolder:
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	):
+	) -> Iterator[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_graph_val_tick_to_tick(
+				graph, branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_graph_val_tick_to_tick(
+		self,
+		graph: bytes,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[Tuple[bytes, int, int, bytes]]:
 		if turn_from == tick_from:
-			for d in self._db.read(
-				"graph_val",
-				filters=[
-					pc.field("graph") == graph,
-					pc.field("branch") == branch,
-					pc.field("turn") == turn_from,
-					pc.field("tick") >= tick_from,
-					pc.field("tick") <= tick_to,
-				],
-			):
+			try:
+				results = self._db.read(
+					"graph_val",
+					filters=[
+						pc.field("graph") == graph,
+						pc.field("branch") == branch,
+						pc.field("turn") == turn_from,
+						pc.field("tick") >= tick_from,
+						pc.field("tick") <= tick_to,
+					],
+				)
+			except ArrowInvalid:
+				return
+			for d in results.to_pylist():
 				yield d["key"], d["turn"], d["tick"], d["value"]
 		else:
-			for d in self._db.read(
-				"graph_val",
-				filters=[
-					pc.field("graph") == graph,
-					pc.field("branch") == branch,
-					pc.field("turn") >= turn_from,
-					pc.field("turn") <= turn_to,
-				],
-			):
+			try:
+				results = self._db.read(
+					"graph_val",
+					filters=[
+						pc.field("graph") == graph,
+						pc.field("branch") == branch,
+						pc.field("turn") >= turn_from,
+						pc.field("turn") <= turn_to,
+					],
+				)
+			except ArrowInvalid:
+				return
+			for d in results.to_pylist():
 				if d["turn"] == turn_from:
 					if d["tick"] >= tick_from:
 						yield d["key"], d["turn"], d["tick"], d["value"]
@@ -1751,19 +1823,29 @@ class ParquetDBHolder:
 
 	def load_nodes_tick_to_end(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	):
-		for d in self._db.read(
-			"nodes",
-			filters=[
-				pc.field("graph") == graph,
-				pc.field("branch") == branch,
-				pc.field("turn") >= turn_from,
-			],
-		):
+	) -> List[Tuple[bytes, str, int, int, bool]]:
+		return list(
+			self._iter_nodes_tick_to_end(graph, branch, turn_from, tick_from)
+		)
+
+	def _iter_nodes_tick_to_end(
+		self, graph: bytes, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, str, int, int, bool]]:
+		try:
+			results = self._db.read(
+				"nodes",
+				filters=[
+					pc.field("graph") == graph,
+					pc.field("branch") == branch,
+					pc.field("turn") >= turn_from,
+				],
+			)
+		except ArrowInvalid:
+			return
+		for d in results.to_pylist():
 			if d["turn"] == turn_from:
 				if d["tick"] >= tick_from:
 					yield (
-						d["graph"],
 						d["node"],
 						d["branch"],
 						d["turn"],
@@ -1772,7 +1854,6 @@ class ParquetDBHolder:
 					)
 			else:
 				yield (
-					d["graph"],
 					d["node"],
 					d["branch"],
 					d["turn"],
@@ -1788,20 +1869,38 @@ class ParquetDBHolder:
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	):
+	) -> List[Tuple[bytes, str, int, int, bool]]:
+		return list(
+			self._iter_nodes_tick_to_tick(
+				graph, branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_nodes_tick_to_tick(
+		self,
+		graph: bytes,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[Tuple[bytes, str, int, int, bool]]:
 		if turn_from == turn_to:
-			for d in self._db.read(
-				"nodes",
-				filters=[
-					pc.field("graph") == graph,
-					pc.field("branch") == branch,
-					pc.field("turn") == turn_from,
-					pc.field("tick") >= tick_from,
-					pc.field("tick") <= tick_to,
-				],
-			):
+			try:
+				results = self._db.read(
+					"nodes",
+					filters=[
+						pc.field("graph") == graph,
+						pc.field("branch") == branch,
+						pc.field("turn") == turn_from,
+						pc.field("tick") >= tick_from,
+						pc.field("tick") <= tick_to,
+					],
+				)
+			except ArrowInvalid:
+				return
+			for d in results.to_pylist():
 				yield (
-					d["graph"],
 					d["node"],
 					d["branch"],
 					d["turn"],
@@ -1809,19 +1908,22 @@ class ParquetDBHolder:
 					d["extant"],
 				)
 		else:
-			for d in self._db.read(
-				"nodes",
-				filters=[
-					pc.field("graph") == graph,
-					pc.field("branch") == branch,
-					pc.field("turn") >= turn_from,
-					pc.field("turn") <= turn_to,
-				],
-			):
+			try:
+				results = self._db.read(
+					"nodes",
+					filters=[
+						pc.field("graph") == graph,
+						pc.field("branch") == branch,
+						pc.field("turn") >= turn_from,
+						pc.field("turn") <= turn_to,
+					],
+				)
+			except ArrowInvalid:
+				return
+			for d in results.to_pylist():
 				if d["turn"] == turn_from:
 					if d["tick"] >= tick_from:
 						yield (
-							d["graph"],
 							d["node"],
 							d["branch"],
 							d["turn"],
@@ -1831,7 +1933,6 @@ class ParquetDBHolder:
 				elif d["turn"] == turn_to:
 					if d["tick"] <= tick_to:
 						yield (
-							d["graph"],
 							d["node"],
 							d["branch"],
 							d["turn"],
@@ -1840,7 +1941,6 @@ class ParquetDBHolder:
 						)
 				else:
 					yield (
-						d["graph"],
 						d["node"],
 						d["branch"],
 						d["turn"],
@@ -1850,15 +1950,26 @@ class ParquetDBHolder:
 
 	def load_edges_tick_to_end(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	):
-		for d in self._db.read(
-			"edges",
-			filters=[
-				pc.field("graph") == graph,
-				pc.field("branch") == branch,
-				pc.field("turn_from") >= turn_from,
-			],
-		):
+	) -> List[Tuple[bytes, bytes, int, int, int, bool]]:
+		return list(
+			self._iter_edges_tick_to_end(graph, branch, turn_from, tick_from)
+		)
+
+	def _iter_edges_tick_to_end(
+		self, graph: bytes, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, bytes, int, int, int, bool]]:
+		try:
+			results = self._db.read(
+				"edges",
+				filters=[
+					pc.field("graph") == graph,
+					pc.field("branch") == branch,
+					pc.field("turn_from") >= turn_from,
+				],
+			)
+		except ArrowInvalid:
+			return
+		for d in results.to_pylist():
 			if d["turn"] == turn_from:
 				if d["tick"] >= tick_from:
 					yield (
@@ -1887,18 +1998,37 @@ class ParquetDBHolder:
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	):
+	) -> List[Tuple[bytes, bytes, bytes, int, str, int, int, bytes]]:
+		return list(
+			self._iter_edges_tick_to_tick(
+				graph, branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_edges_tick_to_tick(
+		self,
+		graph: bytes,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[Tuple[bytes, bytes, bytes, int, str, int, int, bytes]]:
 		if turn_from == turn_to:
-			for d in self._db.read(
-				"edges",
-				filters=[
-					pc.field("graph") == graph,
-					pc.field("branch") == branch,
-					pc.field("turn") == turn_from,
-					pc.field("tick") >= tick_from,
-					pc.field("tick") <= tick_to,
-				],
-			):
+			try:
+				results = self._db.read(
+					"edges",
+					filters=[
+						pc.field("graph") == graph,
+						pc.field("branch") == branch,
+						pc.field("turn") == turn_from,
+						pc.field("tick") >= tick_from,
+						pc.field("tick") <= tick_to,
+					],
+				)
+			except ArrowInvalid:
+				return
+			for d in results.to_pylist():
 				yield (
 					d["orig"],
 					d["dest"],
@@ -1908,15 +2038,19 @@ class ParquetDBHolder:
 					d["extant"],
 				)
 		else:
-			for d in self._db.read(
-				"edges",
-				filters=[
-					pc.field("graph") == graph,
-					pc.field("branch") == branch,
-					pc.field("turn") >= turn_from,
-					pc.field("turn") <= turn_to,
-				],
-			):
+			try:
+				results = self._db.read(
+					"edges",
+					filters=[
+						pc.field("graph") == graph,
+						pc.field("branch") == branch,
+						pc.field("turn") >= turn_from,
+						pc.field("turn") <= turn_to,
+					],
+				)
+			except ArrowInvalid:
+				return
+			for d in results.to_pylist():
 				if d["turn"] == turn_from:
 					if d["tick"] >= tick_from:
 						yield (
@@ -1949,15 +2083,28 @@ class ParquetDBHolder:
 
 	def load_edge_val_tick_to_end(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	):
-		for d in self._db.read(
-			"edge_val",
-			filters=[
-				pc.field("graph") == graph,
-				pc.field("branch") == branch,
-				pc.field("turn") >= turn_from,
-			],
-		):
+	) -> List[Tuple[bytes, bytes, bytes, int, str, int, int, bytes]]:
+		return list(
+			self._iter_edge_val_tick_to_end(
+				graph, branch, turn_from, tick_from
+			)
+		)
+
+	def _iter_edge_val_tick_to_end(
+		self, graph: bytes, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, bytes, bytes, int, str, int, int, bytes]]:
+		try:
+			results = self._db.read(
+				"edge_val",
+				filters=[
+					pc.field("graph") == graph,
+					pc.field("branch") == branch,
+					pc.field("turn") >= turn_from,
+				],
+			)
+		except ArrowInvalid:
+			return
+		for d in results.to_pylist():
 			if d["turn"] == turn_from:
 				if d["tick"] >= tick_from:
 					yield (
@@ -1990,18 +2137,37 @@ class ParquetDBHolder:
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	):
+	) -> List[Tuple[bytes, bytes, bytes, int, str, int, int, bytes]]:
+		return list(
+			self._iter_edge_val_tick_to_tick(
+				graph, branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_edge_val_tick_to_tick(
+		self,
+		graph: bytes,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[Tuple[bytes, bytes, bytes, int, str, int, int, bytes]]:
 		if turn_from == turn_to:
-			for d in self._db.read(
-				"edge_val",
-				filters=[
-					pc.field("graph") == graph,
-					pc.field("branch") == branch,
-					pc.field("turn") == turn_from,
-					pc.field("tick") >= tick_from,
-					pc.field("tick") <= tick_to,
-				],
-			):
+			try:
+				results = self._db.read(
+					"edge_val",
+					filters=[
+						pc.field("graph") == graph,
+						pc.field("branch") == branch,
+						pc.field("turn") == turn_from,
+						pc.field("tick") >= tick_from,
+						pc.field("tick") <= tick_to,
+					],
+				)
+			except ArrowInvalid:
+				return
+			for d in results.to_pylist():
 				yield (
 					d["graph"],
 					d["orig"],
@@ -2013,15 +2179,19 @@ class ParquetDBHolder:
 					d["value"],
 				)
 		else:
-			for d in self._db.read(
-				"edge_val",
-				filters=[
-					pc.field("graph") == graph,
-					pc.field("branch") == branch,
-					pc.field("turn") >= turn_from,
-					pc.field("turn") <= turn_to,
-				],
-			):
+			try:
+				results = self._db.read(
+					"edge_val",
+					filters=[
+						pc.field("graph") == graph,
+						pc.field("branch") == branch,
+						pc.field("turn") >= turn_from,
+						pc.field("turn") <= turn_to,
+					],
+				)
+			except ArrowInvalid:
+				return
+			for d in results.to_pylist():
 				if d["turn"] == turn_from:
 					if d["tick"] >= tick_from:
 						yield (
@@ -3977,7 +4147,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				tick_from,
 			)
 		else:
-			it = self.call_one(
+			it = self.call(
 				"load_nodes_tick_to_tick",
 				pack(graph),
 				branch,
@@ -4010,7 +4180,39 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		turn_to: int = None,
 		tick_to: int = None,
 	) -> Iterator[NodeValRowType]:
-		pass
+		if (turn_to is None) ^ (tick_to is None):
+			raise TypeError("I need both or neither of turn_to and tick_to")
+		self._flush_node_val()
+		pack = self.pack
+		unpack = self.unpack
+		if turn_to is None:
+			it = self.call(
+				"load_node_val_tick_to_end",
+				pack(graph),
+				branch,
+				turn_from,
+				tick_from,
+			)
+		else:
+			it = self.call(
+				"load_node_val_tick_to_tick",
+				pack(graph),
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+		for node, key, turn, tick, value in it:
+			yield (
+				graph,
+				unpack(node),
+				unpack(key),
+				branch,
+				turn,
+				tick,
+				unpack(value),
+			)
 
 	def node_val_set(
 		self,
