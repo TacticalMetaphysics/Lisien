@@ -2985,7 +2985,11 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		actions: List[str],
 		neighborhood: int,
 	):
-		pass
+		with self._holder.lock:
+			self.set_rule_triggers(rule, branch, turn, tick, triggers)
+			self.set_rule_prereqs(rule, branch, turn, tick, prereqs)
+			self.set_rule_actions(rule, branch, turn, tick, actions)
+			self.set_rule_neighborhood(rule, branch, turn, tick, neighborhood)
 
 	def set_rulebook(
 		self,
