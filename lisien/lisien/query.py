@@ -1536,6 +1536,8 @@ class ParquetDBHolder:
 		end_tick: int,
 	) -> None:
 		id_ = self.field_get_id("branches", "branch", branch)
+		if id_ is None:
+			raise KeyError(f"No branch: {branch}")
 		return self._db.update(
 			{
 				"id": id_,
