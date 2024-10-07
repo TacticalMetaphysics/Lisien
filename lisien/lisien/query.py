@@ -3162,6 +3162,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		self,
 		graph: Key,
 		node: Key,
+		key: Key,
 		branch: str,
 		turn: int,
 		tick: int,

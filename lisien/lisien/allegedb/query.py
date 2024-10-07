@@ -486,6 +486,7 @@ class AbstractQueryEngine:
 		self,
 		graph: Key,
 		node: Key,
+		key: Key,
 		branch: str,
 		turn: int,
 		tick: int,
