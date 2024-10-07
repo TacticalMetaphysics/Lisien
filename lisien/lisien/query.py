@@ -3324,8 +3324,14 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 
 	def universals_dump(self) -> Iterator[Tuple[Key, str, int, int, Any]]:
 		unpack = self.unpack
-		for key, branch, turn, tick, value in self.call("dump", "universals"):
-			yield unpack(key), branch, turn, tick, unpack(value)
+		for d in self.call("dump", "universals"):
+			yield (
+				unpack(d["key"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				unpack(d["value"]),
+			)
 
 	def rulebooks_dump(
 		self,
