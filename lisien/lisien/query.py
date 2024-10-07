@@ -1358,7 +1358,17 @@ class ParquetDBHolder:
 			{"key": b"\xa4turn", "value": b"\x00"},
 			{"key": b"\xa4tick", "value": b"\x00"},
 			{"key": b"\xa8language", "value": b"\xa3eng"},
-		]
+		],
+		"branches": [
+			{
+				"branch": "trunk",
+				"parent": None,
+				"start_turn": 0,
+				"start_tick": 0,
+				"end_turn": 0,
+				"end_tick": 0,
+			}
+		],
 	}
 
 	def __init__(self, path, inq, outq):
