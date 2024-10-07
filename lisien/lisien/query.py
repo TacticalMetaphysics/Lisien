@@ -3922,8 +3922,14 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 
 	def graphs_dump(self) -> Iterator[Tuple[Key, str, int, int, str]]:
 		unpack = self.unpack
-		for graph in self.call("graphs"):
-			yield unpack(graph)
+		for d in self.call("dump", "graphs"):
+			yield (
+				unpack(d["graph"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				d["type"],
+			)
 
 	characters = characters_dump = graphs_dump
 
