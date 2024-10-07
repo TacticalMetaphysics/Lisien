@@ -1476,7 +1476,7 @@ class QueryEngine(AbstractQueryEngine):
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
 	) -> Iterator[EdgeRowType]:
 		if (turn_to is None) ^ (tick_to is None):
-			raise TypeError("I need both or neither of turn_to and tick_to")
+			raise ValueError("I need both or neither of turn_to and tick_to")
 		self._flush_edge_val()
 		pack = self.pack
 		unpack = self.unpack
