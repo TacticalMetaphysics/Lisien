@@ -1416,7 +1416,7 @@ class ParquetDBHolder:
 		try:
 			return set(
 				self._db.read(dataset_name="graphs", columns=["graph"])[
-					"rulebook"
+					"graph"
 				]
 			)
 		except ArrowInvalid:
