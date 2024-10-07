@@ -1865,6 +1865,117 @@ class ParquetDBHolder:
 						d["extant"],
 					)
 
+	def load_edge_val_tick_to_end(
+		self, graph: bytes, branch: str, turn_from: int, tick_from: int
+	):
+		for d in self._db.read(
+			"edge_val",
+			filters=[
+				pc.field("graph") == graph,
+				pc.field("branch") == branch,
+				pc.field("turn") >= turn_from,
+			],
+		):
+			if d["turn"] == turn_from:
+				if d["tick"] >= tick_from:
+					yield (
+						d["graph"],
+						d["orig"],
+						d["dest"],
+						d["idx"],
+						d["branch"],
+						d["turn"],
+						d["tick"],
+						d["value"],
+					)
+			else:
+				yield (
+					d["graph"],
+					d["orig"],
+					d["dest"],
+					d["idx"],
+					d["branch"],
+					d["turn"],
+					d["tick"],
+					d["value"],
+				)
+
+	def load_edge_val_tick_to_tick(
+		self,
+		graph: bytes,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	):
+		if turn_from == turn_to:
+			for d in self._db.read(
+				"edge_val",
+				filters=[
+					pc.field("graph") == graph,
+					pc.field("branch") == branch,
+					pc.field("turn") == turn_from,
+					pc.field("tick") >= tick_from,
+					pc.field("tick") <= tick_to,
+				],
+			):
+				yield (
+					d["graph"],
+					d["orig"],
+					d["dest"],
+					d["idx"],
+					d["branch"],
+					d["turn"],
+					d["tick"],
+					d["value"],
+				)
+		else:
+			for d in self._db.read(
+				"edge_val",
+				filters=[
+					pc.field("graph") == graph,
+					pc.field("branch") == branch,
+					pc.field("turn") >= turn_from,
+					pc.field("turn") <= turn_to,
+				],
+			):
+				if d["turn"] == turn_from:
+					if d["tick"] >= tick_from:
+						yield (
+							d["graph"],
+							d["orig"],
+							d["dest"],
+							d["idx"],
+							d["branch"],
+							d["turn"],
+							d["tick"],
+							d["value"],
+						)
+				elif d["turn"] == turn_to:
+					if d["tick"] <= tick_to:
+						yield (
+							d["graph"],
+							d["orig"],
+							d["dest"],
+							d["idx"],
+							d["branch"],
+							d["turn"],
+							d["tick"],
+							d["value"],
+						)
+				else:
+					yield (
+						d["graph"],
+						d["orig"],
+						d["dest"],
+						d["idx"],
+						d["branch"],
+						d["turn"],
+						d["tick"],
+						d["value"],
+					)
+
 	def _del_time(self, table: str, branch: str, turn: int, tick: int):
 		id_ = self.filter_get_id(
 			table,
@@ -3931,7 +4042,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
-			it = self.call_one(
+			it = self.call(
 				"load_edge_val_tick_to_end",
 				pack(graph),
 				branch,
@@ -3939,7 +4050,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				tick_from,
 			)
 		else:
-			it = self.call_one(
+			it = self.call(
 				"load_edge_val_tick_to_tick",
 				pack(graph),
 				branch,
