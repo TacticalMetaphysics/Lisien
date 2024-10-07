@@ -3751,7 +3751,21 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		tick: int,
 		extant: bool,
 	):
-		pass
+		pack = self.pack
+		self.call(
+			"insert1",
+			"edges",
+			dict(
+				graph=pack(graph),
+				orig=pack(orig),
+				dest=pack(dest),
+				idx=idx,
+				branch=branch,
+				turn=turn,
+				tick=tick,
+				extant=extant,
+			),
+		)
 
 	def edges_del_time(self, branch: str, turn: int, tick: int):
 		self.call("edges_del_time", branch, turn, tick)
