@@ -1388,6 +1388,9 @@ class ParquetDBHolder:
 	def dump(self, table: str) -> list:
 		return self._db.read(dataset_name=table).to_pylist()
 
+	def rowcount(self, table: str) -> int:
+		return self._db.read(dataset_name=table).rowcount
+
 	def graphs(self):
 		try:
 			return set(self._db.read(dataset_name="graphs", columns=["graph"]))
@@ -2909,7 +2912,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		self.universal_set(key, branch, turn, tick, b"\xc0")
 
 	def count_all_table(self, tbl: str) -> int:
-		pass
+		return self.call("rowcount", tbl)
 
 	def set_rule_triggers(
 		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
