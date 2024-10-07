@@ -2834,7 +2834,17 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	def set_rule_neighborhood(
 		self, rule: str, branch: str, turn: int, tick: int, neighborhood: int
 	):
-		pass
+		self.call(
+			"insert1",
+			"rule_neighborhood",
+			{
+				"rule": rule,
+				"branch": branch,
+				"turn": turn,
+				"tick": tick,
+				"neighborhood": neighborhood,
+			},
+		)
 
 	def set_rule(
 		self,
