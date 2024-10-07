@@ -3569,7 +3569,6 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				pack(character),
 				branch,
 				turn_from,
-				turn_from,
 				tick_from,
 			):
 				yield (
@@ -3588,9 +3587,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				pack(character),
 				branch,
 				turn_from,
-				turn_from,
 				tick_from,
-				turn_to,
 				turn_to,
 				tick_to,
 			):
