@@ -1485,34 +1485,6 @@ class ParquetDBHolder:
 		except ArrowInvalid:
 			return False
 
-	def keyframes_insert(self, **kwargs) -> None:
-		return self.insert1(
-			"keyframes",
-			kwargs,
-		)
-
-	def keyframes_insert_many(self, data):
-		return self.insert(
-			"keyframes",
-			[
-				dict(
-					zip(
-						(
-							"graph",
-							"branch",
-							"turn",
-							"tick",
-							"node",
-							"edge",
-							"graph_val",
-						),
-						datum,
-					)
-				)
-				for datum in data
-			],
-		)
-
 	def get_global(self, key: bytes) -> bytes:
 		try:
 			return self._db.read("global", filters=[pc.field("key") == key])[
@@ -2716,20 +2688,24 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 			self.pack, (graph, nodes, edges, graph_val)
 		)
 		return self.call(
-			"keyframes_insert",
-			graph=graph,
-			branch=branch,
-			turn=turn,
-			tick=tick,
-			nodes=nodes,
-			edges=edges,
-			graph_val=graph_val,
+			"insert1",
+			"keyframes",
+			dict(
+				graph=graph,
+				branch=branch,
+				turn=turn,
+				tick=tick,
+				nodes=nodes,
+				edges=edges,
+				graph_val=graph_val,
+			),
 		)
 
 	def keyframes_insert_many(self, many):
 		pack = self.pack
 		return self.call(
-			"keyframes_insert_many",
+			"insert",
+			"keyframes",
 			[
 				{
 					"graph": pack(graph),
