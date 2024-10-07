@@ -3342,7 +3342,20 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		tick: int,
 		isav: bool,
 	):
-		pass
+		pack = self.pack
+		self.call(
+			"insert1",
+			"units",
+			dict(
+				character=pack(character),
+				graph=pack(graph),
+				node=pack(node),
+				branch=branch,
+				turn=turn,
+				tick=tick,
+				is_unit=isav,
+			),
+		)
 
 	def rulebook_set(
 		self,
