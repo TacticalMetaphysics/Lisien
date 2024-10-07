@@ -3548,7 +3548,20 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	def graph_val_set(
 		self, graph: Key, key: Key, branch: str, turn: int, tick: int, val: Any
 	):
-		pass
+		pack = self.pack
+		self.call(
+			"insert1",
+			"graph_val",
+			dict(
+				graph=pack(graph),
+				key=pack(key),
+				branch=branch,
+				turn=turn,
+				tick=tick,
+				value=pack(val),
+			),
+		)
+		self._increc()
 
 	def graph_val_del_time(self, branch: str, turn: int, tick: int):
 		pass
@@ -3647,6 +3660,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				"value": pack(value),
 			},
 		)
+		self._increc()
 
 	def node_val_del_time(self, branch: str, turn: int, tick: int):
 		pass
@@ -3728,7 +3742,23 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		tick: int,
 		value: Any,
 	):
-		pass
+		pack = self.pack
+		self.call(
+			"insert1",
+			"edge_val",
+			dict(
+				graph=pack(graph),
+				orig=pack(orig),
+				dest=pack(dest),
+				idx=idx,
+				key=pack(key),
+				branch=branch,
+				turn=turn,
+				tick=tick,
+				value=pack(value),
+			),
+		)
+		self._increc()
 
 	def edge_val_del_time(self, branch: str, turn: int, tick: int):
 		pass
