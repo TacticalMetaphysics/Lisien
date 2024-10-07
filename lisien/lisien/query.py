@@ -2181,7 +2181,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 
 		if pack is None:
 
-			def pack(s: str) -> bytes:
+			def pack(s: Any) -> bytes:
 				return repr(s).encode()
 
 		if unpack is None:
