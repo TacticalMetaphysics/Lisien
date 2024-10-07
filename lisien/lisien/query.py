@@ -4221,9 +4221,6 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	def graph_val_del_time(self, branch: str, turn: int, tick: int):
 		self.call("graph_val_del_time", branch, turn, tick)
 
-	def graphs_types(self) -> Iterator[Tuple[Key, str]]:
-		pass
-
 	def graphs_dump(self) -> Iterator[Tuple[Key, str, int, int, str]]:
 		unpack = self.unpack
 		for d in self.call("dump", "graphs"):
