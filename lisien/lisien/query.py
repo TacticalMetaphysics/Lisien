@@ -2917,17 +2917,47 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	def set_rule_triggers(
 		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
 	):
-		pass
+		self.call(
+			"insert1",
+			"rule_triggers",
+			{
+				"rule": rule,
+				"branch": branch,
+				"turn": turn,
+				"tick": tick,
+				"triggers": self.pack(flist),
+			},
+		)
 
 	def set_rule_prereqs(
 		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
 	):
-		pass
+		self.call(
+			"insert1",
+			"rule_prereqs",
+			{
+				"rule": rule,
+				"branch": branch,
+				"turn": turn,
+				"tick": tick,
+				"prereqs": self.pack(flist),
+			},
+		)
 
 	def set_rule_actions(
 		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
 	):
-		pass
+		self.call(
+			"insert1",
+			"rule_actions",
+			{
+				"rule": rule,
+				"branch": branch,
+				"turn": turn,
+				"tick": tick,
+				"actions": self.pack(fist),
+			},
+		)
 
 	def set_rule_neighborhood(
 		self, rule: str, branch: str, turn: int, tick: int, neighborhood: int
