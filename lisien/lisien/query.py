@@ -1776,11 +1776,18 @@ class ParquetDBHolder:
 
 	def load_edges_tick_to_tick(self, graph: bytes, branch: str, turn_from: int, tick_from: int, turn_to: int, tick_to: int):
 		if turn_from == turn_to:
-			for d in self._db.read("edges", filters=[pc.field("graph") == graph, pc.field("branch") == branch, pc.field("turn") == turn_from, pc.field("tick") >= tick_from, pc.field("tick") <= tick_to]):
+			for d in self._db.read("edges",
+			                       filters=[pc.field("graph") == graph,
+			                                pc.field("branch") == branch,
+			                                pc.field("turn") == turn_from,
+			                                pc.field("tick") >= tick_from,
+			                                pc.field("tick") <= tick_to]):
 				yield d["orig"], d["dest"], d["idx"], d[
 					"turn"], d["tick"], d["extant"]
 		else:
-			for d in self._db.read("edges", filters=[pc.field("graph") == graph, pc.field("branch") == branch, pc.field("turn") >= turn_from, pc.field("turn") <= turn_to]):
+			for d in self._db.read("edges", filters=[
+				pc.field("graph") == graph, pc.field("branch") == branch,
+				pc.field("turn") >= turn_from, pc.field("turn") <= turn_to]):
 				if d["turn"] == turn_from:
 					if d["tick"] >= tick_from:
 						yield d["orig"], d["dest"], d["idx"], d[
@@ -3853,7 +3860,41 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		turn_to: int = None,
 		tick_to: int = None,
 	) -> Iterator[EdgeValRowType]:
-		pass
+		if (turn_to is None) ^ (tick_to is None):
+			raise TypeError("I need both or neither of turn_to and tick_to")
+		self._flush_edge_val()
+		pack = self.pack
+		unpack = self.unpack
+		if turn_to is None:
+			it = self.call_one(
+				"load_edge_val_tick_to_end",
+				pack(graph),
+				branch,
+				turn_from,
+				tick_from,
+			)
+		else:
+			it = self.call_one(
+				"load_edge_val_tick_to_tick",
+				pack(graph),
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+		for orig, dest, idx, key, turn, tick, value in it:
+			yield (
+				graph,
+				unpack(orig),
+				unpack(dest),
+				idx,
+				unpack(key),
+				branch,
+				turn,
+				tick,
+				unpack(value),
+			)
 
 	def edge_val_set(
 		self,
