@@ -3017,7 +3017,18 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	def set_character_rulebook(
 		self, char: Key, branch: str, turn: int, tick: int, rb: Key
 	):
-		pass
+		pack = self.pack
+		self.call(
+			"insert1",
+			"character_rulebook",
+			{
+				"character": pack(char),
+				"branch": branch,
+				"turn": turn,
+				"tick": tick,
+				"rulebook": pack(rb),
+			},
+		)
 
 	def set_unit_rulebook(
 		self, char: Key, branch: str, turn: int, tick: int, rb: Key
