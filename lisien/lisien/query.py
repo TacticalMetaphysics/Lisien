@@ -1624,6 +1624,63 @@ class ParquetDBHolder:
 				{"branch": branch, "turn": turn}, "turns_completed"
 			)
 
+	def load_things_tick_to_end(
+		self, character: bytes, branch: str, turn_from: int, tick_from: int
+	):
+		for d in self._db.read(
+			"things",
+			filters=[
+				pc.field("character") == character,
+				pc.field("branch") == branch,
+				pc.field("turn") >= turn_from,
+			],
+		):
+			if d["turn"] == turn_from:
+				if d["tick"] >= tick_from:
+					yield d["thing"], d["turn"], d["tick"], d["location"]
+			else:
+				yield d["thing"], d["turn"], d["tick"], d["location"]
+
+	def load_things_tick_to_tick(
+		self,
+		character: bytes,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	):
+		if turn_from == turn_to:
+			for d in self._db.read(
+				"things",
+				filters=[
+					pc.field("character") == character,
+					pc.field("branch") == branch,
+					pc.field("turn") == turn_from,
+					pc.field("tick") >= tick_from,
+					pc.field("tick") <= tick_to,
+				],
+			):
+				yield d["thing"], d["turn"], d["tick"], d["location"]
+		else:
+			for d in self._db.read(
+				"things",
+				filters=[
+					pc.field("character") == character,
+					pc.field("branch") == branch,
+					pc.field("turn_from") >= turn_from,
+					pc.field("turn_to") <= turn_to,
+				],
+			):
+				if d["turn"] == turn_from:
+					if d["tick"] >= tick_from:
+						yield d["thing"], d["turn"], d["tick"], d["location"]
+				elif d["turn"] == turn_to:
+					if d["tick"] <= tick_to:
+						yield d["thing"], d["turn"], d["tick"], d["location"]
+				else:
+					yield d["thing"], d["turn"], d["tick"], d["location"]
+
 	@staticmethod
 	def echo(it):
 		return it
@@ -2757,7 +2814,49 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		turn_to: int = None,
 		tick_to: int = None,
 	) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
-		pass
+		pack = self.pack
+		unpack = self.unpack
+		if turn_to is None:
+			if tick_to is not None:
+				raise ValueError("Need both or neither of turn_to, tick_to")
+			for thing, turn, tick, location in self.call(
+				"load_things_tick_to_end",
+				pack(character),
+				branch,
+				turn_from,
+				turn_from,
+				tick_from,
+			):
+				yield (
+					character,
+					unpack(thing),
+					branch,
+					turn,
+					tick,
+					unpack(location),
+				)
+		else:
+			if tick_to is None:
+				raise ValueError("Need both or neither of turn_to, tick_to")
+			for thing, turn, tick, location in self.call(
+				"load_things_tick_to_tick",
+				pack(character),
+				branch,
+				turn_from,
+				turn_from,
+				tick_from,
+				turn_to,
+				turn_to,
+				tick_to,
+			):
+				yield (
+					character,
+					unpack(thing),
+					branch,
+					turn,
+					tick,
+					unpack(location),
+				)
 
 	def units_dump(
 		self,
