@@ -3768,16 +3768,38 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 			yield d["plan_id"], d["branch"], d["turn"], d["tick"]
 
 	def plans_insert(self, plan_id: int, branch: str, turn: int, tick: int):
-		pass
+		self.call(
+			"insert1",
+			"plans",
+			dict(plan_id=plan_id, branch=branch, turn=turn, tick=tick),
+		)
 
 	def plans_insert_many(self, many: List[Tuple[int, str, int, int]]):
-		pass
+		self.call(
+			"insert",
+			"plans",
+			[
+				dict(zip(("plan_id", "branch", "turn", "tick"), plan))
+				for plan in many
+			],
+		)
 
 	def plan_ticks_insert(self, plan_id: int, turn: int, tick: int):
-		pass
+		self.call(
+			"insert1",
+			"plan_ticks",
+			dict(plan_id=plan_id, turn=turn, tick=tick),
+		)
 
 	def plan_ticks_insert_many(self, many: List[Tuple[int, int, int]]):
-		pass
+		self.call(
+			"insert",
+			"plan_ticks",
+			[
+				dict(zip(("plan_id", "turn", "tick"), plan_tick))
+				for plan_tick in many
+			],
+		)
 
 	def plan_ticks_dump(self) -> Iterator:
 		for d in self.call("dump", "plan_ticks"):
