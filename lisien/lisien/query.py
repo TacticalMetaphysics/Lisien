@@ -2455,15 +2455,20 @@ class ParquetDBHolder:
 			if inst == "shutdown":
 				self.existence_lock.release()
 				return
-			elif inst == "commit":
-				pass
-			elif not isinstance(inst, (str, tuple)):
+			if inst == "commit":
+				continue
+			if not isinstance(inst, (str, tuple)):
 				raise TypeError("Can't use SQLAlchemy with ParquetDB")
+			silent = False
+			if inst[0] == "silent":
+				silent = True
+				inst = inst[1:]
 			try:
 				res = getattr(self, inst[0])(*inst[1], **inst[2])
 			except Exception as ex:
 				res = ex
-			outq.put(res)
+			if not silent:
+				outq.put(res)
 
 
 class AbstractLiSEQueryEngine(AbstractQueryEngine):
