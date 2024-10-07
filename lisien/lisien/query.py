@@ -2861,7 +2861,8 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		return self.call("set_turn", branch, turn, end_tick, plan_end_tick)
 
 	def turns_dump(self):
-		return self.call("dump", "turns")
+		for d in self.call("dump", "turns"):
+			yield d["branch"], d["turn"], d["end_tick"], d["plan_end_tick"]
 
 	def _flush_graph_val(self):
 		if not self._graphvals2set:
