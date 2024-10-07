@@ -1698,6 +1698,63 @@ class ParquetDBHolder:
 				else:
 					yield d["thing"], d["turn"], d["tick"], d["location"]
 
+	def load_graph_val_tick_to_end(
+		self, graph: bytes, branch: str, turn_from: int, tick_from: int
+	):
+		for d in self._db.read(
+			"graph_val",
+			filters=[
+				pc.field("graph") == graph,
+				pc.field("branch") == branch,
+				pc.field("turn") >= turn_from,
+			],
+		):
+			if d["turn"] == turn_from:
+				if d["tick"] >= tick_from:
+					yield d["key"], d["turn"], d["tick"], d["value"]
+			else:
+				yield d["key"], d["turn"], d["tick"], d["value"]
+
+	def load_graph_val_tick_to_tick(
+		self,
+		graph: bytes,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	):
+		if turn_from == tick_from:
+			for d in self._db.read(
+				"graph_val",
+				filters=[
+					pc.field("graph") == graph,
+					pc.field("branch") == branch,
+					pc.field("turn") == turn_from,
+					pc.field("tick") >= tick_from,
+					pc.field("tick") <= tick_to,
+				],
+			):
+				yield d["key"], d["turn"], d["tick"], d["value"]
+		else:
+			for d in self._db.read(
+				"graph_val",
+				filters=[
+					pc.field("graph") == graph,
+					pc.field("branch") == branch,
+					pc.field("turn") >= turn_from,
+					pc.field("turn") <= turn_to,
+				],
+			):
+				if d["turn"] == turn_from:
+					if d["tick"] >= tick_from:
+						yield d["key"], d["turn"], d["tick"], d["value"]
+				elif d["turn"] == turn_to:
+					if d["tick"] <= tick_from:
+						yield d["key"], d["turn"], d["tick"], d["value"]
+				else:
+					yield d["key"], d["turn"], d["tick"], d["value"]
+
 	@staticmethod
 	def echo(it):
 		return it
@@ -3462,7 +3519,31 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		turn_to: int = None,
 		tick_to: int = None,
 	):
-		pass
+		if (turn_to is None) ^ (tick_to is None):
+			raise ValueError("I need both or neither of turn_to and tick_to")
+		self._flush_graph_val()
+		pack = self.pack
+		unpack = self.unpack
+		if turn_to is None:
+			it = self.call(
+				"load_graph_val_tick_to_end",
+				pack(graph),
+				branch,
+				turn_from,
+				tick_from,
+			)
+		else:
+			it = self.call(
+				"load_graph_val_tick_to_tick",
+				pack(graph),
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+		for key, turn, tick, value in it:
+			yield graph, unpack(key), branch, turn, tick, unpack(value)
 
 	def graph_val_set(
 		self, graph: Key, key: Key, branch: str, turn: int, tick: int, val: Any

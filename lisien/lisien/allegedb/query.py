@@ -900,7 +900,7 @@ class QueryEngine(AbstractQueryEngine):
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
 	) -> Iterator[GraphValRowType]:
 		if (turn_to is None) ^ (tick_to is None):
-			raise TypeError("I need both or neither of turn_to and tick_to")
+			raise ValueError("I need both or neither of turn_to and tick_to")
 		self._flush_graph_val()
 		pack = self.pack
 		unpack = self.unpack
@@ -925,8 +925,6 @@ class QueryEngine(AbstractQueryEngine):
 				turn_to,
 				tick_to,
 			)
-		for key, turn, tick, value in it:
-			yield graph, unpack(key), branch, turn, tick, unpack(value)
 
 	def _flush_graph_val(self):
 		"""Send all new and changed graph values to the database."""
