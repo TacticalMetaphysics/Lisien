@@ -1755,6 +1755,28 @@ class ParquetDBHolder:
 				else:
 					yield d["key"], d["turn"], d["tick"], d["value"]
 
+	def _del_time(self, table: str, branch: str, turn: int, tick: int):
+		id_ = self.filter_get_id(
+			table,
+			filters=[
+				pc.field("branch") == branch,
+				pc.field("turn") == turn,
+				pc.field("tick") == tick,
+			],
+		)
+		if id_ is None:
+			raise KeyError("No value at this time")
+		self._db.delete([id_], table)
+
+	def graph_val_del_time(self, branch: str, turn: int, tick: int):
+		self._del_time("graph_val", branch, turn, tick)
+
+	def node_val_del_time(self, branch: str, turn: int, tick: int):
+		self._del_time("node_val", branch, turn, tick)
+
+	def edge_val_del_time(self, branch: str, turn: int, tick: int):
+		self._del_time("edge_val", branch, turn, tick)
+
 	@staticmethod
 	def echo(it):
 		return it
@@ -3564,7 +3586,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		self._increc()
 
 	def graph_val_del_time(self, branch: str, turn: int, tick: int):
-		pass
+		self.call("graph_val_del_time", branch, turn, tick)
 
 	def graphs_types(self) -> Iterator[Tuple[Key, str]]:
 		pass
@@ -3663,7 +3685,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		self._increc()
 
 	def node_val_del_time(self, branch: str, turn: int, tick: int):
-		pass
+		self.call("node_val_del_time", branch, turn, tick)
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
 		unpack = self.unpack
@@ -3761,7 +3783,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		self._increc()
 
 	def edge_val_del_time(self, branch: str, turn: int, tick: int):
-		pass
+		self.call("edge_val_del_time", branch, turn, tick)
 
 	def plans_dump(self) -> Iterator:
 		for d in self.call("dump", "plans"):
