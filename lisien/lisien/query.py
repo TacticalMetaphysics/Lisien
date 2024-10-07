@@ -1527,7 +1527,7 @@ class ParquetDBHolder:
 			self.update_branch(
 				branch, parent, parent_turn, parent_tick, end_turn, end_tick
 			)
-		except IndexError:
+		except KeyError:
 			self.insert1(
 				"branches",
 				{
