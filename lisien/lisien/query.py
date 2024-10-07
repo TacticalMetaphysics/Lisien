@@ -2270,7 +2270,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				d["end_tick"],
 			)
 
-	def global_get(self, key):
+	def global_get(self, key: Key) -> Any:
 		return self.unpack(self.call("get_global", self.pack(key)))
 
 	def global_set(self, key, value):
