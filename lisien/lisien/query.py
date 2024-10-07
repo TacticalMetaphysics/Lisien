@@ -3014,13 +3014,13 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 			},
 		)
 
-	def set_character_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+	def _set_character_something_rulebook(
+		self, tab: str, char: Key, branch: str, turn: int, tick: int, rb: Key
 	):
 		pack = self.pack
 		self.call(
 			"insert1",
-			"character_rulebook",
+			tab,
 			{
 				"character": pack(char),
 				"branch": branch,
@@ -3030,25 +3030,40 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 			},
 		)
 
+	def set_character_rulebook(
+		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+	):
+		self._set_character_something_rulebook(
+			"character_rulebook", char, branch, turn, tick, rb
+		)
+
 	def set_unit_rulebook(
 		self, char: Key, branch: str, turn: int, tick: int, rb: Key
 	):
-		pass
+		self._set_character_something_rulebook(
+			"unit_rulebook", char, branch, turn, tick, rb
+		)
 
 	def set_character_thing_rulebook(
 		self, char: Key, branch: str, turn: int, tick: int, rb: Key
 	):
-		pass
+		self._set_character_something_rulebook(
+			"character_thing_rulebook", char, branch, turn, tick, rb
+		)
 
 	def set_character_place_rulebook(
 		self, char: Key, branch: str, turn: int, tick: int, rb: Key
 	):
-		pass
+		self._set_character_something_rulebook(
+			"character_place_rulebook", char, branch, turn, tick, rb
+		)
 
 	def set_character_portal_rulebook(
 		self, char: Key, branch: str, turn: int, tick: int, rb: Key
 	):
-		pass
+		self._set_character_something_rulebook(
+			"character_portal_rulebook", char, branch, turn, tick, rb
+		)
 
 	def rulebooks(self) -> Iterator[Key]:
 		pass
