@@ -3164,7 +3164,21 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		turn: int,
 		tick: int,
 	):
-		pass
+		pack = self.pack
+		self.call(
+			"insert1",
+			"unit_rules_handled",
+			{
+				"character": pack(character),
+				"graph": pack(graph),
+				"unit": pack(unit),
+				"rulebook": pack(rulebook),
+				"rule": rule,
+				"branch": branch,
+				"turn": turn,
+				"tick": tick,
+			},
+		)
 
 	def handled_character_thing_rule(
 		self,
