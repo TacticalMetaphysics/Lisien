@@ -2745,8 +2745,8 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 
 	def keyframes_list(self) -> Iterator:  # change name pls
 		unpack = self.unpack
-		for graph, branch, turn, tick in self.call("list_keyframes"):
-			yield unpack(graph), branch, turn, tick
+		for d in self.call("list_keyframes"):
+			yield unpack(d["graph"]), d["branch"], d["turn"], d["tick"]
 
 	def get_keyframe(
 		self, graph: Key, branch: str, turn: int, tick: int
