@@ -1087,11 +1087,11 @@ class ORM:
 			Callable[[Key, Key, Key, int, str, int, int, bool], None],
 			Callable[[Key, Key, Key, int, str, int, int, Any], None],
 		] = (self._nbtt, self.query.exist_edge, self._edges_cache.store)
-		self._load_graphs()
-		assert hasattr(self, "graph")
 		self._keyframes_list = []
 		self._keyframes_dict = {}
 		self._keyframes_times = set()
+		self._load_graphs()
+		assert hasattr(self, "graph")
 		self._loaded: Dict[
 			str, Tuple[int, int, int, int]
 		] = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
