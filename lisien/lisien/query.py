@@ -1374,6 +1374,7 @@ class ParquetDBHolder:
 	def __init__(self, path, inq, outq):
 		self._inq = inq
 		self._outq = outq
+		self._schema = {}
 		self._db = ParquetDB(path)
 		self.lock = RLock()
 		self.existence_lock = Lock()
@@ -1389,19 +1390,18 @@ class ParquetDBHolder:
 		db = self._db
 		initial = self.initial
 		for table, schema in self.schema.items():
+			schema = self._schema[table] = pa.schema(schema)
 			if db.dataset_exists(table):
 				continue
 			if table in initial:
 				db.create(
 					initial[table],
 					dataset_name=table,
-					schema=pa.schema(schema),
+					schema=schema,
 				)
 
 	def insert(self, table: str, data: list) -> None:
-		self._db.create(
-			data, dataset_name=table, schema=pa.schema(self.schema[table])
-		)
+		self._db.create(data, dataset_name=table, schema=self._schema[table])
 
 	def truncate_all(self):
 		for table in self.schema:
