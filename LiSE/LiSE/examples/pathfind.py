@@ -1,10 +1,6 @@
-from logging import getLogger
 import random
 
 import networkx as nx
-
-
-logger = getLogger("pathfind")
 
 
 def install(eng, seed=None):
@@ -50,16 +46,15 @@ def install(eng, seed=None):
 
 	@phys.rule
 	def go_places(char):
-		from logging import getLogger
 		from networkx.exception import NetworkXNoPath
-
-		logger = getLogger("pathfind")
 
 		def log_as_completed(fut):
 			try:
-				logger.debug(f"Got path for {fut.thing.name}: {fut.result()}")
+				char.engine.debug(
+					f"Got path for {fut.thing.name}: {fut.result()}"
+				)
 			except NetworkXNoPath:
-				logger.debug(f"No path for {fut.thing.name}")
+				char.engine.debug(f"No path for {fut.thing.name}")
 
 		futs = []
 		with char.engine.pool as pool:
@@ -76,9 +71,11 @@ def install(eng, seed=None):
 					result = fut.result()
 					thing = fut.thing
 					thing.follow_path(result, check=False)
-					logger.debug(f"followed path for thing {thing.name}")
+					char.engine.debug(f"followed path for thing {thing.name}")
 				except NetworkXNoPath:
-					logger.debug(f"got no path for thing {fut.thing.name}")
+					char.engine.debug(
+						f"got no path for thing {fut.thing.name}"
+					)
 					continue
 
 	@go_places.trigger
