@@ -4582,7 +4582,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		unpack = self.unpack
 		for d in self.call("dump", "edges"):
 			yield (
-				unpack(d["character"]),
+				unpack(d["graph"]),
 				unpack(d["orig"]),
 				unpack(d["dest"]),
 				d["branch"],
