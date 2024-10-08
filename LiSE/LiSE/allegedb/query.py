@@ -288,7 +288,7 @@ class QueryEngine(object):
 			from ast import literal_eval
 
 			def unpack(b: bytes) -> Any:
-				return literal_eval(bytes.decode())
+				return literal_eval(b.decode())
 
 		self.pack = pack
 		self.unpack = unpack
