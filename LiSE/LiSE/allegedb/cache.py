@@ -1630,14 +1630,14 @@ class EdgesCache(Cache):
 				elif delidx and not addidx:
 					deleted.add(orig)
 		else:
-			if stoptime:
-				return added, deleted
 			kf = self.keyframe
 			itparbtt = self.db._iter_parent_btt
 			for (grap, orig, dst), kfg in kf.items():  # too much iteration!
 				if (grap, dst) != (graph, dest):
 					continue
-				for branc, trn, tck in itparbtt(branch, turn, tick):
+				for branc, trn, tck in itparbtt(
+					branch, turn, tick, stoptime=stoptime
+				):
 					if branc not in kfg:
 						continue
 					kfgb = kfg[branc]
