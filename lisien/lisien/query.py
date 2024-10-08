@@ -4585,6 +4585,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				unpack(d["graph"]),
 				unpack(d["orig"]),
 				unpack(d["dest"]),
+				d["idx"],
 				d["branch"],
 				d["turn"],
 				d["tick"],
