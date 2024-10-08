@@ -629,9 +629,11 @@ class Cache:
 				else:
 					added.add(key)
 				break
-		if stoptime or not kf:
+		if not kf:
 			return added, deleted
-		for branc, trn, tck in self.db._iter_parent_btt(branch, turn, tick):
+		for branc, trn, tck in self.db._iter_parent_btt(
+			branch, turn, tick, stoptime=stoptime
+		):
 			if branc not in kf or not kf[branc].rev_gettable(trn):
 				continue
 			kfb = kf[branc]
