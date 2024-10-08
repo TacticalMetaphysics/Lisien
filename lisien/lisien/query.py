@@ -4308,20 +4308,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 	def graph_val_set(
 		self, graph: Key, key: Key, branch: str, turn: int, tick: int, val: Any
 	):
-		pack = self.pack
-		self.call(
-			"insert1",
-			"graph_val",
-			dict(
-				graph=pack(graph),
-				key=pack(key),
-				branch=branch,
-				turn=turn,
-				tick=tick,
-				value=pack(val),
-			),
-		)
-		self._increc()
+		self._graphvals2set.append((graph, key, branch, turn, tick, val))
 
 	def graph_val_del_time(self, branch: str, turn: int, tick: int):
 		self.call("graph_val_del_time", branch, turn, tick)
