@@ -2918,18 +2918,18 @@ class ORM:
 		_branches = self._branches
 		if stoptime:
 			stopbranch, stopturn, stoptick = stoptime
-			while branch in _branches:
+			stopping = stopbranch == branch
+			while branch in _branches and not stopping:
 				(branch, trn, tck, _, _) = _branches[branch]
 				if branch is None:
 					return
-				if branch == stopbranch and (
-					trn < stopturn
-					or (
+				if branch == stopbranch:
+					stopping = True
+					if trn < stopturn or (
 						trn == stopturn
 						and (stoptick is None or tck <= stoptick)
-					)
-				):
-					return
+					):
+						return
 				yield branch, trn, tck
 		else:
 			while branch in _branches:
