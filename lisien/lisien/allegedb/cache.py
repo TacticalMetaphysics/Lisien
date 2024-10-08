@@ -413,6 +413,14 @@ class Cache:
 		each branch is chronological of itself.
 
 		"""
+
+		def sort_key(v):
+			if isinstance(v, tuple):
+				return (2,) + tuple(map(repr, v))
+			if isinstance(v, str):
+				return 1, v
+			return 0, repr(v)
+
 		branches = defaultdict(list)
 		for row in data:
 			branches[row[-4]].append(row)
@@ -425,7 +433,7 @@ class Cache:
 		store = self.store
 		while branch2do:
 			branch = branch2do.popleft()
-			for row in sorted(branches[branch]):
+			for row in sorted(branches[branch], key=sort_key):
 				store(*row, planning=False, loading=True)
 			if branch in childbranch:
 				branch2do.extend(childbranch[branch])
