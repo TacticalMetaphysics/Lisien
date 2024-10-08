@@ -55,6 +55,12 @@ def install(eng, seed=None):
 
 		logger = getLogger("pathfind")
 
+		def log_as_completed(fut):
+			try:
+				logger.debug(f"Got path for {fut.thing.name}: {fut.result()}")
+			except NetworkXNoPath:
+				logger.debug(f"No path for {fut.thing.name}")
+
 		futs = []
 		with char.engine.pool as pool:
 			for thing in char.thing.values():
@@ -62,14 +68,15 @@ def install(eng, seed=None):
 					char.engine.function.find_path_somewhere, thing
 				)
 				fut.thing = thing
+				fut.add_done_callback(log_as_completed)
 				futs.append(fut)
 		with char.engine.batch():
 			for fut in futs:
 				try:
 					result = fut.result()
 					thing = fut.thing
-					logger.debug(f"got path {result} for thing {thing.name}")
 					thing.follow_path(result, check=False)
+					logger.debug(f"followed path for thing {thing.name}")
 				except NetworkXNoPath:
 					logger.debug(f"got no path for thing {fut.thing.name}")
 					continue
