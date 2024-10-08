@@ -443,7 +443,7 @@ class Engine(AbstractEngine, gORM):
 		if logfun is None:
 			from logging import getLogger
 
-			logger = getLogger("Life Sim Engine")
+			logger = getLogger("LiSE")
 
 			def logfun(level, msg):
 				getattr(logger, level)(msg)
