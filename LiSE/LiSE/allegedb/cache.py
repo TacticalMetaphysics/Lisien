@@ -506,7 +506,15 @@ class Cache:
 					# assert kcturn[tick] == get_adds_dels(
 					# keys[parentity], branch, turn, tick)[0]  # slow
 					return keycache3[tick]
-			ret = frozenset(get_adds_dels(parentity, branch, turn, tick)[0])
+			# still have to get a stoptime -- the time of the last keyframe
+			stoptime, _ = self.db._build_keyframe_window_new(
+				branch, turn, tick
+			)
+			ret = frozenset(
+				get_adds_dels(
+					parentity, branch, turn, tick, stoptime=stoptime
+				)[0]
+			)
 			if keycache2:
 				if keycache3:
 					keycache3[tick] = ret
@@ -1569,8 +1577,6 @@ class EdgesCache(Cache):
 					added.add(dest)
 				elif delidx and not addidx:
 					deleted.add(dest)
-		if stoptime:
-			return added, deleted
 		kf = self.keyframe
 		itparbtt = self.db._iter_parent_btt
 		its = list(kf.items())
@@ -1579,7 +1585,9 @@ class EdgesCache(Cache):
 		for (grap, org, dest), kfg in its:  # too much iteration!
 			if (grap, org) != (graph, orig):
 				continue
-			for branc, trn, tck in itparbtt(branch, turn, tick):
+			for branc, trn, tck in itparbtt(
+				branch, turn, tick, stoptime=stoptime
+			):
 				if branc not in kfg:
 					continue
 				kfgb = kfg[branc]
