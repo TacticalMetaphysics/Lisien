@@ -425,7 +425,7 @@ class Cache:
 		store = self.store
 		while branch2do:
 			branch = branch2do.popleft()
-			for row in branches[branch]:
+			for row in sorted(branches[branch]):
 				store(*row, planning=False, loading=True)
 			if branch in childbranch:
 				branch2do.extend(childbranch[branch])
