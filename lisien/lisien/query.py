@@ -4188,9 +4188,9 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 			"insert1",
 			"units",
 			dict(
-				character=pack(character),
-				graph=pack(graph),
-				node=pack(node),
+				character_graph=pack(character),
+				unit_graph=pack(graph),
+				unit_node=pack(node),
 				branch=branch,
 				turn=turn,
 				tick=tick,
