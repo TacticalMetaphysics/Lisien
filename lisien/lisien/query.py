@@ -3227,168 +3227,155 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		for d in self.call("dump", "turns"):
 			yield d["branch"], d["turn"], d["end_tick"], d["plan_end_tick"]
 
-	def _flush_graph_val(self):
-		if not self._graphvals2set:
-			return
-		pack = self.pack
-		with self._holder.lock:
-			self.call(
-				"insert",
-				"graph_val",
-				[
-					{
-						"graph": pack(graph),
-						"key": pack(key),
-						"branch": branch,
-						"turn": turn,
-						"tick": tick,
-						"value": pack(value),
-					}
-					for (
-						graph,
-						key,
-						branch,
-						turn,
-						tick,
-						value,
-					) in self._graphvals2set
-				],
-			)
-			self._graphvals2set = []
-
-	def _flush_nodes(self):
-		if not self._nodes2set:
-			return
-		pack = self.pack
-		with self._holder.lock:
-			self.call(
-				"insert",
-				"nodes",
-				[
-					{
-						"graph": pack(graph),
-						"key": pack(key),
-						"branch": branch,
-						"turn": turn,
-						"tick": tick,
-						"extant": bool(extant),
-					}
-					for (
-						graph,
-						key,
-						branch,
-						turn,
-						tick,
-						extant,
-					) in self._nodes2set
-				],
-			)
-			self._nodes2set = []
-
-	def _flush_node_val(self):
-		if not self._nodevals2set:
-			return
-		pack = self.pack
-		with self._holder.lock:
-			self.call(
-				"insert",
-				"node_val",
-				[
-					{
-						"graph": pack(graph),
-						"node": pack(node),
-						"key": pack(key),
-						"branch": branch,
-						"turn": turn,
-						"tick": tick,
-						"value": pack(value),
-					}
-					for (
-						graph,
-						node,
-						key,
-						branch,
-						turn,
-						tick,
-						value,
-					) in self._nodevals2set
-				],
-			)
-			self._nodevals2set = []
-
-	def _flush_edges(self):
-		if not self._edges2set:
-			return
-		pack = self.pack
-		with self._holder.lock:
-			self.call(
-				"insert",
-				"edges",
-				[
-					{
-						"graph": pack(graph),
-						"orig": pack(orig),
-						"dest": pack(dest),
-						"branch": branch,
-						"turn": turn,
-						"tick": tick,
-						"extant": bool(extant),
-					}
-					for (
-						graph,
-						orig,
-						dest,
-						branch,
-						turn,
-						tick,
-						extant,
-					) in self._edges2set
-				],
-			)
-			self._edges2set = []
-
-	def _flush_edge_val(self):
-		if not self._edgevals2set:
-			return
-		pack = self.pack
-		with self._holder.lock:
-			self.call(
-				"insert",
-				"edge_val",
-				[
-					{
-						"graph": pack(graph),
-						"orig": pack(orig),
-						"dest": pack(dest),
-						"idx": idx,
-						"key": pack(key),
-						"branch": branch,
-						"turn": turn,
-						"tick": tick,
-						"value": pack(value),
-					}
-					for (
-						graph,
-						orig,
-						dest,
-						idx,
-						key,
-						branch,
-						turn,
-						tick,
-						value,
-					) in self._edgevals2set
-				],
-			)
-
 	def flush(self):
-		with self._holder.lock:  # it's reentrant, this is fine
-			self._flush_graph_val()
-			self._flush_nodes()
-			self._flush_node_val()
-			self._flush_edges()
-			self._flush_edge_val()
+		with self._holder.lock:
 			put = self._inq.put
+			pack = self.pack
+			if self._graphvals2set:
+				put(
+					(
+						"silent",
+						"insert",
+						"graph_val",
+						[
+							{
+								"graph": pack(graph),
+								"key": pack(key),
+								"branch": branch,
+								"turn": turn,
+								"tick": tick,
+								"value": pack(value),
+							}
+							for (
+								graph,
+								key,
+								branch,
+								turn,
+								tick,
+								value,
+							) in self._graphvals2set
+						],
+					)
+				)
+				self._graphvals2set = []
+			if self._nodes2set:
+				put(
+					(
+						"silent",
+						"insert",
+						"nodes",
+						[
+							{
+								"graph": pack(graph),
+								"key": pack(key),
+								"branch": branch,
+								"turn": turn,
+								"tick": tick,
+								"extant": bool(extant),
+							}
+							for (
+								graph,
+								key,
+								branch,
+								turn,
+								tick,
+								extant,
+							) in self._nodes2set
+						],
+					)
+				)
+				self._nodes2set = []
+			if self._nodevals2set:
+				put(
+					(
+						"silent",
+						"insert",
+						"node_val",
+						[
+							{
+								"graph": pack(graph),
+								"node": pack(node),
+								"key": pack(key),
+								"branch": branch,
+								"turn": turn,
+								"tick": tick,
+								"value": pack(value),
+							}
+							for (
+								graph,
+								node,
+								key,
+								branch,
+								turn,
+								tick,
+								value,
+							) in self._nodevals2set
+						],
+					)
+				)
+				self._nodevals2set = []
+			if self._edges2set:
+				put(
+					(
+						"silent",
+						"insert",
+						"edges",
+						[
+							{
+								"graph": pack(graph),
+								"orig": pack(orig),
+								"dest": pack(dest),
+								"branch": branch,
+								"turn": turn,
+								"tick": tick,
+								"extant": bool(extant),
+							}
+							for (
+								graph,
+								orig,
+								dest,
+								branch,
+								turn,
+								tick,
+								extant,
+							) in self._edges2set
+						],
+					)
+				)
+				self._edges2set = []
+			if self._edgevals2set:
+				put(
+					(
+						"silent",
+						"insert",
+						"edge_val",
+						[
+							{
+								"graph": pack(graph),
+								"orig": pack(orig),
+								"dest": pack(dest),
+								"idx": idx,
+								"key": pack(key),
+								"branch": branch,
+								"turn": turn,
+								"tick": tick,
+								"value": pack(value),
+							}
+							for (
+								graph,
+								orig,
+								dest,
+								idx,
+								key,
+								branch,
+								turn,
+								tick,
+								value,
+							) in self._edgevals2set
+						],
+					)
+				)
+				self._edgevals2set = []
 			if self._unitness:
 				put(
 					(
