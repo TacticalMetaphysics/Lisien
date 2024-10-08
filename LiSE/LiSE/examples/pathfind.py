@@ -1,6 +1,10 @@
+from logging import getLogger
 import random
 
 import networkx as nx
+
+
+logger = getLogger("pathfind")
 
 
 def install(eng, seed=None):
@@ -18,8 +22,11 @@ def install(eng, seed=None):
 
 	@eng.function
 	def find_path_somewhere(node):
+		from logging import getLogger
 		from networkx.algorithms import astar_path
 		from math import sqrt
+
+		logger = getLogger("pathfind")
 
 		x, y = node.location.name
 		destx = 100 - int(x)
@@ -38,12 +45,15 @@ def install(eng, seed=None):
 			(destx, desty),
 			lambda a, b: sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2),
 		)
-		print(f"{node.name}'s shortest path to {destx, desty} is {ret}")
+		logger.debug(f"{node.name}'s shortest path to {destx, desty} is {ret}")
 		return ret
 
 	@phys.rule
 	def go_places(char):
+		from logging import getLogger
 		from networkx.exception import NetworkXNoPath
+
+		logger = getLogger("pathfind")
 
 		futs = []
 		with char.engine.pool as pool:
@@ -58,10 +68,10 @@ def install(eng, seed=None):
 				try:
 					result = fut.result()
 					thing = fut.thing
-					print(f"got path {result} for thing {thing.name}")
+					logger.debug(f"got path {result} for thing {thing.name}")
 					thing.follow_path(result, check=False)
 				except NetworkXNoPath:
-					print(f"got no path for thing {fut.thing.name}")
+					logger.debug(f"got no path for thing {fut.thing.name}")
 					continue
 
 	@go_places.trigger
