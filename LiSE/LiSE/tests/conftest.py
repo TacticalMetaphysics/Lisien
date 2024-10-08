@@ -62,7 +62,7 @@ def engy(tempdir, request):
 		random_seed=69105,
 		enforce_end_of_time=False,
 		threaded_triggers=request.param == "parallel",
-		worker_processes=2 if request.param == "parallel" else 0,
+		workers=2 if request.param == "parallel" else 0,
 	) as eng:
 		yield eng
 

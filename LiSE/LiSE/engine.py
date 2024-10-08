@@ -382,7 +382,7 @@ class Engine(AbstractEngine, gORM):
 	:param threaded_triggers: Whether to evaluate trigger functions in threads.
 		This has performance benefits if you are using a free-threaded build of
 		Python (without a GIL). Default ``True``.
-	:param worker_processes: How many subprocesses to use as workers for
+	:param workers: How many subprocesses to use as workers for
 		parallel processing. When ``None`` (the default), use as many
 		subprocesses as we have CPU cores. When ``0``, parallel processing
 		is not necessarily disabled; threads may still be used, which
@@ -438,7 +438,7 @@ class Engine(AbstractEngine, gORM):
 		cache_arranger: bool = False,
 		enforce_end_of_time: bool = True,
 		threaded_triggers: bool = True,
-		worker_processes: int = None,
+		workers: int = None,
 	):
 		if logfun is None:
 			from logging import getLogger
@@ -525,9 +525,9 @@ class Engine(AbstractEngine, gORM):
 		self.flush_interval = flush_interval
 		if threaded_triggers:
 			self._trigger_pool = ThreadPoolExecutor()
-		if worker_processes is None:
-			worker_processes = os.cpu_count() or 0
-		if worker_processes > 0:
+		if workers is None:
+			workers = os.cpu_count() or 0
+		if workers > 0:
 
 			def sync_log_forever(q):
 				while True:
@@ -546,7 +546,7 @@ class Engine(AbstractEngine, gORM):
 			self._worker_log_queues = wl = []
 			self._worker_log_threads = wlt = []
 			self._top_uid = 0
-			for i in range(worker_processes):
+			for i in range(workers):
 				inpipe_there, inpipe_here = Pipe(duplex=False)
 				outpipe_here, outpipe_there = Pipe(duplex=False)
 				logq = Queue()
@@ -572,7 +572,7 @@ class Engine(AbstractEngine, gORM):
 			self.trigger.connect(self._reimport_trigger_functions)
 			self.function.connect(self._reimport_worker_functions)
 			self.method.connect(self._reimport_worker_methods)
-			self._worker_updated_btts = [self._btt()] * worker_processes
+			self._worker_updated_btts = [self._btt()] * workers
 		self._rules_iter = self._follow_rules()
 		self._rando = Random()
 		if "rando_state" in self.universal:
