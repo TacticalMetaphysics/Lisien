@@ -412,7 +412,12 @@ class MainScreen(Screen):
 		self.app.branch = branch
 		self.app.turn = turn
 		self.app.tick = tick
-		# deleted board updates; now to make the boards update themselves
+		for chara, graphboard in self.graphboards.items():
+			if chara in delta:
+				graphboard.trigger_update_from_delta(delta[chara])
+		for chara, gridboard in self.gridboards.items():
+			if chara in delta:
+				gridboard.trigger_update_from_delta(delta[chara])
 		self.statpanel.statlist.mirror = dict(self.app.selected_proxy)
 
 	def play(self, *args):
