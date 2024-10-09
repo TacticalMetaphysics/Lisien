@@ -855,7 +855,7 @@ class Thing(Node):
 				turn_incs.append(1)
 			turns_total += turn_incs[-1]
 			turnt = turn + turns_total
-			tick = eng._turn_end.get(turnt, 0)
+			tick = eng._turn_end_plan.get(turnt, 0)
 			eng.load_at(branch, turnt, tick)
 		subsubpath = [prevsubplace]
 		with eng.plan(), eng.batch():
