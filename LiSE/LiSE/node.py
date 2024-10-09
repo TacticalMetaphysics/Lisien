@@ -858,7 +858,19 @@ class Thing(Node):
 			turns_total += turn_incs[-1]
 			turn += turn_incs[-1]
 			tick = eng._turn_end_plan.get(turn, 0)
-			eng.load_at(branch, turn, tick)
+			_, start_turn, start_tick, end_turn, end_tick = eng._branches[
+				branch
+			]
+			if (
+				(start_turn < turn < end_turn)
+				or (
+					start_turn == end_turn == turn
+					and start_tick <= tick < end_tick
+				)
+				or (start_turn == turn and start_tick <= tick)
+				or (end_turn == turn and tick < end_tick)
+			):
+				eng.load_at(branch, turn, tick)
 		with eng.plan(), eng.batch():
 			for subplace, turn_inc in zip(subpath, turn_incs):
 				eng.turn += turn_inc
