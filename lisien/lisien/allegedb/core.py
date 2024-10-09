@@ -1344,13 +1344,13 @@ class ORM:
 		ec = self._edges_cache
 		evc = self._edge_val_cache
 		for orig, dests in edges.items():
+			kf = {}
 			for dest, vals in dests.items():
-				ec.set_keyframe(
-					(graph, orig, dest), branch, turn, tick, {0: True}
-				)
+				kf[dest] = True
 				evc.set_keyframe(
 					(graph, orig, dest, 0), branch, turn, tick, vals
 				)
+			ec.set_keyframe((graph, orig), branch, turn, tick, kf)
 		self._graph_val_cache.set_keyframe(
 			(graph,), branch, turn, tick, graph_val
 		)

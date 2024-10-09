@@ -1616,10 +1616,10 @@ class EdgesCache(Cache):
 
 	def __init__(self, db):
 		def gettest(k):
-			assert len(k) == 3, "Bad key: " + repr(k)
+			assert len(k) == 2, "Bad key: " + repr(k)
 
 		def settest(k, v):
-			assert len(k) == 3, "Bad key: {}, to be set to {}".format(k, v)
+			assert len(k) == 2, "Bad key: {}, to be set to {}".format(k, v)
 
 		Cache.__init__(
 			self,
