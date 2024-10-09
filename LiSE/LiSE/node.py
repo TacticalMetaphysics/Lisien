@@ -842,6 +842,7 @@ class Thing(Node):
 			turns_total = 0
 			prevsubplace = subpath.pop(0)
 			turn_incs = []
+			branch, turn, tick = eng._btt()
 			for subplace in subpath:
 				if weight is not None:
 					turn_incs.append(
@@ -855,12 +856,15 @@ class Thing(Node):
 					)
 				else:
 					turn_incs.append(1)
+				turns_total += turn_incs[-1]
+				turnt = turn + turns_total
+				tick = eng._turn_end.get(turnt, 0)
+				eng.load_at(branch, turnt, tick)
 			subsubpath = [prevsubplace]
 			with eng.batch():
 				for subplace, turn_inc in zip(subpath, turn_incs):
 					eng.turn += turn_inc
 					self["location"] = subplace
-					turns_total += turn_inc
 					subsubpath.append(subplace)
 				self["location"] = subplace
 		return turns_total
