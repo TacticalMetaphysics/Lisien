@@ -871,7 +871,7 @@ class Thing(Node):
 				or (end_turn == turn and tick < end_tick)
 			):
 				eng.load_at(branch, turn, tick)
-		with eng.plan(), eng.batch():
+		with eng.plan():
 			for subplace, turn_inc in zip(subpath, turn_incs):
 				eng.turn += turn_inc
 				self["location"] = subplace
