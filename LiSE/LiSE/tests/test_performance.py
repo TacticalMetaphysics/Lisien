@@ -16,5 +16,5 @@ def test_follow_path(tmp_path):
 		them.follow_path(straightly)
 		elapsed = monotonic() - start
 		assert (
-			elapsed < 1.0
-		), f"Took too long to follow a longish path: {elapsed:.2} seconds"
+			elapsed < 0.12
+		), f"Took too long to follow a path of length {len(straightly)}: {elapsed:.2} seconds"
