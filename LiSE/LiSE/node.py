@@ -848,15 +848,17 @@ class Thing(Node):
 						prevsubplace,
 						subplace,
 						0,
-						*self.engine._btt(),
+						branch,
+						turn,
+						tick,
 					)
 				)
 			else:
 				turn_incs.append(1)
 			turns_total += turn_incs[-1]
-			turnt = turn + turns_total
-			tick = eng._turn_end_plan.get(turnt, 0)
-			eng.load_at(branch, turnt, tick)
+			turn += turn_incs[-1]
+			tick = eng._turn_end_plan.get(turn, 0)
+			eng.load_at(branch, turn, tick)
 		with eng.plan(), eng.batch():
 			for subplace, turn_inc in zip(subpath, turn_incs):
 				eng.turn += turn_inc
