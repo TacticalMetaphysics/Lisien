@@ -182,8 +182,6 @@ class FunctionStore(Signal):
 		self._locl = {}
 
 	def __getattr__(self, k):
-		if self._need_save:
-			self.save()
 		if self._module:
 			return getattr(self._module, k)
 		elif k in self._locl:
