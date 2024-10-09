@@ -83,7 +83,7 @@ tester knew to look for it.
 In a command line, with [Python](https://python.org) already installed:
 
 ```
-python -m pip install --user --upgrade git+https://github.com/TacticalMetaphysics/LiSE
+python -m pip install --user --upgrade [git+https://github.com/TacticalMetaphysics/LiSE](http://github.com/TacticalMetaphysics/LiSE/archive/main.zip)
 ```
 
 Run it again whenever you want the latest LiSE code.
