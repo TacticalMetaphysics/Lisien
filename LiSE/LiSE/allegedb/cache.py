@@ -1769,6 +1769,15 @@ class EdgesCache(Cache):
 		forward: bool = None,
 	):
 		"""Return whether an edge connects the origin to the destination now"""
+		# Use a keycache if we have it.
+		# If we don't, only generate one if we're forwarding, and only
+		# if it's no more than a turn ago.
+		keycache_key = (graph, orig, branch)
+		if keycache_key in self.keycache:
+			print("getting keycache.")
+			return dest in self._get_destcache(
+				graph, orig, branch, turn, tick, forward=forward
+			)
 		got = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
 		return got is not None and not isinstance(got, Exception)
 
