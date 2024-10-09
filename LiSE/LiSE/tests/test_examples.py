@@ -80,6 +80,7 @@ def test_wolfsheep(tempdir):
 	hand.close()
 
 
+@pytest.mark.slow
 def test_pathfind(tempdir):
 	with Engine(tempdir) as eng:
 		pathfind.install(eng, 69105)
