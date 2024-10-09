@@ -1820,17 +1820,9 @@ class EdgesCache(Cache):
 		*,
 		forward: bool = None,
 	):
-		"""Return whether an edge connects the origin to the destination now
-
-		Doesn't require the edge's index, which makes it slower than retrieving
-		a particular edge.
-
-		"""
-		if forward is None:
-			forward = self.db._forward
-		return dest in self._get_destcache(
-			graph, orig, branch, turn, tick, forward=forward
-		)
+		"""Return whether an edge connects the origin to the destination now"""
+		got = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
+		return got is not None and not isinstance(got, Exception)
 
 	def has_predecessor(
 		self,
@@ -1843,17 +1835,9 @@ class EdgesCache(Cache):
 		*,
 		forward: bool = None,
 	):
-		"""Return whether an edge connects the destination to the origin now
-
-		Doesn't require the edge's index, which makes it slower than retrieving
-		a particular edge.
-
-		"""
-		if forward is None:
-			forward = self.db._forward
-		return orig in self._get_origcache(
-			graph, dest, branch, turn, tick, forward=forward
-		)
+		"""Return whether an edge connects the destination to the origin now"""
+		got = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
+		return got is not None and not isinstance(got, Exception)
 
 	def store(
 		self,
