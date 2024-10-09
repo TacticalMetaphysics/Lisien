@@ -857,13 +857,10 @@ class Thing(Node):
 			turnt = turn + turns_total
 			tick = eng._turn_end_plan.get(turnt, 0)
 			eng.load_at(branch, turnt, tick)
-		subsubpath = [prevsubplace]
 		with eng.plan(), eng.batch():
 			for subplace, turn_inc in zip(subpath, turn_incs):
 				eng.turn += turn_inc
 				self["location"] = subplace
-				subsubpath.append(subplace)
-			self["location"] = subplace
 		return turns_total
 
 	def travel_to(
