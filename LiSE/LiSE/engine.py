@@ -413,6 +413,9 @@ class Engine(AbstractEngine, gORM):
 		meth = super().__getattribute__("method").__getattr__(item)
 		return MethodType(meth, self)
 
+	def __hasattr__(self, item):
+		return hasattr(super().__getattribute__("method"), item)
+
 	def __init__(
 		self,
 		prefix: Union[PathLike, str] = ".",
