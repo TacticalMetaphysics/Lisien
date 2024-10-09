@@ -815,58 +815,55 @@ class Thing(Node):
 		if len(path) < 2:
 			raise ValueError("Paths need at least 2 nodes")
 		eng = self.character.engine
-		with eng.plan():
-			if check:
-				prevplace = path.pop(0)
-				if prevplace != self["location"]:
-					raise ValueError(
-						"Path does not start at my present location"
+		if check:
+			prevplace = path.pop(0)
+			if prevplace != self["location"]:
+				raise ValueError("Path does not start at my present location")
+			subpath = [prevplace]
+			for place in path:
+				if (
+					prevplace not in self.character.portal
+					or place not in self.character.portal[prevplace]
+				):
+					raise TravelException(
+						"Couldn't follow portal from {} to {}".format(
+							prevplace, place
+						),
+						path=subpath,
+						traveller=self,
 					)
-				subpath = [prevplace]
-				for place in path:
-					if (
-						prevplace not in self.character.portal
-						or place not in self.character.portal[prevplace]
-					):
-						raise TravelException(
-							"Couldn't follow portal from {} to {}".format(
-								prevplace, place
-							),
-							path=subpath,
-							traveller=self,
-						)
-					subpath.append(place)
-					prevplace = place
+				subpath.append(place)
+				prevplace = place
+		else:
+			subpath = path.copy()
+		turns_total = 0
+		prevsubplace = subpath.pop(0)
+		turn_incs = []
+		branch, turn, tick = eng._btt()
+		for subplace in subpath:
+			if weight is not None:
+				turn_incs.append(
+					self.engine._edge_val_cache.retrieve(
+						self.character.name,
+						prevsubplace,
+						subplace,
+						0,
+						*self.engine._btt(),
+					)
+				)
 			else:
-				subpath = path.copy()
-			turns_total = 0
-			prevsubplace = subpath.pop(0)
-			turn_incs = []
-			branch, turn, tick = eng._btt()
-			for subplace in subpath:
-				if weight is not None:
-					turn_incs.append(
-						self.engine._edge_val_cache.retrieve(
-							self.character.name,
-							prevsubplace,
-							subplace,
-							0,
-							*self.engine._btt(),
-						)
-					)
-				else:
-					turn_incs.append(1)
-				turns_total += turn_incs[-1]
-				turnt = turn + turns_total
-				tick = eng._turn_end.get(turnt, 0)
-				eng.load_at(branch, turnt, tick)
-			subsubpath = [prevsubplace]
-			with eng.batch():
-				for subplace, turn_inc in zip(subpath, turn_incs):
-					eng.turn += turn_inc
-					self["location"] = subplace
-					subsubpath.append(subplace)
+				turn_incs.append(1)
+			turns_total += turn_incs[-1]
+			turnt = turn + turns_total
+			tick = eng._turn_end.get(turnt, 0)
+			eng.load_at(branch, turnt, tick)
+		subsubpath = [prevsubplace]
+		with eng.plan(), eng.batch():
+			for subplace, turn_inc in zip(subpath, turn_incs):
+				eng.turn += turn_inc
 				self["location"] = subplace
+				subsubpath.append(subplace)
+			self["location"] = subplace
 		return turns_total
 
 	def travel_to(
