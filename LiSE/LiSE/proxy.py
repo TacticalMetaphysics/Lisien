@@ -629,7 +629,7 @@ class PortalProxy(CachingEntityProxy):
 		self.character.portal.send(self, k=k, v=v)
 
 	def _del_item(self, k):
-		self.engine_handle(
+		self.engine.handle(
 			command="del_portal_stat",
 			char=self._charname,
 			orig=self._origin,
