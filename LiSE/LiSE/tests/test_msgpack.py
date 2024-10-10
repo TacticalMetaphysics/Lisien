@@ -28,28 +28,32 @@ def test_serialize_portal(engy):
 	assert engy.unpack(engy.pack(port)) == port
 
 
-def test_serialize_function(tempdir):
-	with Engine(tempdir, random_seed=69105, enforce_end_of_time=False) as eng:
+def test_serialize_function(tmp_path):
+	with Engine(
+		tmp_path, random_seed=69105, enforce_end_of_time=False, workers=0
+	) as eng:
 
 		@eng.function
 		def foo(bar: str, bas: str) -> str:
 			return bar + bas + " is correct"
 
 	procm = EngineProcessManager()
-	engprox = procm.start(tempdir)
+	engprox = procm.start(tmp_path)
 	funcprox = engprox.function.foo
 	assert funcprox("foo", "bar") == "foobar is correct"
 	procm.shutdown()
 
 
-def test_serialize_method(tempdir):
-	with Engine(tempdir, random_seed=69105, enforce_end_of_time=False) as eng:
+def test_serialize_method(tmp_path):
+	with Engine(
+		tmp_path, random_seed=69105, enforce_end_of_time=False, workers=0
+	) as eng:
 
 		@eng.method
 		def foo(self, bar: str, bas: str) -> str:
 			return bar + bas + " is correct"
 
 	procm = EngineProcessManager()
-	engprox = procm.start(tempdir)
+	engprox = procm.start(tmp_path)
 	assert engprox.foo("bar", "bas") == "barbas is correct"
 	procm.shutdown()
