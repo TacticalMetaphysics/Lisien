@@ -1117,7 +1117,12 @@ class Engine(AbstractEngine, gORM, Executor):
 	def _load_graphs(self) -> None:
 		for charn, branch, turn, tick, typ in self.query.characters():
 			self._graph_cache.store(
-				charn, branch, turn, tick, (typ if typ != "Deleted" else None)
+				charn,
+				branch,
+				turn,
+				tick,
+				(typ if typ != "Deleted" else None),
+				loading=True,
 			)
 			self._graph_objs[charn] = self.char_cls(
 				self, charn, init_rulebooks=False
