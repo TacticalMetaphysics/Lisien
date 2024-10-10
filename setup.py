@@ -37,9 +37,7 @@ datas = []
 with open(os.path.join(here, "ELiDE", "MANIFEST.in"), "rt") as inf:
 	for line in inf:
 		datas.append(
-			os.path.join(
-				here, "ELiDE", line.removeprefix("include ").removesuffix("\n")
-			)
+			os.path.join(here, "ELiDE", line[len("include ") :][: len("\n")])
 		)
 
 setup(
