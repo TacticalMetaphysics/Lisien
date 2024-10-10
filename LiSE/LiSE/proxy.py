@@ -55,7 +55,11 @@ from .util import (
 	MsgpackExtensionType,
 	AbstractCharacter,
 )
-from .xcollections import AbstractLanguageDescriptor, FunctionStore
+from .xcollections import (
+	AbstractLanguageDescriptor,
+	FunctionStore,
+	StringStore,
+)
 from .node import NodeContent, UserMapping, Place, Thing
 from .portal import Portal
 
@@ -65,6 +69,7 @@ class CachingProxy(MutableMapping, Signal):
 
 	_cache: dict
 	rulebook: "RuleBookProxy"
+	engine: "EngineProxy"
 
 	def __init__(self):
 		super().__init__()
@@ -88,11 +93,19 @@ class CachingProxy(MutableMapping, Signal):
 		return self._cache_get_munge(k, self._cache[k])
 
 	def __setitem__(self, k, v):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self._set_item(k, v)
 		self._cache[k] = self._cache_set_munge(k, v)
 		self.send(self, key=k, value=v)
 
 	def __delitem__(self, k):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		if k not in self:
 			raise KeyError("No such key: {}".format(k))
 		self._del_item(k)
@@ -164,6 +177,10 @@ class RulebookProxyDescriptor(object):
 		return proxy
 
 	def __set__(self, inst, val):
+		if inst.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		if hasattr(val, "name"):
 			if not isinstance(val, RuleBookProxy):
 				raise TypeError
@@ -312,6 +329,10 @@ class NodeProxy(CachingEntityProxy):
 		)
 
 	def delete(self):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self.engine.del_node(self._charname, self.name)
 
 	@property
@@ -471,6 +492,10 @@ class ThingProxy(NodeProxy):
 		)
 
 	def __setitem__(self, k, v):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		if k == "location":
 			self._set_location(v)
 		elif k == "rulebook":
@@ -487,6 +512,10 @@ class ThingProxy(NodeProxy):
 		)
 
 	def follow_path(self, path, weight=None):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self.engine.handle(
 			command="thing_follow_path",
 			char=self._charname,
@@ -496,6 +525,10 @@ class ThingProxy(NodeProxy):
 		)
 
 	def go_to_place(self, place, weight=None):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		if hasattr(place, "name"):
 			place = place.name
 		self.engine.handle(
@@ -507,6 +540,10 @@ class ThingProxy(NodeProxy):
 		)
 
 	def travel_to(self, dest, weight=None, graph=None):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		if hasattr(dest, "name"):
 			dest = dest.name
 		if hasattr(graph, "name"):
@@ -521,6 +558,10 @@ class ThingProxy(NodeProxy):
 		)
 
 	def travel_to_by(self, dest, arrival_tick, weight=None, graph=None):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		if hasattr(dest, "name"):
 			dest = dest.name
 		if hasattr(graph, "name"):
@@ -675,6 +716,10 @@ class PortalProxy(CachingEntityProxy):
 		return super().__getitem__(k)
 
 	def delete(self):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self.engine.del_portal(self._charname, self._origin, self._destination)
 
 
@@ -726,9 +771,17 @@ class NodeMapProxy(MutableMapping, Signal):
 			return self.character.place[k]
 
 	def __setitem__(self, k, v):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self.character.place[k] = v
 
 	def __delitem__(self, k):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		if k in self.character.thing:
 			del self.character.thing[k]
 		else:
@@ -828,6 +881,10 @@ class ThingMapProxy(CachingProxy):
 		del self.engine._node_stat_cache[self.name][k]
 
 	def patch(self, d: dict):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		places = d.keys() & self.character.place.keys()
 		if places:
 			raise KeyError(f"Tried to patch places on thing mapping: {places}")
@@ -895,6 +952,10 @@ class PlaceMapProxy(CachingProxy):
 		del self.engine._node_stat_cache[self.name][k]
 
 	def patch(self, d: dict):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		things = d.keys() & self.character.thing.keys()
 		if things:
 			raise KeyError(f"Tried to patch things on place mapping: {things}")
@@ -1061,6 +1122,10 @@ class PredecessorsProxy(MutableMapping):
 		][self.name][k]
 
 	def __setitem__(self, k, v):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self.engine._character_portals_cache.store(
 			self._charname,
 			self.name,
@@ -1109,6 +1174,10 @@ class CharPredecessorsMappingProxy(MutableMapping):
 		return self._cache[k]
 
 	def __setitem__(self, k, v):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		for pred, proxy in v.items():
 			self.engine._character_portals_cache.store(
 				self.name, pred, k, proxy
@@ -1122,6 +1191,10 @@ class CharPredecessorsMappingProxy(MutableMapping):
 		)
 
 	def __delitem__(self, k):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		for v in list(self[k]):
 			self.engine.del_portal(self.name, v, k)
 		if k in self._cache:
@@ -1287,6 +1360,10 @@ class RuleBookProxy(MutableSequence, Signal):
 		return self._proxy_cache[k]
 
 	def __setitem__(self, i, v):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		if isinstance(v, RuleProxy):
 			v = v._name
 		self._cache[i] = v
@@ -1300,6 +1377,10 @@ class RuleBookProxy(MutableSequence, Signal):
 		self.send(self, i=i, val=v)
 
 	def __delitem__(self, i):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		del self._cache[i]
 		self.engine.handle(
 			command="del_rulebook_rule",
@@ -1310,6 +1391,10 @@ class RuleBookProxy(MutableSequence, Signal):
 		self.send(self, i=i, val=None)
 
 	def insert(self, i, v):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		if isinstance(v, RuleProxy):
 			v = v._name
 		self._cache.insert(i, v)
@@ -1437,6 +1522,10 @@ class CharacterProxy(AbstractCharacter):
 	pred_cls = CharPredecessorsMappingProxy
 
 	def copy_from(self, g):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		# can't handle multigraphs
 		self.engine.handle(
 			"character_copy_from",
@@ -1623,6 +1712,10 @@ class CharacterProxy(AbstractCharacter):
 		self.stat._apply_delta(delta)
 
 	def add_place(self, name, **kwargs):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self.engine.handle(
 			command="set_place",
 			char=self.name,
@@ -1634,6 +1727,10 @@ class CharacterProxy(AbstractCharacter):
 		self.engine._node_stat_cache[self.name][name] = kwargs
 
 	def add_places_from(self, seq):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self.engine.handle(
 			command="add_places_from",
 			char=self.name,
@@ -1651,9 +1748,17 @@ class CharacterProxy(AbstractCharacter):
 				placecache[pln] = PlaceProxy(self, pln)
 
 	def add_nodes_from(self, seq, **attrs):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self.add_places_from(seq)
 
 	def add_thing(self, name, location, **kwargs):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self.engine.handle(
 			command="add_thing",
 			char=self.name,
@@ -1669,6 +1774,10 @@ class CharacterProxy(AbstractCharacter):
 		self.node.send(thing, key=None, value=True)
 
 	def add_things_from(self, seq, **attrs):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self.engine.handle(
 			command="add_things_from",
 			char=self.name,
@@ -1681,6 +1790,10 @@ class CharacterProxy(AbstractCharacter):
 			self.node.send(thing, key=None, value=True)
 
 	def remove_node(self, node):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		if node not in self.node:
 			raise KeyError("No such node: {}".format(node))
 		name = self.name
@@ -1711,6 +1824,10 @@ class CharacterProxy(AbstractCharacter):
 			del portscache.predecessors[name][node]
 
 	def remove_place(self, place):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		placemap = self.place
 		if place not in placemap:
 			raise KeyError("No such place: {}".format(place))
@@ -1722,6 +1839,10 @@ class CharacterProxy(AbstractCharacter):
 		del portscache.predecessors[name][place]
 
 	def remove_thing(self, thing):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		thingmap = self.thing
 		if thing not in thingmap:
 			raise KeyError("No such thing: {}".format(thing))
@@ -1733,6 +1854,10 @@ class CharacterProxy(AbstractCharacter):
 		del portscache.predecessors[name][thing]
 
 	def add_portal(self, origin, destination, **kwargs):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		symmetrical = kwargs.pop("symmetrical", False)
 		self.engine.handle(
 			command="add_portal",
@@ -1765,6 +1890,10 @@ class CharacterProxy(AbstractCharacter):
 			placecache[destination] = PlaceProxy(self, destination)
 
 	def remove_portal(self, origin, destination):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		char_port_cache = self.engine._character_portals_cache
 		cache = char_port_cache.successors[self.name]
 		if origin not in cache or destination not in cache[origin]:
@@ -1783,6 +1912,10 @@ class CharacterProxy(AbstractCharacter):
 	remove_edge = remove_portal
 
 	def add_portals_from(self, seq, symmetrical=False):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		l = list(seq)
 		self.engine.handle(
 			command="add_portals_from",
@@ -1806,6 +1939,10 @@ class CharacterProxy(AbstractCharacter):
 		)
 
 	def add_unit(self, graph, node=None):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		# TODO: cache
 		if node is None:
 			node = graph.name
@@ -1819,6 +1956,10 @@ class CharacterProxy(AbstractCharacter):
 		)
 
 	def remove_unit(self, graph, node=None):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		# TODO: cache
 		if node is None:
 			node = graph.name
@@ -1877,6 +2018,10 @@ class CharacterMapProxy(MutableMapping, Signal):
 		return self.engine._char_cache[k]
 
 	def __setitem__(self, k, v):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self.engine.handle(
 			command="set_character", char=k, data=v, branching=True
 		)
@@ -1884,6 +2029,10 @@ class CharacterMapProxy(MutableMapping, Signal):
 		self.send(self, key=k, val=v)
 
 	def __delitem__(self, k):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self.engine.handle(command="del_character", char=k, branching=True)
 		if k in self.engine._char_cache:
 			del self.engine._char_cache[k]
@@ -1943,11 +2092,19 @@ class StringStoreProxy(Signal):
 		):
 			super().__setattr__(k, v)
 			return
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self._cache[k] = v
 		self.engine.handle(command="set_string", k=k, v=v)
 		self.send(self, key=k, string=v)
 
 	def __delattr__(self, k):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		del self._cache[k]
 		self.engine.handle(command="del_string", k=k)
 		self.send(self, key=k, string=None)
@@ -1982,10 +2139,18 @@ class EternalVarProxy(MutableMapping):
 		return self.engine.handle(command="get_eternal", k=k)
 
 	def __setitem__(self, k, v):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self._cache[k] = v
 		self.engine.handle("set_eternal", k=k, v=v)
 
 	def __delitem__(self, k):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		del self._cache[k]
 		self.engine.handle(command="del_eternal", k=k)
 
@@ -2016,11 +2181,19 @@ class GlobalVarProxy(MutableMapping, Signal):
 		return self._cache[k]
 
 	def __setitem__(self, k, v):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self._cache[k] = v
 		self.engine.handle("set_universal", k=k, v=v, branching=True)
 		self.send(self, key=k, value=v)
 
 	def __delitem__(self, k):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		del self._cache[k]
 		self.engine.handle("del_universal", k=k, branching=True)
 		self.send(self, key=k, value=None)
@@ -2087,6 +2260,10 @@ class AllRulesProxy(Mapping):
 		return self._proxy_cache[k]
 
 	def new_empty(self, k):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self.engine.handle(command="new_empty_rule", rule=k)
 		self._cache[k] = {"triggers": [], "prereqs": [], "actions": []}
 		self._proxy_cache[k] = RuleProxy(self.engine, k)
@@ -2215,6 +2392,10 @@ class TimeSignal(Signal):
 			return self.engine.tick
 
 	def __setitem__(self, i, v):
+		if self.engine._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		if i in ("branch", 0):
 			self.engine.time_travel(v, self.engine.tick)
 		if i in ("tick", 1):
@@ -2230,6 +2411,10 @@ class TimeDescriptor(object):
 		return self.times[id(inst)]
 
 	def __set__(self, inst, val):
+		if inst._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		inst.time_travel(*val)
 
 
@@ -2286,9 +2471,15 @@ class EngineProxy(AbstractEngine):
 		return self.handle("main_branch")
 
 	def snap_keyframe(self) -> dict:
+		if self._worker:
+			raise RuntimeError("Can't snap a keyframe in a worker process")
 		return self.handle("snap_keyframe")
 
 	def game_start(self) -> None:
+		if self._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		self.handle("game_start", cb=self._upd_from_game_start)
 
 	def _node_exists(self, char, node) -> bool:
@@ -2313,6 +2504,10 @@ class EngineProxy(AbstractEngine):
 		self._replace_state_with_kf(start_kf)
 
 	def switch_main_branch(self, branch: str) -> None:
+		if self._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		if (
 			self.branch != self.main_branch
 			or self.turn != 0
@@ -2491,14 +2686,17 @@ class EngineProxy(AbstractEngine):
 			self.prereq = FuncStoreProxy(self, "prereq")
 			self.trigger = FuncStoreProxy(self, "trigger")
 			self.function = FuncStoreProxy(self, "function")
+			self._worker = False
+			self.rando = RandoProxy(self)
+			self.string = StringStoreProxy(self)
 		else:
 			self.method = FunctionStore(os.path.join(prefix, "method.py"))
 			self.action = FunctionStore(os.path.join(prefix, "action.py"))
 			self.prereq = FunctionStore(os.path.join(prefix, "prereq.py"))
 			self.trigger = FunctionStore(os.path.join(prefix, "trigger.py"))
 			self.function = FunctionStore(os.path.join(prefix, "function.py"))
-		self.string = StringStoreProxy(self)
-		self.rando = RandoProxy(self)
+			self.string = StringStore(self, prefix)
+			self._worker = True
 
 		self._node_stat_cache = StructuredDefaultDict(1, UnwrappingDict)
 		self._portal_stat_cache = StructuredDefaultDict(2, UnwrappingDict)
@@ -2555,8 +2753,6 @@ class EngineProxy(AbstractEngine):
 				self.handle("install_module", module=module)
 			if do_game_start:
 				self.handle("do_game_start", cb=self._upd_caches)
-		else:
-			self.worker = True
 
 	def __getattr__(self, item):
 		return getattr(self.method, item)
@@ -2629,7 +2825,7 @@ class EngineProxy(AbstractEngine):
 		``handle``.`.
 
 		"""
-		if hasattr(self, "worker"):
+		if self._worker:
 			return
 		if self.closed:
 			raise RedundantProcessError(f"Already closed: {id(self)}")
@@ -2806,6 +3002,10 @@ class EngineProxy(AbstractEngine):
 		return self._branches[branch][0]
 
 	def apply_choices(self, choices, dry_run=False, perfectionist=False):
+		if self._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		return self.handle(
 			"apply_choices",
 			choices=choices,
@@ -2824,6 +3024,10 @@ class EngineProxy(AbstractEngine):
 
 	# TODO: make this into a Signal, like it is in the LiSE core
 	def next_turn(self, cb=None):
+		if self._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		if cb and not callable(cb):
 			raise TypeError("Uncallable callback")
 		return self.handle("next_turn", cb=partial(self._upd_and_cb, cb))
@@ -2842,6 +3046,10 @@ class EngineProxy(AbstractEngine):
 		to include.
 
 		"""
+		if self._worker:
+			raise RuntimeError(
+				"Tried to change the world state in a worker process"
+			)
 		if cb is not None and not callable(cb):
 			raise TypeError("Uncallable callback")
 		return self.handle(
