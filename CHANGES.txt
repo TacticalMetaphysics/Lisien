@@ -1,3 +1,15 @@
+== 0.16.0 | 2024-10-11 ==
+* A process pool. When you've stored a function in LiSE, you can `submit` it
+	to `Engine.pool.submit(..)` using the standard Python
+	`concurrent.futures.Executor` API. The worker processes all have read-only
+
+* Trigger functions now run in parallel by default. Set the `workers` option
+	to 0 to disable this.
+* ELiDE once again updates its graphics in response to events in the LiSE core
+	-- set the "_image_paths" of a `Thing` or `Place` object to a list of
+	paths.
+
+
 == 0.15.9 | 2024-09-01 ==
 * More data corruption fixes
 
