@@ -18,7 +18,7 @@ from LiSE.examples.kobold import inittest
 
 def test_keyframe_load_init(tmp_path):
 	"""Can load a keyframe at start of branch, including locations"""
-	eng = Engine(tmp_path)
+	eng = Engine(tmp_path, workers=0)
 	inittest(eng)
 	eng.branch = "new"
 	eng.snap_keyframe()
@@ -31,7 +31,9 @@ def test_keyframe_load_init(tmp_path):
 
 
 def test_multi_keyframe(tmp_path):
-	eng = Engine(tmp_path, enforce_end_of_time=False, keyframe_on_close=False)
+	eng = Engine(
+		tmp_path, enforce_end_of_time=False, keyframe_on_close=False, workers=0
+	)
 	inittest(eng)
 	eng.snap_keyframe()
 	tick0 = eng.tick
@@ -70,7 +72,7 @@ def test_multi_keyframe(tmp_path):
 def test_keyframe_load_unload(tmp_path):
 	"""Make sure all of the caches can load and unload before and after kfs"""
 	with Engine(
-		tmp_path, enforce_end_of_time=False, keyframe_on_close=False
+		tmp_path, enforce_end_of_time=False, keyframe_on_close=False, workers=0
 	) as eng:
 		eng.snap_keyframe()
 		eng.turn = 1
