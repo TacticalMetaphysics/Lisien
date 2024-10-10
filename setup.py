@@ -36,9 +36,11 @@ for subpkg in ["LiSE", "ELiDE"]:
 datas = []
 with open(os.path.join(here, "ELiDE", "MANIFEST.in"), "rt") as inf:
 	for line in inf:
-		datas.append(
-			os.path.join(here, "ELiDE", line[len("include ") :][: len("\n")])
-		)
+		if line[: len("include")] == "include":
+			line = line[len("include ") :]
+		if line[-1] == "\n":
+			line = line[:-1]
+		datas.append(os.path.join(here, "ELiDE", line))
 
 setup(
 	name="LiSE_with_ELiDE",
