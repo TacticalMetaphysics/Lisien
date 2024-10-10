@@ -36,6 +36,7 @@ class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
 			self.tmp_path,
 			connect_string="sqlite:///:memory:",
 			enforce_end_of_time=False,
+			workers=0,
 		)
 		self.graphmakers = (self.engine.new_character,)
 		self.addCleanup(self._do_cleanup)
@@ -211,10 +212,10 @@ def test_updedgerb(handle):
 
 def test_thing_place_iter(tmp_path):
 	# set up some world state with things and places, before starting the proxy
-	with LiSE.Engine(tmp_path) as eng:
+	with LiSE.Engine(tmp_path, workers=0) as eng:
 		kobold.inittest(eng)
 	manager = EngineProcessManager()
-	engine = manager.start(tmp_path)
+	engine = manager.start(tmp_path, workers=0)
 	phys = engine.character["physical"]
 	for place_name in phys.place:
 		assert isinstance(place_name, tuple)
@@ -250,7 +251,7 @@ def test_get_slow_delta_overload(_: MagicMock, run):
 
 @pytest.mark.parametrize("slow", [True, False])
 def test_apply_delta(tmp_path, slow):
-	with Engine(tmp_path) as eng:
+	with Engine(tmp_path, workers=0) as eng:
 		initial_state = nx.DiGraph(
 			{
 				0: {1: {"omg": "lol"}},
@@ -287,7 +288,7 @@ def test_apply_delta(tmp_path, slow):
 			eng.tick = 0
 	mang = EngineProcessManager()
 	try:
-		prox = mang.start(tmp_path)
+		prox = mang.start(tmp_path, workers=0)
 		assert prox.turn == 0
 		phys = prox.character["physical"]
 		assert 3 in phys.place

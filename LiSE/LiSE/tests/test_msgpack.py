@@ -29,7 +29,9 @@ def test_serialize_portal(engy):
 
 
 def test_serialize_function(tmp_path):
-	with Engine(tmp_path, random_seed=69105, enforce_end_of_time=False) as eng:
+	with Engine(
+		tmp_path, random_seed=69105, enforce_end_of_time=False, workers=0
+	) as eng:
 
 		@eng.function
 		def foo(bar: str, bas: str) -> str:
@@ -43,7 +45,9 @@ def test_serialize_function(tmp_path):
 
 
 def test_serialize_method(tmp_path):
-	with Engine(tmp_path, random_seed=69105, enforce_end_of_time=False) as eng:
+	with Engine(
+		tmp_path, random_seed=69105, enforce_end_of_time=False, workers=0
+	) as eng:
 
 		@eng.method
 		def foo(self, bar: str, bas: str) -> str:

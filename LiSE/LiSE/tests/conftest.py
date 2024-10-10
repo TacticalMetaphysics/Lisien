@@ -26,7 +26,10 @@ def handle(tmp_path):
 	from LiSE.handle import EngineHandle
 
 	hand = EngineHandle(
-		tmp_path, connect_string="sqlite:///:memory:", random_seed=69105
+		tmp_path,
+		connect_string="sqlite:///:memory:",
+		random_seed=69105,
+		workers=0,
 	)
 	yield hand
 	hand.close()
@@ -69,5 +72,5 @@ def college24_premade(tmp_path):
 		),
 		tmp_path,
 	)
-	with Engine(tmp_path) as eng:
+	with Engine(tmp_path, workers=0) as eng:
 		yield eng
