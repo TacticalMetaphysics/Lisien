@@ -31,7 +31,7 @@ from collections import defaultdict
 from itertools import chain
 from queue import SimpleQueue, Empty
 from threading import Thread, Lock
-from time import sleep, time
+from time import sleep
 from types import FunctionType, ModuleType, MethodType
 from typing import Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
