@@ -36,11 +36,11 @@ def test_sim_start(three3):
 @pytest.mark.parametrize(
 	("branched", "rulebook"), product(*[(True, False)] * 2)
 )
-def test_rule_neighborhood(engy, branched, rulebook):
+def test_rule_neighborhood(serial_engine, branched, rulebook):
 	"""Test a rule applied to all nodes of a character with a neighborhood"""
-	char = engy.new_character("char", nx.grid_2d_graph(5, 5))
+	char = serial_engine.new_character("char", nx.grid_2d_graph(5, 5))
 
-	@engy.rule
+	@serial_engine.rule
 	def it_ran(node):
 		node["it_ran"] = True
 
@@ -55,9 +55,9 @@ def test_rule_neighborhood(engy, branched, rulebook):
 	it_ran.neighborhood = 1
 	assert it_ran.neighborhood == 1
 	if rulebook:
-		engy.rulebook["it_ran"] = [it_ran]
+		serial_engine.rulebook["it_ran"] = [it_ran]
 
-	engy.next_turn()
+	serial_engine.next_turn()
 	if rulebook:
 		char.place.rulebook = "it_ran"
 	else:
@@ -65,8 +65,8 @@ def test_rule_neighborhood(engy, branched, rulebook):
 	char.place[3, 3]["should_run"] = True
 	assert it_ran.neighborhood == 1
 	if branched:
-		engy.branch = "eeeee"
-	engy.next_turn()
+		serial_engine.branch = "eeeee"
+	serial_engine.next_turn()
 
 	for nabor in [(2, 3), (4, 3), (3, 4), (3, 2)]:
 		assert char.place[nabor]["it_ran"]

@@ -64,6 +64,18 @@ def engy(tmp_path, request):
 		yield eng
 
 
+@pytest.fixture(scope="function")
+def serial_engine(tmp_path):
+	with Engine(
+		tmp_path,
+		random_seed=69105,
+		enforce_end_of_time=False,
+		threaded_triggers=False,
+		workers=0,
+	) as eng:
+		yield eng
+
+
 @pytest.fixture(scope="module")
 def college24_premade():
 	with TemporaryDirectory() as tmp_path:
