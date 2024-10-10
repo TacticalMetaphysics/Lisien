@@ -1570,6 +1570,7 @@ class Engine(AbstractEngine, gORM):
 						recvd == b"done"
 					), f"expected 'done', got {self.unpack(zlib.decompress(recvd))}"
 					proc.join()
+					proc.close()
 		self._closed = True
 
 	def _snap_keyframe_from_delta(
