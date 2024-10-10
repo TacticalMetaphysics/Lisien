@@ -319,11 +319,6 @@ class EngineHandle:
 		btt_from: Tuple[str, int, int] = None,
 		btt_to: Tuple[str, int, int] = None,
 	) -> SlightlyPackedDeltaType:
-		def get_values_changed(
-			ids_from: list[int], ids_to: list[int]
-		) -> np.array:
-			return np.array(ids_from) != np.array(ids_to)
-
 		def newgraph():
 			return {
 				# null mungers mean KeyError, which is correct
@@ -474,6 +469,7 @@ class EngineHandle:
 			ids_to.append(id(vb))
 			values_from.append(va)
 			values_to.append(vb)
+		values_changed = np.array(ids_from) != np.array(ids_to)
 
 		def pack_one(k, va, vb, deleted_nodes, deleted_edges):
 			if va == vb:
@@ -532,9 +528,6 @@ class EngineHandle:
 
 		futs = []
 		with ThreadPoolExecutor() as pool:
-			values_changed_fut = pool.submit(
-				get_values_changed, ids_from, ids_to
-			)
 			nodes_intersection = (
 				kf_from["nodes"].keys() & kf_to["nodes"].keys()
 			)
@@ -549,7 +542,7 @@ class EngineHandle:
 			deleted_edges = kf_from["edges"].keys() - kf_to["edges"].keys()
 			for k, va, vb, _ in filter(
 				itemgetter(3),
-				zip(keys, values_from, values_to, values_changed_fut.result()),
+				zip(keys, values_from, values_to, values_changed),
 			):
 				futs.append(
 					pool.submit(
@@ -586,7 +579,6 @@ class EngineHandle:
 			del delta[deleterule]
 		if not delta[RULES]:
 			del delta[RULES]
-		graphtodel = []
 		for key, mapp in delta.items():
 			if key in {RULES, RULEBOOKS, ETERNAL, UNIVERSAL}:
 				continue
@@ -596,10 +588,6 @@ class EngineHandle:
 					todel.append(keey)
 			for todo in todel:
 				del mapp[todo]
-			if not mapp:
-				graphtodel.append(key)
-		for todo in graphtodel:
-			del delta[todo]
 		return delta
 
 	@prepacked
