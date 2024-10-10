@@ -224,8 +224,9 @@ def test_thing_place_iter():
 		manager.shutdown()
 
 
+@pytest.mark.parametrize("run", list(range(10)))
 @patch("LiSE.handle.Engine")
-def test_get_slow_delta_overload(_: MagicMock):
+def test_get_slow_delta_overload(_: MagicMock, run):
 	def pack_pair(pair):
 		k, v = pair
 		return msgpack.packb(k), msgpack.packb(v)
