@@ -82,7 +82,7 @@ def test_keyframe_load_unload(tmp_path):
 		eng.universal["hi"] = "hello"
 		now = eng._btt()
 	with Engine(
-		tmp_path, enforce_end_of_time=False, keyframe_on_close=False
+		tmp_path, enforce_end_of_time=False, keyframe_on_close=False, workers=0
 	) as eng:
 		assert eng._time_is_loaded(*now)
 		assert not eng._time_is_loaded("trunk", 0)
