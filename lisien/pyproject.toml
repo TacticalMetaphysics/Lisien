@@ -30,7 +30,7 @@ dependencies = [
 	"sqlalchemy>=1.4,<3",
 	"numpy>=1.19.5,<3",
 	"tblib>=1.7.0,<4",
-	"parquetdb==0.0.7",
+	"parquetdb==0.0.8",
 ]
 
 [project.urls]
