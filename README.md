@@ -80,7 +80,7 @@ tester knew to look for it.
 
 # Setup
 
-In a command line, with [Python](https://python.org) already installed:
+In a command line, with [Python](https://python.org) (preferably version 3.12) already installed:
 
 ```
 python -m pip install --user --upgrade http://github.com/TacticalMetaphysics/LiSE/archive/main.zip
