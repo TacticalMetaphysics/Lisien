@@ -53,7 +53,8 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
-<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">ValuesView</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">ValuesView</span><span class="p">,</span> <span class="n">Set</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span>
 
 <span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
@@ -61,7 +62,7 @@
 
 <span class="kn">from</span> <span class="nn">.allegedb</span> <span class="kn">import</span> <span class="n">graph</span><span class="p">,</span> <span class="n">Key</span><span class="p">,</span> <span class="n">HistoricKeyError</span>
 
-<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">getatt</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">getatt</span><span class="p">,</span> <span class="n">AbstractCharacter</span>
 <span class="kn">from</span> <span class="nn">.query</span> <span class="kn">import</span> <span class="n">StatusAlias</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">rule</span>
 <span class="kn">from</span> <span class="nn">.exc</span> <span class="kn">import</span> <span class="n">AmbiguousUserError</span><span class="p">,</span> <span class="n">TravelException</span>
@@ -80,13 +81,13 @@
 
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Store the node&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="n">node</span>
 
 	<span class="n">engine</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s2">&quot;node.engine&quot;</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">_user_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_user_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Key</span><span class="p">]:</span>
 		<span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span>
 		<span class="n">engine</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span>
 		<span class="n">charn</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
@@ -116,7 +117,7 @@
 						<span class="k">break</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">only</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">only</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;If there&#39;s only one unit, return it.</span>
 
 <span class="sd">		Otherwise, raise ``AmbiguousUserError``, a type of ``AttributeError``.</span>
@@ -126,30 +127,27 @@
 			<span class="k">raise</span> <span class="n">AmbiguousUserError</span><span class="p">(</span><span class="s2">&quot;No users, or more than one&quot;</span><span class="p">)</span>
 		<span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
 
-	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Key</span><span class="p">]:</span>
 		<span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_user_names</span><span class="p">()</span>
 
-	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 		<span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
 		<span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_user_names</span><span class="p">():</span>
 			<span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
 		<span class="k">return</span> <span class="n">n</span>
 
-	<span class="k">def</span> <span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_user_names</span><span class="p">():</span>
 			<span class="k">return</span> <span class="kc">True</span>
 		<span class="k">return</span> <span class="kc">False</span>
 
-	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
-		<span class="k">if</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">:</span>
-			<span class="n">item</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
-		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="s2">&quot;unit&quot;</span><span class="p">):</span>
-			<span class="n">charn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
-			<span class="n">nn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">name</span>
-			<span class="k">return</span> <span class="n">charn</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">unit</span> <span class="ow">and</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">unit</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span>
-		<span class="k">return</span> <span class="kc">False</span>
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+		<span class="n">chara</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+		<span class="n">nn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">name</span>
+		<span class="n">charn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
+		<span class="k">return</span> <span class="n">charn</span> <span class="ow">in</span> <span class="n">chara</span><span class="o">.</span><span class="n">unit</span> <span class="ow">and</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">chara</span><span class="o">.</span><span class="n">unit</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span>
 
-	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractCharacter</span><span class="p">:</span>
 		<span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 		<span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span>
 		<span class="n">charn</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
@@ -163,7 +161,7 @@
 <span class="k">class</span> <span class="nc">NodeContentValues</span><span class="p">(</span><span class="n">ValuesView</span><span class="p">):</span>
 	<span class="n">_mapping</span><span class="p">:</span> <span class="s2">&quot;NodeContent&quot;</span>
 
-	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Thing</span><span class="p">]:</span>
 		<span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="o">.</span><span class="n">node</span>
 		<span class="n">nodem</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">node</span>
 		<span class="k">try</span><span class="p">:</span>
@@ -175,7 +173,7 @@
 				<span class="k">return</span>
 			<span class="k">yield</span> <span class="n">nodem</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
-	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="k">return</span> <span class="n">item</span><span class="o">.</span><span class="n">location</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="o">.</span><span class="n">node</span>
 		<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
@@ -185,10 +183,10 @@
 <span class="k">class</span> <span class="nc">NodeContent</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,)</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="n">node</span>
 
-	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="n">it</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_contents_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
@@ -199,7 +197,7 @@
 			<span class="k">return</span>
 		<span class="k">yield from</span> <span class="n">it</span>
 
-	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="k">return</span> <span class="nb">len</span><span class="p">(</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_contents_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
@@ -211,25 +209,25 @@
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 			<span class="k">return</span> <span class="mi">0</span>
 
-	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">item</span><span class="p">]</span><span class="o">.</span><span class="n">location</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 			<span class="k">return</span> <span class="kc">False</span>
 
-	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Thing</span><span class="p">:</span>
 		<span class="k">if</span> <span class="n">item</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
 
-	<span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NodeContentValues</span><span class="p">:</span>
 		<span class="k">return</span> <span class="n">NodeContentValues</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">DestsValues</span><span class="p">(</span><span class="n">ValuesView</span><span class="p">):</span>
 	<span class="n">_mapping</span><span class="p">:</span> <span class="s2">&quot;Dests&quot;</span>
 
-	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="n">_</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="o">.</span><span class="n">_pn</span>
 		<span class="k">return</span> <span class="n">item</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span>
 
@@ -237,37 +235,37 @@
 <span class="k">class</span> <span class="nc">Dests</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_ecnb&quot;</span><span class="p">,</span> <span class="s2">&quot;_pn&quot;</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="n">name</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span>
 		<span class="n">character</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">character</span>
 		<span class="n">engine</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">engine</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_pn</span> <span class="o">=</span> <span class="p">(</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span> <span class="o">=</span> <span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">_edges_cache</span><span class="p">,</span> <span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
 		<span class="n">edges_cache</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span>
-		<span class="k">yield from</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">iter_successors</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
+		<span class="k">return</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">iter_successors</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
-	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 		<span class="n">edges_cache</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span>
 		<span class="k">return</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">count_successors</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
-	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="n">edges_cache</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span>
 		<span class="k">return</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">has_successor</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
-	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;LiSE.portal.Portal&quot;</span><span class="p">:</span>
 		<span class="n">portal</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pn</span>
 		<span class="k">return</span> <span class="n">portal</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">item</span><span class="p">]</span>
 
-	<span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DestsValues</span><span class="p">:</span>
 		<span class="k">return</span> <span class="n">DestsValues</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">OrigsValues</span><span class="p">(</span><span class="n">ValuesView</span><span class="p">):</span>
 	<span class="n">_mapping</span><span class="p">:</span> <span class="s2">&quot;Origs&quot;</span>
 
-	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="n">_</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="o">.</span><span class="n">_pn</span>
 		<span class="k">return</span> <span class="n">item</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span>
 
@@ -275,33 +273,121 @@
 <span class="k">class</span> <span class="nc">Origs</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_pn&quot;</span><span class="p">,</span> <span class="s2">&quot;_ecnb&quot;</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="n">name</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span>
 		<span class="n">character</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">character</span>
 		<span class="n">engine</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">engine</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_pn</span> <span class="o">=</span> <span class="p">(</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span> <span class="o">=</span> <span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">_edges_cache</span><span class="p">,</span> <span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Node</span><span class="p">]:</span>
 		<span class="n">edges_cache</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span>
 		<span class="k">return</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">iter_predecessors</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
-	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="n">edges_cache</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span>
 		<span class="k">return</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">has_predecessor</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
-	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 		<span class="n">edges_cache</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span>
 		<span class="k">return</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">count_predecessors</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
-	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
 		<span class="k">if</span> <span class="n">item</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span>
 		<span class="n">portal</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pn</span>
 		<span class="k">return</span> <span class="n">portal</span><span class="p">[</span><span class="n">item</span><span class="p">][</span><span class="n">name</span><span class="p">]</span>
 
-	<span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrigsValues</span><span class="p">:</span>
 		<span class="k">return</span> <span class="n">OrigsValues</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">Portals</span><span class="p">(</span><span class="n">Set</span><span class="p">):</span>
+	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_pn&quot;</span><span class="p">,</span> <span class="s2">&quot;_pecnb&quot;</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="n">name</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span>
+		<span class="n">character</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">character</span>
+		<span class="n">engine</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">engine</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_pn</span> <span class="o">=</span> <span class="p">(</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_pecnb</span> <span class="o">=</span> <span class="p">(</span>
+			<span class="n">engine</span><span class="o">.</span><span class="n">_get_edge</span><span class="p">,</span>
+			<span class="n">engine</span><span class="o">.</span><span class="n">_edges_cache</span><span class="p">,</span>
+			<span class="n">character</span><span class="p">,</span>
+			<span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+			<span class="n">name</span><span class="p">,</span>
+			<span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">,</span>
+		<span class="p">)</span>
+
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+		<span class="n">_</span><span class="p">,</span> <span class="n">edges_cache</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">btt_f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pecnb</span>
+		<span class="n">btt</span> <span class="o">=</span> <span class="n">btt_f</span><span class="p">()</span>
+		<span class="k">return</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">has_predecessor</span><span class="p">(</span>
+			<span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span>
+		<span class="p">)</span> <span class="ow">or</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">has_successor</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+		<span class="n">_</span><span class="p">,</span> <span class="n">edges_cache</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">btt_f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pecnb</span>
+		<span class="n">btt</span> <span class="o">=</span> <span class="n">btt_f</span><span class="p">()</span>
+		<span class="k">return</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">count_predecessors</span><span class="p">(</span>
+			<span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span>
+		<span class="p">)</span> <span class="o">+</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">count_successors</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="s2">&quot;LiSE.portal.Portal&quot;</span><span class="p">]:</span>
+		<span class="n">get_edge</span><span class="p">,</span> <span class="n">edges_cache</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">btt_f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pecnb</span>
+		<span class="n">btt</span> <span class="o">=</span> <span class="n">btt_f</span><span class="p">()</span>
+		<span class="k">for</span> <span class="n">dest</span> <span class="ow">in</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">iter_successors</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">):</span>
+			<span class="k">yield</span> <span class="n">get_edge</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+		<span class="k">for</span> <span class="n">orig</span> <span class="ow">in</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">iter_predecessors</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">):</span>
+			<span class="k">yield</span> <span class="n">get_edge</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">NeighborValues</span><span class="p">(</span><span class="n">ValuesView</span><span class="p">):</span>
+	<span class="n">_mapping</span><span class="p">:</span> <span class="s2">&quot;NeighborMapping&quot;</span>
+
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">item</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span>
+
+
+<span class="k">class</span> <span class="nc">NeighborMapping</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
+	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_nn&quot;</span><span class="p">,</span> <span class="s2">&quot;_ecnb&quot;</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="n">name</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span>
+		<span class="n">character</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">character</span>
+		<span class="n">engine</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">engine</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_nn</span> <span class="o">=</span> <span class="p">(</span><span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span> <span class="o">=</span> <span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">_edges_cache</span><span class="p">,</span> <span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Node</span><span class="p">]:</span>
+		<span class="n">edges_cache</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span>
+		<span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+		<span class="k">for</span> <span class="n">succ</span> <span class="ow">in</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">iter_successors</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">()):</span>
+			<span class="k">yield</span> <span class="n">succ</span>
+			<span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">succ</span><span class="p">)</span>
+		<span class="k">for</span> <span class="n">pred</span> <span class="ow">in</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">iter_predecessors</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">()):</span>
+			<span class="k">if</span> <span class="n">pred</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+				<span class="k">continue</span>
+			<span class="k">yield</span> <span class="n">pred</span>
+			<span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">pred</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+		<span class="n">edges_cache</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span>
+		<span class="k">return</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">has_predecessor</span><span class="p">(</span>
+			<span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">()</span>
+		<span class="p">)</span> <span class="ow">or</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">has_successor</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
+
+	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+		<span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
+		<span class="n">node</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nn</span>
+		<span class="k">if</span> <span class="n">item</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s2"> is not a neighbor of </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">node</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+
+	<span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NeighborValues</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">NeighborValues</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="Node">
@@ -370,6 +456,13 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">character</span><span class="o">.</span><span class="n">engine</span>
 
 	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">neighbor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NeighborMapping</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">NeighborMapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="nf">neighbors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbor</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+
+	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">portal</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dests</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;A mapping of portals leading out from this node.</span>
 
@@ -387,6 +480,10 @@
 
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="n">Origs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="nf">portals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Portals</span><span class="p">:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;A set-like object of portals connected to this node.&quot;&quot;&quot;</span>
+		<span class="k">return</span> <span class="n">Portals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">content</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NodeContent</span><span class="p">:</span>
@@ -751,25 +848,6 @@
 			<span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span>
 		<span class="bp">self</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
 
-	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">next_location</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Node</span><span class="p">]:</span>
-		<span class="n">branch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">branch</span>
-		<span class="n">turn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">turn_after</span><span class="p">(</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">time</span>
-		<span class="p">)</span>
-		<span class="k">if</span> <span class="n">turn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-			<span class="k">return</span> <span class="kc">None</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_get_node</span><span class="p">(</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">,</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-				<span class="n">branch</span><span class="p">,</span>
-				<span class="n">turn</span><span class="p">,</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_turn_end_plan</span><span class="p">[</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">],</span>
-			<span class="p">),</span>
-		<span class="p">)</span>
-
 <div class="viewcode-block" id="Thing.go_to_place">
 <a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Thing.go_to_place">[docs]</a>
 	<span class="k">def</span> <span class="nf">go_to_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Node</span><span class="p">,</span> <span class="n">Key</span><span class="p">],</span> <span class="n">weight</span><span class="p">:</span> <span class="n">Key</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -803,7 +881,9 @@
 
 <div class="viewcode-block" id="Thing.follow_path">
 <a class="viewcode-back" href="../../LiSE/index.html#LiSE.node.Thing.follow_path">[docs]</a>
-	<span class="k">def</span> <span class="nf">follow_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="n">Key</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">follow_path</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="n">Key</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">check</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Go to several nodes in succession, deciding how long to</span>
 <span class="sd">		spend in each by consulting the ``weight`` stat of the</span>
 <span class="sd">		:class:`Portal` connecting the one node to the next,</span>
@@ -812,43 +892,58 @@
 <span class="sd">		Return the total number of turns the travel will take. Raise</span>
 <span class="sd">		:class:`TravelException` if I can&#39;t follow the whole path,</span>
 <span class="sd">		either because some of its nodes don&#39;t exist, or because I&#39;m</span>
-<span class="sd">		scheduled to be somewhere else.</span>
+<span class="sd">		scheduled to be somewhere else. Set ``check=False`` if</span>
+<span class="sd">		you&#39;re really sure the path is correct, and this function</span>
+<span class="sd">		will be faster.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Paths need at least 2 nodes&quot;</span><span class="p">)</span>
 		<span class="n">eng</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">engine</span>
 		<span class="k">with</span> <span class="n">eng</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
-			<span class="n">prevplace</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-			<span class="k">if</span> <span class="n">prevplace</span> <span class="o">!=</span> <span class="bp">self</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]:</span>
-				<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Path does not start at my present location&quot;</span><span class="p">)</span>
-			<span class="n">subpath</span> <span class="o">=</span> <span class="p">[</span><span class="n">prevplace</span><span class="p">]</span>
-			<span class="k">for</span> <span class="n">place</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
-				<span class="k">if</span> <span class="p">(</span>
-					<span class="n">prevplace</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span>
-					<span class="ow">or</span> <span class="n">place</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">prevplace</span><span class="p">]</span>
-				<span class="p">):</span>
-					<span class="k">raise</span> <span class="n">TravelException</span><span class="p">(</span>
-						<span class="s2">&quot;Couldn&#39;t follow portal from </span><span class="si">{}</span><span class="s2"> to </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-							<span class="n">prevplace</span><span class="p">,</span> <span class="n">place</span>
-						<span class="p">),</span>
-						<span class="n">path</span><span class="o">=</span><span class="n">subpath</span><span class="p">,</span>
-						<span class="n">traveller</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+			<span class="k">if</span> <span class="n">check</span><span class="p">:</span>
+				<span class="n">prevplace</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+				<span class="k">if</span> <span class="n">prevplace</span> <span class="o">!=</span> <span class="bp">self</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]:</span>
+					<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+						<span class="s2">&quot;Path does not start at my present location&quot;</span>
 					<span class="p">)</span>
-				<span class="n">subpath</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">place</span><span class="p">)</span>
-				<span class="n">prevplace</span> <span class="o">=</span> <span class="n">place</span>
+				<span class="n">subpath</span> <span class="o">=</span> <span class="p">[</span><span class="n">prevplace</span><span class="p">]</span>
+				<span class="k">for</span> <span class="n">place</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
+					<span class="k">if</span> <span class="p">(</span>
+						<span class="n">prevplace</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span>
+						<span class="ow">or</span> <span class="n">place</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">prevplace</span><span class="p">]</span>
+					<span class="p">):</span>
+						<span class="k">raise</span> <span class="n">TravelException</span><span class="p">(</span>
+							<span class="s2">&quot;Couldn&#39;t follow portal from </span><span class="si">{}</span><span class="s2"> to </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+								<span class="n">prevplace</span><span class="p">,</span> <span class="n">place</span>
+							<span class="p">),</span>
+							<span class="n">path</span><span class="o">=</span><span class="n">subpath</span><span class="p">,</span>
+							<span class="n">traveller</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+						<span class="p">)</span>
+					<span class="n">subpath</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">place</span><span class="p">)</span>
+					<span class="n">prevplace</span> <span class="o">=</span> <span class="n">place</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">subpath</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 			<span class="n">turns_total</span> <span class="o">=</span> <span class="mi">0</span>
 			<span class="n">prevsubplace</span> <span class="o">=</span> <span class="n">subpath</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 			<span class="n">subsubpath</span> <span class="o">=</span> <span class="p">[</span><span class="n">prevsubplace</span><span class="p">]</span>
 			<span class="k">for</span> <span class="n">subplace</span> <span class="ow">in</span> <span class="n">subpath</span><span class="p">:</span>
-				<span class="n">portal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">prevsubplace</span><span class="p">][</span><span class="n">subplace</span><span class="p">]</span>
-				<span class="n">turn_inc</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">weight</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">portal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+				<span class="k">if</span> <span class="n">weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+					<span class="n">turn_inc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_edge_val_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+						<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+						<span class="n">prevsubplace</span><span class="p">,</span>
+						<span class="n">subplace</span><span class="p">,</span>
+						<span class="mi">0</span><span class="p">,</span>
+						<span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">(),</span>
+					<span class="p">)</span>
+				<span class="k">else</span><span class="p">:</span>
+					<span class="n">turn_inc</span> <span class="o">=</span> <span class="mi">1</span>
 				<span class="n">eng</span><span class="o">.</span><span class="n">turn</span> <span class="o">+=</span> <span class="n">turn_inc</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">location</span> <span class="o">=</span> <span class="n">subplace</span>
+				<span class="bp">self</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">subplace</span>
 				<span class="n">turns_total</span> <span class="o">+=</span> <span class="n">turn_inc</span>
 				<span class="n">subsubpath</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">subplace</span><span class="p">)</span>
 				<span class="n">prevsubplace</span> <span class="o">=</span> <span class="n">subplace</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">location</span> <span class="o">=</span> <span class="n">subplace</span>
+			<span class="bp">self</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">subplace</span>
 		<span class="k">return</span> <span class="n">turns_total</span></div>
 
 

@@ -1129,6 +1129,7 @@
 			<span class="s2">&quot;rule_triggers&quot;</span><span class="p">,</span>
 			<span class="s2">&quot;rule_prereqs&quot;</span><span class="p">,</span>
 			<span class="s2">&quot;rule_actions&quot;</span><span class="p">,</span>
+			<span class="s2">&quot;rule_neighborhood&quot;</span><span class="p">,</span>
 			<span class="s2">&quot;turns_completed&quot;</span><span class="p">,</span>
 		<span class="p">):</span>
 			<span class="k">try</span><span class="p">:</span>
@@ -1190,6 +1191,7 @@
 		<span class="s2">&quot;character_portal_rules_handled&quot;</span><span class="p">,</span>
 		<span class="s2">&quot;turns_completed&quot;</span><span class="p">,</span>
 	<span class="p">)</span>
+	<span class="n">kf_interval_override</span><span class="p">:</span> <span class="nb">callable</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dbstring</span><span class="p">,</span> <span class="n">connect_args</span><span class="p">,</span> <span class="n">pack</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
@@ -1211,7 +1213,10 @@
 
 	<span class="k">def</span> <span class="nf">_increc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_records</span> <span class="o">+=</span> <span class="mi">1</span>
-		<span class="k">if</span> <span class="p">(</span>
+		<span class="n">override</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kf_interval_override</span><span class="p">()</span>
+		<span class="k">if</span> <span class="n">override</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+			<span class="k">return</span>
+		<span class="k">if</span> <span class="n">override</span> <span class="ow">is</span> <span class="kc">False</span> <span class="ow">or</span> <span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">keyframe_interval</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 			<span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_records</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">keyframe_interval</span> <span class="o">==</span> <span class="mi">0</span>
 		<span class="p">):</span>
@@ -1329,6 +1334,9 @@
 
 	<span class="k">def</span> <span class="nf">rule_actions_dump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rule_dump</span><span class="p">(</span><span class="s2">&quot;actions&quot;</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="nf">rule_neighborhood_dump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rule_dump</span><span class="p">(</span><span class="s2">&quot;neighborhood&quot;</span><span class="p">)</span>
 
 	<span class="n">characters</span> <span class="o">=</span> <span class="n">characters_dump</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">QueryEngine</span><span class="o">.</span><span class="n">graphs_dump</span>
 
@@ -1845,6 +1853,7 @@
 	<span class="n">set_rule_triggers</span> <span class="o">=</span> <span class="n">partialmethod</span><span class="p">(</span><span class="n">_set_rule_something</span><span class="p">,</span> <span class="s2">&quot;triggers&quot;</span><span class="p">)</span>
 	<span class="n">set_rule_prereqs</span> <span class="o">=</span> <span class="n">partialmethod</span><span class="p">(</span><span class="n">_set_rule_something</span><span class="p">,</span> <span class="s2">&quot;prereqs&quot;</span><span class="p">)</span>
 	<span class="n">set_rule_actions</span> <span class="o">=</span> <span class="n">partialmethod</span><span class="p">(</span><span class="n">_set_rule_something</span><span class="p">,</span> <span class="s2">&quot;actions&quot;</span><span class="p">)</span>
+	<span class="n">set_rule_neighborhood</span> <span class="o">=</span> <span class="n">partialmethod</span><span class="p">(</span><span class="n">_set_rule_something</span><span class="p">,</span> <span class="s2">&quot;neighborhood&quot;</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">set_rule</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
@@ -1855,6 +1864,7 @@
 		<span class="n">triggers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 		<span class="n">prereqs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 		<span class="n">actions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+		<span class="n">neighborhood</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 	<span class="p">):</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">call_one</span><span class="p">(</span><span class="s2">&quot;rules_insert&quot;</span><span class="p">,</span> <span class="n">rule</span><span class="p">)</span>
@@ -1864,6 +1874,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">set_rule_triggers</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">triggers</span> <span class="ow">or</span> <span class="p">[])</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">set_rule_prereqs</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">prereqs</span> <span class="ow">or</span> <span class="p">[])</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">set_rule_actions</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">actions</span> <span class="ow">or</span> <span class="p">[])</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">set_rule_neighborhood</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">neighborhood</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">set_rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rules</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prio</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
 		<span class="n">name</span><span class="p">,</span> <span class="n">rules</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">rules</span> <span class="ow">or</span> <span class="p">[]))</span>

@@ -94,7 +94,7 @@
 <span class="n">StatDict</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Key</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
 <span class="n">NodeValDict</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Key</span><span class="p">,</span> <span class="n">StatDict</span><span class="p">]</span>
 <span class="n">EdgeValDict</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Key</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Key</span><span class="p">,</span> <span class="n">StatDict</span><span class="p">]]</span>
-<span class="n">DeltaDict</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Key</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">StatDict</span><span class="p">,</span> <span class="n">NodeValDict</span><span class="p">,</span> <span class="n">EdgeValDict</span><span class="p">]]</span>
+<span class="n">DeltaDict</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Key</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">StatDict</span><span class="p">,</span> <span class="n">NodeValDict</span><span class="p">,</span> <span class="n">EdgeValDict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]]</span>
 <span class="n">KeyframeTuple</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Key</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">NodeValDict</span><span class="p">,</span> <span class="n">EdgeValDict</span><span class="p">,</span> <span class="n">StatDict</span><span class="p">]</span>
 
 
@@ -637,30 +637,31 @@
 			<span class="n">delta</span><span class="p">:</span> <span class="n">DeltaDict</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="n">Any</span>
 		<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">			</span><span class="sd">&quot;&quot;&quot;Change a delta to say that a graph stat was set to a certain value&quot;&quot;&quot;</span>
-			<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{})[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">graphstat</span> <span class="o">:=</span> <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{}))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+				<span class="n">graphstat</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
 
 		<span class="k">def</span> <span class="nf">setnode</span><span class="p">(</span>
 			<span class="n">delta</span><span class="p">:</span> <span class="n">DeltaDict</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="n">exists</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span>
 		<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">			</span><span class="sd">&quot;&quot;&quot;Change a delta to say that a node was created or deleted&quot;&quot;&quot;</span>
-			<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;nodes&quot;</span><span class="p">,</span> <span class="p">{})[</span><span class="n">node</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span>
-				<span class="n">exists</span>
-			<span class="p">)</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">graphstat</span> <span class="o">:=</span> <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{}))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+				<span class="n">graphstat</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;nodes&quot;</span><span class="p">,</span> <span class="p">{})[</span><span class="n">node</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">exists</span><span class="p">)</span>
 
 		<span class="k">def</span> <span class="nf">setnodeval</span><span class="p">(</span>
 			<span class="n">delta</span><span class="p">:</span> <span class="n">DeltaDict</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span>
 		<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">			</span><span class="sd">&quot;&quot;&quot;Change a delta to say that a node stat was set to a certain value&quot;&quot;&quot;</span>
-			<span class="k">if</span> <span class="p">(</span>
-				<span class="n">graph</span> <span class="ow">in</span> <span class="n">delta</span>
-				<span class="ow">and</span> <span class="s2">&quot;nodes&quot;</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">]</span>
-				<span class="ow">and</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;nodes&quot;</span><span class="p">]</span>
-				<span class="ow">and</span> <span class="ow">not</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;nodes&quot;</span><span class="p">][</span><span class="n">node</span><span class="p">]</span>
-			<span class="p">):</span>
-				<span class="k">return</span>
-			<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;node_val&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
-				<span class="n">node</span><span class="p">,</span> <span class="p">{}</span>
-			<span class="p">)[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">graphstat</span> <span class="o">:=</span> <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{}))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+				<span class="k">if</span> <span class="p">(</span>
+					<span class="n">graph</span> <span class="ow">in</span> <span class="n">delta</span>
+					<span class="ow">and</span> <span class="s2">&quot;nodes&quot;</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">]</span>
+					<span class="ow">and</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;nodes&quot;</span><span class="p">]</span>
+					<span class="ow">and</span> <span class="ow">not</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;nodes&quot;</span><span class="p">][</span><span class="n">node</span><span class="p">]</span>
+				<span class="p">):</span>
+					<span class="k">return</span>
+				<span class="n">graphstat</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;node_val&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="p">{})[</span>
+					<span class="n">key</span>
+				<span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 
 		<span class="k">def</span> <span class="nf">setedge</span><span class="p">(</span>
 			<span class="n">delta</span><span class="p">:</span> <span class="n">DeltaDict</span><span class="p">,</span>
@@ -672,14 +673,15 @@
 			<span class="n">exists</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">],</span>
 		<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">			</span><span class="sd">&quot;&quot;&quot;Change a delta to say that an edge was created or deleted&quot;&quot;&quot;</span>
-			<span class="k">if</span> <span class="n">is_multigraph</span><span class="p">(</span><span class="n">graph</span><span class="p">):</span>
-				<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;edges&quot;</span><span class="p">,</span> <span class="p">{})[</span>
-					<span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span>
-				<span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">exists</span><span class="p">)</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;edges&quot;</span><span class="p">,</span> <span class="p">{})[</span>
-					<span class="n">orig</span><span class="p">,</span> <span class="n">dest</span>
-				<span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">exists</span><span class="p">)</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">graphstat</span> <span class="o">:=</span> <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{}))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+				<span class="k">if</span> <span class="n">is_multigraph</span><span class="p">(</span><span class="n">graph</span><span class="p">):</span>
+					<span class="n">graphstat</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;edges&quot;</span><span class="p">,</span> <span class="p">{})[</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span>
+						<span class="n">exists</span>
+					<span class="p">)</span>
+				<span class="k">else</span><span class="p">:</span>
+					<span class="n">graphstat</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;edges&quot;</span><span class="p">,</span> <span class="p">{})[</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span>
+						<span class="n">exists</span>
+					<span class="p">)</span>
 
 		<span class="k">def</span> <span class="nf">setedgeval</span><span class="p">(</span>
 			<span class="n">delta</span><span class="p">:</span> <span class="n">DeltaDict</span><span class="p">,</span>
@@ -692,32 +694,31 @@
 			<span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 		<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">			</span><span class="sd">&quot;&quot;&quot;Change a delta to say that an edge stat was set to a certain value&quot;&quot;&quot;</span>
-			<span class="k">if</span> <span class="n">is_multigraph</span><span class="p">(</span><span class="n">graph</span><span class="p">):</span>
-				<span class="k">if</span> <span class="p">(</span>
-					<span class="n">graph</span> <span class="ow">in</span> <span class="n">delta</span>
-					<span class="ow">and</span> <span class="s2">&quot;edges&quot;</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">]</span>
-					<span class="ow">and</span> <span class="n">orig</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span>
-					<span class="ow">and</span> <span class="n">dest</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">][</span><span class="n">orig</span><span class="p">]</span>
-					<span class="ow">and</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">][</span><span class="n">orig</span><span class="p">][</span><span class="n">dest</span><span class="p">]</span>
-					<span class="ow">and</span> <span class="ow">not</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">][</span><span class="n">orig</span><span class="p">][</span><span class="n">dest</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
-				<span class="p">):</span>
-					<span class="k">return</span>
-				<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
-					<span class="s2">&quot;edge_val&quot;</span><span class="p">,</span> <span class="p">{}</span>
-				<span class="p">)</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
-					<span class="n">idx</span><span class="p">,</span> <span class="p">{}</span>
-				<span class="p">)[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="k">if</span> <span class="p">(</span>
-					<span class="n">graph</span> <span class="ow">in</span> <span class="n">delta</span>
-					<span class="ow">and</span> <span class="s2">&quot;edges&quot;</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">]</span>
-					<span class="ow">and</span> <span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span>
-					<span class="ow">and</span> <span class="ow">not</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">][</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">]</span>
-				<span class="p">):</span>
-					<span class="k">return</span>
-				<span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
-					<span class="s2">&quot;edge_val&quot;</span><span class="p">,</span> <span class="p">{}</span>
-				<span class="p">)</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="p">{})[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">graphstat</span> <span class="o">:=</span> <span class="n">delta</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{}))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+				<span class="k">if</span> <span class="n">is_multigraph</span><span class="p">(</span><span class="n">graph</span><span class="p">):</span>
+					<span class="k">if</span> <span class="p">(</span>
+						<span class="n">graph</span> <span class="ow">in</span> <span class="n">delta</span>
+						<span class="ow">and</span> <span class="s2">&quot;edges&quot;</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">]</span>
+						<span class="ow">and</span> <span class="n">orig</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span>
+						<span class="ow">and</span> <span class="n">dest</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">][</span><span class="n">orig</span><span class="p">]</span>
+						<span class="ow">and</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">][</span><span class="n">orig</span><span class="p">][</span><span class="n">dest</span><span class="p">]</span>
+						<span class="ow">and</span> <span class="ow">not</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">][</span><span class="n">orig</span><span class="p">][</span><span class="n">dest</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+					<span class="p">):</span>
+						<span class="k">return</span>
+					<span class="n">graphstat</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;edge_val&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+						<span class="n">orig</span><span class="p">,</span> <span class="p">{}</span>
+					<span class="p">)</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="p">{})[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+				<span class="k">else</span><span class="p">:</span>
+					<span class="k">if</span> <span class="p">(</span>
+						<span class="n">graph</span> <span class="ow">in</span> <span class="n">delta</span>
+						<span class="ow">and</span> <span class="s2">&quot;edges&quot;</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">]</span>
+						<span class="ow">and</span> <span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span> <span class="ow">in</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span>
+						<span class="ow">and</span> <span class="ow">not</span> <span class="n">delta</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">][</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">]</span>
+					<span class="p">):</span>
+						<span class="k">return</span>
+					<span class="n">graphstat</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;edge_val&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+						<span class="n">orig</span><span class="p">,</span> <span class="p">{}</span>
+					<span class="p">)</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="p">{})[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 
 		<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 
@@ -1454,7 +1455,7 @@
 			<span class="c1"># apply the delta to the keyframes, then save the keyframes back</span>
 			<span class="c1"># into the caches, and possibly copy them to another branch as well</span>
 			<span class="n">deltg</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{})</span>
-			<span class="k">if</span> <span class="s2">&quot;nodes&quot;</span> <span class="ow">in</span> <span class="n">deltg</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">deltg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;nodes&quot;</span> <span class="ow">in</span> <span class="n">deltg</span><span class="p">:</span>
 				<span class="n">dn</span> <span class="o">=</span> <span class="n">deltg</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;nodes&quot;</span><span class="p">)</span>
 				<span class="k">if</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">nodes_keyframe</span><span class="p">:</span>
 					<span class="n">nkg</span> <span class="o">=</span> <span class="n">nodes_keyframe</span><span class="p">[</span><span class="n">graph</span><span class="p">]</span>
@@ -1481,7 +1482,7 @@
 				<span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">nodes_keyframe</span><span class="p">[</span><span class="n">graph</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 					<span class="k">if</span> <span class="n">ex</span> <span class="ow">and</span> <span class="n">node</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">nvkg</span><span class="p">:</span>
 						<span class="n">nvkg</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">node</span><span class="p">}</span>
-			<span class="k">if</span> <span class="s2">&quot;node_val&quot;</span> <span class="ow">in</span> <span class="n">deltg</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">deltg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;node_val&quot;</span> <span class="ow">in</span> <span class="n">deltg</span><span class="p">:</span>
 				<span class="n">dnv</span> <span class="o">=</span> <span class="n">deltg</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;node_val&quot;</span><span class="p">)</span>
 				<span class="k">if</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">node_val_keyframe</span><span class="p">:</span>
 					<span class="n">nvg</span> <span class="o">=</span> <span class="n">node_val_keyframe</span><span class="p">[</span><span class="n">graph</span><span class="p">]</span>
@@ -1503,7 +1504,7 @@
 			<span class="k">if</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">node_val_keyframe</span><span class="p">:</span>
 				<span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">node_val_keyframe</span><span class="p">[</span><span class="n">graph</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 					<span class="bp">self</span><span class="o">.</span><span class="n">_node_val_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">((</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">),</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-			<span class="k">if</span> <span class="s2">&quot;edges&quot;</span> <span class="ow">in</span> <span class="n">deltg</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">deltg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;edges&quot;</span> <span class="ow">in</span> <span class="n">deltg</span><span class="p">:</span>
 				<span class="n">dge</span> <span class="o">=</span> <span class="n">deltg</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;edges&quot;</span><span class="p">)</span>
 				<span class="n">ekg</span> <span class="o">=</span> <span class="n">edges_keyframe</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{})</span>
 				<span class="n">evkg</span> <span class="o">=</span> <span class="n">edge_val_keyframe</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="p">{})</span>
@@ -1530,7 +1531,7 @@
 						<span class="p">)</span>
 						<span class="k">if</span> <span class="n">ex</span> <span class="ow">and</span> <span class="n">dest</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">edge_val_keyframe</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="n">orig</span><span class="p">]:</span>
 							<span class="n">edge_val_keyframe</span><span class="p">[</span><span class="n">graph</span><span class="p">][</span><span class="n">orig</span><span class="p">][</span><span class="n">dest</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-			<span class="k">if</span> <span class="s2">&quot;edge_val&quot;</span> <span class="ow">in</span> <span class="n">deltg</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">deltg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;edge_val&quot;</span> <span class="ow">in</span> <span class="n">deltg</span><span class="p">:</span>
 				<span class="n">dgev</span> <span class="o">=</span> <span class="n">deltg</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;edge_val&quot;</span><span class="p">)</span>
 				<span class="k">if</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">edge_val_keyframe</span><span class="p">:</span>
 					<span class="n">evkg</span> <span class="o">=</span> <span class="n">edge_val_keyframe</span><span class="p">[</span><span class="n">graph</span><span class="p">]</span>
