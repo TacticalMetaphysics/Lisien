@@ -16,22 +16,22 @@ from LiSE.engine import Engine
 from LiSE.examples.kobold import inittest
 
 
-def test_keyframe_load_init(tempdir):
+def test_keyframe_load_init(tmp_path):
 	"""Can load a keyframe at start of branch, including locations"""
-	eng = Engine(tempdir)
+	eng = Engine(tmp_path)
 	inittest(eng)
 	eng.branch = "new"
 	eng.snap_keyframe()
 	eng.close()
-	eng = Engine(tempdir)
+	eng = Engine(tmp_path)
 	assert "kobold" in eng.character["physical"].thing
 	assert (0, 0) in eng.character["physical"].place
 	assert (0, 1) in eng.character["physical"].portal[0, 0]
 	eng.close()
 
 
-def test_multi_keyframe(tempdir):
-	eng = Engine(tempdir, enforce_end_of_time=False, keyframe_on_close=False)
+def test_multi_keyframe(tmp_path):
+	eng = Engine(tmp_path, enforce_end_of_time=False, keyframe_on_close=False)
 	inittest(eng)
 	eng.snap_keyframe()
 	tick0 = eng.tick
@@ -48,7 +48,7 @@ def test_multi_keyframe(tempdir):
 		tick1
 	]
 	eng.close()
-	eng = Engine(tempdir, keyframe_on_close=False)
+	eng = Engine(tmp_path, keyframe_on_close=False)
 	assert 1 in eng._nodes_cache.keyframe["physical",]["trunk"]
 	assert tick1 in eng._nodes_cache.keyframe["physical",]["trunk"][1]
 	eng.load_at("trunk", 0, tick0)
@@ -67,10 +67,10 @@ def test_multi_keyframe(tempdir):
 	eng.close()
 
 
-def test_keyframe_load_unload(tempdir):
+def test_keyframe_load_unload(tmp_path):
 	"""Make sure all of the caches can load and unload before and after kfs"""
 	with Engine(
-		tempdir, enforce_end_of_time=False, keyframe_on_close=False
+		tmp_path, enforce_end_of_time=False, keyframe_on_close=False
 	) as eng:
 		eng.snap_keyframe()
 		eng.turn = 1
@@ -80,7 +80,7 @@ def test_keyframe_load_unload(tempdir):
 		eng.universal["hi"] = "hello"
 		now = eng._btt()
 	with Engine(
-		tempdir, enforce_end_of_time=False, keyframe_on_close=False
+		tmp_path, enforce_end_of_time=False, keyframe_on_close=False
 	) as eng:
 		assert eng._time_is_loaded(*now)
 		assert not eng._time_is_loaded("trunk", 0)

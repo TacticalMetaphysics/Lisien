@@ -14,7 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import shutil
-import tempfile
 
 import pytest
 
@@ -23,11 +22,11 @@ from ..examples import kobold
 
 
 @pytest.fixture(scope="function")
-def handle(tempdir):
+def handle(tmp_path):
 	from LiSE.handle import EngineHandle
 
 	hand = EngineHandle(
-		tempdir, connect_string="sqlite:///:memory:", random_seed=69105
+		tmp_path, connect_string="sqlite:///:memory:", random_seed=69105
 	)
 	yield hand
 	hand.close()
@@ -49,16 +48,10 @@ def handle_initialized(request, handle):
 	yield handle
 
 
-@pytest.fixture(scope="function")
-def tempdir():
-	with tempfile.TemporaryDirectory() as d:
-		yield d
-
-
 @pytest.fixture(scope="function", params=["parallel", "serial"])
-def engy(tempdir, request):
+def engy(tmp_path, request):
 	with Engine(
-		tempdir,
+		tmp_path,
 		random_seed=69105,
 		enforce_end_of_time=False,
 		threaded_triggers=request.param == "parallel",
@@ -68,15 +61,13 @@ def engy(tempdir, request):
 
 
 @pytest.fixture(scope="module")
-def college24_premade():
-	directory = tempfile.mkdtemp(".")
+def college24_premade(tmp_path):
 	shutil.unpack_archive(
 		os.path.join(
 			os.path.abspath(os.path.dirname(__file__)),
 			"college24_premade.tar.xz",
 		),
-		directory,
+		tmp_path,
 	)
-	with Engine(directory) as eng:
+	with Engine(tmp_path) as eng:
 		yield eng
-	shutil.rmtree(directory)

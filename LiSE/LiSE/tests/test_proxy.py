@@ -31,9 +31,9 @@ import msgpack
 class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
 	def setUp(self):
 		self.manager = EngineProcessManager()
-		self.tempdir = tempfile.mkdtemp(dir=".")
+		self.tmp_path = tempfile.mkdtemp(dir=".")
 		self.engine = self.manager.start(
-			self.tempdir,
+			self.tmp_path,
 			connect_string="sqlite:///:memory:",
 			enforce_end_of_time=False,
 		)
@@ -42,7 +42,7 @@ class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
 
 	def _do_cleanup(self):
 		self.manager.shutdown()
-		shutil.rmtree(self.tempdir)
+		shutil.rmtree(self.tmp_path)
 
 
 class ProxyGraphTest(
@@ -209,19 +209,18 @@ def test_updedgerb(handle):
 	)
 
 
-def test_thing_place_iter():
+def test_thing_place_iter(tmp_path):
 	# set up some world state with things and places, before starting the proxy
-	with tempfile.TemporaryDirectory() as tempdir:
-		with LiSE.Engine(tempdir) as eng:
-			kobold.inittest(eng)
-		manager = EngineProcessManager()
-		engine = manager.start(tempdir)
-		phys = engine.character["physical"]
-		for place_name in phys.place:
-			assert isinstance(place_name, tuple)
-		for thing_name in phys.thing:
-			assert isinstance(thing_name, str)
-		manager.shutdown()
+	with LiSE.Engine(tmp_path) as eng:
+		kobold.inittest(eng)
+	manager = EngineProcessManager()
+	engine = manager.start(tmp_path)
+	phys = engine.character["physical"]
+	for place_name in phys.place:
+		assert isinstance(place_name, tuple)
+	for thing_name in phys.thing:
+		assert isinstance(thing_name, str)
+	manager.shutdown()
 
 
 @pytest.mark.parametrize("run", list(range(10)))
@@ -250,8 +249,8 @@ def test_get_slow_delta_overload(_: MagicMock, run):
 
 
 @pytest.mark.parametrize("slow", [True, False])
-def test_apply_delta(tempdir, slow):
-	with Engine(tempdir) as eng:
+def test_apply_delta(tmp_path, slow):
+	with Engine(tmp_path) as eng:
 		initial_state = nx.DiGraph(
 			{
 				0: {1: {"omg": "lol"}},
@@ -288,7 +287,7 @@ def test_apply_delta(tempdir, slow):
 			eng.tick = 0
 	mang = EngineProcessManager()
 	try:
-		prox = mang.start(tempdir)
+		prox = mang.start(tmp_path)
 		assert prox.turn == 0
 		phys = prox.character["physical"]
 		assert 3 in phys.place
