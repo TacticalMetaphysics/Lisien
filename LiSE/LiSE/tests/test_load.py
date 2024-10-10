@@ -50,7 +50,7 @@ def test_multi_keyframe(tmp_path):
 		tick1
 	]
 	eng.close()
-	eng = Engine(tmp_path, keyframe_on_close=False)
+	eng = Engine(tmp_path, keyframe_on_close=False, workers=0)
 	assert 1 in eng._nodes_cache.keyframe["physical",]["trunk"]
 	assert tick1 in eng._nodes_cache.keyframe["physical",]["trunk"][1]
 	eng.load_at("trunk", 0, tick0)
