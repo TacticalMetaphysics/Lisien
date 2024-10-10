@@ -31,7 +31,7 @@ from collections import defaultdict
 from itertools import chain
 from queue import SimpleQueue, Empty
 from threading import Thread, Lock
-from time import sleep, time
+from time import sleep
 from types import FunctionType, ModuleType, MethodType
 from typing import Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
@@ -412,6 +412,9 @@ class Engine(AbstractEngine, gORM):
 	def __getattr__(self, item):
 		meth = super().__getattribute__("method").__getattr__(item)
 		return MethodType(meth, self)
+
+	def __hasattr__(self, item):
+		return hasattr(super().__getattribute__("method"), item)
 
 	def __init__(
 		self,
@@ -1567,6 +1570,7 @@ class Engine(AbstractEngine, gORM):
 						recvd == b"done"
 					), f"expected 'done', got {self.unpack(zlib.decompress(recvd))}"
 					proc.join()
+					proc.close()
 		self._closed = True
 
 	def _snap_keyframe_from_delta(

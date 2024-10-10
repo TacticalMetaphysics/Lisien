@@ -33,8 +33,8 @@ def test_polygons(engy):
 		engy.next_turn()
 
 
-def test_char_stat_startup(tempdir):
-	with Engine(tempdir) as eng:
+def test_char_stat_startup(tmp_path):
+	with Engine(tmp_path) as eng:
 		eng.new_character("physical", nx.hexagonal_lattice_graph(20, 20))
 		tri = eng.new_character("triangle")
 		sq = eng.new_character("square")
@@ -48,7 +48,7 @@ def test_char_stat_startup(tempdir):
 		tri.stat["max_sameness"] = 0.8
 		assert "max_sameness" in tri.stat
 
-	with Engine(tempdir) as eng:
+	with Engine(tmp_path) as eng:
 		assert "min_sameness" in eng.character["square"].stat
 		assert "max_sameness" in eng.character["square"].stat
 		assert "min_sameness" in eng.character["triangle"].stat
@@ -61,8 +61,8 @@ def test_sickle(engy):
 		engy.next_turn()
 
 
-def test_wolfsheep(tempdir):
-	with Engine(tempdir, random_seed=69105) as engy:
+def test_wolfsheep(tmp_path):
+	with Engine(tmp_path, random_seed=69105) as engy:
 		wolfsheep.install(engy, seed=69105)
 		for i in range(10):
 			engy.next_turn()
@@ -75,14 +75,13 @@ def test_wolfsheep(tempdir):
 		engy.branch = "omg"
 		sheep = engy.character["sheep"]
 		sheep.rule(engy.action.breed, always=True)
-	hand = EngineHandle(tempdir, random_seed=69105)
+	hand = EngineHandle(tmp_path, random_seed=69105)
 	hand.next_turn()
 	hand.close()
 
 
-@pytest.mark.slow
-def test_pathfind(tempdir):
-	with Engine(tempdir) as eng:
+def test_pathfind(tmp_path):
+	with Engine(tmp_path) as eng:
 		pathfind.install(eng, 69105)
 		locs = [
 			thing.location.name

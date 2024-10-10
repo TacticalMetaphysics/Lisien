@@ -17,12 +17,11 @@ ordinary method calls.
 
 """
 
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import ThreadPoolExecutor
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from operator import itemgetter
 from re import match
 from importlib import import_module
-from types import FunctionType
 from typing import (
 	Dict,
 	Tuple,
@@ -320,269 +319,234 @@ class EngineHandle:
 		btt_from: Tuple[str, int, int] = None,
 		btt_to: Tuple[str, int, int] = None,
 	) -> SlightlyPackedDeltaType:
-		class CharacterDict(dict):
-			def __getitem__(self, item):
-				if item in self:
-					return super().__getitem__(item)
-				return {
-					NODES: lambda: self.setdefault(
-						NODES, PickyDefaultDict(bytes, None, None)
-					),
-					EDGES: lambda: self.setdefault(
-						EDGES, PickyDefaultDict(bytes, None, None)
-					),
-					NODE_VAL: lambda: self.setdefault(
-						NODE_VAL, StructuredDefaultDict(1, bytes, None, None)
-					),
-					EDGE_VAL: lambda: self.setdefault(
-						EDGE_VAL, StructuredDefaultDict(2, bytes, None, None)
-					),
-				}[item]()
-
-		class DeltaDict(dict):
-			def __getitem__(self, item):
-				if item in self:
-					return super().__getitem__(item)
-				ret_d = {
-					UNIVERSAL: lambda: PickyDefaultDict(bytes, None, None),
-					RULES: lambda: StructuredDefaultDict(1, bytes, None, None),
-					RULEBOOK: lambda: PickyDefaultDict(bytes, None, None),
-				}
-				if item in ret_d:
-					return self.setdefault(item, ret_d[item]())
-				else:
-					return self.setdefault(item, CharacterDict())
+		def newgraph():
+			return {
+				# null mungers mean KeyError, which is correct
+				NODES: PickyDefaultDict(
+					bytes, args_munger=None, kwargs_munger=None
+				),
+				EDGES: PickyDefaultDict(
+					bytes, args_munger=None, kwargs_munger=None
+				),
+				NODE_VAL: StructuredDefaultDict(
+					1, bytes, args_munger=None, kwargs_munger=None
+				),
+				EDGE_VAL: StructuredDefaultDict(
+					2, bytes, args_munger=None, kwargs_munger=None
+				),
+			}
 
 		pack = self._real.pack
+		delta: Dict[bytes, Any] = {
+			UNIVERSAL: PickyDefaultDict(bytes),
+			RULES: StructuredDefaultDict(1, bytes),
+			RULEBOOK: PickyDefaultDict(bytes),
+		}
 		btt_from = self._get_btt(btt_from)
 		btt_to = self._get_btt(btt_to)
 		if btt_from == btt_to:
-			return {}
+			return delta
 		now = self._real._btt()
 		self._real._set_btt(*btt_from)
 		kf_from = self._real.snap_keyframe()
 		self._real._set_btt(*btt_to)
 		kf_to = self._real.snap_keyframe()
 		self._real._set_btt(*now)
-		keys: list[tuple] = []
+		keys = []
 		ids_from = []
 		ids_to = []
 		values_from = []
 		values_to = []
-		delta = DeltaDict()
-
 		# Comparing object IDs is guaranteed never to give a false equality,
 		# because of the way keyframes are constructed.
 		# It may give a false inequality.
-		def collect_universal_ids():
-			for k in kf_from["universal"].keys() | kf_to["universal"].keys():
-				keys.append(("universal", k))
-				va = kf_from["universal"].get(k)
-				vb = kf_to["universal"].get(k)
+		for k in kf_from["universal"].keys() | kf_to["universal"].keys():
+			keys.append(("universal", k))
+			va = kf_from["universal"].get(k)
+			vb = kf_to["universal"].get(k)
+			ids_from.append(id(va))
+			ids_to.append(id(vb))
+			values_from.append(va)
+			values_to.append(vb)
+		for rule in kf_from["triggers"].keys() | kf_to["triggers"].keys():
+			a = kf_from["triggers"].get(rule, ())
+			b = kf_to["triggers"].get(rule, ())
+			keys.append(("triggers", rule))
+			ids_from.append(id(a))
+			ids_to.append(id(b))
+			values_from.append(a)
+			values_to.append(b)
+		for rule in kf_from["prereqs"].keys() | kf_to["prereqs"].keys():
+			a = kf_from["prereqs"].get(rule, ())
+			b = kf_to["prereqs"].get(rule, ())
+			keys.append(("prereqs", rule))
+			ids_from.append(id(a))
+			ids_to.append(id(b))
+			values_from.append(a)
+			values_to.append(b)
+		for rule in kf_from["actions"].keys() | kf_to["actions"].keys():
+			a = kf_from["actions"].get(rule, ())
+			b = kf_to["actions"].get(rule, ())
+			keys.append(("actions", rule))
+			ids_from.append(id(a))
+			ids_to.append(id(b))
+			values_from.append(a)
+			values_to.append(b)
+		for rulebook in kf_from["rulebook"].keys() | kf_to["rulebook"].keys():
+			a = kf_from["rulebook"].get(rulebook, ())
+			b = kf_to["rulebook"].get(rulebook, ())
+			keys.append(("rulebook", rulebook))
+			ids_from.append(id(a))
+			ids_to.append(id(b))
+			values_from.append(a)
+			values_to.append(b)
+		for graph in kf_from["graph_val"].keys() | kf_to["graph_val"].keys():
+			a = kf_from["graph_val"].get(graph, {})
+			b = kf_to["graph_val"].get(graph, {})
+			for k in a.keys() | b.keys():
+				keys.append(("graph", graph[0], k))
+				va = a.get(k)
+				vb = b.get(k)
 				ids_from.append(id(va))
 				ids_to.append(id(vb))
 				values_from.append(va)
 				values_to.append(vb)
+		for graph, node in (
+			kf_from["node_val"].keys() | kf_to["node_val"].keys()
+		):
+			a = kf_from["node_val"].get((graph, node), {})
+			b = kf_to["node_val"].get((graph, node), {})
+			for k in a.keys() | b.keys():
+				keys.append(("node", graph, node, k))
+				va = a.get(k)
+				vb = b.get(k)
+				ids_from.append(id(va))
+				ids_to.append(id(vb))
+				values_from.append(va)
+				values_to.append(vb)
+		for graph, orig, dest, i in (
+			kf_from["edge_val"].keys() | kf_to["edge_val"].keys()
+		):
+			a = kf_from["edge_val"].get((graph, orig, dest, i), {})
+			b = kf_to["edge_val"].get((graph, orig, dest, i), {})
+			for k in a.keys() | b.keys():
+				keys.append(("edge", graph, orig, dest, k))
+				va = a.get(k)
+				vb = b.get(k)
+				ids_from.append(id(va))
+				ids_to.append(id(vb))
+				values_from.append(va)
+				values_to.append(vb)
+		for rulebook in kf_from["rulebook"].keys() | kf_to["rulebook"].keys():
+			va = kf_from["rulebook"].get(rulebook, ())
+			vb = kf_to["rulebook"].get(rulebook, ())
+			keys.append(("rulebook", rulebook))
+			ids_from.append(id(va))
+			ids_to.append(id(vb))
+			values_from.append(va)
+			values_to.append(vb)
+		for rule in kf_from["triggers"].keys() | kf_to["triggers"].keys():
+			va = kf_from["triggers"].get(rule, ())
+			vb = kf_to["triggers"].get(rule, ())
+			keys.append(("triggers", rule))
+			ids_from.append(id(va))
+			ids_to.append(id(vb))
+			values_from.append(va)
+			values_to.append(vb)
+		for rule in kf_from["prereqs"].keys() | kf_to["prereqs"].keys():
+			va = kf_from["prereqs"].get(rule, ())
+			vb = kf_to["prereqs"].get(rule, ())
+			keys.append(("prereqs", rule))
+			ids_from.append(id(va))
+			ids_to.append(id(vb))
+			values_from.append(va)
+			values_to.append(vb)
+		for rule in kf_from["actions"].keys() | kf_to["actions"].keys():
+			va = kf_from["actions"].get(rule, ())
+			vb = kf_to["actions"].get(rule, ())
+			keys.append(("actions", rule))
+			ids_from.append(id(va))
+			ids_to.append(id(vb))
+			values_from.append(va)
+			values_to.append(vb)
+		values_changed = np.array(ids_from) != np.array(ids_to)
 
-		def collect_triggers_ids():
-			for rule in kf_from["triggers"].keys() | kf_to["triggers"].keys():
-				a = kf_from["triggers"].get(rule, ())
-				b = kf_to["triggers"].get(rule, ())
-				keys.append(("triggers", rule))
-				ids_from.append(id(a))
-				ids_to.append(id(b))
-				values_from.append(a)
-				values_to.append(b)
-
-		def collect_prereqs_ids():
-			for rule in kf_from["prereqs"].keys() | kf_to["prereqs"].keys():
-				a = kf_from["prereqs"].get(rule, ())
-				b = kf_to["prereqs"].get(rule, ())
-				keys.append(("prereqs", rule))
-				ids_from.append(id(a))
-				ids_to.append(id(b))
-				values_from.append(a)
-				values_to.append(b)
-
-		def collect_actions_ids():
-			for rule in kf_from["actions"].keys() | kf_to["actions"].keys():
-				a = kf_from["actions"].get(rule, ())
-				b = kf_to["actions"].get(rule, ())
-				keys.append(("actions", rule))
-				ids_from.append(id(a))
-				ids_to.append(id(b))
-				values_from.append(a)
-				values_to.append(b)
-
-		def collect_rulebook_ids():
-			for rulebook in (
-				kf_from["rulebook"].keys() | kf_to["rulebook"].keys()
-			):
-				a = kf_from["rulebook"].get(rulebook, ())
-				b = kf_to["rulebook"].get(rulebook, ())
-				keys.append(("rulebook", rulebook))
-				ids_from.append(id(a))
-				ids_to.append(id(b))
-				values_from.append(a)
-				values_to.append(b)
-
-		def collect_graph_val_ids():
-			for graph in (
-				kf_from["graph_val"].keys() | kf_to["graph_val"].keys()
-			):
-				a = kf_from["graph_val"].get(graph, {})
-				b = kf_to["graph_val"].get(graph, {})
-				for k in a.keys() | b.keys():
-					keys.append(("graph", graph[0], k))
-					va = a.get(k)
-					vb = b.get(k)
-					ids_from.append(id(va))
-					ids_to.append(id(vb))
-					values_from.append(va)
-					values_to.append(vb)
-
-		def collect_node_val_ids():
-			for graph, node in (
-				kf_from["node_val"].keys() | kf_to["node_val"].keys()
-			):
-				a = kf_from["node_val"].get((graph, node), {})
-				b = kf_to["node_val"].get((graph, node), {})
-				for k in a.keys() | b.keys():
-					keys.append(("node", graph, node, k))
-					va = a.get(k)
-					vb = b.get(k)
-					ids_from.append(id(va))
-					ids_to.append(id(vb))
-					values_from.append(va)
-					values_to.append(vb)
-
-		def collect_edge_val_ids():
-			for graph, orig, dest, i in (
-				kf_from["edge_val"].keys() | kf_to["edge_val"].keys()
-			):
-				a = kf_from["edge_val"].get((graph, orig, dest, i), {})
-				b = kf_to["edge_val"].get((graph, orig, dest, i), {})
-				for k in a.keys() | b.keys():
-					keys.append(("edge", graph, orig, dest, k))
-					va = a.get(k)
-					vb = b.get(k)
-					ids_from.append(id(va))
-					ids_to.append(id(vb))
-					values_from.append(va)
-					values_to.append(vb)
-
-		def get_values_changed() -> np.array:
-			return np.array(ids_from) != np.array(ids_to)
-
-		class SingletonPacker:
-			@staticmethod
-			def pack(kee, v_a, v_b, deleted_nodes, deleted_edges):
-				if v_a == v_b:
-					return
-				v = pack(v_b)
-				return getattr(SingletonPacker, kee[0])(
-					*kee[1:],
-					v,
-					deleted_nodes=deleted_nodes,
-					deleted_edges=deleted_edges,
-				)
-
-			@staticmethod
-			def universal(kee, v, **_):
-				key = pack(kee)
+		def pack_one(k, va, vb, deleted_nodes, deleted_edges):
+			if va == vb:
+				return
+			v = pack(vb)
+			if k[0] == "universal":
+				key = pack(k[1])
 				delta[UNIVERSAL][key] = v
-
-			@staticmethod
-			def triggers(kee, v, **_):
-				rule = pack(kee)
+			elif k[0] == "triggers":
+				rule = pack(k[1])
 				delta[RULES][rule][TRIGGERS] = v
-
-			@staticmethod
-			def prereqs(kee, v, **_):
-				rule = pack(kee)
+			elif k[0] == "prereqs":
+				rule = pack(k[1])
 				delta[RULES][rule][PREREQS] = v
-
-			@staticmethod
-			def actions(kee, v, **_):
-				rule = pack(kee)
+			elif k[0] == "actions":
+				rule = pack(k[1])
 				delta[RULES][rule][ACTIONS] = v
-
-			@staticmethod
-			def rulebook(kee, v, **_):
-				rulebook = pack(kee)
+			elif k[0] == "rulebook":
+				rulebook = pack(k[1])
 				delta[RULEBOOK][rulebook] = v
-
-			@staticmethod
-			def node(graf, nod, key, v, *, deleted_nodes, **_):
-				if graf in deleted_nodes and nod in deleted_nodes[graf]:
+			elif k[0] == "node":
+				_, graph, node, key = k
+				if graph in deleted_nodes and node in deleted_nodes[graph]:
 					return
-				graf, nod, key = map(pack, (graf, nod, key))
-				delta[graf][NODE_VAL][nod][key] = v
-
-			@staticmethod
-			def edge(graf, origin, destin, key, v, *, deleted_edges, **_):
-				if (graf, origin, destin) in deleted_edges:
+				graph, node, key = map(pack, (graph, node, key))
+				if graph not in delta:
+					delta[graph] = newgraph()
+				delta[graph][NODE_VAL][node][key] = v
+			elif k[0] == "edge":
+				_, graph, orig, dest, key = k
+				if (graph, orig, dest) in deleted_edges:
 					return
-				graf, origin, destin, key = map(
-					pack, (graf, origin, destin, key)
-				)
-				delta[graf][EDGE_VAL][origin][destin][key] = v
+				graph, orig, dest, key = map(pack, (graph, orig, dest, key))
+				if graph not in delta:
+					delta[graph] = newgraph()
+				delta[graph][EDGE_VAL][orig][dest][key] = v
+			else:
+				assert k[0] == "graph"
+				_, graph, key = k
+				graph, key = map(pack, (graph, key))
+				if graph not in delta:
+					delta[graph] = newgraph()
+				delta[graph][key] = v
 
-			@staticmethod
-			def graph(graf, key, v, **_):
-				graf, key = map(pack, (graf, key))
-				delta[graf][key] = v
+		def pack_node(graph, node, existence):
+			grap, node = map(pack, (graph, node))
+			if grap not in delta:
+				delta[grap] = newgraph()
+			delta[grap][NODES][node] = existence
 
-		def pack_node(graf, nod, existence):
-			grap, nod = map(pack, (graf, nod))
-			delta[grap][NODES][nod] = existence
-
-		def pack_edge(graf, origin, destin, existence):
-			graf, origdest = map(pack, (graf, (origin, destin)))
-			delta[graf][EDGES][origdest] = existence
+		def pack_edge(graph, orig, dest, existence):
+			graph, origdest = map(pack, (graph, (orig, dest)))
+			if graph not in delta:
+				delta[graph] = newgraph()
+			delta[graph][EDGES][origdest] = existence
 
 		futs = []
 		with ThreadPoolExecutor() as pool:
-			wait(
-				[
-					pool.submit(fun)
-					for fun in [
-						collect_universal_ids,
-						collect_triggers_ids,
-						collect_prereqs_ids,
-						collect_actions_ids,
-						collect_rulebook_ids,
-						collect_graph_val_ids,
-						collect_node_val_ids,
-						collect_edge_val_ids,
-					]
-				]
-			)
-			values_changed_fut = pool.submit(get_values_changed)
 			nodes_intersection = (
 				kf_from["nodes"].keys() & kf_to["nodes"].keys()
 			)
-			nodes_deleted = {}
+			deleted_nodes = {}
 			for (graph,) in nodes_intersection:
-				deleted_nodes_here = nodes_deleted[graph] = (
+				deleted_nodes_here = deleted_nodes[graph] = (
 					kf_from["nodes"][graph,].keys()
 					- kf_to["nodes"][graph,].keys()
 				)
 				for node in deleted_nodes_here:
 					futs.append(pool.submit(pack_node, graph, node, FALSE))
-			edges_deleted = kf_from["edges"].keys() - kf_to["edges"].keys()
+			deleted_edges = kf_from["edges"].keys() - kf_to["edges"].keys()
 			for k, va, vb, _ in filter(
 				itemgetter(3),
-				zip(keys, values_from, values_to, values_changed_fut.result()),
+				zip(keys, values_from, values_to, values_changed),
 			):
 				futs.append(
 					pool.submit(
-						SingletonPacker.pack,
-						k,
-						va,
-						vb,
-						nodes_deleted,
-						edges_deleted,
+						pack_one, k, va, vb, deleted_nodes, deleted_edges
 					)
 				)
 			for (graph,) in nodes_intersection:
@@ -591,12 +555,39 @@ class EngineHandle:
 					- kf_from["nodes"][graph,].keys()
 				):
 					futs.append(pool.submit(pack_node, graph, node, TRUE))
-			for graph, orig, dest in edges_deleted:
+			for graph, orig, dest in deleted_edges:
 				futs.append(pool.submit(pack_edge, graph, orig, dest, FALSE))
 			for graph, orig, dest in (
 				kf_to["edges"].keys() - kf_from["edges"].keys()
 			):
 				futs.append(pool.submit(pack_edge, graph, orig, dest, TRUE))
+		if not delta[UNIVERSAL]:
+			del delta[UNIVERSAL]
+		if not delta[RULEBOOK]:
+			del delta[RULEBOOK]
+		todel = []
+		for rule_name, rule in delta[RULES].items():
+			if not rule[TRIGGERS]:
+				del rule[TRIGGERS]
+			if not rule[PREREQS]:
+				del rule[PREREQS]
+			if not rule[ACTIONS]:
+				del rule[ACTIONS]
+			if not rule:
+				todel.append(rule_name)
+		for deleterule in todel:
+			del delta[deleterule]
+		if not delta[RULES]:
+			del delta[RULES]
+		for key, mapp in delta.items():
+			if key in {RULES, RULEBOOKS, ETERNAL, UNIVERSAL}:
+				continue
+			todel = []
+			for keey, mappp in mapp.items():
+				if not mappp:
+					todel.append(keey)
+			for todo in todel:
+				del mapp[todo]
 		return delta
 
 	@prepacked
