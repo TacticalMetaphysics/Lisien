@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import shutil
+from tempfile import TemporaryDirectory
 
 import pytest
 
@@ -64,13 +65,14 @@ def engy(tmp_path, request):
 
 
 @pytest.fixture(scope="module")
-def college24_premade(tmp_path):
-	shutil.unpack_archive(
-		os.path.join(
-			os.path.abspath(os.path.dirname(__file__)),
-			"college24_premade.tar.xz",
-		),
-		tmp_path,
-	)
-	with Engine(tmp_path, workers=0) as eng:
-		yield eng
+def college24_premade():
+	with TemporaryDirectory() as tmp_path:
+		shutil.unpack_archive(
+			os.path.join(
+				os.path.abspath(os.path.dirname(__file__)),
+				"college24_premade.tar.xz",
+			),
+			tmp_path,
+		)
+		with Engine(tmp_path, workers=0) as eng:
+			yield eng
