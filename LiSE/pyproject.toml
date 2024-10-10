@@ -24,8 +24,8 @@ classifiers = [
 ]
 dependencies = [
 	"astunparse>=1.6.3,<2",
-	"blinker>=1.4,<=1.6",
-	"msgpack>=1.0.0",
+	"blinker>=1.4,<2",
+	"msgpack>=1.0.0,<2",
 	"networkx>=2.4,<4",
 	"sqlalchemy>=1.4,<3",
 	"numpy>=1.19.5,<3",
