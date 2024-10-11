@@ -4173,7 +4173,6 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		self._location.append(
 			(pack(character), pack(thing), branch, turn, tick, pack(loc))
 		)
-		self._increc()
 
 	def unit_set(
 		self,
@@ -4197,7 +4196,6 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 				pack(is_unit),
 			)
 		)
-		self._increc()
 
 	def rulebook_set(
 		self,
@@ -4362,7 +4360,6 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		self._nodes2set.append(
 			(pack(graph), pack(node), branch, turn, tick, extant)
 		)
-		self._increc()
 
 	def nodes_del_time(self, branch: str, turn: int, tick: int):
 		self.call("nodes_del_time", branch, turn, tick)
