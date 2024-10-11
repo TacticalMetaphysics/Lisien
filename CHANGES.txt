@@ -2,9 +2,13 @@
 * A process pool. When you've stored a function in LiSE, you can `submit` it
 	to `Engine.pool.submit(..)` using the standard Python
 	`concurrent.futures.Executor` API. The worker processes all have read-only
-
+	views on the state of the simulation.
 * Trigger functions now run in parallel by default. Set the `workers` option
 	to 0 to disable this.
+* Neighborhoods. If your rule only runs when something changes near the Thing
+	or Place it runs on, you can indicate this by setting the rule's
+	neighborhood property to an integer, and your sim will run faster.
+	See "Getting started" in the README for an example.
 * ELiDE once again updates its graphics in response to events in the LiSE core
 	-- set the "_image_paths" of a `Thing` or `Place` object to a list of
 	paths.
