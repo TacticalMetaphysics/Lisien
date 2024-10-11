@@ -3421,7 +3421,32 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 			]:
 				if getattr(self, attr):
 					records += len(getattr(self, attr))
-					put(("silent", "insert", (cmd, getattr(self, attr)), {}))
+					put(
+						(
+							"silent",
+							"insert",
+							(
+								cmd,
+								[
+									dict(
+										character=character,
+										rulebook=rulebook,
+										branch=branch,
+										turn=turn,
+										tick=tick,
+									)
+									for (
+										character,
+										rulebook,
+										branch,
+										turn,
+										tick,
+									) in getattr(self, attr)
+								],
+							),
+							{},
+						)
+					)
 				setattr(self, attr, [])
 		assert self.call("echo", "flushed") == "flushed"
 		override = self.kf_interval_override()
