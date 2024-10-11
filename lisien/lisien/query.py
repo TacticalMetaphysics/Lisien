@@ -4140,10 +4140,10 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		branch: str,
 		turn: int,
 		tick: int,
-		isav: bool,
+		is_unit: bool,
 	):
 		pack = self.pack
-		self._unitness.append((pack(character), pack(graph), pack(node), branch, turn, tick, pack(isav)))
+		self._unitness.append((pack(character), pack(graph), pack(node), branch, turn, tick, pack(is_unit)))
 
 	def rulebook_set(
 		self,
@@ -6237,10 +6237,10 @@ class QueryEngine(query.QueryEngine, AbstractLiSEQueryEngine):
 		self._location.append((character, thing, branch, turn, tick, loc))
 		self._increc()
 
-	def unit_set(self, character, graph, node, branch, turn, tick, isav):
+	def unit_set(self, character, graph, node, branch, turn, tick, is_unit):
 		(character, graph, node) = map(self.pack, (character, graph, node))
 		self._unitness.append(
-			(character, graph, node, branch, turn, tick, isav)
+			(character, graph, node, branch, turn, tick, is_unit)
 		)
 		self._increc()
 
