@@ -3346,7 +3346,34 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 						{},
 					)
 				)
-				put(("silent", "insert", ("things", self._location), {}))
+				put(
+					(
+						"silent",
+						"insert",
+						(
+							"things",
+							[
+								{
+									"character": character,
+									"thing": thing,
+									"branch": branch,
+									"turn": turn,
+									"tick": tick,
+									"location": loc,
+								}
+								for (
+									character,
+									thing,
+									branch,
+									turn,
+									tick,
+									loc,
+								) in self._location
+							],
+						),
+						{},
+					)
+				)
 				self._location = []
 			for attr, cmd in [
 				("_char_rules_handled", "character_rules_handled"),
