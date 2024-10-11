@@ -3176,7 +3176,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 							[
 								{
 									"graph": pack(graph),
-									"key": pack(key),
+									"node": pack(node),
 									"branch": branch,
 									"turn": turn,
 									"tick": tick,
@@ -3184,7 +3184,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 								}
 								for (
 									graph,
-									key,
+									node,
 									branch,
 									turn,
 									tick,
