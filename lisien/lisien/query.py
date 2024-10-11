@@ -1486,7 +1486,6 @@ class ParquetDBHolder:
 		self, graph: bytes, branch: str, turn: int, tick: int
 	) -> Optional[Tuple[bytes, bytes, bytes]]:
 		rec = ParquetDB("keyframes", self._path).read(
-			"keyframes",
 			filters=[
 				pc.field("graph") == pc.scalar(graph),
 				pc.field("branch") == pc.scalar(branch),
