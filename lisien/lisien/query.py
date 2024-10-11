@@ -3322,7 +3322,15 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 						{},
 					)
 				)
-				put(("silent", "insert", "units", self._unitness))
+				put(("silent", "insert", "units", {
+					"character_graph": character,
+					"unit_graph": graph,
+					"node": node,
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+					"is_unit": isunit
+				} for (character, graph, node, branch, turn, tick, isunit) in self._unitness))
 				self._unitness = []
 			if self._location:
 				records += len(self._location)
@@ -4135,19 +4143,7 @@ class ParquetQueryEngine(AbstractLiSEQueryEngine):
 		isav: bool,
 	):
 		pack = self.pack
-		self.call(
-			"insert1",
-			"units",
-			dict(
-				character_graph=pack(character),
-				unit_graph=pack(graph),
-				unit_node=pack(node),
-				branch=branch,
-				turn=turn,
-				tick=tick,
-				is_unit=isav,
-			),
-		)
+		self._unitness.append((pack(character), pack(graph), pack(node), branch, turn, tick, pack(isav)))
 
 	def rulebook_set(
 		self,
