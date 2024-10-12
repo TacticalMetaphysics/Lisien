@@ -1435,7 +1435,6 @@ class ParquetDBHolder:
 		ids = []
 		for character, thing, branch, turn, tick in many:
 			for d in db.read(
-				"things",
 				filters=[
 					pc.field("character") == character,
 					pc.field("thing") == thing,
@@ -1917,7 +1916,6 @@ class ParquetDBHolder:
 		db = ParquetDB("nodes", self._path)
 		if turn_from == turn_to:
 			for d in db.read(
-				"nodes",
 				filters=[
 					pc.field("graph") == graph,
 					pc.field("branch") == branch,
@@ -1934,7 +1932,6 @@ class ParquetDBHolder:
 				)
 		else:
 			for d in db.read(
-				"nodes",
 				filters=[
 					pc.field("graph") == graph,
 					pc.field("branch") == branch,
@@ -2027,7 +2024,6 @@ class ParquetDBHolder:
 		db = ParquetDB("node_val", self._path)
 		if turn_from == turn_to:
 			for d in db.read(
-				"node_val",
 				filters=[
 					pc.field("graph") == graph,
 					pc.field("branch") == branch,
@@ -2045,7 +2041,6 @@ class ParquetDBHolder:
 				)
 		else:
 			for d in db.read(
-				"node_val",
 				filters=[
 					pc.field("graph") == graph,
 					pc.field("branch") == branch,
@@ -2149,7 +2144,6 @@ class ParquetDBHolder:
 		db = ParquetDB("edges", self._path)
 		if turn_from == turn_to:
 			for d in db.read(
-				"edges",
 				filters=[
 					pc.field("graph") == graph,
 					pc.field("branch") == branch,
@@ -2168,7 +2162,6 @@ class ParquetDBHolder:
 				)
 		else:
 			for d in db.read(
-				"edges",
 				filters=[
 					pc.field("graph") == graph,
 					pc.field("branch") == branch,
@@ -2208,7 +2201,7 @@ class ParquetDBHolder:
 
 	def load_edge_val_tick_to_end(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, bytes, bytes, int, int, int, bytes]]:
+	) -> List[Tuple[bytes, bytes, int, int, int, bytes]]:
 		return list(
 			self._iter_edge_val_tick_to_end(
 				graph, branch, turn_from, tick_from
@@ -2217,7 +2210,7 @@ class ParquetDBHolder:
 
 	def _iter_edge_val_tick_to_end(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, bytes, int, bytes, int, int, bytes]]:
+	) -> Iterator[Tuple[bytes, bytes, int, int, int, bytes]]:
 		for d in (
 			ParquetDB("edge_val", self._path)
 			.read(
@@ -2278,7 +2271,6 @@ class ParquetDBHolder:
 		db = ParquetDB("edge_val", self._path)
 		if turn_from == turn_to:
 			for d in db.read(
-				"edge_val",
 				filters=[
 					pc.field("graph") == graph,
 					pc.field("branch") == branch,
@@ -2298,7 +2290,6 @@ class ParquetDBHolder:
 				)
 		else:
 			for d in db.read(
-				"edge_val",
 				filters=[
 					pc.field("graph") == graph,
 					pc.field("branch") == branch,
