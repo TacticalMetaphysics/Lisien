@@ -1087,11 +1087,11 @@ class ORM:
 			Callable[[Key, Key, Key, int, str, int, int, bool], None],
 			Callable[[Key, Key, Key, int, str, int, int, Any], None],
 		] = (self._nbtt, self.query.exist_edge, self._edges_cache.store)
-		self._load_graphs()
-		assert hasattr(self, "graph")
 		self._keyframes_list = []
 		self._keyframes_dict = {}
 		self._keyframes_times = set()
+		self._load_graphs()
+		assert hasattr(self, "graph")
 		self._loaded: Dict[
 			str, Tuple[int, int, int, int]
 		] = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
@@ -2918,18 +2918,18 @@ class ORM:
 		_branches = self._branches
 		if stoptime:
 			stopbranch, stopturn, stoptick = stoptime
-			while branch in _branches:
+			stopping = stopbranch == branch
+			while branch in _branches and not stopping:
 				(branch, trn, tck, _, _) = _branches[branch]
 				if branch is None:
 					return
-				if branch == stopbranch and (
-					trn < stopturn
-					or (
+				if branch == stopbranch:
+					stopping = True
+					if trn < stopturn or (
 						trn == stopturn
 						and (stoptick is None or tck <= stoptick)
-					)
-				):
-					return
+					):
+						return
 				yield branch, trn, tck
 		else:
 			while branch in _branches:

@@ -176,64 +176,8 @@ class StructuredDefaultDict(dict):
 		raise TypeError("Can't set layer {}".format(self.layer))
 
 
-KEYCACHE_MAXSIZE = 1024
-
-
-def lru_append(kc, lru, kckey, maxsize):
-	"""Delete old data from ``kc``, then add new ``kckey`` to ``lru``
-
-	:param kc: a three-layer keycache
-	:param lru: an :class:`OrderedDict` with a key for each triple that should
-				fill out ``kc``'s three layers
-	:param kckey: a triple that indexes into ``kc``, which will be added to
-				  ``lru`` if needed
-	:param maxsize: maximum number of entries in ``lru`` and, therefore, ``kc``
-
-	"""
-	if kckey in lru:
-		return
-	while len(lru) >= maxsize:
-		(peb, turn, tick), _ = lru.popitem(False)
-		if peb not in kc:
-			continue
-		kcpeb = kc[peb]
-		if turn not in kcpeb:
-			continue
-		kcpebturn = kcpeb[turn]
-		if tick not in kcpebturn:
-			continue
-		del kcpebturn[tick]
-		if not kcpebturn:
-			del kcpeb[turn]
-		if not kcpeb:
-			del kc[peb]
-	lru[kckey] = True
-
-
 class Cache:
 	"""A data store that's useful for tracking graph revisions."""
-
-	__slots__ = (
-		"db",
-		"parents",
-		"keys",
-		"keycache",
-		"branches",
-		"shallowest",
-		"settings",
-		"presettings",
-		"time_entity",
-		"_kc_lru",
-		"_store_stuff",
-		"_remove_stuff",
-		"_truncate_stuff",
-		"setdb",
-		"deldb",
-		"keyframe",
-		"name",
-		"_store_journal_stuff",
-		"_lock",
-	)
 
 	def __init__(self, db, kfkvs=None):
 		super().__init__()
@@ -322,7 +266,7 @@ class Cache:
 			PickyDefaultDict, PickyDefaultDict, callable
 		] = (self.settings, self.presettings, self._base_retrieve)
 
-	def get_keyframe(
+	def _get_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
 	):
 		if graph_ent not in self.keyframe:
@@ -340,6 +284,11 @@ class Cache:
 		if copy:
 			ret = ret.copy()
 		return ret
+
+	def get_keyframe(
+		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
+	):
+		return self._get_keyframe(graph_ent, branch, turn, tick, copy=copy)
 
 	def set_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, keyframe
@@ -506,7 +455,35 @@ class Cache:
 					# assert kcturn[tick] == get_adds_dels(
 					# keys[parentity], branch, turn, tick)[0]  # slow
 					return keycache3[tick]
-			ret = frozenset(get_adds_dels(parentity, branch, turn, tick)[0])
+			# still have to get a stoptime -- the time of the last keyframe
+			stoptime, _ = self.db._build_keyframe_window_new(
+				branch, turn, tick
+			)
+			if stoptime is None:
+				ret = None
+				if branch in self.keyframe:
+					kfb = self.keyframe[branch]
+					if turn in kfb:
+						kfbr = kfb[turn]
+						if tick in kfbr:
+							ret = frozenset(kfbr[tick].keys())
+				if ret is None:
+					adds, _ = get_adds_dels(parentity, branch, turn, tick)
+					ret = frozenset(adds)
+			elif stoptime == (branch, turn, tick):
+				try:
+					kf = self._get_keyframe(parentity, branch, turn, tick)
+					ret = frozenset(kf.keys())
+				except KeyError:
+					adds, _ = get_adds_dels(
+						parentity, branch, turn, tick, stoptime=stoptime
+					)
+					ret = frozenset(adds)
+			else:
+				adds, _ = get_adds_dels(
+					parentity, branch, turn, tick, stoptime=stoptime
+				)
+				ret = frozenset(adds)
 			if keycache2:
 				if keycache3:
 					keycache3[tick] = ret
@@ -533,12 +510,6 @@ class Cache:
 		forward and updates them.
 
 		"""
-		lru_append(
-			self.keycache,
-			self._kc_lru,
-			(parentity + (branch,), turn, tick),
-			KEYCACHE_MAXSIZE,
-		)
 		return self._get_keycachelike(
 			self.keycache,
 			self.keys,
@@ -621,9 +592,11 @@ class Cache:
 				else:
 					added.add(key)
 				break
-		if stoptime or not kf:
+		if not kf:
 			return added, deleted
-		for branc, trn, tck in self.db._iter_parent_btt(branch, turn, tick):
+		for branc, trn, tck in self.db._iter_parent_btt(
+			branch, turn, tick, stoptime=stoptime
+		):
 			if branc not in kf or not kf[branc].rev_gettable(trn):
 				continue
 			kfb = kf[branc]
@@ -728,7 +701,7 @@ class Cache:
 					)
 				)
 				if contras:
-					self.shallowest = OrderedDict()
+					self.shallowest = {}
 				for contra_turn, contra_tick in contras:
 					if (
 						branch,
@@ -738,10 +711,7 @@ class Cache:
 						delete_plan(
 							time_plan[branch, contra_turn, contra_tick]
 						)
-				if not turns:  # turns may be mutated in delete_plan
-					branches[branch] = turns
-				if parentikey not in self_branches:
-					self_branches[parentikey] = branches
+			branches[branch] = turns
 			if not loading and not planning:
 				parbranch, turn_start, tick_start, turn_end, tick_end = (
 					db_branches[branch]
@@ -1490,6 +1460,19 @@ class EdgesCache(Cache):
 			self.successors,
 		)
 
+	def _get_keyframe(
+		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
+	):
+		if len(graph_ent) == 3:
+			return super()._get_keyframe(graph_ent, branch, turn, tick, copy)
+		ret = {}
+		for graph, orig, dest in self.keyframe:
+			if (graph, orig) == graph_ent:
+				ret[dest] = super()._get_keyframe(
+					(graph, orig, dest), branch, turn, tick, copy
+				)
+		return ret
+
 	def _update_keycache(self, *args, forward: bool):
 		super()._update_keycache(*args, forward=forward)
 		dest: Hashable
@@ -1569,8 +1552,6 @@ class EdgesCache(Cache):
 					added.add(dest)
 				elif delidx and not addidx:
 					deleted.add(dest)
-		if stoptime:
-			return added, deleted
 		kf = self.keyframe
 		itparbtt = self.db._iter_parent_btt
 		its = list(kf.items())
@@ -1579,7 +1560,9 @@ class EdgesCache(Cache):
 		for (grap, org, dest), kfg in its:  # too much iteration!
 			if (grap, org) != (graph, orig):
 				continue
-			for branc, trn, tck in itparbtt(branch, turn, tick):
+			for branc, trn, tck in itparbtt(
+				branch, turn, tick, stoptime=stoptime
+			):
 				if branc not in kfg:
 					continue
 				kfgb = kfg[branc]
@@ -1620,14 +1603,14 @@ class EdgesCache(Cache):
 				elif delidx and not addidx:
 					deleted.add(orig)
 		else:
-			if stoptime:
-				return added, deleted
 			kf = self.keyframe
 			itparbtt = self.db._iter_parent_btt
 			for (grap, orig, dst), kfg in kf.items():  # too much iteration!
 				if (grap, dst) != (graph, dest):
 					continue
-				for branc, trn, tck in itparbtt(branch, turn, tick):
+				for branc, trn, tck in itparbtt(
+					branch, turn, tick, stoptime=stoptime
+				):
 					if branc not in kfg:
 						continue
 					kfgb = kfg[branc]
@@ -1660,12 +1643,6 @@ class EdgesCache(Cache):
 			successors,
 			adds_dels_sucpred,
 		) = self._get_destcache_stuff
-		lru_append(
-			destcache,
-			destcache_lru,
-			((graph, orig, branch), turn, tick),
-			KEYCACHE_MAXSIZE,
-		)
 		return get_keycachelike(
 			destcache,
 			successors,
@@ -1695,12 +1672,6 @@ class EdgesCache(Cache):
 			predecessors,
 			adds_dels_sucpred,
 		) = self._get_origcache_stuff
-		lru_append(
-			origcache,
-			origcache_lru,
-			((graph, dest, branch), turn, tick),
-			KEYCACHE_MAXSIZE,
-		)
 		return get_keycachelike(
 			origcache,
 			predecessors,
@@ -1810,17 +1781,17 @@ class EdgesCache(Cache):
 		*,
 		forward: bool = None,
 	):
-		"""Return whether an edge connects the origin to the destination now
-
-		Doesn't require the edge's index, which makes it slower than retrieving
-		a particular edge.
-
-		"""
-		if forward is None:
-			forward = self.db._forward
-		return dest in self._get_destcache(
-			graph, orig, branch, turn, tick, forward=forward
-		)
+		"""Return whether an edge connects the origin to the destination now"""
+		# Use a keycache if we have it.
+		# If we don't, only generate one if we're forwarding, and only
+		# if it's no more than a turn ago.
+		keycache_key = (graph, orig, dest, branch)
+		if keycache_key in self.keycache:
+			return dest in self._get_destcache(
+				graph, orig, branch, turn, tick, forward=forward
+			)
+		got = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
+		return got is not None and not isinstance(got, Exception)
 
 	def has_predecessor(
 		self,
@@ -1833,17 +1804,9 @@ class EdgesCache(Cache):
 		*,
 		forward: bool = None,
 	):
-		"""Return whether an edge connects the destination to the origin now
-
-		Doesn't require the edge's index, which makes it slower than retrieving
-		a particular edge.
-
-		"""
-		if forward is None:
-			forward = self.db._forward
-		return orig in self._get_origcache(
-			graph, dest, branch, turn, tick, forward=forward
-		)
+		"""Return whether an edge connects the destination to the origin now"""
+		got = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
+		return got is not None and not isinstance(got, Exception)
 
 	def store(
 		self,
@@ -1881,9 +1844,12 @@ class EdgesCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
-		predecessors[graph, dest][orig][idx][branch][turn] = successors[
-			graph, orig
-		][dest][idx][branch][turn]
+		try:
+			predecessors[graph, dest][orig][idx][branch][turn] = successors[
+				graph, orig
+			][dest][idx][branch][turn]
+		except HistoricKeyError:
+			pass
 
 	# if ex:
 	# assert self.retrieve(graph, orig, dest, idx, branch, turn, tick)

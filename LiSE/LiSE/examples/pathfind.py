@@ -18,8 +18,11 @@ def install(eng, seed=None):
 
 	@eng.function
 	def find_path_somewhere(node):
+		from logging import getLogger
 		from networkx.algorithms import astar_path
 		from math import sqrt
+
+		logger = getLogger("pathfind")
 
 		x, y = node.location.name
 		destx = 100 - int(x)
@@ -38,12 +41,20 @@ def install(eng, seed=None):
 			(destx, desty),
 			lambda a, b: sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2),
 		)
-		print(f"{node.name}'s shortest path to {destx, desty} is {ret}")
+		logger.debug(f"{node.name}'s shortest path to {destx, desty} is {ret}")
 		return ret
 
 	@phys.rule
 	def go_places(char):
 		from networkx.exception import NetworkXNoPath
+
+		def log_as_completed(fut):
+			try:
+				char.engine.debug(
+					f"Got path for {fut.thing.name}: {fut.result()}"
+				)
+			except NetworkXNoPath:
+				char.engine.debug(f"No path for {fut.thing.name}")
 
 		futs = []
 		with char.engine.pool as pool:
@@ -52,16 +63,19 @@ def install(eng, seed=None):
 					char.engine.function.find_path_somewhere, thing
 				)
 				fut.thing = thing
+				fut.add_done_callback(log_as_completed)
 				futs.append(fut)
 		with char.engine.batch():
 			for fut in futs:
 				try:
 					result = fut.result()
 					thing = fut.thing
-					print(f"got path {result} for thing {thing.name}")
 					thing.follow_path(result, check=False)
+					char.engine.debug(f"followed path for thing {thing.name}")
 				except NetworkXNoPath:
-					print(f"got no path for thing {fut.thing.name}")
+					char.engine.debug(
+						f"got no path for thing {fut.thing.name}"
+					)
 					continue
 
 	@go_places.trigger

@@ -815,50 +815,66 @@ class Thing(Node):
 		if len(path) < 2:
 			raise ValueError("Paths need at least 2 nodes")
 		eng = self.character.engine
-		with eng.plan():
-			if check:
-				prevplace = path.pop(0)
-				if prevplace != self["location"]:
-					raise ValueError(
-						"Path does not start at my present location"
+		if check:
+			prevplace = path.pop(0)
+			if prevplace != self["location"]:
+				raise ValueError("Path does not start at my present location")
+			subpath = [prevplace]
+			for place in path:
+				if (
+					prevplace not in self.character.portal
+					or place not in self.character.portal[prevplace]
+				):
+					raise TravelException(
+						"Couldn't follow portal from {} to {}".format(
+							prevplace, place
+						),
+						path=subpath,
+						traveller=self,
 					)
-				subpath = [prevplace]
-				for place in path:
-					if (
-						prevplace not in self.character.portal
-						or place not in self.character.portal[prevplace]
-					):
-						raise TravelException(
-							"Couldn't follow portal from {} to {}".format(
-								prevplace, place
-							),
-							path=subpath,
-							traveller=self,
-						)
-					subpath.append(place)
-					prevplace = place
-			else:
-				subpath = path.copy()
-			turns_total = 0
-			prevsubplace = subpath.pop(0)
-			subsubpath = [prevsubplace]
-			for subplace in subpath:
-				if weight is not None:
-					turn_inc = self.engine._edge_val_cache.retrieve(
+				subpath.append(place)
+				prevplace = place
+		else:
+			subpath = path.copy()
+		turns_total = 0
+		prevsubplace = subpath.pop(0)
+		turn_incs = []
+		branch, turn, tick = eng._btt()
+		for subplace in subpath:
+			if weight is not None:
+				turn_incs.append(
+					self.engine._edge_val_cache.retrieve(
 						self.character.name,
 						prevsubplace,
 						subplace,
 						0,
-						*self.engine._btt(),
+						branch,
+						turn,
+						tick,
 					)
-				else:
-					turn_inc = 1
+				)
+			else:
+				turn_incs.append(1)
+			turns_total += turn_incs[-1]
+			turn += turn_incs[-1]
+			tick = eng._turn_end_plan.get(turn, 0)
+			_, start_turn, start_tick, end_turn, end_tick = eng._branches[
+				branch
+			]
+			if (
+				(start_turn < turn < end_turn)
+				or (
+					start_turn == end_turn == turn
+					and start_tick <= tick < end_tick
+				)
+				or (start_turn == turn and start_tick <= tick)
+				or (end_turn == turn and tick < end_tick)
+			):
+				eng.load_at(branch, turn, tick)
+		with eng.plan():
+			for subplace, turn_inc in zip(subpath, turn_incs):
 				eng.turn += turn_inc
 				self["location"] = subplace
-				turns_total += turn_inc
-				subsubpath.append(subplace)
-				prevsubplace = subplace
-			self["location"] = subplace
 		return turns_total
 
 	def travel_to(

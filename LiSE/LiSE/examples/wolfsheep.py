@@ -116,7 +116,9 @@ def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=25, seed=None):
 
 	@pursue_sheep.prereq
 	def sheep_remains(wolff):
-		return bool(wolff.engine.character["sheep"].unit)
+		for _ in wolff.engine.character["sheep"].units():
+			return True
+		return False
 
 	@eng.action
 	def breed(shep):

@@ -446,7 +446,7 @@ class Engine(AbstractEngine, gORM):
 		if logfun is None:
 			from logging import getLogger
 
-			logger = getLogger("Life Sim Engine")
+			logger = getLogger("LiSE")
 
 			def logfun(level, msg):
 				getattr(logger, level)(msg)
@@ -1538,8 +1538,8 @@ class Engine(AbstractEngine, gORM):
 			raise RuntimeError("Already closed")
 		if hasattr(self, "cache_arrange_queue"):
 			self.cache_arrange_queue.put("shutdown")
-		if self._cache_arrange_thread.is_alive():
-			self._cache_arrange_thread.join()
+			if self._cache_arrange_thread.is_alive():
+				self._cache_arrange_thread.join()
 		if (
 			self._keyframe_on_close
 			and self._btt() not in self._keyframes_times
@@ -1670,50 +1670,42 @@ class Engine(AbstractEngine, gORM):
 			# Seems not great that I have to double-retrieve like this but I can't
 			# be bothered to dig into the delta logic
 			# Zack 2024-04-27
+			delt = delta.get(graph)
+			if delt is None:
+				continue
 			try:
 				charrb = self._characters_rulebooks_cache.retrieve(
 					graph, b, r, t
 				)
 			except KeyError:
 				charrb = (graph, "character")
-			charrbs[graph] = delta.pop(
-				(graph, "character"), {"character_rulebook": charrb}
-			)["character_rulebook"]
+			charrbs[graph] = delt.get("character_rulebook", charrb)
 			try:
 				unitrb = self._units_rulebooks_cache.retrieve(graph, b, r, t)
 			except KeyError:
 				unitrb = (graph, "unit")
-			unitrbs[graph] = delta.pop(
-				(graph, "unit"), {"unit_rulebook": unitrb}
-			)["unit_rulebook"]
+			unitrbs[graph] = delt.get("unit_rulebook", unitrb)
 			try:
 				thingrb = self._characters_things_rulebooks_cache.retrieve(
 					graph, b, r, t
 				)
 			except KeyError:
 				thingrb = (graph, "thing")
-			thingrbs[graph] = delta.pop(
-				(graph, "thing"), {"character_thing_rulebook": thingrb}
-			)["character_thing_rulebook"]
+			thingrbs[graph] = delt.get("character_thing_rulebook", thingrb)
 			try:
 				placerb = self._characters_places_rulebooks_cache.retrieve(
 					graph, b, r, t
 				)
 			except KeyError:
 				placerb = (graph, "place")
-			placerbs[graph] = delta.pop(
-				(graph, "place"), {"character_place_rulebook": placerb}
-			)["character_place_rulebook"]
+			placerbs[graph] = delt.get("character_place_rulebook", placerb)
 			try:
 				portrb = self._characters_portals_rulebooks_cache.retrieve(
 					graph, b, r, t
 				)
 			except KeyError:
 				portrb = (graph, "portrb")
-			portrbs[graph] = delta.pop(
-				(graph, "portal"), {"character_portal_rulebook": portrb}
-			)["character_portal_rulebook"]
-			delt = delta.get(graph, {})
+			portrbs[graph] = delt.get("character_portal_rulebook", portrb)
 			if (graph,) in self._things_cache.keyframe:
 				try:
 					locs = self._things_cache.get_keyframe(
@@ -1731,7 +1723,7 @@ class Engine(AbstractEngine, gORM):
 			else:
 				locs = {}
 				conts = {}
-			if delt is not None and "node_val" in delt:
+			if "node_val" in delt:
 				for node, val in delt["node_val"].items():
 					if "location" in val:
 						locs[node] = loc = val["location"]
