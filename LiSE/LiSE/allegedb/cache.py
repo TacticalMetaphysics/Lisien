@@ -179,28 +179,6 @@ class StructuredDefaultDict(dict):
 class Cache:
 	"""A data store that's useful for tracking graph revisions."""
 
-	__slots__ = (
-		"db",
-		"parents",
-		"keys",
-		"keycache",
-		"branches",
-		"shallowest",
-		"settings",
-		"presettings",
-		"time_entity",
-		"_kc_lru",
-		"_store_stuff",
-		"_remove_stuff",
-		"_truncate_stuff",
-		"setdb",
-		"deldb",
-		"keyframe",
-		"name",
-		"_store_journal_stuff",
-		"_lock",
-	)
-
 	def __init__(self, db, kfkvs=None):
 		super().__init__()
 		self.db = db
@@ -288,7 +266,7 @@ class Cache:
 			PickyDefaultDict, PickyDefaultDict, callable
 		] = (self.settings, self.presettings, self._base_retrieve)
 
-	def get_keyframe(
+	def _get_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
 	):
 		if graph_ent not in self.keyframe:
@@ -306,6 +284,11 @@ class Cache:
 		if copy:
 			ret = ret.copy()
 		return ret
+
+	def get_keyframe(
+		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
+	):
+		return self._get_keyframe(graph_ent, branch, turn, tick, copy=copy)
 
 	def set_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, keyframe
@@ -489,9 +472,9 @@ class Cache:
 					ret = frozenset(adds)
 			elif stoptime == (branch, turn, tick):
 				try:
-					kf = self.keyframe[parentity][branch][turn][tick]
+					kf = self._get_keyframe(parentity, branch, turn, tick)
 					ret = frozenset(kf.keys())
-				except HistoricKeyError:
+				except KeyError:
 					# there's a keyframe now, but we have no data in it.
 					ret = frozenset()
 			else:
@@ -716,7 +699,7 @@ class Cache:
 					)
 				)
 				if contras:
-					self.shallowest = OrderedDict()
+					self.shallowest = {}
 				for contra_turn, contra_tick in contras:
 					if (
 						branch,
@@ -726,10 +709,7 @@ class Cache:
 						delete_plan(
 							time_plan[branch, contra_turn, contra_tick]
 						)
-				if not turns:  # turns may be mutated in delete_plan
-					branches[branch] = turns
-				if parentikey not in self_branches:
-					self_branches[parentikey] = branches
+			branches[branch] = turns
 			if not loading and not planning:
 				parbranch, turn_start, tick_start, turn_end, tick_end = (
 					db_branches[branch]
@@ -1478,6 +1458,19 @@ class EdgesCache(Cache):
 			self.successors,
 		)
 
+	def _get_keyframe(
+		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
+	):
+		if len(graph_ent) == 3:
+			return super()._get_keyframe(graph_ent, branch, turn, tick, copy)
+		ret = {}
+		for graph, orig, dest in self.keyframe:
+			if (graph, orig) == graph_ent:
+				ret[dest] = super()._get_keyframe(
+					(graph, orig, dest), branch, turn, tick, copy
+				)
+		return ret
+
 	def _update_keycache(self, *args, forward: bool):
 		super()._update_keycache(*args, forward=forward)
 		dest: Hashable
@@ -1790,9 +1783,8 @@ class EdgesCache(Cache):
 		# Use a keycache if we have it.
 		# If we don't, only generate one if we're forwarding, and only
 		# if it's no more than a turn ago.
-		keycache_key = (graph, orig, branch)
+		keycache_key = (graph, orig, dest, branch)
 		if keycache_key in self.keycache:
-			print("getting keycache.")
 			return dest in self._get_destcache(
 				graph, orig, branch, turn, tick, forward=forward
 			)
@@ -1850,9 +1842,12 @@ class EdgesCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
-		predecessors[graph, dest][orig][idx][branch][turn] = successors[
-			graph, orig
-		][dest][idx][branch][turn]
+		try:
+			predecessors[graph, dest][orig][idx][branch][turn] = successors[
+				graph, orig
+			][dest][idx][branch][turn]
+		except HistoricKeyError:
+			pass
 
 	# if ex:
 	# assert self.retrieve(graph, orig, dest, idx, branch, turn, tick)

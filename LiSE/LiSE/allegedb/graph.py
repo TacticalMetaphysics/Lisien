@@ -989,10 +989,11 @@ class DiGraph(networkx.DiGraph):
 		"""Version of remove_node that minimizes writes"""
 		if n not in self._node:
 			raise NetworkXError("The node %s is not in the digraph." % (n,))
-		nbrs = self._succ[n]
+		nbrs = list(self._succ[n])
+		pred = list(self._pred[n])
 		for u in nbrs:
 			del self._pred[u][n]  # remove all edges n-u in digraph
-		for u in self._pred[n]:
+		for u in pred:
 			del self._succ[u][n]  # remove all edges n-u in digraph
 		del self._node[n]
 
