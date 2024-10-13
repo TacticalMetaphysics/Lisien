@@ -476,11 +476,29 @@ class Cache:
 			stoptime, _ = self.db._build_keyframe_window_new(
 				branch, turn, tick
 			)
-			ret = frozenset(
-				get_adds_dels(
+			if stoptime is None:
+				ret = None
+				if branch in self.keyframe:
+					kfb = self.keyframe[branch]
+					if turn in kfb:
+						kfbr = kfb[turn]
+						if tick in kfbr:
+							ret = frozenset(kfbr[tick].keys())
+				if ret is None:
+					adds, _ = get_adds_dels(parentity, branch, turn, tick)
+					ret = frozenset(adds)
+			elif stoptime == (branch, turn, tick):
+				try:
+					kf = self.keyframe[parentity][branch][turn][tick]
+					ret = frozenset(kf.keys())
+				except HistoricKeyError:
+					# there's a keyframe now, but we have no data in it.
+					ret = frozenset()
+			else:
+				adds, _ = get_adds_dels(
 					parentity, branch, turn, tick, stoptime=stoptime
-				)[0]
-			)
+				)
+				ret = frozenset(adds)
 			if keycache2:
 				if keycache3:
 					keycache3[tick] = ret
