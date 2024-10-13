@@ -992,10 +992,8 @@ class DiGraph(networkx.DiGraph):
 		nbrs = self._succ[n]
 		for u in nbrs:
 			del self._pred[u][n]  # remove all edges n-u in digraph
-		del self._succ[n]  # remove node from succ
 		for u in self._pred[n]:
 			del self._succ[u][n]  # remove all edges n-u in digraph
-		del self._pred[n]  # remove node from pred
 		del self._node[n]
 
 	def remove_edge(self, u, v):
