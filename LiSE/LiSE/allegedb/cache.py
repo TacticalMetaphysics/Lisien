@@ -475,8 +475,10 @@ class Cache:
 					kf = self._get_keyframe(parentity, branch, turn, tick)
 					ret = frozenset(kf.keys())
 				except KeyError:
-					# there's a keyframe now, but we have no data in it.
-					ret = frozenset()
+					adds, _ = get_adds_dels(
+						parentity, branch, turn, tick, stoptime=stoptime
+					)
+					ret = frozenset(adds)
 			else:
 				adds, _ = get_adds_dels(
 					parentity, branch, turn, tick, stoptime=stoptime
