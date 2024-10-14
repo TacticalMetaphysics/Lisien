@@ -57,14 +57,13 @@ def install(eng, seed=None):
 				char.engine.debug(f"No path for {fut.thing.name}")
 
 		futs = []
-		with char.engine.pool as pool:
-			for thing in char.thing.values():
-				fut = pool.submit(
-					char.engine.function.find_path_somewhere, thing
-				)
-				fut.thing = thing
-				fut.add_done_callback(log_as_completed)
-				futs.append(fut)
+		for thing in char.thing.values():
+			fut = char.engine.submit(
+				char.engine.function.find_path_somewhere, thing
+			)
+			fut.thing = thing
+			fut.add_done_callback(log_as_completed)
+			futs.append(fut)
 		with char.engine.batch():
 			for fut in futs:
 				try:

@@ -230,87 +230,7 @@ class NullSchema(AbstractSchema):
 		return True
 
 
-class LiSEProcessPoolExecutor(Executor):
-	def __init__(self, eng: "Engine"):
-		self.eng = eng
-		self._how_many_futs_running = 0
-		self._fut_manager_thread = Thread(
-			target=self._manage_futs, daemon=True
-		)
-		self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
-		self._uid_to_fut: dict[int, Future] = {}
-		self._fut_manager_thread.start()
-
-	def _call_in_subprocess(
-		self, uid, method, func_name, future: Future, *args, **kwargs
-	):
-		i = uid % len(self.eng._worker_inputs)
-		argbytes = zlib.compress(
-			self.eng.pack((uid, method, (func_name, *args), kwargs))
-		)
-		with self.eng._worker_locks[i]:
-			self.eng._update_worker_process_state(i)
-			self.eng._worker_inputs[i].send_bytes(argbytes)
-			output = self.eng._worker_outputs[i].recv_bytes()
-		got_uid, result = self.eng.unpack(zlib.decompress(output))
-		assert got_uid == uid
-		self._how_many_futs_running -= 1
-		del self._uid_to_fut[uid]
-		if isinstance(result, Exception):
-			future.set_exception(result)
-		else:
-			future.set_result(result)
-
-	def submit(
-		self, fn: Union[FunctionType, MethodType], /, *args, **kwargs
-	) -> Future:
-		if fn.__module__ == "function":
-			method = "_call_function"
-		elif fn.__module__ == "method":
-			method = "_call_method"
-		else:
-			raise ValueError(
-				"Function is not stored in this LiSE engine. "
-				"Use the engine's attributes `function` and `method` to store it."
-			)
-		uid = self.eng._top_uid
-		ret = Future()
-		ret.uid = uid
-		ret._t = Thread(
-			target=self._call_in_subprocess,
-			args=(uid, method, fn.__name__, ret, *args),
-			kwargs=kwargs,
-		)
-		self.eng._top_uid += 1
-		self._uid_to_fut[uid] = ret
-		self._futs_to_start.put(ret)
-		return ret
-
-	def _manage_futs(self):
-		while True:
-			while self._how_many_futs_running < len(
-				self.eng._worker_processes
-			):
-				try:
-					fut = self._futs_to_start.get()
-				except Empty:
-					break
-				if not fut.running():
-					fut.set_running_or_notify_cancel()
-					fut._t.start()
-					self._how_many_futs_running += 1
-			sleep(0.001)
-
-	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
-		if cancel_futures:
-			for fut in self._uid_to_fut.values():
-				fut.cancel()
-		if wait:
-			futwait(self._uid_to_fut.values())
-		self._uid_to_fut = {}
-
-
-class Engine(AbstractEngine, gORM):
+class Engine(AbstractEngine, gORM, Executor):
 	"""LiSE, the Life Simulator Engine.
 
 	:param prefix: directory containing the simulation and its code;
@@ -571,7 +491,13 @@ class Engine(AbstractEngine, gORM):
 				with wlk[-1]:
 					inpipe_here.send_bytes(branches_payload)
 					inpipe_here.send_bytes(initial_payload)
-			self.pool = LiSEProcessPoolExecutor(self)
+			self._how_many_futs_running = 0
+			self._fut_manager_thread = Thread(
+				target=self._manage_futs, daemon=True
+			)
+			self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
+			self._uid_to_fut: dict[int, Future] = {}
+			self._fut_manager_thread.start()
 			self.trigger.connect(self._reimport_trigger_functions)
 			self.function.connect(self._reimport_worker_functions)
 			self.method.connect(self._reimport_worker_methods)
@@ -594,6 +520,92 @@ class Engine(AbstractEngine, gORM):
 				self.universal["rando_state"] = rando_state
 		if cache_arranger:
 			self._start_cache_arranger()
+
+	def _call_in_subprocess(
+		self, uid, method, func_name, future: Future, *args, **kwargs
+	):
+		i = uid % len(self._worker_inputs)
+		argbytes = zlib.compress(
+			self.pack((uid, method, (func_name, *args), kwargs))
+		)
+		with self._worker_locks[i]:
+			self._update_worker_process_state(i)
+			self._worker_inputs[i].send_bytes(argbytes)
+			output = self._worker_outputs[i].recv_bytes()
+		got_uid, result = self.unpack(zlib.decompress(output))
+		assert got_uid == uid
+		self._how_many_futs_running -= 1
+		del self._uid_to_fut[uid]
+		if isinstance(result, Exception):
+			future.set_exception(result)
+		else:
+			future.set_result(result)
+
+	def submit(
+		self, fn: Union[FunctionType, MethodType], /, *args, **kwargs
+	) -> Future:
+		if not hasattr(self, '_worker_processes'):
+			raise RuntimeError("LiSE was launched with no worker processes")
+		if fn.__module__ == "function":
+			method = "_call_function"
+		elif fn.__module__ == "method":
+			method = "_call_method"
+		else:
+			raise ValueError(
+				"Function is not stored in this LiSE engine. "
+				"Use the engine's attributes `function` and `method` to store it."
+			)
+		uid = self._top_uid
+		ret = Future()
+		ret.uid = uid
+		ret._t = Thread(
+			target=self._call_in_subprocess,
+			args=(uid, method, fn.__name__, ret, *args),
+			kwargs=kwargs,
+		)
+		self._top_uid += 1
+		self._uid_to_fut[uid] = ret
+		self._futs_to_start.put(ret)
+		return ret
+
+	def _manage_futs(self):
+		while True:
+			while self._how_many_futs_running < len(
+				self._worker_processes
+			):
+				try:
+					fut = self._futs_to_start.get()
+				except Empty:
+					break
+				if not fut.running():
+					fut.set_running_or_notify_cancel()
+					fut._t.start()
+					self._how_many_futs_running += 1
+			sleep(0.001)
+
+	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
+		if not hasattr(self, "_worker_processes"):
+			return
+		if cancel_futures:
+			for fut in self._uid_to_fut.values():
+				fut.cancel()
+		if wait:
+			futwait(self._uid_to_fut.values())
+		self._uid_to_fut = {}
+		for lock, pipein, pipeout, proc in zip(
+			self._worker_locks,
+			self._worker_inputs,
+			self._worker_outputs,
+			self._worker_processes,
+		):
+			with lock:
+				pipein.send_bytes(b"shutdown")
+				recvd = pipeout.recv_bytes()
+				assert (
+					recvd == b"done"
+				), f"expected 'done', got {self.unpack(zlib.decompress(recvd))}"
+				proc.join()
+				proc.close()
 
 	def _detect_kf_interval_override(self):
 		if getattr(self, "_no_kc", False):
@@ -1556,21 +1568,7 @@ class Engine(AbstractEngine, gORM):
 				del sys.modules[modname]
 		self.commit()
 		self.query.close()
-		if hasattr(self, "_worker_processes"):
-			for lock, pipein, pipeout, proc in zip(
-				self._worker_locks,
-				self._worker_inputs,
-				self._worker_outputs,
-				self._worker_processes,
-			):
-				with lock:
-					pipein.send_bytes(b"shutdown")
-					recvd = pipeout.recv_bytes()
-					assert (
-						recvd == b"done"
-					), f"expected 'done', got {self.unpack(zlib.decompress(recvd))}"
-					proc.join()
-					proc.close()
+		self.shutdown()
 		self._closed = True
 
 	def _snap_keyframe_from_delta(
