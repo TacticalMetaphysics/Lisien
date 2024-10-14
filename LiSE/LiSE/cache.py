@@ -675,10 +675,22 @@ class ThingsCache(Cache):
 					contra=False,
 					loading=True,
 				)
+				todo = []
+				if turn in node_contents_cache.settings[branch]:
+					present_location_data = node_contents_cache.settings[
+						branch
+					][turn]
+					if present_location_data:
+						for tck, (
+							char,
+							loca,
+							contents,
+						) in present_location_data.items():
+							if char == character and loca == oldloc:
+								todo.append((turn, tck))
 				future_location_data = node_contents_cache.settings[
 					branch
 				].future(turn)
-				todo = []
 				if future_location_data:
 					for trn in future_location_data:
 						for tck in future_location_data[trn]:
@@ -719,10 +731,19 @@ class ThingsCache(Cache):
 					contra=False,
 					loading=True,
 				)
+				todo = []
+				if turn in node_contents_cache.settings[branch]:
+					present_location_data = node_contents_cache.settings[
+						branch
+					][turn].future(tick)
+					if present_location_data:
+						for tck in present_location_data:
+							char, loca, contents = present_location_data[tck]
+							if char == character and loca == location:
+								todo.append((turn, tck))
 				future_location_data = node_contents_cache.settings[
 					branch
 				].future(turn)
-				todo = []
 				if future_location_data:
 					# turns and ticks are stored in ascending order
 					for trn in future_location_data:
