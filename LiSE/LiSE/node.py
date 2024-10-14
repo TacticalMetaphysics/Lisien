@@ -838,12 +838,14 @@ class Thing(Node):
 		turns_total = 0
 		prevsubplace = subpath.pop(0)
 		turn_incs = []
+		myname = self.name
+		charn = self.character.name
 		branch, turn, tick = eng._btt()
 		for subplace in subpath:
 			if weight is not None:
 				turn_incs.append(
 					self.engine._edge_val_cache.retrieve(
-						self.character.name,
+						charn,
 						prevsubplace,
 						subplace,
 						0,
@@ -873,7 +875,17 @@ class Thing(Node):
 		with eng.plan():
 			for subplace, turn_inc in zip(subpath, turn_incs):
 				eng.turn += turn_inc
-				self["location"] = subplace
+				branch, turn, tick = eng._nbtt()
+				if check:
+					eng._nodes_cache.retrieve(
+						charn, subplace, branch, turn, tick
+					)
+				eng._things_cache.store(
+					charn, myname, branch, turn, tick, subplace
+				)
+				eng.query.set_thing_loc(
+					charn, myname, branch, turn, tick, subplace
+				)
 		return turns_total
 
 	def travel_to(
