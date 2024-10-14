@@ -577,8 +577,7 @@ class Engine(AbstractEngine, gORM, Executor):
 					fut = self._futs_to_start.get()
 				except Empty:
 					break
-				if not fut.running():
-					fut.set_running_or_notify_cancel()
+				if not fut.running() and fut.set_running_or_notify_cancel():
 					fut._t.start()
 					self._how_many_futs_running += 1
 			sleep(0.001)
