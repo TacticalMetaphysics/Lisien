@@ -1,3 +1,6 @@
+== 0.16.2 | 2024-10-14 ==
+* Fix ELiDE crash when adding graph-shaped world state to a grid-shaped world
+
 == 0.16.1 | 2024-10-13 ==
 * Fix some incoherent world state that could result from doing things
 	on tick zero of turn zero, if you started the world with a NetworkX graph.
