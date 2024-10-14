@@ -185,7 +185,15 @@ class GridBoard(Widget):
 		wide = max(datum["x"] for datum in spot_data) + self.tile_width
 		high = max(datum["y"] for datum in spot_data) + self.tile_width
 		self.size = self.spot_plane.size = self.pawn_plane.size = wide, high
-		pawn_data = list(map(self.make_pawn, self.character.thing.values()))
+		pawn_data = list(
+			map(
+				self.make_pawn,
+				filter(
+					lambda thing: thing["location"] in self.spot,
+					self.character.thing.values(),
+				),
+			)
+		)
 		for pwn in pawn_data:
 			self.pawn[pwn["name"]] = self.pawn_cls(
 				board=self, proxy=pwn["proxy"]
