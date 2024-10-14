@@ -724,8 +724,9 @@ class ThingsCache(Cache):
 				].future(turn)
 				todo = []
 				if future_location_data:
+					# turns and ticks are stored in ascending order
 					for trn in future_location_data:
-						for tck in sorted(future_location_data[trn]):
+						for tck in future_location_data[trn]:
 							char, loca, contents = future_location_data[trn][
 								tck
 							]
