@@ -350,7 +350,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		connect_string: str = None,
 		connect_args: dict = None,
 		schema_cls: Type[AbstractSchema] = NullSchema,
-		flush_interval: Optional[int] = None,
+		flush_interval: int = None,
 		keyframe_interval: Optional[int] = 1000,
 		commit_interval: int = None,
 		random_seed: int = None,
@@ -994,14 +994,14 @@ class Engine(AbstractEngine, gORM, Executor):
 	def _make_edge(
 		self,
 		graph: Character,
-		orig: Union[thing_cls, place_cls],
-		dest: Union[thing_cls, place_cls],
+		orig: Key,
+		dest: Key,
 		idx=0,
 	) -> portal_cls:
 		return self.portal_cls(graph, orig, dest)
 
-	def _get_kf(self, branch, turn, tick):
-		kf = super()._get_kf(branch, turn, tick)
+	def _get_kf(self, branch: str, turn: int, tick: int, copy: bool = True) -> dict:
+		kf = super()._get_kf(branch, turn, tick, copy=copy)
 		try:
 			kf["universal"] = self._universal_cache.get_keyframe(
 				branch, turn, tick

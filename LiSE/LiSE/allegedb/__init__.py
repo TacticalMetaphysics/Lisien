@@ -1105,7 +1105,7 @@ class ORM:
 		if cache_arranger:
 			self._cache_arrange_thread.start()
 
-	def _get_kf(self, branch, turn, tick, copy=True):
+	def _get_kf(self, branch: str, turn: int, tick: int, copy=True) -> dict:
 		ret = {
 			"graph_val": {},
 			"nodes": {},
