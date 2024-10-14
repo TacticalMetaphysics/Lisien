@@ -21,7 +21,6 @@ have a lot in common.
 
 from __future__ import annotations
 from collections.abc import Mapping, ValuesView, Set
-from itertools import chain
 from typing import Optional, Union, Iterator, List
 
 import networkx as nx
