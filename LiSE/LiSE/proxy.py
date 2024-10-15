@@ -2495,6 +2495,7 @@ class EngineProxy(AbstractEngine):
 			prereqs,
 			actions,
 		) = result
+		self._initialized = False
 		self._eternal_cache = eternal
 		self.function._cache = functions
 		self.method._cache = methods
@@ -2502,6 +2503,7 @@ class EngineProxy(AbstractEngine):
 		self.prereq._cache = prereqs
 		self.action._cache = actions
 		self._replace_state_with_kf(start_kf)
+		self._initialized = True
 
 	def switch_main_branch(self, branch: str) -> None:
 		if self._worker:
