@@ -544,7 +544,7 @@ class Engine(AbstractEngine, gORM, Executor):
 	def submit(
 		self, fn: Union[FunctionType, MethodType], /, *args, **kwargs
 	) -> Future:
-		if not hasattr(self, '_worker_processes'):
+		if not hasattr(self, "_worker_processes"):
 			raise RuntimeError("LiSE was launched with no worker processes")
 		if fn.__module__ == "function":
 			method = "_call_function"
@@ -570,9 +570,7 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def _manage_futs(self):
 		while True:
-			while self._how_many_futs_running < len(
-				self._worker_processes
-			):
+			while self._how_many_futs_running < len(self._worker_processes):
 				try:
 					fut = self._futs_to_start.get()
 				except Empty:
@@ -1000,7 +998,9 @@ class Engine(AbstractEngine, gORM, Executor):
 	) -> portal_cls:
 		return self.portal_cls(graph, orig, dest)
 
-	def _get_kf(self, branch: str, turn: int, tick: int, copy: bool = True) -> dict:
+	def _get_kf(
+		self, branch: str, turn: int, tick: int, copy: bool = True
+	) -> dict:
 		kf = super()._get_kf(branch, turn, tick, copy=copy)
 		try:
 			kf["universal"] = self._universal_cache.get_keyframe(
