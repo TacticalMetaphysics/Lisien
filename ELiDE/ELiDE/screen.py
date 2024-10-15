@@ -638,11 +638,15 @@ Builder.load_string("""
 		size_hint_y: 0.05
 		text: root.selection_name
 		bold: True
-	Calendar:
-		id: statlist
-		entity: root.proxy
-		update_mode: 'present'
-		disabled: app.edit_locked
+	ScrollView:
+		do_scroll_x: False
+		do_scroll_y: True
+		Calendar:
+			id: statlist
+			entity: root.proxy
+			update_mode: 'present'
+			disabled: app.edit_locked
+			size_hint_y: None
 	Button:
 		id: cfgstatbut
 		size_hint_y: 0.05
