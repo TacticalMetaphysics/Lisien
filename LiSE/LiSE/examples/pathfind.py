@@ -11,7 +11,7 @@ def install(eng, seed=None):
 	for node in list(grid):
 		if random.random() < 0.1:
 			grid.remove_node(node)
-		elif random.random() < 0.1:
+		elif random.random() < 0.01:
 			grid.add_node(f"{node}_inhabitant", location=node)
 
 	phys = eng.new_character("physical", grid)
