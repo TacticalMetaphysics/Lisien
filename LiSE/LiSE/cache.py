@@ -661,38 +661,14 @@ class ThingsCache(Cache):
 				*args, planning=planning, loading=loading, contra=contra
 			)
 			node_contents_cache = self.db._node_contents_cache
-
-			def _to_loc(method, loc, trn, tck):
-				node_contents_cache.store(
-					character,
-					loc,
-					branch,
-					trn,
-					tck,
-					getattr(
-						node_contents_cache.retrieve(
-							character,
-							loc,
-							branch,
-							trn,
-							tck,
-							search=True,
-						),
-						method,
-					)({thing}),
-					planning=False,
-					loading=True,
-				)
-
-			add_to_loc = partial(_to_loc, "union")
-			remove_from_loc = partial(_to_loc, "difference")
+			this = frozenset((thing,))
 
 			# Cache the contents of nodes
 			if oldloc is not None:
 				oldconts_orig = node_contents_cache.retrieve(
 					character, oldloc, branch, turn, tick
 				)
-				newconts_orig = oldconts_orig.difference({thing})
+				newconts_orig = oldconts_orig - this
 				node_contents_cache.store(
 					character,
 					oldloc,
@@ -708,13 +684,39 @@ class ThingsCache(Cache):
 						character, oldloc
 					][branch]
 					if turn in locset:
-						for future_tick in locset[turn].future(tick):
-							remove_from_loc(oldloc, turn, future_tick)
+						for future_tick, contents in list(
+							locset[turn].future(tick).items()
+						):
+							newconts = contents - this
+							# we are actually planning, but saying we're not so we can overwrite
+							node_contents_cache.store(
+								character,
+								oldloc,
+								branch,
+								turn,
+								future_tick,
+								newconts,
+								planning=False,
+								loading=True,
+							)
+							locset[turn][future_tick] = newconts
 					for future_turn, future_ticks in locset.future(
 						turn
 					).items():
-						for future_tick in future_ticks:
-							remove_from_loc(oldloc, future_turn, future_tick)
+						for future_tick, contents in list(
+							future_ticks.items()
+						):
+							newconts = contents | this
+							node_contents_cache.store(
+								character,
+								oldloc,
+								branch,
+								future_turn,
+								future_tick,
+								newconts,
+								planning=False,
+								loading=True,
+							)
 			if location is not None:
 				try:
 					oldconts_dest = node_contents_cache.retrieve(
@@ -739,13 +741,37 @@ class ThingsCache(Cache):
 						character, location
 					][branch]
 					if turn in locset:
-						for future_tick in locset[turn].future(tick):
-							add_to_loc(location, turn, future_tick)
+						for future_tick, contents in list(
+							locset[turn].future(tick).items()
+						):
+							newconts = contents - this
+							node_contents_cache.store(
+								character,
+								location,
+								branch,
+								turn,
+								future_tick,
+								newconts,
+								planning=False,
+								loading=True,
+							)
 					for future_turn, future_ticks in locset.future(
 						turn
 					).items():
-						for future_tick in future_ticks:
-							add_to_loc(location, future_turn, future_tick)
+						for future_tick, contents in list(
+							future_ticks.items()
+						):
+							newconts = contents | this
+							node_contents_cache.store(
+								character,
+								location,
+								branch,
+								future_turn,
+								future_tick,
+								newconts,
+								planning=False,
+								loading=True,
+							)
 
 	def turn_before(self, character, thing, branch, turn):
 		with self._lock:
