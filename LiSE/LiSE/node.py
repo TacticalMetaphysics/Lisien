@@ -872,7 +872,7 @@ class Thing(Node):
 				or (end_turn == turn and tick < end_tick)
 			):
 				eng.load_at(branch, turn, tick)
-		with eng.plan():
+		with eng.plan(), eng.world_lock:
 			for subplace, turn_inc in zip(subpath, turn_incs):
 				eng.turn += turn_inc
 				branch, turn, tick = eng._nbtt()
