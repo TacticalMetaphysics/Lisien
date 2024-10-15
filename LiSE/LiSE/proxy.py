@@ -2282,7 +2282,7 @@ class FuncProxy(object):
 			"call_stored_function",
 			store=self.store._store,
 			func=self.func,
-			args=args,
+			args=args[1:],
 			kwargs=kwargs,
 			cb=partial(self.store.engine._upd_and_cb, cb=cb),
 		)[0]
