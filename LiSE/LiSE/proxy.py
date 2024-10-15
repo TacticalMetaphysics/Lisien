@@ -3385,6 +3385,10 @@ class RedundantProcessError(ProcessError):
 
 
 class EngineProcessManager(object):
+	def __init__(self, *args, **kwargs):
+		self._args = args
+		self._kwargs = kwargs
+
 	def start(self, *args, **kwargs):
 		"""Start LiSE in a subprocess, and return a proxy to it"""
 		if hasattr(self, "engine_proxy"):
@@ -3442,8 +3446,8 @@ class EngineProcessManager(object):
 			name="LiSE Life Simulator Engine (core)",
 			target=engine_subprocess,
 			args=(
-				args,
-				kwargs,
+				args or self._args,
+				kwargs or self._kwargs,
 				handle_out_pipe_recv,
 				handle_in_pipe_send,
 				self.logq,
@@ -3493,3 +3497,9 @@ class EngineProcessManager(object):
 		self.engine_proxy.close()
 		self._p.join()
 		del self.engine_proxy
+
+	def __enter__(self):
+		return self.start()
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		self.shutdown()
