@@ -544,6 +544,12 @@ class Engine(AbstractEngine, gORM, Executor):
 		else:
 			future.set_result(result)
 
+	def snap_keyframe(self, silent=False) -> Optional[dict]:
+		ret = super().snap_keyframe(silent)
+		if hasattr(self, "_worker_processes"):
+			self._update_all_worker_process_states(clobber=True)
+		return ret
+
 	def submit(
 		self, fn: Union[FunctionType, MethodType], /, *args, **kwargs
 	) -> Future:
@@ -652,7 +658,7 @@ class Engine(AbstractEngine, gORM, Executor):
 						None,
 						None,
 						(
-							self.snap_keyframe(),
+							super().snap_keyframe(),
 							self.eternal,
 							dict(self.function.iterplain()),
 							dict(self.method.iterplain()),
@@ -2045,7 +2051,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				self._worker_inputs[i].send_bytes(argbytes)
 			else:
 				if kf_payload is None:
-					kf_payload = self._get_worker_kf_payload()
+					kf_payload = self._get_worker_kf_payload(-1)
 				self._worker_inputs[i].send_bytes(kf_payload)
 			self._worker_updated_btts[i] = self._btt()
 		for lock in self._worker_locks:
