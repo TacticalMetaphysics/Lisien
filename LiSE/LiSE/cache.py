@@ -680,25 +680,20 @@ class ThingsCache(Cache):
 					present_location_data = node_contents_cache.settings[
 						branch
 					][turn]
-					if present_location_data:
-						for tck, (
-							char,
-							loca,
-							contents,
-						) in present_location_data.items():
-							if char == character and loca == oldloc:
-								todo.append((turn, tck))
+					for tck, (
+						char,
+						loca,
+						contents,
+					) in present_location_data.items():
+						if char == character and loca == oldloc:
+							todo.append((turn, tck))
 				future_location_data = node_contents_cache.settings[
 					branch
 				].future(turn)
-				if future_location_data:
-					for trn in future_location_data:
-						for tck in future_location_data[trn]:
-							char, loca, contents = future_location_data[trn][
-								tck
-							]
-							if char == character and loca == oldloc:
-								todo.append((trn, tck))
+				for trn, tcks in future_location_data.items():
+					for tck, (char, loca, contents) in tcks.items():
+						if char == character and loca == oldloc:
+							todo.append((trn, tck))
 				for trn, tck in todo:
 					node_contents_cache.store(
 						character,
@@ -736,23 +731,21 @@ class ThingsCache(Cache):
 					present_location_data = node_contents_cache.settings[
 						branch
 					][turn].future(tick)
-					if present_location_data:
-						for tck in present_location_data:
-							char, loca, contents = present_location_data[tck]
-							if char == character and loca == location:
-								todo.append((turn, tck))
+					for tck, (
+						char,
+						loca,
+						contents,
+					) in present_location_data.items():
+						if char == character and loca == location:
+							todo.append((turn, tck))
 				future_location_data = node_contents_cache.settings[
 					branch
 				].future(turn)
-				if future_location_data:
-					# turns and ticks are stored in ascending order
-					for trn in future_location_data:
-						for tck in future_location_data[trn]:
-							char, loca, contents = future_location_data[trn][
-								tck
-							]
-							if char == character and loca == location:
-								todo.append((trn, tck))
+				# turns and ticks are stored in ascending order
+				for trn, tcks in future_location_data.items():
+					for tck, (char, loca, contents) in tcks.items():
+						if char == character and loca == location:
+							todo.append((trn, tck))
 				for trn, tck in todo:
 					node_contents_cache.store(
 						character,
