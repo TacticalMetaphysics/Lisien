@@ -18,11 +18,8 @@ def install(eng, seed=None):
 
 	@eng.function
 	def find_path_somewhere(node):
-		from logging import getLogger
 		from networkx.algorithms import astar_path
 		from math import sqrt
-
-		logger = getLogger("pathfind")
 
 		x, y = node.location.name
 		destx = 100 - int(x)
@@ -41,7 +38,9 @@ def install(eng, seed=None):
 			(destx, desty),
 			lambda a, b: sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2),
 		)
-		logger.debug(f"{node.name}'s shortest path to {destx, desty} is {ret}")
+		node.engine.debug(
+			f"{node.name}'s shortest path to {destx, desty} is {ret}"
+		)
 		return ret
 
 	@phys.rule
