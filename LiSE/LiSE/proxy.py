@@ -2755,7 +2755,8 @@ class EngineProxy(AbstractEngine):
 				self.handle("do_game_start", cb=self._upd_caches)
 
 	def __getattr__(self, item):
-		return getattr(self.method, item)
+		meth = super().__getattribute__("method").__getattr__(item)
+		return MethodType(meth, self)
 
 	def _reimport_triggers(self):
 		self.trigger.reimport()
