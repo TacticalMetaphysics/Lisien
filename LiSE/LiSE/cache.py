@@ -15,6 +15,7 @@
 from functools import partial
 from operator import sub, or_
 
+from .allegedb import Key
 from .allegedb.cache import (
 	Cache,
 	PickyDefaultDict,
@@ -24,6 +25,7 @@ from .allegedb.cache import (
 	HistoricKeyError,
 	EntitylessCache,
 )
+from .allegedb.window import EntikeySettingsTurnDict, SettingsTurnDict
 from .util import singleton_get, sort_set
 from collections import OrderedDict
 
@@ -675,25 +677,33 @@ class ThingsCache(Cache):
 					contra=False,
 					loading=True,
 				)
-				todo = []
-				if turn in node_contents_cache.settings[branch]:
-					present_location_data = node_contents_cache.settings[
-						branch
-					][turn]
-					for tck, (
-						char,
-						loca,
-						contents,
-					) in present_location_data.items():
-						if char == character and loca == oldloc:
-							todo.append((turn, tck))
-				future_location_data = node_contents_cache.settings[
-					branch
-				].future(turn)
-				for trn, tcks in future_location_data.items():
-					for tck, (char, loca, contents) in tcks.items():
-						if char == character and loca == oldloc:
-							todo.append((trn, tck))
+				todo = set()
+				# update any future contents caches pertaining to the old location
+				if (character, oldloc) in node_contents_cache.loc_settings:
+					locset = node_contents_cache.loc_settings[
+						character, oldloc
+					][branch]
+					if turn in locset:
+						for future_tick in locset[turn].future(tick):
+							todo.add((turn, future_tick))
+					for future_turn, future_ticks in locset.future(
+						turn
+					).items():
+						for future_tick in future_ticks:
+							todo.add((future_turn, future_tick))
+				# and the new location
+				if (character, location) in node_contents_cache.loc_settings:
+					locset = node_contents_cache.loc_settings[
+						character, location
+					][branch]
+					if turn in locset:
+						for future_tick in locset[turn].future(tick):
+							todo.add((turn, future_tick))
+					for future_turn, future_ticks in locset.future(
+						turn
+					).items():
+						for future_tick in future_ticks:
+							todo.add((future_turn, future_tick))
 				for trn, tck in todo:
 					node_contents_cache.store(
 						character,
@@ -780,6 +790,40 @@ class ThingsCache(Cache):
 
 class NodeContentsCache(Cache):
 	name = "node_contents_cache"
+
+	def __init__(self, db, kfkvs=None):
+		super().__init__(db, kfkvs)
+		self.loc_settings = StructuredDefaultDict(1, SettingsTurnDict)
+
+	def store(
+		self,
+		character: Key,
+		place: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		contents: frozenset,
+		planning: bool = None,
+		forward: bool = None,
+		loading=False,
+		contra=None,
+	):
+		self.loc_settings[character, place][branch].store_at(
+			turn, tick, contents
+		)
+
+		return super().store(
+			character,
+			place,
+			branch,
+			turn,
+			tick,
+			contents,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+		)
 
 	def _iter_future_contradictions(
 		self, entity, key, turns, branch, turn, tick, value
