@@ -859,6 +859,8 @@ class Thing(Node):
 			turns_total += turn_incs[-1]
 			turn += turn_incs[-1]
 			tick = eng._turn_end_plan.get(turn, 0)
+			if check:
+				eng._nodes_cache.retrieve(charn, subplace, branch, turn, tick)
 			_, start_turn, start_tick, end_turn, end_tick = eng._branches[
 				branch
 			]
@@ -876,10 +878,6 @@ class Thing(Node):
 			for subplace, turn_inc in zip(subpath, turn_incs):
 				eng.turn += turn_inc
 				branch, turn, tick = eng._nbtt()
-				if check:
-					eng._nodes_cache.retrieve(
-						charn, subplace, branch, turn, tick
-					)
 				eng._things_cache.store(
 					charn, myname, branch, turn, tick, subplace
 				)
