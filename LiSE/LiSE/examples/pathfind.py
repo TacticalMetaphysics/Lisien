@@ -46,6 +46,7 @@ def install(eng, seed=None):
 
 	@phys.rule
 	def go_places(char):
+		from time import monotonic
 		from networkx.exception import NetworkXNoPath
 
 		def log_as_completed(fut):
@@ -69,8 +70,11 @@ def install(eng, seed=None):
 				try:
 					result = fut.result()
 					thing = fut.thing
+					start = monotonic()
 					thing.follow_path(result, check=False)
-					char.engine.debug(f"followed path for thing {thing.name}")
+					char.engine.debug(
+						f"followed path for thing {thing.name} in {monotonic() - start:.2} seconds"
+					)
 				except NetworkXNoPath:
 					char.engine.debug(
 						f"got no path for thing {fut.thing.name}"
