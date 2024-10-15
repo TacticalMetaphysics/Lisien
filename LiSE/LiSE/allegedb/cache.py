@@ -1078,7 +1078,9 @@ class Cache:
 			presettings_turns[turn] = {tick: parent + (entity, key, prev)}
 			settings_turns[turn] = {tick: parent + (entity, key, value)}
 
-	def _base_retrieve(self, args, store_hint=True, retrieve_hint=True):
+	def _base_retrieve(
+		self, args, store_hint=True, retrieve_hint=True, search=False
+	):
 		"""Hot code.
 
 		Swim up the timestream trying to find a value for the
@@ -1112,10 +1114,17 @@ class Cache:
 						# but *earlier* than (b, r, t), use the
 						# keyframe instead
 						if b in keyframes and r in keyframes[b]:
-							kfbr = keyframes[b][r]
-							if kfbr.rev_before(t) is not None and (
-								brancs[r].rev_before(t)
-								< kfbr.rev_before(t)
+							if search:
+								kfbr = keyframes[b].search(r)
+							else:
+								kfbr = keyframes[b][r]
+							if search:
+								brancs.search(r)
+							if kfbr.rev_before(
+								t, search=search
+							) is not None and (
+								brancs[r].rev_before(t, search=search)
+								< kfbr.rev_before(t, search=search)
 								< t
 							):
 								kf = kfbr[t]
@@ -1128,16 +1137,21 @@ class Cache:
 									return NotInKeyframeError(
 										f"No value for {entikey} at {b, r, t}"
 									)
-						ret = brancs[r][t]
+						if search:
+							ret = brancs.search(r).search(t)
+						else:
+							ret = brancs[r][t]
 						if store_hint:
 							shallowest[args] = ret
 						return ret
 					elif brancs.rev_gettable(r - 1):
 						if b in keyframes and keyframes[b].rev_gettable(r - 1):
 							kfb = keyframes[b]
-							if kfb.rev_before(r - 1) is not None and (
-								brancs.rev_before(r - 1)
-								< kfb.rev_before(r - 1)
+							if kfb.rev_before(
+								r - 1, search=search
+							) is not None and (
+								brancs.rev_before(r - 1, search=search)
+								< kfb.rev_before(r - 1, search=search)
 							):
 								kfbr = kfb[r - 1]
 								kf = kfbr.final()
@@ -1150,11 +1164,15 @@ class Cache:
 									return NotInKeyframeError(
 										f"No value for {entikey} at {b, r, t}"
 									)
-							elif brancs.rev_before(r - 1) == kfb.rev_before(
-								r - 1
-							):
-								kfbr = kfb[r - 1]
-								trns = brancs[r - 1]
+							elif brancs.rev_before(
+								r - 1, search=search
+							) == kfb.rev_before(r - 1, search=search):
+								if search:
+									kfbr = kfb.search(r - 1)
+									trns = brancs.search(r - 1)
+								else:
+									kfbr = kfb[r - 1]
+									trns = brancs[r - 1]
 								if trns.end < kfbr.end:
 									kf = kfbr.final()
 									if key in kf:
@@ -1166,14 +1184,20 @@ class Cache:
 										return NotInKeyframeError(
 											f"No value for {entikey} at {b, r, t}"
 										)
-						ret = brancs[r - 1].final()
+						if search:
+							ret = brancs.search(r - 1).final()
+						else:
+							ret = brancs[r - 1].final()
 						if store_hint:
 							shallowest[args] = ret
 						return ret
 					elif (
 						b in keyframes
 						and r in keyframes[b]
-						and keyframes[b][r].rev_gettable(t)
+						and (
+							(search and keyframes[b].search(r).rev_gettable(t))
+							or (not search and keyframes[b][r].rev_gettable(t))
+						)
 					):
 						brtk = keyframes[b][r][t]
 						if key in brtk:
@@ -1186,7 +1210,10 @@ class Cache:
 								f"No value for {entikey} at {b, r, t}"
 							)
 					elif b in keyframes and keyframes[b].rev_gettable(r - 1):
-						finl = keyframes[b][r - 1].final()
+						if search:
+							finl = keyframes[b].search(r - 1)
+						else:
+							finl = keyframes[b][r - 1].final()
 						if key in finl:
 							ret = finl[key]
 							if store_hint:
@@ -1228,7 +1255,10 @@ class Cache:
 				if b in keyframes:
 					kfb = keyframes[b]
 					if r in kfb:
-						kfbr = kfb[r]
+						if search:
+							kfbr = kfb.search(r)
+						else:
+							kfbr = kfb[r]
 						if kfbr.rev_gettable(t):
 							kf = kfbr[t]
 							if key in kf:
@@ -1254,7 +1284,7 @@ class Cache:
 							)
 		return KeyError("No value, ever")
 
-	def retrieve(self, *args):
+	def retrieve(self, *args, search=False):
 		"""Get a value previously .store(...)'d.
 
 		Needs at least five arguments. The -1th is the tick
@@ -1263,8 +1293,11 @@ class Cache:
 		and the -4th is the key. All other arguments identify
 		the entity that the key is in.
 
+		With ``search=True``, use binary search; otherwise,
+		seek back and forth like a tape head.
+
 		"""
-		ret = self._base_retrieve(args)
+		ret = self._base_retrieve(args, search=search)
 		if ret is None:
 			raise HistoricKeyError("Set, then deleted", deleted=True)
 		elif isinstance(ret, Exception):

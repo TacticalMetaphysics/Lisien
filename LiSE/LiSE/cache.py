@@ -712,7 +712,7 @@ class ThingsCache(Cache):
 						trn,
 						tck,
 						node_contents_cache.retrieve(
-							character, oldloc, branch, trn, tck
+							character, oldloc, branch, trn, tck, search=True
 						).difference({thing}),
 						planning=False,
 						contra=False,

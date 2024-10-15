@@ -612,17 +612,23 @@ class WindowDict(MutableMapping):
 			return False
 		return rev >= beg
 
-	def rev_before(self, rev: int):
+	def rev_before(self, rev: int, search=False):
 		"""Return the latest past rev on which the value changed."""
 		with self._lock:
-			self._seek(rev)
+			if search:
+				self.search(rev)
+			else:
+				self._seek(rev)
 			if self._past:
 				return self._past[-1][0]
 
-	def rev_after(self, rev: int):
+	def rev_after(self, rev: int, search=False):
 		"""Return the earliest future rev on which the value will change."""
 		with self._lock:
-			self._seek(rev)
+			if search:
+				self.search(rev)
+			else:
+				self._seek(rev)
 			if self._future:
 				return self._future[-1][0]
 
@@ -644,7 +650,9 @@ class WindowDict(MutableMapping):
 				return self._past[-1][1]
 			raise KeyError("No data")
 
-	def truncate(self, rev: int, direction: Direction = "forward") -> None:
+	def truncate(
+		self, rev: int, direction: Direction = "forward", search=False
+	) -> None:
 		"""Delete everything after the given revision, exclusive.
 
 		With direction='backward', delete everything before the revision,
@@ -652,7 +660,10 @@ class WindowDict(MutableMapping):
 
 		"""
 		with self._lock:
-			self._seek(rev)
+			if search:
+				self.search(rev)
+			else:
+				self._seek(rev)
 			if direction == "forward":
 				self._keys.difference_update(map(get0, self._future))
 				self._future = []
@@ -735,10 +746,16 @@ class WindowDict(MutableMapping):
 			return past[-1][1]
 
 	def __setitem__(self, rev: int, v: Any) -> None:
+		self.set_item(rev, v)
+
+	def set_item(self, rev: int, v: Any, search=False) -> None:
 		past = self._past
 		with self._lock:
 			if past or self._future:
-				self._seek(rev)
+				if search:
+					self.search(rev)
+				else:
+					self._seek(rev)
 				if past:
 					if past[-1][0] == rev:
 						past[-1] = (rev, v)
@@ -751,6 +768,9 @@ class WindowDict(MutableMapping):
 			self._keys.add(rev)
 
 	def __delitem__(self, rev: int) -> None:
+		self.del_item(rev)
+
+	def del_item(self, rev: int, search=False) -> None:
 		# Not checking for rev's presence at the beginning because
 		# to do so would likely require iterating thru history,
 		# which I have to do anyway in deleting.
@@ -770,7 +790,10 @@ class WindowDict(MutableMapping):
 		elif not self.beginning <= rev <= self.end:
 			raise HistoricKeyError("Rev outside of history: {}".format(rev))
 		with self._lock:
-			self._seek(rev)
+			if search:
+				self.search(rev)
+			else:
+				self._seek(rev)
 			past = self._past
 			if not past or past[-1][0] != rev:
 				raise HistoricKeyError("Rev not present: {}".format(rev))
