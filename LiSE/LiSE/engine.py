@@ -2026,12 +2026,22 @@ class Engine(AbstractEngine, gORM, Executor):
 		for lock in self._worker_locks:
 			lock.acquire()
 		kf_payload = None
+		deltas = {}
 		for i in range(len(self._worker_processes)):
 			branch_from, turn_from, tick_from = self._worker_updated_btts[i]
 			if not clobber and branch_from == self.branch:
-				delt = self.get_delta(
-					branch_from, turn_from, tick_from, self.turn, self.tick
-				)
+				if (branch_from, turn_from, tick_from) in deltas:
+					delt = deltas[branch_from, turn_from, tick_from]
+				else:
+					delt = deltas[branch_from, turn_from, tick_from] = (
+						self.get_delta(
+							branch_from,
+							turn_from,
+							tick_from,
+							self.turn,
+							self.tick,
+						)
+					)
 				argbytes = zlib.compress(
 					self.pack(
 						(
