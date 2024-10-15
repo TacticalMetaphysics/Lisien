@@ -661,12 +661,13 @@ class ThingsCache(Cache):
 				*args, planning=planning, loading=loading, contra=contra
 			)
 			node_contents_cache = self.db._node_contents_cache
+			this = frozenset((thing,))
 			# Cache the contents of nodes
 			if oldloc is not None:
 				oldconts_orig = node_contents_cache.retrieve(
 					character, oldloc, branch, turn, tick
 				)
-				newconts_orig = oldconts_orig.difference({thing})
+				newconts_orig = oldconts_orig.difference(this)
 				node_contents_cache.store(
 					character,
 					oldloc,
@@ -677,7 +678,7 @@ class ThingsCache(Cache):
 					contra=False,
 					loading=True,
 				)
-				todo = set()
+				todo = []
 				# update any future contents caches pertaining to the old location
 				if (character, oldloc) in node_contents_cache.loc_settings:
 					locset = node_contents_cache.loc_settings[
@@ -685,25 +686,12 @@ class ThingsCache(Cache):
 					][branch]
 					if turn in locset:
 						for future_tick in locset[turn].future(tick):
-							todo.add((turn, future_tick))
+							todo.append((turn, future_tick))
 					for future_turn, future_ticks in locset.future(
 						turn
 					).items():
 						for future_tick in future_ticks:
-							todo.add((future_turn, future_tick))
-				# and the new location
-				if (character, location) in node_contents_cache.loc_settings:
-					locset = node_contents_cache.loc_settings[
-						character, location
-					][branch]
-					if turn in locset:
-						for future_tick in locset[turn].future(tick):
-							todo.add((turn, future_tick))
-					for future_turn, future_ticks in locset.future(
-						turn
-					).items():
-						for future_tick in future_ticks:
-							todo.add((future_turn, future_tick))
+							todo.append((future_turn, future_tick))
 				for trn, tck in todo:
 					node_contents_cache.store(
 						character,
@@ -713,19 +701,20 @@ class ThingsCache(Cache):
 						tck,
 						node_contents_cache.retrieve(
 							character, oldloc, branch, trn, tck, search=True
-						).difference({thing}),
+						).difference(this),
 						planning=False,
 						contra=False,
 						loading=True,
 					)
 			if location is not None:
+				todo = []
 				try:
 					oldconts_dest = node_contents_cache.retrieve(
 						character, location, branch, turn, tick
 					)
 				except KeyError:
 					oldconts_dest = frozenset()
-				newconts_dest = oldconts_dest.union({thing})
+				newconts_dest = oldconts_dest.union(this)
 				node_contents_cache.store(
 					character,
 					location,
@@ -736,26 +725,19 @@ class ThingsCache(Cache):
 					contra=False,
 					loading=True,
 				)
-				todo = []
-				if turn in node_contents_cache.settings[branch]:
-					present_location_data = node_contents_cache.settings[
-						branch
-					][turn].future(tick)
-					for tck, (
-						char,
-						loca,
-						contents,
-					) in present_location_data.items():
-						if char == character and loca == location:
-							todo.append((turn, tck))
-				future_location_data = node_contents_cache.settings[
-					branch
-				].future(turn)
-				# turns and ticks are stored in ascending order
-				for trn, tcks in future_location_data.items():
-					for tck, (char, loca, contents) in tcks.items():
-						if char == character and loca == location:
-							todo.append((trn, tck))
+				# and the new location
+				if (character, location) in node_contents_cache.loc_settings:
+					locset = node_contents_cache.loc_settings[
+						character, location
+					][branch]
+					if turn in locset:
+						for future_tick in locset[turn].future(tick):
+							todo.append((turn, future_tick))
+					for future_turn, future_ticks in locset.future(
+						turn
+					).items():
+						for future_tick in future_ticks:
+							todo.append((future_turn, future_tick))
 				for trn, tck in todo:
 					node_contents_cache.store(
 						character,
@@ -764,8 +746,8 @@ class ThingsCache(Cache):
 						trn,
 						tck,
 						node_contents_cache.retrieve(
-							character, location, branch, trn, tck
-						).union({thing}),
+							character, location, branch, trn, tck, search=True
+						).union(this),
 						planning=False,
 						contra=False,
 						loading=True,
