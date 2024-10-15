@@ -369,7 +369,10 @@ class Engine(AbstractEngine, gORM, Executor):
 			logger = getLogger("LiSE")
 
 			def logfun(level, msg):
-				getattr(logger, level)(msg)
+				if isinstance(level, int):
+					logger.log(level, msg)
+				else:
+					getattr(logger, level)(msg)
 
 		self.log = logfun
 		self._prefix = prefix
