@@ -768,8 +768,6 @@ class Stack:
 		stack_plane._top_ys[idx] = t
 		stack_plane._right_xs[idx] = r
 		stack_plane._fbo.bind()
-		stack_plane._fbo.clear_buffer()
-		stack_plane._fbo.release()
 		for rect in insts["rectangles"]:
 			rect.pos = xy
 		if "line" in insts:
@@ -778,6 +776,7 @@ class Stack:
 		stack_plane._redraw_bind_uid = stack_plane.fbind(
 			"data", stack_plane._trigger_redraw
 		)
+		stack_plane._fbo.release()
 
 	@property
 	def _stack_plane(self):
