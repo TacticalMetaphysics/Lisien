@@ -934,6 +934,8 @@ class GraphBoard(RelativeLayout):
 				loc = self.spot[value]
 				thing = self.pawn[node.name]
 				thing.pos = loc.right, loc.top
+			elif key == "_image_paths":
+				self.pawn[node.name].paths = value
 		elif node is self.character.node or node is self.character.place:
 			if value and key not in self.spot:
 				self.add_spot(key)
@@ -949,6 +951,8 @@ class GraphBoard(RelativeLayout):
 				self.rm_spot(node.name)
 			elif node.name not in self.spot:
 				self.add_spot(node.name)
+			elif key == "_image_paths":
+				self.spot[node.name].paths = value
 
 	def update_spot_display(self):
 		"""Change spot graphics to match the state of their place"""
@@ -982,83 +986,6 @@ class GraphBoard(RelativeLayout):
 
 	def update_arrow_display(self):
 		"""Change arrow graphics to match the state of their portal"""
-
-	def update_from_delta(self, delta, *args):
-		"""Apply the changes described in the dict ``delta``."""
-		for node, extant in delta.get("nodes", {}).items():
-			if extant:
-				if (
-					node in delta.get("node_val", {})
-					and "location" in delta["node_val"][node]
-					and node not in self.pawn
-				):
-					self.add_pawn(node)
-				elif node not in self.spot:
-					self.add_spot(node)
-			else:
-				if node in self.pawn:
-					self.rm_pawn(node)
-				if node in self.spot:
-					self.rm_spot(node)
-		for node, stats in delta.get("node_val", {}).items():
-			if node in self.spot:
-				spot = self.spot[node]
-				x = stats.get("_x")
-				y = stats.get("_y")
-				if x is not None:
-					spot.x = int(x * self.width)
-				if y is not None:
-					spot.y = int(y * self.height)
-				spot.paths = stats.get(
-					"_image_paths", GraphSpot.default_image_paths
-				)
-			elif node in self.pawn:
-				pawn = self.pawn[node]
-				if "location" in stats:
-					loc = self.spot[stats["location"]]
-					pawn.x = int(loc.right)
-					pawn.y = int(loc.top)
-				pawn.paths = stats.get(
-					"_image_paths", Pawn.default_image_paths
-				)
-			else:
-				Logger.warning(
-					"Board: diff tried to change stats of node {} "
-					"but I don't have a widget for it".format(node)
-				)
-		for orig, dests in delta.get("edges", {}).items():
-			for dest, extant in dests.items():
-				if extant and (
-					orig not in self.arrow or dest not in self.arrow[orig]
-				):
-					self.add_arrow(orig, dest)
-				elif (
-					not extant
-					and orig in self.arrow
-					and dest in self.arrow[orig]
-				):
-					self.rm_arrow(orig, dest)
-		for orig, dests in delta.get("edge_val", {}).items():
-			for dest, kvs in dests.items():
-				if (orig, dest) not in self.arrow_plane._port_index:
-					self.arrow_plane.add_new_portal(
-						self._core_make_arrow(
-							self.character.portal[orig][dest],
-							self.spot[orig],
-							self.spot[dest],
-						)
-					)
-					continue
-				label_kwargs = kvs.get("_label_kwargs", {})
-				if "_label_stat" in kvs:
-					label_kwargs["text"] = str(kvs[kvs["_label_stat"]])
-				self.arrow_plane.update_portal(orig, dest, label_kwargs)
-
-	def trigger_update_from_delta(self, delta, *args):
-		part = partial(self.update_from_delta, delta)
-		if hasattr(self, "_scheduled_update_from_delta"):
-			Clock.unschedule(self._scheduled_update_from_delta)
-		self._scheduled_update_from_delta = Clock.schedule_once(part, 0)
 
 	def _apply_node_layout(self, l, spot, *args):
 		if self.width == 1 or self.height == 1:

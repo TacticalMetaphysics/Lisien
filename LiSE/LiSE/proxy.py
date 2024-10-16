@@ -2282,7 +2282,7 @@ class FuncProxy(object):
 			"call_stored_function",
 			store=self.store._store,
 			func=self.func,
-			args=args[1:] if self.store._store == "method" else args,
+			args=args[1:],
 			kwargs=kwargs,
 			cb=partial(self.store.engine._upd_and_cb, cb=cb),
 		)[0]
@@ -2495,7 +2495,6 @@ class EngineProxy(AbstractEngine):
 			prereqs,
 			actions,
 		) = result
-		self._initialized = False
 		self._eternal_cache = eternal
 		self.function._cache = functions
 		self.method._cache = methods
@@ -2503,7 +2502,6 @@ class EngineProxy(AbstractEngine):
 		self.prereq._cache = prereqs
 		self.action._cache = actions
 		self._replace_state_with_kf(start_kf)
-		self._initialized = True
 
 	def switch_main_branch(self, branch: str) -> None:
 		if self._worker:

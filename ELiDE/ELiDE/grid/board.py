@@ -200,6 +200,7 @@ class GridBoard(Widget):
 			)
 		self.pawn_plane.data = pawn_data
 		self.character.thing.connect(self.update_from_thing)
+		self.character.place.connect(self.update_from_place)
 		Logger.debug(
 			f"GridBoard: on_parent end, took {monotonic() - start_ts:,.2f}"
 			f" seconds"
@@ -219,73 +220,6 @@ class GridBoard(Widget):
 			self.selection_candidates.remove(pwn)
 		self.pawn_plane.remove(name)
 
-	def update_from_delta(self, delta, *args):
-		pawnmap = self.pawn
-		spotmap = self.spot
-		add_pawn = self.add_pawn
-		add_spot = self.add_spot
-		selection_candidates = self.selection_candidates
-
-		def rm_pawn(name):
-			pwn = pawnmap.pop(name)
-			if pwn in selection_candidates:
-				selection_candidates.remove(pwn)
-			self.pawn_plane.remove(name)
-
-		def rm_spot(name):
-			spot = spotmap.pop(name)
-			if spot in selection_candidates:
-				selection_candidates.remove(spot)
-			for pwn in self.contained[name]:
-				del pawnmap[pwn.name]
-			del self.contained[name]
-			self.spot_plane.remove(name)
-
-		if "nodes" in delta:
-			for node, extant in delta["nodes"].items():
-				if extant:
-					if (
-						"node_val" in delta
-						and node in delta["node_val"]
-						and "location" in delta["node_val"][node]
-						and node not in pawnmap
-					):
-						add_pawn(node)
-					elif node not in spotmap:
-						add_spot(node)
-				else:
-					if node in pawnmap:
-						rm_pawn(node)
-					if node in spotmap:
-						rm_spot(node)
-		if "node_val" in delta:
-			for node, stats in delta["node_val"].items():
-				if node in spotmap and "_image_paths" in stats:
-					spotmap[node].paths = (
-						stats["_image_paths"]
-						or self.spot_cls.default_image_paths
-					)
-				elif node in pawnmap:
-					pawn = pawnmap[node]
-					if "location" in stats:
-						try:
-							loc = self.spot[stats["location"]]
-							pawn.pos = loc.pos
-						except KeyError:
-							self.rm_pawn(node)
-					if "_image_paths" in stats:
-						pawn.paths = (
-							stats["_image_paths"]
-							or self.pawn_cls.default_image_paths
-						)
-				elif "location" in stats and stats["location"] in self.spot:
-					self.add_pawn(node)
-
-	def trigger_update_from_delta(self, delta, *args):
-		part = partial(self.update_from_delta, delta)
-		Clock.unschedule(part)
-		Clock.schedule_once(part, 0)
-
 	def update_from_thing(self, thing, key, value):
 		if thing and not (key is None and not value):
 			if thing.name not in self.pawn:
@@ -297,9 +231,19 @@ class GridBoard(Widget):
 					pwn.pos = loc.pos
 				elif thing.name in self.pawn:
 					self.rm_pawn(thing.name)
+			elif key == "_image_paths":
+				self.pawn[thing.name].paths = value
 		else:
 			if thing.name in self.pawn:
 				self.rm_pawn(thing.name)
+
+	def update_from_place(self, place, key, value):
+		if place and not (key is None and not value):
+			if key == "_image_paths":
+				self.spot[place.name].paths = value
+		else:
+			if place.name in self.spot:
+				self.rm_spot(place.name)
 
 	def on_touch_down(self, touch):
 		self.selection_candidates.extend(
