@@ -1633,7 +1633,7 @@ class CharacterProxy(AbstractCharacter):
 						self.place._cache[node] = prox = PlaceProxy(self, node)
 						self.place.send(prox, key=None, value=True)
 					self.node.send(prox, key=None, value=True)
-			else:
+			elif node in self.node:
 				prox = self.node[node]
 				if node in self.place._cache:
 					del self.place._cache[node]
@@ -1654,7 +1654,7 @@ class CharacterProxy(AbstractCharacter):
 					self.name, orig, dest, PortalProxy(self, orig, dest)
 				)
 				self.portal.send(self.portal[orig][dest], key=None, value=True)
-			else:
+			elif orig in self.portal and dest in self.portal[orig]:
 				prox = self.portal[orig][dest]
 				try:
 					self.engine._character_portals_cache.delete(
