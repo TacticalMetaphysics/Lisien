@@ -1,3 +1,6 @@
+== 0.16.15 | 2025-10-16 ==
+* Fix a different way pawns could disappear in ELiDE
+
 == 0.16.14 | 2025-10-16 ==
 * Fix disappearing pawns in ELiDE
 
