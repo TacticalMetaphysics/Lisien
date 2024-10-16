@@ -1,3 +1,6 @@
+== 0.16.14 | 2025-10-16 ==
+* Fix disappearing pawns in ELiDE
+
 == 0.16.13 | 2024-10-16 ==
 * Fix worker process states getting desynchronized when you made a new character
 * Fix methods not being callable in worker processes
