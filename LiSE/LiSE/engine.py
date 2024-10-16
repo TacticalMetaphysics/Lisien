@@ -2627,13 +2627,13 @@ class Engine(AbstractEngine, gORM, Executor):
 				)
 				if check_prereqs(rule, handled, entity):
 					self.debug(
-						f"prereqs for rule {rule} on entity "
+						f"prereqs for rule {rule.name} on entity "
 						f"{fmtent(entity)} satisfied, will run actions"
 					)
 					try:
 						yield do_actions(rule, handled, entity)
 						self.debug(
-							f"actions for rule {rule} on entity "
+							f"actions for rule {rule.name} on entity "
 							f"{fmtent(entity)} have run without incident"
 						)
 					except StopIteration:
