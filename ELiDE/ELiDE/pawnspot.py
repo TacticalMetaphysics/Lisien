@@ -803,10 +803,6 @@ class Stack:
 		self.pos = self.x, y
 
 	@property
-	def _stack_plane(self):
-		return self.board.stack_plane
-
-	@property
 	def size(self):
 		stack_plane = self._stack_plane
 		name = self.proxy["name"]
