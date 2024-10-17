@@ -148,7 +148,7 @@ if __name__ == "__main__":
 	import sys
 
 	args = []
-	kwargs = {}
+	kwargs = {"random_seed": 0}
 	if len(sys.argv) == 3:
 		kwargs["random_seed"] = sys.argv[-1]
 		args.append(sys.argv[-2])
