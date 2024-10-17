@@ -1,12 +1,12 @@
 LiSE is a tool for developing life simulation games.
 
-[Demo video](https://vimeo.com/815795673)
+[Download on Itch](https://clayote.itch.io/LiSE)
 
 [Documentation](https://tacticalmetaphysics.github.io/LiSE/manual.html)
 
 [Forum](https://www.gamemaking.tools/forum/categories/lise)
 
-<a rel="me" href="https://peoplemaking.games/@clayote">Follow on Mastodon</a> or on [Itch](https://clayote.itch.io/LiSE)
+<a rel="me" href="https://peoplemaking.games/@clayote">Follow on Mastodon</a>
 
 # What is a life simulation game?
 
