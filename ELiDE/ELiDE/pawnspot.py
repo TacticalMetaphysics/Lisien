@@ -768,8 +768,11 @@ class Stack:
 		stack_plane._top_ys[idx] = t
 		stack_plane._right_xs[idx] = r
 		stack_plane._fbo.bind()
+		stack_plane._fbo.clear_buffer()
 		for rect in insts["rectangles"]:
+			rect: Rectangle
 			rect.pos = xy
+			rect.flag_update()  # undocumented. sounds right?
 		if "line" in insts:
 			insts["line"].points = [x, y, r, y, r, t, x, t, x, y]
 		stack_plane.data[idx]["pos"] = xy
