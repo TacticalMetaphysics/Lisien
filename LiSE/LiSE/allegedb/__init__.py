@@ -949,6 +949,20 @@ class ORM:
 			self._edge_val_cache,
 		]
 
+	def _get_keyframe(self, branch: str, turn: int, tick: int, copy=True):
+		if (branch, turn, tick) in self._keyframes_loaded:
+			return self._get_kf(branch, turn, tick, copy=copy)
+		for graph in self._graph_cache.iter_keys(branch, turn, tick):
+			self._snap_keyframe_de_novo_graph(
+				graph,
+				branch,
+				turn,
+				tick,
+				*self.query.get_keyframe(graph, branch, turn, tick),
+			)
+		self._keyframes_loaded.add((branch, turn, tick))
+		return self._get_kf(branch, turn, tick, copy=copy)
+
 	def _load_graphs(self):
 		self.graph = GraphsMapping(self)
 		for graph, branch, turn, tick, typ in self.query.graphs_dump():
@@ -1090,6 +1104,7 @@ class ORM:
 		self._keyframes_list = []
 		self._keyframes_dict = {}
 		self._keyframes_times = set()
+		self._keyframes_loaded = set()
 		self._load_graphs()
 		assert hasattr(self, "graph")
 		self._loaded: Dict[
@@ -1202,6 +1217,7 @@ class ORM:
 		kfl = self._keyframes_list
 		kfd = self._keyframes_dict
 		kfs = self._keyframes_times
+		kfsl = self._keyframes_loaded
 		nkfs = self._new_keyframes
 		was = self._btt()
 		self._set_btt(branch, turn, tick)
@@ -1215,6 +1231,7 @@ class ORM:
 			nkfs.append((graphn, branch, turn, tick, nodes, edges, val))
 			kfl.append((graphn, branch, turn, tick))
 			kfs.add((branch, turn, tick))
+			kfsl.add((branch, turn, tick))
 			if branch not in kfd:
 				kfd[branch] = {
 					turn: {
@@ -1806,7 +1823,7 @@ class ORM:
 		load_graph_val = self.query.load_graph_val
 		load_node_val = self.query.load_node_val
 		load_edge_val = self.query.load_edge_val
-		get_keyframe = self.query.get_keyframe
+		load_keyframe = self._get_keyframe
 		updload = self._updload
 		updload(branch_now, turn_now, tick_now)
 
@@ -1883,7 +1900,7 @@ class ORM:
 				edgevalrows,
 			)
 		past_branch, past_turn, past_tick = latest_past_keyframe
-		keyframed = {}
+		keyframed = load_keyframe(past_branch, past_turn, past_tick)
 
 		def load_windows(graph, windows):
 			for window in reversed(windows):
@@ -1956,23 +1973,8 @@ class ORM:
 					)
 					updload(branch, turn, tick)
 
-		snap_keyframe = self._snap_keyframe_de_novo_graph
-		for graph in self.graph:
-			stuff = keyframed[graph] = get_keyframe(
-				graph, past_branch, past_turn, past_tick
-			)
+		for (graph,) in keyframed["graph_val"]:
 			updload(past_branch, past_turn, past_tick)
-			if stuff is not None:
-				nodes, edges, graph_val = stuff
-				snap_keyframe(
-					graph,
-					past_branch,
-					past_turn,
-					past_tick,
-					nodes,
-					edges,
-					graph_val,
-				)
 			if earliest_future_keyframe is None:
 				if latest_past_keyframe == (branch_now, turn_now, tick_now):
 					continue
