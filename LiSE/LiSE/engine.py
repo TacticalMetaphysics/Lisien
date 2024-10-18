@@ -548,6 +548,12 @@ class Engine(AbstractEngine, gORM, Executor):
 		ret = super().snap_keyframe(silent)
 		if hasattr(self, "_worker_processes"):
 			self._update_all_worker_process_states(clobber=True)
+		if ret and "nodes" in ret:
+			for (charn,), nodes in ret["nodes"].items():
+				character = self.character[charn]
+				assert (
+					character.node.keys() == nodes.keys()
+				), f"Bad keyframe. Nodes missing from keyframe: {character.node.keys() - nodes.keys()}"
 		return ret
 
 	def submit(
