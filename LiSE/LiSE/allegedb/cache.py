@@ -276,10 +276,10 @@ class Cache:
 			raise KeyError("Unknown branch", branch)
 		b = g[branch]
 		if turn not in b:
-			raise KeyError("Unknown turn", turn)
+			raise KeyError("Unknown turn", branch, turn)
 		r = b[turn]
 		if tick not in r:
-			raise KeyError("Unknown tick", tick)
+			raise KeyError("Unknown tick", branch, turn, tick)
 		ret = r[tick]
 		if copy:
 			ret = ret.copy()
