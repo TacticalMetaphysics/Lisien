@@ -1361,29 +1361,18 @@ class ORM:
 		graph_val_keyframe = {}
 		for (graph,) in self._nodes_cache.keyframe:
 			if graph not in nodes_keyframe:
-				nodes_keyframe[graph] = {}
-			try:
 				nodes_keyframe[graph] = self._nodes_cache.get_keyframe(
 					(graph,), *then
 				)
-			except KeyError:
-				pass
 		for graph, node in self._node_val_cache.keyframe:
 			if graph not in node_val_keyframe:
-				node_val_keyframe[graph] = {}
-			try:
 				node_val_keyframe[graph][node] = (
 					self._node_val_cache.get_keyframe((graph, node), *then)
 				)
-			except KeyError:
-				continue
 		for graph, orig, dest in self._edges_cache.keyframe:
-			try:
-				exists = self._edges_cache.get_keyframe(
-					(graph, orig, dest), *then
-				)[0]
-			except KeyError:
-				continue
+			exists = self._edges_cache.get_keyframe(
+				(graph, orig, dest), *then
+			)[0]
 			if graph in edges_keyframe:
 				if orig in edges_keyframe[graph]:
 					edges_keyframe[graph][orig][dest] = exists
@@ -1393,12 +1382,9 @@ class ORM:
 				edges_keyframe[graph] = {orig: {dest: exists}}
 		for graph, orig, dest, idx in self._edge_val_cache.keyframe:
 			assert idx == 0  # until I get to multigraphs
-			try:
-				val = self._edge_val_cache.get_keyframe(
-					(graph, orig, dest, idx), *then
-				)
-			except KeyError:
-				continue
+			val = self._edge_val_cache.get_keyframe(
+				(graph, orig, dest, idx), *then
+			)
 			if graph in edge_val_keyframe:
 				if orig in edge_val_keyframe:
 					edge_val_keyframe[graph][orig][dest] = val
@@ -1407,18 +1393,12 @@ class ORM:
 			else:
 				edge_val_keyframe[graph] = {orig: {dest: val}}
 		for graph in self.graph.keys():
-			try:
-				nodes_keyframe[graph] = self._nodes_cache.get_keyframe(
-					(graph,), *then
-				)
-			except KeyError:
-				nodes_keyframe[graph] = {}
-			try:
-				graph_val_keyframe[graph] = self._graph_val_cache.get_keyframe(
-					(graph,), *then
-				)
-			except KeyError:
-				graph_val_keyframe[graph] = {}
+			nodes_keyframe[graph] = self._nodes_cache.get_keyframe(
+				(graph,), *then
+			)
+			graph_val_keyframe[graph] = self._graph_val_cache.get_keyframe(
+				(graph,), *then
+			)
 			# apply the delta to the keyframes, then save the keyframes back
 			# into the caches, and possibly copy them to another branch as well
 			deltg = delta.get(graph, {})
