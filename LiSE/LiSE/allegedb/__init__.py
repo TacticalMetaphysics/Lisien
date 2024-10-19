@@ -1163,26 +1163,59 @@ class ORM:
 		}
 		for graph in self._graph_cache.iter_keys(branch, turn, tick):
 			graph_val[graph] = {"name": graph}
-		for k in self._graph_val_cache.keyframe:
+		for (k,) in self._graph_val_cache.keyframe:
 			graph_val[k] = self._graph_val_cache.get_keyframe(
-				k, branch, turn, tick, copy
+				(k,), branch, turn, tick, copy
 			)
-		for k in self._nodes_cache.keyframe:
+		for (k,) in self._nodes_cache.keyframe:
 			nodes[k] = self._nodes_cache.get_keyframe(
-				k, branch, turn, tick, copy
+				(k,), branch, turn, tick, copy
 			)
-		for k in self._node_val_cache.keyframe:
-			node_val[k] = self._node_val_cache.get_keyframe(
-				k, branch, turn, tick, copy
-			)
-		for k in self._edges_cache.keyframe:
-			edges[k] = self._edges_cache.get_keyframe(
-				k, branch, turn, tick, copy
-			)
-		for k in self._edge_val_cache.keyframe:
-			edge_val[k] = self._edge_val_cache.get_keyframe(
-				k, branch, turn, tick, copy
-			)
+		for graph, node in self._node_val_cache.keyframe:
+			try:
+				nvv: StatDict = self._node_val_cache.get_keyframe(
+					(graph, node), branch, turn, tick, copy
+				)
+			except KeyError:  # node not present in this keyframe
+				continue
+			if graph in node_val:
+				node_val[graph][node] = nvv
+			else:
+				node_val[graph] = {node: nvv}
+		for graph, orig, dest in self._edges_cache.keyframe:
+			try:
+				idx_ex = self._edges_cache.get_keyframe(
+					(graph, orig, dest), branch, turn, tick, copy
+				)
+			except KeyError:  # edge not present in this keyframe
+				continue
+			assert idx_ex == {
+				0: True
+			}, "Not doing edge indexes until multigraphs come back"
+			if graph in edges:
+				if orig in edges[graph]:
+					edges[graph][orig][dest] = True
+				else:
+					edges[graph][orig] = {dest: True}
+			else:
+				edges[graph] = {orig: {dest: True}}
+		for graph, orig, dest, idx in self._edge_val_cache.keyframe:
+			assert (
+				idx == 0
+			), "Not doing idx other than 0 until multigraphs come back"
+			try:
+				evv = self._edge_val_cache.get_keyframe(
+					(graph, orig, dest, idx), branch, turn, tick, copy
+				)
+			except KeyError:  # edge not present in this keyframe
+				continue
+			if graph in edge_val:
+				if orig in edge_val[graph]:
+					edge_val[graph][orig][dest] = evv
+				else:
+					edges[graph][orig] = {dest: evv}
+			else:
+				edges[graph] = {orig: {dest: evv}}
 		return ret
 
 	def _init_load(self) -> None:
