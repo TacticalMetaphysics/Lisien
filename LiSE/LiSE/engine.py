@@ -878,6 +878,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				updload(branch, turn, tick)
 		else:
 			self.debug(f"No thing data at {branch, turn, tick}")
+		self._make_transient_keyframes(branch, turn, tick)
 
 	def _init_caches(self) -> None:
 		from .xcollections import (
@@ -1062,73 +1063,60 @@ class Engine(AbstractEngine, gORM, Executor):
 		kf["rulebook"] = self._rulebooks_cache.get_keyframe(branch, turn, tick)
 		return kf
 
+	def _make_transient_keyframes(self, branch: str, turn: int, tick: int):
+		self._universal_cache.set_keyframe(
+			branch,
+			turn,
+			tick,
+			{
+				key: self._universal_cache.retrieve(key, branch, turn, tick)
+				for key in self._universal_cache.iter_keys(branch, turn, tick)
+			},
+		)
+		self._triggers_cache.set_keyframe(
+			branch,
+			turn,
+			tick,
+			{
+				rule: self._triggers_cache.retrieve(rule, branch, turn, tick)
+				for rule in self._triggers_cache.iter_keys(branch, turn, tick)
+			},
+		)
+		self._prereqs_cache.set_keyframe(
+			branch,
+			turn,
+			tick,
+			{
+				rule: self._triggers_cache.retrieve(rule, branch, turn, tick)
+				for rule in self._prereqs_cache.iter_keys(branch, turn, tick)
+			},
+		)
+		self._actions_cache.set_keyframe(
+			branch,
+			turn,
+			tick,
+			{
+				rule: self._actions_cache.retrieve(rule, branch, turn, tick)
+				for rule in self._actions_cache.iter_keys(branch, turn, tick)
+			},
+		)
+		self._rulebooks_cache.set_keyframe(
+			branch,
+			turn,
+			tick,
+			{
+				rulebook: self._rulebooks_cache.retrieve(
+					rulebook, branch, turn, tick
+				)
+				for rulebook in self._rulebooks_cache.iter_keys(
+					branch, turn, tick
+				)
+			},
+		)
+
 	def _get_keyframe(self, branch: str, turn: int, tick: int, copy=True):
 		if (branch, turn, tick) not in self._keyframes_loaded:
-			self._universal_cache.set_keyframe(
-				branch,
-				turn,
-				tick,
-				{
-					key: self._universal_cache.retrieve(
-						key, branch, turn, tick
-					)
-					for key in self._universal_cache.iter_keys(
-						branch, turn, tick
-					)
-				},
-			)
-			self._triggers_cache.set_keyframe(
-				branch,
-				turn,
-				tick,
-				{
-					rule: self._triggers_cache.retrieve(
-						rule, branch, turn, tick
-					)
-					for rule in self._triggers_cache.iter_keys(
-						branch, turn, tick
-					)
-				},
-			)
-			self._prereqs_cache.set_keyframe(
-				branch,
-				turn,
-				tick,
-				{
-					rule: self._triggers_cache.retrieve(
-						rule, branch, turn, tick
-					)
-					for rule in self._prereqs_cache.iter_keys(
-						branch, turn, tick
-					)
-				},
-			)
-			self._actions_cache.set_keyframe(
-				branch,
-				turn,
-				tick,
-				{
-					rule: self._actions_cache.retrieve(
-						rule, branch, turn, tick
-					)
-					for rule in self._actions_cache.iter_keys(
-						branch, turn, tick
-					)
-				},
-			)
-			self._rulebooks_cache.set_keyframe(
-				branch,
-				turn,
-				tick,
-				{
-					rulebook: self._rulebooks_cache.retrieve(
-						rulebook, branch, turn, tick
-					)
-					for rulebook in self._rulebooks_cache.iter_keys(
-						branch, turn, tick
-					)
-				},
-			)
+			self._make_transient_keyframes(branch, turn, tick)
 		return super()._get_keyframe(branch, turn, tick, copy)
 
 	def get_delta(
@@ -2795,9 +2783,9 @@ class Engine(AbstractEngine, gORM, Executor):
 				except AttributeError:
 					data = nx.from_dict_of_lists(data)
 			data.graph.update(kwargs)
+		self._init_graph(name, "DiGraph", data)
 		if self._btt() not in self._keyframes_times:
 			self.snap_keyframe(silent=True)
-		self._init_graph(name, "DiGraph", data)
 		self._graph_objs[name] = self.char_cls(self, name)
 
 	def del_graph(self, name: Key) -> None:
@@ -2834,9 +2822,7 @@ class Engine(AbstractEngine, gORM, Executor):
 	def _snap_keyframe_de_novo(
 		self, branch: str, turn: int, tick: int
 	) -> None:
-		self._universal_cache.set_keyframe(
-			branch, turn, tick, dict(self.universal.items())
-		)
+		self._make_transient_keyframes(branch, turn, tick)
 		all_graphs = {graph for (graph,) in self._graph_cache.keyframe}
 		for char in all_graphs:
 			charunit = {
