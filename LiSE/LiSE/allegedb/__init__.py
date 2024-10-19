@@ -1432,10 +1432,12 @@ class ORM:
 			# apply the delta to the keyframes, then save the keyframes back
 			# into the caches, and possibly copy them to another branch as well
 			deltg = delta.get(graph, {})
+			nkg: NodesDict = nodes_keyframe.setdefault(graph, {})
+			nvkg: NodeValDict = node_val_keyframe.setdefault(graph, {})
+			ekg: EdgesDict = edges_keyframe.setdefault(graph, {})
+			evkg: EdgeValDict = edge_val_keyframe.setdefault(graph, {})
 			if deltg is not None and "nodes" in deltg:
 				dn = deltg.pop("nodes")
-				nkg: NodesDict = nodes_keyframe[graph]
-				nvkg: NodeValDict = node_val_keyframe.setdefault(graph, {})
 				for node, exists in dn.items():
 					if node in nkg:
 						if not exists:
@@ -1444,21 +1446,17 @@ class ORM:
 								del nvkg[node]
 					elif exists:
 						nkg[node] = True
-			if graph not in node_val_keyframe:
-				node_val_keyframe[graph] = {}
-			nvkg: NodeValDict = node_val_keyframe[graph]
 			self._nodes_cache.set_keyframe((graph,), *now, nvkg)
 			for node, ex in nodes_keyframe[graph].items():
 				if ex and node not in nvkg:
 					nvkg[node] = {"name": node}
 			if deltg is not None and "node_val" in deltg:
 				dnv = deltg.pop("node_val")
-				nvg: NodeValDict = node_val_keyframe[graph]
 				for node, value in dnv.items():
 					node: Key
 					value: StatDict
-					if node in nvg:
-						nvgn = nvg[node]
+					if node in nvkg:
+						nvgn = nvkg[node]
 						for k, v in value.items():
 							if v is None:
 								if k in nvgn:
@@ -1466,16 +1464,14 @@ class ORM:
 							else:
 								nvgn[k] = v
 					else:
-						nvg[node] = value
-					if "name" not in nvg[node]:
-						nvg[node]["name"] = node
+						nvkg[node] = value
+					if "name" not in nvkg[node]:
+						nvkg[node]["name"] = node
 			for node, val in keyframe["node_val"][graph].items():
 				val: StatDict
 				self._node_val_cache.set_keyframe((graph, node), *now, val)
 			if deltg is not None and "edges" in deltg:
 				dge = deltg.pop("edges")
-				ekg: EdgesDict = edges_keyframe.setdefault(graph, {})
-				evkg: EdgeValDict = edge_val_keyframe.setdefault(graph, {})
 				for (orig, dest), exists in dge.items():
 					if orig in ekg:
 						if exists:
@@ -1502,7 +1498,6 @@ class ORM:
 			if deltg is not None and "edge_val" in deltg:
 				dgev = deltg.pop("edge_val")
 				if graph in edge_val_keyframe:
-					evkg: EdgeValDict = edge_val_keyframe[graph]
 					for orig, dests in dgev.items():
 						if orig in evkg:
 							evkgo = evkg[orig]
