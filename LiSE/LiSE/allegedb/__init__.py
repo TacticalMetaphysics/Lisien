@@ -59,10 +59,27 @@ as well as hashable.
 Graph = DiGraph  # until I implement other graph types...
 
 StatDict = Dict[Key, Any]
+GraphValDict = Dict[Key, StatDict]
 NodeValDict = Dict[Key, StatDict]
+GraphNodeValDict = Dict[Key, NodeValDict]
 EdgeValDict = Dict[Key, Dict[Key, StatDict]]
-DeltaDict = Dict[Key, Union[StatDict, NodeValDict, EdgeValDict, None]]
-KeyframeTuple = Tuple[Key, str, int, int, NodeValDict, EdgeValDict, StatDict]
+GraphEdgeValDict = Dict[Key, EdgeValDict]
+DeltaDict = Dict[
+	Key, Union[GraphValDict, GraphNodeValDict, GraphEdgeValDict, None]
+]
+KeyframeTuple = Tuple[
+	Key,
+	str,
+	int,
+	int,
+	GraphNodeValDict,
+	GraphEdgeValDict,
+	GraphValDict,
+]
+NodesDict = Dict[Key, bool]
+GraphNodesDict = Dict[Key, NodesDict]
+EdgesDict = Dict[Key, Dict[Key, bool]]
+GraphEdgesDict = Dict[Key, EdgesDict]
 
 
 def world_locked(fn: Callable) -> Callable:
@@ -1120,56 +1137,52 @@ class ORM:
 		if cache_arranger:
 			self._cache_arrange_thread.start()
 
-	def _get_kf(self, branch: str, turn: int, tick: int, copy=True) -> dict:
+	def _get_kf(
+		self, branch: str, turn: int, tick: int, copy=True
+	) -> Dict[
+		Key,
+		Union[
+			GraphNodesDict,
+			GraphNodeValDict,
+			GraphEdgesDict,
+			GraphEdgeValDict,
+			GraphValDict,
+		],
+	]:
+		graph_val: GraphValDict = {}
+		nodes: GraphNodesDict = {}
+		node_val: GraphNodeValDict = {}
+		edges: GraphEdgesDict = {}
+		edge_val: GraphEdgeValDict = {}
 		ret = {
-			"graph_val": {},
-			"nodes": {},
-			"node_val": {},
-			"edges": {},
-			"edge_val": {},
+			"graph_val": graph_val,
+			"nodes": nodes,
+			"node_val": node_val,
+			"edges": edges,
+			"edge_val": edge_val,
 		}
 		for graph in self._graph_cache.iter_keys(branch, turn, tick):
-			ret["graph_val"][graph,] = {"name": graph}
-		gv = ret["graph_val"]
+			graph_val[graph] = {"name": graph}
 		for k in self._graph_val_cache.keyframe:
-			try:
-				gv[k] = self._graph_val_cache.get_keyframe(
-					k, branch, turn, tick, copy
-				)
-			except KeyError:
-				pass
-		n = ret["nodes"]
+			graph_val[k] = self._graph_val_cache.get_keyframe(
+				k, branch, turn, tick, copy
+			)
 		for k in self._nodes_cache.keyframe:
-			try:
-				n[k] = self._nodes_cache.get_keyframe(
-					k, branch, turn, tick, copy
-				)
-			except KeyError:
-				pass
-		nv = ret["node_val"]
+			nodes[k] = self._nodes_cache.get_keyframe(
+				k, branch, turn, tick, copy
+			)
 		for k in self._node_val_cache.keyframe:
-			try:
-				nv[k] = self._node_val_cache.get_keyframe(
-					k, branch, turn, tick, copy
-				)
-			except KeyError:
-				pass
-		e = ret["edges"]
+			node_val[k] = self._node_val_cache.get_keyframe(
+				k, branch, turn, tick, copy
+			)
 		for k in self._edges_cache.keyframe:
-			try:
-				e[k] = self._edges_cache.get_keyframe(
-					k, branch, turn, tick, copy
-				)
-			except KeyError:
-				pass
-		ev = ret["edge_val"]
+			edges[k] = self._edges_cache.get_keyframe(
+				k, branch, turn, tick, copy
+			)
 		for k in self._edge_val_cache.keyframe:
-			try:
-				ev[k] = self._edge_val_cache.get_keyframe(
-					k, branch, turn, tick, copy
-				)
-			except KeyError:
-				pass
+			edge_val[k] = self._edge_val_cache.get_keyframe(
+				k, branch, turn, tick, copy
+			)
 		return ret
 
 	def _init_load(self) -> None:
@@ -1356,7 +1369,9 @@ class ORM:
 		kfl = self._keyframes_list
 		kfd = self._keyframes_dict
 		kfs = self._keyframes_times
+		kfsl = self._keyframes_loaded
 		kfs.add(now)
+		kfsl.add(now)
 		branch, turn, tick = now
 		if branch not in kfd:
 			kfd[branch] = {
@@ -1371,107 +1386,60 @@ class ORM:
 		else:
 			kfd[branch][turn].add(tick)
 		nkfs = self._new_keyframes
-		nodes_keyframe = {}
-		node_val_keyframe = {}
-		edges_keyframe = {}
-		edge_val_keyframe = {}
-		graph_val_keyframe = {}
-		for (graph,) in self._nodes_cache.keyframe:
-			if graph not in nodes_keyframe:
-				nodes_keyframe[graph] = self._nodes_cache.get_keyframe(
-					(graph,), *then
-				)
-		for graph, node in self._node_val_cache.keyframe:
-			if graph not in node_val_keyframe:
-				node_val_keyframe[graph][node] = (
-					self._node_val_cache.get_keyframe((graph, node), *then)
-				)
-		for graph, orig, dest in self._edges_cache.keyframe:
-			exists = self._edges_cache.get_keyframe(
-				(graph, orig, dest), *then
-			)[0]
-			if graph in edges_keyframe:
-				if orig in edges_keyframe[graph]:
-					edges_keyframe[graph][orig][dest] = exists
-				else:
-					edges_keyframe[graph][orig] = {dest: exists}
-			else:
-				edges_keyframe[graph] = {orig: {dest: exists}}
-		for graph, orig, dest, idx in self._edge_val_cache.keyframe:
-			assert idx == 0  # until I get to multigraphs
-			val = self._edge_val_cache.get_keyframe(
-				(graph, orig, dest, idx), *then
-			)
-			if graph in edge_val_keyframe:
-				if orig in edge_val_keyframe:
-					edge_val_keyframe[graph][orig][dest] = val
-				else:
-					edge_val_keyframe[graph][orig] = {dest: val}
-			else:
-				edge_val_keyframe[graph] = {orig: {dest: val}}
-		for graph in self.graph.keys():
-			nodes_keyframe[graph] = self._nodes_cache.get_keyframe(
-				(graph,), *then
-			)
-			graph_val_keyframe[graph] = self._graph_val_cache.get_keyframe(
-				(graph,), *then
-			)
+		keyframe = self._get_keyframe(*then)
+		graph_val_keyframe: GraphValDict = keyframe["graph_val"]
+		nodes_keyframe: GraphNodesDict = keyframe["nodes"]
+		node_val_keyframe: GraphNodeValDict = keyframe["node_val"]
+		edges_keyframe: GraphEdgesDict = keyframe["edges"]
+		edge_val_keyframe: GraphEdgeValDict = keyframe["edge_val"]
+		for graph in graph_val_keyframe:
 			# apply the delta to the keyframes, then save the keyframes back
 			# into the caches, and possibly copy them to another branch as well
 			deltg = delta.get(graph, {})
 			if deltg is not None and "nodes" in deltg:
 				dn = deltg.pop("nodes")
-				if graph in nodes_keyframe:
-					nkg = nodes_keyframe[graph]
-					nvkg = node_val_keyframe.setdefault(graph, {})
-					for node, exists in dn.items():
-						if node in nkg:
-							if not exists:
-								del nkg[node]
-								if node in nvkg:
-									del nvkg[node]
-						elif exists:
-							nkg[node] = True
-				else:
-					nodes_keyframe[graph] = {
-						node: exists for node, exists in dn.items() if exists
-					}
-			if graph in nodes_keyframe:
-				if graph not in node_val_keyframe:
-					node_val_keyframe[graph] = {}
-				nvkg = node_val_keyframe[graph]
-				self._nodes_cache.set_keyframe(
-					(graph,), *now, nodes_keyframe[graph]
-				)
-				for node, ex in nodes_keyframe[graph].items():
-					if ex and node not in nvkg:
-						nvkg[node] = {"name": node}
+				nkg: NodesDict = nodes_keyframe[graph]
+				nvkg: NodeValDict = node_val_keyframe.setdefault(graph, {})
+				for node, exists in dn.items():
+					if node in nkg:
+						if not exists:
+							del nkg[node]
+							if node in nvkg:
+								del nvkg[node]
+					elif exists:
+						nkg[node] = True
+			if graph not in node_val_keyframe:
+				node_val_keyframe[graph] = {}
+			nvkg: NodeValDict = node_val_keyframe[graph]
+			self._nodes_cache.set_keyframe((graph,), *now, nvkg)
+			for node, ex in nodes_keyframe[graph].items():
+				if ex and node not in nvkg:
+					nvkg[node] = {"name": node}
 			if deltg is not None and "node_val" in deltg:
 				dnv = deltg.pop("node_val")
-				if graph in node_val_keyframe:
-					nvg = node_val_keyframe[graph]
-					for node, value in dnv.items():
-						if node in nvg:
-							nvgn = nvg[node]
-							for k, v in value.items():
-								if v is None:
-									if k in nvgn:
-										del nvgn[k]
-								else:
-									nvgn[k] = v
-						else:
-							nvg[node] = value
-						if "name" not in nvg[node]:
-							nvg[node]["name"] = node
-				else:
-					node_val_keyframe[graph] = dnv
-			if graph in node_val_keyframe:
-				for node, val in node_val_keyframe[graph].items():
-					self._node_val_cache.set_keyframe((graph, node), *now, val)
+				nvg: NodeValDict = node_val_keyframe[graph]
+				for node, value in dnv.items():
+					node: Key
+					value: StatDict
+					if node in nvg:
+						nvgn = nvg[node]
+						for k, v in value.items():
+							if v is None:
+								if k in nvgn:
+									del nvgn[k]
+							else:
+								nvgn[k] = v
+					else:
+						nvg[node] = value
+					if "name" not in nvg[node]:
+						nvg[node]["name"] = node
+			for node, val in keyframe["node_val"][graph].items():
+				val: StatDict
+				self._node_val_cache.set_keyframe((graph, node), *now, val)
 			if deltg is not None and "edges" in deltg:
 				dge = deltg.pop("edges")
-				ekg = edges_keyframe.setdefault(graph, {})
-				evkg = edge_val_keyframe.setdefault(graph, {})
+				ekg: EdgesDict = edges_keyframe.setdefault(graph, {})
+				evkg: EdgeValDict = edge_val_keyframe.setdefault(graph, {})
 				for (orig, dest), exists in dge.items():
 					if orig in ekg:
 						if exists:
@@ -1498,7 +1466,7 @@ class ORM:
 			if deltg is not None and "edge_val" in deltg:
 				dgev = deltg.pop("edge_val")
 				if graph in edge_val_keyframe:
-					evkg = edge_val_keyframe[graph]
+					evkg: EdgeValDict = edge_val_keyframe[graph]
 					for orig, dests in dgev.items():
 						if orig in evkg:
 							evkgo = evkg[orig]
@@ -1973,7 +1941,7 @@ class ORM:
 					)
 					updload(branch, turn, tick)
 
-		for (graph,) in keyframed["graph_val"]:
+		for graph in keyframed["graph_val"]:
 			updload(past_branch, past_turn, past_tick)
 			if earliest_future_keyframe is None:
 				if latest_past_keyframe == (branch_now, turn_now, tick_now):
