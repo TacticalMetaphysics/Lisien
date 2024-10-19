@@ -1793,30 +1793,9 @@ class ORM:
 		latest_past_keyframe: Optional[Tuple[str, int, int]]
 		earliest_future_keyframe: Optional[Tuple[str, int, int]]
 		branch_now, turn_now, tick_now = branch, turn, tick
-		loaded = self._loaded
-		if branch_now in loaded:
-			turn_from, tick_from, turn_to, tick_to = loaded[branch_now]
-			if turn_now < turn_from or (
-				turn_now == turn_from and tick_now < tick_from
-			):
-				earliest_future_keyframe = (branch_now, turn_from, tick_from)
-				latest_past_keyframe, _ = self._build_keyframe_window_new(
-					branch_now, turn_now, tick_now
-				)
-			elif turn_now > turn_to or (
-				turn_now == turn_to and tick_now > tick_to
-			):
-				latest_past_keyframe = (branch_now, turn_to, tick_to)
-				_, earliest_future_keyframe = self._build_keyframe_window_new(
-					branch_now, turn_now, tick_now
-				)
-			else:
-				latest_past_keyframe = (branch_now, turn_from, tick_from)
-				earliest_future_keyframe = (branch_now, turn_to, tick_to)
-		else:
-			(latest_past_keyframe, earliest_future_keyframe) = (
-				self._build_keyframe_window_new(branch_now, turn_now, tick_now)
-			)
+		(latest_past_keyframe, earliest_future_keyframe) = (
+			self._build_keyframe_window_new(branch_now, turn_now, tick_now)
+		)
 		# If branch is a descendant of branch_now, don't load the keyframe
 		# there, because then we'd potentially be loading keyframes from any
 		# number of possible futures, and we're trying to be conservative
