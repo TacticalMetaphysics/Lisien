@@ -52,14 +52,16 @@ def handle_initialized(request, handle):
 	yield handle
 
 
-@pytest.fixture(scope="function", params=["parallel", "serial"])
+@pytest.fixture(
+	scope="function", params=["parallel-execution", "serial-execution"]
+)
 def engy(tmp_path, request):
 	with Engine(
 		tmp_path,
 		random_seed=69105,
 		enforce_end_of_time=False,
-		threaded_triggers=request.param == "parallel",
-		workers=2 if request.param == "parallel" else 0,
+		threaded_triggers=request.param == "parallel-execution",
+		workers=2 if request.param == "parallel-execution" else 0,
 	) as eng:
 		yield eng
 
