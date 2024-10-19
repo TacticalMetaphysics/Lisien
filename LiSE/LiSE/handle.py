@@ -254,6 +254,9 @@ class EngineHandle:
 			mostly_packed_delta[RULEBOOK] = delta.pop(RULEBOOK)
 		rules = delta.pop(RULES, {})
 		for char, chardelta in delta.items():
+			if chardelta == NONE:
+				mostly_packed_delta[char] = NONE
+				continue
 			if chardelta.get(b"\xa4name") == b"\xc0":
 				mostly_packed_delta[char] = b"\xc0"
 				continue
@@ -404,39 +407,61 @@ class EngineHandle:
 			a = kf_from["graph_val"].get(graph, {})
 			b = kf_to["graph_val"].get(graph, {})
 			for k in a.keys() | b.keys():
-				keys.append(("graph", graph[0], k))
+				keys.append(("graph", graph, k))
 				va = a.get(k)
 				vb = b.get(k)
 				ids_from.append(id(va))
 				ids_to.append(id(vb))
 				values_from.append(va)
 				values_to.append(vb)
-		for graph, node in (
-			kf_from["node_val"].keys() | kf_to["node_val"].keys()
-		):
-			a = kf_from["node_val"].get((graph, node), {})
-			b = kf_to["node_val"].get((graph, node), {})
-			for k in a.keys() | b.keys():
-				keys.append(("node", graph, node, k))
-				va = a.get(k)
-				vb = b.get(k)
-				ids_from.append(id(va))
-				ids_to.append(id(vb))
-				values_from.append(va)
-				values_to.append(vb)
-		for graph, orig, dest, i in (
-			kf_from["edge_val"].keys() | kf_to["edge_val"].keys()
-		):
-			a = kf_from["edge_val"].get((graph, orig, dest, i), {})
-			b = kf_to["edge_val"].get((graph, orig, dest, i), {})
-			for k in a.keys() | b.keys():
-				keys.append(("edge", graph, orig, dest, k))
-				va = a.get(k)
-				vb = b.get(k)
-				ids_from.append(id(va))
-				ids_to.append(id(vb))
-				values_from.append(va)
-				values_to.append(vb)
+		for graph in kf_from["node_val"].keys() | kf_to["node_val"].keys():
+			nodes = set()
+			if graph in kf_from["node_val"]:
+				nodes.update(kf_from["node_val"][graph].keys())
+			if graph in kf_to["node_val"]:
+				nodes.update(kf_to["node_val"][graph].keys())
+			for node in nodes:
+				a = kf_from["node_val"].get(graph, {}).get(node, {})
+				b = kf_to["node_val"].get(graph, {}).get(node, {})
+				for k in a.keys() | b.keys():
+					keys.append(("node", graph, node, k))
+					va = a.get(k)
+					vb = b.get(k)
+					ids_from.append(id(va))
+					ids_to.append(id(vb))
+					values_from.append(va)
+					values_to.append(vb)
+		for graph in kf_from["edge_val"].keys() | kf_to["edge_val"].keys():
+			edges = set()
+			if graph in kf_from["edge_val"]:
+				for orig in kf_from["edge_val"][graph]:
+					for dest in kf_from["edge_val"][graph][orig]:
+						edges.add((orig, dest))
+			if graph in kf_to["edge_val"]:
+				for orig in kf_to["edge_val"][graph]:
+					for dest in kf_to["edge_val"][graph][orig]:
+						edges.add((orig, dest))
+			for orig, dest in edges:
+				a = (
+					kf_from["edge_val"]
+					.get(graph, {})
+					.get(orig, {})
+					.get(dest, {})
+				)
+				b = (
+					kf_to["edge_val"]
+					.get(graph, {})
+					.get(orig, {})
+					.get(dest, {})
+				)
+				for k in a.keys() | b.keys():
+					keys.append(("edge", graph, orig, dest, k))
+					va = a.get(k)
+					vb = b.get(k)
+					ids_from.append(id(va))
+					ids_to.append(id(vb))
+					values_from.append(va)
+					values_to.append(vb)
 		for rulebook in kf_from["rulebook"].keys() | kf_to["rulebook"].keys():
 			va = kf_from["rulebook"].get(rulebook, ())
 			vb = kf_to["rulebook"].get(rulebook, ())
@@ -532,14 +557,22 @@ class EngineHandle:
 				kf_from["nodes"].keys() & kf_to["nodes"].keys()
 			)
 			deleted_nodes = {}
-			for (graph,) in nodes_intersection:
+			for graph in nodes_intersection:
 				deleted_nodes_here = deleted_nodes[graph] = (
-					kf_from["nodes"][graph,].keys()
-					- kf_to["nodes"][graph,].keys()
+					kf_from["nodes"][graph].keys()
+					- kf_to["nodes"][graph].keys()
 				)
 				for node in deleted_nodes_here:
 					futs.append(pool.submit(pack_node, graph, node, FALSE))
-			deleted_edges = kf_from["edges"].keys() - kf_to["edges"].keys()
+			deleted_edges = set()
+			for graph in kf_from["edges"]:
+				for orig in kf_from["edges"][graph]:
+					for dest in kf_from["edges"][graph][orig]:
+						deleted_edges.add((graph, orig, dest))
+			for graph in kf_to["edges"]:
+				for orig in kf_to["edges"][graph]:
+					for dest in kf_to["edges"][graph][orig]:
+						deleted_edges.discard((graph, orig, dest))
 			for k, va, vb, _ in filter(
 				itemgetter(3),
 				zip(keys, values_from, values_to, values_changed),
@@ -549,10 +582,14 @@ class EngineHandle:
 						pack_one, k, va, vb, deleted_nodes, deleted_edges
 					)
 				)
-			for (graph,) in nodes_intersection:
+			for graf in (
+				kf_from["graph_val"].keys() - kf_to["graph_val"].keys()
+			):
+				delta[self.pack(graf)] = NONE
+			for graph in nodes_intersection:
 				for node in (
-					kf_to["nodes"][graph,].keys()
-					- kf_from["nodes"][graph,].keys()
+					kf_to["nodes"][graph].keys()
+					- kf_from["nodes"][graph].keys()
 				):
 					futs.append(pool.submit(pack_node, graph, node, TRUE))
 			for graph, orig, dest in deleted_edges:
@@ -580,7 +617,7 @@ class EngineHandle:
 		if not delta[RULES]:
 			del delta[RULES]
 		for key, mapp in delta.items():
-			if key in {RULES, RULEBOOKS, ETERNAL, UNIVERSAL}:
+			if key in {RULES, RULEBOOKS, ETERNAL, UNIVERSAL} or mapp == NONE:
 				continue
 			todel = []
 			for keey, mappp in mapp.items():

@@ -1016,68 +1016,120 @@ class Engine(AbstractEngine, gORM, Executor):
 	) -> portal_cls:
 		return self.portal_cls(graph, orig, dest)
 
+	def _alias_kf(self, branch_from, branch_to, turn, tick):
+		super()._alias_kf(branch_from, branch_to, turn, tick)
+		self._universal_cache.set_keyframe(
+			branch_to,
+			turn,
+			tick,
+			self._universal_cache.get_keyframe(branch_from, turn, tick),
+		)
+		self._triggers_cache.set_keyframe(
+			branch_to,
+			turn,
+			tick,
+			self._triggers_cache.get_keyframe(branch_from, turn, tick),
+		)
+		self._prereqs_cache.set_keyframe(
+			branch_to,
+			turn,
+			tick,
+			self._prereqs_cache.get_keyframe(branch_from, turn, tick),
+		)
+		self._actions_cache.set_keyframe(
+			branch_to,
+			turn,
+			tick,
+			self._actions_cache.get_keyframe(branch_from, turn, tick),
+		)
+		self._rulebooks_cache.set_keyframe(
+			branch_to,
+			turn,
+			tick,
+			self._rulebooks_cache.get_keyframe(branch_from, turn, tick),
+		)
+
 	def _get_kf(
 		self, branch: str, turn: int, tick: int, copy: bool = True
 	) -> dict:
 		kf = super()._get_kf(branch, turn, tick, copy=copy)
-		try:
-			kf["universal"] = self._universal_cache.get_keyframe(
-				branch, turn, tick
-			)
-		except KeyError:
-			kf["universal"] = {
-				key: self._universal_cache.retrieve(key, branch, turn, tick)
-				for key in self._universal_cache.iter_keys(branch, turn, tick)
-			}
-		try:
-			kf["triggers"] = self._triggers_cache.get_keyframe(
-				branch, turn, tick
-			)
-		except KeyError:
-			kf["triggers"] = {
-				trigger: self._triggers_cache.retrieve(
-					trigger, branch, turn, tick
-				)
-				for trigger in self._triggers_cache.iter_keys(
-					branch, turn, tick
-				)
-			}
-		try:
-			kf["prereqs"] = self._prereqs_cache.get_keyframe(
-				branch, turn, tick
-			)
-		except KeyError:
-			kf["prereqs"] = {
-				prereq: self._prereqs_cache.retrieve(
-					prereq, branch, turn, tick
-				)
-				for prereq in self._prereqs_cache.iter_keys(branch, turn, tick)
-			}
-		try:
-			kf["actions"] = self._actions_cache.get_keyframe(
-				branch, turn, tick
-			)
-		except KeyError:
-			kf["actions"] = {
-				action: self._actions_cache.retrieve(
-					action, branch, turn, tick
-				)
-				for action in self._actions_cache.iter_keys(branch, turn, tick)
-			}
-		try:
-			kf["rulebook"] = self._rulebooks_cache.get_keyframe(
-				branch, turn, tick
-			)
-		except KeyError:
-			kf["rulebook"] = {
-				rulebook: self._rulebooks_cache.retrieve(
-					rulebook, branch, turn, tick
-				)
-				for rulebook in self._rulebooks_cache.iter_keys(
-					branch, turn, tick
-				)
-			}
+		kf["universal"] = self._universal_cache.get_keyframe(
+			branch, turn, tick
+		)
+		kf["triggers"] = self._triggers_cache.get_keyframe(branch, turn, tick)
+		kf["prereqs"] = self._prereqs_cache.get_keyframe(branch, turn, tick)
+		kf["actions"] = self._actions_cache.get_keyframe(branch, turn, tick)
+		kf["rulebook"] = self._rulebooks_cache.get_keyframe(branch, turn, tick)
 		return kf
+
+	def _get_keyframe(self, branch: str, turn: int, tick: int, copy=True):
+		if (branch, turn, tick) not in self._keyframes_loaded:
+			self._universal_cache.set_keyframe(
+				branch,
+				turn,
+				tick,
+				{
+					key: self._universal_cache.retrieve(
+						key, branch, turn, tick
+					)
+					for key in self._universal_cache.iter_keys(
+						branch, turn, tick
+					)
+				},
+			)
+			self._triggers_cache.set_keyframe(
+				branch,
+				turn,
+				tick,
+				{
+					rule: self._triggers_cache.retrieve(
+						rule, branch, turn, tick
+					)
+					for rule in self._triggers_cache.iter_keys(
+						branch, turn, tick
+					)
+				},
+			)
+			self._prereqs_cache.set_keyframe(
+				branch,
+				turn,
+				tick,
+				{
+					rule: self._triggers_cache.retrieve(
+						rule, branch, turn, tick
+					)
+					for rule in self._prereqs_cache.iter_keys(
+						branch, turn, tick
+					)
+				},
+			)
+			self._actions_cache.set_keyframe(
+				branch,
+				turn,
+				tick,
+				{
+					rule: self._actions_cache.retrieve(
+						rule, branch, turn, tick
+					)
+					for rule in self._actions_cache.iter_keys(
+						branch, turn, tick
+					)
+				},
+			)
+			self._rulebooks_cache.set_keyframe(
+				branch,
+				turn,
+				tick,
+				{
+					rulebook: self._rulebooks_cache.retrieve(
+						rulebook, branch, turn, tick
+					)
+					for rulebook in self._rulebooks_cache.iter_keys(
+						branch, turn, tick
+					)
+				},
+			)
+		return super()._get_keyframe(branch, turn, tick, copy)
 
 	def get_delta(
 		self,
@@ -1126,6 +1178,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			if not isinstance(arg, int):
 				raise TypeError("turn and tick must be int")
 		if turn_from == turn_to:
+			if tick_from == tick_to:
+				return {}
 			return self._get_turn_delta(branch, turn_to, tick_from, tick_to)
 		delta = super().get_delta(
 			branch, turn_from, tick_from, turn_to, tick_to

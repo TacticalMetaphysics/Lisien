@@ -970,14 +970,22 @@ class ORM:
 		"""Load the keyframe if it's not loaded, and return it"""
 		if (branch, turn, tick) in self._keyframes_loaded:
 			return self._get_kf(branch, turn, tick, copy=copy)
-		for graph in self._graph_cache.iter_keys(branch, turn, tick):
-			self._snap_keyframe_de_novo_graph(
-				graph,
-				branch,
-				turn,
-				tick,
-				*self.query.get_keyframe(graph, branch, turn, tick),
-			)
+		with self.batch():  # so that iter_keys doesn't try fetching the kf we're about to make
+			graphs = set(self._graph_cache.iter_keys(branch, turn, tick))
+			for graph in graphs:
+				try:
+					# I didn't think I'd have to do this, because `iter_keys`
+					# ignored None values, but actually it doesn't...
+					self._graph_cache.retrieve(graph, branch, turn, tick)
+				except KeyError:
+					continue
+				self._snap_keyframe_de_novo_graph(
+					graph,
+					branch,
+					turn,
+					tick,
+					*self.query.get_keyframe(graph, branch, turn, tick),
+				)
 		self._keyframes_loaded.add((branch, turn, tick))
 		return self._get_kf(branch, turn, tick, copy=copy)
 
@@ -1165,10 +1173,12 @@ class ORM:
 			"edge_val": edge_val,
 		}
 		for graph in self._graph_cache.iter_keys(branch, turn, tick):
-			graph_val[graph] = {"name": graph}
-		for k in graph_val:
-			if self._graph_cache.retrieve(k, branch, turn, tick) == "Deleted":
+			try:
+				self._graph_cache.retrieve(graph, branch, turn, tick)
+			except KeyError:
 				continue
+			graph_val[graph] = {}
+		for k in graph_val:
 			try:
 				graph_val[k] = self._graph_val_cache.get_keyframe(
 					(k,), branch, turn, tick, copy
@@ -1313,6 +1323,18 @@ class ORM:
 		edges: EdgeValDict,
 		graph_val: StatDict,
 	) -> None:
+		try:
+			graphs_keyframe = self._graph_cache.get_keyframe(
+				branch, turn, tick
+			)
+		except KeyError:
+			graphs_keyframe = {
+				g: "DiGraph"
+				for g in self._graph_cache.iter_keys(branch, turn, tick)
+			}
+		graphs_keyframe[graph] = "DiGraph"
+		self._graph_cache.set_keyframe(branch, turn, tick, graphs_keyframe)
+		self._graph_cache.keycache.clear()
 		self._nodes_cache.set_keyframe(
 			(graph,), branch, turn, tick, {node: True for node in nodes}
 		)
@@ -1340,6 +1362,12 @@ class ORM:
 		change, so it should be fine.
 
 		"""
+		self._graph_cache.set_keyframe(
+			branch_to,
+			turn,
+			tick,
+			self._graph_cache.get_keyframe(branch_from, turn, tick),
+		)
 		for graph in self._graph_val_cache.keyframe:
 			try:
 				vals = self._graph_val_cache.get_keyframe(
@@ -1437,10 +1465,12 @@ class ORM:
 		node_val_keyframe: GraphNodeValDict = keyframe["node_val"]
 		edges_keyframe: GraphEdgesDict = keyframe["edges"]
 		edge_val_keyframe: GraphEdgeValDict = keyframe["edge_val"]
-		for graph in self._graph_cache.iter_keys(branch, turn, tick):
+		for graph in list(graph_val_keyframe):
 			# apply the delta to the keyframes, then save the keyframes back
 			# into the caches, and possibly copy them to another branch as well
 			deltg = delta.get(graph, {})
+			if deltg is None:
+				continue
 			nkg: NodesDict = nodes_keyframe.setdefault(graph, {})
 			nvkg: NodeValDict = node_val_keyframe.setdefault(graph, {})
 			ekg: EdgesDict = edges_keyframe.setdefault(graph, {})
@@ -1643,11 +1673,14 @@ class ORM:
 					return self._get_kf(branch, turn, tick)
 			the_kf = self._recurse_delta_keyframes((branch, turn, tick))
 			assert the_kf in self._keyframes_loaded
-		self._snap_keyframe_from_delta(
-			the_kf, (branch, turn, tick), self.get_delta(*the_kf, turn, tick)
-		)
-		if the_kf[0] != branch:
-			self._alias_kf(the_kf[0], branch, turn, tick)
+		if the_kf != (branch, turn, tick):
+			self._snap_keyframe_from_delta(
+				the_kf,
+				(branch, turn, tick),
+				self.get_delta(*the_kf, turn, tick),
+			)
+			if the_kf[0] != branch:
+				self._alias_kf(the_kf[0], branch, turn, tick)
 		if not silent:
 			return self._get_kf(branch, turn, tick)
 
@@ -2814,6 +2847,9 @@ class ORM:
 				self._keyframes_dict[branch][turn] = {tick}
 		else:
 			self._keyframes_dict[branch] = {turn: {tick}}
+		# If creating multiple graphs at the same branch, turn and tick,
+		# the keycache will be invalidated
+		self._graph_cache.keycache.clear()
 		graphmap = self.graph
 		others = set(graphmap)
 		others.discard(name)
@@ -2888,6 +2924,7 @@ class ORM:
 		branch, turn, tick = self._nbtt()
 		self.query.graphs_insert(name, branch, turn, tick, "Deleted")
 		self._graph_cache.store(name, branch, turn, tick, None)
+		self._graph_cache.keycache.clear()
 
 	def _iter_parent_btt(
 		self,

@@ -1928,10 +1928,10 @@ class EntitylessCache(Cache):
 		)
 
 	def get_keyframe(self, branch, turn, tick):
-		return super().get_keyframe(None, branch, turn, tick)
+		return super()._get_keyframe((None,), branch, turn, tick)
 
 	def set_keyframe(self, branch, turn, tick, keyframe):
-		super().set_keyframe(None, branch, turn, tick, keyframe)
+		super().set_keyframe((None,), branch, turn, tick, keyframe)
 
 	def iter_entities_or_keys(self, branch, turn, tick, *, forward=None):
 		return super().iter_entities_or_keys(
@@ -1941,7 +1941,7 @@ class EntitylessCache(Cache):
 	iter_entities = iter_keys = iter_entities_or_keys
 
 	def contains_entity_or_key(self, ke, branch, turn, tick):
-		return super().contains_entity_or_key(None, ke, branch, turn, tick)
+		return super().contains_entity_or_key((None,), ke, branch, turn, tick)
 
 	contains_entity = contains_key = contains_entity_or_key
 
