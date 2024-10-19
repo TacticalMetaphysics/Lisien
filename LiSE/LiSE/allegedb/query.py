@@ -412,7 +412,7 @@ class QueryEngine(object):
 			"get_keyframe", self.pack(graph), branch, turn, tick
 		)
 		if not stuff:
-			return
+			raise KeyError(f"No keyframe for {graph} at {branch, turn, tick}")
 		nodes, edges, graph_val = stuff[0]
 		return unpack(nodes), unpack(edges), unpack(graph_val)
 
