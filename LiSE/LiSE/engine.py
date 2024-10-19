@@ -1179,11 +1179,13 @@ class Engine(AbstractEngine, gORM, Executor):
 			updater(updav, avbranches[branch])
 
 		def updthing(char, thing, loc):
-			if (
-				char in delta
-				and "nodes" in delta[char]
-				and thing in delta[char]["nodes"]
-				and not delta[char]["nodes"][thing]
+			if char in delta and (
+				delta[char] is None
+				or (
+					"nodes" in delta[char]
+					and thing in delta[char]["nodes"]
+					and not delta[char]["nodes"][thing]
+				)
 			):
 				return
 			thingd = (
