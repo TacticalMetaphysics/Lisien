@@ -1555,7 +1555,9 @@ class ORM:
 		if time_from[0] in kfd:
 			# could probably avoid these sorts by restructuring kfd
 			for turn in sorted(kfd[time_from[0]].keys(), reverse=True):
-				if turn <= time_from[1]:
+				if turn < time_from[1]:
+					return time_from[0], turn, max(kfd[time_from[0]][turn])
+				elif turn == time_from[1]:
 					for tick in sorted(kfd[time_from[0]][turn], reverse=True):
 						if time_from[2] <= tick:
 							return time_from[0], turn, tick
