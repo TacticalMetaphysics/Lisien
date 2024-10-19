@@ -604,13 +604,16 @@ class Engine(AbstractEngine, gORM, Executor):
 		if wait:
 			futwait(self._uid_to_fut.values())
 		self._uid_to_fut = {}
-		for lock, pipein, pipeout, proc in zip(
-			self._worker_locks,
-			self._worker_inputs,
-			self._worker_outputs,
-			self._worker_processes,
+		for i, (lock, pipein, pipeout, proc) in enumerate(
+			zip(
+				self._worker_locks,
+				self._worker_inputs,
+				self._worker_outputs,
+				self._worker_processes,
+			)
 		):
-			with lock:
+			print(i)
+			with lock:  # deadlock here.
 				pipein.send_bytes(b"shutdown")
 				recvd = pipeout.recv_bytes()
 				assert (
@@ -1603,19 +1606,13 @@ class Engine(AbstractEngine, gORM, Executor):
 		except KeyError:
 			univ = {}
 			for key in self._universal_cache.iter_keys(b, r, t):
-				try:
-					univ[key] = self._universal_cache.retrieve(key, b, r, t)
-				except KeyError:
-					pass
+				univ[key] = self._universal_cache.retrieve(key, b, r, t)
 		try:
 			rbs = self._rulebooks_cache.get_keyframe(b, r, t).copy()
 		except KeyError:
 			rbs = {}
 			for rule in self._rulebooks_cache.iter_keys(b, r, t):
-				try:
-					rbs[rule] = self._rulebooks_cache.retrieve(rule, b, r, t)
-				except KeyError:
-					rbs[rule] = rule
+				rbs[rule] = self._rulebooks_cache.retrieve(rule, b, r, t)
 		for k, v in delta.pop("universal", {}).items():
 			if v is None:
 				if k in univ:
@@ -2776,7 +2773,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._universal_cache.set_keyframe(
 			branch, turn, tick, dict(self.universal.items())
 		)
-		for char in self.character:
+		all_graphs = {graph for (graph,) in self._graph_cache.keyframe}
+		for char in all_graphs:
 			charunit = {
 				unitgraph: units
 				for (unitgraph, units) in self._unitness_cache.iter_keys(
@@ -2822,7 +2820,9 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._triggers_cache.set_keyframe(branch, turn, tick, trigs)
 		self._prereqs_cache.set_keyframe(branch, turn, tick, preqs)
 		self._actions_cache.set_keyframe(branch, turn, tick, acts)
+		thing_graphs = all_graphs.copy()
 		for charname, character in self.character.items():
+			thing_graphs.discard(charname)
 			locs = {}
 			conts_mut = {}
 			for thingname in self._things_cache.iter_keys(
@@ -2843,6 +2843,11 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._things_cache.set_keyframe(charname, branch, turn, tick, locs)
 			self._node_contents_cache.set_keyframe(
 				charname, branch, turn, tick, conts
+			)
+		for graph in thing_graphs:
+			self._things_cache.set_keyframe(graph, branch, turn, tick, {})
+			self._node_contents_cache.set_keyframe(
+				graph, branch, turn, tick, {}
 			)
 		super()._snap_keyframe_de_novo(branch, turn, tick)
 
