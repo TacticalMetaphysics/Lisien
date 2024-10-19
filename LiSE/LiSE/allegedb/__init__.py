@@ -1223,9 +1223,9 @@ class ORM:
 				if orig in edge_val[graph]:
 					edge_val[graph][orig][dest] = evv
 				else:
-					edges[graph][orig] = {dest: evv}
+					edge_val[graph][orig] = {dest: evv}
 			else:
-				edges[graph] = {orig: {dest: evv}}
+				edge_val[graph] = {orig: {dest: evv}}
 		return ret
 
 	def _init_load(self) -> None:
