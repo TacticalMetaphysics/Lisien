@@ -1383,6 +1383,7 @@ class ORM:
 			)
 		self._keyframes_list.append((branch_to, turn, tick))
 		self._keyframes_times.add((branch_to, turn, tick))
+		self._keyframes_loaded.add((branch_to, turn, tick))
 		if branch_to in self._keyframes_dict:
 			kdb = self._keyframes_dict[branch_to]
 			if turn in kdb:
@@ -2812,7 +2813,9 @@ class ORM:
 			kfl = self._keyframes_list
 			kfd = self._keyframes_dict
 			kfs = self._keyframes_times
+			kfsl = self._keyframes_loaded
 			kfs.add((branch, turn, tick))
+			kfsl.add((branch, turn, tick))
 			nkfs = self._new_keyframes
 			already_keyframed = {nkf[:4] for nkf in self._new_keyframes}
 			for graphn in others:
