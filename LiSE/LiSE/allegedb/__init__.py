@@ -967,6 +967,7 @@ class ORM:
 		]
 
 	def _get_keyframe(self, branch: str, turn: int, tick: int, copy=True):
+		"""Load the keyframe if it's not loaded, and return it"""
 		if (branch, turn, tick) in self._keyframes_loaded:
 			return self._get_kf(branch, turn, tick, copy=copy)
 		for graph in self._graph_cache.iter_keys(branch, turn, tick):
@@ -1149,6 +1150,7 @@ class ORM:
 			GraphValDict,
 		],
 	]:
+		"""Get a keyframe that's already in memory"""
 		graph_val: GraphValDict = {}
 		nodes: GraphNodesDict = {}
 		node_val: GraphNodeValDict = {}
