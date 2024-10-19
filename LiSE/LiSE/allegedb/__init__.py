@@ -1191,8 +1191,8 @@ class ORM:
 				)
 			except KeyError:  # edge not present in this keyframe
 				continue
-			assert idx_ex == {
-				0: True
+			assert idx_ex.keys() == {
+				0
 			}, "Not doing edge indexes until multigraphs come back"
 			if graph in edges:
 				if orig in edges[graph]:
