@@ -2568,7 +2568,12 @@ class EngineProxy(AbstractEngine):
 					"actions": list(actions),
 				}
 		self._char_cache = chars = {
-			graph: CharacterProxy(self, graph) for graph in kf["graph_val"]
+			graph: CharacterProxy(self, graph)
+			for graph in kf["graph_val"].keys()
+			| kf["nodes"].keys()
+			| kf["node_val"].keys()
+			| kf["edges"].keys()
+			| kf["edge_val"].keys()
 		}
 		for graph, stats in kf["graph_val"].items():
 			if "character_rulebook" in stats:
