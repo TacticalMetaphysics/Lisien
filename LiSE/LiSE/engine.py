@@ -1169,6 +1169,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			updater(upduniv, univbranches[branch])
 
 		def updav(char, graph, node, av):
+			if char in delta and delta[char] is None:
+				return
 			delta.setdefault(char, {}).setdefault("units", {}).setdefault(
 				graph, {}
 			)[node] = bool(av)
@@ -1213,6 +1215,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			updater(partial(updru, "actions"), actbranches[branch])
 
 		def updcrb(key, _, character, rulebook):
+			if character in delta and delta[character] is None:
+				return
 			delta.setdefault(character, {})[key] = rulebook
 
 		if branch in charrbbranches:
@@ -1242,11 +1246,13 @@ class Engine(AbstractEngine, gORM, Executor):
 			)
 
 		def updnoderb(character, node, rulebook):
-			if (
-				character in delta
-				and "nodes" in delta[character]
-				and node in delta[character]["nodes"]
-				and not delta[character]["nodes"][node]
+			if (character in delta) and (
+				(
+					"nodes" in delta[character]
+					and node in delta[character]["nodes"]
+					and not delta[character]["nodes"][node]
+				)
+				or delta[character] is None
 			):
 				return
 			delta.setdefault(character, {}).setdefault(
@@ -1257,12 +1263,14 @@ class Engine(AbstractEngine, gORM, Executor):
 			updater(updnoderb, noderbbranches[branch])
 
 		def updedgerb(character, orig, dest, rulebook):
-			if (
-				character in delta
-				and "edges" in delta[character]
-				and orig in delta[character]["edges"]
-				and dest in delta[character]["edges"][orig]
-				and not delta[character]["edges"][orig][dest]
+			if character in delta and (
+				delta[character] is None
+				or (
+					"edges" in delta[character]
+					and orig in delta[character]["edges"]
+					and dest in delta[character]["edges"][orig]
+					and not delta[character]["edges"][orig][dest]
+				)
 			):
 				return
 			delta.setdefault(character, {}).setdefault(
@@ -1622,9 +1630,9 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._universal_cache.set_keyframe(branch, turn, tick, univ)
 		rbs.update(delta.pop("rulebooks", {}))
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
-		for char in self.character:
+		for char in self._graph_cache.iter_keys(b, r, t):
 			try:
-				charunit = self._unitness_cache.get_keyframe(char, b, r, t)
+				charunit = self._unitness_cache.get_keyframe((char,), b, r, t)
 			except KeyError:
 				charunit = {
 					unitgraph: units
@@ -1634,7 +1642,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				}
 			charunit.update(delta.get("units", ()))
 			self._unitness_cache.set_keyframe(
-				char, branch, turn, tick, charunit
+				(char,), branch, turn, tick, charunit
 			)
 		try:
 			trigs = self._triggers_cache.get_keyframe(b, r, t).copy()
@@ -1675,7 +1683,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		thingrbs = {}
 		placerbs = {}
 		portrbs = {}
-		for graph in self.graph.keys():
+		for graph in self._graph_cache.iter_keys(b, r, t):
 			# Seems not great that I have to double-retrieve like this but I can't
 			# be bothered to dig into the delta logic
 			# Zack 2024-04-27
@@ -2840,14 +2848,16 @@ class Engine(AbstractEngine, gORM, Executor):
 				else:
 					conts_mut[locname] = {thingname}
 			conts = {k: frozenset(v) for (k, v) in conts_mut.items()}
-			self._things_cache.set_keyframe(charname, branch, turn, tick, locs)
+			self._things_cache.set_keyframe(
+				(charname,), branch, turn, tick, locs
+			)
 			self._node_contents_cache.set_keyframe(
-				charname, branch, turn, tick, conts
+				(charname,), branch, turn, tick, conts
 			)
 		for graph in thing_graphs:
-			self._things_cache.set_keyframe(graph, branch, turn, tick, {})
+			self._things_cache.set_keyframe((graph,), branch, turn, tick, {})
 			self._node_contents_cache.set_keyframe(
-				graph, branch, turn, tick, {}
+				(graph,), branch, turn, tick, {}
 			)
 		super()._snap_keyframe_de_novo(branch, turn, tick)
 
