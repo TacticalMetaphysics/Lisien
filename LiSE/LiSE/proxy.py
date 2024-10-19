@@ -2568,9 +2568,9 @@ class EngineProxy(AbstractEngine):
 					"actions": list(actions),
 				}
 		self._char_cache = chars = {
-			graph: CharacterProxy(self, graph) for (graph,) in kf["graph_val"]
+			graph: CharacterProxy(self, graph) for graph in kf["graph_val"]
 		}
-		for (graph,), stats in kf["graph_val"].items():
+		for graph, stats in kf["graph_val"].items():
 			if "character_rulebook" in stats:
 				chars[graph]._set_rulebook_proxy(
 					stats.pop("character_rulebook")
@@ -2594,19 +2594,20 @@ class EngineProxy(AbstractEngine):
 			if "units" in stats:
 				self._character_units_cache[graph] = stats.pop("units")
 			self._char_stat_cache[graph] = stats
-		for (char, node), stats in kf["node_val"].items():
-			if "location" in stats:
-				if char not in things:
-					things[char] = {}
-				things[char][node] = ThingProxy(
-					chars[char], node, stats.pop("location")
-				)
-			else:
-				if char not in places:
-					places[char] = {}
-				places[char][node] = PlaceProxy(chars[char], node)
-			node_stats[char][node] = stats
-		for (char,), nodes in kf["nodes"].items():
+		for char, nodestats in kf["node_val"].items():
+			for node, stats in nodestats.items():
+				if "location" in stats:
+					if char not in things:
+						things[char] = {}
+					things[char][node] = ThingProxy(
+						chars[char], node, stats.pop("location")
+					)
+				else:
+					if char not in places:
+						places[char] = {}
+					places[char][node] = PlaceProxy(chars[char], node)
+				node_stats[char][node] = stats
+		for char, nodes in kf["nodes"].items():
 			if char not in places:
 				places[char] = charplaces = {}
 				for node in nodes:
@@ -2618,12 +2619,16 @@ class EngineProxy(AbstractEngine):
 						or (char in places and node in places[char])
 					):
 						places[char][node] = PlaceProxy(chars[char], node)
-		for (char, orig, dest), exists in kf["edges"].items():
-			portals.store(
-				char, orig, dest, PortalProxy(chars[char], orig, dest)
-			)
-		for (char, orig, dest, _), stats in kf["edge_val"].items():
-			portal_stats[char][orig][dest] = stats
+		for char, origs in kf["edges"].items():
+			for orig, dests in origs.items():
+				for dest, exists in dests.items():
+					portals.store(
+						char, orig, dest, PortalProxy(chars[char], orig, dest)
+					)
+		for char, origs in kf["edge_val"].items():
+			for orig, dests in origs.items():
+				for dest, stats in dests.items():
+					portal_stats[char][orig][dest] = stats
 		self._rulebooks_cache = kf["rulebook"]
 
 	def _pull_kf_now(self, *args, **kwargs):
