@@ -2162,12 +2162,39 @@ class ORM:
 				self.warning("Not unloading, due to lack of keyframes")
 			return
 		caches = self._caches
+		kf_to_keep = set()
 		for past_branch, (
 			early_turn,
 			early_tick,
 			late_turn,
 			late_tick,
 		) in to_keep.items():
+			# I could optimize this with windowdicts
+			if early_turn == late_turn:
+				if (
+					past_branch in self._keyframes_dict
+					and early_turn in self._keyframes_dict[past_branch]
+				):
+					for tick in self._keyframes_dict[early_turn]:
+						if early_tick <= tick <= late_tick:
+							kf_to_keep.add((past_branch, early_turn, tick))
+			else:
+				if past_branch in self._keyframes_dict:
+					for turn, ticks in self._keyframes_dict[
+						past_branch
+					].items():
+						if early_turn == turn:
+							for tick in ticks:
+								if early_tick <= tick:
+									kf_to_keep.add((past_branch, turn, tick))
+						elif turn == late_turn:
+							for tick in ticks:
+								if tick <= late_tick:
+									kf_to_keep.add((past_branch, turn, tick))
+						else:
+							kf_to_keep.update(
+								(past_branch, turn, tick) for tick in ticks
+							)
 			for cache in caches:
 				cache.truncate(past_branch, early_turn, early_tick, "backward")
 				cache.truncate(past_branch, late_turn, late_tick, "forward")
@@ -2187,6 +2214,7 @@ class ORM:
 						pass
 					else:
 						early.truncate(early_tick, "backward")
+		self._keyframes_loaded = kf_to_keep
 		loaded.update(to_keep)
 		for branch in set(loaded).difference(to_keep):
 			for cache in caches:
