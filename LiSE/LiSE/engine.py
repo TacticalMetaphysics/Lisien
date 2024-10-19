@@ -549,7 +549,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		if hasattr(self, "_worker_processes"):
 			self._update_all_worker_process_states(clobber=True)
 		if ret and "nodes" in ret:
-			for (charn,), nodes in ret["nodes"].items():
+			for charn, nodes in ret["nodes"].items():
 				character = self.character[charn]
 				assert (
 					character.node.keys() == nodes.keys()
