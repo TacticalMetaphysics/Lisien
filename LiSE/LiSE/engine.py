@@ -839,6 +839,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				)
 		else:
 			past_branch, past_turn, past_tick = latest_past_keyframe
+			self._make_transient_keyframes(past_branch, past_turn, past_tick)
 			if earliest_future_keyframe is None:
 				# Load thing data from the keyframe to now
 				for graph in self.graph:
@@ -878,7 +879,6 @@ class Engine(AbstractEngine, gORM, Executor):
 				updload(branch, turn, tick)
 		else:
 			self.debug(f"No thing data at {branch, turn, tick}")
-		self._make_transient_keyframes(branch, turn, tick)
 
 	def _init_caches(self) -> None:
 		from .xcollections import (
