@@ -391,7 +391,7 @@ class Edge(AbstractEntityMapping):
 	def __repr__(self):
 		return "<{} in graph {} from {} to {} containing {}>".format(
 			self.__class__.__name__,
-			self.graph,
+			self.graph.name,
 			self.orig,
 			self.dest,
 			dict(self),
