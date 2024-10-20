@@ -1853,7 +1853,6 @@ class ORM:
 		load_edge_val = self.query.load_edge_val
 		load_keyframe = self._get_keyframe
 		updload = self._updload
-		updload(branch_now, turn_now, tick_now)
 
 		if latest_past_keyframe is None:  # happens in very short games
 			for graph, node, branch, turn, tick, ex in self.query.nodes_dump():
@@ -2002,7 +2001,6 @@ class ORM:
 					updload(branch, turn, tick)
 
 		for graph in keyframed["graph_val"]:
-			updload(past_branch, past_turn, past_tick)
 			if earliest_future_keyframe is None:
 				if latest_past_keyframe == (branch_now, turn_now, tick_now):
 					continue
