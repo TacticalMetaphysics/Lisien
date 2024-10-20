@@ -2527,6 +2527,8 @@ class ORM:
 		self._branch_end_plan[self.branch] = max(
 			(self._branch_end_plan[self.branch], v)
 		)
+		if v > turn_end:
+			self._branches[branch] = parent, turn_start, tick_start, v, tick
 		self._otick = tick
 		self._oturn = v
 
@@ -2553,20 +2555,19 @@ class ORM:
 			raise ValueError("Can't time travel backward in a forward context")
 		if v > self._turn_end_plan[time]:  # TODO: only mutate after load
 			self._turn_end_plan[time] = v
-		if not self._planning:
-			if v > self._turn_end[time]:
-				self._turn_end[time] = v
-			(parent, turn_start, tick_start, turn_end, tick_end) = (
-				self._branches[branch]
+		if not self._planning and v > self._turn_end[time]:
+			self._turn_end[time] = v
+		(parent, turn_start, tick_start, turn_end, tick_end) = self._branches[
+			branch
+		]
+		if turn >= turn_end and v > tick_end:
+			self._branches[branch] = (
+				parent,
+				turn_start,
+				tick_start,
+				turn,
+				v,
 			)
-			if turn == turn_end and v > tick_end:
-				self._branches[branch] = (
-					parent,
-					turn_start,
-					tick_start,
-					turn,
-					v,
-				)
 		self._otick = v
 		loaded = self._loaded
 		if branch not in loaded:
@@ -2666,7 +2667,7 @@ class ORM:
 			plan_ticks[last_plan][turn].append(tick)
 			plan_ticks_uncommitted.append((last_plan, turn, tick))
 			time_plan[branch, turn, tick] = last_plan
-		elif (turn, tick) > (turn_end, tick_end):
+		elif turn > turn_end or (turn == turn_end and tick > tick_end):
 			branches[branch] = parent, turn_start, tick_start, turn, tick
 		if tick > turn_end_plan[branch_turn]:
 			turn_end_plan[branch_turn] = tick
