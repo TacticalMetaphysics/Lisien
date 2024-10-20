@@ -2004,10 +2004,11 @@ class ORM:
 			if earliest_future_keyframe is None:
 				if latest_past_keyframe == (branch_now, turn_now, tick_now):
 					continue
+				_, _, _, turn_then, tick_then = self._branches[branch_now]
 				load_windows(
 					graph,
 					self._build_loading_windows(
-						*latest_past_keyframe, branch_now, turn_now, tick_now
+						*latest_past_keyframe, branch_now, turn_then, tick_then
 					),
 				)
 				continue
