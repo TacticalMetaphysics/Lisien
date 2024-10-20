@@ -2525,10 +2525,7 @@ class ORM:
 			else:
 				self._turn_end_plan[(branch, v)] = tick = 0
 			if v > end_turn or (v == end_turn and tick > end_tick):
-				if (branch, v, tick) in self._keyframes_times:
-					self.load_at(branch, v, tick)
-				else:
-					loaded[branch] = (start_turn, start_tick, v, tick)
+				self.load_at(branch, v, tick)
 			elif v < start_turn or (v == start_turn and tick < start_tick):
 				self.load_at(branch, v, tick)
 		self._branch_end_plan[self.branch] = max(
