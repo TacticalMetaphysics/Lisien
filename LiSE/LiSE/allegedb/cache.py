@@ -1135,7 +1135,7 @@ class Cache:
 									return ret
 								else:
 									return NotInKeyframeError(
-										f"No value for {entikey} at {b, r, t}"
+										"No value", entikey, b, r, t
 									)
 						if search:
 							ret = brancs.search(r).search(t)
@@ -1162,7 +1162,7 @@ class Cache:
 									return ret
 								else:
 									return NotInKeyframeError(
-										f"No value for {entikey} at {b, r, t}"
+										"No value", entikey, b, r, t
 									)
 							elif brancs.rev_before(
 								r - 1, search=search
@@ -1182,7 +1182,7 @@ class Cache:
 										return ret
 									else:
 										return NotInKeyframeError(
-											f"No value for {entikey} at {b, r, t}"
+											"No value", entikey, b, r, t
 										)
 						if search:
 							ret = brancs.search(r - 1).final()
@@ -1207,7 +1207,7 @@ class Cache:
 							return ret
 						else:
 							return NotInKeyframeError(
-								f"No value for {entikey} at {b, r, t}"
+								"No value", entikey, b, r, t
 							)
 					elif b in keyframes and keyframes[b].rev_gettable(r - 1):
 						if search:
@@ -1221,7 +1221,7 @@ class Cache:
 							return ret
 						else:
 							return NotInKeyframeError(
-								f"No value for {entikey} at {b, r, t}"
+								"No value", entikey, b, r, t
 							)
 				elif b in keyframes:
 					kfb = keyframes[b]
@@ -1236,7 +1236,7 @@ class Cache:
 								return ret
 							else:
 								return NotInKeyframeError(
-									f"No value for {entikey} at {b, r, t}"
+									"No value", entikey, b, r, t
 								)
 					if kfb.rev_gettable(r - 1):
 						kfbr = kfb[r]
@@ -1248,7 +1248,7 @@ class Cache:
 							return ret
 						else:
 							return NotInKeyframeError(
-								f"No value for {entikey} at {b, r, t}"
+								"No value", entikey, b, r, t
 							)
 		else:
 			for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
@@ -1268,7 +1268,7 @@ class Cache:
 								return ret
 							else:
 								return NotInKeyframeError(
-									f"No value for {entikey} at {b, r, t}"
+									"No value", entikey, b, r, t
 								)
 					if kfb.rev_gettable(r - 1):
 						kfbr = kfb[r]
@@ -1280,9 +1280,9 @@ class Cache:
 							return ret
 						else:
 							return NotInKeyframeError(
-								f"No value for {entikey} at {b, r, t}"
+								"No value", entikey, b, r, t
 							)
-		return KeyError("No value, ever")
+		return KeyError("No value, ever", entikey)
 
 	def retrieve(self, *args, search=False):
 		"""Get a value previously .store(...)'d.
