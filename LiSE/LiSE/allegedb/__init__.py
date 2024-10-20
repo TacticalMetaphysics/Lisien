@@ -1736,11 +1736,7 @@ class ORM:
 		latest_past_keyframe: Optional[Tuple[str, int, int]] = None
 		earliest_future_keyframe: Optional[Tuple[str, int, int]] = None
 		branch_parents = self._branch_parents
-		# Consider only keyframes that are already in memory;
-		# this is appropriate for the intended use-case where you're
-		# trying to find the smallest window of time you can load,
-		# while maintaining a contiguous view of history.
-		for branch, turn, tick in self._keyframes_loaded:
+		for branch, turn, tick in self._keyframes_times:
 			# Figure out the latest keyframe that is earlier than the present
 			# moment, and the earliest keyframe that is later than the
 			# present moment, for each graph. Can I avoid iterating over the
