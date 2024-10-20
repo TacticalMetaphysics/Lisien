@@ -139,6 +139,7 @@ def test_save_load_plan(tmpdbfile):
 		g2 = orm.graph[2]
 		# go to end of turn
 		orm.turn = 0
+		assert 2 in g1.node
 		# contradict the plan
 		del g1.node[2]
 		assert 1 in g2.node

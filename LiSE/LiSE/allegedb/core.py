@@ -2470,14 +2470,11 @@ class ORM:
 		if v == self.turn:
 			self._otick = tick = self._turn_end_plan[tuple(self.time)]
 			if branch not in loaded:
-				loaded[branch] = (v, tick, v, tick)
+				self.load_at(branch, v, tick)
 				return
 			(start_turn, start_tick, end_turn, end_tick) = loaded[branch]
 			if v > end_turn or (v == end_turn and tick > end_tick):
-				if (branch, v, tick) in self._keyframes_times:
-					self.load_at(branch, v, tick)
-				else:
-					loaded[branch] = (start_turn, start_tick, end_turn, tick)
+				self.load_at(branch, v, tick)
 			return
 		if not isinstance(v, int):
 			raise TypeError("turn must be an integer")
