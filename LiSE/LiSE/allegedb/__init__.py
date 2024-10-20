@@ -1253,6 +1253,27 @@ class ORM:
 				else:
 					keyframes_dict_branch[turn].add(tick)
 			keyframes_times.add((branch, turn, tick))
+		# For an initial keyframe, load just the one most recent before now
+		(branch, turn, tick) = (None, None, None)
+		for branch, r, t in self._iter_parent_btt(*self._btt()):
+			if branch not in keyframes_dict:
+				continue
+			kfturns = keyframes_dict[branch]
+			for turn in sorted(kfturns, reverse=True):
+				if turn == r:
+					ticks = kfturns[turn]
+					done = False
+					for tick in sorted(ticks, reverse=True):
+						if tick <= t:
+							done = True
+							break
+					if done:
+						break
+				elif turn < r:
+					tick = max(kfturns[turn])
+					break
+		if None not in (branch, turn, tick):
+			self._get_keyframe(branch, turn, tick, copy=False)
 		self.load_at(*self._btt())
 
 		last_plan = -1
