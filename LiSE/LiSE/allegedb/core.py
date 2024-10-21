@@ -2134,19 +2134,11 @@ class ORM:
 					future_tick,
 				),
 			)
-		if self._no_kc:
-			self._nodes_cache.load(noderows)
-			self._edges_cache.load(edgerows)
-			self._graph_val_cache.load(graphvalrows)
-			self._node_val_cache.load(nodevalrows)
-			self._edge_val_cache.load(edgevalrows)
-		else:
-			with self.batch():
-				self._nodes_cache.load(noderows)
-				self._edges_cache.load(edgerows)
-				self._graph_val_cache.load(graphvalrows)
-				self._node_val_cache.load(nodevalrows)
-				self._edge_val_cache.load(edgevalrows)
+		self._nodes_cache.load(noderows)
+		self._edges_cache.load(edgerows)
+		self._graph_val_cache.load(graphvalrows)
+		self._node_val_cache.load(nodevalrows)
+		self._edge_val_cache.load(edgevalrows)
 
 		return (
 			latest_past_keyframe,
