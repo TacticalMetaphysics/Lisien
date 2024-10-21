@@ -990,6 +990,7 @@ class ORM:
 					tick,
 					*self.query.get_keyframe(graph, branch, turn, tick),
 				)
+		self._updload(branch, turn, tick)
 		self._keyframes_loaded.add((branch, turn, tick))
 		return self._get_kf(branch, turn, tick, copy=copy)
 
