@@ -141,6 +141,11 @@ class NextTurn(Signal):
 				"Can't run the rules engine on any turn but the latest"
 			)
 		if start_turn == latest_turn:
+			# Pre-emptively nudge the loadedness and branch tracking,
+			# so that LiSE does not try to load an empty turn before every
+			# loop of the rules engine
+			turn0, tick0, turn1, tick1 = engine._loaded[start_branch]
+			engine._loaded[start_branch] = (turn0, tick0, start_turn + 1, 0)
 			parent, turn_from, tick_from, turn_to, tick_to = engine._branches[
 				start_branch
 			]
@@ -148,7 +153,7 @@ class NextTurn(Signal):
 				parent,
 				turn_from,
 				tick_from,
-				engine.turn + 1,
+				start_turn + 1,
 				0,
 			)
 			engine.turn += 1
