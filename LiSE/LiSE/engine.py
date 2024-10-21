@@ -744,11 +744,11 @@ class Engine(AbstractEngine, gORM, Executor):
 		if hasattr(self, "_worker_processes"):
 			self._call_every_subproxy("add_character", name, data)
 
-	def _init_load(self) -> None:
+	def _load_plans(self) -> None:
 		from .rule import Rule
 
 		q = self.query
-		super()._init_load()
+		super()._load_plans()
 		self._unitness_cache.load(q.units_dump())
 		self._universal_cache.load(q.universals_dump())
 		self._rulebooks_cache.load(q.rulebooks_dump())
@@ -1850,7 +1850,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			raise TypeError("Turns must be integers")
 		if v < 0:
 			raise ValueError("Turns can't be negative")
-		turn_end = self._branch_end_plan[self.branch]
+		turn_end = self._branches[self.branch][3]
 		if v > turn_end + 1:
 			raise exc.OutOfTimelineError(
 				f"The turn {v} is after the end of the branch {self.branch}. "
@@ -2961,7 +2961,7 @@ class Engine(AbstractEngine, gORM, Executor):
 
 		"""
 		unpack = self.unpack
-		end = self._branch_end_plan[self.branch] + 1
+		end = self._branches[self.branch][3] + 1
 
 		def unpack_data_mid(data):
 			return [

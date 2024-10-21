@@ -131,6 +131,7 @@ def test_save_load_plan(tmpdbfile):
 		with orm.plan():
 			g2.add_node(1)
 			g2.add_node(2)
+			tick2 = orm.tick
 			orm.turn = 1
 			g2.add_edge(1, 2)
 		orm.turn = 0
@@ -138,9 +139,11 @@ def test_save_load_plan(tmpdbfile):
 		g1 = orm.graph[1]
 		g2 = orm.graph[2]
 		# go to end of turn
-		orm.turn = 0
+		assert 2 not in g1.node  # not yet! It's just planned.
+		orm.tick = tick2
 		assert 2 in g1.node
 		# contradict the plan
+		orm.turn = 0  # go to the end of the turn as far as "really happened"
 		del g1.node[2]
 		assert 1 in g2.node
 		assert 2 in g2.node

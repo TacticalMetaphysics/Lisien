@@ -329,12 +329,16 @@ class TimeSignalDescriptor:
 				turn_now,
 				tick_now,
 			)
-			inst._branch_end_plan[branch_now] = max(
-				(inst._branch_end_plan[branch_now], turn_now)
-			)
 			inst._turn_end_plan[branch_now, turn_now] = max(
 				(inst._turn_end_plan[branch_now, turn_now], tick_now)
 			)
+			if not inst._planning:
+				inst._branch_end[branch_now] = max(
+					(inst._branch_end[branch_now], turn_now)
+				)
+				inst._turn_end[branch_now, turn_now] = max(
+					(inst._turn_end[branch_now, turn_now], tick_now)
+				)
 			e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
 		e._obranch, e._oturn = val
 		if not e._time_is_loaded(*val, tick_now):
@@ -930,15 +934,15 @@ class ORM:
 		self._childbranch = defaultdict(set)
 		"""Immediate children of a branch"""
 		self._branches = {}
-		"""Parent, start time, and end time of each branch"""
+		"""Parent, start time, and end time of each branch. Includes plans."""
 		self._branch_parents = defaultdict(set)
 		"""Parents of a branch at any remove"""
 		self._turn_end = defaultdict(lambda: 0)
-		"""Tick on which a (branch, turn) ends"""
+		"""Tick on which a (branch, turn) ends, not including any plans"""
 		self._turn_end_plan = defaultdict(lambda: 0)
-		"Tick on which a (branch, turn) ends, even if it hasn't been simulated"
-		self._branch_end_plan = defaultdict(lambda: 0)
-		"""Turn on which a branch ends, even if it hasn't been simulated"""
+		"Tick on which a (branch, turn) ends, including plans"
+		self._branch_end = defaultdict(lambda: 0)
+		"""Turn on which a branch ends, not including plans"""
 		self._graph_objs = {}
 		self._plans = {}
 		self._branches_plans = defaultdict(set)
@@ -1091,17 +1095,15 @@ class ORM:
 			)
 			self._upd_branch_parentage(parent, branch)
 		for branch, turn, end_tick, plan_end_tick in self.query.turns_dump():
-			self._turn_end[branch, turn] = end_tick
-			self._turn_end_plan[branch, turn] = plan_end_tick
-			self._branch_end_plan[branch] = max(
-				(self._branch_end_plan[branch], turn)
+			self._turn_end_plan[branch, turn] = max(
+				(self._turn_end_plan[branch, turn], plan_end_tick)
 			)
 		if main_branch not in self._branches:
 			self._branches[main_branch] = None, 0, 0, 0, 0
 		self._new_keyframes = []
 		self._nbtt_stuff = (
 			self._btt,
-			self._branch_end_plan,
+			self._branch_end,
 			self._turn_end_plan,
 			self._turn_end,
 			self._plan_ticks,
@@ -1136,7 +1138,8 @@ class ORM:
 		self._loaded: Dict[
 			str, Tuple[int, int, int, int]
 		] = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
-		self._init_load()
+		self._load_plans()
+		self.load_at(*self._btt())
 		self.cache_arrange_queue = Queue()
 		self._cache_arrange_thread = Thread(
 			target=self._arrange_cache_loop, daemon=True
@@ -1238,7 +1241,7 @@ class ORM:
 				edge_val[graph] = {orig: {dest: evv}}
 		return ret
 
-	def _init_load(self) -> None:
+	def _load_plans(self) -> None:
 		keyframes_list = self._keyframes_list
 		keyframes_dict = self._keyframes_dict
 		keyframes_times = self._keyframes_times
@@ -1253,7 +1256,6 @@ class ORM:
 				else:
 					keyframes_dict_branch[turn].add(tick)
 			keyframes_times.add((branch, turn, tick))
-		self.load_at(*self._btt())
 
 		last_plan = -1
 		plans = self._plans
@@ -1266,9 +1268,20 @@ class ORM:
 		self._last_plan = last_plan
 		plan_ticks = self._plan_ticks
 		time_plan = self._time_plan
+		turn_end_plan = self._turn_end_plan
+		branches = self._branches
 		for plan, turn, tick in self.query.plan_ticks_dump():
 			plan_ticks[plan][turn].append(tick)
-			time_plan[plans[plan][0], turn, tick] = plan
+			branch = plans[plan][0]
+			parent, turn_start, tick_start, turn_end, tick_end = branches[
+				branch
+			]
+			if (turn, tick) > (turn_end, tick_end):
+				branches[branch] = parent, turn_start, tick_start, turn, tick
+			turn_end_plan[branch, turn] = max(
+				(turn_end_plan[branch, turn], tick)
+			)
+			time_plan[branch, turn, tick] = plan
 
 	def _upd_branch_parentage(self, parent: str, child: str) -> None:
 		self._childbranch[parent].add(child)
@@ -2342,7 +2355,6 @@ class ORM:
 			self.query.new_branch(v, curbranch, curturn, curtick)
 			self._branches[v] = curbranch, curturn, curtick, curturn, curtick
 			self._upd_branch_parentage(v, curbranch)
-			self._branch_end_plan[v] = curturn
 			self._turn_end_plan[v, curturn] = self._turn_end[v, curturn] = (
 				curtick
 			)
@@ -2378,7 +2390,6 @@ class ORM:
 		where_cached = self._where_cached
 		last_plan = self._last_plan
 		turn_end_plan = self._turn_end_plan
-		branch_end_plan = self._branch_end_plan
 		for plan_id in self._branches_plans[branch_from]:
 			_, start_turn, start_tick = plans[plan_id]
 			if start_turn > turn_from or (
@@ -2468,7 +2479,7 @@ class ORM:
 		branch = self.branch
 		loaded = self._loaded
 		if v == self.turn:
-			self._otick = tick = self._turn_end_plan[tuple(self.time)]
+			self._otick = tick = self._turn_end[tuple(self.time)]
 			if branch not in loaded:
 				self.load_at(branch, v, tick)
 				return
@@ -2524,9 +2535,10 @@ class ORM:
 				self.load_at(branch, v, tick)
 			elif v < start_turn or (v == start_turn and tick < start_tick):
 				self.load_at(branch, v, tick)
-		self._branch_end_plan[self.branch] = max(
-			(self._branch_end_plan[self.branch], v)
-		)
+		if not self._planning:
+			self._branch_end[self.branch] = max(
+				(self._branch_end[self.branch], v)
+			)
 		if v > turn_end:
 			self._branches[branch] = parent, turn_start, tick_start, v, tick
 		self._otick = tick
@@ -2616,7 +2628,7 @@ class ORM:
 		"""
 		(
 			btt,
-			branch_end_plan,
+			branch_end,
 			turn_end_plan,
 			turn_end,
 			plan_ticks,
@@ -2636,19 +2648,7 @@ class ORM:
 					turn, turn_end[branch_turn]
 				)
 			)
-		parent, turn_start, tick_start, turn_end, tick_end = branches[branch]
-		if (turn, tick) < (turn_end, tick_end):
-			# There used to be a check for turn == turn_end and tick < tick_end
-			# but I couldn't come up with a situation where that would actually
-			# happen
-			raise OutOfTimelineError(
-				"You're in the past. Go to turn {}, tick {} to change things"
-				" -- or start a new branch".format(turn_end, tick_end),
-				*btt(),
-				branch,
-				turn,
-				tick,
-			)
+		parent, start_turn, start_tick, end_turn, end_tick = branches[branch]
 		if self._planning:
 			last_plan = self._last_plan
 			if (turn, tick) in plan_ticks[last_plan]:
@@ -2667,8 +2667,23 @@ class ORM:
 			plan_ticks[last_plan][turn].append(tick)
 			plan_ticks_uncommitted.append((last_plan, turn, tick))
 			time_plan[branch, turn, tick] = last_plan
-		elif turn > turn_end or (turn == turn_end and tick > tick_end):
-			branches[branch] = parent, turn_start, tick_start, turn, tick
+		elif turn > end_turn or (turn == end_turn and tick > end_tick):
+			branches[branch] = parent, start_turn, start_tick, turn, tick
+		elif not self._planning:
+			if turn < branch_end[branch]:
+				raise OutOfTimelineError(
+					"You're in the past. Go to turn {}, tick {} to change things"
+					" -- or start a new branch".format(end_turn, end_tick),
+					*btt(),
+					branch,
+					turn,
+					tick,
+				)
+			elif turn == branch_end[branch]:
+				# Accept any plans made for this turn
+				tick = turn_end_plan[branch, turn] + 1
+			if tick > turn_end[branch_turn]:
+				turn_end[branch_turn] = tick
 		if tick > turn_end_plan[branch_turn]:
 			turn_end_plan[branch_turn] = tick
 		loaded = self._loaded
