@@ -1624,21 +1624,26 @@ class ORM:
 			)
 			if (
 				parent,
-				time_from[1],
-				time_from[2],
+				branched_turn_from,
+				branched_tick_from,
 			) not in self._keyframes_times:
 				self._snap_keyframe_from_delta(
 					(parent, turn_from, tick_from),
-					(parent, time_from[1], time_from[2]),
+					(parent, branched_turn_from, branched_tick_from),
 					self.get_delta(
 						parent,
 						turn_from,
 						tick_from,
-						time_from[1],
-						time_from[2],
+						branched_turn_from,
+						branched_tick_from,
 					),
 				)
-			self._alias_kf(parent, *time_from)
+				self._alias_kf(
+					parent,
+					time_from[0],
+					branched_turn_from,
+					branched_tick_from,
+				)
 		return time_from[0], turn_from, tick_from
 
 	@world_locked
