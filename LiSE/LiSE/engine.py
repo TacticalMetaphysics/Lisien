@@ -672,7 +672,7 @@ class Engine(AbstractEngine, gORM, Executor):
 						None,
 						None,
 						(
-							super().snap_keyframe(),
+							self.snap_keyframe(),
 							self.eternal,
 							dict(self.function.iterplain()),
 							dict(self.method.iterplain()),
