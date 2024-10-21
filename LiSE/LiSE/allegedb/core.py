@@ -1432,7 +1432,15 @@ class ORM:
 					else:
 						edge_vals[node] = {dest: evkf}
 			self._new_keyframes.append(
-				(graph, node_vals, edge_vals, graph_vals)
+				(
+					graph,
+					branch_to,
+					turn,
+					tick,
+					node_vals,
+					edge_vals,
+					graph_vals,
+				)
 			)
 		self._keyframes_list.append((branch_to, turn, tick))
 		self._keyframes_times.add((branch_to, turn, tick))
