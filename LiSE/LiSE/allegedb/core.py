@@ -2442,9 +2442,6 @@ class ORM:
 						plan_ticks_uncommitted.append((last_plan, turn, tick))
 						time_plan[branch, turn, tick] = last_plan
 						turn_end_plan[branch, turn] = tick
-						branch_end_plan[branch] = max(
-							(branch_end_plan[branch], turn)
-						)
 
 	@world_locked
 	def delete_plan(self, plan: int) -> None:
