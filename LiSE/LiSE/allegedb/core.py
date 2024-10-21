@@ -1654,7 +1654,7 @@ class ORM:
 					branched_turn_from,
 					branched_tick_from,
 				)
-		return time_from[0], turn_from, tick_from
+		return time_from[0], branched_turn_from, branched_tick_from
 
 	@world_locked
 	def snap_keyframe(self, silent=False) -> Optional[dict]:
