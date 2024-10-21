@@ -2276,7 +2276,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = charmap[charactername]
-			if truthfun in rulebook:
+			if truthfun in self.rulebook[rulebook]:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.append(
@@ -2485,7 +2485,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_node(graphn, avn)
-			if truthfun in rulebook:
+			if truthfun in self.rulebook[rulebook]:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.append(
@@ -2523,7 +2523,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_thing(charn, thingn)
-			if truthfun in rulebook:
+			if truthfun in self.rulebook[rulebook]:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.append(
@@ -2560,7 +2560,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_place(charn, placen)
-			if truthfun in rulebook:
+			if truthfun in self.rulebook[rulebook]:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.append(
@@ -2601,7 +2601,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_edge(charn, orign, destn)
-			if truthfun in rulebook:
+			if truthfun in self.rulebook[rulebook]:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.append(
@@ -2632,7 +2632,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				handled_node, charn, noden, rulebook, rulen, branch, turn
 			)
 			entity = get_node(charn, noden)
-			if truthfun in rulebook:
+			if truthfun in self.rulebook[rulebook]:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.append(
@@ -2671,7 +2671,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_edge(charn, orign, destn)
-			if truthfun in rulebook:
+			if truthfun in self.rulebook[rulebook]:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.append(
