@@ -1368,7 +1368,7 @@ class ORM:
 			(graph,), branch, turn, tick, graph_val
 		)
 
-	def _alias_kf(self, branch_from, branch_to, turn, tick):
+	def _copy_kf(self, branch_from, branch_to, turn, tick):
 		"""Copy a keyframe from one branch to another
 
 		This aliases the data, rather than really copying. Keyframes don't
@@ -1381,55 +1381,58 @@ class ORM:
 			tick,
 			self._graph_cache.get_keyframe(branch_from, turn, tick),
 		)
-		for graph in self._graph_val_cache.keyframe:
-			try:
-				vals = self._graph_val_cache.get_keyframe(
-					graph, branch_from, turn, tick, copy=False
-				)
-			except KeyError:
-				continue
-			self._graph_val_cache.set_keyframe(
-				graph, branch_to, turn, tick, vals
+		for graph in self._graph_cache.iter_keys(branch_to, turn, tick):
+			graph_vals = self._graph_val_cache.get_keyframe(
+				(graph,), branch_from, turn, tick, copy=False
 			)
-		for (graph,) in self._nodes_cache.keyframe:
-			try:
-				nodes = self._nodes_cache.get_keyframe(
-					(graph,), branch_from, turn, tick, copy=False
-				)
-			except KeyError:
-				continue
+			self._graph_val_cache.set_keyframe(
+				(graph,), branch_to, turn, tick, graph_vals
+			)
+			nodes = self._nodes_cache.get_keyframe(
+				(graph,), branch_from, turn, tick, copy=False
+			)
 			self._nodes_cache.set_keyframe(
 				(graph,), branch_to, turn, tick, nodes
 			)
-		for graph_node in self._node_val_cache.keyframe:
-			try:
-				vals = self._node_val_cache.get_keyframe(
-					graph_node, branch_from, turn, tick, copy=False
+			node_vals = {}
+			edge_vals = {}
+			for node in nodes:
+				node_val = self._node_val_cache.get_keyframe(
+					(graph, node), branch_from, turn, tick, copy=False
 				)
-			except KeyError:
-				continue
-			self._node_val_cache.set_keyframe(
-				graph_node, branch_to, turn, tick, vals
-			)
-		for graph_orig_dest in self._edges_cache.keyframe:
-			try:
-				edge = self._edges_cache.get_keyframe(
-					graph_orig_dest, branch_from, turn, tick, copy=False
+				self._node_val_cache.set_keyframe(
+					(graph, node), branch_to, turn, tick, node_val
 				)
-			except KeyError:
-				continue
-			self._edges_cache.set_keyframe(
-				graph_orig_dest, branch_to, turn, tick, edge
-			)
-		for graph_orig_dest_index in self._edge_val_cache.keyframe:
-			try:
-				vals = self._edge_val_cache.get_keyframe(
-					graph_orig_dest_index, branch_from, turn, tick, copy=False
-				)
-			except KeyError:
-				continue
-			self._edge_val_cache.set_keyframe(
-				graph_orig_dest_index, branch_to, turn, tick, vals
+				node_vals[node] = node_val
+				for dest in self._edges_cache.iter_successors(
+					graph, node, branch_from, turn, tick
+				):
+					self._edges_cache.set_keyframe(
+						(graph, node, dest),
+						branch_to,
+						turn,
+						tick,
+						self._edges_cache.get_keyframe(
+							(graph, node, dest),
+							branch_from,
+							turn,
+							tick,
+							copy=False,
+						),
+					)
+					evkf = self._edge_val_cache.get_keyframe(
+						(graph, node, dest, 0),
+						branch_from,
+						turn,
+						tick,
+						copy=False,
+					)
+					if node in edge_vals:
+						edge_vals[node][dest] = evkf
+					else:
+						edge_vals[node] = {dest: evkf}
+			self._new_keyframes.append(
+				(graph, node_vals, edge_vals, graph_vals)
 			)
 		self._keyframes_list.append((branch_to, turn, tick))
 		self._keyframes_times.add((branch_to, turn, tick))
@@ -1645,7 +1648,7 @@ class ORM:
 						branched_tick_from,
 					),
 				)
-				self._alias_kf(
+				self._copy_kf(
 					parent,
 					time_from[0],
 					branched_turn_from,
@@ -1706,7 +1709,7 @@ class ORM:
 				self.get_delta(*the_kf, turn, tick),
 			)
 			if the_kf[0] != branch:
-				self._alias_kf(the_kf[0], branch, turn, tick)
+				self._copy_kf(the_kf[0], branch, turn, tick)
 		if not silent:
 			return self._get_kf(branch, turn, tick)
 

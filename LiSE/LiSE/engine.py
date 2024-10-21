@@ -1023,8 +1023,8 @@ class Engine(AbstractEngine, gORM, Executor):
 	) -> portal_cls:
 		return self.portal_cls(graph, orig, dest)
 
-	def _alias_kf(self, branch_from, branch_to, turn, tick):
-		super()._alias_kf(branch_from, branch_to, turn, tick)
+	def _copy_kf(self, branch_from, branch_to, turn, tick):
+		super()._copy_kf(branch_from, branch_to, turn, tick)
 		self._universal_cache.set_keyframe(
 			branch_to,
 			turn,
