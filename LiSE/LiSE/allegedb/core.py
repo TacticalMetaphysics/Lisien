@@ -1454,6 +1454,7 @@ class ORM:
 				kdb[turn] = {tick}
 		else:
 			self._keyframes_dict[branch_to] = {turn: {tick}}
+		self._nudge_loaded(branch_to, turn, tick)
 
 	def _snap_keyframe_from_delta(
 		self,
@@ -1618,6 +1619,7 @@ class ORM:
 				)
 				kfl.append((graph, *when))
 		self._graph_cache.set_keyframe(*now, graphs_keyframe)
+		self._nudge_loaded(*now)
 
 	def _recurse_delta_keyframes(self, time_from):
 		"""Make keyframes until we have one in the current branch"""
