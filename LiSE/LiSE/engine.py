@@ -325,14 +325,14 @@ class Engine(AbstractEngine, gORM, Executor):
 	place_cls = node_cls = Place
 	portal_cls = edge_cls = Portal
 	query_engine_cls = QueryEngine
-	illegal_graph_names = [
+	illegal_graph_names = {
 		"global",
 		"eternal",
 		"universal",
 		"rulebooks",
 		"rules",
-	]
-	illegal_node_names = ["nodes", "node_val", "edges", "edge_val", "things"]
+	}
+	illegal_node_names = {"nodes", "node_val", "edges", "edge_val", "things"}
 
 	def __getattr__(self, item):
 		meth = super().__getattribute__("method").__getattr__(item)

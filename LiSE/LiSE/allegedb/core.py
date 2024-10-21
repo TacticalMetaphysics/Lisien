@@ -369,8 +369,8 @@ class ORM:
 	node_cls = Node
 	edge_cls = Edge
 	query_engine_cls = QueryEngine
-	illegal_graph_names = ["global"]
-	illegal_node_names = ["nodes", "node_val", "edges", "edge_val"]
+	illegal_graph_names = {"global"}
+	illegal_node_names = {"nodes", "node_val", "edges", "edge_val"}
 	time = TimeSignalDescriptor()
 
 	def _graph_state_hash(
@@ -1478,12 +1478,18 @@ class ORM:
 		node_val_keyframe: GraphNodeValDict = keyframe["node_val"]
 		edges_keyframe: GraphEdgesDict = keyframe["edges"]
 		edge_val_keyframe: GraphEdgeValDict = keyframe["edge_val"]
-		for graph in list(graph_val_keyframe):
+		graphs_keyframe = {g: "DiGraph" for g in graph_val_keyframe}
+		for graph in (
+			graph_val_keyframe.keys() | delta.keys()
+		) - self.illegal_graph_names:
 			# apply the delta to the keyframes, then save the keyframes back
 			# into the caches, and possibly copy them to another branch as well
 			deltg = delta.get(graph, {})
 			if deltg is None:
+				del graphs_keyframe[graph]
 				continue
+			elif graph not in graphs_keyframe:
+				graphs_keyframe[graph] = "DiGraph"
 			nkg: NodesDict = nodes_keyframe.setdefault(graph, {})
 			nvkg: NodeValDict = node_val_keyframe.setdefault(graph, {})
 			ekg: EdgesDict = edges_keyframe.setdefault(graph, {})
@@ -1599,6 +1605,7 @@ class ORM:
 					)
 				)
 				kfl.append((graph, *when))
+		self._graph_cache.set_keyframe(*now, graphs_keyframe)
 
 	def _recurse_delta_keyframes(self, time_from):
 		"""Make keyframes until we have one in the current branch"""
