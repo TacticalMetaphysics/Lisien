@@ -549,9 +549,11 @@ class Engine(AbstractEngine, gORM, Executor):
 		else:
 			future.set_result(result)
 
-	def snap_keyframe(self, silent=False) -> Optional[dict]:
+	def snap_keyframe(
+		self, silent=False, update_worker_processes=True
+	) -> Optional[dict]:
 		ret = super().snap_keyframe(silent)
-		if hasattr(self, "_worker_processes"):
+		if hasattr(self, "_worker_processes") and update_worker_processes:
 			self._update_all_worker_process_states(clobber=True)
 		if ret and "nodes" in ret:
 			for charn, nodes in ret["nodes"].items():
@@ -672,7 +674,7 @@ class Engine(AbstractEngine, gORM, Executor):
 						None,
 						None,
 						(
-							self.snap_keyframe(),
+							self.snap_keyframe(update_worker_processes=False),
 							self.eternal,
 							dict(self.function.iterplain()),
 							dict(self.method.iterplain()),
