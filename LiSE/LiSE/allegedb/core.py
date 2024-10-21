@@ -2557,11 +2557,7 @@ class ORM:
 				self.load_at(branch, v, tick)
 			elif v < start_turn or (v == start_turn and tick < start_tick):
 				self.load_at(branch, v, tick)
-		if not self._planning:
-			self._branch_end[self.branch] = max(
-				(self._branch_end[self.branch], v)
-			)
-		if v > turn_end:
+		if not self._planning and v > turn_end:
 			self._branches[branch] = parent, turn_start, tick_start, v, tick
 		self._otick = tick
 		self._oturn = v
