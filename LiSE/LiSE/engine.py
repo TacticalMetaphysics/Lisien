@@ -1095,7 +1095,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			turn,
 			tick,
 			{
-				rule: self._triggers_cache.retrieve(rule, branch, turn, tick)
+				rule: self._prereqs_cache.retrieve(rule, branch, turn, tick)
 				for rule in self._prereqs_cache.iter_keys(branch, turn, tick)
 			},
 		)
