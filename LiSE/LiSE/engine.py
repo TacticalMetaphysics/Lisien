@@ -2208,9 +2208,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			):
 				return False
 			for trigger in rule.triggers:
-				if trigger.__name__ == "truth":
-					res = True
-				elif hasattr(self, "_worker_processes"):
+				if hasattr(self, "_worker_processes"):
 					res = self._call_any_subproxy(
 						"_eval_trigger", trigger.__name__, entity
 					)
@@ -2248,6 +2246,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			handled_fun(self.tick)
 			return actres
 
+		truthfun = self.trigger.truth
+
 		trig_futs = []
 		for (
 			prio,
@@ -2269,6 +2269,9 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = charmap[charactername]
+			if truthfun in rulebook:
+				todo[prio, rulebook].append((rule, handled, entity))
+				continue
 			trig_futs.append(
 				submit(
 					check_triggers, prio, rulebook, rule, handled, entity, None
@@ -2475,6 +2478,9 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_node(graphn, avn)
+			if truthfun in rulebook:
+				todo[prio, rulebook].append((rule, handled, entity))
+				continue
 			trig_futs.append(
 				submit(
 					check_triggers,
@@ -2510,6 +2516,9 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_thing(charn, thingn)
+			if truthfun in rulebook:
+				todo[prio, rulebook].append((rule, handled, entity))
+				continue
 			trig_futs.append(
 				submit(
 					check_triggers,
@@ -2544,6 +2553,9 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_place(charn, placen)
+			if truthfun in rulebook:
+				todo[prio, rulebook].append((rule, handled, entity))
+				continue
 			trig_futs.append(
 				submit(
 					check_triggers,
@@ -2582,6 +2594,9 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_edge(charn, orign, destn)
+			if truthfun in rulebook:
+				todo[prio, rulebook].append((rule, handled, entity))
+				continue
 			trig_futs.append(
 				submit(
 					check_triggers,
@@ -2610,6 +2625,9 @@ class Engine(AbstractEngine, gORM, Executor):
 				handled_node, charn, noden, rulebook, rulen, branch, turn
 			)
 			entity = get_node(charn, noden)
+			if truthfun in rulebook:
+				todo[prio, rulebook].append((rule, handled, entity))
+				continue
 			trig_futs.append(
 				submit(
 					check_triggers,
@@ -2646,6 +2664,9 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_edge(charn, orign, destn)
+			if truthfun in rulebook:
+				todo[prio, rulebook].append((rule, handled, entity))
+				continue
 			trig_futs.append(
 				submit(
 					check_triggers,
