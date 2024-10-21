@@ -1632,10 +1632,10 @@ class ORM:
 					(parent, time_from[1], time_from[2]),
 					self.get_delta(
 						parent,
-						branched_turn_from,
-						branched_tick_from,
 						turn_from,
 						tick_from,
+						time_from[1],
+						time_from[2],
 					),
 				)
 			self._alias_kf(parent, time_from[0], turn_from, tick_from)
