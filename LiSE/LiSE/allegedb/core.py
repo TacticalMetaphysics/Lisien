@@ -2692,8 +2692,8 @@ class ORM:
 		elif not self._planning:
 			if turn < branch_end[branch]:
 				raise OutOfTimelineError(
-					"You're in the past. Go to turn {}, tick {} to change things"
-					" -- or start a new branch".format(end_turn, end_tick),
+					"You're in the past. Go to turn {} to change things"
+					" -- or start a new branch".format(branch_end[branch]),
 					*btt(),
 					branch,
 					turn,
