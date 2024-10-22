@@ -2541,18 +2541,14 @@ class ORM:
 				v,
 				self.tick,
 			)
+		if (branch, v) in self._turn_end_plan:
+			tick = self._turn_end_plan[(branch, v)]
+		else:
+			self._turn_end_plan[(branch, v)] = tick = 0
 		if branch not in loaded:
-			if (branch, v) in self._turn_end_plan:
-				tick = self._turn_end_plan[branch, v]
-			else:
-				tick = 0
 			self.load_at(branch, v, tick)
 		else:
 			(start_turn, start_tick, end_turn, end_tick) = loaded[branch]
-			if (branch, v) in self._turn_end_plan:
-				tick = self._turn_end_plan[(branch, v)]
-			else:
-				self._turn_end_plan[(branch, v)] = tick = 0
 			if v > end_turn or (v == end_turn and tick > end_tick):
 				self.load_at(branch, v, tick)
 			elif v < start_turn or (v == start_turn and tick < start_tick):
