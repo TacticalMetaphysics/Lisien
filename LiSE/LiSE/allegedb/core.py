@@ -2344,10 +2344,14 @@ class ORM:
 	def branch_end(self, branch: str) -> Tuple[int, int]:
 		return self._branches[branch][3:5]
 
-	def turn_end(self, branch: str, turn: int) -> int:
+	def turn_end(self, branch: str = None, turn: int = None) -> int:
+		branch = branch or self._obranch
+		turn = turn or self._oturn
 		return self._turn_end[branch, turn]
 
-	def turn_end_plan(self, branch: str, turn: int):
+	def turn_end_plan(self, branch: str = None, turn: int = None):
+		branch = branch or self._obranch
+		turn = turn or self._oturn
 		return self._turn_end_plan[branch, turn]
 
 	def _get_branch(self) -> str:
