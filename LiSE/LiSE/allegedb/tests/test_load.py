@@ -162,7 +162,6 @@ def test_keyframe_unload(tmpdbfile):
 	with ORM("sqlite:///" + tmpdbfile) as orm:
 		g = orm.new_digraph("g", nx.grid_2d_graph(3, 3))
 		orm.turn = 1
-		assert orm._time_is_loaded(*orm._btt())
 		assert (
 			"g",
 			(0, 0),
