@@ -2217,8 +2217,7 @@ class ORM:
 				to_keep[past_branch] = (
 					early_turn,
 					early_tick,
-					past_turn,
-					past_tick,
+					*max(((past_turn, past_tick), (late_turn, late_tick))),
 				)
 				break
 			else:
