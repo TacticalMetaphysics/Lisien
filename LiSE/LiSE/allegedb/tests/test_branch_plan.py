@@ -76,6 +76,7 @@ def test_multi_plan(orm):
 		g2.add_edge(1, 2)
 	orm.turn = 0
 	# contradict the plan
+	orm.tick = orm.turn_end_plan()
 	del g1.node[2]
 	assert 1 in g2.node
 	assert 2 in g2.node
