@@ -1659,6 +1659,11 @@ class ORM:
 						branched_tick_from,
 					),
 				)
+			if (
+				time_from[0],
+				branched_turn_from,
+				branched_tick_from,
+			) not in self._keyframes_times:
 				self._copy_kf(
 					parent,
 					time_from[0],
