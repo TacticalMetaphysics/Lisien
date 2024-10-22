@@ -109,7 +109,7 @@ def test_plan_vs_plan(orm):
 	orm.turn = 0
 	with orm.plan():
 		del g1.node[2]
-	orm.turn = 0  # go to turn end
+	orm.tick = orm.turn_end_plan()
 	assert 2 not in g1.node
 	orm.turn = 2
 	assert 3 not in g1.node
