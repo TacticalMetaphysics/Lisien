@@ -1858,7 +1858,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		if v < 0:
 			raise ValueError("Turns can't be negative")
 		turn_end = self._branches[self.branch][3]
-		if v > turn_end + 1:
+		if not self._planning and v > turn_end + 1:
 			raise exc.OutOfTimelineError(
 				f"The turn {v} is after the end of the branch {self.branch}. "
 				f"Go to turn {turn_end + 1} and simulate with `next_turn`.",
