@@ -1772,8 +1772,8 @@ class ORM:
 			(late_turn, late_tick) = (turn, tick)
 		loaded[branch] = (early_turn, early_tick, late_turn, late_tick)
 
-	def _build_keyframe_window_new(
-		self, branch: str, turn: int, tick: int, initial=False
+	def _build_keyframe_window(
+		self, branch: str, turn: int, tick: int, loading=False
 	) -> Tuple[Optional[Tuple[str, int, int]], Optional[Tuple[str, int, int]]]:
 		branch_now = branch
 		turn_now = turn
@@ -1781,7 +1781,7 @@ class ORM:
 		latest_past_keyframe: Optional[Tuple[str, int, int]] = None
 		earliest_future_keyframe: Optional[Tuple[str, int, int]] = None
 		branch_parents = self._branch_parents
-		cache = self._keyframes_times if initial else self._keyframes_loaded
+		cache = self._keyframes_times if loading else self._keyframes_loaded
 		for branch, turn, tick in cache:
 			# Figure out the latest keyframe that is earlier than the present
 			# moment, and the earliest keyframe that is later than the
@@ -1873,11 +1873,11 @@ class ORM:
 		earliest_future_keyframe: Optional[Tuple[str, int, int]]
 		branch_now, turn_now, tick_now = branch, turn, tick
 		(latest_past_keyframe, earliest_future_keyframe) = (
-			self._build_keyframe_window_new(
+			self._build_keyframe_window(
 				branch_now,
 				turn_now,
 				tick_now,
-				initial=not bool(self._keyframes_loaded),
+				loading=True,
 			)
 		)
 		# If branch is a descendant of branch_now, don't load the keyframe

@@ -456,9 +456,7 @@ class Cache:
 					# keys[parentity], branch, turn, tick)[0]  # slow
 					return keycache3[tick]
 			# still have to get a stoptime -- the time of the last keyframe
-			stoptime, _ = self.db._build_keyframe_window_new(
-				branch, turn, tick
-			)
+			stoptime, _ = self.db._build_keyframe_window(branch, turn, tick)
 			if stoptime is None:
 				ret = None
 				if branch in self.keyframe:
