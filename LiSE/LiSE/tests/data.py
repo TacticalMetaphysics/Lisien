@@ -21903,742 +21903,6 @@ KF_TO = {
 }
 SLOW_DELTA = {
 	"physical": {
-		"nodes": {(0, 0): False, "sheep8": True},
-		"node_val": {
-			(5, 21): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(16, 14): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			"wolf2": {"location": (23, 2)},
-			(21, 23): {"_x": 0.8574999999999999},
-			(20, 13): {
-				"_x": 0.8166666666666667,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(1, 12): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			"wolf3": {"location": (22, 24)},
-			(23, 18): {"_x": 0.9391666666666667},
-			(6, 6): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(13, 22): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(21, 16): {"_x": 0.8574999999999999},
-			(6, 21): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(2, 0): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(10, 13): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(2, 15): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(8, 11): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(21, 1): {"_x": 0.8574999999999999},
-			(15, 2): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(14, 0): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(13, 0): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(15, 17): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(22, 24): {"_x": 0.8983333333333333},
-			(11, 16): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 11): {"_x": 0.8166666666666667},
-			(12, 13): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 22): {
-				"_x": 0.8166666666666667,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(9, 14): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(6, 14): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(16, 5): {
-				"bare": False,
-				"_image_paths": ("atlas://rltiles/floor/floor-moss",),
-			},
-			(24, 18): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(7, 2): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(21, 14): {"_x": 0.8574999999999999},
-			"wolf7": {"location": (13, 15)},
-			"sheep7": {"location": (12, 6)},
-			(22, 17): {"_x": 0.8983333333333333},
-			(12, 11): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(15, 0): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(9, 22): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(2, 21): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(23, 20): {"_x": 0.9391666666666667},
-			"sheep6": {"location": (11, 21)},
-			(6, 12): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(7, 0): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(22, 0): {"_x": 0.8983333333333333},
-			(8, 17): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(15, 13): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(7, 15): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(13, 11): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(22, 15): {"_x": 0.8983333333333333},
-			(11, 7): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 2): {"_x": 0.8166666666666667},
-			(23, 3): {"_x": 0.9391666666666667},
-			(16, 16): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(21, 5): {"_x": 0.8574999999999999},
-			"sheep18": {"location": (22, 0)},
-			"wolf9": {"location": (15, 20)},
-			(22, 13): {"_x": 0.8983333333333333},
-			(19, 24): {"_x": 0.7758333333333334},
-			(18, 22): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(23, 16): {
-				"_x": 0.9391666666666667,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(5, 6): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			"sheep24": {"location": (15, 12)},
-			(22, 21): {"_x": 0.8983333333333333},
-			(14, 13): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(12, 0): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(23, 24): {
-				"_x": 0.9391666666666667,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			"sheep17": {"location": (0, 24)},
-			(6, 16): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(3, 12): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(2, 10): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(22, 4): {"_x": 0.8983333333333333},
-			(4, 0): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(22, 19): {
-				"_x": 0.8983333333333333,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 6): {"_x": 0.8166666666666667},
-			(20, 17): {
-				"_x": 0.8166666666666667,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(19, 15): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(9, 9): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(23, 7): {"_x": 0.9391666666666667},
-			(23, 22): {
-				"_x": 0.9391666666666667,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(21, 9): {"_x": 0.8574999999999999},
-			(21, 20): {
-				"_x": 0.8574999999999999,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			"sheep8": {
-				"name": "sheep8",
-				"_image_paths": ("atlas://rltiles/dc-mon/sheep",),
-				"location": (20, 10),
-			},
-			(22, 2): {"_x": 0.8983333333333333},
-			"wolf1": {"location": (8, 14)},
-			(20, 0): {
-				"_x": 0.8166666666666667,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(5, 1): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 15): {"_x": 0.8166666666666667},
-			"sheep13": {"location": (5, 15)},
-			(19, 13): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(9, 7): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(23, 5): {"_x": 0.9391666666666667},
-			(21, 3): {"_x": 0.8574999999999999},
-			"sheep5": {"location": (22, 14)},
-			(14, 2): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(21, 18): {
-				"_x": 0.8574999999999999,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(1, 22): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(12, 15): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(11, 2): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(22, 10): {"_x": 0.8983333333333333},
-			(20, 8): {"_x": 0.8166666666666667},
-			(5, 14): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(6, 20): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(3, 16): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(10, 23): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(23, 13): {"_x": 0.9391666666666667},
-			(21, 11): {
-				"_x": 0.8574999999999999,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(15, 12): {
-				"bare": False,
-				"_image_paths": ("atlas://rltiles/floor/floor-moss",),
-			},
-			(22, 8): {"_x": 0.8983333333333333},
-			(22, 23): {
-				"_x": 0.8983333333333333,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 21): {"_x": 0.8166666666666667},
-			(16, 15): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(23, 11): {"_x": 0.9391666666666667},
-			(21, 24): {
-				"_x": 0.8574999999999999,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(5, 12): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(22, 6): {"_x": 0.8983333333333333},
-			(14, 8): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(4, 13): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(13, 8): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 4): {"_x": 0.8166666666666667},
-			(12, 6): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(18, 0): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(17, 0): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 19): {"_x": 0.8166666666666667},
-			"sheep3": {"location": (13, 16)},
-			(23, 9): {"_x": 0.9391666666666667},
-			"wolf0": {"location": (22, 5)},
-			(21, 7): {"_x": 0.8574999999999999},
-			"sheep15": {"location": (0, 7)},
-			(21, 22): {"_x": 0.8574999999999999},
-			(14, 21): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(22, 14): {
-				"_x": 0.8983333333333333,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(11, 17): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(23, 2): {"_x": 0.9391666666666667},
-			(23, 17): {
-				"_x": 0.9391666666666667,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(21, 15): {"_x": 0.8574999999999999},
-			"sheep1": {"location": (21, 23)},
-			(10, 12): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(1, 9): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 10): {"_x": 0.8166666666666667},
-			(9, 13): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			"sheep11": {"location": (10, 18)},
-			(23, 0): {"_x": 0.9391666666666667},
-			(2, 12): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			"sheep9": {"location": (7, 16)},
-			(21, 13): {
-				"_x": 0.8574999999999999,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(7, 21): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(11, 8): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(16, 2): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 23): {"_x": 0.8166666666666667},
-			(19, 21): {
-				"bare": False,
-				"_image_paths": ("atlas://rltiles/floor/floor-moss",),
-			},
-			(8, 16): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			"sheep14": {"location": (21, 17)},
-			(8, 1): {
-				"bare": False,
-				"_image_paths": ("atlas://rltiles/floor/floor-moss",),
-			},
-			"wolf6": {"location": (8, 3)},
-			(13, 10): {
-				"bare": False,
-				"_image_paths": ("atlas://rltiles/floor/floor-moss",),
-			},
-			(23, 21): {"_x": 0.9391666666666667},
-			(5, 7): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			"sheep16": {"location": (13, 11)},
-			"sheep12": {"location": (0, 1)},
-			(15, 5): {
-				"bare": False,
-				"_image_paths": ("atlas://rltiles/floor/floor-moss",),
-			},
-			(22, 1): {"_x": 0.8983333333333333},
-			(22, 12): {
-				"_x": 0.8983333333333333,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 14): {
-				"_x": 0.8166666666666667,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			"wolf8": {"location": (3, 21)},
-			(23, 4): {"_x": 0.9391666666666667},
-			(2, 16): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(23, 15): {"_x": 0.9391666666666667},
-			(24, 17): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(21, 2): {"_x": 0.8574999999999999},
-			(10, 24): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(21, 17): {"_x": 0.8574999999999999},
-			(13, 16): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(5, 13): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(9, 10): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(1, 11): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			"sheep23": {"location": (22, 19)},
-			(22, 3): {"_x": 0.8983333333333333},
-			(11, 6): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 1): {"_x": 0.8166666666666667},
-			"sheep0": {"location": (10, 13)},
-			"sheep19": {"location": (9, 13)},
-			(5, 22): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(23, 6): {"_x": 0.9391666666666667},
-			"sheep21": {"location": (24, 21)},
-			"sheep2": {"location": (10, 1)},
-			(22, 16): {
-				"_x": 0.8983333333333333,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(4, 12): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(19, 12): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 18): {"_x": 0.8166666666666667},
-			(23, 19): {"_x": 0.9391666666666667},
-			(21, 21): {"_x": 0.8574999999999999},
-			(20, 12): {"_x": 0.8166666666666667},
-			(5, 2): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(3, 0): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(21, 0): {
-				"_x": 0.8574999999999999,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(8, 9): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(8, 20): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(15, 16): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(14, 14): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(22, 7): {"_x": 0.8983333333333333},
-			(20, 5): {"_x": 0.8166666666666667},
-			(12, 16): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(22, 22): {
-				"_x": 0.8983333333333333,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 20): {
-				"_x": 0.8166666666666667,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(9, 12): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			"wolf4": {"location": (24, 18)},
-			(9, 23): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(24, 12): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(2, 11): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(23, 10): {"_x": 0.9391666666666667},
-			(0, 9): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(21, 8): {"_x": 0.8574999999999999},
-			(22, 20): {"_x": 0.8983333333333333},
-			(19, 16): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(7, 1): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(18, 14): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			"sheep20": {"location": (20, 19)},
-			"wolf5": {"location": (15, 9)},
-			(22, 5): {"_x": 0.8983333333333333},
-			"sheep4": {"location": (23, 18)},
-			(23, 23): {
-				"_x": 0.9391666666666667,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 3): {"_x": 0.8166666666666667},
-			(23, 8): {"_x": 0.9391666666666667},
-			(21, 6): {"_x": 0.8574999999999999},
-			(22, 18): {
-				"_x": 0.8983333333333333,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(13, 9): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			"sheep10": {"location": (6, 21)},
-			(20, 16): {"_x": 0.8166666666666667},
-			(19, 14): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(21, 4): {
-				"_x": 0.8574999999999999,
-				"bare": False,
-				"_image_paths": ("atlas://rltiles/floor/floor-moss",),
-			},
-			(23, 1): {"_x": 0.9391666666666667},
-			(21, 19): {
-				"_x": 0.8574999999999999,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(14, 18): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(22, 11): {"_x": 0.8983333333333333},
-			(20, 9): {"_x": 0.8166666666666667},
-			(20, 24): {"_x": 0.8166666666666667},
-			(19, 22): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(24, 16): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(23, 14): {
-				"_x": 0.9391666666666667,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(21, 12): {
-				"_x": 0.8574999999999999,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(5, 0): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(14, 11): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(7, 20): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(22, 9): {"_x": 0.8983333333333333},
-			(1, 21): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(20, 7): {"_x": 0.8166666666666667},
-			(16, 1): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(23, 12): {"_x": 0.9391666666666667},
-			(21, 10): {
-				"_x": 0.8574999999999999,
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(0, 22): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(15, 11): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-			(14, 9): {
-				"bare": True,
-				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
-			},
-		},
-		"edges": {
-			((0, 1), (0, 0)): False,
-			((0, 0), (1, 0)): False,
-			((1, 0), (0, 0)): False,
-			((0, 0), (0, 1)): False,
-			((1, 0), (0, 1)): True,
-		},
-		"edge_val": {
-			(0, 1): {(0, 2): {"foo": "bar"}, (1, 0): {"spam": "disgusting"}},
-		},
 		"bare_places": (
 			(0, 1),
 			(0, 2),
@@ -23135,20 +22399,760 @@ SLOW_DELTA = {
 			(21, 19),
 			(21, 10),
 		),
+		"edge_val": {
+			(0, 1): {(0, 2): {"foo": "bar"}, (1, 0): {"spam": "disgusting"}}
+		},
+		"edges": {
+			((0, 0), (0, 1)): False,
+			((0, 0), (1, 0)): False,
+			((0, 1), (0, 0)): False,
+			((1, 0), (0, 0)): False,
+		},
+		"node_val": {
+			"wolf5": {"location": (15, 9)},
+			(8, 9): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"sheep18": {"location": (22, 0)},
+			(22, 10): {"_x": 0.8983333333333333},
+			(22, 19): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8983333333333333,
+				"bare": True,
+			},
+			"sheep4": {"location": (23, 18)},
+			(15, 16): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(7, 21): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"wolf0": {"location": (22, 5)},
+			(0, 9): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(22, 5): {"_x": 0.8983333333333333},
+			(22, 14): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8983333333333333,
+				"bare": True,
+			},
+			(22, 23): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8983333333333333,
+				"bare": True,
+			},
+			(15, 2): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(15, 11): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"sheep23": {"location": (22, 19)},
+			"sheep16": {"location": (13, 11)},
+			(21, 18): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8574999999999999,
+				"bare": True,
+			},
+			"wolf4": {"location": (24, 18)},
+			"sheep24": {"location": (15, 12)},
+			(22, 0): {"_x": 0.8983333333333333},
+			(22, 9): {"_x": 0.8983333333333333},
+			(22, 18): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8983333333333333,
+				"bare": True,
+			},
+			(14, 14): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(7, 2): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(21, 13): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8574999999999999,
+				"bare": True,
+			},
+			(21, 22): {"_x": 0.8574999999999999},
+			(10, 12): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(22, 4): {"_x": 0.8983333333333333},
+			(3, 0): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(14, 0): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(22, 13): {"_x": 0.8983333333333333},
+			(14, 9): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(14, 18): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"wolf6": {"location": (8, 3)},
+			(21, 8): {"_x": 0.8574999999999999},
+			(21, 17): {"_x": 0.8574999999999999},
+			"sheep14": {"location": (21, 17)},
+			"sheep8": {
+				"_image_paths": ("atlas://rltiles/dc-mon/sheep",),
+				"location": (20, 10),
+				"name": "sheep8",
+			},
+			(2, 12): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(2, 21): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"sheep2": {"location": (10, 1)},
+			(22, 8): {"_x": 0.8983333333333333},
+			(5, 22): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(21, 3): {"_x": 0.8574999999999999},
+			(6, 14): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(21, 12): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8574999999999999,
+				"bare": True,
+			},
+			(21, 21): {"_x": 0.8574999999999999},
+			(2, 16): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"sheep12": {"location": (0, 1)},
+			(13, 22): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(21, 7): {"_x": 0.8574999999999999},
+			(21, 16): {"_x": 0.8574999999999999},
+			(20, 20): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8166666666666667,
+				"bare": True,
+			},
+			"sheep9": {"location": (7, 16)},
+			(2, 11): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(13, 8): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"wolf2": {"location": (23, 2)},
+			(24, 17): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(5, 12): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(9, 10): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(5, 21): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(21, 2): {"_x": 0.8574999999999999},
+			(20, 15): {"_x": 0.8166666666666667},
+			(20, 24): {"_x": 0.8166666666666667},
+			"sheep11": {"location": (10, 18)},
+			(23, 20): {"_x": 0.9391666666666667},
+			"wolf9": {"location": (15, 20)},
+			(24, 12): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(17, 0): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"sheep0": {"location": (10, 13)},
+			(5, 7): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(9, 14): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"sheep5": {"location": (22, 14)},
+			(20, 1): {"_x": 0.8166666666666667},
+			(20, 10): {"_x": 0.8166666666666667},
+			(12, 6): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(23, 6): {"_x": 0.9391666666666667},
+			(20, 19): {"_x": 0.8166666666666667},
+			(12, 15): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(23, 15): {"_x": 0.9391666666666667},
+			(23, 24): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.9391666666666667,
+				"bare": True,
+			},
+			(13, 16): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(24, 16): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"wolf8": {"location": (3, 21)},
+			(5, 2): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(9, 9): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(19, 13): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(19, 22): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(20, 5): {"_x": 0.8166666666666667},
+			(23, 1): {"_x": 0.9391666666666667},
+			(20, 14): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8166666666666667,
+				"bare": True,
+			},
+			(23, 10): {"_x": 0.9391666666666667},
+			(20, 23): {"_x": 0.8166666666666667},
+			(23, 19): {"_x": 0.9391666666666667},
+			(1, 9): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(13, 11): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(16, 16): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"sheep13": {"location": (5, 15)},
+			(5, 6): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(8, 17): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(0, 22): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(20, 0): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8166666666666667,
+				"bare": True,
+			},
+			"sheep15": {"location": (0, 7)},
+			(20, 9): {"_x": 0.8166666666666667},
+			(23, 5): {"_x": 0.9391666666666667},
+			(20, 18): {"_x": 0.8166666666666667},
+			(23, 14): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.9391666666666667,
+				"bare": True,
+			},
+			(23, 23): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.9391666666666667,
+				"bare": True,
+			},
+			(16, 2): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"sheep10": {"location": (6, 21)},
+			(7, 20): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(19, 12): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"sheep6": {"location": (11, 21)},
+			(11, 8): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(19, 21): {
+				"_image_paths": ("atlas://rltiles/floor/floor-moss",),
+				"bare": False,
+			},
+			(11, 17): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(20, 4): {"_x": 0.8166666666666667},
+			(12, 0): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(23, 0): {"_x": 0.9391666666666667},
+			(20, 13): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8166666666666667,
+				"bare": True,
+			},
+			(23, 9): {"_x": 0.9391666666666667},
+			(23, 18): {"_x": 0.9391666666666667},
+			(22, 22): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8983333333333333,
+				"bare": True,
+			},
+			(7, 15): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"sheep7": {"location": (12, 6)},
+			(8, 16): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(19, 16): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(23, 4): {"_x": 0.9391666666666667},
+			(4, 0): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(22, 17): {"_x": 0.8983333333333333},
+			(14, 13): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(15, 5): {
+				"_image_paths": ("atlas://rltiles/floor/floor-moss",),
+				"bare": False,
+			},
+			(7, 1): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(8, 11): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(11, 7): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(11, 16): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(22, 3): {"_x": 0.8983333333333333},
+			(22, 12): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8983333333333333,
+				"bare": True,
+			},
+			(14, 8): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(22, 21): {"_x": 0.8983333333333333},
+			(15, 0): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(18, 14): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(11, 2): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(10, 24): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(22, 7): {"_x": 0.8983333333333333},
+			(22, 16): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8983333333333333,
+				"bare": True,
+			},
+			(3, 12): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(14, 21): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(7, 0): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(18, 0): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(15, 13): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(21, 11): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8574999999999999,
+				"bare": True,
+			},
+			(21, 20): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8574999999999999,
+				"bare": True,
+			},
+			"sheep17": {"location": (0, 24)},
+			(2, 15): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(22, 2): {"_x": 0.8983333333333333},
+			(22, 11): {"_x": 0.8983333333333333},
+			(22, 20): {"_x": 0.8983333333333333},
+			(3, 16): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(9, 23): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(21, 6): {"_x": 0.8574999999999999},
+			(21, 15): {"_x": 0.8574999999999999},
+			(21, 24): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8574999999999999,
+				"bare": True,
+			},
+			(2, 10): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(10, 23): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(22, 6): {"_x": 0.8983333333333333},
+			(14, 2): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(14, 11): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"sheep20": {"location": (20, 19)},
+			(21, 1): {"_x": 0.8574999999999999},
+			(6, 12): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(21, 10): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8574999999999999,
+				"bare": True,
+			},
+			(6, 21): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(21, 19): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8574999999999999,
+				"bare": True,
+			},
+			(22, 1): {"_x": 0.8983333333333333},
+			(9, 13): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(9, 22): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(21, 5): {"_x": 0.8574999999999999},
+			(6, 16): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(21, 14): {"_x": 0.8574999999999999},
+			(21, 23): {"_x": 0.8574999999999999},
+			(2, 0): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(10, 13): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(1, 22): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"sheep19": {"location": (9, 13)},
+			(5, 1): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(21, 0): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8574999999999999,
+				"bare": True,
+			},
+			(21, 9): {"_x": 0.8574999999999999},
+			(6, 20): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"wolf1": {"location": (8, 14)},
+			(20, 22): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8166666666666667,
+				"bare": True,
+			},
+			(13, 10): {
+				"_image_paths": ("atlas://rltiles/floor/floor-moss",),
+				"bare": False,
+			},
+			(16, 15): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(5, 14): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(9, 12): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(6, 6): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(21, 4): {
+				"_image_paths": ("atlas://rltiles/floor/floor-moss",),
+				"_x": 0.8574999999999999,
+				"bare": False,
+			},
+			(20, 8): {"_x": 0.8166666666666667},
+			(20, 17): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.8166666666666667,
+				"bare": True,
+			},
+			(12, 13): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(23, 13): {"_x": 0.9391666666666667},
+			(23, 22): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.9391666666666667,
+				"bare": True,
+			},
+			(16, 1): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(1, 12): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(1, 21): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(5, 0): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(9, 7): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(8, 20): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(20, 3): {"_x": 0.8166666666666667},
+			(20, 12): {"_x": 0.8166666666666667},
+			(23, 8): {"_x": 0.9391666666666667},
+			(20, 21): {"_x": 0.8166666666666667},
+			(23, 17): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.9391666666666667,
+				"bare": True,
+			},
+			(4, 13): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(13, 0): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(13, 9): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(16, 5): {
+				"_image_paths": ("atlas://rltiles/floor/floor-moss",),
+				"bare": False,
+			},
+			"sheep1": {"location": (21, 23)},
+			(24, 18): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(16, 14): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(5, 13): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(19, 15): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(19, 24): {"_x": 0.7758333333333334},
+			(20, 7): {"_x": 0.8166666666666667},
+			(23, 3): {"_x": 0.9391666666666667},
+			(20, 16): {"_x": 0.8166666666666667},
+			(23, 12): {"_x": 0.9391666666666667},
+			(23, 21): {"_x": 0.9391666666666667},
+			(1, 11): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"wolf7": {"location": (13, 15)},
+			(8, 1): {
+				"_image_paths": ("atlas://rltiles/floor/floor-moss",),
+				"bare": False,
+			},
+			"sheep3": {"location": (13, 16)},
+			(11, 6): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(20, 2): {"_x": 0.8166666666666667},
+			(20, 11): {"_x": 0.8166666666666667},
+			(23, 7): {"_x": 0.9391666666666667},
+			(12, 16): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(23, 16): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"_x": 0.9391666666666667,
+				"bare": True,
+			},
+			(4, 12): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(15, 17): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			"sheep21": {"location": (24, 21)},
+			(18, 22): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(19, 14): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(20, 6): {"_x": 0.8166666666666667},
+			(23, 2): {"_x": 0.9391666666666667},
+			(12, 11): {
+				"_image_paths": ("atlas://rltiles/floor/floor-normal",),
+				"bare": True,
+			},
+			(23, 11): {"_x": 0.9391666666666667},
+			(22, 15): {"_x": 0.8983333333333333},
+			(22, 24): {"_x": 0.8983333333333333},
+			"wolf3": {"location": (22, 24)},
+			(15, 12): {
+				"_image_paths": ("atlas://rltiles/floor/floor-moss",),
+				"bare": False,
+			},
+		},
+		"nodes": {(0, 0): False, "sheep8": True},
+	},
+	"rulebook": {"somerules": ("anotherrule", "thirdrule")},
+	"rules": {
+		"anotherrule": {
+			"actions": ("ham", "baked beans", "spam", "spam", "spam"),
+			"prereqs": ("quux",),
+			"triggers": ("bar", "bas", "foo"),
+		},
+		"onerule": {
+			"actions": ("eggs",),
+			"prereqs": ("qux", "quux", "quuux"),
+			"triggers": ("foo",),
+		},
 	},
 	"sheep": {
 		"units": {
 			"physical": {
 				"sheep0": True,
 				"sheep1": True,
-				"sheep2": True,
-				"sheep3": True,
-				"sheep4": True,
-				"sheep5": True,
-				"sheep6": True,
-				"sheep7": True,
-				"sheep8": True,
-				"sheep9": True,
 				"sheep10": True,
 				"sheep11": True,
 				"sheep12": True,
@@ -23159,40 +23163,21 @@ SLOW_DELTA = {
 				"sheep17": True,
 				"sheep18": True,
 				"sheep19": True,
+				"sheep2": True,
 				"sheep20": True,
 				"sheep21": True,
 				"sheep22": True,
 				"sheep23": True,
 				"sheep24": True,
+				"sheep3": True,
+				"sheep4": True,
+				"sheep5": True,
+				"sheep6": True,
+				"sheep7": True,
+				"sheep8": True,
+				"sheep9": True,
 			}
 		}
-	},
-	"rulebook": {"somerules": ("anotherrule", "thirdrule")},
-	"rules": {
-		"anotherrule": {
-			"actions": (
-				"ham",
-				"baked beans",
-				"spam",
-				"spam",
-				"spam",
-			),
-			"prereqs": ("quux",),
-			"triggers": (
-				"bar",
-				"bas",
-				"foo",
-			),
-		},
-		"onerule": {
-			"actions": ("eggs",),
-			"prereqs": (
-				"qux",
-				"quux",
-				"quuux",
-			),
-			"triggers": ("foo",),
-		},
 	},
 }
 
