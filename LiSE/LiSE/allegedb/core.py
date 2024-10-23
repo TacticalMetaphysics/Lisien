@@ -2569,7 +2569,7 @@ class ORM:
 				self.load_at(branch, v, tick)
 		else:
 			self.load_at(branch, v, tick)
-		if v > turn_end:
+		if v > turn_end and not self._planning:
 			self._branches[branch] = parent, turn_start, tick_start, v, tick
 		self._otick = tick
 		self._oturn = v
