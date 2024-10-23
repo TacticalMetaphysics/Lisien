@@ -2300,16 +2300,19 @@ class ORM:
 		if branch not in loaded:
 			return False
 		if turn is None:
+			if tick is not None:
+				raise ValueError("Need both or neither of turn and tick")
 			return True
-		if tick is not None:
+		if tick is None:
+			(past_turn, _, future_turn, _) = loaded[branch]
+			return past_turn <= turn <= future_turn
+		else:
 			early_turn, early_tick, late_turn, late_tick = loaded[branch]
 			return (
 				(early_turn, early_tick)
 				<= (turn, tick)
 				<= (late_turn, late_tick)
 			)
-		(past_turn, past_tick, future_turn, future_tick) = loaded[branch]
-		return past_turn <= turn <= future_turn
 
 	def __enter__(self):
 		"""Enable the use of the ``with`` keyword"""
