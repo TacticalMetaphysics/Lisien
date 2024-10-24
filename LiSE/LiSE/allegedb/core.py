@@ -2520,7 +2520,7 @@ class ORM:
 		branch = self.branch
 		loaded = self._loaded
 		if v == self.turn:
-			self._otick = tick = self._turn_end[tuple(self.time)]
+			self._otick = tick = self._turn_end_plan[tuple(self.time)]
 			if branch not in loaded:
 				self.load_at(branch, v, tick)
 				return
