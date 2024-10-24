@@ -810,14 +810,13 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				raise TypeError("Things are made from Mappings")
 			if "location" not in val:
 				raise ValueError("Thing needs location")
-			created = thing not in self
 			self.engine._exist_node(self.character.name, thing)
 			self.engine._set_thing_loc(
 				self.character.name, thing, val["location"]
 			)
 			th = self._make_thing(thing, val)
 			th.clear()
-			th.update(val)
+			th.update({k: v for (k, v) in val.items() if k != "location"})
 
 		def __delitem__(self, thing):
 			self[thing].delete()
