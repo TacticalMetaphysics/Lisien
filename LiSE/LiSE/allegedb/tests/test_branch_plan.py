@@ -1,6 +1,5 @@
 import pytest
 from LiSE import allegedb
-import os
 
 
 @pytest.fixture(scope="function")
