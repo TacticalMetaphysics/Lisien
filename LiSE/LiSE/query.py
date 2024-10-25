@@ -1095,6 +1095,7 @@ class ConnectionHolder(query.ConnectionHolder):
 			"rule_actions",
 			"rule_neighborhood",
 			"turns_completed",
+			"keyframe_extensions",
 		):
 			try:
 				init_table(table)
@@ -1316,9 +1317,10 @@ class QueryEngine(query.QueryEngine):
 			)
 
 	def get_keyframe_extensions(self, branch: str, turn: int, tick: int):
+		self.flush()
 		unpack = self.unpack
 		universal, rule, rulebook = next(
-			self.call_one("get_keyframe_extensions", branch, turn, tick)
+			iter(self.call_one("get_keyframe_extensions", branch, turn, tick))
 		)
 		return unpack(universal), unpack(rule), unpack(rulebook)
 
