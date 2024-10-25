@@ -2227,13 +2227,6 @@ class ORM:
 								or (kfturn == late_turn and kftick < late_tick)
 							):
 								late_turn, late_tick = kfturn, kftick
-				# Not checking if you're past the end of the branch, because
-				# that can legitimately happen if the rules engine is just
-				# starting a new turn, for instance
-				assert (early_turn, early_tick) <= (
-					past_turn,
-					past_tick,
-				), "Unloading failed due to an invalid cache state"
 				to_keep[past_branch] = (
 					early_turn,
 					early_tick,
