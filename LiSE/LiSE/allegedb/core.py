@@ -2450,7 +2450,10 @@ class ORM:
 						self._last_plan += 1
 						incremented = True
 						plans[self._last_plan] = branch, turn, tick
-					new_uncommitted_ticks = set()
+					plan_ticks[self._last_plan][turn].append(tick)
+					plan_ticks_uncommitted.append(
+						(self._last_plan, turn, tick)
+					)
 					for cache in where_cached[branch_from, turn, tick]:
 						data = cache.settings[branch_from][turn][tick]
 						value = data[-1]
@@ -2459,13 +2462,8 @@ class ORM:
 						if hasattr(cache, "setdb"):
 							cache.setdb(*args)
 						cache.store(*args, planning=True)
-						plan_ticks[self._last_plan][turn].append(tick)
-						new_uncommitted_ticks.add(
-							(self._last_plan, turn, tick)
-						)
 						time_plan[branch, turn, tick] = self._last_plan
 						turn_end_plan[branch, turn] = tick
-					plan_ticks_uncommitted.extend(new_uncommitted_ticks)
 
 	@world_locked
 	def delete_plan(self, plan: int) -> None:
