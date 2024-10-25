@@ -1134,7 +1134,12 @@ class ORM:
 		] = (self._nbtt, self.query.exist_edge, self._edges_cache.store)
 		self._keyframes_list = []
 		self._keyframes_dict = {}
-		self._keyframes_times = set()
+
+		class LoudSet(set):
+			def add(self, item):
+				super().add(item)
+
+		self._keyframes_times = LoudSet()
 		self._keyframes_loaded = set()
 		self._load_graphs()
 		assert hasattr(self, "graph")

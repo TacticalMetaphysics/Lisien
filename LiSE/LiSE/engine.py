@@ -749,8 +749,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		type_s="DiGraph",
 		data: Union[Graph, nx.Graph, dict, KeyframeTuple] = None,
 	) -> None:
-		super()._init_graph(name, type_s, data)
 		self.snap_keyframe(silent=True, update_worker_processes=False)
+		super()._init_graph(name, type_s, data)
 		if hasattr(self, "_worker_processes"):
 			self._call_every_subproxy("add_character", name, data)
 
