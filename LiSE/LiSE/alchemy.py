@@ -595,6 +595,16 @@ def queries(table):
 	r["load_actions_tick_to_tick"] = actsel.where(
 		generic_tick_to_tick_clause(act)
 	)
+	kfx = table["keyframe_extensions"]
+	r["get_keyframe_extensions"] = select(
+		kfx.c.universal, kfx.c.rule, kfx.c.rulebook
+	).where(
+		and_(
+			kfx.c.branch == bindparam("branch"),
+			kfx.c.turn == bindparam("turn"),
+			kfx.c.tick == bindparam("tick"),
+		)
+	)
 
 	for handledtab in (
 		"character_rules_handled",

@@ -50,7 +50,7 @@ from sqlalchemy.sql.functions import func
 import msgpack
 
 from .alchemy import meta, gather_sql
-from .allegedb import query
+from .allegedb import query, Key
 from .exc import IntegrityError, OperationalError
 from .util import EntityStatAccessor
 import LiSE
@@ -1124,6 +1124,7 @@ class QueryEngine(query.QueryEngine):
 		"turns",
 		"graphs",
 		"keyframes",
+		"keyframe_extensions",
 		"graph_val",
 		"nodes",
 		"node_val",
@@ -1271,6 +1272,47 @@ class QueryEngine(query.QueryEngine):
 			setattr(self, attr, [])
 		assert self.echo("flushed") == "flushed"
 
+	def keyframe_extensions_dump(self):
+		unpack = self.unpack
+		for branch, turn, tick, universal, rule, rulebook in self.call_one(
+			"keyframe_extensions_dump"
+		):
+			yield (
+				branch,
+				turn,
+				tick,
+				unpack(universal),
+				unpack(rule),
+				unpack(rulebook),
+			)
+
+	def get_keyframe_extensions(self, branch: str, turn: int, tick: int):
+		unpack = self.unpack
+		universal, rule, rulebook = next(
+			self.call_one("get_keyframe_extensions", branch, turn, tick)
+		)
+		return unpack(universal), unpack(rule), unpack(rulebook)
+
+	def keyframe_extensions_insert(
+		self,
+		branch: str,
+		turn: int,
+		tick: int,
+		universal: dict,
+		rule: dict,
+		rulebook: dict,
+	):
+		pack = self.pack
+		self.call_one(
+			"keyframe_extensions_insert",
+			branch,
+			turn,
+			tick,
+			pack(universal),
+			pack(rule),
+			pack(rulebook),
+		)
+
 	def universals_dump(self):
 		unpack = self.unpack
 		for key, branch, turn, tick, value in self.call_one("universals_dump"):
@@ -1374,6 +1416,225 @@ class QueryEngine(query.QueryEngine):
 
 	def rule_triggers_dump(self):
 		return self._rule_dump("triggers")
+
+	def _load_rule_funclist(
+		self,
+		typ: str,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		unpack = self.unpack
+		if turn_to is None:
+			if tick_to is not None:
+				raise ValueError("Need both or neither of turn_to, tick_to")
+			for rule, turn, tick, funclist in self.call_one(
+				f"load_{typ}_tick_to_end",
+				branch,
+				turn_from,
+				turn_from,
+				tick_from,
+			):
+				yield (rule, branch, turn, tick, unpack(funclist))
+		else:
+			if tick_to is None:
+				raise ValueError("Need both or neither of turn_to, tick_to")
+			for rule, turn, tick, funclist in self.call_one(
+				f"load_{typ}_tick_to_tick",
+				branch,
+				turn_from,
+				turn_from,
+				tick_from,
+				turn_to,
+				turn_to,
+				tick_to,
+			):
+				yield (rule, branch, turn, tick, unpack(funclist))
+
+	def load_rule_triggers(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		return self._load_rule_funclist(
+			"triggers", branch, turn_from, tick_from, turn_to, tick_to
+		)
+
+	def load_rule_prereqs(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		return self._load_rule_funclist(
+			"prereqs", branch, turn_from, tick_from, turn_to, tick_to
+		)
+
+	def load_rule_actions(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		return self._load_rule_funclist(
+			"actions", branch, turn_from, tick_from, turn_to, tick_to
+		)
+
+	def load_rule_neighborhood(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		return self._load_rule_funclist(
+			"neighborhood", branch, turn_from, tick_from, turn_to, tick_to
+		)
+
+	def _load_character_rulebook(
+		self,
+		typ: str,
+		character: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		charn = self.pack(character)
+		unpack = self.unpack
+		if turn_to is None:
+			if tick_to is not None:
+				raise ValueError("Need both or neither of turn_to, tick_to")
+			for rulebook, turn, tick, rules in self.call_one(
+				f"load_{typ}_tick_to_end",
+				charn,
+				branch,
+				turn_from,
+				turn_from,
+				tick_from,
+			):
+				yield (unpack(rulebook), branch, turn, tick, unpack(rules))
+		else:
+			if tick_to is None:
+				raise ValueError("Need both or neither of turn_to, tick_to")
+			for rulebook, turn, tick, rules in self.call_one(
+				f"load_{typ}_tick_to_tick",
+				charn,
+				branch,
+				turn_from,
+				turn_from,
+				tick_from,
+				turn_to,
+				turn_to,
+				tick_to,
+			):
+				yield (unpack(rulebook), branch, turn, tick, unpack(rules))
+
+	def load_character_rulebook(
+		self,
+		character: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		return self._load_character_rulebook(
+			"character_rulebook",
+			character,
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+
+	def load_unit_rulebook(
+		self,
+		character: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		return self._load_character_rulebook(
+			"unit_rulebook",
+			character,
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+
+	def load_character_thing_rulebook(
+		self,
+		character: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		return self._load_character_rulebook(
+			"character_thing",
+			character,
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+
+	def load_character_place_rulebook(
+		self,
+		character: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		return self._load_character_rulebook(
+			"character_place",
+			character,
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+
+	def load_character_portal_rulebook(
+		self,
+		character: Key,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		return self._load_character_rulebook(
+			"character_portal",
+			character,
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 
 	def rule_prereqs_dump(self):
 		return self._rule_dump("prereqs")
