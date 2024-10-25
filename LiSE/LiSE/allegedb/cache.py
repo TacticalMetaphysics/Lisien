@@ -611,7 +611,7 @@ class Cache:
 		planning: bool = None,
 		forward: bool = None,
 		loading=False,
-		contra=None,
+		contra: bool = None,
 	):
 		"""Put a value in various dictionaries for later .retrieve(...).
 
@@ -1377,7 +1377,7 @@ class NodesCache(Cache):
 		planning: bool = None,
 		forward: bool = None,
 		loading=False,
-		contra=None,
+		contra: bool = None,
 	):
 		if not ex:
 			ex = None
@@ -1852,10 +1852,10 @@ class EdgesCache(Cache):
 		tick,
 		ex,
 		*,
-		planning=None,
-		forward=None,
+		planning: bool = None,
+		forward: bool = None,
 		loading=False,
-		contra=None,
+		contra: bool = None,
 	):
 		if contra is None:
 			contra = not loading
@@ -1911,10 +1911,10 @@ class EntitylessCache(Cache):
 		tick,
 		value,
 		*,
-		planning=None,
-		forward=None,
+		planning: bool = None,
+		forward: bool = None,
 		loading=False,
-		contra=None,
+		contra: bool = None,
 	):
 		super().store(
 			None,

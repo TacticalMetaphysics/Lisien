@@ -98,10 +98,10 @@ class UnitnessCache(Cache):
 		tick,
 		is_unit,
 		*,
-		planning=None,
-		forward=None,
+		planning: bool = None,
+		forward: bool = None,
 		loading=False,
-		contra=None,
+		contra: bool = None,
 	):
 		is_unit = True if is_unit else None
 		super().store(
@@ -788,7 +788,7 @@ class NodeContentsCache(Cache):
 		planning: bool = None,
 		forward: bool = None,
 		loading=False,
-		contra=None,
+		contra: bool = None,
 	):
 		self.loc_settings[character, place][branch].store_at(
 			turn, tick, contents
