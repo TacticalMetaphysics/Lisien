@@ -1855,8 +1855,10 @@ class EdgesCache(Cache):
 		planning=None,
 		forward=None,
 		loading=False,
-		contra=True,
+		contra=None,
 	):
+		if contra is None:
+			contra = not loading
 		db, predecessors, successors = self._additional_store_stuff
 		if not ex:
 			ex = None
@@ -1912,7 +1914,7 @@ class EntitylessCache(Cache):
 		planning=None,
 		forward=None,
 		loading=False,
-		contra=True,
+		contra=None,
 	):
 		super().store(
 			None,

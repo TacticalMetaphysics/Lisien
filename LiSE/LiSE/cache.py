@@ -101,7 +101,7 @@ class UnitnessCache(Cache):
 		planning=None,
 		forward=None,
 		loading=False,
-		contra=True,
+		contra=None,
 	):
 		is_unit = True if is_unit else None
 		super().store(
@@ -650,7 +650,7 @@ class ThingsCache(Cache):
 		Cache.__init__(self, db)
 		self._make_node = db.thing_cls
 
-	def store(self, *args, planning=None, loading=False, contra=True):
+	def store(self, *args, planning=None, loading=False, contra=None):
 		character, thing, branch, turn, tick, location = args
 		with self._lock:
 			try:
