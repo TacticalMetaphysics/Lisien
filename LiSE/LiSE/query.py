@@ -1620,7 +1620,7 @@ class QueryEngine(query.QueryEngine):
 		tick_to: int = None,
 	):
 		return self._load_character_rulebook(
-			"character_thing",
+			"character_thing_rulebook",
 			character,
 			branch,
 			turn_from,
@@ -1639,7 +1639,7 @@ class QueryEngine(query.QueryEngine):
 		tick_to: int = None,
 	):
 		return self._load_character_rulebook(
-			"character_place",
+			"character_place_rulebook",
 			character,
 			branch,
 			turn_from,
@@ -1658,7 +1658,7 @@ class QueryEngine(query.QueryEngine):
 		tick_to: int = None,
 	):
 		return self._load_character_rulebook(
-			"character_portal",
+			"character_portal_rulebook",
 			character,
 			branch,
 			turn_from,
