@@ -1723,6 +1723,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			univ = {}
 			for key in self._universal_cache.iter_keys(b, r, t):
 				univ[key] = self._universal_cache.retrieve(key, b, r, t)
+			self._universal_cache.set_keyframe(b, r, t, univ)
 		try:
 			rbs = self._rulebooks_cache.get_keyframe(b, r, t).copy()
 		except KeyError:
@@ -1735,7 +1736,6 @@ class Engine(AbstractEngine, gORM, Executor):
 					del univ[k]
 			else:
 				univ[k] = v
-		self._universal_cache.set_keyframe(branch, turn, tick, univ)
 		rbs.update(delta.pop("rulebooks", {}))
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
 		for char in self._graph_cache.iter_keys(b, r, t):
@@ -1886,6 +1886,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._characters_portals_rulebooks_cache.set_keyframe(
 			branch, turn, tick, portrbs
 		)
+		self._universal_cache.set_keyframe(branch, turn, tick, univ)
 		self.query._new_keyframe_extensions.append(
 			(
 				*now,
