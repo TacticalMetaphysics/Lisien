@@ -557,7 +557,6 @@ def queries(table):
 	act = table["rule_actions"]
 	hoodsel = select(
 		hood.c.rule,
-		hood.c.branch,
 		hood.c.turn,
 		hood.c.tick,
 		hood.c.neighborhood,
@@ -568,27 +567,21 @@ def queries(table):
 	r["load_neighborhoods_tick_to_tick"] = hoodsel.where(
 		generic_tick_to_tick_clause(hood)
 	)
-	trigsel = select(
-		trig.c.rule, trig.c.branch, trig.c.turn, trig.c.tick, trig.c.triggers
-	)
+	trigsel = select(trig.c.rule, trig.c.turn, trig.c.tick, trig.c.triggers)
 	r["load_triggers_tick_to_end"] = trigsel.where(
 		generic_tick_to_end_clause(trig)
 	)
 	r["load_triggers_tick_to_tick"] = trigsel.where(
 		generic_tick_to_tick_clause(trig)
 	)
-	preqsel = select(
-		preq.c.rule, preq.c.branch, preq.c.turn, preq.c.tick, preq.c.prereqs
-	)
+	preqsel = select(preq.c.rule, preq.c.turn, preq.c.tick, preq.c.prereqs)
 	r["load_prereqs_tick_to_end"] = preqsel.where(
 		generic_tick_to_end_clause(preq)
 	)
 	r["load_prereqs_tick_to_tick"] = preqsel.where(
 		generic_tick_to_tick_clause(preq)
 	)
-	actsel = select(
-		act.c.rule, act.c.branch, act.c.turn, act.c.tick, act.c.actions
-	)
+	actsel = select(act.c.rule, act.c.turn, act.c.tick, act.c.actions)
 	r["load_actions_tick_to_end"] = actsel.where(
 		generic_tick_to_end_clause(act)
 	)
