@@ -746,8 +746,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		type_s="DiGraph",
 		data: Union[Graph, nx.Graph, dict, KeyframeTuple] = None,
 	) -> None:
-		self._make_transient_keyframes(*self._btt())
 		super()._init_graph(name, type_s, data)
+		self.snap_keyframe(silent=True, update_worker_processes=False)
 		if hasattr(self, "_worker_processes"):
 			self._call_every_subproxy("add_character", name, data)
 
@@ -823,70 +823,165 @@ class Engine(AbstractEngine, gORM, Executor):
 			edgevalrows,
 		) = super().load_at(branch, turn, tick)
 		thingrows = []
-		updload = self._updload
+		universal_rows = []
+		rulebooks_rows = []
+		rule_triggers_rows = []
+		rule_prereqs_rows = []
+		rule_actions_rows = []
+		rule_neighborhood_rows = []
+		character_rulebook_rows = []
+		unit_rulebook_rows = []
+		character_thing_rulebook_rows = []
+		character_place_rulebook_rows = []
+		character_portal_rulebook_rows = []
+		load_things = self.query.load_things
+		load_universal = self.query.load_universals
+		load_rulebooks = self.query.load_rulebooks
+		load_rule_triggers = self.query.load_rule_triggers
+		load_rule_prereqs = self.query.load_rule_prereqs
+		load_rule_actions = self.query.load_rule_actions
+		load_rule_neighborhood = self.query.load_rule_neighborhood
+		load_character_rulebook = self.query.load_character_rulebook
+		load_unit_rulebook = self.query.load_unit_rulebook
+		load_character_thing_rulebook = (
+			self.query.load_character_thing_rulebook
+		)
+		load_character_place_rulebook = (
+			self.query.load_character_place_rulebook
+		)
+		load_character_portal_rulebook = (
+			self.query.load_character_portal_rulebook
+		)
 
-		def build_thingrows(graf, windows):
+		def build_rows(load, lst, windows):
 			if not windows:
 				return
 			if len(windows) == 1:
 				btt = windows[0]
-				thingrows.extend(load_things(graf, *btt))
-				return
+				lst.extend(load(*btt))
 			for window in reversed(windows):
-				thingrows.extend(load_things(graf, *window))
+				lst.extend(load(*window))
 
-		load_things = self.query.load_things
+		build_universal_rows = partial(
+			build_rows, load_universal, universal_rows
+		)
+		build_rulebooks_rows = partial(
+			build_rows, load_rulebooks, rulebooks_rows
+		)
+		build_rule_triggers_rows = partial(
+			build_rows, load_rule_triggers, rule_triggers_rows
+		)
+		build_rule_prereqs_rows = partial(
+			build_rows, load_rule_prereqs, rule_prereqs_rows
+		)
+		build_rule_actions_rows = partial(
+			build_rows, load_rule_actions, rule_actions_rows
+		)
+		build_rule_neighborhood_rows = partial(
+			build_rows, load_rule_neighborhood, rule_neighborhood_rows
+		)
+
+		def build_graf_rows(load, lst, graf, windows):
+			build_rows(partial(load, graf), lst, windows)
+
+		build_thing_rows = partial(build_graf_rows, load_things, thingrows)
+		build_charrb_rows = partial(
+			build_graf_rows, load_character_rulebook, character_rulebook_rows
+		)
+		build_unit_rows = partial(
+			build_graf_rows, load_unit_rulebook, unit_rulebook_rows
+		)
+		build_thingrb_rows = partial(
+			build_graf_rows,
+			load_character_thing_rulebook,
+			character_thing_rulebook_rows,
+		)
+		build_placerb_rows = partial(
+			build_graf_rows,
+			load_character_place_rulebook,
+			character_place_rulebook_rows,
+		)
+		build_portrb_rows = partial(
+			build_graf_rows,
+			load_character_portal_rulebook,
+			character_portal_rulebook_rows,
+		)
+
 		if latest_past_keyframe is None:
-			# Load thing data from the beginning of time to now
-			for graph in self.graph:
-				build_thingrows(
-					graph,
-					self._build_loading_windows(
-						self.eternal["main_branch"], 0, 0, branch, turn, tick
-					),
-				)
+			windows = self._build_loading_windows(
+				self.eternal["main_branch"], 0, 0, branch, turn, tick
+			)
 		else:
 			past_branch, past_turn, past_tick = latest_past_keyframe
-			self._make_transient_keyframes(past_branch, past_turn, past_tick)
 			if earliest_future_keyframe is None:
-				# Load thing data from the keyframe to now
-				for graph in self.graph:
-					build_thingrows(
-						graph,
-						self._build_loading_windows(
-							past_branch,
-							past_turn,
-							past_tick,
-							branch,
-							turn,
-							tick,
-						),
-					)
+				# Load data from the keyframe to now
+				windows = (
+					self._build_loading_windows(
+						past_branch,
+						past_turn,
+						past_tick,
+						branch,
+						turn,
+						tick,
+					),
+				)
 			else:
-				# Load thing data between the two keyframes
+				# Load data between the two keyframes
 				(future_branch, future_turn, future_tick) = (
 					earliest_future_keyframe
 				)
+				windows = self._build_loading_windows(
+					past_branch,
+					past_turn,
+					past_tick,
+					future_branch,
+					future_turn,
+					future_tick,
+				)
+		build_universal_rows(windows)
+		build_rulebooks_rows(windows)
+		build_rule_triggers_rows(windows)
+		build_rule_prereqs_rows(windows)
+		build_rule_actions_rows(windows)
+		build_rule_neighborhood_rows(windows)
 
-				for graph in self.graph:
-					build_thingrows(
-						graph,
-						self._build_loading_windows(
-							past_branch,
-							past_turn,
-							past_tick,
-							future_branch,
-							future_turn,
-							future_tick,
-						),
-					)
+		for graph in self._graph_cache.iter_keys(branch, turn, tick):
+			build_thing_rows(graph, windows)
+			build_charrb_rows(graph, windows)
+			build_unit_rows(graph, windows)
+			build_thingrb_rows(graph, windows)
+			build_placerb_rows(graph, windows)
+			build_portrb_rows(graph, windows)
 		if thingrows:
-			with self.batch():
-				self._things_cache.load(thingrows)
-			for chara, branch, turn, tick, thing, loc in thingrows:
-				updload(branch, turn, tick)
-		else:
-			self.debug(f"No thing data at {branch, turn, tick}")
+			self._things_cache.load(thingrows)
+		if universal_rows:
+			self._universal_cache.load(universal_rows)
+		if rulebooks_rows:
+			self._rulebooks_cache.load(rulebooks_rows)
+		if rule_triggers_rows:
+			self._triggers_cache.load(rule_triggers_rows)
+		if rule_prereqs_rows:
+			self._prereqs_cache.load(rule_prereqs_rows)
+		if rule_actions_rows:
+			self._actions_cache.load(rule_actions_rows)
+		if rule_neighborhood_rows:
+			self._neighborhoods_cache.load(rule_neighborhood_rows)
+		if character_rulebook_rows:
+			self._characters_rulebooks_cache.load(character_rulebook_rows)
+		if unit_rulebook_rows:
+			self._units_rulebooks_cache.load(unit_rulebook_rows)
+		if character_thing_rulebook_rows:
+			self._characters_things_rulebooks_cache.load(
+				character_thing_rulebook_rows
+			)
+		if character_place_rulebook_rows:
+			self._characters_places_rulebooks_cache.load(
+				character_place_rulebook_rows
+			)
+		if character_portal_rulebook_rows:
+			self._characters_portals_rulebooks_cache.load(
+				character_portal_rulebook_rows
+			)
 
 	def _init_caches(self) -> None:
 		from .xcollections import (
