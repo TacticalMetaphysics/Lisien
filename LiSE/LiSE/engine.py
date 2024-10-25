@@ -1072,6 +1072,13 @@ class Engine(AbstractEngine, gORM, Executor):
 		return kf
 
 	def _make_transient_keyframes(self, branch: str, turn: int, tick: int):
+		# I have to get rid of this.
+		# When not everything is part of the keyframe, it's impossible to know what's loaded and what's not *anywhere*.
+		# Because, see, what if we're past the last keyframe, and there are universal variables set to values
+		# Is their time loaded yet, or nah? Does the edges cache just happen to be empty after the last keyframe,
+		# or is that part of its history not loaded yet? Can't say.
+		# I want to use the one loadedness dictionary for everything, and to do that,
+		# everything needs to be in the keyframe.
 		self._universal_cache.set_keyframe(
 			branch,
 			turn,
