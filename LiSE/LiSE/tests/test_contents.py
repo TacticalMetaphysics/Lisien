@@ -65,9 +65,10 @@ def test_contents_in_plan(chara):
 	correct_contents = {1, 2, 3, 4, 5}
 	for th in correct_contents:
 		place.new_thing(th)
-	with chara.engine.plan():
+	engine = chara.engine
+	with engine.plan():
 		for i in range(6, 15):
-			chara.engine.turn += 1
+			engine.turn += 1
 			assert set(place.content) == correct_contents
 			place.new_thing(i)
 			del chara.thing[i]
@@ -75,26 +76,38 @@ def test_contents_in_plan(chara):
 			place.new_thing(i)
 			correct_contents.add(i)
 			assert set(place.content) == correct_contents
-	chara.engine.turn = 4
-	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 9}
-	chara.engine.turn = 2
+		engine.turn = 4
+		assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 9}
+	assert engine.turn == 0
+	assert set(place.content) == {1, 2, 3, 4, 5}
+	engine.next_turn()
+	engine.next_turn()
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7}
 	# this does not contradict the plan
 	place.new_thing(15)
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 15}
-	chara.engine.turn = 4
+	engine.next_turn()
+	engine.next_turn()
+	assert engine.turn == 4
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 9, 15}
 	# this neither
 	there = chara.new_place("there")
 	chara.thing[9].location = there
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 15}
-	chara.engine.turn = 5
+	engine.next_turn()
+	assert engine.turn == 5
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 15}
-	chara.engine.turn = 10
+	engine.branch = "hello"
+	for _ in range(5):
+		engine.next_turn()
+	assert engine.turn == 10
 	assert set(place.content) == correct_contents.union({15}).difference({9})
 	# but this does
-	chara.engine.turn = 5
+	engine.turn = 5
+	engine.branch = "trunk"
 	place.new_thing(11)
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 15}
-	chara.engine.turn = 10
+	for _ in range(5):
+		engine.next_turn()
+	assert engine.turn == 10
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 15}
