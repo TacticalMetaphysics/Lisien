@@ -759,26 +759,6 @@ class Engine(AbstractEngine, gORM, Executor):
 
 		q = self.query
 		super()._load_plans()
-		self._unitness_cache.load(q.units_dump())
-		self._universal_cache.load(q.universals_dump())
-		self._rulebooks_cache.load(q.rulebooks_dump())
-		self._characters_rulebooks_cache.load(q.character_rulebook_dump())
-		self._units_rulebooks_cache.load(q.unit_rulebook_dump())
-		self._characters_things_rulebooks_cache.load(
-			q.character_thing_rulebook_dump()
-		)
-		self._characters_places_rulebooks_cache.load(
-			q.character_place_rulebook_dump()
-		)
-		self._characters_portals_rulebooks_cache.load(
-			q.character_portal_rulebook_dump()
-		)
-		self._nodes_rulebooks_cache.load(q.node_rulebook_dump())
-		self._portals_rulebooks_cache.load(q.portal_rulebook_dump())
-		self._triggers_cache.load(q.rule_triggers_dump())
-		self._prereqs_cache.load(q.rule_prereqs_dump())
-		self._actions_cache.load(q.rule_actions_dump())
-		self._neighborhoods_cache.load(q.rule_neighborhood_dump())
 		store_crh = self._character_rules_handled_cache.store
 		for row in q.character_rules_handled_dump():
 			store_crh(*row, loading=True)
