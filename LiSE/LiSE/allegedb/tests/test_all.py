@@ -126,7 +126,9 @@ class AbstractGraphTest:
 			self.assertNotIn(0, list(g.adj[2]))
 			self.assertIn(0, g.node)
 			self.assertTrue(self.engine._node_exists(graphmaker.__name__, 0))
+			self.assertNotIn(0, g.adj[3])
 			g.add_edge(3, 0)
+			self.assertEqual(self.engine.turn, 2)
 			self.assertIn(0, g.adj[3])
 			self.assertIn(0, list(g.adj[3]))
 			self.assertIn(0, g.node)
@@ -146,6 +148,7 @@ class AbstractGraphTest:
 				self.assertNotIn(3, g.pred)
 				self.assertNotIn(3, g.pred[0])
 			self.engine.branch = graphmaker.__name__ + "_square"
+			self.assertEqual(self.engine.turn, 2)
 			self.assertNotIn(0, g.adj[2])
 			self.assertNotIn(0, list(g.adj[2]))
 			self.assertIn(0, g.adj[3])

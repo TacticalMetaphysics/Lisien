@@ -567,11 +567,11 @@ class EngineHandle:
 			deleted_edges = set()
 			for graph in kf_from["edges"]:
 				for orig in kf_from["edges"][graph]:
-					for dest in kf_from["edges"][graph][orig]:
+					for dest, ex in kf_from["edges"][graph][orig].items():
 						deleted_edges.add((graph, orig, dest))
 			for graph in kf_to["edges"]:
 				for orig in kf_to["edges"][graph]:
-					for dest in kf_to["edges"][graph][orig]:
+					for dest, ex in kf_to["edges"][graph][orig].items():
 						deleted_edges.discard((graph, orig, dest))
 			for k, va, vb, _ in filter(
 				itemgetter(3),
@@ -594,9 +594,19 @@ class EngineHandle:
 					futs.append(pool.submit(pack_node, graph, node, TRUE))
 			for graph, orig, dest in deleted_edges:
 				futs.append(pool.submit(pack_edge, graph, orig, dest, FALSE))
-			for graph, orig, dest in (
-				kf_to["edges"].keys() - kf_from["edges"].keys()
-			):
+			edges_to = {
+				(graph, orig, dest)
+				for graph in kf_to["edges"]
+				for orig in kf_to["edges"][graph]
+				for dest in kf_to["edges"][graph][orig]
+			}
+			edges_from = {
+				(graph, orig, dest)
+				for graph in kf_from["edges"]
+				for orig in kf_from["edges"][graph]
+				for dest in kf_from["edges"][graph][orig]
+			}
+			for graph, orig, dest in edges_to - edges_from:
 				futs.append(pool.submit(pack_edge, graph, orig, dest, TRUE))
 		if not delta[UNIVERSAL]:
 			del delta[UNIVERSAL]
