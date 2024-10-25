@@ -1498,7 +1498,7 @@ class QueryEngine(query.QueryEngine):
 		tick_to: int = None,
 	):
 		return self._load_rule_funclist(
-			"neighborhood", branch, turn_from, tick_from, turn_to, tick_to
+			"neighborhoods", branch, turn_from, tick_from, turn_to, tick_to
 		)
 
 	def _load_character_rulebook(
