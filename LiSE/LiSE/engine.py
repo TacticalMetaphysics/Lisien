@@ -1166,6 +1166,54 @@ class Engine(AbstractEngine, gORM, Executor):
 		kf["rulebook"] = self._rulebooks_cache.get_keyframe(branch, turn, tick)
 		return kf
 
+	def _get_keyframe(self, branch: str, turn: int, tick: int, copy=True):
+		if (branch, turn, tick) in self._keyframes_loaded:
+			return self._get_kf(branch, turn, tick, copy=copy)
+		univ, rule, rulebook = self.query.get_keyframe_extensions(
+			branch, turn, tick
+		)
+		self._universal_cache.set_keyframe(branch, turn, tick, univ)
+		self._triggers_cache.set_keyframe(branch, turn, tick, rule["triggers"])
+		self._prereqs_cache.set_keyframe(branch, turn, tick, rule["prereqs"])
+		self._actions_cache.set_keyframe(branch, turn, tick, rule["actions"])
+		self._rulebooks_cache.set_keyframe(branch, turn, tick, rulebook)
+
+		ret = super()._get_keyframe(branch, turn, tick, copy=copy)
+
+		charrbkf = {}
+		unitrbkf = {}
+		charthingrbkf = {}
+		charplacerbkf = {}
+		charportrbkf = {}
+		for graph in self._graph_cache.iter_keys(branch, turn, tick):
+			if graph not in ret:
+				continue
+			graphval = ret[graph]
+			if "character_rulebook" in graphval:
+				charrbkf[graph] = graphval["character_rulebook"]
+			if "unit_rulebook" in graphval:
+				unitrbkf[graph] = graphval["unit_rulebook"]
+			if "character_thing_rulebook" in graphval:
+				charthingrbkf[graph] = graphval["character_thing_rulebook"]
+			if "character_place_rulebook" in graphval:
+				charplacerbkf[graph] = graphval["character_place_rulebook"]
+			if "character_portal_rulebook" in graphval:
+				charportrbkf[graph] = graphval["character_portal_rulebook"]
+		self._characters_rulebooks_cache.set_keyframe(
+			branch, turn, tick, charrbkf
+		)
+		self._units_rulebooks_cache.set_keyframe(branch, turn, tick, unitrbkf)
+		self._characters_things_rulebooks_cache.set_keyframe(
+			branch, turn, tick, charthingrbkf
+		)
+		self._characters_places_rulebooks_cache.set_keyframe(
+			branch, turn, tick, charplacerbkf
+		)
+		self._characters_portals_rulebooks_cache.set_keyframe(
+			branch, turn, tick, charportrbkf
+		)
+		return ret
+
 	def get_delta(
 		self,
 		branch: str,
