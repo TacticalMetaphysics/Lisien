@@ -1561,7 +1561,7 @@ class QueryEngine(query.QueryEngine):
 		if turn_to is None:
 			if tick_to is not None:
 				raise ValueError("Need both or neither of turn_to, tick_to")
-			for rulebook, turn, tick, rules, priority in self.call_one(
+			for turn, tick, rulebook in self.call_one(
 				f"load_{typ}_tick_to_end",
 				charn,
 				branch,
@@ -1570,17 +1570,16 @@ class QueryEngine(query.QueryEngine):
 				tick_from,
 			):
 				yield (
-					unpack(rulebook),
+					character,
 					branch,
 					turn,
 					tick,
-					unpack(rules),
-					priority,
+					unpack(rulebook),
 				)
 		else:
 			if tick_to is None:
 				raise ValueError("Need both or neither of turn_to, tick_to")
-			for rulebook, turn, tick, rules, priority in self.call_one(
+			for turn, tick, rulebook in self.call_one(
 				f"load_{typ}_tick_to_tick",
 				charn,
 				branch,
@@ -1592,12 +1591,11 @@ class QueryEngine(query.QueryEngine):
 				tick_to,
 			):
 				yield (
-					unpack(rulebook),
+					character,
 					branch,
 					turn,
 					tick,
-					unpack(rules),
-					priority,
+					unpack(rulebook),
 				)
 
 	def load_character_rulebook(

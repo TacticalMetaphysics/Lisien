@@ -500,8 +500,6 @@ def queries(table):
 	):
 		tab = table[name]
 		sel = select(
-			tab.c.character,
-			tab.c.branch,
 			tab.c.turn,
 			tab.c.tick,
 			tab.c.rulebook,
