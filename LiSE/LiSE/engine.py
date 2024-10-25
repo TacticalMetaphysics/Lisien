@@ -1186,69 +1186,6 @@ class Engine(AbstractEngine, gORM, Executor):
 		kf["rulebook"] = self._rulebooks_cache.get_keyframe(branch, turn, tick)
 		return kf
 
-	def _make_transient_keyframes(self, branch: str, turn: int, tick: int):
-		# I have to get rid of this.
-		# When not everything is part of the keyframe, it's impossible to know what's loaded and what's not *anywhere*.
-		# Because, see, what if we're past the last keyframe, and there are universal variables set to values
-		# Is their time loaded yet, or nah? Does the edges cache just happen to be empty after the last keyframe,
-		# or is that part of its history not loaded yet? Can't say.
-		# I want to use the one loadedness dictionary for everything, and to do that,
-		# everything needs to be in the keyframe.
-		self._universal_cache.set_keyframe(
-			branch,
-			turn,
-			tick,
-			{
-				key: self._universal_cache.retrieve(key, branch, turn, tick)
-				for key in self._universal_cache.iter_keys(branch, turn, tick)
-			},
-		)
-		self._triggers_cache.set_keyframe(
-			branch,
-			turn,
-			tick,
-			{
-				rule: self._triggers_cache.retrieve(rule, branch, turn, tick)
-				for rule in self._triggers_cache.iter_keys(branch, turn, tick)
-			},
-		)
-		self._prereqs_cache.set_keyframe(
-			branch,
-			turn,
-			tick,
-			{
-				rule: self._prereqs_cache.retrieve(rule, branch, turn, tick)
-				for rule in self._prereqs_cache.iter_keys(branch, turn, tick)
-			},
-		)
-		self._actions_cache.set_keyframe(
-			branch,
-			turn,
-			tick,
-			{
-				rule: self._actions_cache.retrieve(rule, branch, turn, tick)
-				for rule in self._actions_cache.iter_keys(branch, turn, tick)
-			},
-		)
-		self._rulebooks_cache.set_keyframe(
-			branch,
-			turn,
-			tick,
-			{
-				rulebook: self._rulebooks_cache.retrieve(
-					rulebook, branch, turn, tick
-				)
-				for rulebook in self._rulebooks_cache.iter_keys(
-					branch, turn, tick
-				)
-			},
-		)
-
-	def _get_keyframe(self, branch: str, turn: int, tick: int, copy=True):
-		if (branch, turn, tick) not in self._keyframes_loaded:
-			self._make_transient_keyframes(branch, turn, tick)
-		return super()._get_keyframe(branch, turn, tick, copy)
-
 	def get_delta(
 		self,
 		branch: str,
