@@ -1276,6 +1276,53 @@ class QueryEngine(query.QueryEngine):
 		for key, branch, turn, tick, value in self.call_one("universals_dump"):
 			yield unpack(key), branch, turn, tick, unpack(value)
 
+	def load_universals(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		unpack = self.unpack
+		if turn_to is None:
+			if tick_to is not None:
+				raise ValueError("Need both or neither of turn_to, tick_to")
+			for key, turn, tick, value in self.call_one(
+				"load_universal_tick_to_end",
+				branch,
+				turn_from,
+				turn_from,
+				tick_from,
+			):
+				yield (
+					unpack(key),
+					branch,
+					turn,
+					tick,
+					unpack(value),
+				)
+		else:
+			if tick_to is None:
+				raise ValueError("Need both or neither of turn_to, tick_to")
+			for key, turn, tick, value in self.call_one(
+				"load_universal_tick_to_tick",
+				branch,
+				turn_from,
+				turn_from,
+				tick_from,
+				turn_to,
+				turn_to,
+				tick_to,
+			):
+				yield (
+					unpack(key),
+					branch,
+					turn,
+					tick,
+					unpack(value),
+				)
+
 	def rulebooks_dump(self):
 		unpack = self.unpack
 		for rulebook, branch, turn, tick, rules, prio in self.call_one(

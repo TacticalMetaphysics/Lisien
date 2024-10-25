@@ -484,6 +484,34 @@ def queries(table):
 			),
 		)
 	)
+	univ = table["universals"]
+	universals_to_end_clause = and_(
+		univ.c.branch == bindparam("branch"),
+		or_(
+			univ.c.turn > bindparam("turn_from_a"),
+			and_(
+				univ.c.turn == bindparam("turn_from_b"),
+				univ.c.tick >= bindparam("tick_from"),
+			),
+		),
+	)
+	r["load_universals_tick_to_end"] = select(
+		univ.c.key, univ.c.turn, univ.c.tick, univ.c.value
+	).where(universals_to_end_clause)
+	r["load_universals_tick_to_tick"] = select(
+		univ.c.key, univ.c.turn, univ.c.tick, univ.c.value
+	).where(
+		and_(
+			universals_to_end_clause,
+			or_(
+				univ.c.turn < bindparam("turn_to_a"),
+				and_(
+					univ.c.turn == bindparam("turn_to_b"),
+					univ.c.tick <= bindparam("tick_to"),
+				),
+			),
+		)
+	)
 
 	for handledtab in (
 		"character_rules_handled",
