@@ -1730,6 +1730,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			rbs = {}
 			for rule in self._rulebooks_cache.iter_keys(b, r, t):
 				rbs[rule] = self._rulebooks_cache.retrieve(rule, b, r, t)
+			self._rulebooks_cache.set_keyframe(b, r, t, rbs)
 		for k, v in delta.pop("universal", {}).items():
 			if v is None:
 				if k in univ:
@@ -1737,7 +1738,6 @@ class Engine(AbstractEngine, gORM, Executor):
 			else:
 				univ[k] = v
 		rbs.update(delta.pop("rulebooks", {}))
-		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
 		for char in self._graph_cache.iter_keys(b, r, t):
 			try:
 				charunit = self._unitness_cache.get_keyframe((char,), b, r, t)
@@ -1890,6 +1890,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._triggers_cache.set_keyframe(branch, turn, tick, trigs)
 		self._prereqs_cache.set_keyframe(branch, turn, tick, preqs)
 		self._actions_cache.set_keyframe(branch, turn, tick, acts)
+		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
 		self.query._new_keyframe_extensions.append(
 			(
 				*now,
