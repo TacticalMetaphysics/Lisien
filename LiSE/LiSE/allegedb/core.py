@@ -35,7 +35,6 @@ from blinker import Signal
 import networkx as nx
 
 from .window import update_window, update_backward_window
-from .cache import HistoricKeyError
 from .graph import DiGraph, Node, Edge, GraphsMapping
 from .query import (
 	QueryEngine,
