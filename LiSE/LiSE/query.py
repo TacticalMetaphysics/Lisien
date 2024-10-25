@@ -1331,7 +1331,7 @@ class QueryEngine(query.QueryEngine):
 			if tick_to is not None:
 				raise ValueError("Need both or neither of turn_to, tick_to")
 			for key, turn, tick, value in self.call_one(
-				"load_universal_tick_to_end",
+				"load_universals_tick_to_end",
 				branch,
 				turn_from,
 				turn_from,
@@ -1348,7 +1348,7 @@ class QueryEngine(query.QueryEngine):
 			if tick_to is None:
 				raise ValueError("Need both or neither of turn_to, tick_to")
 			for key, turn, tick, value in self.call_one(
-				"load_universal_tick_to_tick",
+				"load_universals_tick_to_tick",
 				branch,
 				turn_from,
 				turn_from,
