@@ -298,6 +298,7 @@ class QueryEngine(object):
 		self._graphvals2set = []
 		self._nodes2set = []
 		self._edges2set = []
+		self._new_keyframes = []
 		self._btts = set()
 		self._t = Thread(target=self._holder.run, daemon=True)
 		self._t.start()
@@ -1171,6 +1172,35 @@ class QueryEngine(object):
 				)
 			)
 			self._edgevals2set = []
+		if self._new_keyframes:
+			put(
+				(
+					"silent",
+					"many",
+					"keyframes_insert",
+					[
+						(
+							pack(graph),
+							branch,
+							turn,
+							tick,
+							pack(nodes),
+							pack(edges),
+							pack(graph_val),
+						)
+						for (
+							graph,
+							branch,
+							turn,
+							tick,
+							nodes,
+							edges,
+							graph_val,
+						) in self._new_keyframes
+					],
+				)
+			)
+			self._new_keyframes = []
 
 	def commit(self):
 		"""Commit the transaction"""
