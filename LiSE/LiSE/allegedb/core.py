@@ -2895,51 +2895,6 @@ class ORM:
 				raise ValueError("Invalid graph data")
 			self._snap_keyframe_de_novo_graph(name, branch, turn, tick, *data)
 			self.query.keyframe_graph_insert(name, branch, turn, tick, *data)
-		if branch in self._keyframes_dict:
-			if turn in self._keyframes_dict[branch]:
-				self._keyframes_dict[branch][turn].add(tick)
-			else:
-				self._keyframes_dict[branch][turn] = {tick}
-		else:
-			self._keyframes_dict[branch] = {turn: {tick}}
-		# If creating multiple graphs at the same branch, turn and tick,
-		# the keycache will be invalidated
-		self._graph_cache.keycache.clear()
-		graphmap = self.graph
-		others = set(graphmap)
-		others.discard(name)
-		branch, turn, tick = self._btt()
-		snapp = self._snap_keyframe_de_novo_graph
-		kfl = self._keyframes_list
-		kfd = self._keyframes_dict
-		kfs = self._keyframes_times
-		kfsl = self._keyframes_loaded
-		kfs.add((branch, turn, tick))
-		kfsl.add((branch, turn, tick))
-		inskf = self.query.keyframe_graph_insert
-		already_keyframed = set(self.query._new_keyframe_times)
-		for graphn in others:
-			if (graphn, branch, turn, tick) in already_keyframed:
-				continue
-			graph = graphmap[graphn]
-			nodes = graph._nodes_state()
-			edges = graph._edges_state()
-			val = graph._val_state()
-			snapp(graphn, branch, turn, tick, nodes, edges, val)
-			inskf(graphn, branch, turn, tick, nodes, edges, val)
-			kfl.append((graphn, branch, turn, tick))
-			if branch not in kfd:
-				kfd[branch] = {
-					turn: {
-						tick,
-					}
-				}
-			elif turn not in kfd[branch]:
-				kfd[branch][turn] = {
-					tick,
-				}
-			else:
-				kfd[branch][turn].add(tick)
 
 	def new_digraph(self, name: Key, data: dict = None, **attr) -> DiGraph:
 		"""Return a new instance of type DiGraph, initialized with the given
