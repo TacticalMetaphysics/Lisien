@@ -1122,35 +1122,48 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def _copy_kf(self, branch_from, branch_to, turn, tick):
 		super()._copy_kf(branch_from, branch_to, turn, tick)
+		universal = self._universal_cache.get_keyframe(branch_from, turn, tick)
 		self._universal_cache.set_keyframe(
 			branch_to,
 			turn,
 			tick,
-			self._universal_cache.get_keyframe(branch_from, turn, tick),
+			universal,
 		)
+		triggers = self._triggers_cache.get_keyframe(branch_from, turn, tick)
 		self._triggers_cache.set_keyframe(
 			branch_to,
 			turn,
 			tick,
-			self._triggers_cache.get_keyframe(branch_from, turn, tick),
+			triggers,
 		)
+		prereqs = self._prereqs_cache.get_keyframe(branch_from, turn, tick)
 		self._prereqs_cache.set_keyframe(
 			branch_to,
 			turn,
 			tick,
-			self._prereqs_cache.get_keyframe(branch_from, turn, tick),
+			prereqs,
 		)
+		actions = self._actions_cache.get_keyframe(branch_from, turn, tick)
 		self._actions_cache.set_keyframe(
 			branch_to,
 			turn,
 			tick,
-			self._actions_cache.get_keyframe(branch_from, turn, tick),
+			actions,
 		)
+		rulebooks = self._rulebooks_cache.get_keyframe(branch_from, turn, tick)
 		self._rulebooks_cache.set_keyframe(
 			branch_to,
 			turn,
 			tick,
-			self._rulebooks_cache.get_keyframe(branch_from, turn, tick),
+			rulebooks,
+		)
+		self.query.keyframe_extension_insert(
+			branch_to,
+			turn,
+			tick,
+			universal,
+			{"triggers": triggers, "prereqs": prereqs, "actions": actions},
+			rulebooks,
 		)
 
 	def _get_kf(
