@@ -1319,9 +1319,16 @@ class QueryEngine(query.QueryEngine):
 	def get_keyframe_extensions(self, branch: str, turn: int, tick: int):
 		self.flush()
 		unpack = self.unpack
-		universal, rule, rulebook = next(
-			iter(self.call_one("get_keyframe_extensions", branch, turn, tick))
-		)
+		try:
+			universal, rule, rulebook = next(
+				iter(
+					self.call_one(
+						"get_keyframe_extensions", branch, turn, tick
+					)
+				)
+			)
+		except StopIteration:
+			raise KeyError("No keyframe", branch, turn, tick)
 		return unpack(universal), unpack(rule), unpack(rulebook)
 
 	def keyframe_extensions_insert(
