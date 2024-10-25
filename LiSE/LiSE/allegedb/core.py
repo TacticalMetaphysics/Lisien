@@ -1380,11 +1380,24 @@ class ORM:
 		change, so it should be fine.
 
 		"""
+		try:
+			graph_keyframe = self._graph_cache.get_keyframe(
+				branch_from, turn, tick
+			)
+		except KeyError:
+			graph_keyframe = {
+				graph: self._graph_cache.retrieve(
+					graph, branch_from, turn, tick
+				)
+				for graph in self._graph_cache.iter_entities(
+					branch_from, turn, tick
+				)
+			}
 		self._graph_cache.set_keyframe(
 			branch_to,
 			turn,
 			tick,
-			self._graph_cache.get_keyframe(branch_from, turn, tick),
+			graph_keyframe,
 		)
 		for graph in self._graph_cache.iter_keys(branch_to, turn, tick):
 			graph_vals = self._graph_val_cache.get_keyframe(
@@ -1668,6 +1681,11 @@ class ORM:
 				branched_turn_from,
 				branched_tick_from,
 			) not in self._keyframes_times:
+				assert (
+					parent,
+					branched_turn_from,
+					branched_tick_from,
+				) in self._keyframes_times
 				self._copy_kf(
 					parent,
 					time_from[0],
