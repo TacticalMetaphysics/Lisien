@@ -1761,6 +1761,7 @@ class Engine(AbstractEngine, gORM, Executor):
 					trigs[rule] = self._triggers_cache.retrieve(rule, b, r, t)
 				except KeyError:
 					trigs[rule] = tuple()
+			self._triggers_cache.set_keyframe(b, r, t, trigs)
 		try:
 			preqs = self._prereqs_cache.get_keyframe(b, r, t).copy()
 		except KeyError:
@@ -1770,6 +1771,7 @@ class Engine(AbstractEngine, gORM, Executor):
 					preqs[rule] = self._prereqs_cache.retrieve(rule, b, r, t)
 				except KeyError:
 					preqs[rule] = tuple()
+			self._prereqs_cache.set_keyframe(b, r, t, preqs)
 		try:
 			acts = self._actions_cache.get_keyframe(b, r, t).copy()
 		except KeyError:
@@ -1779,13 +1781,11 @@ class Engine(AbstractEngine, gORM, Executor):
 					acts[rule] = self._actions_cache.retrieve(rule, b, r, t)
 				except KeyError:
 					acts[rule] = tuple()
+			self._actions_cache.set_keyframe(b, r, t, acts)
 		for rule, funcs in delta.pop("rules", {}).items():
 			trigs[rule] = funcs.get("triggers", trigs.get(rule, ()))
 			preqs[rule] = funcs.get("prereqs", preqs.get(rule, ()))
 			acts[rule] = funcs.get("actions", acts.get(rule, ()))
-		self._triggers_cache.set_keyframe(branch, turn, tick, trigs)
-		self._prereqs_cache.set_keyframe(branch, turn, tick, preqs)
-		self._actions_cache.set_keyframe(branch, turn, tick, acts)
 		charrbs = {}
 		unitrbs = {}
 		thingrbs = {}
@@ -1887,6 +1887,9 @@ class Engine(AbstractEngine, gORM, Executor):
 			branch, turn, tick, portrbs
 		)
 		self._universal_cache.set_keyframe(branch, turn, tick, univ)
+		self._triggers_cache.set_keyframe(branch, turn, tick, trigs)
+		self._prereqs_cache.set_keyframe(branch, turn, tick, preqs)
+		self._actions_cache.set_keyframe(branch, turn, tick, acts)
 		self.query._new_keyframe_extensions.append(
 			(
 				*now,
