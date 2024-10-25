@@ -918,15 +918,13 @@ class Engine(AbstractEngine, gORM, Executor):
 			past_branch, past_turn, past_tick = latest_past_keyframe
 			if earliest_future_keyframe is None:
 				# Load data from the keyframe to now
-				windows = (
-					self._build_loading_windows(
-						past_branch,
-						past_turn,
-						past_tick,
-						branch,
-						turn,
-						tick,
-					),
+				windows = self._build_loading_windows(
+					past_branch,
+					past_turn,
+					past_tick,
+					branch,
+					turn,
+					tick,
 				)
 			else:
 				# Load data between the two keyframes
