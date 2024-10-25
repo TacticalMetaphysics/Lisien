@@ -334,6 +334,10 @@ class Engine(AbstractEngine, gORM, Executor):
 	}
 	illegal_node_names = {"nodes", "node_val", "edges", "edge_val", "things"}
 
+	@property
+	def eternal(self):
+		return self.query.globl
+
 	def __getattr__(self, item):
 		meth = super().__getattribute__("method").__getattr__(item)
 		return MethodType(meth, self)
@@ -441,7 +445,6 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._things_cache.setdb = self.query.set_thing_loc
 		self._universal_cache.setdb = self.query.universal_set
 		self._rulebooks_cache.setdb = self.query.rulebook_set
-		self.eternal = self.query.globl
 		if hasattr(self, "_string_prefix"):
 			self.string = StringStore(
 				self.query,
