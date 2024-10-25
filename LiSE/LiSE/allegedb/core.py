@@ -189,19 +189,19 @@ class PlanningContext(ContextDecorator):
 			self.orm._forward = True
 
 
-class TimeSignal:
+class TimeSignal(Signal):
 	"""Acts like a tuple of ``(branch, turn)`` for the most part.
 
-	This wraps a ``Signal``. To set a function to be called whenever the
+	This is a ``Signal``. To set a function to be called whenever the
 	branch or turn changes, pass it to my ``connect`` method.
 
 	"""
 
-	def __init__(self, engine: "ORM", sig: Signal):
+	def __init__(self, engine: "ORM"):
+		super().__init__()
 		self.engine = engine
 		self.branch = self.engine.branch
 		self.turn = self.engine.turn
-		self.sig = sig
 
 	def __iter__(self):
 		yield self.branch
@@ -217,11 +217,15 @@ class TimeSignal:
 			return self.turn
 		raise IndexError(i)
 
-	def connect(self, *args, **kwargs) -> None:
-		self.sig.connect(*args, **kwargs)
-
-	def send(self, *args, **kwargs) -> None:
-		self.sig.send(*args, **kwargs)
+	def __setitem__(self, i: Union[str, int], v: Union[str, int]) -> None:
+		if i in ("branch", 0):
+			self.engine.branch = v
+		elif i in ("turn", 1):
+			self.engine.turn = v
+		else:
+			raise KeyError(
+				"Can only set branch or turn. Set `Engine.tick` directly if you really want that."
+			)
 
 	def __str__(self):
 		return str(tuple(self))
@@ -251,12 +255,12 @@ class TimeSignalDescriptor:
 
 	def __get__(self, inst, cls):
 		if id(inst) not in self.signals:
-			self.signals[id(inst)] = Signal()
-		return TimeSignal(inst, self.signals[id(inst)])
+			self.signals[id(inst)] = TimeSignal(inst)
+		return self.signals[id(inst)]
 
 	def __set__(self, inst, val):
 		if id(inst) not in self.signals:
-			self.signals[id(inst)] = Signal()
+			self.signals[id(inst)] = TimeSignal(inst)
 		sig = self.signals[id(inst)]
 		branch_then, turn_then, tick_then = inst._btt()
 		branch_now, turn_now = val
