@@ -1304,6 +1304,7 @@ class ORM:
 		inskf = self.query.keyframe_graph_insert
 		was = self._btt()
 		self._set_btt(branch, turn, tick)
+		self.query.keyframe_insert(branch, turn, tick)
 		for graphn in self._graph_cache.iter_keys(branch, turn, tick):
 			graph = self.graph[graphn]
 			nodes = graph._nodes_state()
@@ -1485,6 +1486,7 @@ class ORM:
 		kfsl = self._keyframes_loaded
 		kfs.add(now)
 		kfsl.add(now)
+		self.query.keyframe_insert(*now)
 		branch, turn, tick = now
 		if branch not in kfd:
 			kfd[branch] = {

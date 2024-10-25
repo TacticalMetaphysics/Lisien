@@ -300,7 +300,7 @@ class QueryEngine(object):
 		self._nodes2set = []
 		self._edges2set = []
 		self._new_keyframes = []
-		self._new_keyframe_times = []
+		self._new_keyframe_times = set()
 		self._btts = set()
 		self._t = Thread(target=self._holder.run, daemon=True)
 		self._t.start()
@@ -346,7 +346,10 @@ class QueryEngine(object):
 		self._new_keyframes.append(
 			(graph, branch, turn, tick, nodes, edges, graph_val)
 		)
-		self._new_keyframe_times.append((branch, turn, tick))
+		self._new_keyframe_times.add((branch, turn, tick))
+
+	def keyframe_insert(self, branch: str, turn: int, tick: int):
+		self._new_keyframe_times.add((branch, turn, tick))
 
 	def keyframes_dump(self):
 		yield from self.call_one("keyframes_dump")
@@ -1124,8 +1127,15 @@ class QueryEngine(object):
 			)
 			self._edgevals2set = []
 		if self._new_keyframe_times:
-			put(("silent", "many", "keyframes", self._new_keyframe_times))
-			self._new_keyframe_times = []
+			put(
+				(
+					"silent",
+					"many",
+					"keyframes_insert",
+					list(self._new_keyframe_times),
+				)
+			)
+			self._new_keyframe_times = set()
 		if self._new_keyframes:
 			put(
 				(
