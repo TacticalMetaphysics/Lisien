@@ -52,10 +52,19 @@ def handle_initialized(request, handle):
 	yield handle
 
 
+def pytest_addoption(parser):
+	parser.addoption("--serial", action="store_true")
+
+
 @pytest.fixture(
 	scope="function", params=["parallel-execution", "serial-execution"]
 )
 def engy(tmp_path, request):
+	if (
+		request.config.getoption("serial")
+		and request.param == "parallel-execution"
+	):
+		raise pytest.skip("Skipping parallel execution.")
 	with Engine(
 		tmp_path,
 		random_seed=69105,
