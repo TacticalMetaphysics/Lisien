@@ -1377,10 +1377,12 @@ class NodesCache(Cache):
 		planning: bool = None,
 		forward: bool = None,
 		loading=False,
-		contra=True,
+		contra=None,
 	):
 		if not ex:
 			ex = None
+		if contra is None:
+			contra = not loading
 		return super().store(
 			graph,
 			node,
