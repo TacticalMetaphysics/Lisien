@@ -1919,13 +1919,11 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._prereqs_cache.set_keyframe(branch, turn, tick, preqs)
 		self._actions_cache.set_keyframe(branch, turn, tick, acts)
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
-		self.query._new_keyframe_extensions.append(
-			(
-				*now,
-				univ,
-				{"triggers": trigs, "prereqs": preqs, "actions": acts},
-				rbs,
-			)
+		self.query.keyframe_extension_insert(
+			*now,
+			univ,
+			{"triggers": trigs, "prereqs": preqs, "actions": acts},
+			rbs,
 		)
 		super()._snap_keyframe_from_delta(then, now, delta)
 
@@ -3028,15 +3026,13 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._node_contents_cache.set_keyframe(
 				(graph,), branch, turn, tick, {}
 			)
-		self.query._new_keyframe_extensions.append(
-			(
-				branch,
-				turn,
-				tick,
-				universal,
-				{"triggers": trigs, "prereqs": preqs, "actions": acts},
-				rbs,
-			)
+		self.query.keyframe_extension_insert(
+			branch,
+			turn,
+			tick,
+			universal,
+			{"triggers": trigs, "prereqs": preqs, "actions": acts},
+			rbs,
 		)
 		super()._snap_keyframe_de_novo(branch, turn, tick)
 

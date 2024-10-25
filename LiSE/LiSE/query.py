@@ -1178,6 +1178,14 @@ class QueryEngine(query.QueryEngine):
 		self._unitness = []
 		self._location = []
 
+	def keyframe_extension_insert(
+		self, branch, turn, tick, universal, rules, rulebooks
+	):
+		pack = self.pack
+		self._new_keyframe_extensions.append(
+			(branch, turn, tick, pack(universal), pack(rules), pack(rulebooks))
+		)
+
 	def _increc(self):
 		self._records += 1
 		override = self.kf_interval_override()
@@ -1215,24 +1223,7 @@ class QueryEngine(query.QueryEngine):
 					"silent",
 					"many",
 					"keyframe_extensions_insert",
-					[
-						(
-							branch,
-							turn,
-							tick,
-							pack(universal),
-							pack(rule),
-							pack(rulebook),
-						)
-						for (
-							branch,
-							turn,
-							tick,
-							universal,
-							rule,
-							rulebook,
-						) in self._new_keyframe_extensions
-					],
+					self._new_keyframe_extensions,
 				)
 			)
 			self._new_keyframe_extensions = []
@@ -1330,26 +1321,6 @@ class QueryEngine(query.QueryEngine):
 		except StopIteration:
 			raise KeyError("No keyframe", branch, turn, tick)
 		return unpack(universal), unpack(rule), unpack(rulebook)
-
-	def keyframe_extensions_insert(
-		self,
-		branch: str,
-		turn: int,
-		tick: int,
-		universal: dict,
-		rule: dict,
-		rulebook: dict,
-	):
-		pack = self.pack
-		self.call_one(
-			"keyframe_extensions_insert",
-			branch,
-			turn,
-			tick,
-			pack(universal),
-			pack(rule),
-			pack(rulebook),
-		)
 
 	def universals_dump(self):
 		unpack = self.unpack
