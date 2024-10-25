@@ -963,7 +963,10 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._characters_portals_rulebooks_cache.load(
 				character_portal_rulebook_rows
 			)
-		if latest_past_keyframe:
+		if (
+			latest_past_keyframe
+			and latest_past_keyframe not in self._keyframes_loaded
+		):
 			universal_kf, rule_kf, rulebook_kf = (
 				self.query.get_keyframe_extensions(*latest_past_keyframe)
 			)
