@@ -71,6 +71,7 @@ def tables_for_meta(meta):
 		Column("value", BLOB),
 		sqlite_with_rowid=False,
 	)
+	kfs = meta.tables["keyframes"]
 
 	Table(
 		"keyframe_extensions",
@@ -78,7 +79,6 @@ def tables_for_meta(meta):
 		Column(
 			"branch",
 			TEXT,
-			ForeignKey("branches.branch"),
 			primary_key=True,
 			default="trunk",
 		),
@@ -87,6 +87,9 @@ def tables_for_meta(meta):
 		Column("universal", BLOB),
 		Column("rule", BLOB),
 		Column("rulebook", BLOB),
+		ForeignKeyConstraint(
+			["branch", "turn", "tick"], [kfs.c.branch, kfs.c.turn, kfs.c.tick]
+		),
 	)
 
 	Table(

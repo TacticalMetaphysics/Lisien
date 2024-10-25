@@ -239,6 +239,7 @@ class ConnectionHolder:
 			"plans",
 			"plan_ticks",
 			"keyframes",
+			"keyframes_graphs",
 			"global",
 		):
 			try:
@@ -299,6 +300,7 @@ class QueryEngine(object):
 		self._nodes2set = []
 		self._edges2set = []
 		self._new_keyframes = []
+		self._new_keyframe_times = []
 		self._btts = set()
 		self._t = Thread(target=self._holder.run, daemon=True)
 		self._t.start()
@@ -338,79 +340,28 @@ class QueryEngine(object):
 		graph = self.pack(graph)
 		return self.call_one("graphs_insert", graph, branch, turn, tick, typ)
 
-	def keyframes_insert(
+	def keyframe_graph_insert(
 		self, graph, branch, turn, tick, nodes, edges, graph_val
 	):
-		graph, nodes, edges, graph_val = map(
-			self.pack, (graph, nodes, edges, graph_val)
+		self._new_keyframes.append(
+			(graph, branch, turn, tick, nodes, edges, graph_val)
 		)
-		return self.call_one(
-			"keyframes_insert",
-			graph,
-			branch,
-			turn,
-			tick,
-			nodes,
-			edges,
-			graph_val,
-		)
-
-	def keyframes_insert_many(self, many):
-		pack = self.pack
-		return self.call_many(
-			"keyframes_insert",
-			[
-				(
-					pack(graph),
-					branch,
-					turn,
-					tick,
-					pack(nodes),
-					pack(edges),
-					pack(graph_val),
-				)
-				for (
-					graph,
-					branch,
-					turn,
-					tick,
-					nodes,
-					edges,
-					graph_val,
-				) in many
-			],
-		)
+		self._new_keyframe_times.append((branch, turn, tick))
 
 	def keyframes_dump(self):
-		unpack = self.unpack
-		for (
-			graph,
-			branch,
-			turn,
-			tick,
-			nodes,
-			edges,
-			graph_val,
-		) in self.call_one("keyframes_dump"):
-			yield (
-				unpack(graph),
-				branch,
-				turn,
-				tick,
-				unpack(nodes),
-				unpack(edges),
-				unpack(graph_val),
-			)
+		yield from self.call_one("keyframes_dump")
 
-	def keyframes_list(self):
+	def keyframes_graphs(self):
 		unpack = self.unpack
-		for graph, branch, turn, tick in self.call_one("keyframes_list"):
+		for graph, branch, turn, tick in self.call_one(
+			"keyframes_graphs_list"
+		):
 			yield unpack(graph), branch, turn, tick
 
-	def get_keyframe(self, graph, branch, turn, tick):
+	def get_keyframe_graph(self, graph, branch, turn, tick):
 		unpack = self.unpack
 		stuff = self.call_one(
-			"get_keyframe", self.pack(graph), branch, turn, tick
+			"get_keyframe_graph", self.pack(graph), branch, turn, tick
 		)
 		if not stuff:
 			raise KeyError(f"No keyframe for {graph} at {branch, turn, tick}")
@@ -1172,12 +1123,15 @@ class QueryEngine(object):
 				)
 			)
 			self._edgevals2set = []
+		if self._new_keyframe_times:
+			put(("silent", "many", "keyframes", self._new_keyframe_times))
+			self._new_keyframe_times = []
 		if self._new_keyframes:
 			put(
 				(
 					"silent",
 					"many",
-					"keyframes_insert",
+					"keyframes_graphs_insert",
 					[
 						(
 							pack(graph),

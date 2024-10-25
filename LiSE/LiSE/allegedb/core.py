@@ -991,7 +991,7 @@ class ORM:
 					branch,
 					turn,
 					tick,
-					*self.query.get_keyframe(graph, branch, turn, tick),
+					*self.query.get_keyframe_graph(graph, branch, turn, tick),
 				)
 		self._updload(branch, turn, tick)
 		self._keyframes_loaded.add((branch, turn, tick))
@@ -1248,8 +1248,7 @@ class ORM:
 		keyframes_list = self._keyframes_list
 		keyframes_dict = self._keyframes_dict
 		keyframes_times = self._keyframes_times
-		for graph, branch, turn, tick in self.query.keyframes_list():
-			keyframes_list.append((graph, branch, turn, tick))
+		for branch, turn, tick in self.query.keyframes_dump():
 			if branch not in keyframes_dict:
 				keyframes_dict[branch] = {turn: {tick}}
 			else:
@@ -1259,6 +1258,8 @@ class ORM:
 				else:
 					keyframes_dict_branch[turn].add(tick)
 			keyframes_times.add((branch, turn, tick))
+
+		keyframes_list.extend(self.query.keyframes_graphs())
 
 		last_plan = -1
 		plans = self._plans
@@ -1300,7 +1301,7 @@ class ORM:
 		kfd = self._keyframes_dict
 		kfs = self._keyframes_times
 		kfsl = self._keyframes_loaded
-		nkfs = self.query._new_keyframes
+		inskf = self.query.keyframe_graph_insert
 		was = self._btt()
 		self._set_btt(branch, turn, tick)
 		for graphn in self._graph_cache.iter_keys(branch, turn, tick):
@@ -1311,7 +1312,7 @@ class ORM:
 			self._snap_keyframe_de_novo_graph(
 				graphn, branch, turn, tick, nodes, edges, val
 			)
-			nkfs.append((graphn, branch, turn, tick, nodes, edges, val))
+			inskf(graphn, branch, turn, tick, nodes, edges, val)
 			kfl.append((graphn, branch, turn, tick))
 			if branch not in kfd:
 				kfd[branch] = {
@@ -1447,16 +1448,14 @@ class ORM:
 						edge_vals[node][dest] = evkf
 					else:
 						edge_vals[node] = {dest: evkf}
-			self.query._new_keyframes.append(
-				(
-					graph,
-					branch_to,
-					turn,
-					tick,
-					node_vals,
-					edge_vals,
-					graph_vals,
-				)
+			self.query.keyframe_graph_insert(
+				graph,
+				branch_to,
+				turn,
+				tick,
+				node_vals,
+				edge_vals,
+				graph_vals,
 			)
 		self._keyframes_list.append((branch_to, turn, tick))
 		self._keyframes_times.add((branch_to, turn, tick))
@@ -1499,7 +1498,7 @@ class ORM:
 			}
 		else:
 			kfd[branch][turn].add(tick)
-		nkfs = self.query._new_keyframes
+		inskf = self.query.keyframe_graph_insert
 		keyframe = self._get_keyframe(*then)
 		graph_val_keyframe: GraphValDict = keyframe["graph_val"]
 		nodes_keyframe: GraphNodesDict = keyframe["nodes"]
@@ -1623,14 +1622,12 @@ class ORM:
 				(graph,), *now, graph_val_keyframe.get(graph, {})
 			)
 			for when in whens:
-				nkfs.append(
-					(
-						graph,
-						*when,
-						node_val_keyframe.get(graph, {}),
-						edge_val_keyframe.get(graph, {}),
-						graph_val_keyframe.get(graph, {}),
-					)
+				inskf(
+					graph,
+					*when,
+					node_val_keyframe.get(graph, {}),
+					edge_val_keyframe.get(graph, {}),
+					graph_val_keyframe.get(graph, {}),
 				)
 				kfl.append((graph, *when))
 		self._graph_cache.set_keyframe(*now, graphs_keyframe)
@@ -2853,23 +2850,21 @@ class ORM:
 			self._snap_keyframe_de_novo_graph(
 				name, branch, turn, tick, nodes, edges, val
 			)
-			self.query._new_keyframes.append(
+			self.query.keyframe_graph_insert(
 				(name, branch, turn, tick, nodes, edges, val)
 			)
 		elif isinstance(data, nx.Graph):
 			self._snap_keyframe_de_novo_graph(
 				name, branch, turn, tick, data._node, data._adj, data.graph
 			)
-			self.query._new_keyframes.append(
-				(
-					name,
-					branch,
-					turn,
-					tick,
-					data._node,
-					data._adj,
-					data.graph,
-				)
+			self.query.keyframe_graph_insert(
+				name,
+				branch,
+				turn,
+				tick,
+				data._node,
+				data._adj,
+				data.graph,
 			)
 		elif isinstance(data, dict):
 			try:
@@ -2879,24 +2874,20 @@ class ORM:
 			self._snap_keyframe_de_novo_graph(
 				name, branch, turn, tick, data._node, data._adj, data.graph
 			)
-			self.query._new_keyframes.append(
-				(
-					name,
-					branch,
-					turn,
-					tick,
-					data._node,
-					data._adj,
-					data.graph,
-				)
+			self.query.keyframe_graph_insert(
+				name,
+				branch,
+				turn,
+				tick,
+				data._node,
+				data._adj,
+				data.graph,
 			)
 		else:
 			if len(data) != 3 or not all(isinstance(d, dict) for d in data):
 				raise ValueError("Invalid graph data")
 			self._snap_keyframe_de_novo_graph(name, branch, turn, tick, *data)
-			self.query._new_keyframes.append(
-				(name, branch, turn, tick) + tuple(data)
-			)
+			self.query.keyframe_graph_insert(name, branch, turn, tick, *data)
 		if branch in self._keyframes_dict:
 			if turn in self._keyframes_dict[branch]:
 				self._keyframes_dict[branch][turn].add(tick)
@@ -2918,8 +2909,8 @@ class ORM:
 		kfsl = self._keyframes_loaded
 		kfs.add((branch, turn, tick))
 		kfsl.add((branch, turn, tick))
-		nkfs = self.query._new_keyframes
-		already_keyframed = {nkf[:4] for nkf in nkfs}
+		inskf = self.query.keyframe_graph_insert
+		already_keyframed = set(self.query._new_keyframe_times)
 		for graphn in others:
 			if (graphn, branch, turn, tick) in already_keyframed:
 				continue
@@ -2928,7 +2919,7 @@ class ORM:
 			edges = graph._edges_state()
 			val = graph._val_state()
 			snapp(graphn, branch, turn, tick, nodes, edges, val)
-			nkfs.append((graphn, branch, turn, tick, nodes, edges, val))
+			inskf(graphn, branch, turn, tick, nodes, edges, val)
 			kfl.append((graphn, branch, turn, tick))
 			if branch not in kfd:
 				kfd[branch] = {

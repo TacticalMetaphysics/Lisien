@@ -83,10 +83,9 @@ def tables_for_meta(meta):
 		),
 		sqlite_with_rowid=False,
 	)
-	Table(
+	kfs = Table(
 		"keyframes",
 		meta,
-		Column("graph", BLOB, primary_key=True),
 		Column(
 			"branch",
 			TEXT,
@@ -96,9 +95,25 @@ def tables_for_meta(meta):
 		),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+	)
+	Table(
+		"keyframes_graphs",
+		meta,
+		Column("graph", BLOB, primary_key=True),
+		Column(
+			"branch",
+			TEXT,
+			primary_key=True,
+			default="trunk",
+		),
+		Column("turn", INT, primary_key=True, default=0),
+		Column("tick", INT, primary_key=True, default=0),
 		Column("nodes", BLOB),
 		Column("edges", BLOB),
 		Column("graph_val", BLOB),
+		ForeignKeyConstraint(
+			["branch", "turn", "tick"], [kfs.c.branch, kfs.c.turn, kfs.c.tick]
+		),
 		sqlite_with_rowid=False,
 	)
 	Table(
@@ -378,22 +393,22 @@ def queries_for_table_dict(table):
 				table["turns"].c.turn == bindparam("turn"),
 			)
 		),
-		"keyframes_list": select(
-			table["keyframes"].c.graph,
-			table["keyframes"].c.branch,
-			table["keyframes"].c.turn,
-			table["keyframes"].c.tick,
+		"keyframes_graphs_list": select(
+			table["keyframes_graphs"].c.graph,
+			table["keyframes_graphs"].c.branch,
+			table["keyframes_graphs"].c.turn,
+			table["keyframes_graphs"].c.tick,
 		),
-		"get_keyframe": select(
-			table["keyframes"].c.nodes,
-			table["keyframes"].c.edges,
-			table["keyframes"].c.graph_val,
+		"get_keyframe_graph": select(
+			table["keyframes_graphs"].c.nodes,
+			table["keyframes_graphs"].c.edges,
+			table["keyframes_graphs"].c.graph_val,
 		).where(
 			and_(
-				table["keyframes"].c.graph == bindparam("graph"),
-				table["keyframes"].c.branch == bindparam("branch"),
-				table["keyframes"].c.turn == bindparam("turn"),
-				table["keyframes"].c.tick == bindparam("tick"),
+				table["keyframes_graphs"].c.graph == bindparam("graph"),
+				table["keyframes_graphs"].c.branch == bindparam("branch"),
+				table["keyframes_graphs"].c.turn == bindparam("turn"),
+				table["keyframes_graphs"].c.tick == bindparam("tick"),
 			)
 		),
 		"load_nodes_tick_to_end": select(
