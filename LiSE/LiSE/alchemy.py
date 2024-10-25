@@ -513,6 +513,31 @@ def queries(table):
 		)
 	)
 
+	rbs = table["rulebooks"]
+	rulebooks_to_end_clause = and_(
+		rbs.c.branch == bindparam("branch"),
+		or_(
+			rbs.c.turn > bindparam("turn_from_a"),
+			rbs.c.tick >= bindparam("tick_from"),
+		),
+	)
+	rbsel = select(
+		rbs.c.rulebook, rbs.c.turn, rbs.c.tick, rbs.c.rules, rbs.c.priority
+	)
+	r["load_rulebooks_tick_to_end"] = rbsel.where(rulebooks_to_end_clause)
+	r["load_rulebooks_tick_to_tick"] = rbsel.where(
+		and_(
+			rulebooks_to_end_clause,
+			or_(
+				rbs.c.turn < bindparam("turn_to_a"),
+				and_(
+					rbs.c.turn == bindparam("turn_to_b"),
+					rbs.c.tick <= bindparam("tick_to"),
+				),
+			),
+		)
+	)
+
 	for handledtab in (
 		"character_rules_handled",
 		"unit_rules_handled",

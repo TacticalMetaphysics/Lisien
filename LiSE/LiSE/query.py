@@ -1330,6 +1330,41 @@ class QueryEngine(query.QueryEngine):
 		):
 			yield unpack(rulebook), branch, turn, tick, (unpack(rules), prio)
 
+	def load_rulebooks(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		unpack = self.unpack
+		if turn_to is None:
+			if tick_to is not None:
+				raise ValueError("Need both or neither of turn_to, tick_to")
+			for rulebook, turn, tick, rules in self.call_one(
+				"load_rulebooks_tick_to_end",
+				branch,
+				turn_from,
+				turn_from,
+				tick_from,
+			):
+				yield unpack(rulebook), branch, turn, tick, unpack(rules)
+		else:
+			if tick_to is None:
+				raise ValueError("Need both or neither of turn_to, tick_to")
+			for rulebook, turn, tick, rules in self.call_one(
+				"load_rulebooks_tick_to_tick",
+				branch,
+				turn_from,
+				turn_from,
+				tick_from,
+				turn_to,
+				turn_to,
+				tick_to,
+			):
+				yield unpack(rulebook), branch, turn, tick, unpack(rules)
+
 	def _rule_dump(self, typ):
 		unpack = self.unpack
 		for rule, branch, turn, tick, lst in self.call_one(
