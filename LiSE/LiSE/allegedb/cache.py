@@ -662,6 +662,8 @@ class Cache:
 		turn: int
 		tick: int
 		entity, key, branch, turn, tick, value = args[-6:]
+		if loading:
+			self.db._updload(branch, turn, tick)
 		parent = args[:-6]
 		entikey = (entity, key)
 		parentikey = parent + (entity, key)
