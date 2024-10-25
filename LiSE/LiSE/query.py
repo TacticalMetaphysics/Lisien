@@ -1166,6 +1166,7 @@ class QueryEngine(query.QueryEngine):
 		self._records = 0
 		self.keyframe_interval = None
 		self.snap_keyframe = lambda: None
+		self._new_keyframe_extensions = []
 		self._char_rules_handled = []
 		self._unit_rules_handled = []
 		self._char_thing_rules_handled = []
@@ -1206,6 +1207,34 @@ class QueryEngine(query.QueryEngine):
 	def flush(self):
 		super().flush()
 		put = self._inq.put
+		pack = self.pack
+		if self._new_keyframe_extensions:
+			put(
+				(
+					"silent",
+					"many",
+					"keyframe_extensions_insert",
+					[
+						(
+							branch,
+							turn,
+							tick,
+							pack(universal),
+							pack(rule),
+							pack(rulebook),
+						)
+						for (
+							branch,
+							turn,
+							tick,
+							universal,
+							rule,
+							rulebook,
+						) in self._new_keyframe_extensions
+					],
+				)
+			)
+			self._new_keyframe_extensions = []
 		if self._unitness:
 			put(
 				(

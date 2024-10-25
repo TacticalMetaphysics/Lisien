@@ -983,6 +983,25 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._characters_portals_rulebooks_cache.load(
 				character_portal_rulebook_rows
 			)
+		if latest_past_keyframe:
+			universal_kf, rule_kf, rulebook_kf = (
+				self.query.get_keyframe_extensions(*latest_past_keyframe)
+			)
+			self._universal_cache.set_keyframe(
+				*latest_past_keyframe, universal_kf
+			)
+			self._triggers_cache.set_keyframe(
+				*latest_past_keyframe, rule_kf["triggers"]
+			)
+			self._prereqs_cache.set_keyframe(
+				*latest_past_keyframe, rule_kf["prereqs"]
+			)
+			self._actions_cache.set_keyframe(
+				*latest_past_keyframe, rule_kf["actions"]
+			)
+			self._rulebooks_cache.set_keyframe(
+				*latest_past_keyframe, rulebook_kf
+			)
 
 	def _init_caches(self) -> None:
 		from .xcollections import (
@@ -1757,9 +1776,6 @@ class Engine(AbstractEngine, gORM, Executor):
 		now: Tuple[str, int, int],
 		delta: DeltaDict,
 	) -> None:
-		# TODO: This and _snap_keyframe_de_novo should both put the rulebooks and stuff into the query engine,
-		#       to be written to the database.
-		#       For which I will also need to amend the keyframe loader...
 		if then == now:
 			return
 		b, r, t = then
@@ -1932,6 +1948,14 @@ class Engine(AbstractEngine, gORM, Executor):
 		)
 		self._characters_portals_rulebooks_cache.set_keyframe(
 			branch, turn, tick, portrbs
+		)
+		self.query._new_keyframe_extensions.append(
+			(
+				*now,
+				univ,
+				{"triggers": trigs, "prereqs": preqs, "actions": acts},
+				rbs,
+			)
 		)
 		super()._snap_keyframe_from_delta(then, now, delta)
 
@@ -2954,7 +2978,8 @@ class Engine(AbstractEngine, gORM, Executor):
 	def _snap_keyframe_de_novo(
 		self, branch: str, turn: int, tick: int
 	) -> None:
-		self._make_transient_keyframes(branch, turn, tick)
+		universal = dict(self.universal.items())
+		self._universal_cache.set_keyframe(branch, turn, tick, universal)
 		all_graphs = {graph for (graph,) in self._graph_cache.keyframe}
 		for char in all_graphs:
 			charunit = {
@@ -3033,6 +3058,16 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._node_contents_cache.set_keyframe(
 				(graph,), branch, turn, tick, {}
 			)
+		self.query._new_keyframe_extensions.append(
+			(
+				branch,
+				turn,
+				tick,
+				universal,
+				{"triggers": trigs, "prereqs": preqs, "actions": acts},
+				rbs,
+			)
+		)
 		super()._snap_keyframe_de_novo(branch, turn, tick)
 
 	def _snap_keyframe_de_novo_graph(
