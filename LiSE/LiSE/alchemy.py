@@ -456,34 +456,57 @@ def queries(table):
 			),
 		)
 	)
-	things_to_end_clause = and_(
-		things.c.character == bindparam("character"),
-		things.c.branch == bindparam("branch"),
-		or_(
-			things.c.turn > bindparam("turn_from_a"),
-			and_(
-				things.c.turn == bindparam("turn_from_b"),
-				things.c.tick >= bindparam("tick_from"),
-			),
-		),
-	)
-	r["load_things_tick_to_end"] = select(
-		things.c.thing, things.c.turn, things.c.tick, things.c.location
-	).where(things_to_end_clause)
-	r["load_things_tick_to_tick"] = select(
-		things.c.thing, things.c.turn, things.c.tick, things.c.location
-	).where(
-		and_(
-			things_to_end_clause,
+
+	def character_to_end_clause(tab: Table):
+		return and_(
+			tab.c.character == bindparam("character"),
+			tab.c.branch == bindparam("branch"),
 			or_(
-				things.c.turn < bindparam("turn_to_a"),
+				tab.c.turn > bindparam("turn_from_a"),
 				and_(
-					things.c.turn == bindparam("turn_to_b"),
-					things.c.tick <= bindparam("tick_to"),
+					tab.c.turn == bindparam("turn_from_b"),
+					tab.c.tick >= bindparam("tick_from"),
 				),
 			),
 		)
-	)
+
+	def character_to_tick_clause(tab: Table):
+		return and_(
+			character_to_end_clause(tab),
+			or_(
+				tab.c.turn < bindparam("turn_to_a"),
+				and_(
+					tab.c.turn == bindparam("turn_to_b"),
+					tab.c.tick <= bindparam("tick_to"),
+				),
+			),
+		)
+
+	r["load_things_tick_to_end"] = select(
+		things.c.thing, things.c.turn, things.c.tick, things.c.location
+	).where(character_to_end_clause(things))
+	r["load_things_tick_to_tick"] = select(
+		things.c.thing, things.c.turn, things.c.tick, things.c.location
+	).where(character_to_tick_clause(things))
+	for name in (
+		"character_rulebook",
+		"unit_rulebook",
+		"character_thing_rulebook",
+		"character_place_rulebook",
+		"character_portal_rulebook",
+	):
+		tab = table[name]
+		sel = select(
+			tab.c.character,
+			tab.c.branch,
+			tab.c.turn,
+			tab.c.tick,
+			tab.c.rulebook,
+		)
+		r[f"load_{name}_tick_to_end"] = sel.where(character_to_end_clause(tab))
+		r[f"load_{name}_tick_to_tick"] = sel.where(
+			character_to_tick_clause(tab)
+		)
 
 	def generic_tick_to_end_clause(tab: Table):
 		return and_(
