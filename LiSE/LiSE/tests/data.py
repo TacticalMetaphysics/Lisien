@@ -22407,6 +22407,7 @@ SLOW_DELTA = {
 			((0, 0), (1, 0)): False,
 			((0, 1), (0, 0)): False,
 			((1, 0), (0, 0)): False,
+			((1, 0), (0, 1)): True,
 		},
 		"node_val": {
 			"wolf5": {"location": (15, 9)},
