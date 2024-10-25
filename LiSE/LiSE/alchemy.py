@@ -518,7 +518,10 @@ def queries(table):
 		rbs.c.branch == bindparam("branch"),
 		or_(
 			rbs.c.turn > bindparam("turn_from_a"),
-			rbs.c.tick >= bindparam("tick_from"),
+			and_(
+				rbs.c.turn == bindparam("turn_from_b"),
+				rbs.c.tick >= bindparam("tick_from"),
+			),
 		),
 	)
 	rbsel = select(
