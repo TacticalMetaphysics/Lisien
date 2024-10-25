@@ -42,6 +42,7 @@ from sqlalchemy import (
 	BOOLEAN,
 	FLOAT,
 	BLOB,
+	ForeignKey,
 )
 from sqlalchemy import MetaData
 from sqlalchemy.sql.ddl import CreateTable, CreateIndex
@@ -69,6 +70,23 @@ def tables_for_meta(meta):
 		Column("tick", INT, primary_key=True, default=0),
 		Column("value", BLOB),
 		sqlite_with_rowid=False,
+	)
+
+	Table(
+		"keyframe_extensions",
+		meta,
+		Column(
+			"branch",
+			TEXT,
+			ForeignKey("branches.branch"),
+			primary_key=True,
+			default="trunk",
+		),
+		Column("turn", INT, primary_key=True, default=0),
+		Column("tick", INT, primary_key=True, default=0),
+		Column("universal", BLOB),
+		Column("rule", BLOB),
+		Column("rulebook", BLOB),
 	)
 
 	Table(
