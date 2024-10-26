@@ -2886,6 +2886,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		Any keyword arguments will be set as stats of the new character.
 
 		"""
+		if name in self.character:
+			raise KeyError("Already have that character", name)
 		if layout and data:
 			if not hasattr(data, "nodes"):
 				try:
