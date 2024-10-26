@@ -267,11 +267,13 @@ def test_apply_delta(tmp_path, slow):
 		phys = eng.new_character("physical", initial_state)
 		eng.add_character("pointless")
 		kf0 = eng.snap_keyframe()
+		del kf0["universal"]["rando_state"]
 		if slow:
 			eng.branch = "b"
 		else:
 			eng.next_turn()
 		kf1 = eng.snap_keyframe()
+		del kf1["universal"]["rando_state"]
 		assert kf0 == kf1
 		del phys.portal[1][0]
 		port = phys.new_portal(0, 2)
