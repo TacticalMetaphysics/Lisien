@@ -2579,8 +2579,7 @@ class ORM:
 				self.tick,
 			)
 		tick = self._turn_end_plan[branch, v]
-		_, turn0, tick0, turn1, tick1 = self._branches[branch]
-		if (turn0, tick0) <= (v, tick) <= (turn1, tick1):
+		if (turn_start, tick_start) <= (v, tick) <= (turn_end, tick_end):
 			if branch in loaded:
 				(start_turn, start_tick, end_turn, end_tick) = loaded[branch]
 				if v > end_turn or (v == end_turn and tick > end_tick):
