@@ -1212,12 +1212,8 @@ class Engine(AbstractEngine, gORM, Executor):
 				charportrbkf[graph] = graphval["character_portal_rulebook"]
 			if "units" in graphval:
 				self._unitness_cache.set_keyframe(
-					(graph,), branch, turn, tick, graphval["units"]
+					graph, branch, turn, tick, graphval["units"]
 				)
-				for graf, units in graphval["units"].items():
-					self._unitness_cache.set_keyframe(
-						(graph, graf), branch, turn, tick, units
-					)
 		self._characters_rulebooks_cache.set_keyframe(
 			branch, turn, tick, charrbkf
 		)

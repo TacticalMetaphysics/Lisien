@@ -58,29 +58,21 @@ class UserMapping(Mapping):
 		engine = self.engine
 		charn = node.character.name
 		nn = node.name
-		cache = engine._unitness_cache.user_order
-		if charn not in cache or nn not in cache[charn]:
-			return
-		cache = cache[charn][nn]
 		seen = set()
-		for user in cache:
-			if user in seen:
-				continue
-			for branch, turn, tick in engine._iter_parent_btt():
-				if branch in cache[user]:
-					branchd = cache[user][branch]
-					if turn in branchd:
-						if branchd[turn].rev_gettable(tick):
-							if branchd[turn][tick]:
-								yield user
-							seen.add(user)
-							break
-					elif branchd.rev_gettable(turn):
-						turnd = branchd[turn]
-						if turnd.final():
-							yield user
-						seen.add(user)
-						break
+		for b, r, t in engine._iter_parent_btt():
+			for user in engine._unitness_cache.user_cache.iter_keys(
+				charn, nn, b, r, t
+			):
+				if user in seen:
+					continue
+				seen.add(user)
+				try:
+					if engine._unitness_cache.user_cache.retrieve(
+						charn, nn, user, b, r, t
+					):
+						yield user
+				except KeyError:
+					continue
 
 	@property
 	def only(self) -> Node:

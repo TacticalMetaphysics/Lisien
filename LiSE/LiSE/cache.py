@@ -64,6 +64,10 @@ class InitializedEntitylessCache(EntitylessCache, InitializedCache):
 class UnitnessCache(Cache):
 	"""A cache for remembering when a node is a unit of a character."""
 
+	def __init__(self, db):
+		super().__init__(db)
+		self.user_cache = Cache(db)
+
 	def store(
 		self,
 		character,
@@ -93,6 +97,38 @@ class UnitnessCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
+		self.user_cache.store(
+			graph,
+			node,
+			character,
+			branch,
+			turn,
+			tick,
+			is_unit,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+		)
+
+	def set_keyframe(
+		self, character: Key, branch: str, turn: int, tick: int, keyframe
+	):
+		super().set_keyframe((character,), branch, turn, tick, keyframe)
+		for graph, units in keyframe.items():
+			super().set_keyframe(
+				(character, graph), branch, turn, tick, keyframe
+			)
+			for unit, is_unit in units.items():
+				try:
+					kf = self.user_cache.get_keyframe(
+						(graph, unit), branch, turn, tick
+					)
+					kf[character] = is_unit
+				except KeyError:
+					self.user_cache.set_keyframe(
+						(graph, unit), branch, turn, tick, {character: is_unit}
+					)
 
 	def get_char_graph_units(self, char, graph, branch, turn, tick):
 		return set(self.iter_entities(char, graph, branch, turn, tick))
@@ -112,8 +148,10 @@ class UnitnessCache(Cache):
 			raise ValueError("No unit, or more than one unit")
 		return next(self.iter_entities(char, branch, turn, tick))
 
-	def get_char_graphs(self, char, branch, turn, tick):
-		return set(self.iter_entities(char, branch, turn, tick))
+	def iter_char_graphs(self, char, branch, turn, tick):
+		for c, g in self.keys:
+			if c == char and self.count_entities(c, g, branch, turn, tick):
+				yield g
 
 
 class RulesHandledCache(object):

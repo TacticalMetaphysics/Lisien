@@ -1335,7 +1335,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			self._avrc = engine._units_rulebooks_cache
 			self._add_av = char.add_unit
 			avcache = engine._unitness_cache
-			get_char_graphs = avcache.get_char_graphs
+			get_char_graphs = avcache.iter_char_graphs
 			charn = char.name
 			btt = engine._btt
 			self._iter_stuff = (get_char_graphs, charn, btt)
