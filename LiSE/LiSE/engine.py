@@ -1211,9 +1211,10 @@ class Engine(AbstractEngine, gORM, Executor):
 			if "character_portal_rulebook" in graphval:
 				charportrbkf[graph] = graphval["character_portal_rulebook"]
 			if "units" in graphval:
-				self._unitness_cache.set_keyframe(
-					graph, branch, turn, tick, graphval["units"]
-				)
+				for character, units in graphval["units"].items():
+					self._unitness_cache.set_keyframe(
+						graph, character, branch, turn, tick, units
+					)
 		self._characters_rulebooks_cache.set_keyframe(
 			branch, turn, tick, charrbkf
 		)
@@ -1794,9 +1795,10 @@ class Engine(AbstractEngine, gORM, Executor):
 					)
 				}
 			charunit.update(delta.get("units", ()))
-			self._unitness_cache.set_keyframe(
-				(char,), branch, turn, tick, charunit
-			)
+			for graf, units in charunit.items():
+				self._unitness_cache.set_keyframe(
+					char, graf, branch, turn, tick, units
+				)
 		try:
 			trigs = self._triggers_cache.get_keyframe(b, r, t).copy()
 		except KeyError:
@@ -2969,15 +2971,24 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._universal_cache.set_keyframe(branch, turn, tick, universal)
 		all_graphs = {graph for (graph,) in self._graph_cache.keyframe}
 		for char in all_graphs:
-			charunit = {
-				unitgraph: units
-				for (unitgraph, units) in self._unitness_cache.iter_keys(
-					char, branch, turn, tick
+			for graph in self._unitness_cache.iter_keys(
+				char, branch, turn, tick
+			):
+				self._unitness_cache.set_keyframe(
+					char,
+					graph,
+					branch,
+					turn,
+					tick,
+					{
+						unit: self._unitness_cache.retrieve(
+							char, graph, unit, branch, turn, tick
+						)
+						for unit in self._unitness_cache.iter_keys(
+							char, graph, branch, turn, tick
+						)
+					},
 				)
-			}
-			self._unitness_cache.set_keyframe(
-				char, branch, turn, tick, charunit
-			)
 		rbnames = list(self._rulebooks_cache.iter_keys(branch, turn, tick))
 		rbs = {}
 		for rbname in rbnames:

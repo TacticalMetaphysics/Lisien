@@ -113,23 +113,25 @@ class UnitnessCache(Cache):
 		)
 
 	def set_keyframe(
-		self, character: Key, branch: str, turn: int, tick: int, keyframe
+		self,
+		character: Key,
+		graph: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		keyframe,
 	):
-		super().set_keyframe((character,), branch, turn, tick, keyframe)
-		for graph, units in keyframe.items():
-			super().set_keyframe(
-				(character, graph), branch, turn, tick, keyframe
-			)
-			for unit, is_unit in units.items():
-				try:
-					kf = self.user_cache.get_keyframe(
-						(graph, unit), branch, turn, tick
-					)
-					kf[character] = is_unit
-				except KeyError:
-					self.user_cache.set_keyframe(
-						(graph, unit), branch, turn, tick, {character: is_unit}
-					)
+		super().set_keyframe((character, graph), branch, turn, tick, keyframe)
+		for unit, is_unit in keyframe.items():
+			try:
+				kf = self.user_cache.get_keyframe(
+					(graph, unit), branch, turn, tick
+				)
+				kf[character] = is_unit
+			except KeyError:
+				self.user_cache.set_keyframe(
+					(graph, unit), branch, turn, tick, {character: is_unit}
+				)
 
 	def get_char_graph_units(self, char, graph, branch, turn, tick):
 		return set(self.iter_entities(char, graph, branch, turn, tick))
