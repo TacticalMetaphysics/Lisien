@@ -639,6 +639,10 @@ class EngineHandle:
 					todel.append(keey)
 			for todo in todel:
 				del mapp[todo]
+		for added in kf_to["graph_val"].keys() - kf_from["graph_val"].keys():
+			graphn = pack(added)
+			if graphn not in delta:
+				delta[graphn] = {}
 		return delta
 
 	@prepacked
