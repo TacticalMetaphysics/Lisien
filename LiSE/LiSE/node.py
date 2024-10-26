@@ -89,15 +89,16 @@ class UserMapping(Mapping):
 		yield from self._user_names()
 
 	def __len__(self) -> int:
-		n = 0
-		for user in self._user_names():
-			n += 1
-		return n
+		return self.engine._unitness_cache.user_cache.count_keys(
+			self.node.character.name, self.node.name, *self.engine._btt()
+		)
 
 	def __bool__(self) -> bool:
-		for user in self._user_names():
-			return True
-		return False
+		return bool(
+			self.engine._unitness_cache.user_cache.count_keys(
+				self.node.character.name, self.node.name, *self.engine._btt()
+			)
+		)
 
 	def __contains__(self, item) -> bool:
 		chara = self.engine.character[item]
@@ -544,6 +545,8 @@ class Node(graph.Node, rule.RuleFollower):
 		anymore.
 
 		"""
+		if self.name == "sheep23":
+			print("deleting sheep21")
 		self.clear()
 		for contained in list(self.contents()):
 			contained.delete()
