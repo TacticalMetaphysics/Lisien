@@ -2579,14 +2579,16 @@ class ORM:
 				self.tick,
 			)
 		tick = self._turn_end_plan[branch, v]
-		if branch in loaded:
-			(start_turn, start_tick, end_turn, end_tick) = loaded[branch]
-			if v > end_turn or (v == end_turn and tick > end_tick):
+		_, turn0, tick0, turn1, tick1 = self._branches[branch]
+		if (turn0, tick0) <= (v, tick) <= (turn1, tick1):
+			if branch in loaded:
+				(start_turn, start_tick, end_turn, end_tick) = loaded[branch]
+				if v > end_turn or (v == end_turn and tick > end_tick):
+					self.load_at(branch, v, tick)
+				elif v < start_turn or (v == start_turn and tick < start_tick):
+					self.load_at(branch, v, tick)
+			else:
 				self.load_at(branch, v, tick)
-			elif v < start_turn or (v == start_turn and tick < start_tick):
-				self.load_at(branch, v, tick)
-		else:
-			self.load_at(branch, v, tick)
 		if v > turn_end and not self._planning:
 			self._branches[branch] = parent, turn_start, tick_start, v, tick
 		self._otick = tick
