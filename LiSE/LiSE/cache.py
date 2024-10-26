@@ -64,30 +64,6 @@ class InitializedEntitylessCache(EntitylessCache, InitializedCache):
 class UnitnessCache(Cache):
 	"""A cache for remembering when a node is a unit of a character."""
 
-	__slots__ = (
-		"user_order",
-		"user_shallow",
-		"graphs",
-		"graph_units",
-		"char_units",
-		"solo_unit",
-		"unique_unit",
-		"unique_graph",
-		"users",
-	)
-
-	def __init__(self, engine):
-		Cache.__init__(self, engine)
-		self.user_order = StructuredDefaultDict(3, TurnDict)
-		self.user_shallow = PickyDefaultDict(TurnDict)
-		self.graphs = StructuredDefaultDict(1, TurnDict)
-		self.graph_units = StructuredDefaultDict(1, TurnDict)
-		self.char_units = StructuredDefaultDict(1, TurnDict)
-		self.solo_unit = StructuredDefaultDict(1, TurnDict)
-		self.unique_unit = StructuredDefaultDict(1, TurnDict)
-		self.unique_graph = StructuredDefaultDict(1, TurnDict)
-		self.users = StructuredDefaultDict(1, TurnDict)
-
 	def store(
 		self,
 		character,
@@ -117,202 +93,27 @@ class UnitnessCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
-		userturns = self.user_order[graph][node][character][branch]
-		if turn in userturns:
-			userturns[turn][tick] = is_unit
-		else:
-			userturns[turn] = {tick: is_unit}
-		usershal = self.user_shallow[(graph, node, character, branch)]
-		if turn in usershal:
-			usershal[turn][tick] = is_unit
-		else:
-			usershal[turn] = {tick: is_unit}
-		charavs = self.char_units[character]
-		graphavs = self.graph_units[(character, graph)]
-		graphs = self.graphs[character]
-		uniqgraph = self.unique_graph[character][branch]
-		soloav = self.solo_unit[(character, graph)][branch]
-		uniqav = self.unique_unit[character][branch]
-		users = self.users[graph, node]
 
-		def add_or_discard_something(op, cache, what):
-			for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
-				if b in cache:
-					cb = cache[b]
-					if r in cb and cb[r].rev_gettable(t):
-						old_cache = cb[r][t]
-						break
-					elif cb.rev_gettable(r - 1):
-						old_cache = cb[r - 1].final()
-						break
-			else:
-				old_cache = frozenset()
-			new_cache = op(old_cache, frozenset((what,)))
-			if turn in cache[branch]:
-				cache[branch][turn][tick] = new_cache
-			elif branch in cache:
-				cache[branch][turn] = {tick: new_cache}
-			else:
-				cache[branch] = {turn: {tick: new_cache}}
+	def get_char_graph_units(self, char, graph, branch, turn, tick):
+		return set(self.iter_entities(char, graph, branch, turn, tick))
 
-		add_something = partial(add_or_discard_something, or_)
-		discard_something = partial(add_or_discard_something, sub)
-
-		if is_unit:
-			add_something(graphavs, node)
-			add_something(charavs, (graph, node))
-			add_something(graphs, graph)
-			add_something(users, character)
-		else:
-			discard_something(graphavs, node)
-			discard_something(charavs, (graph, node))
-			try:
-				if not graphavs[turn][tick]:
-					discard_something(graphs, graph)
-			except HistoricKeyError:
-				pass
-			try:
-				if not charavs[turn][tick]:
-					discard_something(users, character)
-			except HistoricKeyError:
-				pass
-		try:
-			graphav = singleton_get(graphavs[turn][tick])
-			if turn in soloav:
-				soloav[turn][tick] = graphav
-			else:
-				soloav[turn] = {tick: graphav}
-		except HistoricKeyError:
-			pass
-		try:
-			charav = singleton_get(charavs[turn][tick])
-			if turn in uniqav:
-				uniqav[turn][tick] = charav
-			else:
-				uniqav[turn] = {tick: charav}
-		except HistoricKeyError:
-			pass
-		try:
-			if not graphavs[turn][tick]:
-				if graph in graphs[turn][tick]:
-					graphs[turn][tick].remove(graph)
-					if len(graphs[turn][tick]) == 1:
-						uniqgraph[turn][tick] = next(iter(graphs[turn][tick]))
-					else:
-						uniqgraph[turn][tick] = None
-		except HistoricKeyError:
-			pass
-		if (
-			turn in graphavs
-			and tick in graphavs[turn]
-			and len(graphavs[turn][tick]) != 1
-		):
-			if turn in soloav:
-				soloav[turn][tick] = None
-			else:
-				soloav[turn] = {tick: None}
-		else:
-			if turn in soloav:
-				soloav[turn][tick] = node
-			else:
-				soloav[turn] = {tick: None}
-		if (
-			turn in charavs
-			and charavs[turn].rev_gettable(tick)
-			and len(charavs[turn][tick]) != 1
-		):
-			if turn in uniqav:
-				uniqav[turn][tick] = None
-			else:
-				uniqav[turn] = {tick: None}
-		elif turn in uniqav:
-			uniqav[turn][tick] = (graph, node)
-		else:
-			uniqav[turn] = {tick: (graph, node)}
-		if (
-			turn in graphs
-			and graphs[turn].rev_gettable(tick)
-			and len(graphs[turn][tick]) != 1
-		):
-			if turn in uniqgraph:
-				uniqgraph[turn][tick] = None
-			else:
-				uniqgraph[turn] = {tick: None}
-		elif turn in uniqgraph:
-			uniqgraph[turn][tick] = graph
-		else:
-			uniqgraph[turn] = {tick: graph}
-
-	def get_char_graph_avs(self, char, graph, branch, turn, tick):
-		return (
-			self._valcache_lookup(
-				self.graph_units[(char, graph)], branch, turn, tick
+	def get_char_only_unit(self, char, branch, turn, tick):
+		if self.count_entities(char, branch, turn, tick) != 1:
+			raise ValueError("No unit, or more than one unit")
+		for graph in self.iter_entities(char, branch, turn, tick):
+			if self.count_entities(char, graph, branch, turn, tick) != 1:
+				raise ValueError("No unit, or more than one unit")
+			return graph, next(
+				self.iter_entities(char, graph, branch, turn, tick)
 			)
-			or set()
-		)
-
-	def get_char_graph_solo_av(self, char, graph, branch, turn, tick):
-		return self._valcache_lookup(
-			self.solo_unit[(char, graph)], branch, turn, tick
-		)
-
-	def get_char_only_av(self, char, branch, turn, tick):
-		return self._valcache_lookup(
-			self.unique_unit[char], branch, turn, tick
-		)
 
 	def get_char_only_graph(self, char, branch, turn, tick):
-		return self._valcache_lookup(
-			self.unique_graph[char], branch, turn, tick
-		)
+		if self.count_entities(char, branch, turn, tick) != 1:
+			raise ValueError("No unit, or more than one unit")
+		return next(self.iter_entities(char, branch, turn, tick))
 
 	def get_char_graphs(self, char, branch, turn, tick):
-		return (
-			self._valcache_lookup(self.graphs[char], branch, turn, tick)
-			or set()
-		)
-
-	def _slow_iter_character_avatars(
-		self, character, branch, turn, tick, *, forward
-	):
-		for graph in self.iter_entities(
-			character, branch, turn, tick, forward=forward
-		):
-			for node in self.iter_entities(
-				character, graph, branch, turn, tick, forward=forward
-			):
-				yield graph, node
-
-	def _slow_iter_users(self, graph, node, branch, turn, tick):
-		if graph not in self.user_order:
-			return
-		for character in self.user_order[graph][node]:
-			if (graph, node, character, branch) not in self.user_shallow:
-				for b, t, tc in self.db._iter_parent_btt(branch, turn, tick):
-					if b in self.user_order[graph][node][character]:
-						isav = self.user_order[graph][node][character][b][t]
-						# side effect!! bad!
-						self.store(
-							character,
-							graph,
-							node,
-							branch,
-							turn,
-							tick,
-							isav[tc],
-						)
-						break
-				else:
-					self.store(
-						character, graph, node, branch, turn, tick, None
-					)
-			try:
-				if self.user_shallow[(graph, node, character, branch)][turn][
-					tick
-				]:
-					yield character
-			except HistoricKeyError:
-				continue
+		return set(self.iter_entities(char, branch, turn, tick))
 
 
 class RulesHandledCache(object):

@@ -1199,10 +1199,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		charthingrbkf = {}
 		charplacerbkf = {}
 		charportrbkf = {}
-		for graph in self._graph_cache.iter_keys(branch, turn, tick):
-			if graph not in ret:
-				continue
-			graphval = ret[graph]
+		for graph, graphval in ret["graph_val"].items():
 			if "character_rulebook" in graphval:
 				charrbkf[graph] = graphval["character_rulebook"]
 			if "unit_rulebook" in graphval:
@@ -1213,6 +1210,14 @@ class Engine(AbstractEngine, gORM, Executor):
 				charplacerbkf[graph] = graphval["character_place_rulebook"]
 			if "character_portal_rulebook" in graphval:
 				charportrbkf[graph] = graphval["character_portal_rulebook"]
+			if "units" in graphval:
+				self._unitness_cache.set_keyframe(
+					(graph,), branch, turn, tick, graphval["units"]
+				)
+				for graf, units in graphval["units"].items():
+					self._unitness_cache.set_keyframe(
+						(graph, graf), branch, turn, tick, units
+					)
 		self._characters_rulebooks_cache.set_keyframe(
 			branch, turn, tick, charrbkf
 		)

@@ -1346,7 +1346,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				btt,
 			)
 			self._only_stuff = (
-				avcache.get_char_only_av,
+				avcache.get_char_only_unit,
 				charn,
 				btt,
 				engine._get_node,
@@ -1431,7 +1431,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				avcache = engine._unitness_cache
 				btt = engine._btt
 				self._iter_stuff = iter_stuff = (
-					avcache.get_char_graph_avs,
+					avcache.get_char_graph_units,
 					name,
 					graphn,
 					btt,
