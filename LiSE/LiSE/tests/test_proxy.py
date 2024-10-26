@@ -266,12 +266,13 @@ def test_apply_delta(tmp_path, slow):
 		initial_state.graph["wat"] = "nope"
 		phys = eng.new_character("physical", initial_state)
 		eng.add_character("pointless")
-		kf = eng.snap_keyframe()
+		kf0 = eng.snap_keyframe()
 		if slow:
 			eng.branch = "b"
 		else:
 			eng.next_turn()
-		assert eng.snap_keyframe() == kf
+		kf1 = eng.snap_keyframe()
+		assert kf0 == kf1
 		del phys.portal[1][0]
 		port = phys.new_portal(0, 2)
 		port["hi"] = "bye"
