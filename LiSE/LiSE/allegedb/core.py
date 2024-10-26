@@ -1459,6 +1459,9 @@ class ORM:
 						tick,
 						copy=False,
 					)
+					self._edge_val_cache.set_keyframe(
+						(graph, node, dest, 0), branch_to, turn, tick, evkf
+					)
 					if node in edge_vals:
 						edge_vals[node][dest] = evkf
 					else:
