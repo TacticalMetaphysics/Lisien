@@ -1878,6 +1878,98 @@ class ORM:
 					latest_past_keyframe = (branch, turn, tick)
 		return latest_past_keyframe, earliest_future_keyframe
 
+	def _load_windows(self, graph, windows):
+		noderows = []
+		edgerows = []
+		graphvalrows = []
+		nodevalrows = []
+		edgevalrows = []
+		updload = self._updload
+		for window in reversed(windows):
+			for _, node, branch, turn, tick, ex in self.query.load_nodes(
+				graph, *window
+			):
+				noderows.append((graph, node, branch, turn, tick, ex or None))
+				updload(branch, turn, tick)
+			for (
+				_,
+				orig,
+				dest,
+				idx,
+				branch,
+				turn,
+				tick,
+				ex,
+			) in self.query.load_edges(graph, *window):
+				edgerows.append(
+					(
+						graph,
+						orig,
+						dest,
+						idx,
+						branch,
+						turn,
+						tick,
+						ex or None,
+					)
+				)
+				updload(branch, turn, tick)
+			for (
+				graph,
+				key,
+				branch,
+				turn,
+				tick,
+				value,
+			) in self.query.load_graph_val(graph, *window):
+				graphvalrows.append((graph, key, branch, turn, tick, value))
+				updload(branch, turn, tick)
+			for (
+				graph,
+				node,
+				key,
+				branch,
+				turn,
+				tick,
+				value,
+			) in self.query.load_node_val(graph, *window):
+				nodevalrows.append(
+					(graph, node, key, branch, turn, tick, value)
+				)
+				updload(branch, turn, tick)
+			for (
+				graph,
+				orig,
+				dest,
+				idx,
+				key,
+				branch,
+				turn,
+				tick,
+				value,
+			) in self.query.load_edge_val(graph, *window):
+				edgevalrows.append(
+					(
+						graph,
+						orig,
+						dest,
+						idx,
+						key,
+						branch,
+						turn,
+						tick,
+						value,
+					)
+				)
+				updload(branch, turn, tick)
+		return {
+			"nodes": noderows,
+			"edges": edgerows,
+			"node_val": nodevalrows,
+			"edge_val": edgevalrows,
+			"graph_val": graphvalrows,
+		}
+
 	@world_locked
 	def load_at(
 		self, branch: str, turn: int, tick: int
@@ -1907,11 +1999,6 @@ class ORM:
 		# number of possible futures, and we're trying to be conservative
 		# about what we load. If neither branch is an ancestor of the other,
 		# we can't use the keyframe for this load.
-		noderows = []
-		edgerows = []
-		graphvalrows = []
-		nodevalrows = []
-		edgevalrows = []
 		load_nodes = self.query.load_nodes
 		load_edges = self.query.load_edges
 		load_graph_val = self.query.load_graph_val
@@ -1919,6 +2006,11 @@ class ORM:
 		load_edge_val = self.query.load_edge_val
 		load_keyframe = self._get_keyframe
 		updload = self._updload
+		noderows = []
+		edgerows = []
+		graphvalrows = []
+		nodevalrows = []
+		edgevalrows = []
 
 		if latest_past_keyframe is None:  # happens in very short games
 			for graph, node, branch, turn, tick, ex in self.query.nodes_dump():
@@ -1976,12 +2068,11 @@ class ORM:
 				edgevalrows.append(
 					(graph, orig, dest, idx, key, branch, turn, tick, value)
 				)
-			with self.batch():
-				self._nodes_cache.load(noderows)
-				self._edges_cache.load(edgerows)
-				self._graph_val_cache.load(graphvalrows)
-				self._node_val_cache.load(nodevalrows)
-				self._edge_val_cache.load(edgevalrows)
+			self._nodes_cache.load(noderows)
+			self._edges_cache.load(edgerows)
+			self._graph_val_cache.load(graphvalrows)
+			self._node_val_cache.load(nodevalrows)
+			self._edge_val_cache.load(edgevalrows)
 			return (
 				None,
 				None,
@@ -1995,88 +2086,22 @@ class ORM:
 		past_branch, past_turn, past_tick = latest_past_keyframe
 		keyframed = load_keyframe(past_branch, past_turn, past_tick)
 
-		def load_windows(graph, windows):
-			for window in reversed(windows):
-				for _, node, branch, turn, tick, ex in load_nodes(
-					graph, *window
-				):
-					noderows.append(
-						(graph, node, branch, turn, tick, ex or None)
-					)
-					updload(branch, turn, tick)
-				for _, orig, dest, idx, branch, turn, tick, ex in load_edges(
-					graph, *window
-				):
-					edgerows.append(
-						(
-							graph,
-							orig,
-							dest,
-							idx,
-							branch,
-							turn,
-							tick,
-							ex or None,
-						)
-					)
-					updload(branch, turn, tick)
-				for graph, key, branch, turn, tick, value in load_graph_val(
-					graph, *window
-				):
-					graphvalrows.append(
-						(graph, key, branch, turn, tick, value)
-					)
-					updload(branch, turn, tick)
-				for (
-					graph,
-					node,
-					key,
-					branch,
-					turn,
-					tick,
-					value,
-				) in load_node_val(graph, *window):
-					nodevalrows.append(
-						(graph, node, key, branch, turn, tick, value)
-					)
-					updload(branch, turn, tick)
-				for (
-					graph,
-					orig,
-					dest,
-					idx,
-					key,
-					branch,
-					turn,
-					tick,
-					value,
-				) in load_edge_val(graph, *window):
-					edgevalrows.append(
-						(
-							graph,
-							orig,
-							dest,
-							idx,
-							key,
-							branch,
-							turn,
-							tick,
-							value,
-						)
-					)
-					updload(branch, turn, tick)
-
 		for graph in keyframed["graph_val"]:
 			if earliest_future_keyframe is None:
 				if latest_past_keyframe == (branch_now, turn_now, tick_now):
 					continue
 				_, _, _, turn_then, tick_then = self._branches[branch_now]
-				load_windows(
+				loaded = self._load_windows(
 					graph,
 					self._build_loading_windows(
 						*latest_past_keyframe, branch_now, turn_then, tick_then
 					),
 				)
+				noderows.extend(loaded["nodes"])
+				edgerows.extend(loaded["edges"])
+				nodevalrows.extend(loaded["node_val"])
+				edgevalrows.extend(loaded["edge_val"])
+				graphvalrows.extend(loaded["graph_val"])
 				continue
 			future_branch, future_turn, future_tick = earliest_future_keyframe
 			if past_branch == future_branch:
@@ -2152,7 +2177,7 @@ class ORM:
 				)
 				updload(branch, turn, tick)
 				continue
-			load_windows(
+			loaded = self._load_windows(
 				graph,
 				self._build_loading_windows(
 					past_branch,
@@ -2163,6 +2188,11 @@ class ORM:
 					future_tick,
 				),
 			)
+			noderows.extend(loaded["nodes"])
+			edgerows.extend(loaded["edges"])
+			nodevalrows.extend(loaded["node_val"])
+			edgevalrows.extend(loaded["edge_val"])
+			graphvalrows.extend(loaded["graph_val"])
 		self._nodes_cache.load(noderows)
 		self._edges_cache.load(edgerows)
 		self._graph_val_cache.load(graphvalrows)
