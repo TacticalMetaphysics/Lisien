@@ -67,6 +67,7 @@ class UnitnessCache(Cache):
 	def __init__(self, db):
 		super().__init__(db)
 		self.user_cache = Cache(db)
+		self.user_cache.name = "user_cache"
 
 	def store(
 		self,
