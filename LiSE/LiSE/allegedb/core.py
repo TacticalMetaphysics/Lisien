@@ -1329,18 +1329,18 @@ class ORM:
 			)
 			inskf(graphn, branch, turn, tick, nodes, edges, val)
 			kfl.append((graphn, branch, turn, tick))
-			if branch not in kfd:
-				kfd[branch] = {
-					turn: {
-						tick,
-					}
-				}
-			elif turn not in kfd[branch]:
-				kfd[branch][turn] = {
+		if branch not in kfd:
+			kfd[branch] = {
+				turn: {
 					tick,
 				}
-			else:
-				kfd[branch][turn].add(tick)
+			}
+		elif turn not in kfd[branch]:
+			kfd[branch][turn] = {
+				tick,
+			}
+		else:
+			kfd[branch][turn].add(tick)
 		kfs.add((branch, turn, tick))
 		kfsl.add((branch, turn, tick))
 		self._set_btt(*was)
