@@ -608,6 +608,10 @@ class EngineHandle:
 			}
 			for graph, orig, dest in edges_to - edges_from:
 				futs.append(pool.submit(pack_edge, graph, orig, dest, TRUE))
+			for deleted in (
+				kf_from["graph_val"].keys() - kf_to["graph_val"].keys()
+			):
+				delta[pack(deleted)] = NONE
 		if not delta[UNIVERSAL]:
 			del delta[UNIVERSAL]
 		if not delta[RULEBOOK]:
