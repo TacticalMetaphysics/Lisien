@@ -545,8 +545,6 @@ class Node(graph.Node, rule.RuleFollower):
 		anymore.
 
 		"""
-		if self.name == "sheep23":
-			print("deleting sheep21")
 		self.clear()
 		for contained in list(self.contents()):
 			contained.delete()
