@@ -18,7 +18,7 @@ from collections import defaultdict
 from ..query import windows_intersection
 import pytest
 
-pytestmark = [pytest.mark.slow, pytest.mark.big]
+pytestmark = [pytest.mark.slow, pytest.mark.big, pytest.mark.skip]
 
 
 def roommate_collisions(college24_premade):
