@@ -745,7 +745,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			engine.query._set_rulebook_on_character(
 				rulebook, name, branch, turn, tick, rulebook_name
 			)
-			cache.store((name, rulebook), branch, turn, tick, rulebook_name)
+			cache.store(name, branch, turn, tick, rulebook_name)
 
 	class ThingMapping(MutableMappingUnwrapper, RuleFollower, Signal):
 		""":class:`Thing` objects that are in a :class:`Character`"""
