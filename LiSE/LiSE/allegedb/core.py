@@ -1541,7 +1541,7 @@ class ORM:
 			self._nodes_cache.set_keyframe((graph,), *now, nkg)
 			for node, ex in nodes_keyframe[graph].items():
 				if ex and node not in nvkg:
-					nvkg[node] = {"name": node}
+					nvkg[node] = {}
 			if deltg is not None and "node_val" in deltg:
 				dnv = deltg.pop("node_val")
 				for node, value in dnv.items():
@@ -1557,8 +1557,6 @@ class ORM:
 								nvgn[k] = v
 					else:
 						nvkg[node] = value
-					if "name" not in nvkg[node]:
-						nvkg[node]["name"] = node
 			for node, val in keyframe["node_val"][graph].items():
 				val: StatDict
 				self._node_val_cache.set_keyframe((graph, node), *now, val)

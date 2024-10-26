@@ -896,7 +896,10 @@ class DiGraph(networkx.DiGraph):
 
 	def _nodes_state(self):
 		return {
-			noden: unwrapped_dict(node) for noden, node in self._node.items()
+			noden: {
+				k: v for (k, v) in unwrapped_dict(node).items() if k != "name"
+			}
+			for noden, node in self._node.items()
 		}
 
 	def _edges_state(self):
@@ -919,7 +922,11 @@ class DiGraph(networkx.DiGraph):
 		return ret
 
 	def _val_state(self):
-		return unwrapped_dict(self.graph)
+		return {
+			k: v
+			for (k, v) in unwrapped_dict(self.graph).items()
+			if k != "name"
+		}
 
 	def __new__(cls, db, name, data=None, **attr):
 		if name in db._graph_objs:
