@@ -53,7 +53,7 @@ def handle_initialized(request, handle):
 
 
 def pytest_addoption(parser):
-	parser.addoption("--serial", action="store_true")
+	parser.addoption("--serial", action="store_true", default=False)
 
 
 @pytest.fixture(
