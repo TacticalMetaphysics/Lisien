@@ -878,7 +878,7 @@ class Thing(Node):
 					or (start_turn == turn and start_tick <= tick)
 					or (end_turn == turn and tick < end_tick)
 				):
-					eng.load_at(branch, turn, tick)
+					eng._load_at(branch, turn, tick)
 			with eng.plan():
 				for subplace, turn_inc in zip(subpath, turn_incs):
 					eng.turn += turn_inc

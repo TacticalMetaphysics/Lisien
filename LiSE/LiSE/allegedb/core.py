@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM"""
 
+from collections import defaultdict
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
 import gc
@@ -29,6 +30,7 @@ from typing import (
 	List,
 	Iterator,
 	FrozenSet,
+	Hashable,
 )
 
 from blinker import Signal
@@ -257,7 +259,7 @@ class TimeSignalDescriptor:
 			self.signals[id(inst)] = TimeSignal(inst)
 		return self.signals[id(inst)]
 
-	def __set__(self, inst, val):
+	def __set__(self, inst: "ORM", val):
 		if id(inst) not in self.signals:
 			self.signals[id(inst)] = TimeSignal(inst)
 		sig = self.signals[id(inst)]
@@ -344,8 +346,12 @@ class TimeSignalDescriptor:
 				)
 			e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
 		e._obranch, e._oturn = val
+		if branch_then == branch_now:
+			e._load_between(
+				branch_then, turn_then, tick_then, turn_now, tick_now
+			)
 		if not e._time_is_loaded(*val, tick_now):
-			e.load_at(*val, tick_now)
+			e._load_at(*val, tick_now)
 
 		if not e._planning:
 			if tick_now > e._turn_end[val]:
@@ -973,7 +979,9 @@ class ORM:
 			self._edge_val_cache,
 		]
 
-	def _get_keyframe(self, branch: str, turn: int, tick: int, copy=True):
+	def _get_keyframe(
+		self, branch: str, turn: int, tick: int, copy=True, silent=False
+	):
 		"""Load the keyframe if it's not loaded, and return it"""
 		if (branch, turn, tick) in self._keyframes_loaded:
 			return self._get_kf(branch, turn, tick, copy=copy)
@@ -995,7 +1003,8 @@ class ORM:
 				)
 		self._updload(branch, turn, tick)
 		self._keyframes_loaded.add((branch, turn, tick))
-		return self._get_kf(branch, turn, tick, copy=copy)
+		if not silent:
+			return self._get_kf(branch, turn, tick, copy=copy)
 
 	def _load_graphs(self):
 		self.graph = GraphsMapping(self)
@@ -1147,7 +1156,7 @@ class ORM:
 			str, Tuple[int, int, int, int]
 		] = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
 		self._load_plans()
-		self.load_at(*self._btt())
+		self._load_at(*self._btt())
 		self.cache_arrange_queue = Queue()
 		self._cache_arrange_thread = Thread(
 			target=self._arrange_cache_loop, daemon=True
@@ -1878,7 +1887,7 @@ class ORM:
 					latest_past_keyframe = (branch, turn, tick)
 		return latest_past_keyframe, earliest_future_keyframe
 
-	def _load_windows(self, graph, windows):
+	def _load_graph_windows(self, graph, windows):
 		noderows = []
 		edgerows = []
 		graphvalrows = []
@@ -1971,17 +1980,62 @@ class ORM:
 		}
 
 	@world_locked
-	def load_at(
+	def _load_between(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	):
+		noderows = []
+		nodevalrows = []
+		edgerows = []
+		edgevalrows = []
+		graphvalrows = []
+
+		# I want the set of all graphs that have ever existed.
+		# It would be better to filter to the graphs that existed during this window, though.
+		loaded_graphs = {}
+		for _, graph in self._graph_cache.branches:
+			loaded = self._load_graph_windows(
+				graph, [(branch, turn_from, tick_from, turn_to, tick_to)]
+			)
+			noderows.extend(loaded["nodes"])
+			edgerows.extend(loaded["edges"])
+			nodevalrows.extend(loaded["node_val"])
+			edgevalrows.extend(loaded["edge_val"])
+			graphvalrows.extend(loaded["graph_val"])
+			loaded_graphs[graph] = loaded
+		self._nodes_cache.load(noderows)
+		self._node_val_cache.load(nodevalrows)
+		self._edges_cache.load(edgerows)
+		self._edge_val_cache.load(edgevalrows)
+		self._graph_val_cache.load(graphvalrows)
+		if branch in self._keyframes_dict:
+			for turn, ticks in self._keyframes_dict[branch].items():
+				for tick in ticks:
+					self._get_keyframe(branch, turn, tick, silent=True)
+		return loaded_graphs
+
+	def load_between(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> None:
+		self._load_between(branch, turn_from, tick_from, turn_to, tick_to)
+
+	@world_locked
+	def _load_at(
 		self, branch: str, turn: int, tick: int
 	) -> Tuple[
 		Optional[Tuple[str, int, int]],
 		Optional[Tuple[str, int, int]],
 		dict,
-		List[NodeRowType],
-		List[EdgeRowType],
-		List[GraphValRowType],
-		List[NodeValRowType],
-		List[EdgeValRowType],
+		dict,
 	]:
 		latest_past_keyframe: Optional[Tuple[str, int, int]]
 		earliest_future_keyframe: Optional[Tuple[str, int, int]]
@@ -2011,11 +2065,22 @@ class ORM:
 		graphvalrows = []
 		nodevalrows = []
 		edgevalrows = []
+		loaded_graphs: Dict[Hashable, Dict[str, list]] = defaultdict(
+			lambda: {
+				"nodes": [],
+				"node_val": [],
+				"edges": [],
+				"edge_val": [],
+				"graph_val": [],
+			}
+		)
 
 		if latest_past_keyframe is None:  # happens in very short games
 			for graph, node, branch, turn, tick, ex in self.query.nodes_dump():
 				updload(branch, turn, tick)
-				noderows.append((graph, node, branch, turn, tick, ex or None))
+				row = (graph, node, branch, turn, tick, ex or None)
+				noderows.append(row)
+				loaded_graphs[graph]["nodes"].append(row)
 			for (
 				graph,
 				orig,
@@ -2027,9 +2092,9 @@ class ORM:
 				ex,
 			) in self.query.edges_dump():
 				updload(branch, turn, tick)
-				edgerows.append(
-					(graph, orig, dest, idx, branch, turn, tick, ex or None)
-				)
+				row = (graph, orig, dest, idx, branch, turn, tick, ex or None)
+				edgerows.append(row)
+				loaded_graphs[graph]["edges"].append(row)
 			for (
 				graph,
 				key,
@@ -2039,7 +2104,9 @@ class ORM:
 				value,
 			) in self.query.graph_val_dump():
 				updload(branch, turn, tick)
-				graphvalrows.append((graph, key, branch, turn, tick, value))
+				row = (graph, key, branch, turn, tick, value)
+				graphvalrows.append(row)
+				loaded_graphs[graph]["graph_val"].append(row)
 			for (
 				graph,
 				node,
@@ -2050,9 +2117,9 @@ class ORM:
 				value,
 			) in self.query.node_val_dump():
 				updload(branch, turn, tick)
-				nodevalrows.append(
-					(graph, node, key, branch, turn, tick, value)
-				)
+				row = (graph, node, key, branch, turn, tick, value)
+				nodevalrows.append(row)
+				loaded_graphs[graph]["node_val"].append(row)
 			for (
 				graph,
 				orig,
@@ -2065,24 +2132,15 @@ class ORM:
 				value,
 			) in self.query.edge_val_dump():
 				updload(branch, turn, tick)
-				edgevalrows.append(
-					(graph, orig, dest, idx, key, branch, turn, tick, value)
-				)
+				row = (graph, orig, dest, idx, key, branch, turn, tick, value)
+				edgevalrows.append(row)
+				loaded_graphs[graph]["edge_val"].append(row)
 			self._nodes_cache.load(noderows)
 			self._edges_cache.load(edgerows)
 			self._graph_val_cache.load(graphvalrows)
 			self._node_val_cache.load(nodevalrows)
 			self._edge_val_cache.load(edgevalrows)
-			return (
-				None,
-				None,
-				{},
-				noderows,
-				edgerows,
-				graphvalrows,
-				nodevalrows,
-				edgevalrows,
-			)
+			return None, None, {}, dict(loaded_graphs)
 		past_branch, past_turn, past_tick = latest_past_keyframe
 		keyframed = load_keyframe(past_branch, past_turn, past_tick)
 
@@ -2091,7 +2149,7 @@ class ORM:
 				if latest_past_keyframe == (branch_now, turn_now, tick_now):
 					continue
 				_, _, _, turn_then, tick_then = self._branches[branch_now]
-				loaded = self._load_windows(
+				loaded = loaded_graphs[graph] = self._load_graph_windows(
 					graph,
 					self._build_loading_windows(
 						*latest_past_keyframe, branch_now, turn_then, tick_then
@@ -2177,7 +2235,7 @@ class ORM:
 				)
 				updload(branch, turn, tick)
 				continue
-			loaded = self._load_windows(
+			loaded = loaded_graphs[graph] = self._load_graph_windows(
 				graph,
 				self._build_loading_windows(
 					past_branch,
@@ -2203,12 +2261,11 @@ class ORM:
 			latest_past_keyframe,
 			earliest_future_keyframe,
 			keyframed,
-			noderows,
-			edgerows,
-			graphvalrows,
-			nodevalrows,
-			edgevalrows,
+			dict(loaded_graphs),
 		)
+
+	def load_at(self, branch: str, turn: int, tick: int) -> None:
+		self._load_at(branch, turn, tick)
 
 	@world_locked
 	def unload(self) -> None:
@@ -2455,7 +2512,7 @@ class ORM:
 			loaded[v] = (curturn, tick, curturn, tick)
 			return
 		elif v not in loaded:
-			self.load_at(v, curturn, tick)
+			self._load_at(v, curturn, tick)
 			return
 		(start_turn, start_tick, end_turn, end_tick) = loaded[v]
 		if (
@@ -2464,7 +2521,7 @@ class ORM:
 			curturn < start_turn
 			or (curturn == start_turn and tick < start_tick)
 		):
-			self.load_at(v, curturn, tick)
+			self._load_at(v, curturn, tick)
 
 	@world_locked
 	def _copy_plans(
@@ -2568,11 +2625,11 @@ class ORM:
 		if v == self.turn:
 			self._otick = tick = self._turn_end_plan[tuple(self.time)]
 			if branch not in loaded:
-				self.load_at(branch, v, tick)
+				self._load_at(branch, v, tick)
 				return
 			(start_turn, start_tick, end_turn, end_tick) = loaded[branch]
 			if v > end_turn or (v == end_turn and tick > end_tick):
-				self.load_at(branch, v, tick)
+				self._load_at(branch, v, tick)
 			return
 		if not isinstance(v, int):
 			raise TypeError("turn must be an integer")
@@ -2611,11 +2668,11 @@ class ORM:
 			if branch in loaded:
 				(start_turn, start_tick, end_turn, end_tick) = loaded[branch]
 				if v > end_turn or (v == end_turn and tick > end_tick):
-					self.load_at(branch, v, tick)
+					self._load_at(branch, v, tick)
 				elif v < start_turn or (v == start_turn and tick < start_tick):
-					self.load_at(branch, v, tick)
+					self._load_at(branch, v, tick)
 			else:
-				self.load_at(branch, v, tick)
+				self._load_at(branch, v, tick)
 		if v > turn_end and not self._planning:
 			self._branches[branch] = parent, turn_start, tick_start, v, tick
 		self._otick = tick
@@ -2660,16 +2717,16 @@ class ORM:
 		self._otick = v
 		loaded = self._loaded
 		if branch not in loaded:
-			self.load_at(branch, turn, v)
+			self._load_at(branch, turn, v)
 			return
 		(start_turn, start_tick, end_turn, end_tick) = loaded[branch]
 		if turn > end_turn or (turn == end_turn and v > end_tick):
 			if (branch, end_turn, end_tick) in self._keyframes_times:
-				self.load_at(branch, turn, v)
+				self._load_at(branch, turn, v)
 				return
 			loaded[branch] = (start_turn, start_tick, turn, v)
 		elif turn < start_turn or (turn == start_turn and v < start_tick):
-			self.load_at(branch, turn, v)
+			self._load_at(branch, turn, v)
 
 	# easier to override things this way
 	@property

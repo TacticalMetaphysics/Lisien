@@ -785,8 +785,118 @@ class Engine(AbstractEngine, gORM, Executor):
 			name: Rule(self, name, create=False) for name in q.rules_dump()
 		}
 
+	@staticmethod
+	def _build_rows(load, lst, windows):
+		if not windows:
+			return
+		if len(windows) == 1:
+			btt = windows[0]
+			lst.extend(load(*btt))
+		for window in reversed(windows):
+			lst.extend(load(*window))
+
+	def _load_graph_windows(self, graph, windows):
+		ret = super()._load_graph_windows(graph, windows)
+		thingrows = []
+		character_rulebook_rows = []
+		unit_rulebook_rows = []
+		character_thing_rulebook_rows = []
+		character_place_rulebook_rows = []
+		character_portal_rulebook_rows = []
+
+		build_rows = self._build_rows
+		build_rows(partial(self.query.load_things, graph), thingrows, windows)
+		build_rows(
+			partial(self.query.load_character_rulebook, graph),
+			character_rulebook_rows,
+			windows,
+		)
+		build_rows(
+			partial(self.query.load_unit_rulebook, graph),
+			unit_rulebook_rows,
+			windows,
+		)
+		build_rows(
+			partial(self.query.load_character_thing_rulebook, graph),
+			character_thing_rulebook_rows,
+			windows,
+		)
+		build_rows(
+			partial(self.query.load_character_place_rulebook, graph),
+			character_place_rulebook_rows,
+			windows,
+		)
+		build_rows(
+			partial(self.query.load_character_portal_rulebook, graph),
+			character_portal_rulebook_rows,
+			windows,
+		)
+
+		ret["thing_location"] = thingrows
+		ret["character_rulebook"] = character_rulebook_rows
+		ret["unit_rulebook"] = unit_rulebook_rows
+		ret["character_thing_rulebook"] = character_thing_rulebook_rows
+		ret["character_place_rulebook"] = character_place_rulebook_rows
+		ret["character_portal_rulebook"] = character_portal_rulebook_rows
+		return ret
+
+	def _load_ext_windows(self, windows):
+		universal_rows = []
+		rulebooks_rows = []
+		rule_triggers_rows = []
+		rule_prereqs_rows = []
+		rule_actions_rows = []
+		rule_neighborhood_rows = []
+
+		build_rows = self._build_rows
+		build_rows(self.query.load_universals, universal_rows, windows)
+		build_rows(self.query.load_rulebooks, windows, rulebooks_rows)
+		build_rows(self.query.load_rule_triggers, rule_triggers_rows, windows)
+		build_rows(self.query.load_rule_prereqs, rule_prereqs_rows, windows)
+		build_rows(self.query.load_rule_actions, rule_actions_rows, windows)
+		build_rows(
+			self.query.load_rule_neighborhood, rule_neighborhood_rows, windows
+		)
+
+		return {
+			"universals": universal_rows,
+			"rulebooks": rulebooks_rows,
+			"triggers": rule_triggers_rows,
+			"prereqs": rule_prereqs_rows,
+			"actions": rule_actions_rows,
+			"neighborhoods": rule_neighborhood_rows,
+		}
+
 	@world_locked
-	def load_at(self, branch: str, turn: int, tick: int) -> None:
+	def _load_between(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> None:
+		loaded = super()._load_between(
+			branch, turn_from, tick_from, turn_to, tick_to
+		)
+		for graph, rowdict in loaded.items():
+			self._things_cache.load(rowdict["thing_location"])
+			self._characters_rulebooks_cache.load(
+				rowdict["character_rulebook"]
+			)
+			self._units_rulebooks_cache.load(rowdict["unit_rulebook"])
+			self._characters_things_rulebooks_cache.load(
+				rowdict["character_thing_rulebook"]
+			)
+			self._characters_places_rulebooks_cache.load(
+				rowdict["character_place_rulebook"]
+			)
+			self._characters_portals_rulebooks_cache.load(
+				rowdict["character_portal_rulebook"]
+			)
+
+	@world_locked
+	def _load_at(self, branch: str, turn: int, tick: int) -> None:
 		"""Load history data at the given time
 
 		Will load the keyframe prior to that time, and all history
@@ -795,99 +905,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		"""
 		if self._time_is_loaded(branch, turn, tick):
 			return
-		(
-			latest_past_keyframe,
-			earliest_future_keyframe,
-			keyframed,
-			noderows,
-			edgerows,
-			graphvalrows,
-			nodevalrows,
-			edgevalrows,
-		) = super().load_at(branch, turn, tick)
-		thingrows = []
-		universal_rows = []
-		rulebooks_rows = []
-		rule_triggers_rows = []
-		rule_prereqs_rows = []
-		rule_actions_rows = []
-		rule_neighborhood_rows = []
-		character_rulebook_rows = []
-		unit_rulebook_rows = []
-		character_thing_rulebook_rows = []
-		character_place_rulebook_rows = []
-		character_portal_rulebook_rows = []
-		load_things = self.query.load_things
-		load_universal = self.query.load_universals
-		load_rulebooks = self.query.load_rulebooks
-		load_rule_triggers = self.query.load_rule_triggers
-		load_rule_prereqs = self.query.load_rule_prereqs
-		load_rule_actions = self.query.load_rule_actions
-		load_rule_neighborhood = self.query.load_rule_neighborhood
-		load_character_rulebook = self.query.load_character_rulebook
-		load_unit_rulebook = self.query.load_unit_rulebook
-		load_character_thing_rulebook = (
-			self.query.load_character_thing_rulebook
-		)
-		load_character_place_rulebook = (
-			self.query.load_character_place_rulebook
-		)
-		load_character_portal_rulebook = (
-			self.query.load_character_portal_rulebook
-		)
-
-		def build_rows(load, lst, windows):
-			if not windows:
-				return
-			if len(windows) == 1:
-				btt = windows[0]
-				lst.extend(load(*btt))
-			for window in reversed(windows):
-				lst.extend(load(*window))
-
-		build_universal_rows = partial(
-			build_rows, load_universal, universal_rows
-		)
-		build_rulebooks_rows = partial(
-			build_rows, load_rulebooks, rulebooks_rows
-		)
-		build_rule_triggers_rows = partial(
-			build_rows, load_rule_triggers, rule_triggers_rows
-		)
-		build_rule_prereqs_rows = partial(
-			build_rows, load_rule_prereqs, rule_prereqs_rows
-		)
-		build_rule_actions_rows = partial(
-			build_rows, load_rule_actions, rule_actions_rows
-		)
-		build_rule_neighborhood_rows = partial(
-			build_rows, load_rule_neighborhood, rule_neighborhood_rows
-		)
-
-		def build_graf_rows(load, lst, graf, windows):
-			build_rows(partial(load, graf), lst, windows)
-
-		build_thing_rows = partial(build_graf_rows, load_things, thingrows)
-		build_charrb_rows = partial(
-			build_graf_rows, load_character_rulebook, character_rulebook_rows
-		)
-		build_unit_rows = partial(
-			build_graf_rows, load_unit_rulebook, unit_rulebook_rows
-		)
-		build_thingrb_rows = partial(
-			build_graf_rows,
-			load_character_thing_rulebook,
-			character_thing_rulebook_rows,
-		)
-		build_placerb_rows = partial(
-			build_graf_rows,
-			load_character_place_rulebook,
-			character_place_rulebook_rows,
-		)
-		build_portrb_rows = partial(
-			build_graf_rows,
-			load_character_portal_rulebook,
-			character_portal_rulebook_rows,
+		(latest_past_keyframe, earliest_future_keyframe, keyframed, loaded) = (
+			super()._load_at(branch, turn, tick)
 		)
 
 		if latest_past_keyframe is None:
@@ -919,50 +938,23 @@ class Engine(AbstractEngine, gORM, Executor):
 					future_turn,
 					future_tick,
 				)
-		build_universal_rows(windows)
-		build_rulebooks_rows(windows)
-		build_rule_triggers_rows(windows)
-		build_rule_prereqs_rows(windows)
-		build_rule_actions_rows(windows)
-		build_rule_neighborhood_rows(windows)
 
-		for graph in self._graph_cache.iter_keys(branch, turn, tick):
-			build_thing_rows(graph, windows)
-			build_charrb_rows(graph, windows)
-			build_unit_rows(graph, windows)
-			build_thingrb_rows(graph, windows)
-			build_placerb_rows(graph, windows)
-			build_portrb_rows(graph, windows)
-		if thingrows:
-			self._things_cache.load(thingrows)
-		if universal_rows:
-			self._universal_cache.load(universal_rows)
-		if rulebooks_rows:
-			self._rulebooks_cache.load(rulebooks_rows)
-		if rule_triggers_rows:
-			self._triggers_cache.load(rule_triggers_rows)
-		if rule_prereqs_rows:
-			self._prereqs_cache.load(rule_prereqs_rows)
-		if rule_actions_rows:
-			self._actions_cache.load(rule_actions_rows)
-		if rule_neighborhood_rows:
-			self._neighborhoods_cache.load(rule_neighborhood_rows)
-		if character_rulebook_rows:
-			self._characters_rulebooks_cache.load(character_rulebook_rows)
-		if unit_rulebook_rows:
-			self._units_rulebooks_cache.load(unit_rulebook_rows)
-		if character_thing_rulebook_rows:
-			self._characters_things_rulebooks_cache.load(
-				character_thing_rulebook_rows
-			)
-		if character_place_rulebook_rows:
-			self._characters_places_rulebooks_cache.load(
-				character_place_rulebook_rows
-			)
-		if character_portal_rulebook_rows:
-			self._characters_portals_rulebooks_cache.load(
-				character_portal_rulebook_rows
-			)
+		ext = self._load_ext_windows(windows)
+		if loaded.get("thing_location"):
+			self._things_cache.load(loaded["thing_location"])
+		if ext["universals"]:
+			self._universal_cache.load(ext["universals"])
+		if ext["rulebooks"]:
+			self._rulebooks_cache.load(ext["rulebooks"])
+		if ext["triggers"]:
+			self._triggers_cache.load(ext["triggers"])
+		if ext["prereqs"]:
+			self._prereqs_cache.load(ext["prereqs"])
+		if ext["actions"]:
+			self._actions_cache.load(ext["actions"])
+		if ext["neighborhoods"]:
+			self._neighborhoods_cache.load(ext["neighborhoods"])
+
 		if (
 			latest_past_keyframe
 			and latest_past_keyframe not in self._keyframes_loaded
@@ -1182,8 +1174,12 @@ class Engine(AbstractEngine, gORM, Executor):
 		kf["rulebook"] = self._rulebooks_cache.get_keyframe(branch, turn, tick)
 		return kf
 
-	def _get_keyframe(self, branch: str, turn: int, tick: int, copy=True):
+	def _get_keyframe(
+		self, branch: str, turn: int, tick: int, copy=True, silent=False
+	):
 		if (branch, turn, tick) in self._keyframes_loaded:
+			if silent:
+				return
 			return self._get_kf(branch, turn, tick, copy=copy)
 		univ, rule, rulebook = self.query.get_keyframe_extensions(
 			branch, turn, tick
@@ -1194,7 +1190,9 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._actions_cache.set_keyframe(branch, turn, tick, rule["actions"])
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rulebook)
 
-		ret = super()._get_keyframe(branch, turn, tick, copy=copy)
+		ret = super()._get_keyframe(
+			branch, turn, tick, copy=copy, silent=False
+		)
 
 		charrbkf = {}
 		unitrbkf = {}
@@ -1228,6 +1226,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._characters_portals_rulebooks_cache.set_keyframe(
 			branch, turn, tick, charportrbkf
 		)
+		if silent:
+			return  # not that it helps performance any, in this case
 		return ret
 
 	def get_delta(
@@ -2542,7 +2542,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				# and therefore, there's been a "change" to the neighborhood
 				return None
 			with self.world_lock:
-				self.load_at(branch_now, turn_now - 1, 0)
+				self._load_at(branch_now, turn_now - 1, 0)
 				self._oturn -= 1
 				self._otick = 0
 				last_turn_neighbors = get_neighbors(entity, neighborhood)
