@@ -122,6 +122,12 @@ class UnitnessCache(Cache):
 		keyframe,
 	):
 		super().set_keyframe((character, graph), branch, turn, tick, keyframe)
+		try:
+			kf = self.user_cache.get_keyframe((character,), branch, turn, tick)
+		except KeyError:
+			kf = {}
+		kf[graph] = keyframe
+		self.user_cache.set_keyframe((character,), branch, turn, tick, kf)
 		for unit, is_unit in keyframe.items():
 			try:
 				kf = self.user_cache.get_keyframe(

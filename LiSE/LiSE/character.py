@@ -1339,6 +1339,11 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			charn = char.name
 			btt = engine._btt
 			self._iter_stuff = (get_char_graphs, charn, btt)
+			self._contains_stuff = (
+				avcache.user_cache.iter_keys,
+				charn,
+				btt,
+			)
 			self._node_stuff = (
 				self._get_char_av_cache,
 				avcache.get_char_only_graph,
@@ -1436,6 +1441,12 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 					graphn,
 					btt,
 				)
+				self._contains_stuff = (
+					avcache._base_retrieve,
+					name,
+					graphn,
+					btt,
+				)
 				get_node = engine._get_node
 				self._getitem_stuff = iter_stuff + (
 					get_node,
@@ -1450,8 +1461,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				return iter(get_char_graph_avs(name, graphn, *btt()))
 
 			def __contains__(self, av):
-				get_char_graph_avs, name, graphn, btt = self._iter_stuff
-				return av in get_char_graph_avs(name, graphn, *btt())
+				base_retrieve, name, graphn, btt = self._contains_stuff
+				return base_retrieve((name, graphn, av, *btt())) is True
 
 			def __len__(self):
 				"""Number of units of this character in that graph"""
