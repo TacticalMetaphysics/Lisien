@@ -62,7 +62,9 @@ def test_sickle(engy):
 
 
 def test_wolfsheep(tmp_path):
-	with Engine(tmp_path, random_seed=69105, workers=0) as engy:
+	with Engine(
+		tmp_path, random_seed=69105, workers=0, threaded_triggers=False
+	) as engy:
 		wolfsheep.install(engy, seed=69105)
 		for i in range(10):
 			engy.next_turn()
@@ -75,7 +77,9 @@ def test_wolfsheep(tmp_path):
 		engy.branch = "omg"
 		sheep = engy.character["sheep"]
 		sheep.rule(engy.action.breed, always=True)
-	hand = EngineHandle(tmp_path, random_seed=69105, workers=0)
+	hand = EngineHandle(
+		tmp_path, random_seed=69105, workers=0, threaded_triggers=False
+	)
 	hand.next_turn()
 	hand.close()
 
