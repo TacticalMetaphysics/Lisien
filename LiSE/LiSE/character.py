@@ -1686,9 +1686,13 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		branch, turn, tick = self.engine._btt()
 		charmap = self.engine.character
 		avit = self.engine._unitness_cache.iter_entities
+		retr = self.engine._unitness_cache._base_retrieve
 		makenode = self.engine._get_node
 		for graph in charmap:
 			for node in avit(charname, graph, branch, turn, tick):
+				rightnow = retr((charname, graph, node, branch, turn, tick))
+				if rightnow is not True:  # could be an exception
+					continue
 				yield makenode(charmap[graph], node)
 
 	def historical(self, stat):
