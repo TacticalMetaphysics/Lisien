@@ -1152,6 +1152,13 @@ class Engine(AbstractEngine, gORM, Executor):
 			tick,
 			rulebooks,
 		)
+		for graph_pair in self._unitness_cache.keyframe:
+			units_kf = self._unitness_cache.get_keyframe(
+				graph_pair, branch_from, turn, tick
+			)
+			self._unitness_cache.set_keyframe(
+				*graph_pair, branch_to, turn, tick, units_kf
+			)
 		self.query.keyframe_extension_insert(
 			branch_to,
 			turn,
@@ -1838,6 +1845,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		thingrbs = {}
 		placerbs = {}
 		portrbs = {}
+		units_unseen = set(self._unitness_cache.keyframe)
 		for graph in self._graph_cache.iter_keys(b, r, t):
 			# Seems not great that I have to double-retrieve like this but I can't
 			# be bothered to dig into the delta logic
@@ -1895,6 +1903,19 @@ class Engine(AbstractEngine, gORM, Executor):
 			else:
 				locs = {}
 				conts = {}
+			if "units" in delt:
+				for other_graph, units in delt["units"].items():
+					try:
+						unit_kf = self._unitness_cache.get_keyframe(
+							(graph, other_graph), *then
+						)
+						unit_kf.update(units)
+					except KeyError:
+						unit_kf = units
+					self._unitness_cache.set_keyframe(
+						graph, other_graph, *now, unit_kf
+					)
+					units_unseen.discard((graph, other_graph))
 			if "node_val" in delt:
 				for node, val in delt["node_val"].items():
 					if "location" in val:
@@ -1920,6 +1941,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			locs_kf.update(locs)
 			self._things_cache.set_keyframe(graph, *now, locs_kf)
 			self._node_contents_cache.set_keyframe(graph, *now, conts)
+		for graph_pair in units_unseen:
+			self._unitness_cache.set_keyframe(*graph_pair, *now, {})
 		self._characters_rulebooks_cache.set_keyframe(
 			branch, turn, tick, charrbs
 		)
