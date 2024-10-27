@@ -158,9 +158,7 @@ class UnitnessCache(Cache):
 		return next(self.iter_entities(char, branch, turn, tick))
 
 	def iter_char_graphs(self, char, branch, turn, tick):
-		for c, g in self.keys:
-			if c == char and self.count_entities(c, g, branch, turn, tick):
-				yield g
+		return self.user_cache.iter_entities(char, branch, turn, tick)
 
 
 class RulesHandledCache(object):
