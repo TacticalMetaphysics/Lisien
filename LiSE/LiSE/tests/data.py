@@ -23208,21 +23208,33 @@ KEYFRAME0 = {
 	},
 	"graph_val": {
 		"astronauts": {
-			"character_place_rulebook": ("astronauts", "character_place"),
-			"character_portal_rulebook": ("astronauts", "character_portal"),
+			"character_place_rulebook": (
+				"character_place_rulebook",
+				"astronauts",
+			),
+			"character_portal_rulebook": (
+				"character_portal_rulebook",
+				"astronauts",
+			),
 			"character_rulebook": "nasa",
-			"character_thing_rulebook": ("astronauts", "character_thing"),
-			"unit_rulebook": ("astronauts", "unit"),
+			"character_thing_rulebook": (
+				"character_thing_rulebook",
+				"astronauts",
+			),
+			"unit_rulebook": ("unit_rulebook", "astronauts"),
 			"units": {"hello": {"neal": True}},
 		},
 		"hello": {
-			"character_place_rulebook": ("hello", "character_place"),
-			"character_portal_rulebook": ("hello", "character_portal"),
-			"character_rulebook": ("hello", "character"),
-			"character_thing_rulebook": ("hello", "character_thing"),
+			"character_place_rulebook": ("character_place_rulebook", "hello"),
+			"character_portal_rulebook": (
+				"character_portal_rulebook",
+				"hello",
+			),
+			"character_rulebook": ("character_rulebook", "hello"),
+			"character_thing_rulebook": ("character_thing_rulebook", "hello"),
 			"stat": None,
 			"stoat": "bitter",
-			"unit_rulebook": ("hello", "unit"),
+			"unit_rulebook": ("unit_rulebook", "hello"),
 		},
 	},
 	"node_val": {
@@ -23492,11 +23504,20 @@ KEYFRAME1 = {
 	"graph_val": {
 		"hello": {"stat": "also"},
 		"physical": {
-			"character_place_rulebook": ("physical", "character_place"),
-			"character_portal_rulebook": ("physical", "character_portal"),
-			"character_rulebook": ("physical", "character"),
-			"character_thing_rulebook": ("physical", "character_thing"),
-			"unit_rulebook": ("physical", "unit"),
+			"character_place_rulebook": (
+				"character_place_rulebook",
+				"physical",
+			),
+			"character_portal_rulebook": (
+				"character_portal_rulebook",
+				"physical",
+			),
+			"character_rulebook": ("character_rulebook", "physical"),
+			"character_thing_rulebook": (
+				"character_thing_rulebook",
+				"physical",
+			),
+			"unit_rulebook": ("unit_rulebook", "physical"),
 		},
 	},
 	"node_val": {
