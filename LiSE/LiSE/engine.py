@@ -458,6 +458,21 @@ class Engine(AbstractEngine, gORM, Executor):
 		self.query.snap_keyframe = self.snap_keyframe
 		self.query.kf_interval_override = self._detect_kf_interval_override
 		self.flush_interval = flush_interval
+		self._rando = Random()
+		if "rando_state" in self.universal:
+			self._rando.setstate(self.universal["rando_state"])
+		else:
+			self._rando.seed(random_seed)
+			rando_state = self._rando.getstate()
+			if self._oturn == self._otick == 0:
+				self._universal_cache.store(
+					"rando_state", self.branch, 0, 0, rando_state, loading=True
+				)
+				self.query.universal_set(
+					"rando_state", self.branch, 0, 0, rando_state
+				)
+			else:
+				self.universal["rando_state"] = rando_state
 		if not self._keyframes_times:
 			self._snap_keyframe_de_novo(*self._btt())
 		if threaded_triggers:
@@ -517,21 +532,6 @@ class Engine(AbstractEngine, gORM, Executor):
 			self.method.connect(self._reimport_worker_methods)
 			self._worker_updated_btts = [self._btt()] * workers
 		self._rules_iter = self._follow_rules()
-		self._rando = Random()
-		if "rando_state" in self.universal:
-			self._rando.setstate(self.universal["rando_state"])
-		else:
-			self._rando.seed(random_seed)
-			rando_state = self._rando.getstate()
-			if self._oturn == self._otick == 0:
-				self._universal_cache.store(
-					"rando_state", self.branch, 0, 0, rando_state, loading=True
-				)
-				self.query.universal_set(
-					"rando_state", self.branch, 0, 0, rando_state
-				)
-			else:
-				self.universal["rando_state"] = rando_state
 		if cache_arranger:
 			self._start_cache_arranger()
 
