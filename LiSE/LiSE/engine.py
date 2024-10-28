@@ -1330,7 +1330,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		if branch in univbranches:
 			updater(upduniv, univbranches[branch])
 
-		def updav(char, graph, node, av):
+		def updav(char, graph, node_av):
+			(node, av) = node_av
 			if char in delta and delta[char] is None:
 				return
 			delta.setdefault(char, {}).setdefault("units", {}).setdefault(
