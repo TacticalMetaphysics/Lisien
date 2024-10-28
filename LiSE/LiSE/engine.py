@@ -1275,6 +1275,10 @@ class Engine(AbstractEngine, gORM, Executor):
 				self._unitness_cache.set_keyframe(
 					graph, branch, turn, tick, graphval["units"]
 				)
+			else:
+				self._unitness_cache.set_keyframe(
+					graph, branch, turn, tick, {}
+				)
 			if graph in ret["node_val"]:
 				locs = {}
 				conts = {}
@@ -1297,9 +1301,6 @@ class Engine(AbstractEngine, gORM, Executor):
 					{k: frozenset(v) for (k, v) in conts.items()},
 				)
 			else:
-				self._unitness_cache.set_keyframe(
-					graph, branch, turn, tick, {}
-				)
 				self._things_cache.set_keyframe(
 					(graph,), branch, turn, tick, {}
 				)

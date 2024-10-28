@@ -1462,7 +1462,14 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 			def __contains__(self, av):
 				base_retrieve, name, graphn, btt = self._contains_stuff
-				return base_retrieve((name, graphn, av, *btt())) is True
+				return (
+					base_retrieve(
+						(name, graphn, av, *btt()),
+						store_hint=False,
+						retrieve_hint=False,
+					)
+					is True
+				)
 
 			def __len__(self):
 				"""Number of units of this character in that graph"""

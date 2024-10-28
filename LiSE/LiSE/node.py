@@ -113,7 +113,10 @@ class UserMapping(Mapping):
 		nn = node.name
 		avatar = ret.unit
 		if charn not in avatar or nn not in avatar[charn]:
-			raise KeyError("{} not used by {}".format(self.node.name, k))
+			raise KeyError(
+				"{} not used by {}".format(self.node.name, k),
+				self.engine._btt(),
+			)
 		return ret
 
 
