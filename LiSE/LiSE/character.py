@@ -143,7 +143,12 @@ class RuleFollower(BaseRuleFollower):
 	def _set_rulebook_name(self, n):
 		branch, turn, tick = self.engine._nbtt()
 		self.engine.query._set_rulebook_on_character(
-			self._book, self.character.name, branch, turn, tick, n
+			self._book + "_rulebook",
+			self.character.name,
+			branch,
+			turn,
+			tick,
+			n,
 		)
 		self._get_rulebook_cache().store(
 			self.character.name, branch, turn, tick, n
