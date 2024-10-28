@@ -764,7 +764,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		elif hasattr(data, "graph"):
 			things = {
 				thing: thing["location"]
-				for thing in data.nodes()
+				for thing in data.nodes.values()
 				if "location" in thing
 			}
 			units = data.graph.get("units", {})
