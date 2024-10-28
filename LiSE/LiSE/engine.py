@@ -2981,7 +2981,7 @@ class Engine(AbstractEngine, gORM, Executor):
 	) -> None:
 		universal = dict(self.universal.items())
 		self._universal_cache.set_keyframe(branch, turn, tick, universal)
-		all_graphs = {graph for (graph,) in self._graph_cache.keyframe}
+		all_graphs = set(self._graph_cache.iter_keys(branch, turn, tick))
 		for char in all_graphs:
 			for graph in self._unitness_cache.iter_keys(
 				char, branch, turn, tick
