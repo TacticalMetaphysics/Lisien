@@ -232,9 +232,12 @@ class RulesHandledCache(object):
 
 class CharacterRulesHandledCache(RulesHandledCache):
 	def get_rulebook(self, character, branch, turn, tick):
-		return self.engine._characters_rulebooks_cache.retrieve(
-			character, branch, turn, tick
-		)
+		try:
+			return self.engine._characters_rulebooks_cache.retrieve(
+				character, branch, turn, tick
+			)
+		except KeyError:
+			return ("character_rulebook", character)
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		for character in self.engine.character.keys():
@@ -258,7 +261,7 @@ class UnitRulesHandledCache(RulesHandledCache):
 				character, branch, turn, tick
 			)
 		except KeyError:
-			return character, "unit"
+			return "unit_rulebook", character
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		charm = self.engine.character
@@ -296,7 +299,7 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
 				character, branch, turn, tick
 			)
 		except KeyError:
-			return character, "character_thing"
+			return "character_thing_rulebook", character
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		charm = self.engine.character
@@ -326,7 +329,7 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
 				character, branch, turn, tick
 			)
 		except KeyError:
-			return character, "character_place"
+			return "character_place_rulebook", character
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		charm = self.engine.character
@@ -356,7 +359,7 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 				character, branch, turn, tick
 			)
 		except KeyError:
-			return character, "character_portal"
+			return "character_portal_rulebook", character
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		charm = self.engine.character
