@@ -770,8 +770,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			units = data.graph.get("units", {})
 		elif isinstance(data, tuple):
 			things = {
-				thing: thing["location"]
-				for thing in data[-3].values()
+				name: thing["location"]
+				for name, thing in data[-3].items()
 				if "location" in thing
 			}
 			units = data[-1].get("units", {})
