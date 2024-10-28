@@ -2220,21 +2220,23 @@ class QueryEngine(query.QueryEngine):
 
 	def _set_rulebook_on_character(self, rbtyp, char, branch, turn, tick, rb):
 		char, rb = map(self.pack, (char, rb))
-		self.call_one(rbtyp + "_rulebook_insert", char, branch, turn, tick, rb)
+		self.call_one(rbtyp + "_insert", char, branch, turn, tick, rb)
 		self._increc()
 
 	set_character_rulebook = partialmethod(
-		_set_rulebook_on_character, "character"
+		_set_rulebook_on_character, "character_rulebook"
 	)
-	set_unit_rulebook = partialmethod(_set_rulebook_on_character, "unit")
+	set_unit_rulebook = partialmethod(
+		_set_rulebook_on_character, "unit_rulebook"
+	)
 	set_character_thing_rulebook = partialmethod(
-		_set_rulebook_on_character, "character_thing"
+		_set_rulebook_on_character, "character_thing_rulebook"
 	)
 	set_character_place_rulebook = partialmethod(
-		_set_rulebook_on_character, "character_place"
+		_set_rulebook_on_character, "character_place_rulebook"
 	)
 	set_character_portal_rulebook = partialmethod(
-		_set_rulebook_on_character, "character_portal"
+		_set_rulebook_on_character, "character_portal_rulebook"
 	)
 
 	def rulebooks(self):

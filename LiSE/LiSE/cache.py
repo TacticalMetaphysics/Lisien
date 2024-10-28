@@ -232,12 +232,9 @@ class RulesHandledCache(object):
 
 class CharacterRulesHandledCache(RulesHandledCache):
 	def get_rulebook(self, character, branch, turn, tick):
-		try:
-			return self.engine._characters_rulebooks_cache.retrieve(
-				character, branch, turn, tick
-			)
-		except KeyError:
-			return character, "character"
+		return self.engine._characters_rulebooks_cache.retrieve(
+			character, branch, turn, tick
+		)
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		for character in self.engine.character.keys():

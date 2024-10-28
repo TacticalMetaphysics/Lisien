@@ -136,12 +136,9 @@ class RuleFollower(BaseRuleFollower):
 		pass
 
 	def _get_rulebook_name(self):
-		try:
-			return self._get_rulebook_cache().retrieve(
-				self.character.name, *self.engine._btt()
-			)
-		except KeyError:
-			return self.character.name, self._book
+		return self._get_rulebook_cache().retrieve(
+			self.character.name, *self.engine._btt()
+		)
 
 	def _set_rulebook_name(self, n):
 		branch, turn, tick = self.engine._nbtt()
@@ -733,15 +730,15 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		if not init_rulebooks:
 			return
 		cachemap = {
-			"character": engine._characters_rulebooks_cache,
-			"unit": engine._units_rulebooks_cache,
-			"character_thing": engine._characters_things_rulebooks_cache,
-			"character_place": engine._characters_places_rulebooks_cache,
-			"character_portal": engine._characters_portals_rulebooks_cache,
+			"character_rulebook": engine._characters_rulebooks_cache,
+			"unit_rulebook": engine._units_rulebooks_cache,
+			"character_thing_rulebook": engine._characters_things_rulebooks_cache,
+			"character_place_rulebook": engine._characters_places_rulebooks_cache,
+			"character_portal_rulebook": engine._characters_portals_rulebooks_cache,
 		}
 		branch, turn, tick = engine._btt()
 		for rulebook, cache in cachemap.items():
-			rulebook_name = (name, rulebook)
+			rulebook_name = (rulebook, name)
 			engine.query._set_rulebook_on_character(
 				rulebook, name, branch, turn, tick, rulebook_name
 			)
