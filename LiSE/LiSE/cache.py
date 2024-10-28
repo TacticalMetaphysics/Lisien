@@ -24,6 +24,7 @@ from .allegedb.cache import (
 	WindowDict,
 	HistoricKeyError,
 	EntitylessCache,
+	KeyframeError,
 )
 from .allegedb.window import EntikeySettingsTurnDict, SettingsTurnDict
 from .util import singleton_get, sort_set
@@ -127,29 +128,24 @@ class UnitnessCache(Cache):
 	def set_keyframe(
 		self,
 		character: Key,
-		graph: Key,
 		branch: str,
 		turn: int,
 		tick: int,
 		keyframe,
 	):
-		super().set_keyframe((character, graph), branch, turn, tick, keyframe)
-		try:
-			kf = self.get_keyframe((character,), branch, turn, tick)
-		except KeyError:
-			kf = {}
-		kf[graph] = keyframe
-		self.user_cache.set_keyframe((character,), branch, turn, tick, kf)
-		for unit, is_unit in keyframe.items():
-			try:
-				kf = self.user_cache.get_keyframe(
-					(graph, unit), branch, turn, tick
-				)
-				kf[character] = is_unit
-			except KeyError:
-				self.user_cache.set_keyframe(
-					(graph, unit), branch, turn, tick, {character: is_unit}
-				)
+		super().set_keyframe((character,), branch, turn, tick, keyframe)
+		for graph, subkf in keyframe.items():
+			super().set_keyframe((character, graph), branch, turn, tick, subkf)
+			for unit, is_unit in subkf.items():
+				try:
+					kf = self.user_cache.get_keyframe(
+						(graph, unit), branch, turn, tick
+					)
+					kf[character] = is_unit
+				except KeyframeError:
+					self.user_cache.set_keyframe(
+						(graph, unit), branch, turn, tick, {character: is_unit}
+					)
 
 	def get_char_graph_units(self, char, graph, branch, turn, tick):
 		return set(self.iter_entities(char, graph, branch, turn, tick))

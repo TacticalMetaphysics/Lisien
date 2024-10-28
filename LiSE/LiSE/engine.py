@@ -58,6 +58,7 @@ from .allegedb import (
 	Key,
 	world_locked,
 )
+from .allegedb.cache import KeyframeError
 from .allegedb.window import update_window, update_backward_window
 from .util import sort_set, AbstractEngine, final_rule, normalize_layout
 from .xcollections import (
@@ -78,7 +79,7 @@ from .query import (
 	CombinedQueryResult,
 )
 from .proxy import worker_subprocess
-from .character import Character
+from .character import Character, Facade
 from .node import Place, Thing
 from .portal import Portal
 from .query import QueryEngine
@@ -747,8 +748,80 @@ class Engine(AbstractEngine, gORM, Executor):
 		self,
 		name: Key,
 		type_s="DiGraph",
-		data: Union[Graph, nx.Graph, dict, KeyframeTuple] = None,
+		data: Union[Facade, Graph, nx.Graph, dict, KeyframeTuple] = None,
 	) -> None:
+		if hasattr(data, "stat"):
+			if not hasattr(data, "thing"):
+				raise TypeError(
+					"Need a graph like object or a keyframe tuple", type(data)
+				)
+			things = {
+				thing: thing["location"] for thing in data.thing.values()
+			}
+			units = data.stat.get("units", {})
+		elif hasattr(data, "graph"):
+			things = {
+				thing: thing["location"]
+				for thing in data.nodes()
+				if "location" in thing
+			}
+			units = data.graph.get("units", {})
+		elif isinstance(data, tuple):
+			things = {
+				thing: thing["location"]
+				for thing in data[-3].values()
+				if "location" in thing
+			}
+			units = data[-1].get("units", {})
+		elif data is None:
+			things = {}
+			units = {}
+		elif not isinstance(data, dict):
+			raise TypeError("Need a graph like object or a keyframe tuple")
+		else:
+			things = {
+				thing: thing["location"]
+				for thing in data.get("node_val", {}).values()
+				if "location" in thing
+			}
+			units = data.get("units", {})
+		now = self._btt()
+		conts = {}
+		for thing, loc in things.items():
+			if loc in conts:
+				conts[loc].add(thing)
+			else:
+				conts[loc] = {thing}
+		self._node_contents_cache.set_keyframe(
+			(name,), *now, {k: frozenset(v) for (k, v) in conts.items()}
+		)
+		self._things_cache.set_keyframe((name,), *now, things)
+		self._unitness_cache.set_keyframe(name, *now, units)
+		for rbcache, rbname in [
+			(self._characters_rulebooks_cache, "character_rulebook"),
+			(self._units_rulebooks_cache, "unit_rulebook"),
+			(
+				self._characters_things_rulebooks_cache,
+				"character_thing_rulebook",
+			),
+			(
+				self._characters_places_rulebooks_cache,
+				"character_place_rulebook",
+			),
+			(
+				self._characters_portals_rulebooks_cache,
+				"character_portal_rulebook",
+			),
+		]:
+			try:
+				kf = rbcache.get_keyframe(*now)
+			except KeyframeError:
+				kf = {
+					ch: rbcache.retrieve(ch, *now)
+					for ch in self._graph_cache.iter_entities(*now)
+				}
+			kf[name] = (rbname, name)
+			rbcache.set_keyframe(*now, kf)
 		self.snap_keyframe(silent=True, update_worker_processes=False)
 		super()._init_graph(name, type_s, data)
 		if hasattr(self, "_worker_processes"):
@@ -955,29 +1028,6 @@ class Engine(AbstractEngine, gORM, Executor):
 		if ext["neighborhoods"]:
 			self._neighborhoods_cache.load(ext["neighborhoods"])
 
-		if (
-			latest_past_keyframe
-			and latest_past_keyframe not in self._keyframes_loaded
-		):
-			universal_kf, rule_kf, rulebook_kf = (
-				self.query.get_keyframe_extensions(*latest_past_keyframe)
-			)
-			self._universal_cache.set_keyframe(
-				*latest_past_keyframe, universal_kf
-			)
-			self._triggers_cache.set_keyframe(
-				*latest_past_keyframe, rule_kf["triggers"]
-			)
-			self._prereqs_cache.set_keyframe(
-				*latest_past_keyframe, rule_kf["prereqs"]
-			)
-			self._actions_cache.set_keyframe(
-				*latest_past_keyframe, rule_kf["actions"]
-			)
-			self._rulebooks_cache.set_keyframe(
-				*latest_past_keyframe, rulebook_kf
-			)
-
 	def _init_caches(self) -> None:
 		from .xcollections import (
 			FunctionStore,
@@ -1117,55 +1167,59 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def _copy_kf(self, branch_from, branch_to, turn, tick):
 		super()._copy_kf(branch_from, branch_to, turn, tick)
-		universal = self._universal_cache.get_keyframe(branch_from, turn, tick)
-		self._universal_cache.set_keyframe(
-			branch_to,
-			turn,
-			tick,
-			universal,
-		)
-		triggers = self._triggers_cache.get_keyframe(branch_from, turn, tick)
-		self._triggers_cache.set_keyframe(
-			branch_to,
-			turn,
-			tick,
-			triggers,
-		)
-		prereqs = self._prereqs_cache.get_keyframe(branch_from, turn, tick)
-		self._prereqs_cache.set_keyframe(
-			branch_to,
-			turn,
-			tick,
-			prereqs,
-		)
-		actions = self._actions_cache.get_keyframe(branch_from, turn, tick)
-		self._actions_cache.set_keyframe(
-			branch_to,
-			turn,
-			tick,
-			actions,
-		)
-		rulebooks = self._rulebooks_cache.get_keyframe(branch_from, turn, tick)
-		self._rulebooks_cache.set_keyframe(
-			branch_to,
-			turn,
-			tick,
-			rulebooks,
-		)
-		for graph_pair in self._unitness_cache.keyframe:
+		for cache in (
+			self._universal_cache,
+			self._triggers_cache,
+			self._prereqs_cache,
+			self._actions_cache,
+			self._rulebooks_cache,
+			self._characters_rulebooks_cache,
+			self._units_rulebooks_cache,
+			self._characters_things_rulebooks_cache,
+			self._characters_places_rulebooks_cache,
+			self._characters_portals_rulebooks_cache,
+		):
+			kf = cache.get_keyframe(branch_from, turn, tick, copy=True)
+			cache.set_keyframe(branch_to, turn, tick, kf)
+
+		for character in self._graph_cache.iter_entities(
+			branch_from, turn, tick
+		):
+			loc_kf = self._things_cache.get_keyframe(
+				(character,), branch_from, turn, tick, copy=True
+			)
+			conts_kf = self._node_contents_cache.get_keyframe(
+				(character,), branch_from, turn, tick, copy=True
+			)
 			units_kf = self._unitness_cache.get_keyframe(
-				graph_pair, branch_from, turn, tick
+				(character,), branch_from, turn, tick, copy=True
+			)
+			self._things_cache.set_keyframe(
+				(character,), branch_to, turn, tick, loc_kf
+			)
+			self._node_contents_cache.set_keyframe(
+				(character,), branch_to, turn, tick, conts_kf
 			)
 			self._unitness_cache.set_keyframe(
-				*graph_pair, branch_to, turn, tick, units_kf
+				character, branch_to, turn, tick, units_kf
 			)
 		self.query.keyframe_extension_insert(
 			branch_to,
 			turn,
 			tick,
-			universal,
-			{"triggers": triggers, "prereqs": prereqs, "actions": actions},
-			rulebooks,
+			self._universal_cache.get_keyframe(branch_to, turn, tick),
+			{
+				"triggers": self._triggers_cache.get_keyframe(
+					branch_to, turn, tick
+				),
+				"prereqs": self._prereqs_cache.get_keyframe(
+					branch_to, turn, tick
+				),
+				"actions": self._actions_cache.get_keyframe(
+					branch_to, turn, tick
+				),
+			},
+			self._rulebooks_cache.get_keyframe(branch_to, turn, tick),
 		)
 
 	def _get_kf(
@@ -1218,10 +1272,40 @@ class Engine(AbstractEngine, gORM, Executor):
 			if "character_portal_rulebook" in graphval:
 				charportrbkf[graph] = graphval["character_portal_rulebook"]
 			if "units" in graphval:
-				for character, units in graphval["units"].items():
-					self._unitness_cache.set_keyframe(
-						graph, character, branch, turn, tick, units
-					)
+				self._unitness_cache.set_keyframe(
+					graph, branch, turn, tick, graphval["units"]
+				)
+			if graph in ret["node_val"]:
+				locs = {}
+				conts = {}
+				for node, val in ret["node_val"][graph].items():
+					if "location" not in val:
+						continue
+					locs[node] = location = val["location"]
+					if location in conts:
+						conts[location].add(node)
+					else:
+						conts[location] = {node}
+				self._things_cache.set_keyframe(
+					(graph,), branch, turn, tick, locs
+				)
+				self._node_contents_cache.set_keyframe(
+					(graph,),
+					branch,
+					turn,
+					tick,
+					{k: frozenset(v) for (k, v) in conts.items()},
+				)
+			else:
+				self._unitness_cache.set_keyframe(
+					graph, branch, turn, tick, {}
+				)
+				self._things_cache.set_keyframe(
+					(graph,), branch, turn, tick, {}
+				)
+				self._node_contents_cache.set_keyframe(
+					(graph,), branch, turn, tick, {}
+				)
 		self._characters_rulebooks_cache.set_keyframe(
 			branch, turn, tick, charrbkf
 		)
@@ -1771,20 +1855,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			return
 		b, r, t = then
 		branch, turn, tick = now
-		try:
-			univ = self._universal_cache.get_keyframe(b, r, t).copy()
-		except KeyError:
-			univ = {}
-			for key in self._universal_cache.iter_keys(b, r, t):
-				univ[key] = self._universal_cache.retrieve(key, b, r, t)
-			self._universal_cache.set_keyframe(b, r, t, univ)
-		try:
-			rbs = self._rulebooks_cache.get_keyframe(b, r, t).copy()
-		except KeyError:
-			rbs = {}
-			for rule in self._rulebooks_cache.iter_keys(b, r, t):
-				rbs[rule] = self._rulebooks_cache.retrieve(rule, b, r, t)
-			self._rulebooks_cache.set_keyframe(b, r, t, rbs)
+		univ = self._universal_cache.get_keyframe(b, r, t, copy=True)
+		rbs = self._rulebooks_cache.get_keyframe(b, r, t, copy=True)
 		for k, v in delta.pop("universal", {}).items():
 			if v is None:
 				if k in univ:
@@ -1792,158 +1864,68 @@ class Engine(AbstractEngine, gORM, Executor):
 			else:
 				univ[k] = v
 		rbs.update(delta.pop("rulebooks", {}))
-		for char in self._graph_cache.iter_keys(b, r, t):
-			try:
-				charunit = self._unitness_cache.get_keyframe((char,), b, r, t)
-			except KeyError:
-				charunit = {
-					unitgraph: units
-					for (unitgraph, units) in self._unitness_cache.iter_keys(
-						char, b, r, t
-					)
-				}
-			charunit.update(delta.get("units", ()))
-			for graf, units in charunit.items():
-				self._unitness_cache.set_keyframe(
-					char, graf, branch, turn, tick, units
-				)
-		try:
-			trigs = self._triggers_cache.get_keyframe(b, r, t).copy()
-		except KeyError:
-			trigs = {}
-			for rule in self._triggers_cache.iter_keys(b, r, t):
-				try:
-					trigs[rule] = self._triggers_cache.retrieve(rule, b, r, t)
-				except KeyError:
-					trigs[rule] = tuple()
-			self._triggers_cache.set_keyframe(b, r, t, trigs)
-		try:
-			preqs = self._prereqs_cache.get_keyframe(b, r, t).copy()
-		except KeyError:
-			preqs = {}
-			for rule in self._prereqs_cache.iter_keys(b, r, t):
-				try:
-					preqs[rule] = self._prereqs_cache.retrieve(rule, b, r, t)
-				except KeyError:
-					preqs[rule] = tuple()
-			self._prereqs_cache.set_keyframe(b, r, t, preqs)
-		try:
-			acts = self._actions_cache.get_keyframe(b, r, t).copy()
-		except KeyError:
-			acts = {}
-			for rule in self._actions_cache.iter_keys(b, r, t):
-				try:
-					acts[rule] = self._actions_cache.retrieve(rule, b, r, t)
-				except KeyError:
-					acts[rule] = tuple()
-			self._actions_cache.set_keyframe(b, r, t, acts)
+		trigs = self._triggers_cache.get_keyframe(b, r, t, copy=True)
+		preqs = self._prereqs_cache.get_keyframe(b, r, t, copy=True)
+		acts = self._actions_cache.get_keyframe(b, r, t, copy=True)
 		for rule, funcs in delta.pop("rules", {}).items():
 			trigs[rule] = funcs.get("triggers", trigs.get(rule, ()))
 			preqs[rule] = funcs.get("prereqs", preqs.get(rule, ()))
 			acts[rule] = funcs.get("actions", acts.get(rule, ()))
-		charrbs = {}
-		unitrbs = {}
-		thingrbs = {}
-		placerbs = {}
-		portrbs = {}
-		units_unseen = set(self._unitness_cache.keyframe)
-		for graph in self._graph_cache.iter_keys(b, r, t):
-			# Seems not great that I have to double-retrieve like this but I can't
-			# be bothered to dig into the delta logic
-			# Zack 2024-04-27
-			delt = delta.get(graph)
+		charrbs = self._characters_rulebooks_cache.get_keyframe(*then)
+		unitrbs = self._units_rulebooks_cache.get_keyframe(*then)
+		thingrbs = self._characters_things_rulebooks_cache.get_keyframe(*then)
+		placerbs = self._characters_places_rulebooks_cache.get_keyframe(*then)
+		portrbs = self._characters_portals_rulebooks_cache.get_keyframe(*then)
+		for graph in (
+			set(self._graph_cache.iter_keys(b, r, t)).union(delta.keys())
+			- self.illegal_graph_names
+		):
+			delt = delta.get(graph, {})
 			if delt is None:
 				continue
-			try:
-				charrb = self._characters_rulebooks_cache.retrieve(
-					graph, b, r, t
-				)
-			except KeyError:
-				charrb = (graph, "character")
-			charrbs[graph] = delt.get("character_rulebook", charrb)
-			try:
-				unitrb = self._units_rulebooks_cache.retrieve(graph, b, r, t)
-			except KeyError:
-				unitrb = (graph, "unit")
-			unitrbs[graph] = delt.get("unit_rulebook", unitrb)
-			try:
-				thingrb = self._characters_things_rulebooks_cache.retrieve(
-					graph, b, r, t
-				)
-			except KeyError:
-				thingrb = (graph, "thing")
-			thingrbs[graph] = delt.get("character_thing_rulebook", thingrb)
-			try:
-				placerb = self._characters_places_rulebooks_cache.retrieve(
-					graph, b, r, t
-				)
-			except KeyError:
-				placerb = (graph, "place")
-			placerbs[graph] = delt.get("character_place_rulebook", placerb)
-			try:
-				portrb = self._characters_portals_rulebooks_cache.retrieve(
-					graph, b, r, t
-				)
-			except KeyError:
-				portrb = (graph, "portrb")
-			portrbs[graph] = delt.get("character_portal_rulebook", portrb)
-			if (graph,) in self._things_cache.keyframe:
-				try:
-					locs = self._things_cache.get_keyframe(
-						(graph,), b, r, t
-					).copy()
-				except KeyError:
-					locs = {}
-				try:
-					kf = self._node_contents_cache.get_keyframe(
-						(graph,), b, r, t
-					).copy()
-					conts = {key: set(value) for (key, value) in kf.items()}
-				except KeyError:
-					conts = {}
-			else:
-				locs = {}
-				conts = {}
+			charunit = self._unitness_cache.get_keyframe(
+				(graph,), b, r, t, copy=True
+			)
 			if "units" in delt:
-				for other_graph, units in delt["units"].items():
-					try:
-						unit_kf = self._unitness_cache.get_keyframe(
-							(graph, other_graph), *then
-						)
-						unit_kf.update(units)
-					except KeyError:
-						unit_kf = units
-					self._unitness_cache.set_keyframe(
-						graph, other_graph, *now, unit_kf
-					)
-					units_unseen.discard((graph, other_graph))
+				for graf, units in delt["units"].items():
+					if graf in charunit:
+						charunit[graf].update(units)
+					else:
+						charunit[graf] = units
+			self._unitness_cache.set_keyframe(graph, *now, charunit)
+			self._unitness_cache.get_keyframe((graph,), *now)
+			if "character_rulebook" in delt:
+				charrbs[graph] = delt["character_rulebook"]
+			if "unit_rulebook" in delt:
+				unitrbs[graph] = delt["unit_rulebook"]
+			if "character_thing_rulebook" in delt:
+				thingrbs[graph] = delt["character_thing_rulebook"]
+			if "character_place_rulebook" in delt:
+				placerbs[graph] = delt["character_place_rulebook"]
+			if "character_portal_rulebook" in delt:
+				portrbs[graph] = delt["character_portal_rulebook"]
+			locs = self._things_cache.get_keyframe(
+				(graph,), b, r, t, copy=True
+			)
+			kf = self._node_contents_cache.get_keyframe(
+				(graph,), b, r, t, copy=True
+			)
+			conts = {key: set(value) for (key, value) in kf.items()}
 			if "node_val" in delt:
 				for node, val in delt["node_val"].items():
 					if "location" in val:
+						if node in locs:
+							oldloc = locs[node]
+							if oldloc in conts:
+								conts[oldloc].discard(node)
 						locs[node] = loc = val["location"]
 						if loc in conts:
 							conts[loc].add(node)
 						else:
 							conts[loc] = {node}
 			conts = {key: frozenset(value) for (key, value) in conts.items()}
-			branch_then, turn_then, tick_then = then
-			for b, r, t in self._iter_parent_btt(
-				branch_then, turn_then, tick_then
-			):
-				try:
-					locs_kf = self._things_cache.get_keyframe(
-						(graph,), b, r, t
-					)
-					break
-				except KeyError:
-					pass
-			else:
-				locs_kf = {}
-			locs_kf.update(locs)
-			self._things_cache.set_keyframe(graph, *now, locs_kf)
-			self._node_contents_cache.set_keyframe(graph, *now, conts)
-		for graph_pair in units_unseen:
-			self._unitness_cache.set_keyframe(*graph_pair, *now, {})
+			self._things_cache.set_keyframe((graph,), *now, locs)
+			self._node_contents_cache.set_keyframe((graph,), *now, conts)
 		self._characters_rulebooks_cache.set_keyframe(
 			branch, turn, tick, charrbs
 		)
@@ -2999,7 +2981,6 @@ class Engine(AbstractEngine, gORM, Executor):
 				char, branch, turn, tick
 			):
 				self._unitness_cache.set_keyframe(
-					char,
 					graph,
 					branch,
 					turn,
@@ -3050,7 +3031,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._prereqs_cache.set_keyframe(branch, turn, tick, preqs)
 		self._actions_cache.set_keyframe(branch, turn, tick, acts)
 		thing_graphs = all_graphs.copy()
-		for charname, character in self.character.items():
+		for charname in all_graphs:
 			thing_graphs.discard(charname)
 			locs = {}
 			conts_mut = {}

@@ -36,6 +36,7 @@ from typing import (
 from blinker import Signal
 import networkx as nx
 
+from .cache import KeyframeError
 from .window import update_window, update_backward_window
 from .graph import DiGraph, Node, Edge, GraphsMapping
 from .query import (
@@ -1203,20 +1204,20 @@ class ORM:
 				graph_val[k] = self._graph_val_cache.get_keyframe(
 					(k,), branch, turn, tick, copy
 				)
-			except KeyError:
+			except KeyframeError:
 				pass
 			try:
 				nodes[k] = self._nodes_cache.get_keyframe(
 					(k,), branch, turn, tick, copy
 				)
-			except KeyError:
+			except KeyframeError:
 				pass
 		for graph, node in self._node_val_cache.keyframe:
 			try:
 				nvv: StatDict = self._node_val_cache.get_keyframe(
 					(graph, node), branch, turn, tick, copy
 				)
-			except KeyError:  # node not present in this keyframe
+			except KeyframeError:  # node not present in this keyframe
 				continue
 			if graph in node_val:
 				node_val[graph][node] = nvv
@@ -1227,7 +1228,7 @@ class ORM:
 				idx_ex = self._edges_cache.get_keyframe(
 					(graph, orig, dest), branch, turn, tick, copy
 				)
-			except KeyError:  # edge not present in this keyframe
+			except KeyframeError:  # edge not present in this keyframe
 				continue
 			assert idx_ex.keys() == {
 				0
@@ -1359,7 +1360,7 @@ class ORM:
 			graphs_keyframe = self._graph_cache.get_keyframe(
 				branch, turn, tick
 			)
-		except KeyError:
+		except KeyframeError:
 			graphs_keyframe = {
 				g: "DiGraph"
 				for g in self._graph_cache.iter_keys(branch, turn, tick)

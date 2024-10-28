@@ -176,6 +176,10 @@ class StructuredDefaultDict(dict):
 		raise TypeError("Can't set layer {}".format(self.layer))
 
 
+class KeyframeError(RuntimeError):
+	pass
+
+
 class Cache:
 	"""A data store that's useful for tracking graph revisions."""
 
@@ -270,16 +274,16 @@ class Cache:
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
 	):
 		if graph_ent not in self.keyframe:
-			raise KeyError("Unknown graph-entity", graph_ent)
+			raise KeyframeError("Unknown graph-entity", graph_ent)
 		g = self.keyframe[graph_ent]
 		if branch not in g:
-			raise KeyError("Unknown branch", branch)
+			raise KeyframeError("Unknown branch", branch)
 		b = g[branch]
 		if turn not in b:
-			raise KeyError("Unknown turn", branch, turn)
+			raise KeyframeError("Unknown turn", branch, turn)
 		r = b[turn]
 		if tick not in r:
-			raise KeyError("Unknown tick", branch, turn, tick)
+			raise KeyframeError("Unknown tick", branch, turn, tick)
 		ret = r[tick]
 		if copy:
 			ret = ret.copy()
@@ -1940,8 +1944,8 @@ class EntitylessCache(Cache):
 			contra=contra,
 		)
 
-	def get_keyframe(self, branch, turn, tick):
-		return super()._get_keyframe((None,), branch, turn, tick)
+	def get_keyframe(self, branch, turn, tick, copy=True):
+		return super()._get_keyframe((None,), branch, turn, tick, copy=copy)
 
 	def set_keyframe(self, branch, turn, tick, keyframe):
 		super().set_keyframe((None,), branch, turn, tick, keyframe)
