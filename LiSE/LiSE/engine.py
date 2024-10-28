@@ -458,6 +458,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		self.query.snap_keyframe = self.snap_keyframe
 		self.query.kf_interval_override = self._detect_kf_interval_override
 		self.flush_interval = flush_interval
+		if not self._keyframes_times:
+			self._snap_keyframe_de_novo(*self._btt())
 		if threaded_triggers:
 			self._trigger_pool = ThreadPoolExecutor()
 		if workers is None:
@@ -3050,6 +3052,12 @@ class Engine(AbstractEngine, gORM, Executor):
 					conts_mut[locname].add(thingname)
 				else:
 					conts_mut[locname] = {thingname}
+			try:
+				units = self._graph_val_cache.retrieve(
+					charname, "units", branch, turn, tick
+				)
+			except KeyError:
+				units = {}
 			conts = {k: frozenset(v) for (k, v) in conts_mut.items()}
 			self._things_cache.set_keyframe(
 				(charname,), branch, turn, tick, locs
@@ -3057,11 +3065,26 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._node_contents_cache.set_keyframe(
 				(charname,), branch, turn, tick, conts
 			)
+			self._unitness_cache.set_keyframe(
+				charname, branch, turn, tick, units
+			)
 		for graph in thing_graphs:
 			self._things_cache.set_keyframe((graph,), branch, turn, tick, {})
 			self._node_contents_cache.set_keyframe(
 				(graph,), branch, turn, tick, {}
 			)
+		for rbcache in (
+			self._characters_rulebooks_cache,
+			self._units_rulebooks_cache,
+			self._characters_things_rulebooks_cache,
+			self._characters_places_rulebooks_cache,
+			self._characters_portals_rulebooks_cache,
+		):
+			kf = {
+				ch: rbcache.retrieve(ch, branch, turn, tick)
+				for ch in rbcache.iter_entities(branch, turn, tick)
+			}
+			rbcache.set_keyframe(branch, turn, tick, kf)
 		self.query.keyframe_extension_insert(
 			branch,
 			turn,

@@ -485,7 +485,7 @@ class Cache:
 				try:
 					kf = self._get_keyframe(parentity, branch, turn, tick)
 					ret = frozenset(kf.keys())
-				except KeyError:
+				except KeyframeError:
 					adds, _ = get_adds_dels(
 						parentity, branch, turn, tick, stoptime=stoptime
 					)
