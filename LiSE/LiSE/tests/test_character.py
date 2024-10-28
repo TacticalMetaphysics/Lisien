@@ -287,10 +287,11 @@ def test_set_rulebook(engy):
 	engy.rulebook["rb1"] = [rule1]
 	engy.next_turn()
 	assert engy.universal["list"] == [0]
+	default_rulebook_name = ch.rulebook.name
 	ch.rulebook = "rb1"
 	engy.next_turn()
 	assert engy.universal["list"] == [0, 1]
-	ch.rulebook = engy.rulebook["physical", "character"]
+	ch.rulebook = engy.rulebook[default_rulebook_name]
 	engy.next_turn()
 	assert engy.universal["list"] == [0, 1, 0]
 
