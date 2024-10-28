@@ -1417,8 +1417,11 @@ class Engine(AbstractEngine, gORM, Executor):
 		if branch in univbranches:
 			updater(upduniv, univbranches[branch])
 
-		def updav(char, graph, node_av):
-			(node, av) = node_av
+		def updav(char, graph, *args):
+			try:
+				(node, av) = args
+			except (TypeError, ValueError):
+				return
 			if char in delta and delta[char] is None:
 				return
 			delta.setdefault(char, {}).setdefault("units", {}).setdefault(
@@ -1611,12 +1614,17 @@ class Engine(AbstractEngine, gORM, Executor):
 			branch in avatarness_settings
 			and turn in avatarness_settings[branch]
 		):
-			for chara, graph, nodes in avatarness_settings[branch][turn][
+			for chara, graph, *stuff in avatarness_settings[branch][turn][
 				tick_from:tick_to
 			]:
-				if nodes is None:
+				if (
+					not isinstance(stuff, list)
+					or len(stuff) != 1
+					or not isinstance(stuff[0], tuple)
+					or len(stuff[0]) != 2
+				):
 					continue
-				node, is_av = nodes
+				node, is_av = stuff[0]
 				chardelt = delta.setdefault(chara, {})
 				if chardelt is None:
 					continue
