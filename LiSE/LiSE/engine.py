@@ -3120,6 +3120,12 @@ class Engine(AbstractEngine, gORM, Executor):
 		super()._snap_keyframe_de_novo_graph(
 			graph, branch, turn, tick, nodes, edges, graph_val
 		)
+		if "units" in graph_val:
+			self._unitness_cache.set_keyframe(
+				graph, branch, turn, tick, graph_val["units"]
+			)
+		else:
+			self._unitness_cache.set_keyframe(graph, branch, turn, tick, {})
 		newkf = {}
 		contkf = {}
 		for name, node in nodes.items():
