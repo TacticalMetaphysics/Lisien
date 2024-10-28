@@ -98,6 +98,18 @@ class UnitnessCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
+		super().store(
+			character,
+			graph,
+			branch,
+			turn,
+			tick,
+			(node, is_unit),
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+		)
 		self.user_cache.store(
 			graph,
 			node,
@@ -123,7 +135,7 @@ class UnitnessCache(Cache):
 	):
 		super().set_keyframe((character, graph), branch, turn, tick, keyframe)
 		try:
-			kf = self.user_cache.get_keyframe((character,), branch, turn, tick)
+			kf = self.get_keyframe((character,), branch, turn, tick)
 		except KeyError:
 			kf = {}
 		kf[graph] = keyframe
@@ -158,7 +170,7 @@ class UnitnessCache(Cache):
 		return next(self.iter_entities(char, branch, turn, tick))
 
 	def iter_char_graphs(self, char, branch, turn, tick):
-		return self.user_cache.iter_entities(char, branch, turn, tick)
+		return self.iter_entities(char, branch, turn, tick)
 
 
 class RulesHandledCache(object):
