@@ -763,9 +763,9 @@ class Engine(AbstractEngine, gORM, Executor):
 			units = data.stat.get("units", {})
 		elif hasattr(data, "graph"):
 			things = {
-				thing: thing["location"]
-				for thing in data.nodes.values()
-				if "location" in thing
+				key: val["location"]
+				for (key, val) in data.nodes.items()
+				if "location" in val
 			}
 			units = data.graph.get("units", {})
 		elif isinstance(data, tuple):
