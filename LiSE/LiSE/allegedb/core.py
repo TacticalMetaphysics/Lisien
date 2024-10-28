@@ -1248,7 +1248,7 @@ class ORM:
 				evv = self._edge_val_cache.get_keyframe(
 					(graph, orig, dest, idx), branch, turn, tick, copy
 				)
-			except KeyError:  # edge not present in this keyframe
+			except KeyframeError:  # edge not present in this keyframe
 				continue
 			if graph in edge_val:
 				if orig in edge_val[graph]:
@@ -1399,7 +1399,7 @@ class ORM:
 			graph_keyframe = self._graph_cache.get_keyframe(
 				branch_from, turn, tick
 			)
-		except KeyError:
+		except KeyframeError:
 			graph_keyframe = {
 				graph: self._graph_cache.retrieve(
 					graph, branch_from, turn, tick
