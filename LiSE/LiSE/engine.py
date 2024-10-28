@@ -1419,8 +1419,8 @@ class Engine(AbstractEngine, gORM, Executor):
 
 		def updav(char, graph, *args):
 			try:
-				(node, av) = args
-			except (TypeError, ValueError):
+				(node, av) = args[0]
+			except (IndexError, TypeError, ValueError):
 				return
 			if char in delta and delta[char] is None:
 				return
