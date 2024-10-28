@@ -1611,9 +1611,12 @@ class Engine(AbstractEngine, gORM, Executor):
 			branch in avatarness_settings
 			and turn in avatarness_settings[branch]
 		):
-			for chara, graph, node, is_av in avatarness_settings[branch][turn][
+			for chara, graph, nodes in avatarness_settings[branch][turn][
 				tick_from:tick_to
 			]:
+				if nodes is None:
+					continue
+				node, is_av = nodes
 				chardelt = delta.setdefault(chara, {})
 				if chardelt is None:
 					continue
