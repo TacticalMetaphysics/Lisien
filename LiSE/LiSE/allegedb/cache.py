@@ -436,8 +436,17 @@ class Cache:
 							return ret
 						else:
 							turn_before = keycache2.rev_before(turn)
-							tick_before = keycache2[turn_before].end
-							keys_before = keycache2[turn_before][tick_before]
+							if turn_before == turn:
+								tick_before = tick
+								if keycache2[turn_before].rev_gettable(tick):
+									keys_before = keycache2[turn_before][tick]
+								else:
+									keys_before = frozenset()
+							else:
+								tick_before = keycache2[turn_before].end
+								keys_before = keycache2[turn_before][
+									tick_before
+								]
 							added, deleted = get_adds_dels(
 								parentity,
 								branch,
