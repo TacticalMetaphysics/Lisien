@@ -402,36 +402,20 @@ class Engine(AbstractEngine, gORM, Executor):
 				shutil.rmtree(self._string_prefix)
 			if not os.path.exists(self._string_prefix):
 				os.mkdir(self._string_prefix)
-		if function:
-			self.function = function
-		else:
-			self._function_file = os.path.join(prefix, "function.py")
-			if clear and os.path.exists(self._function_file):
-				os.remove(self._function_file)
-		if method:
-			self.method = method
-		else:
-			self._method_file = os.path.join(prefix, "method.py")
-			if clear and os.path.exists(self._method_file):
-				os.remove(self._method_file)
-		if trigger:
-			self.trigger = trigger
-		else:
-			self._trigger_file = os.path.join(prefix, "trigger.py")
-			if clear and os.path.exists(self._trigger_file):
-				os.remove(self._trigger_file)
-		if prereq:
-			self.prereq = prereq
-		else:
-			self._prereq_file = os.path.join(prefix, "prereq.py")
-			if clear and os.path.exists(self._prereq_file):
-				os.remove(self._prereq_file)
-		if action:
-			self.action = action
-		else:
-			self._action_file = os.path.join(prefix, "action.py")
-			if clear and os.path.exists(self._action_file):
-				os.remove(self._action_file)
+		for module, name in (
+			(function, "function"),
+			(method, "method"),
+			(trigger, "trigger"),
+			(prereq, "prereq"),
+			(action, "action"),
+		):
+			if module:
+				setattr(self, name, module)
+			else:
+				fn = os.path.join(prefix, f"{name}.py")
+				setattr(self, f"_{name}_file", fn)
+				if clear and os.path.exists(fn):
+					os.remove(fn)
 		self.schema = schema_cls(self)
 		if connect_string:
 			connect_string = connect_string.split("sqlite:///")[-1]
