@@ -625,7 +625,6 @@ class Engine(AbstractEngine, gORM, Executor):
 				self._worker_processes,
 			)
 		):
-			print(i)
 			with lock:  # deadlock here.
 				pipein.send_bytes(b"shutdown")
 				recvd = pipeout.recv_bytes()
