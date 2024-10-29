@@ -2701,7 +2701,7 @@ class ORM:
 	def _set_tick(self, v: int) -> None:
 		if not isinstance(v, int):
 			raise TypeError("tick must be an integer")
-		time = branch, turn = self._obranch, self._oturn
+		time = (branch, turn) = (self._obranch, self._oturn)
 		# enforce the arrow of time, if it's in effect
 		if self._forward and v < self._otick:
 			raise ValueError("Can't time travel backward in a forward context")
