@@ -949,17 +949,7 @@ class ORM:
 		"""Parents of a branch at any remove"""
 		self._turn_end = defaultdict(lambda: 0)
 		"""Tick on which a (branch, turn) ends, not including any plans"""
-
-		class LoudDefaultDict(defaultdict):
-			def __getitem__(self, item):
-				assert isinstance(item, tuple)
-				return super().__getitem__(item)
-
-			def __setitem__(self, key, value):
-				assert isinstance(key, tuple)
-				super().__setitem__(key, value)
-
-		self._turn_end_plan = LoudDefaultDict(lambda: 0)
+		self._turn_end_plan = defaultdict(lambda: 0)
 		"Tick on which a (branch, turn) ends, including plans"
 		self._branch_end = defaultdict(lambda: 0)
 		"""Turn on which a branch ends, not including plans"""
@@ -1154,12 +1144,7 @@ class ORM:
 		] = (self._nbtt, self.query.exist_edge, self._edges_cache.store)
 		self._keyframes_list = []
 		self._keyframes_dict = {}
-
-		class LoudSet(set):
-			def add(self, item):
-				super().add(item)
-
-		self._keyframes_times = LoudSet()
+		self._keyframes_times = set()
 		self._keyframes_loaded = set()
 		self._load_graphs()
 		assert hasattr(self, "graph")
