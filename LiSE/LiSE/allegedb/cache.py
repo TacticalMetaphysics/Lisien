@@ -615,6 +615,8 @@ class Cache:
 				added.update(set(kfb[trn][tck]).difference(deleted))
 			elif kfb.rev_gettable(trn) and kfb[trn].past(tck):
 				added.update(set(kfb[trn].final()).difference(deleted))
+			else:
+				continue
 			break
 		return added, deleted
 
