@@ -27,7 +27,7 @@ except ImportError:
 	from sqlite3 import OperationalError
 
 
-class NonUniqueError(Exception):
+class NonUniqueError(RuntimeError):
 	"""You tried to look up the only one of something but there wasn't just one"""
 
 
