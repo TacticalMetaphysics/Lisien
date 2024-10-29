@@ -1621,18 +1621,12 @@ class ORM:
 						"units" in graph_val_keyframe[graph]
 						and "units" in deltg
 					):
-						graph_val_keyframe[graph]["units"] = {
-							ggraph: frozenset(
-								unit
-								for unit in graph_val_keyframe[graph]["units"][
-									ggraph
-								]
-								if deltg.get(ggraph, {}).get(unit, True)
-							)
-							for ggraph in list(
-								graph_val_keyframe[graph]["units"]
-							)
-						}
+						units_kf = graph_val_keyframe[graph]["units"]
+						units_update = deltg.pop("units")
+						for newgraf in units_update.keys() - units_kf.keys():
+							units_kf[newgraf] = units_update[newgraf]
+						for oldgraf, unitz in units_kf.items():
+							unitz.update(units_update[oldgraf])
 					graph_val_keyframe[graph].update(deltg)
 				else:
 					graph_val_keyframe[graph] = deltg
