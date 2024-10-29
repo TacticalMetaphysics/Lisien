@@ -613,7 +613,7 @@ class Cache:
 			kfb = kf[branc]
 			if trn in kfb and kfb[trn].rev_gettable(tck):
 				added.update(set(kfb[trn][tck]).difference(deleted))
-			elif kfb.rev_gettable(trn) and kfb[trn].past(tck):
+			elif kfb.rev_gettable(trn):
 				added.update(set(kfb[trn].final()).difference(deleted))
 			else:
 				continue
