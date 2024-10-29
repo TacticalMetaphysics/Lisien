@@ -685,6 +685,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			output = self._worker_outputs[i].recv_bytes()
 		got_uid, ret = self.unpack(zlib.decompress(output))
 		assert got_uid == uid
+		if isinstance(ret, Exception):
+			raise ret
 		return ret
 
 	def _call_any_subproxy(self, method: str, *args, **kwargs):
@@ -710,6 +712,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			outbytes = self._worker_outputs[i].recv_bytes()
 			got_uid, retval = self.unpack(zlib.decompress(outbytes))
 			assert got_uid == uid
+			if isinstance(retval, Exception):
+				raise retval
 			ret.append(retval)
 		for lock in self._worker_locks:
 			lock.release()
