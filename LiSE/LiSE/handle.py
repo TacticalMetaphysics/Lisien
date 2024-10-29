@@ -697,6 +697,11 @@ class EngineHandle:
 			slightly_packed_delta, packed_delta = self._pack_delta(delta)
 		return NONE, packed_delta
 
+	def hasty_time_travel(self, turn):
+		"""Time travel within a branch, and return a keyframe, rather than a delta"""
+		self._real.turn = turn
+		return self._real.snap_keyframe()
+
 	@prepacked
 	def increment_branch(self) -> bytes:
 		"""Generate a new branch name and switch to it

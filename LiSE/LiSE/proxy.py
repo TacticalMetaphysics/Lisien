@@ -1147,8 +1147,9 @@ class PredecessorsProxy(MutableMapping):
 		self.engine.del_portal(self._charname, k, self.name)
 
 
-class CharPredecessorsMappingProxy(MutableMapping):
+class CharPredecessorsMappingProxy(MutableMapping, Signal):
 	def __init__(self, engine_proxy, charname):
+		super().__init__()
 		self.engine = engine_proxy
 		self.name = charname
 		self._cache = {}
@@ -2522,25 +2523,18 @@ class EngineProxy(AbstractEngine):
 		assert self.branch == branch
 		self._replace_state_with_kf(kf)
 
-	def _replace_state_with_kf(self, kf):
-		self._char_stat_cache = PickyDefaultDict(UnwrappingDict)
-		things = self._things_cache = {}
-		places = self._character_places_cache = {}
-		node_stats = self._node_stat_cache = StructuredDefaultDict(
-			1, UnwrappingDict
-		)
+	def _replace_state_with_kf(self, result, **kwargs):
+		things = self._things_cache
+		places = self._character_places_cache
 
-		portals = self._character_portals_cache = PortalObjCache()
-		portal_stats = self._portal_stat_cache = StructuredDefaultDict(
-			2, UnwrappingDict
-		)
-		if kf is None:
+		portals = self._character_portals_cache
+		if result is None:
 			self._char_cache = {}
 			self._universal_cache = {}
 			return
-		self._universal_cache = kf["universal"]
+		self._universal_cache = result["universal"]
 		rc = self._rules_cache = {}
-		for rule, triggers in kf["triggers"].items():
+		for rule, triggers in result["triggers"].items():
 			if rule in rc:
 				rc[rule]["triggers"] = list(triggers)
 			else:
@@ -2549,7 +2543,7 @@ class EngineProxy(AbstractEngine):
 					"prereqs": [],
 					"actions": [],
 				}
-		for rule, prereqs in kf["prereqs"].items():
+		for rule, prereqs in result["prereqs"].items():
 			if rule in rc:
 				rc[rule]["prereqs"] = list(prereqs)
 			else:
@@ -2558,7 +2552,7 @@ class EngineProxy(AbstractEngine):
 					"prereqs": list(prereqs),
 					"actions": [],
 				}
-		for rule, actions in kf["actions"].items():
+		for rule, actions in result["actions"].items():
 			if rule in rc:
 				rc[rule]["actions"] = list(actions)
 			else:
@@ -2569,13 +2563,18 @@ class EngineProxy(AbstractEngine):
 				}
 		self._char_cache = chars = {
 			graph: CharacterProxy(self, graph)
-			for graph in kf["graph_val"].keys()
-			| kf["nodes"].keys()
-			| kf["node_val"].keys()
-			| kf["edges"].keys()
-			| kf["edge_val"].keys()
+			if (graph not in self._char_cache)
+			else self._char_cache[graph]
+			for graph in (
+				result["graph_val"].keys()
+				| result["nodes"].keys()
+				| result["node_val"].keys()
+				| result["edges"].keys()
+				| result["edge_val"].keys()
+				| self._char_cache.keys()
+			)
 		}
-		for graph, stats in kf["graph_val"].items():
+		for graph, stats in result["graph_val"].items():
 			if "character_rulebook" in stats:
 				chars[graph]._set_rulebook_proxy(
 					stats.pop("character_rulebook")
@@ -2598,43 +2597,105 @@ class EngineProxy(AbstractEngine):
 				)
 			if "units" in stats:
 				self._character_units_cache[graph] = stats.pop("units")
-			self._char_stat_cache[graph] = stats
-		for char, nodestats in kf["node_val"].items():
+			for key in list(stats):
+				if (
+					key in chars[graph].stat
+					and stats[key] == chars[graph].stat[key]
+				):
+					del stats[key]
+			chars[graph].stat._apply_delta(stats)
+		for char, nodestats in result["node_val"].items():
 			for node, stats in nodestats.items():
 				if "location" in stats:
-					if char not in things:
-						things[char] = {}
-					things[char][node] = ThingProxy(
-						chars[char], node, stats.pop("location")
-					)
+					if char not in things or node not in things[char]:
+						that = things[char][node] = ThingProxy(
+							chars[char], node, stats.pop("location")
+						)
+					else:
+						that = things[char][node]
+						that._location = stats.pop("location")
+						that.send(that, key="location", value=that._location)
+						chars[char].thing.send(
+							that, key="location", value=that._location
+						)
+						chars[char].node.send(
+							that, key="location", value=that._location
+						)
 				else:
-					if char not in places:
-						places[char] = {}
-					places[char][node] = PlaceProxy(chars[char], node)
-				node_stats[char][node] = stats
-		for char, nodes in kf["nodes"].items():
-			if char not in places:
-				places[char] = charplaces = {}
-				for node in nodes:
-					charplaces[node] = PlaceProxy(chars[char], node)
-			else:
-				for node in nodes:
+					if char not in places or node not in places[char]:
+						that = PlaceProxy(chars[char], node)
+						places[char][node] = that
+					else:
+						that = places[char][node]
+				for key in list(stats):
+					if key in that and stats[key] == that[key]:
+						del stats[key]
+				that._apply_delta(stats)
+		for char, nodes in result["nodes"].items():
+			for node, ex in nodes.items():
+				if ex:
 					if not (
 						(char in things and node in things[char])
 						or (char in places and node in places[char])
 					):
 						places[char][node] = PlaceProxy(chars[char], node)
-		for char, origs in kf["edges"].items():
+						chars[char].place.send(
+							chars[char], key=node, value=places[char][node]
+						)
+				else:
+					if char in things and node in things[char]:
+						del things[char][node]
+						chars[char].thing.send(
+							chars[char], key=node, value=None
+						)
+						chars[char].node.send(
+							chars[char], key=node, value=None
+						)
+					if char in places and node in places[char]:
+						del places[char][node]
+						chars[char].place.send(
+							chars[char], key=node, value=None
+						)
+						chars[char].node.send(
+							chars[char], key=node, value=None
+						)
+		for char, origs in result["edges"].items():
 			for orig, dests in origs.items():
 				for dest, exists in dests.items():
-					portals.store(
-						char, orig, dest, PortalProxy(chars[char], orig, dest)
+					if (
+						char in portals.successors
+						and orig in portals.successors[char]
+						and dest in portals.successors[char][orig]
+					):
+						if not exists:
+							del portals.successors[char][orig][dest]
+							del portals.predecessors[char][dest][orig]
+							chars[char].adj.send(
+								chars[char], orig=orig, dest=dest, value=None
+							)
+							chars[char].pred.send(
+								chars[char], orig=orig, dest=dest, value=None
+							)
+						continue
+					if not exists:
+						continue
+					that = PortalProxy(chars[char], orig, dest)
+					portals.store(char, orig, dest, that)
+					chars[char].adj.send(
+						chars[char], orig=orig, dest=dest, value=that
 					)
-		for char, origs in kf["edge_val"].items():
+					chars[char].pred.send(
+						chars[char], orig=orig, dest=dest, value=that
+					)
+		for char, origs in result["edge_val"].items():
 			for orig, dests in origs.items():
 				for dest, stats in dests.items():
-					portal_stats[char][orig][dest] = stats
-		self._rulebooks_cache = kf["rulebook"]
+					portal = portals.successors[char][orig][dest]
+					for stat in list(stats):
+						if stat in portal and stats[stat] == portal[stat]:
+							del stats[stat]
+					portal._apply_delta(stats)
+		self._rulebooks_cache = result["rulebook"]
 
 	def _pull_kf_now(self, *args, **kwargs):
 		self._replace_state_with_kf(self.handle("snap_keyframe"))
@@ -3065,6 +3126,12 @@ class EngineProxy(AbstractEngine):
 			)
 		if cb is not None and not callable(cb):
 			raise TypeError("Uncallable callback")
+		if branch == self.branch and tick is None:
+			return self.handle(
+				"hasty_time_travel",
+				turn=turn,
+				cb=self._replace_state_with_kf,
+			)
 		return self.handle(
 			"time_travel",
 			branch=branch,
