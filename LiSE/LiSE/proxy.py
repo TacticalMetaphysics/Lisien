@@ -2597,6 +2597,8 @@ class EngineProxy(AbstractEngine):
 				)
 			if "units" in stats:
 				self._character_units_cache[graph] = stats.pop("units")
+			else:
+				self._character_units_cache[graph] = {}
 			for key in list(stats):
 				if (
 					key in chars[graph].stat
