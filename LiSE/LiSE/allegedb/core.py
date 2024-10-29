@@ -949,7 +949,9 @@ class ORM:
 		"""Parents of a branch at any remove"""
 		self._turn_end = defaultdict(lambda: 0)
 		"""Tick on which a (branch, turn) ends, not including any plans"""
-		self._turn_end_plan = defaultdict(lambda: 0)
+		self._turn_end_plan: Dict[Tuple[str, int], int] = defaultdict(
+			lambda: 0
+		)
 		"Tick on which a (branch, turn) ends, including plans"
 		self._branch_end = defaultdict(lambda: 0)
 		"""Turn on which a branch ends, not including plans"""
