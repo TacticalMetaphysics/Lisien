@@ -132,3 +132,11 @@ class RedundantRuleError(RuleError):
 	turn) it's already been executed.
 
 	"""
+
+
+class WorkerProcessError(RuntimeError):
+	"""Something wrong to do with worker processes"""
+
+
+class WorkerProcessReadOnlyError(WorkerProcessError):
+	"""You tried to change the state of the world in a worker process"""

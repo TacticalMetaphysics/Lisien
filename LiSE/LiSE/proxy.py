@@ -62,6 +62,7 @@ from .xcollections import (
 )
 from .node import NodeContent, UserMapping, Place, Thing
 from .portal import Portal
+from .exc import WorkerProcessReadOnlyError
 
 
 class CachingProxy(MutableMapping, Signal):
@@ -94,7 +95,7 @@ class CachingProxy(MutableMapping, Signal):
 
 	def __setitem__(self, k, v):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self._set_item(k, v)
@@ -103,7 +104,7 @@ class CachingProxy(MutableMapping, Signal):
 
 	def __delitem__(self, k):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		if k not in self:
@@ -178,7 +179,7 @@ class RulebookProxyDescriptor(object):
 
 	def __set__(self, inst, val):
 		if inst.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		if hasattr(val, "name"):
@@ -330,7 +331,7 @@ class NodeProxy(CachingEntityProxy):
 
 	def delete(self):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self.engine.del_node(self._charname, self.name)
@@ -493,7 +494,7 @@ class ThingProxy(NodeProxy):
 
 	def __setitem__(self, k, v):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		if k == "location":
@@ -513,7 +514,7 @@ class ThingProxy(NodeProxy):
 
 	def follow_path(self, path, weight=None):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self.engine.handle(
@@ -526,7 +527,7 @@ class ThingProxy(NodeProxy):
 
 	def go_to_place(self, place, weight=None):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		if hasattr(place, "name"):
@@ -541,7 +542,7 @@ class ThingProxy(NodeProxy):
 
 	def travel_to(self, dest, weight=None, graph=None):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		if hasattr(dest, "name"):
@@ -559,7 +560,7 @@ class ThingProxy(NodeProxy):
 
 	def travel_to_by(self, dest, arrival_tick, weight=None, graph=None):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		if hasattr(dest, "name"):
@@ -717,7 +718,7 @@ class PortalProxy(CachingEntityProxy):
 
 	def delete(self):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self.engine.del_portal(self._charname, self._origin, self._destination)
@@ -772,14 +773,14 @@ class NodeMapProxy(MutableMapping, Signal):
 
 	def __setitem__(self, k, v):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self.character.place[k] = v
 
 	def __delitem__(self, k):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		if k in self.character.thing:
@@ -882,7 +883,7 @@ class ThingMapProxy(CachingProxy):
 
 	def patch(self, d: dict):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		places = d.keys() & self.character.place.keys()
@@ -953,7 +954,7 @@ class PlaceMapProxy(CachingProxy):
 
 	def patch(self, d: dict):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		things = d.keys() & self.character.thing.keys()
@@ -1123,7 +1124,7 @@ class PredecessorsProxy(MutableMapping):
 
 	def __setitem__(self, k, v):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self.engine._character_portals_cache.store(
@@ -1176,7 +1177,7 @@ class CharPredecessorsMappingProxy(MutableMapping, Signal):
 
 	def __setitem__(self, k, v):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		for pred, proxy in v.items():
@@ -1193,7 +1194,7 @@ class CharPredecessorsMappingProxy(MutableMapping, Signal):
 
 	def __delitem__(self, k):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		for v in list(self[k]):
@@ -1362,7 +1363,7 @@ class RuleBookProxy(MutableSequence, Signal):
 
 	def __setitem__(self, i, v):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		if isinstance(v, RuleProxy):
@@ -1379,7 +1380,7 @@ class RuleBookProxy(MutableSequence, Signal):
 
 	def __delitem__(self, i):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		del self._cache[i]
@@ -1393,7 +1394,7 @@ class RuleBookProxy(MutableSequence, Signal):
 
 	def insert(self, i, v):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		if isinstance(v, RuleProxy):
@@ -1524,7 +1525,7 @@ class CharacterProxy(AbstractCharacter):
 
 	def copy_from(self, g):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		# can't handle multigraphs
@@ -1714,7 +1715,7 @@ class CharacterProxy(AbstractCharacter):
 
 	def add_place(self, name, **kwargs):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self.engine.handle(
@@ -1729,7 +1730,7 @@ class CharacterProxy(AbstractCharacter):
 
 	def add_places_from(self, seq):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self.engine.handle(
@@ -1750,14 +1751,14 @@ class CharacterProxy(AbstractCharacter):
 
 	def add_nodes_from(self, seq, **attrs):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self.add_places_from(seq)
 
 	def add_thing(self, name, location, **kwargs):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self.engine.handle(
@@ -1776,7 +1777,7 @@ class CharacterProxy(AbstractCharacter):
 
 	def add_things_from(self, seq, **attrs):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self.engine.handle(
@@ -1792,7 +1793,7 @@ class CharacterProxy(AbstractCharacter):
 
 	def remove_node(self, node):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		if node not in self.node:
@@ -1826,7 +1827,7 @@ class CharacterProxy(AbstractCharacter):
 
 	def remove_place(self, place):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		placemap = self.place
@@ -1841,7 +1842,7 @@ class CharacterProxy(AbstractCharacter):
 
 	def remove_thing(self, thing):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		thingmap = self.thing
@@ -1856,7 +1857,7 @@ class CharacterProxy(AbstractCharacter):
 
 	def add_portal(self, origin, destination, **kwargs):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		symmetrical = kwargs.pop("symmetrical", False)
@@ -1892,7 +1893,7 @@ class CharacterProxy(AbstractCharacter):
 
 	def remove_portal(self, origin, destination):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		char_port_cache = self.engine._character_portals_cache
@@ -1914,7 +1915,7 @@ class CharacterProxy(AbstractCharacter):
 
 	def add_portals_from(self, seq, symmetrical=False):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		l = list(seq)
@@ -1941,7 +1942,7 @@ class CharacterProxy(AbstractCharacter):
 
 	def add_unit(self, graph, node=None):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		# TODO: cache
@@ -1958,7 +1959,7 @@ class CharacterProxy(AbstractCharacter):
 
 	def remove_unit(self, graph, node=None):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		# TODO: cache
@@ -2020,7 +2021,7 @@ class CharacterMapProxy(MutableMapping, Signal):
 
 	def __setitem__(self, k, v):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self.engine.handle(
@@ -2031,7 +2032,7 @@ class CharacterMapProxy(MutableMapping, Signal):
 
 	def __delitem__(self, k):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self.engine.handle(command="del_character", char=k, branching=True)
@@ -2094,7 +2095,7 @@ class StringStoreProxy(Signal):
 			super().__setattr__(k, v)
 			return
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self._cache[k] = v
@@ -2103,7 +2104,7 @@ class StringStoreProxy(Signal):
 
 	def __delattr__(self, k):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		del self._cache[k]
@@ -2141,7 +2142,7 @@ class EternalVarProxy(MutableMapping):
 
 	def __setitem__(self, k, v):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self._cache[k] = v
@@ -2149,7 +2150,7 @@ class EternalVarProxy(MutableMapping):
 
 	def __delitem__(self, k):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		del self._cache[k]
@@ -2183,7 +2184,7 @@ class GlobalVarProxy(MutableMapping, Signal):
 
 	def __setitem__(self, k, v):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self._cache[k] = v
@@ -2192,7 +2193,7 @@ class GlobalVarProxy(MutableMapping, Signal):
 
 	def __delitem__(self, k):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		del self._cache[k]
@@ -2262,7 +2263,7 @@ class AllRulesProxy(Mapping):
 
 	def new_empty(self, k):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self.engine.handle(command="new_empty_rule", rule=k)
@@ -2394,7 +2395,7 @@ class TimeSignal(Signal):
 
 	def __setitem__(self, i, v):
 		if self.engine._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		if i in ("branch", 0):
@@ -2413,7 +2414,7 @@ class TimeDescriptor(object):
 
 	def __set__(self, inst, val):
 		if inst._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		inst.time_travel(*val)
@@ -2473,12 +2474,14 @@ class EngineProxy(AbstractEngine):
 
 	def snap_keyframe(self) -> dict:
 		if self._worker:
-			raise RuntimeError("Can't snap a keyframe in a worker process")
+			raise WorkerProcessReadOnlyError(
+				"Can't snap a keyframe in a worker process"
+			)
 		return self.handle("snap_keyframe")
 
 	def game_start(self) -> None:
 		if self._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		self.handle("game_start", cb=self._upd_from_game_start)
@@ -2508,7 +2511,7 @@ class EngineProxy(AbstractEngine):
 
 	def switch_main_branch(self, branch: str) -> None:
 		if self._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		if (
@@ -3079,7 +3082,7 @@ class EngineProxy(AbstractEngine):
 
 	def apply_choices(self, choices, dry_run=False, perfectionist=False):
 		if self._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		return self.handle(
@@ -3101,7 +3104,7 @@ class EngineProxy(AbstractEngine):
 	# TODO: make this into a Signal, like it is in the LiSE core
 	def next_turn(self, cb=None):
 		if self._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		if cb and not callable(cb):
@@ -3123,7 +3126,7 @@ class EngineProxy(AbstractEngine):
 
 		"""
 		if self._worker:
-			raise RuntimeError(
+			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
 		if cb is not None and not callable(cb):

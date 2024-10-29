@@ -549,6 +549,7 @@ class AbstractEngine(ABC):
 			"OutOfTimelineError": exc.OutOfTimelineError,
 			"HistoricKeyError": exc.HistoricKeyError,
 			"NotInKeyframeError": exc.NotInKeyframeError,
+			"WorkerProcessReadOnlyError": exc.WorkerProcessReadOnlyError,
 		}
 
 		def unpack_graph(ext):
