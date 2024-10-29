@@ -588,7 +588,6 @@ class TurnScroll(Slider):
 		engine = app.engine
 		self.min = engine.initial_turn
 		self.max = engine.final_turn
-		Logger.debug(f"TurnScroll: {self.min}<-->{self.max}")
 		self.value = engine.turn
 		engine.time.connect(self._receive_time)
 
@@ -602,7 +601,6 @@ class TurnScroll(Slider):
 			self.max = engine.final_turn
 		except KeyError:
 			self.max = turn
-		Logger.debug(f"TurnScroll: {self.min}<-{self.value}->{self.max}")
 
 	def on_touch_move(self, touch):
 		if touch.grab_current == self:
@@ -616,7 +614,6 @@ class TurnScroll(Slider):
 		if touch.grab_current == self:
 			app = App.get_running_app()
 			app.engine.time.disconnect(self._receive_time)
-			Logger.debug(f"TurnScroll: about to travel to {self.value}")
 			app.time_travel(app.engine.branch, int(self.value))
 			app.engine.time.connect(self._receive_time)
 
