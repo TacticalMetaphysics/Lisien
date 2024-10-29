@@ -1094,10 +1094,8 @@ class EngineHandle:
 		return self._real.main_branch
 
 	def switch_main_branch(self, branch: str) -> dict:
-		new = branch not in self._real._branches
 		self._real.switch_main_branch(branch)
-		if not new:
-			return self.snap_keyframe()
+		return self.snap_keyframe()
 
 	def game_start(self) -> None:
 		branch, turn, tick = self._real._btt()
