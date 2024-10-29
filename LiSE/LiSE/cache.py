@@ -518,9 +518,12 @@ class ThingsCache(Cache):
 			this = frozenset((thing,))
 			# Cache the contents of nodes
 			if oldloc is not None:
-				oldconts_orig = node_contents_cache.retrieve(
-					character, oldloc, branch, turn, tick
-				)
+				try:
+					oldconts_orig = node_contents_cache.retrieve(
+						character, oldloc, branch, turn, tick
+					)
+				except KeyError:
+					oldconts_orig = frozenset()
 				newconts_orig = oldconts_orig.difference(this)
 				node_contents_cache.store(
 					character,
