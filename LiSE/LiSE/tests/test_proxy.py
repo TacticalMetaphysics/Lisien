@@ -31,12 +31,13 @@ import msgpack
 class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
 	def setUp(self):
 		self.manager = EngineProcessManager()
-		self.tmp_path = tempfile.mkdtemp(dir=".")
+		self.tmp_path = tempfile.mkdtemp()
 		self.engine = self.manager.start(
 			self.tmp_path,
 			connect_string="sqlite:///:memory:",
 			enforce_end_of_time=False,
 			workers=0,
+			threaded_triggers=False,
 		)
 		self.graphmakers = (self.engine.new_character,)
 		self.addCleanup(self._do_cleanup)
