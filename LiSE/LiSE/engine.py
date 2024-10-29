@@ -2353,10 +2353,6 @@ class Engine(AbstractEngine, gORM, Executor):
 					res = self._call_any_subproxy(
 						"_eval_trigger", trigger.__name__, entity
 					)
-					realres = trigger(entity)
-					assert (
-						res == realres
-					), f"{trigger} returned {res} from subproxy, but should have returned {realres}"
 				else:
 					res = trigger(entity)
 				if res:
