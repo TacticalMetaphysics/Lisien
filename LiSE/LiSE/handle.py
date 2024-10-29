@@ -680,7 +680,7 @@ class EngineHandle:
 		branch_from, turn_from, tick_from = self._real._btt()
 		slow_delta = (
 			branch != branch_from
-			or sum(
+			or np.sum(
 				self._real._turn_end_plan[r]
 				for r in range(
 					min((turn_from, turn_to)), max((turn_from, turn_to))
