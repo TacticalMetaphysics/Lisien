@@ -31,6 +31,7 @@ from typing import (
 	Iterator,
 	FrozenSet,
 	Hashable,
+	Set,
 )
 
 from blinker import Signal
@@ -941,27 +942,29 @@ class ORM:
 			Callable[[Key, Key, Key, int], bool],
 			Callable[[Key, Key, Key, int], edge_cls],
 		] = (edge_objs, self._edge_exists, self._make_edge)
-		self._childbranch = defaultdict(set)
+		self._childbranch: Dict[str, Set[str]] = defaultdict(set)
 		"""Immediate children of a branch"""
-		self._branches = {}
+		self._branches: Dict[str, Tuple[int, int, int, int]] = {}
 		"""Parent, start time, and end time of each branch. Includes plans."""
-		self._branch_parents = defaultdict(set)
+		self._branch_parents: Dict[str, Set[str]] = defaultdict(set)
 		"""Parents of a branch at any remove"""
-		self._turn_end = defaultdict(lambda: 0)
+		self._turn_end: Dict[Tuple[str, int], int] = defaultdict(lambda: 0)
 		"""Tick on which a (branch, turn) ends, not including any plans"""
 		self._turn_end_plan: Dict[Tuple[str, int], int] = defaultdict(
 			lambda: 0
 		)
 		"Tick on which a (branch, turn) ends, including plans"
-		self._branch_end = defaultdict(lambda: 0)
+		self._branch_end: Dict[str, int] = defaultdict(lambda: 0)
 		"""Turn on which a branch ends, not including plans"""
 		self._graph_objs = {}
-		self._plans = {}
-		self._branches_plans = defaultdict(set)
-		self._plan_ticks = defaultdict(lambda: defaultdict(list))
-		self._time_plan = {}
-		self._plans_uncommitted = []
-		self._plan_ticks_uncommitted = []
+		self._plans: Dict[int, Tuple[str, int, int]] = {}
+		self._branches_plans: Dict[str, Set[int]] = defaultdict(set)
+		self._plan_ticks: Dict[int, Dict[int, List[int]]] = defaultdict(
+			lambda: defaultdict(list)
+		)
+		self._time_plan: Dict[int, Tuple[str, int, int]] = {}
+		self._plans_uncommitted: List[Tuple[int, str, int, int]] = []
+		self._plan_ticks_uncommitted: List[Tuple[int, int, int]] = []
 		self._graph_cache = EntitylessCache(self)
 		self._graph_cache.name = "graph_cache"
 		self._graph_val_cache = Cache(self)
