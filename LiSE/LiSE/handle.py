@@ -678,7 +678,16 @@ class EngineHandle:
 						"Out of bounds", *self._real._btt(), branch, turn, tick
 					)
 		branch_from, turn_from, tick_from = self._real._btt()
-		slow_delta = branch != branch_from
+		slow_delta = (
+			branch != branch_from
+			or sum(
+				self._real._turn_end_plan[r]
+				for r in range(
+					min((turn_from, turn_to)), max((turn_from, turn_to))
+				)
+			)
+			> self._real.query.keyframe_interval
+		)
 		self._real.time = (branch, turn)
 		if tick is None:
 			tick = self._real.tick
@@ -696,11 +705,6 @@ class EngineHandle:
 			)
 			slightly_packed_delta, packed_delta = self._pack_delta(delta)
 		return NONE, packed_delta
-
-	def hasty_time_travel(self, turn):
-		"""Time travel within a branch, and return a keyframe, rather than a delta"""
-		self._real.turn = turn
-		return self._real.snap_keyframe()
 
 	@prepacked
 	def increment_branch(self) -> bytes:

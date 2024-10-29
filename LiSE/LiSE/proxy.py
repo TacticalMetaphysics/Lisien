@@ -3126,12 +3126,6 @@ class EngineProxy(AbstractEngine):
 			)
 		if cb is not None and not callable(cb):
 			raise TypeError("Uncallable callback")
-		if branch == self.branch and tick is None:
-			return self.handle(
-				"hasty_time_travel",
-				turn=turn,
-				cb=self._replace_state_with_kf,
-			)
 		return self.handle(
 			"time_travel",
 			branch=branch,
