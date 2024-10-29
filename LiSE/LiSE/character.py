@@ -1341,6 +1341,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			charn = char.name
 			btt = engine._btt
 			self._iter_stuff = (get_char_graphs, charn, btt)
+			self._len_stuff = (avcache.count_entities_or_keys, charn, btt)
 			self._contains_stuff = (
 				avcache.user_cache.iter_keys,
 				charn,
@@ -1381,8 +1382,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 		def __len__(self):
 			"""Number of graphs in which I have a unit."""
-			get_char_graphs, charn, btt = self._iter_stuff
-			return len(get_char_graphs(charn, *btt()))
+			count_char_graphs, charn, btt = self._len_stuff
+			return count_char_graphs(charn, *btt())
 
 		def _get_char_av_cache(self, g):
 			if g not in self:
