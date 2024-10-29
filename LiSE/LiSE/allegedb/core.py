@@ -949,7 +949,17 @@ class ORM:
 		"""Parents of a branch at any remove"""
 		self._turn_end = defaultdict(lambda: 0)
 		"""Tick on which a (branch, turn) ends, not including any plans"""
-		self._turn_end_plan = defaultdict(lambda: 0)
+
+		class LoudDefaultDict(defaultdict):
+			def __getitem__(self, item):
+				assert isinstance(item, tuple)
+				return super().__getitem__(item)
+
+			def __setitem__(self, key, value):
+				assert isinstance(key, tuple)
+				super().__setitem__(key, value)
+
+		self._turn_end_plan = LoudDefaultDict(lambda: 0)
 		"Tick on which a (branch, turn) ends, including plans"
 		self._branch_end = defaultdict(lambda: 0)
 		"""Turn on which a branch ends, not including plans"""
