@@ -108,7 +108,7 @@ class PlanError(AttributeError):
 	"""Tried to use an attribute that shouldn't be used while planning"""
 
 
-class RulesEngineError(Exception):
+class RulesEngineError(RuntimeError):
 	"""For problems to do with the rules engine
 
 	Rules themselves should never raise this. Only the engine should.
