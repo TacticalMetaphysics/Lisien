@@ -1894,7 +1894,7 @@ class ORM:
 			latest_past_keyframe
 			and self._loaded[branch][2:] < latest_past_keyframe[1:]
 		):
-			latest_past_keyframe = (branch, *self._loaded[branch[:2]])
+			latest_past_keyframe = (branch, *self._loaded[branch][:2])
 		return latest_past_keyframe, earliest_future_keyframe
 
 	def _load_graph_windows(self, graph, windows):
