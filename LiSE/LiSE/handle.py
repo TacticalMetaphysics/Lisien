@@ -681,9 +681,11 @@ class EngineHandle:
 		slow_delta = (
 			branch != branch_from
 			or np.sum(
-				self._real._turn_end_plan[branch, r]
-				for r in range(
-					min((turn_from, turn_to)), max((turn_from, turn_to))
+				np.fromiter(
+					self._real._turn_end_plan[branch, r]
+					for r in range(
+						min((turn_from, turn_to)), max((turn_from, turn_to))
+					)
 				)
 			)
 			> self._real.query.keyframe_interval
