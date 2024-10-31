@@ -2053,7 +2053,6 @@ class ORM:
 		Optional[Tuple[str, int, int]],
 		Optional[Tuple[str, int, int]],
 		dict,
-		dict,
 	]:
 		latest_past_keyframe: Optional[Tuple[str, int, int]]
 		earliest_future_keyframe: Optional[Tuple[str, int, int]]
@@ -2158,7 +2157,15 @@ class ORM:
 			self._graph_val_cache.load(graphvalrows)
 			self._node_val_cache.load(nodevalrows)
 			self._edge_val_cache.load(edgevalrows)
-			return None, None, {}, dict(loaded_graphs)
+			return None, None, dict(loaded_graphs)
+		if earliest_future_keyframe:
+			return (
+				latest_past_keyframe,
+				earliest_future_keyframe,
+				self._load_between(
+					*latest_past_keyframe, *earliest_future_keyframe[1:]
+				),
+			)
 		past_branch, past_turn, past_tick = latest_past_keyframe
 		keyframed = load_keyframe(past_branch, past_turn, past_tick)
 
@@ -2278,7 +2285,6 @@ class ORM:
 		return (
 			latest_past_keyframe,
 			earliest_future_keyframe,
-			keyframed,
 			dict(loaded_graphs),
 		)
 

@@ -956,6 +956,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._characters_portals_rulebooks_cache.load(
 				rowdict["character_portal_rulebook"]
 			)
+		return loaded
 
 	@world_locked
 	def _load_at(self, branch: str, turn: int, tick: int) -> None:
@@ -967,7 +968,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		"""
 		if self._time_is_loaded(branch, turn, tick):
 			return
-		(latest_past_keyframe, earliest_future_keyframe, keyframed, loaded) = (
+		(latest_past_keyframe, earliest_future_keyframe, loaded) = (
 			super()._load_at(branch, turn, tick)
 		)
 
