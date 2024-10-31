@@ -2942,7 +2942,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			del graph.thing[thing]
 		super().del_graph(name)
 		if hasattr(self, "_worker_processes"):
-			self._call_every_subproxy("_del_graph", name)
+			self._call_every_subproxy("_del_character", name)
 
 	del_character = del_graph
 
