@@ -614,7 +614,11 @@ class Cache:
 			if trn in kfb and kfb[trn].rev_gettable(tck):
 				added.update(set(kfb[trn][tck]).difference(deleted))
 			elif kfb.rev_gettable(trn):
-				added.update(set(kfb[trn].final()).difference(deleted))
+				try:
+					additions = set(kfb[trn].final())
+				except KeyError:
+					additions = set()
+				added.update(additions.difference(deleted))
 			else:
 				continue
 			break
