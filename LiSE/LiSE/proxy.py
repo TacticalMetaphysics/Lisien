@@ -2371,8 +2371,9 @@ class PortalObjCache(object):
 				del submap[a]
 
 	def delete_char(self, char: Key) -> None:
-		del self.successors[char]
-		del self.predecessors[char]
+		if char in self.successors:
+			del self.successors[char]
+			del self.predecessors[char]
 
 
 class TimeSignal(Signal):
