@@ -151,7 +151,9 @@ class TestSwitchMainBranch(ProxyTest):
 		self.engine.tick = 0
 		self.engine.switch_main_branch("tronc")
 		assert self.engine.branch == "tronc"
-		assert "hello" not in phys.stat
+		assert phys
+		assert "hi" not in phys.stat
+		assert "hello" in phys.stat
 		self.engine.next_turn()
 		phys.stat["hi"] = "hey there"
 		self.engine.turn = 0
