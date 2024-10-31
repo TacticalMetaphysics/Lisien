@@ -21,7 +21,7 @@ for wheel in os.listdir("ELiDE/dist"):
 else:
 	sys.exit("Couldn't find the ELiDE wheel")
 os.system(
-	f"butler push ELiDE/dist/{wheel} clayote/lise:elide-whl --userversion-file {version}"
+	f"butler push ELiDE/dist/{wheel} clayote/lise:elide-whl --userversion {version}"
 )
 os.system(
 	f"butler push ~/lise_windows clayote/lise:windows --userversion {version}"
