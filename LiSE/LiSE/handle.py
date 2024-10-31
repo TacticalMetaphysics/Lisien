@@ -658,7 +658,7 @@ class EngineHandle:
 		the 0th item of which is `None`.
 
 		"""
-		turn_to = float("inf")
+		turn_to = None
 		if branch in self._real._branches:
 			parent, turn_from, tick_from, turn_to, tick_to = (
 				self._real._branches[branch]
@@ -685,7 +685,8 @@ class EngineHandle:
 				np.fromiter(
 					self._real._turn_end_plan[branch, r]
 					for r in range(
-						min((turn_from, turn_to)), max((turn_from, turn_to))
+						min((turn_from, turn_to or float("inf"))),
+						max((turn_from, turn_to or -float("inf"))),
 					)
 				)
 			)
