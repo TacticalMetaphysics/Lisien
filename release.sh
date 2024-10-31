@@ -19,6 +19,6 @@ python -m twine upload LiSE/dist/*
 python -m twine upload ELiDE/dist/*
 WINEPREFIX=~/.wine32 WINEARCH=win32 wine ~/lise_windows/python/python.exe -m pip install --upgrade LiSE ELiDE
 pyclean ~/lise_windows
-unix2dos CHANGES.txt >~/lise_windows/
+unix2dos CHANGES.txt >~/lise_windows/CHANGES.txt
 cp -rf docs ~/lise_windows/
 python3.12 butler.py
