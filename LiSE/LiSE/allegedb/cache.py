@@ -176,7 +176,7 @@ class StructuredDefaultDict(dict):
 		raise TypeError("Can't set layer {}".format(self.layer))
 
 
-class KeyframeError(RuntimeError):
+class KeyframeError(KeyError):
 	pass
 
 
