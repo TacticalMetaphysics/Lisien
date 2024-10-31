@@ -814,7 +814,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		self.snap_keyframe(silent=True, update_worker_processes=False)
 		super()._init_graph(name, type_s, data)
 		if hasattr(self, "_worker_processes"):
-			self._call_every_subproxy("add_character", name, data)
+			self._call_every_subproxy("_add_character", name, data)
 
 	def _load_plans(self) -> None:
 		from .rule import Rule

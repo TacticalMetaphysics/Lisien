@@ -3139,7 +3139,7 @@ class EngineProxy(AbstractEngine):
 			cb=partial(self._upd_and_cb, cb),
 		)
 
-	def add_character(self, char, data=None, **attr):
+	def _add_character(self, char, data=None, **attr):
 		if char in self._char_cache:
 			raise KeyError("Character already exists")
 		if data is None:
@@ -3197,6 +3197,13 @@ class EngineProxy(AbstractEngine):
 			attr=attr,
 			branching=True,
 		)
+
+	def add_character(self, char, data=None, **attr):
+		if self._worker:
+			raise WorkerProcessReadOnlyError(
+				"Tried to change world state in a worker process"
+			)
+		self._add_character(char, data, **attr)
 
 	def new_character(self, char, **attr):
 		self.add_character(char, **attr)
