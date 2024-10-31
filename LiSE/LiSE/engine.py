@@ -2944,15 +2944,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		if hasattr(self, "_worker_processes"):
 			self._call_every_subproxy("_del_graph", name)
 
-	def del_character(self, name: Key) -> None:
-		"""Remove the Character from the database entirely.
-
-		This also deletes all its history. You'd better be sure.
-
-		"""
-		self.query.del_character(name)
-		self.del_graph(name)
-		del self.character[name]
+	del_character = del_graph
 
 	def _is_thing(self, character: Key, node: Key) -> bool:
 		return self._things_cache.contains_entity(
