@@ -4,10 +4,12 @@ dos2unix -V
 python3.12 eqversion.py
 python -m build --version
 python -m twine --version
+python -m sphinx --version
 pyclean --version
 wine --version
 ls ~/lise_windows
 python -m tox
+python -m sphinx . docs/
 rm -rf LiSE/build LiSE/dist
 python -m build LiSE/
 rm -rf ELiDE/build ELiDE/dist
