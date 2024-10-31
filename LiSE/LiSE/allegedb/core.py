@@ -1883,6 +1883,18 @@ class ORM:
 						latest_past_keyframe = (branch, turn, tick)
 				else:
 					latest_past_keyframe = (branch, turn, tick)
+		if not loading or branch not in self._loaded:
+			return latest_past_keyframe, earliest_future_keyframe
+		if (
+			earliest_future_keyframe
+			and earliest_future_keyframe[1:] < self._loaded[branch][:2]
+		):
+			earliest_future_keyframe = (branch, *self._loaded[branch][2:])
+		if (
+			latest_past_keyframe
+			and self._loaded[branch][2:] < latest_past_keyframe[1:]
+		):
+			latest_past_keyframe = (branch, *self._loaded[branch[:2]])
 		return latest_past_keyframe, earliest_future_keyframe
 
 	def _load_graph_windows(self, graph, windows):
