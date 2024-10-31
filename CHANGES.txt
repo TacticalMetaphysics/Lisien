@@ -1,10 +1,15 @@
-== 0.16.16 | 2025-10-18 ==
+== 0.17.0 | 2024-10-31
+* Overhaul the entire caching infrastructure, which should greatly cut down on
+  crashes. No new features, but it does make some changes to the database
+  schema.
+
+== 0.16.16 | 2024-10-18 ==
 * Fix pawn duplication in ELiDE
 
-== 0.16.15 | 2025-10-16 ==
+== 0.16.15 | 2024-10-16 ==
 * Fix a different way pawns could disappear in ELiDE
 
-== 0.16.14 | 2025-10-16 ==
+== 0.16.14 | 2024-10-16 ==
 * Fix disappearing pawns in ELiDE
 
 == 0.16.13 | 2024-10-16 ==
