@@ -383,6 +383,7 @@ def test_stress_graph_val_select_lt(engy):
 		me.stat["foo"] = random.randrange(0, 10)
 		me.stat["bar"] = random.randrange(0, 10)
 	qry = me.historical("foo") < me.historical("bar")
+	engy.commit()
 	start_ts = monotonic()
 	res = engy.turns_when(qry)
 	assert monotonic() - start_ts < 1
