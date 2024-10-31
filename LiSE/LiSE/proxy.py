@@ -3211,7 +3211,7 @@ class EngineProxy(AbstractEngine):
 
 	new_graph = new_character
 
-	def del_character(self, char):
+	def _del_character(self, char):
 		if char not in self._char_cache:
 			raise KeyError("No such character")
 		del self._char_cache[char]
@@ -3220,6 +3220,13 @@ class EngineProxy(AbstractEngine):
 		del self._things_cache[char]
 		self._character_portals_cache.delete_char(char)
 		self.handle(command="del_character", char=char, branching=True)
+
+	def del_character(self, char):
+		if self._worker:
+			raise WorkerProcessReadOnlyError(
+				"tried to change world state in a worker process"
+			)
+		self._del_character(char)
 
 	del_graph = del_character
 

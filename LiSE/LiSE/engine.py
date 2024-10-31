@@ -2942,7 +2942,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			del graph.thing[thing]
 		super().del_graph(name)
 		if hasattr(self, "_worker_subprocesses"):
-			self._call_every_subproxy("del_graph", name)
+			self._call_every_subproxy("_del_graph", name)
 
 	def del_character(self, name: Key) -> None:
 		"""Remove the Character from the database entirely.
