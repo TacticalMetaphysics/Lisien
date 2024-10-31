@@ -1672,6 +1672,7 @@ class ORM:
 				branched_turn_from,
 				branched_tick_from,
 			) not in self._keyframes_times:
+				self._get_keyframe(parent, turn_from, tick_from)
 				self._snap_keyframe_from_delta(
 					(parent, turn_from, tick_from),
 					(parent, branched_turn_from, branched_tick_from),
