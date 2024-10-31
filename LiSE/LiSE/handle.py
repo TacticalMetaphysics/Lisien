@@ -683,11 +683,14 @@ class EngineHandle:
 			branch != branch_from
 			or np.sum(
 				np.fromiter(
-					self._real._turn_end_plan[branch, r]
-					for r in range(
-						min((turn_from, turn_to or float("inf"))),
-						max((turn_from, turn_to or -float("inf"))),
-					)
+					(
+						self._real._turn_end_plan[branch, r]
+						for r in range(
+							min((turn_from, turn_to or float("inf"))),
+							max((turn_from, turn_to or -float("inf"))),
+						)
+					),
+					dtype=np.uint32,
 				)
 			)
 			> self._real.query.keyframe_interval
