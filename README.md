@@ -80,10 +80,13 @@ tester knew to look for it.
 
 # Setup
 
-In a command line, with [Python](https://python.org) (preferably [version 3.12](https://www.python.org/downloads/release/python-3127/)) already installed:
+LiSE is available [on PyPI][https://pypi.org/project/LiSE/], so
+`pip install LiSE ELiDE` will work, but won't always have the latest experimental
+code. If you want that, then in a command line, with [Python](https://python.org)
+(preferably [version 3.12](https://www.python.org/downloads/release/python-3127/)) already installed, run:
 
 ```
-python -m pip install --user --upgrade http://github.com/TacticalMetaphysics/LiSE/archive/main.zip
+python -m pip install --user --upgrade https://codeberg.org/clayote/LiSE/archive/main.zip
 ```
 
 Run it again whenever you want the latest LiSE code.
