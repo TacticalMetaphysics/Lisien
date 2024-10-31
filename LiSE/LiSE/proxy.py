@@ -3215,9 +3215,12 @@ class EngineProxy(AbstractEngine):
 		if char not in self._char_cache:
 			raise KeyError("No such character")
 		del self._char_cache[char]
-		del self._char_stat_cache[char]
-		del self._character_places_cache[char]
-		del self._things_cache[char]
+		if char in self._char_stat_cache:
+			del self._char_stat_cache[char]
+		if char in self._character_places_cache:
+			del self._character_places_cache[char]
+		if char in self._things_cache:
+			del self._things_cache[char]
 		self._character_portals_cache.delete_char(char)
 		self.handle(command="del_character", char=char, branching=True)
 
