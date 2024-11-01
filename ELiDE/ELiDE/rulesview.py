@@ -200,6 +200,9 @@ class RulesView(Widget):
 			self.bind(rule=getattr(self, "_trigger_pull_{}s".format(functyp)))
 		self._finalized = True
 
+	def _edit_something(self, *args):
+		Logger.info(f"EditButton: {args}")
+
 	def get_functions_cards(self, what, allfuncs):
 		"""Return a pair of lists of Card widgets for used and unused functions.
 
@@ -217,6 +220,8 @@ class RulesView(Widget):
 				show_art=False,
 				midline_text=what.capitalize(),
 				text=source,
+				editable=True,
+				on_press=self._edit_something,
 			)
 			for (name, source, sig) in allfuncs
 			if name not in rulefuncnames
@@ -231,6 +236,8 @@ class RulesView(Widget):
 				show_art=False,
 				midline_text=what.capitalize(),
 				text=str(getattr(getattr(self.engine, what), name)),
+				editable=False,
+				on_press=self._edit_something,
 			)
 			for name in rulefuncnames
 		]
