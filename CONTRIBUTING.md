@@ -1,3 +1,6 @@
+Report any problems or feature requests for LiSE on
+[Codeberg](https://codeberg.org/clayote/LiSE/issues).
+
 The best way for new users to help with LiSE is to try to make a game with it. Try
 modifying [the Awareness sim](https://github.com/TacticalMetaphysics/LiSE/blob/main/ELiDE/ELiDE/examples/awareness.py).
 This template shows you how to use
