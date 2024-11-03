@@ -1128,6 +1128,7 @@ kv = """
 				y: foreground.top - self.height - (.1 * self.height)
 				text: '✐' if root.editable else ''
 				on_press: root.edit_func()
+				disabled: not root.editable
 		Label:
 			id: footer
 			text: root.footer_text
