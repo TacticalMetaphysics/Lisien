@@ -20,6 +20,8 @@ from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.properties import ObjectProperty, StringProperty
+from kivy.uix.button import Button
+from kivy.uix.modalview import ModalView
 from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.togglebutton import ToggleButton
@@ -31,6 +33,7 @@ from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.screenmanager import Screen
 
 from .card import Card, DeckBuilderView, DeckBuilderScrollBar
+from .stores import FuncEditor
 from .util import trigger
 
 dbg = Logger.debug
@@ -200,8 +203,41 @@ class RulesView(Widget):
 			self.bind(rule=getattr(self, "_trigger_pull_{}s".format(functyp)))
 		self._finalized = True
 
-	def _edit_something(self, *args):
-		Logger.info(f"EditButton: {args}")
+	def _edit_something(self, what_store: str, what_function: str):
+		Logger.info(f"EditButton: {what_store}.{what_function}")
+		if not hasattr(self, "rule_func_editor_modal"):
+			self.rule_func_editor_modal = ModalView()
+			self.rule_func_editor = FuncEditor(
+				size_hint_y=0.9, deletable=False
+			)
+			self.rule_func_editor_save_button = Button(text="Save")
+			self.rule_func_editor_cancel_button = Button(
+				text="Cancel", on_press=self.rule_func_editor_modal.dismiss
+			)
+			self.rule_func_editor_layout = BoxLayout(orientation="vertical")
+			self.rule_func_editor_buttons_layout = BoxLayout(
+				orientation="horizontal", size_hint_y=0.1
+			)
+			self.rule_func_editor_buttons_layout.add_widget(
+				self.rule_func_editor_cancel_button
+			)
+			self.rule_func_editor_buttons_layout.add_widget(
+				self.rule_func_editor_save_button
+			)
+			self.rule_func_editor_layout.add_widget(self.rule_func_editor)
+			self.rule_func_editor_layout.add_widget(
+				self.rule_func_editor_buttons_layout
+			)
+			self.rule_func_editor_modal.add_widget(
+				self.rule_func_editor_layout
+			)
+		# get the source code of the function to edit
+		store = getattr(self.engine, what_store)
+		self.rule_func_editor.source = store.get_source(what_function)
+		self.rule_func_editor.name_wid.hint_text = what_function
+		self.rule_func_editor.name_wid.disabled = True
+		# show the modal
+		self.rule_func_editor_modal.open()
 
 	def get_functions_cards(self, what, allfuncs):
 		"""Return a pair of lists of Card widgets for used and unused functions.
