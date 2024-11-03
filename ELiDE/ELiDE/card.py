@@ -185,6 +185,7 @@ class Card(FloatLayout):
 	font_size = NumericProperty(12)
 
 	editable = BooleanProperty(False)
+	edit_func = ObjectProperty()
 
 	def on_background_source(self, *args):
 		"""When I get a new ``background_source``, load it as an
@@ -1126,6 +1127,7 @@ kv = """
 				x: foreground.right - self.width - (.1 * self.width)
 				y: foreground.top - self.height - (.1 * self.height)
 				text: '✐' if root.editable else ''
+				on_press: root.edit_func()
 		Label:
 			id: footer
 			text: root.footer_text

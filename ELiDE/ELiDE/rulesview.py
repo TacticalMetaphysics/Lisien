@@ -221,7 +221,7 @@ class RulesView(Widget):
 				midline_text=what.capitalize(),
 				text=source,
 				editable=True,
-				on_press=self._edit_something,
+				edit_func=self._edit_something,
 			)
 			for (name, source, sig) in allfuncs
 			if name not in rulefuncnames
@@ -237,7 +237,7 @@ class RulesView(Widget):
 				midline_text=what.capitalize(),
 				text=str(getattr(getattr(self.engine, what), name)),
 				editable=False,
-				on_press=self._edit_something,
+				edit_func=self._edit_something,
 			)
 			for name in rulefuncnames
 		]
