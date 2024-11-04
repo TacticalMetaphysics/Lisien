@@ -242,7 +242,7 @@ class RulesView(Widget):
 				self.rule_func_editor_layout
 			)
 		# get the source code of the function to edit
-		store = getattr(self.engine, what_store)
+		store = self.rule_func_editor.store = getattr(self.engine, what_store)
 		self.rule_func_editor.source = store.get_source(what_function)
 		self.rule_func_editor.name_wid.hint_text = what_function
 		self.rule_func_editor.name_wid.disabled = True
