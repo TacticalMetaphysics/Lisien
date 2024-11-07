@@ -427,6 +427,9 @@ class MainScreen(Screen):
 			or not hasattr(self.app, "engine")
 			or self.app.engine is None
 			or self.app.engine.closed
+			or self.app.engine.universal.get("block")
+			or not hasattr(self.app, "manager")
+			or self.app.manager.current != "main"
 		):
 			return
 		self.next_turn(cb=release_edit_lock)
