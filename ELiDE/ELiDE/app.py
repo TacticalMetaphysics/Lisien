@@ -78,6 +78,7 @@ class ELiDEApp(App):
 	selected_proxy_name = StringProperty("")
 	statcfg = ObjectProperty()
 	edit_locked = BooleanProperty(False)
+	simulate_button_down = BooleanProperty(False)
 
 	def on_selection(self, *args):
 		Logger.debug("App: {} selected".format(self.selection))
