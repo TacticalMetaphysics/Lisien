@@ -286,7 +286,7 @@ class RulesView(Widget):
 				show_art=False,
 				midline_text=what.capitalize(),
 				text=str(getattr(getattr(self.engine, what), name)),
-				editable=False,
+				editable=True,
 				edit_func=self._edit_something,
 			)
 			for name in rulefuncnames
