@@ -18,6 +18,10 @@ of other cards.
 
 """
 
+import pygments
+from pygments.formatters.bbcode import BBCodeFormatter
+from pygments.lexers import PythonLexer
+
 from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.logger import Logger
@@ -33,6 +37,7 @@ from kivy.properties import (
 	StringProperty,
 	BoundedNumericProperty,
 )
+from kivy.utils import get_hex_from_color
 from kivy.graphics import InstructionGroup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
@@ -184,6 +189,33 @@ class Card(FloatLayout):
 	font_name = StringProperty("Roboto-Regular")
 	font_size = NumericProperty(12)
 
+	editable = BooleanProperty(False)
+	edit_func = ObjectProperty()
+
+	def on_text(self, *args):
+		if "main_text" not in self.ids:
+			Clock.schedule_once(self.on_text, 0)
+			return
+		text = self.text.replace("\t", "    ")
+		if self.markup:
+			if not hasattr(self, "_lexer"):
+				self._lexer = PythonLexer()
+				self._formatter = BBCodeFormatter()
+			text = (
+				text.replace("[", "\x01")
+				.replace("]", "\x02")
+				.replace("\t", " " * 4)
+			)
+			text = pygments.format(
+				self._lexer.get_tokens(text),
+				self._formatter,
+			)
+			text = text.replace("\x01", "&bl;").replace("\x02", "&br;")
+			text = "".join(
+				f"[color={get_hex_from_color(self.text_color)}]{text}[/color]"
+			)
+		self.ids.main_text.text = text
+
 	def on_background_source(self, *args):
 		"""When I get a new ``background_source``, load it as an
 		:class:`Image` and store that in ``background_image``.
@@ -241,6 +273,10 @@ class Card(FloatLayout):
 		if not self.collide_point(*touch.pos):
 			return
 		if "card" in touch.ud:
+			return
+		if self.editable and self.ids.editbut.collide_point(*touch.pos):
+			touch.grab(self.ids.editbut)
+			self.ids.editbut.dispatch("on_touch_down", touch)
 			return
 		touch.grab(self)
 		self.dragging = True
@@ -312,6 +348,8 @@ class Card(FloatLayout):
 			"markup",
 			"font_name",
 			"font_size",
+			"editable",
+			"on_edit",
 		):
 			v = getattr(self, att)
 			if v is not None:
@@ -1094,7 +1132,7 @@ kv = """
 			outline_color: root.foreground_outline_color
 			texture: root.foreground_texture
 			Label:
-				text: root.text.replace('\t', '  ')
+				id: main_text
 				color: root.text_color
 				markup: root.markup
 				font_name: root.font_name
@@ -1104,6 +1142,22 @@ kv = """
 				size: self.texture_size
 				pos: foreground.pos
 				valign: 'top'
+			Button:
+				id: editbut
+				background_normal: 'atlas://data/images/defaulttheme/button' if root.editable else ''
+				background_down: 'atlas://data/images/defaulttheme/button_pressed' if root.editable else ''
+				color: (1., 1., 1., 1.) if root.editable else (0., 0., 0., 0.)
+				background_color: (1., 1., 1., 1.) if root.editable else (0., 0., 0., 0.)
+				text_size: self.size
+				size: self.texture_size
+				size_hint: (None, None)
+				font_name: 'DejaVuSans'
+				font_size: 30
+				x: foreground.right - self.width - (.1 * self.width)
+				y: foreground.top - self.height - (.1 * self.height)
+				text: '✐' if root.editable else ''
+				on_press: root.edit_func(root)
+				disabled: not root.editable
 		Label:
 			id: footer
 			text: root.footer_text

@@ -221,6 +221,8 @@ class Editor(BoxLayout):
 	"""Proxy to the ``FunctionStore`` or ``StringStore``"""
 	disable_text_input = BooleanProperty(False)
 	"""Whether to prevent text entry (not name entry)"""
+	deletable = BooleanProperty(True)
+	"""Whether to show a delete button"""
 	# This next is the trigger on the EdBox, which may redata the StoreList
 	_trigger_save = ObjectProperty()
 	_trigger_delete = ObjectProperty()
@@ -714,8 +716,13 @@ Builder.load_string("""
 			disabled_foreground_color: self.foreground_color
 		Button:
 			text: 'del'
-			size_hint_x: 0.1
+			size_hint_x: 0.1 if not self.disabled else 0.0
+			background_disabled_normal: ''
+			background_disabled_down: ''
+			disabled_color: (0., 0., 0., 0.)
+			background_disabled_color: (0., 0., 0., 0.)
 			on_release: root._trigger_delete()
+			disabled: not root.deletable
 	BoxLayout:
 		orientation: 'horizontal'
 		Label:
