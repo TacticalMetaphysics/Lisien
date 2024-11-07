@@ -58,7 +58,7 @@ Factory.register("CharMenu", cls=CharMenu)
 
 def release_edit_lock(*args):
 	app = App.get_running_app()
-	app.edit_locked = app.simulating
+	app.edit_locked = app.simulate_button_down
 
 
 class KvLayout(FloatLayout):
@@ -109,7 +109,7 @@ class SimulateButton(ToggleButton):
 
 	def on_state(self, *args):
 		app = App.get_running_app()
-		app.edit_locked = app.simulating = self.state == "down"
+		app.edit_locked = app.simulate_button_down = self.state == "down"
 
 
 class OneTurnButton(Button):
