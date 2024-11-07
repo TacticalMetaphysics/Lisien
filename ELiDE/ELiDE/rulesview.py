@@ -203,7 +203,9 @@ class RulesView(Widget):
 			self.bind(rule=getattr(self, "_trigger_pull_{}s".format(functyp)))
 		self._finalized = True
 
-	def _edit_something(self, what_store: str, what_function: str):
+	def _edit_something(self, card: Card):
+		what_store = card.ud["type"]
+		what_function = card.headline_text
 		Logger.info(f"EditButton: {what_store}.{what_function}")
 		if not hasattr(self, "rule_func_editor_modal"):
 			self.rule_func_editor_modal = ModalView()
@@ -216,6 +218,8 @@ class RulesView(Widget):
 				Logger.info(
 					f"EditButton: {what_store}.{what_function} {'not ' if not changed else ''}changed"
 				)
+				if changed:
+					card.text = self.rule_func_editor.source
 				self.rule_func_editor_modal.dismiss()
 
 			self.rule_func_editor_save_button = Button(

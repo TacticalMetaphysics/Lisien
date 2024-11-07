@@ -187,6 +187,12 @@ class Card(FloatLayout):
 	editable = BooleanProperty(False)
 	edit_func = ObjectProperty()
 
+	def on_text(self, *args):
+		if "main_text" not in self.ids:
+			Clock.schedule_once(self.on_text, 0)
+			return
+		self.ids.main_text.text = self.text.replace("\t", "    ")
+
 	def on_background_source(self, *args):
 		"""When I get a new ``background_source``, load it as an
 		:class:`Image` and store that in ``background_image``.
@@ -1103,7 +1109,7 @@ kv = """
 			outline_color: root.foreground_outline_color
 			texture: root.foreground_texture
 			Label:
-				text: root.text.replace('\t', '  ')
+				id: main_text
 				color: root.text_color
 				markup: root.markup
 				font_name: root.font_name
@@ -1127,7 +1133,7 @@ kv = """
 				x: foreground.right - self.width - (.1 * self.width)
 				y: foreground.top - self.height - (.1 * self.height)
 				text: '✐' if root.editable else ''
-				on_press: root.edit_func(root.ud["type"], root.headline_text)
+				on_press: root.edit_func(root)
 				disabled: not root.editable
 		Label:
 			id: footer
