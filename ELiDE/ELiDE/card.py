@@ -18,6 +18,10 @@ of other cards.
 
 """
 
+import pygments
+from pygments.formatters.bbcode import BBCodeFormatter
+from pygments.lexers import PythonLexer
+
 from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.logger import Logger
@@ -33,6 +37,7 @@ from kivy.properties import (
 	StringProperty,
 	BoundedNumericProperty,
 )
+from kivy.utils import get_hex_from_color
 from kivy.graphics import InstructionGroup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
@@ -191,7 +196,25 @@ class Card(FloatLayout):
 		if "main_text" not in self.ids:
 			Clock.schedule_once(self.on_text, 0)
 			return
-		self.ids.main_text.text = self.text.replace("\t", "    ")
+		text = self.text.replace("\t", "    ")
+		if self.markup:
+			if not hasattr(self, "_lexer"):
+				self._lexer = PythonLexer()
+				self._formatter = BBCodeFormatter()
+			text = (
+				text.replace("[", "\x01")
+				.replace("]", "\x02")
+				.replace("\t", " " * 4)
+			)
+			text = pygments.format(
+				self._lexer.get_tokens(text),
+				self._formatter,
+			)
+			text = text.replace("\x01", "&bl;").replace("\x02", "&br;")
+			text = "".join(
+				f"[color={get_hex_from_color(self.text_color)}]{text}[/color]"
+			)
+		self.ids.main_text.text = text
 
 	def on_background_source(self, *args):
 		"""When I get a new ``background_source``, load it as an
