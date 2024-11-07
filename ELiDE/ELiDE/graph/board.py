@@ -17,6 +17,7 @@
 from functools import partial
 from time import monotonic
 
+from kivy.app import App
 from kivy.properties import (
 	BooleanProperty,
 	ReferenceListProperty,
@@ -197,7 +198,9 @@ class GraphBoard(RelativeLayout):
 			return
 		if self.app.selection in self.selection_candidates:
 			self.selection_candidates.remove(self.app.selection)
-		if self.app.selection:
+		if self.app.edit_locked:
+			return
+		elif self.app.selection:
 			if not self.selection_candidates:
 				self.keep_selection = True
 			ret = super().on_touch_move(touch)
@@ -318,7 +321,11 @@ class GraphBoard(RelativeLayout):
 			sel = self.app.selection
 			if isinstance(sel, Widget):
 				sel.dispatch("on_touch_up", touch)
-			elif isinstance(sel, Stack) and touch.pos == sel.center:
+			elif (
+				isinstance(sel, Stack)
+				and touch.pos == sel.center
+				and not self.app.edit_locked
+			):
 				if hasattr(sel.proxy, "location"):
 					for candidate in self.stack_plane.iter_collided_keys(
 						*touch.pos

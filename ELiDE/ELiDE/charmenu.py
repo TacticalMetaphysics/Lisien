@@ -234,10 +234,12 @@ Builder.load_string("""
 	portaldirbut: portaldirbut
 	Button:
 		text: 'Delete'
+		disabled: app.edit_locked
 		on_release: app.delete_selection()
 	Button:
 		id: timestreambut
 		text: 'Timestream'
+		disabled: app.edit_locked
 		on_release: root.toggle_timestream()
 	Button:
 		id: gridviewbut
@@ -245,12 +247,15 @@ Builder.load_string("""
 		on_release: root.toggle_gridview()
 	Button:
 		text: 'Strings'
+		disabled: app.edit_locked
 		on_release: root.toggle_strings_editor()
 	Button:
 		text: 'Python'
+		disabled: app.edit_locked
 		on_release: root.toggle_funcs_editor()
 	Button:
 		text: 'Rules'
+		disabled: app.edit_locked
 		on_release: root.toggle_rules()
 	Button:
 		text: 'Characters'
@@ -262,9 +267,11 @@ Builder.load_string("""
 				id: dummyplace
 				center: placetab.center
 				prefix: 'place'
+				disabled: app.edit_locked
 				on_pos_up: root.spot_from_dummy(self)
 		Button:
 			text: 'cfg'
+			disabled: app.edit_locked
 			on_release: root.toggle_spot_cfg()
 	BoxLayout:
 		Widget:
@@ -273,14 +280,17 @@ Builder.load_string("""
 				id: dummything
 				center: thingtab.center
 				prefix: 'thing'
+				disabled: app.edit_locked
 				on_pos_up: root.pawn_from_dummy(self)
 		Button:
 			text: 'cfg'
+			disabled: app.edit_locked
 			on_release: root.toggle_pawn_cfg()
 	BoxLayout:
 		orientation: 'vertical'
 		ToggleButton:
 			id: portaladdbut
+			disabled: app.edit_locked
 			on_state: root._trigger_deselect()
 			Widget:
 				id: emptyleft
@@ -295,5 +305,6 @@ Builder.load_string("""
 		Button:
 			id: portaldirbut
 			text: 'One-way' if root.reciprocal_portal else 'Two-way'
+			disabled: app.edit_locked
 			on_release: root.toggle_reciprocal()
 """)

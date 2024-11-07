@@ -539,7 +539,11 @@ class CharMenuContainer(BoxLayout):
 			size_hint_y=0.1,
 		)
 		app = App.get_running_app()
-		app.bind(branch=self._switch_to_menu, turn=self._switch_to_menu)
+		app.bind(
+			branch=self._switch_to_menu,
+			turn=self._switch_to_menu,
+			edit_locked=self.button.setter("disabled"),
+		)
 
 	def on_parent(self, *args):
 		if (
@@ -646,6 +650,7 @@ Builder.load_string("""
 		id: cfgstatbut
 		size_hint_y: 0.05
 		text: root.button_text
+		disabled: app.edit_locked
 		on_release: root.toggle_stat_cfg()
 <SimulateButton>:
 	graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
@@ -704,6 +709,7 @@ Builder.load_string("""
 				id: branchfield
 				set_value: root.set_branch
 				hint_text: root.screen.app.branch if root.screen else ''
+				disabled: app.edit_locked
 		BoxLayout:
 			BoxLayout:
 				orientation: 'vertical'
@@ -714,6 +720,7 @@ Builder.load_string("""
 					id: turnfield
 					set_value: root.set_turn
 					hint_text: str(root.screen.app.turn) if root.screen else ''
+					disabled: app.edit_locked
 			BoxLayout:
 				orientation: 'vertical'
 				Label:
@@ -723,11 +730,13 @@ Builder.load_string("""
 					id: tickfield
 					set_value: root.set_tick
 					hint_text: str(root.screen.app.tick) if root.screen else ''
+					disabled: app.edit_locked
 	BoxLayout:
 		size_hint_y: 0.6
 		SimulateButton:
 			id: playbut
 			font_size: root.buttons_font_size
+			disabled: self.state != 'down' and app.edit_locked
 		OneTurnButton:
 			id: stepbut
 			font_size: root.buttons_font_size
@@ -751,6 +760,7 @@ Builder.load_string("""
 		value_track: True
 		pos_hint: {'bot': 0}
 		size_hint: (1, 0.1)
+		disabled: app.edit_locked
 	Widget:
 		id: mainview
 		x: statpanel.right
