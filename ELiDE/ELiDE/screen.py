@@ -56,6 +56,11 @@ from .util import dummynum, trigger
 Factory.register("CharMenu", cls=CharMenu)
 
 
+def release_edit_lock(*args):
+	app = App.get_running_app()
+	app.edit_locked = app.simulating
+
+
 class KvLayout(FloatLayout):
 	pass
 
@@ -104,7 +109,7 @@ class SimulateButton(ToggleButton):
 
 	def on_state(self, *args):
 		app = App.get_running_app()
-		app.edit_locked = self.state == "down"
+		app.edit_locked = app.simulating = self.state == "down"
 
 
 class OneTurnButton(Button):
@@ -120,11 +125,7 @@ class OneTurnButton(Button):
 
 	def on_release(self):
 		App.get_running_app().edit_locked = True
-		self.screen.next_turn(cb=self._release_edit_lock)
-
-	@staticmethod
-	def _release_edit_lock(*args):
-		App.get_running_app().edit_locked = False
+		self.screen.next_turn(cb=release_edit_lock)
 
 
 class TimePanel(BoxLayout):
@@ -428,7 +429,7 @@ class MainScreen(Screen):
 			or self.app.engine.closed
 		):
 			return
-		self.next_turn()
+		self.next_turn(cb=release_edit_lock)
 
 	def _update_from_next_turn(
 		self, command, branch, turn, tick, result, cb=None
