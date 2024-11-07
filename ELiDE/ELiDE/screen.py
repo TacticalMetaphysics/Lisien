@@ -129,8 +129,7 @@ class OneTurnButton(Button):
 
 
 class TimePanel(BoxLayout):
-	"""A panel that lets you to start and stop the game, or browse through
-	its history.
+	"""A panel that starts and stop the game, or sets the time.
 
 	There's a "simulate" button, which is toggleable. When toggled on, the
 	simulation will continue to run until it's toggled off
