@@ -25,14 +25,14 @@ class SelectableRecycleBoxLayout(
 	pass
 
 
-class trigger(object):
+class trigger:
 	"""Make a trigger from a method.
 
 	Decorate a method with this and it will become a trigger. Supply a
 	numeric parameter to set a timeout.
 
 	Not suitable for methods that expect any arguments other than
-	``dt``. However you should make your method accept ``*args`` for
+	``dt``. However, you should make your method accept ``*args`` for
 	compatibility.
 
 	"""
@@ -47,6 +47,7 @@ class trigger(object):
 
 	def __call__(self, func):
 		self.func = func
+		self.__doc__ = func.__doc__
 		return self
 
 	def __get__(self, instance, owner=None):
