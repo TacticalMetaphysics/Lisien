@@ -15,8 +15,8 @@ python -m build LiSE/
 rm -rf ELiDE/build ELiDE/dist
 python -m build ELiDE/
 python -m twine check LiSE/dist/* ELiDE/dist/*
-python -m twine upload LiSE/dist/*
-python -m twine upload ELiDE/dist/*
+python -m twine upload LiSE/dist/* ELiDE/dist/*
+python -m twine upload --repository codeberg LiSE/dist/* ELiDE/dist/*
 WINEPREFIX=~/.wine32 WINEARCH=win32 wine ~/lise_windows/python/python.exe -m pip install --upgrade LiSE ELiDE
 pyclean ~/lise_windows
 unix2dos -n CHANGES.txt ~/lise_windows/CHANGES.txt
