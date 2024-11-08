@@ -760,7 +760,7 @@ Builder.load_string("""
 		pos_hint: {'bot': 0}
 		size_hint: (1, 0.1)
 		disabled: app.edit_locked
-	Widget:
+	StencilView:
 		id: mainview
 		x: statpanel.right
 		y: turnscroll.top
