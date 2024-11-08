@@ -6,9 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ELiDE.graph.arrow &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=12dfc556" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
     <script src="../../../_static/documentation_options.js?v=fbc7b204"></script>
-    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -70,12 +71,8 @@
 	<span class="kn">from</span> <span class="nn">kivy.garden.collider</span> <span class="kn">import</span> <span class="n">Collide2DPoly</span>
 <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ImportError</span><span class="p">):</span>
 	<span class="kn">from</span> <span class="nn">..collide</span> <span class="kn">import</span> <span class="n">Collide2DPoly</span>
-<span class="kn">from</span> <span class="nn">..util</span> <span class="kn">import</span> <span class="p">(</span>
-	<span class="n">get_thin_rect_vertices</span><span class="p">,</span>
-	<span class="n">fortyfive</span><span class="p">,</span>
-	<span class="n">DEFAULT_ARROW_LABEL_KWARGS</span><span class="p">,</span>
-<span class="p">)</span>
 
+<span class="n">fortyfive</span> <span class="o">=</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span>
 <span class="n">cos45</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">fortyfive</span><span class="p">)</span>
 <span class="n">sin45</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">fortyfive</span><span class="p">)</span>
 
@@ -912,13 +909,73 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_rectangle</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">redraw</span><span class="p">()</span></div>
 
+
+
+<div class="viewcode-block" id="get_thin_rect_vertices">
+<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.arrow.get_thin_rect_vertices">[docs]</a>
+<span class="k">def</span> <span class="nf">get_thin_rect_vertices</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Given the starting point, ending point, and width, return a list of</span>
+<span class="sd">	vertex coordinates at the corners of the line segment</span>
+<span class="sd">	(really a thin rectangle).</span>
+
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="k">if</span> <span class="n">ox</span> <span class="o">&lt;</span> <span class="n">dx</span><span class="p">:</span>
+		<span class="n">leftx</span> <span class="o">=</span> <span class="n">ox</span>
+		<span class="n">rightx</span> <span class="o">=</span> <span class="n">dx</span>
+		<span class="n">xco</span> <span class="o">=</span> <span class="mi">1</span>
+	<span class="k">elif</span> <span class="n">ox</span> <span class="o">&gt;</span> <span class="n">dx</span><span class="p">:</span>
+		<span class="n">leftx</span> <span class="o">=</span> <span class="n">ox</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
+		<span class="n">rightx</span> <span class="o">=</span> <span class="n">dx</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
+		<span class="n">xco</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">return</span> <span class="p">[</span><span class="n">ox</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">ox</span> <span class="o">+</span> <span class="n">r</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">ox</span> <span class="o">+</span> <span class="n">r</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">ox</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span> <span class="n">dy</span><span class="p">]</span>
+	<span class="k">if</span> <span class="n">oy</span> <span class="o">&lt;</span> <span class="n">dy</span><span class="p">:</span>
+		<span class="n">boty</span> <span class="o">=</span> <span class="n">oy</span>
+		<span class="n">topy</span> <span class="o">=</span> <span class="n">dy</span>
+		<span class="n">yco</span> <span class="o">=</span> <span class="mi">1</span>
+	<span class="k">elif</span> <span class="n">oy</span> <span class="o">&gt;</span> <span class="n">dy</span><span class="p">:</span>
+		<span class="n">boty</span> <span class="o">=</span> <span class="n">oy</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
+		<span class="n">topy</span> <span class="o">=</span> <span class="n">dy</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
+		<span class="n">yco</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">return</span> <span class="p">[</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">oy</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">oy</span> <span class="o">+</span> <span class="n">r</span><span class="p">,</span> <span class="n">ox</span><span class="p">,</span> <span class="n">oy</span> <span class="o">+</span> <span class="n">r</span><span class="p">]</span>
+
+	<span class="n">rise</span> <span class="o">=</span> <span class="n">topy</span> <span class="o">-</span> <span class="n">boty</span>
+	<span class="n">run</span> <span class="o">=</span> <span class="n">rightx</span> <span class="o">-</span> <span class="n">leftx</span>
+	<span class="n">theta</span> <span class="o">=</span> <span class="n">atan</span><span class="p">(</span><span class="n">rise</span> <span class="o">/</span> <span class="n">run</span><span class="p">)</span>
+	<span class="n">theta_prime</span> <span class="o">=</span> <span class="n">ninety</span> <span class="o">-</span> <span class="n">theta</span>
+	<span class="n">xoff</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">theta_prime</span><span class="p">)</span> <span class="o">*</span> <span class="n">r</span>
+	<span class="n">yoff</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">theta_prime</span><span class="p">)</span> <span class="o">*</span> <span class="n">r</span>
+	<span class="n">x1</span> <span class="o">=</span> <span class="n">leftx</span> <span class="o">+</span> <span class="n">xoff</span>
+	<span class="n">y1</span> <span class="o">=</span> <span class="n">boty</span> <span class="o">-</span> <span class="n">yoff</span>
+	<span class="n">x2</span> <span class="o">=</span> <span class="n">rightx</span> <span class="o">+</span> <span class="n">xoff</span>
+	<span class="n">y2</span> <span class="o">=</span> <span class="n">topy</span> <span class="o">-</span> <span class="n">yoff</span>
+	<span class="n">x3</span> <span class="o">=</span> <span class="n">rightx</span> <span class="o">-</span> <span class="n">xoff</span>
+	<span class="n">y3</span> <span class="o">=</span> <span class="n">topy</span> <span class="o">+</span> <span class="n">yoff</span>
+	<span class="n">x4</span> <span class="o">=</span> <span class="n">leftx</span> <span class="o">-</span> <span class="n">xoff</span>
+	<span class="n">y4</span> <span class="o">=</span> <span class="n">boty</span> <span class="o">+</span> <span class="n">yoff</span>
+	<span class="k">return</span> <span class="p">[</span>
+		<span class="n">x1</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span>
+		<span class="n">y1</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
+		<span class="n">x2</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span>
+		<span class="n">y2</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
+		<span class="n">x3</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span>
+		<span class="n">y3</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
+		<span class="n">x4</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span>
+		<span class="n">y4</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
+	<span class="p">]</span></div>
+
+
+
+<span class="n">ninety</span> <span class="o">=</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span>
+<span class="n">DEFAULT_ARROW_LABEL_KWARGS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;font_size&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span> <span class="s2">&quot;bold&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
 </pre></div>
 
           </div>
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="../../../index.html">LiSE</a></h1>
 
@@ -929,7 +986,16 @@
 
 
 
-<h3>Navigation</h3>
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Introduction</a></li>
@@ -953,16 +1019,6 @@
   </ul></li>
 </ul>
 </div>
-<search id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</search>
-<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -979,8 +1035,8 @@
       &#169;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
     </div>
 

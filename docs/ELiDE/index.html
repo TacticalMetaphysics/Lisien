@@ -7,10 +7,10 @@
 
     <title>ELiDE &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=c058f7c8" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
     <script src="../_static/documentation_options.js?v=fbc7b204"></script>
-    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -582,6 +582,14 @@ screen they are at the moment.</p>
 <p>taillen is an integer specifying how long the arrowhead should be.</p>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="ELiDE.graph.arrow.get_thin_rect_vertices">
+<span class="sig-prename descclassname"><span class="pre">ELiDE.graph.arrow.</span></span><span class="sig-name descname"><span class="pre">get_thin_rect_vertices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ox</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/graph/arrow.html#get_thin_rect_vertices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.graph.arrow.get_thin_rect_vertices" title="Link to this definition">¶</a></dt>
+<dd><p>Given the starting point, ending point, and width, return a list of
+vertex coordinates at the corners of the line segment
+(really a thin rectangle).</p>
+</dd></dl>
+
 </section>
 </section>
 <section id="grid">
@@ -755,8 +763,7 @@ in the StatListPanel.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.screen.TimePanel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.screen.</span></span><span class="sig-name descname"><span class="pre">TimePanel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#TimePanel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.screen.TimePanel" title="Link to this definition">¶</a></dt>
-<dd><p>A panel that lets you to start and stop the game, or browse through
-its history.</p>
+<dd><p>A panel that starts and stop the game, or sets the time.</p>
 <p>There’s a “simulate” button, which is toggleable. When toggled on, the
 simulation will continue to run until it’s toggled off
 again. Next to this is a “1 turn” button, which will simulate
@@ -2082,6 +2089,12 @@ and edit its value in a text box.</p>
 <dt class="sig sig-object py" id="ELiDE.stores.Editor">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.stores.</span></span><span class="sig-name descname"><span class="pre">Editor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#Editor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.stores.Editor" title="Link to this definition">¶</a></dt>
 <dd><p>Abstract widget for editing strings or functions</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ELiDE.stores.Editor.deletable">
+<span class="sig-name descname"><span class="pre">deletable</span></span><a class="headerlink" href="#ELiDE.stores.Editor.deletable" title="Link to this definition">¶</a></dt>
+<dd><p>Whether to show a delete button</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="ELiDE.stores.Editor.delete">
 <span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#Editor.delete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.stores.Editor.delete" title="Link to this definition">¶</a></dt>
@@ -2355,26 +2368,6 @@ languages, and switch between them programmatically by setting
 starts the same.</p>
 </dd></dl>
 
-<dl class="py data">
-<dt class="sig sig-object py" id="ELiDE.util.fortyfive">
-<span class="sig-prename descclassname"><span class="pre">ELiDE.util.</span></span><span class="sig-name descname"><span class="pre">fortyfive</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.7853981633974483</span></em><a class="headerlink" href="#ELiDE.util.fortyfive" title="Link to this definition">¶</a></dt>
-<dd><p>pi / 4</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="ELiDE.util.get_thin_rect_vertices">
-<span class="sig-prename descclassname"><span class="pre">ELiDE.util.</span></span><span class="sig-name descname"><span class="pre">get_thin_rect_vertices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ox</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/util.html#get_thin_rect_vertices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.util.get_thin_rect_vertices" title="Link to this definition">¶</a></dt>
-<dd><p>Given the starting point, ending point, and width, return a list of
-vertex coordinates at the corners of the line segment
-(really a thin rectangle).</p>
-</dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="ELiDE.util.ninety">
-<span class="sig-prename descclassname"><span class="pre">ELiDE.util.</span></span><span class="sig-name descname"><span class="pre">ninety</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.5707963267948966</span></em><a class="headerlink" href="#ELiDE.util.ninety" title="Link to this definition">¶</a></dt>
-<dd><p>pi / 2</p>
-</dd></dl>
-
 <dl class="py class">
 <dt class="sig sig-object py" id="ELiDE.util.trigger">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ELiDE.util.</span></span><span class="sig-name descname"><span class="pre">trigger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func_or_timeout</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/util.html#trigger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.util.trigger" title="Link to this definition">¶</a></dt>
@@ -2382,15 +2375,8 @@ vertex coordinates at the corners of the line segment
 <p>Decorate a method with this and it will become a trigger. Supply a
 numeric parameter to set a timeout.</p>
 <p>Not suitable for methods that expect any arguments other than
-<code class="docutils literal notranslate"><span class="pre">dt</span></code>. However you should make your method accept <code class="docutils literal notranslate"><span class="pre">*args</span></code> for
+<code class="docutils literal notranslate"><span class="pre">dt</span></code>. However, you should make your method accept <code class="docutils literal notranslate"><span class="pre">*args</span></code> for
 compatibility.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="ELiDE.util.try_load">
-<span class="sig-prename descclassname"><span class="pre">ELiDE.util.</span></span><span class="sig-name descname"><span class="pre">try_load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/util.html#try_load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ELiDE.util.try_load" title="Link to this definition">¶</a></dt>
-<dd><p>Return the JSON interpretation the object if possible, or just the
-object otherwise.</p>
 </dd></dl>
 
 </section>
@@ -2677,11 +2663,7 @@ set the title in the class as previously stated in the documentation.</p>
 <li class="toctree-l2"><a class="reference internal" href="#util">util</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.SelectableRecycleBoxLayout"><code class="docutils literal notranslate"><span class="pre">SelectableRecycleBoxLayout</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.dummynum"><code class="docutils literal notranslate"><span class="pre">dummynum()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.fortyfive"><code class="docutils literal notranslate"><span class="pre">fortyfive</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.get_thin_rect_vertices"><code class="docutils literal notranslate"><span class="pre">get_thin_rect_vertices()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.ninety"><code class="docutils literal notranslate"><span class="pre">ninety</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.trigger"><code class="docutils literal notranslate"><span class="pre">trigger</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ELiDE.util.try_load"><code class="docutils literal notranslate"><span class="pre">try_load()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#app">app</a><ul>
@@ -2716,7 +2698,7 @@ set the title in the class as previously stated in the documentation.</p>
       &#169;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.0.2</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
       |

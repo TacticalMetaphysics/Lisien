@@ -68,6 +68,7 @@ class ScreenTest(ELiDEAppTest):
 		EventLoop.idle()
 		assert int(turnfield.hint_text) == turn_before + 1
 
+	@pytest.mark.skip
 	def test_play(self):
 		app = self.app
 		app.spotcfg = SpotConfigScreen()

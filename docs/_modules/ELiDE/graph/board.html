@@ -50,6 +50,7 @@
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">monotonic</span>
 
+<span class="kn">from</span> <span class="nn">kivy.app</span> <span class="kn">import</span> <span class="n">App</span>
 <span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span>
 	<span class="n">BooleanProperty</span><span class="p">,</span>
 	<span class="n">ReferenceListProperty</span><span class="p">,</span>
@@ -71,10 +72,16 @@
 <span class="kn">from</span> <span class="nn">ELiDE.pawnspot</span> <span class="kn">import</span> <span class="n">TextureStackPlane</span><span class="p">,</span> <span class="n">Stack</span>
 <span class="kn">from</span> <span class="nn">LiSE.util</span> <span class="kn">import</span> <span class="n">normalize_layout</span>
 <span class="kn">from</span> <span class="nn">.spot</span> <span class="kn">import</span> <span class="n">GraphSpot</span>
-<span class="kn">from</span> <span class="nn">.arrow</span> <span class="kn">import</span> <span class="n">GraphArrow</span><span class="p">,</span> <span class="n">GraphArrowWidget</span><span class="p">,</span> <span class="n">ArrowPlane</span><span class="p">,</span> <span class="n">get_points_multi</span>
+<span class="kn">from</span> <span class="nn">.arrow</span> <span class="kn">import</span> <span class="p">(</span>
+	<span class="n">GraphArrow</span><span class="p">,</span>
+	<span class="n">GraphArrowWidget</span><span class="p">,</span>
+	<span class="n">ArrowPlane</span><span class="p">,</span>
+	<span class="n">get_points_multi</span><span class="p">,</span>
+	<span class="n">DEFAULT_ARROW_LABEL_KWARGS</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">.pawn</span> <span class="kn">import</span> <span class="n">Pawn</span>
 <span class="kn">from</span> <span class="nn">..dummy</span> <span class="kn">import</span> <span class="n">Dummy</span>
-<span class="kn">from</span> <span class="nn">..util</span> <span class="kn">import</span> <span class="n">trigger</span><span class="p">,</span> <span class="n">DEFAULT_ARROW_LABEL_KWARGS</span>
+<span class="kn">from</span> <span class="nn">..util</span> <span class="kn">import</span> <span class="n">trigger</span>
 <span class="kn">from</span> <span class="nn">..boardview</span> <span class="kn">import</span> <span class="n">BoardView</span>
 <span class="kn">from</span> <span class="nn">..boardscatter</span> <span class="kn">import</span> <span class="n">BoardScatterPlane</span>
 
@@ -246,7 +253,9 @@
 			<span class="k">return</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selection</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection_candidates</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">selection_candidates</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selection</span><span class="p">)</span>
-		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selection</span><span class="p">:</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">edit_locked</span><span class="p">:</span>
+			<span class="k">return</span>
+		<span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selection</span><span class="p">:</span>
 			<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection_candidates</span><span class="p">:</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">keep_selection</span> <span class="o">=</span> <span class="kc">True</span>
 			<span class="n">ret</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">on_touch_move</span><span class="p">(</span><span class="n">touch</span><span class="p">)</span>
@@ -373,7 +382,11 @@
 			<span class="n">sel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selection</span>
 			<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sel</span><span class="p">,</span> <span class="n">Widget</span><span class="p">):</span>
 				<span class="n">sel</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s2">&quot;on_touch_up&quot;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
-			<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sel</span><span class="p">,</span> <span class="n">Stack</span><span class="p">)</span> <span class="ow">and</span> <span class="n">touch</span><span class="o">.</span><span class="n">pos</span> <span class="o">==</span> <span class="n">sel</span><span class="o">.</span><span class="n">center</span><span class="p">:</span>
+			<span class="k">elif</span> <span class="p">(</span>
+				<span class="nb">isinstance</span><span class="p">(</span><span class="n">sel</span><span class="p">,</span> <span class="n">Stack</span><span class="p">)</span>
+				<span class="ow">and</span> <span class="n">touch</span><span class="o">.</span><span class="n">pos</span> <span class="o">==</span> <span class="n">sel</span><span class="o">.</span><span class="n">center</span>
+				<span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">edit_locked</span>
+			<span class="p">):</span>
 				<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sel</span><span class="o">.</span><span class="n">proxy</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">):</span>
 					<span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">iter_collided_keys</span><span class="p">(</span>
 						<span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span>

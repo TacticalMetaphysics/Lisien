@@ -89,6 +89,11 @@
 <span class="n">Factory</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">CharMenu</span><span class="p">)</span>
 
 
+<span class="k">def</span> <span class="nf">release_edit_lock</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
+	<span class="n">app</span><span class="o">.</span><span class="n">edit_locked</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">simulate_button_down</span>
+
+
 <div class="viewcode-block" id="KvLayout">
 <a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.KvLayout">[docs]</a>
 <span class="k">class</span> <span class="nc">KvLayout</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
@@ -145,7 +150,7 @@
 
 	<span class="k">def</span> <span class="nf">on_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
-		<span class="n">app</span><span class="o">.</span><span class="n">edit_locked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;down&quot;</span></div>
+		<span class="n">app</span><span class="o">.</span><span class="n">edit_locked</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">simulate_button_down</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;down&quot;</span></div>
 
 
 
@@ -164,19 +169,14 @@
 
 	<span class="k">def</span> <span class="nf">on_release</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">edit_locked</span> <span class="o">=</span> <span class="kc">True</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">next_turn</span><span class="p">(</span><span class="n">cb</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_release_edit_lock</span><span class="p">)</span>
-
-	<span class="nd">@staticmethod</span>
-	<span class="k">def</span> <span class="nf">_release_edit_lock</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">edit_locked</span> <span class="o">=</span> <span class="kc">False</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">next_turn</span><span class="p">(</span><span class="n">cb</span><span class="o">=</span><span class="n">release_edit_lock</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="TimePanel">
 <a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.TimePanel">[docs]</a>
 <span class="k">class</span> <span class="nc">TimePanel</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&quot;&quot;&quot;A panel that lets you to start and stop the game, or browse through</span>
-<span class="sd">	its history.</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;A panel that starts and stop the game, or sets the time.</span>
 
 <span class="sd">	There&#39;s a &quot;simulate&quot; button, which is toggleable. When toggled on, the</span>
 <span class="sd">	simulation will continue to run until it&#39;s toggled off</span>
@@ -493,9 +493,12 @@
 			<span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">,</span> <span class="s2">&quot;engine&quot;</span><span class="p">)</span>
 			<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span> <span class="ow">is</span> <span class="kc">None</span>
 			<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">closed</span>
+			<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">universal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;block&quot;</span><span class="p">)</span>
+			<span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">,</span> <span class="s2">&quot;manager&quot;</span><span class="p">)</span>
+			<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">!=</span> <span class="s2">&quot;main&quot;</span>
 		<span class="p">):</span>
 			<span class="k">return</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">next_turn</span><span class="p">()</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">next_turn</span><span class="p">(</span><span class="n">cb</span><span class="o">=</span><span class="n">release_edit_lock</span><span class="p">)</span></div>
 
 
 	<span class="k">def</span> <span class="nf">_update_from_next_turn</span><span class="p">(</span>
@@ -609,7 +612,11 @@
 			<span class="n">size_hint_y</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
 		<span class="p">)</span>
 		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
-		<span class="n">app</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">branch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_switch_to_menu</span><span class="p">,</span> <span class="n">turn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_switch_to_menu</span><span class="p">)</span>
+		<span class="n">app</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+			<span class="n">branch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_switch_to_menu</span><span class="p">,</span>
+			<span class="n">turn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_switch_to_menu</span><span class="p">,</span>
+			<span class="n">edit_locked</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">button</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;disabled&quot;</span><span class="p">),</span>
+		<span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="k">if</span> <span class="p">(</span>
@@ -726,6 +733,7 @@
 <span class="s2">		id: cfgstatbut</span>
 <span class="s2">		size_hint_y: 0.05</span>
 <span class="s2">		text: root.button_text</span>
+<span class="s2">		disabled: app.edit_locked</span>
 <span class="s2">		on_release: root.toggle_stat_cfg()</span>
 <span class="s2">&lt;SimulateButton&gt;:</span>
 <span class="s2">	graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)</span>
@@ -784,6 +792,7 @@
 <span class="s2">				id: branchfield</span>
 <span class="s2">				set_value: root.set_branch</span>
 <span class="s2">				hint_text: root.screen.app.branch if root.screen else &#39;&#39;</span>
+<span class="s2">				disabled: app.edit_locked</span>
 <span class="s2">		BoxLayout:</span>
 <span class="s2">			BoxLayout:</span>
 <span class="s2">				orientation: &#39;vertical&#39;</span>
@@ -794,6 +803,7 @@
 <span class="s2">					id: turnfield</span>
 <span class="s2">					set_value: root.set_turn</span>
 <span class="s2">					hint_text: str(root.screen.app.turn) if root.screen else &#39;&#39;</span>
+<span class="s2">					disabled: app.edit_locked</span>
 <span class="s2">			BoxLayout:</span>
 <span class="s2">				orientation: &#39;vertical&#39;</span>
 <span class="s2">				Label:</span>
@@ -803,11 +813,13 @@
 <span class="s2">					id: tickfield</span>
 <span class="s2">					set_value: root.set_tick</span>
 <span class="s2">					hint_text: str(root.screen.app.tick) if root.screen else &#39;&#39;</span>
+<span class="s2">					disabled: app.edit_locked</span>
 <span class="s2">	BoxLayout:</span>
 <span class="s2">		size_hint_y: 0.6</span>
 <span class="s2">		SimulateButton:</span>
 <span class="s2">			id: playbut</span>
 <span class="s2">			font_size: root.buttons_font_size</span>
+<span class="s2">			disabled: self.state != &#39;down&#39; and app.edit_locked</span>
 <span class="s2">		OneTurnButton:</span>
 <span class="s2">			id: stepbut</span>
 <span class="s2">			font_size: root.buttons_font_size</span>
@@ -831,7 +843,8 @@
 <span class="s2">		value_track: True</span>
 <span class="s2">		pos_hint: {&#39;bot&#39;: 0}</span>
 <span class="s2">		size_hint: (1, 0.1)</span>
-<span class="s2">	Widget:</span>
+<span class="s2">		disabled: app.edit_locked</span>
+<span class="s2">	StencilView:</span>
 <span class="s2">		id: mainview</span>
 <span class="s2">		x: statpanel.right</span>
 <span class="s2">		y: turnscroll.top</span>
