@@ -318,7 +318,12 @@ class Agenda(AbstractCalendar):
 		endturn = curturn + len(next(iter(schedule.values())))
 		data = []
 		stats = sorted(
-			(stat for stat in schedule if not stat.startswith("_")), key=key
+			(
+				stat
+				for stat in schedule
+				if not (isinstance(stat, str) and stat[0] == "_")
+			),
+			key=key,
 		)
 		headers = self.headers
 		turn_labels = self.turn_labels
@@ -326,7 +331,7 @@ class Agenda(AbstractCalendar):
 			if turn_labels:
 				data.append({"widget": "Label", "text": ""})
 			for stat in stats:
-				if stat.startswith("_"):
+				if isinstance(stat, str) and stat[0] == "_":
 					continue
 				data.append(
 					{"widget": "Label", "text": str(stat), "bold": True}
@@ -386,7 +391,12 @@ class Calendar(AbstractCalendar):
 		endturn = curturn + len(next(iter(schedule.values())))
 		data = []
 		stats = sorted(
-			(stat for stat in schedule if not stat.startswith("_")), key=key
+			(
+				stat
+				for stat in schedule
+				if not (isinstance(stat, str) and stat[0] == "_")
+			),
+			key=key,
 		)
 		iters = {stat: iter(values) for (stat, values) in schedule.items()}
 		headers = self.headers
