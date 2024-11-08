@@ -43,11 +43,6 @@ from .graph import DiGraph, Node, Edge, GraphsMapping
 from .query import (
 	QueryEngine,
 	TimeError,
-	NodeRowType,
-	EdgeRowType,
-	GraphValRowType,
-	NodeValRowType,
-	EdgeValRowType,
 )
 from .window import HistoricKeyError
 
