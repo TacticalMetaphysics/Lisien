@@ -46,7 +46,7 @@ from .query import (
 )
 from .window import HistoricKeyError
 
-Key = Union[str, int, float, Tuple["Key"], FrozenSet["Key"]]
+Key = Union[str, int, float, Tuple["Key", ...], FrozenSet["Key"]]
 """Type hint for things LiSE can use as keys
 
 They have to be serializable using LiSE's particular msgpack schema,
