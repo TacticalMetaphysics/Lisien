@@ -944,7 +944,9 @@ class ORM:
 		] = (edge_objs, self._edge_exists, self._make_edge)
 		self._childbranch: Dict[str, Set[str]] = defaultdict(set)
 		"""Immediate children of a branch"""
-		self._branches: Dict[str, Tuple[int, int, int, int]] = {}
+		self._branches: Dict[
+			str, Tuple[Optional[str], int, int, int, int]
+		] = {}
 		"""Parent, start time, and end time of each branch. Includes plans."""
 		self._branch_parents: Dict[str, Set[str]] = defaultdict(set)
 		"""Parents of a branch at any remove"""
