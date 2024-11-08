@@ -9,6 +9,13 @@ from kivy.properties import BooleanProperty, NumericProperty
 from ELiDE.game import GameApp, GameScreen, GridBoard
 
 
+def remove_prefix(s: str, prefix: str):
+	"""py3.8 compat"""
+	if s.startswith(prefix):
+		return s[len(prefix) :]
+	return s
+
+
 def game_start(engine) -> None:
 	from random import randint, shuffle
 	import networkx as nx
@@ -148,7 +155,7 @@ def game_start(engine) -> None:
 		maxnum = 0
 		for unit in lit_.units():
 			if unit.name.startswith("flyer"):
-				maxnum = max((int(unit.name.removeprefix("flyer")), maxnum))
+				maxnum = max((int(remove_prefix(unit.name, "flyer")), maxnum))
 		scroll = person.location.new_thing(
 			f"flyer{maxnum:02}",
 			nonusage=0,
@@ -193,7 +200,7 @@ class AwarenessGridBoard(GridBoard):
 			if contained.name.startswith("center"):
 				return
 		name = f"""center{max(
-			int(name.removeprefix('center')) for name in self.character.thing.keys()
+			int(remove_prefix(name,'center')) for name in self.character.thing.keys()
 			if isinstance(name, str) and name.startswith('center')) + 1}"""
 		prox.add_thing(
 			name,
@@ -223,7 +230,7 @@ class MainGame(GameScreen):
 		"""Regenerate the whole map"""
 		branch = self.engine.branch
 		try:
-			branchidx = int(branch.removeprefix("branch")) + 1
+			branchidx = int(remove_prefix(branch, "branch")) + 1
 			branch = f"branch{branchidx:02}"
 		except ValueError:
 			branch = f"branch01"
