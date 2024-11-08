@@ -3105,8 +3105,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		newkf = {}
 		contkf = {}
 		for name, node in nodes.items():
-			if isinstance(node, bool):
-				raise TypeError(f"{name}: can't nodeify booleans")
+			if not isinstance(node, dict):
+				raise TypeError("nodes in keyframes must be dictionaries")
 			if "location" not in node:
 				continue
 			locn = node["location"]
