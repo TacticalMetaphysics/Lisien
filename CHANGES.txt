@@ -1,4 +1,11 @@
-== 0.17.0 | 2024-10-31
+== 0.17.1 | 2024-11-09 ==
+* Disable editing all throughout ELiDE whenever the simulation is running.
+  It was only disabled sometimes, in some parts of the UI.
+* Add a button to edit a function card without backing out of the rule editor
+* Fix ELiDE crash in Python 3.8 when making more than one new Place or Thing
+
+
+== 0.17.0 | 2024-10-31 ==
 * Overhaul the entire caching infrastructure, which should greatly cut down on
   crashes. No new features, but it does make some changes to the database
   schema.

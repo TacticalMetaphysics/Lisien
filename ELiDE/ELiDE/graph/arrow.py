@@ -38,12 +38,8 @@ try:
 	from kivy.garden.collider import Collide2DPoly
 except (KeyError, ImportError):
 	from ..collide import Collide2DPoly
-from ..util import (
-	get_thin_rect_vertices,
-	fortyfive,
-	DEFAULT_ARROW_LABEL_KWARGS,
-)
 
+fortyfive = pi / 4
 cos45 = cos(fortyfive)
 sin45 = sin(fortyfive)
 
@@ -868,3 +864,60 @@ class ArrowPlane(Widget):
 			return
 		self._rectangle.size = self._fbo.size = self.size
 		self.redraw()
+
+
+def get_thin_rect_vertices(ox, oy, dx, dy, r):
+	"""Given the starting point, ending point, and width, return a list of
+	vertex coordinates at the corners of the line segment
+	(really a thin rectangle).
+
+	"""
+	if ox < dx:
+		leftx = ox
+		rightx = dx
+		xco = 1
+	elif ox > dx:
+		leftx = ox * -1
+		rightx = dx * -1
+		xco = -1
+	else:
+		return [ox - r, oy, ox + r, oy, ox + r, dy, ox - r, dy]
+	if oy < dy:
+		boty = oy
+		topy = dy
+		yco = 1
+	elif oy > dy:
+		boty = oy * -1
+		topy = dy * -1
+		yco = -1
+	else:
+		return [ox, oy - r, dx, oy - r, dx, oy + r, ox, oy + r]
+
+	rise = topy - boty
+	run = rightx - leftx
+	theta = atan(rise / run)
+	theta_prime = ninety - theta
+	xoff = cos(theta_prime) * r
+	yoff = sin(theta_prime) * r
+	x1 = leftx + xoff
+	y1 = boty - yoff
+	x2 = rightx + xoff
+	y2 = topy - yoff
+	x3 = rightx - xoff
+	y3 = topy + yoff
+	x4 = leftx - xoff
+	y4 = boty + yoff
+	return [
+		x1 * xco,
+		y1 * yco,
+		x2 * xco,
+		y2 * yco,
+		x3 * xco,
+		y3 * yco,
+		x4 * xco,
+		y4 * yco,
+	]
+
+
+ninety = pi / 2
+DEFAULT_ARROW_LABEL_KWARGS = {"font_size": 16, "bold": True}

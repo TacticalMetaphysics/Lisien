@@ -23,6 +23,7 @@ __all__ = [
 	"card",
 	"dialog",
 	"game",
+	"menu",
 	"spritebuilder",
 	"calendar",
 ]

@@ -39,10 +39,16 @@ from kivy.vector import Vector
 from ELiDE.pawnspot import TextureStackPlane, Stack
 from LiSE.util import normalize_layout
 from .spot import GraphSpot
-from .arrow import GraphArrow, GraphArrowWidget, ArrowPlane, get_points_multi
+from .arrow import (
+	GraphArrow,
+	GraphArrowWidget,
+	ArrowPlane,
+	get_points_multi,
+	DEFAULT_ARROW_LABEL_KWARGS,
+)
 from .pawn import Pawn
 from ..dummy import Dummy
-from ..util import trigger, DEFAULT_ARROW_LABEL_KWARGS
+from ..util import trigger
 from ..boardview import BoardView
 from ..boardscatter import BoardScatterPlane
 

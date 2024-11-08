@@ -43,15 +43,10 @@ from .graph import DiGraph, Node, Edge, GraphsMapping
 from .query import (
 	QueryEngine,
 	TimeError,
-	NodeRowType,
-	EdgeRowType,
-	GraphValRowType,
-	NodeValRowType,
-	EdgeValRowType,
 )
 from .window import HistoricKeyError
 
-Key = Union[str, int, float, Tuple["Key"], FrozenSet["Key"]]
+Key = Union[str, int, float, Tuple["Key", ...], FrozenSet["Key"]]
 """Type hint for things LiSE can use as keys
 
 They have to be serializable using LiSE's particular msgpack schema,
@@ -254,17 +249,16 @@ class TimeSignal(Signal):
 
 class TimeSignalDescriptor:
 	__doc__ = TimeSignal.__doc__
-	signals = {}
 
 	def __get__(self, inst, cls):
-		if id(inst) not in self.signals:
-			self.signals[id(inst)] = TimeSignal(inst)
-		return self.signals[id(inst)]
+		if not hasattr(inst, "_time_signal"):
+			inst._time_signal = TimeSignal(inst)
+		return inst._time_signal
 
-	def __set__(self, inst: "ORM", val):
-		if id(inst) not in self.signals:
-			self.signals[id(inst)] = TimeSignal(inst)
-		sig = self.signals[id(inst)]
+	def __set__(self, inst: "ORM", val: Tuple[str, int]):
+		if not hasattr(inst, "_time_signal"):
+			inst._time_signal = TimeSignal(inst)
+		sig = inst._time_signal
 		branch_then, turn_then, tick_then = inst._btt()
 		branch_now, turn_now = val
 		if (branch_then, turn_then) == (branch_now, turn_now):
@@ -944,7 +938,9 @@ class ORM:
 		] = (edge_objs, self._edge_exists, self._make_edge)
 		self._childbranch: Dict[str, Set[str]] = defaultdict(set)
 		"""Immediate children of a branch"""
-		self._branches: Dict[str, Tuple[int, int, int, int]] = {}
+		self._branches: Dict[
+			str, Tuple[Optional[str], int, int, int, int]
+		] = {}
 		"""Parent, start time, and end time of each branch. Includes plans."""
 		self._branch_parents: Dict[str, Set[str]] = defaultdict(set)
 		"""Parents of a branch at any remove"""

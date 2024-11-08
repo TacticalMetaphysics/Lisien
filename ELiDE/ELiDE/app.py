@@ -415,7 +415,8 @@ class ELiDEApp(App):
 		stats = [
 			stat
 			for stat in self.selected_proxy
-			if not stat.startswith("_")
+			if isinstance(stat, str)
+			and not stat.startswith("_")
 			and stat not in ("character", "name", "units", "wallpaper")
 		]
 		if "_config" in self.selected_proxy:
