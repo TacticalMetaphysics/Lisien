@@ -2901,7 +2901,7 @@ class Engine(AbstractEngine, gORM, Executor):
 					data = from_dict_of_dicts(data)
 				except AttributeError:
 					data = from_dict_of_lists(data)
-			nodes = data.nodes()
+			nodes = data.nodes
 			try:
 				layout = normalize_layout(
 					{
