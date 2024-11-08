@@ -63,17 +63,6 @@ class trigger:
 		return retval
 
 
-def try_load(loader, obj):
-	"""Return the JSON interpretation the object if possible, or just the
-	object otherwise.
-
-	"""
-	try:
-		return loader(obj)
-	except (TypeError, ValueError):
-		return obj
-
-
 def dummynum(character, name):
 	"""Count how many nodes there already are in the character whose name
 	starts the same.

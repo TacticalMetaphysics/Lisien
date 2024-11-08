@@ -22,7 +22,7 @@ from kivy.properties import (
 	ReferenceListProperty,
 )
 from .graph.arrow import GraphArrowWidget
-from .util import try_load, dummynum, trigger
+from .util import dummynum, trigger
 from LiSE.proxy import CharStatProxy
 
 
@@ -200,9 +200,11 @@ class CharMenu(BoxLayout):
 				self.revarrow = None
 
 	def new_character(self, but):
-		charn = try_load(
-			self.app.engine.unpack, self.app.chars.ids.newname.text
-		)
+		name = self.app.chars.ids.newname.text
+		try:
+			charn = self.app.engine.unpack(name)
+		except (TypeError, ValueError):
+			charn = name
 		self.app.select_character(self.app.engine.new_character(charn))
 		self.app.chars.ids.newname.text = ""
 		self.app.chars.charsview.adapter.data = list(
