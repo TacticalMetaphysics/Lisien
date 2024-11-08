@@ -254,17 +254,16 @@ class TimeSignal(Signal):
 
 class TimeSignalDescriptor:
 	__doc__ = TimeSignal.__doc__
-	signals = {}
 
 	def __get__(self, inst, cls):
-		if id(inst) not in self.signals:
-			self.signals[id(inst)] = TimeSignal(inst)
-		return self.signals[id(inst)]
+		if not hasattr(inst, "_time_signal"):
+			inst._time_signal = TimeSignal(inst)
+		return inst._time_signal
 
-	def __set__(self, inst: "ORM", val):
-		if id(inst) not in self.signals:
-			self.signals[id(inst)] = TimeSignal(inst)
-		sig = self.signals[id(inst)]
+	def __set__(self, inst: "ORM", val: Tuple[str, int]):
+		if not hasattr(inst, "_time_signal"):
+			inst._time_signal = TimeSignal(inst)
+		sig = inst._time_signal
 		branch_then, turn_then, tick_then = inst._btt()
 		branch_now, turn_now = val
 		if (branch_then, turn_then) == (branch_now, turn_now):
