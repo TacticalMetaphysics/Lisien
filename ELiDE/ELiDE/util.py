@@ -71,7 +71,7 @@ def dummynum(character, name):
 	num = 0
 	for nodename in character.node:
 		nodename = str(nodename)
-		if not nodename.startswith(name):
+		if nodename[: len(name)] != name:
 			continue
 		try:
 			nodenum = int(nodename.lstrip(name))
