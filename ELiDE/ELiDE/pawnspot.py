@@ -20,7 +20,6 @@ from operator import itemgetter
 from time import monotonic
 
 import numpy as np
-from kivy.app import App
 from kivy.core.image import Image
 from kivy.graphics.fbo import Fbo
 from kivy.properties import ObjectProperty, BooleanProperty, ListProperty
