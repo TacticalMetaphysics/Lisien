@@ -12,9 +12,12 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from kivy.clock import Clock
+from kivy.clock import Clock, triggered
 from kivy.properties import NumericProperty, ObjectProperty
-from .util import trigger
+
+
+def trigger(func):
+	return triggered()(func)
 
 
 class PawnBehavior:

@@ -29,7 +29,7 @@ from ast import parse
 from textwrap import indent, dedent
 
 from kivy.app import App
-from kivy.clock import Clock
+from kivy.clock import Clock, triggered
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.uix.boxlayout import BoxLayout
@@ -47,7 +47,10 @@ from kivy.properties import (
 	ObjectProperty,
 	StringProperty,
 )
-from .util import trigger
+
+
+def trigger(func):
+	return triggered()(func)
 
 
 class RecycleToggleButton(ToggleButton, RecycleDataViewBehavior):

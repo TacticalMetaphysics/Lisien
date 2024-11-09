@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from kivy.clock import Clock
+from kivy.clock import Clock, triggered
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 
@@ -22,8 +22,12 @@ from kivy.properties import (
 	ReferenceListProperty,
 )
 from .graph.arrow import GraphArrowWidget
-from .util import dummynum, trigger
+from .util import dummynum
 from LiSE.proxy import CharStatProxy
+
+
+def trigger(func):
+	return triggered()(func)
 
 
 class CharMenu(BoxLayout):

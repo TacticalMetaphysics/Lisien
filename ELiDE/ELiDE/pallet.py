@@ -18,7 +18,7 @@ one :class:`kivy.uix.togglebutton.ToggleButton` apiece, arranged in a
 from the :class:`Pallet`, and the :class:`Pallet` updates its
 ``selection`` list to show what the user selected."""
 
-from kivy.clock import Clock, mainthread
+from kivy.clock import Clock, mainthread, triggered
 from kivy.properties import (
 	DictProperty,
 	NumericProperty,
@@ -36,7 +36,10 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.stacklayout import StackLayout
 from kivy.graphics import Rectangle
-from .util import trigger
+
+
+def trigger(func):
+	return triggered()(func)
 
 
 class SwatchButton(ToggleButton):

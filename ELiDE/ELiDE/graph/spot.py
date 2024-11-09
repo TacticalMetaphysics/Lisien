@@ -17,12 +17,15 @@ top of these.
 
 """
 
-from kivy.clock import Clock
+from kivy.clock import Clock, triggered
 
 from .arrow import get_points, get_quad_vertices
 from ELiDE.pawnspot import GraphPawnSpot
 from ..collide import Collide2DPoly
-from ..util import trigger
+
+
+def trigger(func):
+	return triggered()(func)
 
 
 class GraphSpot(GraphPawnSpot):

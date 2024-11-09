@@ -18,7 +18,7 @@ from inspect import signature
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.logger import Logger
-from kivy.clock import Clock
+from kivy.clock import Clock, triggered
 from kivy.properties import ObjectProperty, StringProperty
 from kivy.uix.button import Button
 from kivy.uix.modalview import ModalView
@@ -34,7 +34,10 @@ from kivy.uix.screenmanager import Screen
 
 from .card import Card, DeckBuilderView, DeckBuilderScrollBar
 from .stores import FuncEditor
-from .util import trigger
+
+
+def trigger(func):
+	return triggered()(func)
 
 dbg = Logger.debug
 

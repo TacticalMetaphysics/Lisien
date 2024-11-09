@@ -29,7 +29,7 @@ from kivy.properties import (
 )
 from kivy.lang import Builder
 from kivy.logger import Logger
-from kivy.clock import Clock, mainthread
+from kivy.clock import Clock, mainthread, triggered
 from kivy.uix.image import Image
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.floatlayout import FloatLayout
@@ -48,9 +48,11 @@ from .arrow import (
 )
 from .pawn import Pawn
 from ..dummy import Dummy
-from ..util import trigger
 from ..boardview import BoardView
 from ..boardscatter import BoardScatterPlane
+
+def trigger(func):
+	return triggered()(func)
 
 
 class KvLayoutBack(FloatLayout):

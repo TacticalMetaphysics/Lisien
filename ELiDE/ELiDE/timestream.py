@@ -1,8 +1,6 @@
 from collections import defaultdict
 from threading import Thread
 
-from ELiDE.util import trigger
-
 from kivy.app import App
 from kivy.clock import triggered
 from kivy.lang import Builder
@@ -18,6 +16,10 @@ from kivy.uix.recycleview import RecycleView
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
+
+
+def trigger(func):
+	return triggered()(func)
 
 
 class ThornyRectangle(Button):

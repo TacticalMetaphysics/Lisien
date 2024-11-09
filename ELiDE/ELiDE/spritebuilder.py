@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from .pallet import Pallet, PalletBox
 from .kivygarden.texturestack import ImageStack
-from kivy.clock import Clock
+from kivy.clock import Clock, triggered
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.properties import (
@@ -27,9 +27,12 @@ from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
-from .util import trigger
 
 # TODO: let the user import their own sprite art
+
+
+def trigger(func):
+	return triggered()(func)
 
 
 class SpriteSelector(BoxLayout):

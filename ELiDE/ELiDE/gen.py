@@ -15,7 +15,6 @@
 from kivy.properties import NumericProperty, ObjectProperty, OptionProperty
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
-from .util import trigger
 from LiSE.character import grid_2d_8graph
 from networkx import grid_2d_graph
 

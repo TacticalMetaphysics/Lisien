@@ -34,12 +34,15 @@ from kivy.graphics import (
 )
 from kivy.resources import resource_find
 from kivy.uix.layout import Layout
-from kivy.clock import Clock, mainthread
+from kivy.clock import Clock, mainthread, triggered
 from kivy.uix.widget import Widget
 from kivy.logger import Logger
 
-from ELiDE.util import trigger
 from ELiDE.imagestackproxy import ImageStackProxy
+
+
+def trigger(func):
+	return triggered()(func)
 
 
 class TextureStackPlane(Widget):

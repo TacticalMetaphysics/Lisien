@@ -24,7 +24,7 @@ from ast import literal_eval
 from threading import Thread
 
 from kivy.app import App
-from kivy.clock import mainthread
+from kivy.clock import mainthread, triggered
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.uix.slider import Slider
@@ -51,7 +51,11 @@ from .charmenu import CharMenu
 from .graph.board import GraphBoardView
 from .grid.board import GridBoardView
 from .calendar import Agenda
-from .util import dummynum, trigger
+from .util import dummynum
+
+
+def trigger(func):
+	return triggered()(func)
 
 Factory.register("CharMenu", cls=CharMenu)
 

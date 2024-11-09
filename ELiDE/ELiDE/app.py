@@ -26,7 +26,7 @@ if "KIVY_NO_ARGS" not in os.environ:
 
 from kivy.logger import Logger
 from kivy.app import App
-from kivy.clock import Clock
+from kivy.clock import Clock, triggered
 from kivy.resources import resource_add_path
 
 from kivy.uix.screenmanager import ScreenManager, NoTransition
@@ -57,10 +57,13 @@ import ELiDE.timestream
 from ELiDE.graph.board import GraphBoard
 from ELiDE.graph.arrow import GraphArrow
 from ELiDE.grid.board import GridBoard
-from .util import trigger
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
 resource_add_path(ELiDE.__path__[0] + "/assets/rltiles")
+
+
+def trigger(func):
+	return triggered()(func)
 
 
 class ELiDEApp(App):
