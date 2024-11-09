@@ -38,7 +38,6 @@ from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 from kivy.clock import Clock
 from kivy.lang import Builder
 
-from ELiDE.util import trigger
 
 
 class CalendarWidget(RecycleDataViewBehavior, Widget):
@@ -140,7 +139,7 @@ class CalendarTextInput(CalendarWidget, TextInput):
 		self.val = self.hint_text = v
 		self.text = ""
 
-	_trigger_parse_text = trigger(_parse_text)
+	_trigger_parse_text = triggered(_parse_text)
 
 
 class CalendarOptionButton(CalendarWidget, Button):
