@@ -616,10 +616,10 @@ class ArrowPlane(Widget):
 		self._instructions_map = {}
 		self._port_index = {}
 		self._port_l = []
-		self._bot_left_corner_ys = []
-		self._bot_left_corner_xs = []
-		self._top_right_corner_ys = []
-		self._top_right_corner_xs = []
+		self._bot_left_corner_ys = np.array([])
+		self._bot_left_corner_xs = np.array([])
+		self._top_right_corner_ys = np.array([])
+		self._top_right_corner_xs = np.array([])
 		super().__init__(**kwargs)
 
 	def on_parent(self, *args):
