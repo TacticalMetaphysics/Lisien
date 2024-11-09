@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import pytest
 from kivy.base import EventLoop
 from kivy.tests.common import UnitTestTouch
+from kivy.uix.screenmanager import ScreenManager
 
 from LiSE import Engine
 from LiSE.character import Facade
@@ -80,6 +81,7 @@ class ScreenTest(ELiDEAppTest):
 		char.name = "foo"
 		app.character = char
 		app.engine = MockEngine()
+		app.manager = ScreenManager()
 		char.character = SimpleNamespace(engine=app.engine)
 		app.engine.character["foo"] = char
 		entity = ListenableDict()
@@ -91,7 +93,8 @@ class ScreenTest(ELiDEAppTest):
 			gridboards={"foo": GridBoard(character=char)},
 			play_speed=1.0,
 		)
-		win = window_with_widget(screen)
+		app.manager.add_widget(screen)
+		win = window_with_widget(app.manager)
 		idle_until(
 			lambda: "timepanel" in screen.ids, 100, "timepanel never got id"
 		)
