@@ -454,6 +454,7 @@ Builder.load_string("""
 		size_hint: None, None
 		default_size: dp(84), dp(36)
 		default_size_hint: None, None
+		size_hint: None, None
 		size: self.minimum_size
 		orientation: 'tb-lr'
 <Calendar>:
@@ -463,7 +464,7 @@ Builder.load_string("""
 		cols: 1
 		orientation: 'lr-tb'
 		default_size_hint: 1, None
-		size_hint: 1, None
+		size_hint: None, None
 		default_size: dp(84), dp(36)
 		size: self.minimum_size
 <CalendarLabel>:
