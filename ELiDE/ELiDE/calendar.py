@@ -35,12 +35,11 @@ from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
-from kivy.clock import Clock
+from kivy.clock import Clock, triggered
 from kivy.lang import Builder
 
 
-
-class CalendarWidget(RecycleDataViewBehavior, Widget):
+class CalendarWidget(Widget, RecycleDataViewBehavior):
 	"""Base class for widgets within a Calendar
 
 	Shows the value of its ``key`` at a particular ``turn``, and sets
@@ -218,7 +217,7 @@ class CalendarMenuLayout(LayoutSelectionBehavior, RecycleBoxLayout):
 	pass
 
 
-class AbstractCalendar:
+class CalendarBehavior:
 	_control2wid = {
 		"slider": "CalendarSlider",
 		"togglebutton": "CalendarToggleButton",
@@ -260,6 +259,7 @@ class AbstractCalendar:
 	week instead.
 	
 	"""
+	data: ListProperty
 
 	def on_data(self, *args):
 		idx = self.idx
@@ -303,7 +303,7 @@ class AbstractCalendar:
 		return track
 
 
-class Agenda(AbstractCalendar, RecycleView):
+class Agenda(RecycleView, CalendarBehavior):
 	def from_schedule(self, schedule, start_turn=None, key=str):
 		# It should be convenient to style the calendar using data from the core;
 		# not sure what the API should be like
@@ -376,7 +376,7 @@ class Agenda(AbstractCalendar, RecycleView):
 		(self.cols, self.data, self.changed) = (cols, data, False)
 
 
-class Calendar(AbstractCalendar, RecycleView):
+class Calendar(RecycleView, CalendarBehavior):
 	multicol = BooleanProperty(False)
 
 	def from_schedule(self, schedule, start_turn=None, key=str):
