@@ -103,7 +103,7 @@ class ScreenTest(ELiDEAppTest):
 		)
 		turnfield = timepanel.ids["turnfield"]
 		turn_before = int(turnfield.hint_text)
-		playbut = timepanel.ids["playbut"]
+		playbut = screen.playbut = timepanel.ids["playbut"]
 		motion = UnitTestTouch(*playbut.center)
 		motion.touch_down()
 		motion.touch_up()
