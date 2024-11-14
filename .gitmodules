@@ -1,0 +1,3 @@
+[submodule "docs"]
+	path = docs
+	url = git@codeberg.org:clayote/pages.git
