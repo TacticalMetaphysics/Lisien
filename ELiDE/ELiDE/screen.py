@@ -150,13 +150,13 @@ class TimePanel(BoxLayout):
 		branch = self.ids.branchfield.text
 		self.ids.branchfield.text = ""
 		self.screen.app.time_travel(branch, self.screen.app.turn)
-		self.screen.charmenu._switch_to_menu()
+		self.screen.charmenu.switch_to_menu()
 
 	def set_turn(self, *args):
 		turn = int(self.ids.turnfield.text)
 		self.ids.turnfield.text = ""
 		self.screen.app.time_travel(self.screen.app.branch, turn)
-		self.screen.charmenu._switch_to_menu()
+		self.screen.charmenu.switch_to_menu()
 
 	def set_tick(self, *args):
 		tick = int(self.ids.tickfield.text)
@@ -164,7 +164,7 @@ class TimePanel(BoxLayout):
 		self.screen.app.time_travel(
 			self.screen.app.branch, self.screen.app.turn, tick
 		)
-		self.screen.charmenu._switch_to_menu()
+		self.screen.charmenu.switch_to_menu()
 
 	@mainthread
 	def _upd_branch_hint(self, app, *args):
@@ -470,7 +470,7 @@ class MainScreen(Screen):
 			kwargs={"cb": partial(self._update_from_next_turn, cb=cb)},
 		)
 		self._next_turn_thread.start()
-		self.ids.charmenu._switch_to_menu()
+		self.ids.charmenu.switch_to_menu()
 
 	def switch_to_calendar(self, *args):
 		self.app.update_calendar(self.calendar)
@@ -539,8 +539,8 @@ class CharMenuContainer(BoxLayout):
 		)
 		app = App.get_running_app()
 		app.bind(
-			branch=self._switch_to_menu,
-			turn=self._switch_to_menu,
+			branch=self.switch_to_menu,
+			turn=self.switch_to_menu,
 			edit_locked=self.button.setter("disabled"),
 		)
 
@@ -573,7 +573,7 @@ class CharMenuContainer(BoxLayout):
 		self.add_widget(self.button)
 
 	@trigger
-	def _switch_to_menu(self, *args):
+	def switch_to_menu(self, *args):
 		if self.charmenu not in self.children:
 			self.clear_widgets()
 			self.add_widget(self.charmenu)
