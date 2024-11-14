@@ -80,10 +80,10 @@ class ELiDEApp(App):
 	edit_locked = BooleanProperty(False)
 	simulate_button_down = BooleanProperty(False)
 
-	def on_selection(self, *args):
+	def on_selection(self, *_):
 		Logger.debug("App: {} selected".format(self.selection))
 
-	def on_selected_proxy(self, *args):
+	def on_selected_proxy(self, *_):
 		if hasattr(self.selected_proxy, "name"):
 			self.selected_proxy_name = str(self.selected_proxy.name)
 			return
@@ -100,7 +100,7 @@ class ELiDEApp(App):
 			str(origin.name) + "->" + str(destination.name)
 		)
 
-	def _get_character_name(self, *args):
+	def _get_character_name(self, *_):
 		if self.character is None:
 			return
 		return self.character.name
@@ -113,7 +113,7 @@ class ELiDEApp(App):
 		_get_character_name, _set_character_name, bind=("character",)
 	)
 
-	def _pull_time(self, *args):
+	def _pull_time(self, *_):
 		if not self.engine:
 			Clock.schedule_once(self._pull_time, 0)
 			return
@@ -162,7 +162,7 @@ class ELiDEApp(App):
 		self, command, branch, turn, tick, result, **kwargs
 	):
 		(self.branch, self.turn, self.tick) = (branch, turn, tick)
-		self.mainscreen._update_from_time_travel(
+		self.mainscreen.update_from_time_travel(
 			command, branch, turn, tick, result, **kwargs
 		)
 
