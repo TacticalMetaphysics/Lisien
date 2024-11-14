@@ -679,22 +679,20 @@ class EngineHandle:
 						"Out of bounds", *self._real._btt(), branch, turn, tick
 					)
 		branch_from, turn_from, tick_from = self._real._btt()
-		slow_delta = (
-			branch != branch_from
-			or np.sum(
-				np.fromiter(
-					(
-						self._real._turn_end_plan[branch, r]
-						for r in range(
-							min((turn_from, turn_to or float("inf"))),
-							max((turn_from, turn_to or -float("inf"))),
-						)
-					),
-					dtype=np.uint32,
-				)
-			)
-			> self._real.query.keyframe_interval
-		)
+
+		def is_timespan_bigger():
+			kfint = self._real.query.keyframe_interval
+			acc = 0
+			for r in range(
+				min((turn_from, turn_to or float("inf"))),
+				max((turn_from, turn_to or -float("inf"))),
+			):
+				acc += r
+				if r > kfint:
+					return True
+			return False
+
+		slow_delta = branch != branch_from or is_timespan_bigger()
 		self._real.time = (branch, turn)
 		if tick is None:
 			tick = self._real.tick
