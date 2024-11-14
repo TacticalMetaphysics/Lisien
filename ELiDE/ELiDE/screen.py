@@ -56,7 +56,7 @@ from .util import dummynum, trigger
 Factory.register("CharMenu", cls=CharMenu)
 
 
-def release_edit_lock(*args):
+def release_edit_lock(*_):
 	app = App.get_running_app()
 	app.edit_locked = app.simulate_button_down
 
@@ -403,7 +403,7 @@ class MainScreen(Screen):
 		# horrible hack
 		self.dummyplace.paths = self.app.spotcfg.imgpaths
 
-	def _update_from_time_travel(
+	def update_from_time_travel(
 		self, command, branch, turn, tick, result, **kwargs
 	):
 		self._update_from_delta(command, branch, turn, tick, result[-1])
