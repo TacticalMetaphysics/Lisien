@@ -60,7 +60,7 @@ class TextureStackPlane(Widget):
 		self._trigger_redraw = Clock.create_trigger(self.redraw)
 		self._redraw_bind_uid = self.fbind("data", self._trigger_redraw)
 
-	def on_parent(self, *args):
+	def on_parent(self, *_):
 		if not self.canvas:
 			Clock.schedule_once(self.on_parent, 0)
 			return
@@ -73,13 +73,13 @@ class TextureStackPlane(Widget):
 		self.bind(pos=self._trigger_redraw, size=self._trigger_redraw)
 		self._trigger_redraw()
 
-	def on_pos(self, *args):
+	def on_pos(self, *_):
 		if not hasattr(self, "_translate"):
 			return
 		self._translate.x, self._translate.y = self.pos
 		self.canvas.ask_update()
 
-	def on_size(self, *args):
+	def on_size(self, *_):
 		if not hasattr(self, "_rectangle") or not hasattr(self, "_fbo"):
 			return
 		self._rectangle.size = self._fbo.size = self.size
@@ -215,7 +215,7 @@ class TextureStackPlane(Widget):
 		for insts in removed_instructions:
 			fbo.remove(insts["group"])
 
-	def redraw(self, *args):
+	def redraw(self, *_):
 		def get_rects(datum):
 			width = datum.get("width", 0)
 			height = datum.get("height", 0)
@@ -480,7 +480,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		self.unbind_uid("offys", self._push_offys_binding)
 		self._finalized = False
 
-	def pull_from_proxy(self, *args):
+	def pull_from_proxy(self, *_):
 		initial = not hasattr(self, "_finalized")
 		self.unfinalize()
 		for key, att in [
@@ -492,23 +492,23 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 				setattr(self, att, self.proxy[key])
 		self.finalize(initial)
 
-	def _trigger_pull_from_proxy(self, *args, **kwargs):
+	def _trigger_pull_from_proxy(self, *_, **__):
 		Clock.unschedule(self.pull_from_proxy)
 		Clock.schedule_once(self.pull_from_proxy, 0)
 
 	@trigger
-	def _trigger_push_image_paths(self, *args):
+	def _trigger_push_image_paths(self, *_):
 		self.proxy["_image_paths"] = list(self.paths)
 
 	@trigger
-	def _trigger_push_offxs(self, *args):
+	def _trigger_push_offxs(self, *_):
 		self.proxy["_offxs"] = list(self.offxs)
 
 	@trigger
-	def _trigger_push_offys(self, *args):
+	def _trigger_push_offys(self, *_):
 		self.proxy["_offys"] = list(self.offys)
 
-	def on_linecolor(self, *args):
+	def on_linecolor(self, *_):
 		"""If I don't yet have the instructions for drawing the selection box
 		in my canvas, put them there. In any case, set the
 		:class:`Color` instruction to match my current ``linecolor``.
@@ -518,10 +518,10 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 			self.color.rgba = self.linecolor
 			return
 
-		def upd_box_translate(*args):
+		def upd_box_translate(*_):
 			self.box_translate.xy = self.pos
 
-		def upd_box_points(*args):
+		def upd_box_points(*_):
 			self.box.points = [
 				0,
 				0,
@@ -548,7 +548,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		boxgrp.add(Color(1.0, 1.0, 1.0))
 		boxgrp.add(PopMatrix())
 
-	def on_board(self, *args):
+	def on_board(self, *_):
 		if not (hasattr(self, "group") and hasattr(self, "boxgrp")):
 			Clock.schedule_once(self.on_board, 0)
 			return
@@ -564,7 +564,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		super().add_widget(wid, index=index, canvas=canvas)
 		self._trigger_layout()
 
-	def do_layout(self, *args):
+	def do_layout(self, *_):
 		# First try to lay out my children inside of me,
 		# leaving at least this much space on the sides
 		xpad = self.proxy.get("_xpad", self.width / 4)
@@ -631,13 +631,13 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 				offx += subw
 			offx += gutter
 
-	def _position(self, *args):
+	def _position(self, *_):
 		x, y = self.pos
 		for child in self.children:
 			offx, offy = getattr(child, "rel_pos", (0, 0))
 			child.pos = x + offx, y + offy
 
-	def on_selected(self, *args):
+	def on_selected(self, *_):
 		if self.selected:
 			self.linecolor = self.selected_outline_color
 		else:

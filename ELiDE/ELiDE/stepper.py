@@ -94,7 +94,7 @@ class RuleStepperRuleButton(Button):
 		self.tick = self.end_tick
 
 	@mainthread
-	def upd_line(self, *args):
+	def upd_line(self, *_):
 		if hasattr(self, "color_inst"):
 			if self.tick == self.end_tick:
 				self.color_inst.rgba = [1, 0, 0, 1]

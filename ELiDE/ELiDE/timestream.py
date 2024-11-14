@@ -103,7 +103,7 @@ class ThornyRectangle(Button):
 			self.y + self.bottom_margin,
 		]
 
-	def _redraw(self, *args):
+	def _redraw(self, *_):
 		self._color = Color(rgba=[1, 1, 1, 1])
 		if self._color not in self.canvas.children:
 			self.canvas.add(self._color)
@@ -146,7 +146,7 @@ class ThornyRectangle(Button):
 		self._push_time()
 
 	@triggered(timeout=0.1)
-	def _push_time(self, *args):
+	def _push_time(self, *_):
 		app = App.get_running_app()
 		app.time_travel(self.branch, self.turn)
 
@@ -195,7 +195,7 @@ class Cross(Widget):
 	def _get_down_points(self):
 		return [self.center_x, self.center_y, self.center_x, self.y]
 
-	def _redraw(self, *args):
+	def _redraw(self, *_):
 		self._draw_line(self.draw_left, "_left_line", self._get_left_points)
 		self._draw_line(self.draw_right, "_right_line", self._get_right_points)
 		self._draw_line(self.draw_up, "_up_line", self._get_up_points)
@@ -334,12 +334,12 @@ class TimestreamScreen(Screen):
 	timestream = ObjectProperty()
 	_thread: Thread
 
-	def on_pre_enter(self, *args):
+	def on_pre_enter(self, *_):
 		self.timestream.disabled = True
 		self._thread = Thread(target=self._get_data)
 		self._thread.start()
 
-	def _get_data(self, *args):
+	def _get_data(self, *_):
 		Logger.debug("Timestream: getting branches")
 		engine = App.get_running_app().engine
 		data, cols = _data_and_cols_from_branches(engine.handle("branches"))

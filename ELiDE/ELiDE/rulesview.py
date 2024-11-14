@@ -67,14 +67,14 @@ class RulesList(RecycleView):
 	rulebook = ObjectProperty()
 	rulesview = ObjectProperty()
 
-	def on_rulebook(self, *args):
+	def on_rulebook(self, *_):
 		"""Make sure to update when the rulebook changes"""
 		if self.rulebook is None:
 			return
 		self.rulebook.connect(self._trigger_redata, weak=False)
 		self.redata()
 
-	def redata(self, *args):
+	def redata(self, *_):
 		"""Make my data represent what's in my rulebook right now"""
 		if self.rulesview is None:
 			Clock.schedule_once(self.redata, 0)
@@ -90,7 +90,7 @@ class RulesList(RecycleView):
 		]
 		self.data = data
 
-	def _trigger_redata(self, *args, **kwargs):
+	def _trigger_redata(self, *_, **__):
 		if hasattr(self, "_scheduled_redata"):
 			Clock.unschedule(self._scheduled_redata)
 		self._scheduled_redata = Clock.schedule_once(self.redata, 0)
@@ -134,7 +134,7 @@ class RulesView(Widget):
 		super().__init__(**kwargs)
 		self.finalize()
 
-	def finalize(self, *args):
+	def finalize(self, *_):
 		"""Add my tabs"""
 		assert not getattr(self, "_finalized", False), "Already finalized"
 		if not self.canvas:
@@ -390,17 +390,17 @@ class RulesView(Widget):
 		builder.decks[1] = unused
 		builder.bind(decks=updtrig)
 
-	def upd_unused_actions(self, *args):
+	def upd_unused_actions(self, *_):
 		self._upd_unused("action")
 
 	_trigger_upd_unused_actions = trigger(upd_unused_actions)
 
-	def upd_unused_triggers(self, *args):
+	def upd_unused_triggers(self, *_):
 		self._upd_unused("trigger")
 
 	_trigger_upd_unused_triggers = trigger(upd_unused_triggers)
 
-	def upd_unused_prereqs(self, *args):
+	def upd_unused_prereqs(self, *_):
 		self._upd_unused("prereq")
 
 	_trigger_upd_unused_prereqs = trigger(upd_unused_prereqs)
@@ -419,17 +419,17 @@ class RulesView(Widget):
 		if funlist != funcs:
 			setattr(self.rule, what + "s", funcs)
 
-	def push_actions(self, *args):
+	def push_actions(self, *_):
 		self._push_funcs("action")
 
 	_trigger_push_actions = trigger(push_actions)
 
-	def push_prereqs(self, *args):
+	def push_prereqs(self, *_):
 		self._push_funcs("prereq")
 
 	_trigger_push_prereqs = trigger(push_prereqs)
 
-	def push_triggers(self, att, *args):
+	def push_triggers(self, att, *_):
 		self._push_funcs("trigger")
 
 	_trigger_push_triggers = trigger(push_triggers)
@@ -458,13 +458,13 @@ class RulesBox(BoxLayout):
 	def engine(self):
 		return App.get_running_app().engine
 
-	def on_ruleslist(self, *args):
+	def on_ruleslist(self, *_):
 		if not self.ruleslist.children:
 			Clock.schedule_once(self.on_ruleslist, 0)
 			return
 		self.ruleslist.children[0].bind(children=self._upd_ruleslist_selection)
 
-	def new_rule(self, *args):
+	def new_rule(self, *_):
 		if self.new_rule_name in self.engine.rule:
 			# TODO: feedback to say you already have such a rule
 			return
@@ -475,7 +475,7 @@ class RulesBox(BoxLayout):
 		self.ruleslist.redata()
 		self.ids.rulename.text = ""
 
-	def _upd_ruleslist_selection(self, *args):
+	def _upd_ruleslist_selection(self, *_):
 		if not hasattr(self, "_new_rule_name"):
 			return
 		for child in self.ruleslist.children[0].children:
@@ -497,7 +497,7 @@ class RulesScreen(Screen):
 	def engine(self):
 		return App.get_running_app().engine
 
-	def new_rule(self, *args):
+	def new_rule(self, *_):
 		self.children[0].new_rule()
 
 
@@ -542,7 +542,7 @@ class CharacterRulesScreen(Screen):
 		self.add_widget(self._tabs)
 		self._finalized = True
 
-	def on_character(self, *args):
+	def on_character(self, *_):
 		if not hasattr(self, "_finalized"):
 			self.finalize()
 			return

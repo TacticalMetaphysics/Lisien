@@ -48,7 +48,7 @@ class CharMenu(BoxLayout):
 			raise AttributeError("Can't get engine from screen")
 		return self.screen.app.engine
 
-	def on_screen(self, *args):
+	def on_screen(self, *_):
 		if not (self.screen and self.screen.boardview and self.screen.app):
 			Clock.schedule_once(self.on_screen, 0)
 			return
@@ -106,12 +106,12 @@ class CharMenu(BoxLayout):
 		):
 			gridboard.add_pawn(name)
 
-	def toggle_chars_screen(self, *args):
+	def toggle_chars_screen(self, *_):
 		"""Display or hide the list you use to switch between characters."""
 		# TODO: update the list of chars
 		self.app.chars.toggle()
 
-	def toggle_rules(self, *args):
+	def toggle_rules(self, *_):
 		"""Display or hide the view for constructing rules out of cards."""
 		if self.app.manager.current != "rules" and not isinstance(
 			self.app.selected_proxy, CharStatProxy
@@ -212,16 +212,16 @@ class CharMenu(BoxLayout):
 		)
 		Clock.schedule_once(self.toggle_chars_screen, 0.01)
 
-	def on_dummyplace(self, *args):
+	def on_dummyplace(self, *_):
 		if not self.dummyplace.paths:
 			self.dummyplace.paths = ["atlas://rltiles/floor.atlas/floor-stone"]
 
-	def on_dummything(self, *args):
+	def on_dummything(self, *_):
 		if not self.dummything.paths:
 			self.dummything.paths = ["atlas://rltiles/base.atlas/unseen"]
 
 	@trigger
-	def _trigger_deselect(self, *args):
+	def _trigger_deselect(self, *_):
 		if hasattr(self.app.selection, "selected"):
 			self.app.selection.selected = False
 		self.app.selection = None

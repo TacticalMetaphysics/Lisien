@@ -53,7 +53,7 @@ class ControlTypePicker(Button):
 		else:
 			self.app.selected_proxy[k] = v
 
-	def build(self, *args):
+	def build(self, *_):
 		if None in (self.key, self.set_control):
 			Clock.schedule_once(self.build, 0)
 			return
@@ -110,13 +110,13 @@ class ConfigListItemToggleButton(BoxLayout):
 	true_text = StringProperty("0")
 	false_text = StringProperty("1")
 
-	def set_true_text(self, *args):
+	def set_true_text(self, *_):
 		self.parent.set_config(
 			self.parent.key, "true_text", self.ids.truetext.text
 		)
 		self.true_text = self.ids.truetext.text
 
-	def set_false_text(self, *args):
+	def set_false_text(self, *_):
 		self.parent.set_config(
 			self.parent.key, "false_text", self.ids.falsetext.text
 		)
@@ -126,7 +126,7 @@ class ConfigListItemSlider(BoxLayout):
 	min = NumericProperty(0.0)
 	max = NumericProperty(1.0)
 
-	def set_min(self, *args):
+	def set_min(self, *_):
 		minn = float(self.ids.minimum.text)
 		try:
 			self.parent.set_config(self.parent.key, "min", minn)
@@ -134,7 +134,7 @@ class ConfigListItemSlider(BoxLayout):
 		except ValueError:
 			self.ids.minimum.text = ""
 
-	def set_max(self, *args):
+	def set_max(self, *_):
 		maxx = float(self.ids.minimum.text)
 		try:
 			self.parent.set_config(self.parent.key, "max", maxx)
@@ -149,7 +149,7 @@ class ConfigListItemCustomizer(BoxLayout):
 	config = DictProperty()
 	set_config = ObjectProperty()
 
-	def on_control(self, *args):
+	def on_control(self, *_):
 		self.clear_widgets()
 		if self.control == "togglebutton":
 			if (

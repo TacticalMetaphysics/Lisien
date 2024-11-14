@@ -84,7 +84,7 @@ class StatListPanel(BoxLayout):
 	proxy = ObjectProperty()
 	toggle_stat_cfg = ObjectProperty()
 
-	def on_proxy(self, *args):
+	def on_proxy(self, *_):
 		if hasattr(self.proxy, "name"):
 			self.selection_name = str(self.proxy.name)
 
@@ -107,7 +107,7 @@ class SimulateButton(ToggleButton):
 	graphics_bot = NumericProperty()
 	graphics_center_y = NumericProperty()
 
-	def on_state(self, *args):
+	def on_state(self, *_):
 		app = App.get_running_app()
 		app.edit_locked = app.simulate_button_down = self.state == "down"
 
@@ -146,19 +146,19 @@ class TimePanel(BoxLayout):
 	buttons_font_size = NumericProperty(18)
 	disable_one_turn = BooleanProperty()
 
-	def set_branch(self, *args):
+	def set_branch(self, *_):
 		branch = self.ids.branchfield.text
 		self.ids.branchfield.text = ""
 		self.screen.app.time_travel(branch, self.screen.app.turn)
 		self.screen.charmenu.switch_to_menu()
 
-	def set_turn(self, *args):
+	def set_turn(self, *_):
 		turn = int(self.ids.turnfield.text)
 		self.ids.turnfield.text = ""
 		self.screen.app.time_travel(self.screen.app.branch, turn)
 		self.screen.charmenu.switch_to_menu()
 
-	def set_tick(self, *args):
+	def set_tick(self, *_):
 		tick = int(self.ids.tickfield.text)
 		self.ids.tickfield.text = ""
 		self.screen.app.time_travel(
@@ -167,18 +167,18 @@ class TimePanel(BoxLayout):
 		self.screen.charmenu.switch_to_menu()
 
 	@mainthread
-	def _upd_branch_hint(self, app, *args):
+	def _upd_branch_hint(self, app, *_):
 		self.ids.branchfield.hint_text = app.branch
 
 	@mainthread
-	def _upd_turn_hint(self, app, *args):
+	def _upd_turn_hint(self, app, *_):
 		self.ids.turnfield.hint_text = str(app.turn)
 
 	@mainthread
-	def _upd_tick_hint(self, app, *args):
+	def _upd_tick_hint(self, app, *_):
 		self.ids.tickfield.hint_text = str(app.tick)
 
-	def on_screen(self, *args):
+	def on_screen(self, *_):
 		if not all(
 			field in self.ids
 			for field in ("branchfield", "turnfield", "tickfield")
@@ -235,16 +235,16 @@ class MainScreen(Screen):
 	def app(self):
 		return App.get_running_app()
 
-	def _update_adding_portal(self, *args):
+	def _update_adding_portal(self, *_):
 		self.boardview.adding_portal = (
 			self.charmenu.portaladdbut.state == "down"
 		)
 
-	def _update_board(self, *args):
+	def _update_board(self, *_):
 		self.boardview.board = self.graphboards[self.app.character_name]
 		self.gridview.board = self.gridboards[self.app.character_name]
 
-	def on_mainview(self, *args):
+	def on_mainview(self, *_):
 		if (
 			None in (self.statpanel, self.charmenu, self.app)
 			or None in (self.app.character_name, self.charmenu.portaladdbut)
@@ -287,7 +287,7 @@ class MainScreen(Screen):
 		self.calendar_view.add_widget(self.calendar)
 		self.mainview.add_widget(self.boardview)
 
-	def on_statpanel(self, *args):
+	def on_statpanel(self, *_):
 		if not self.app:
 			Clock.schedule_once(self.on_statpanel, 0)
 			return
@@ -299,7 +299,7 @@ class MainScreen(Screen):
 		)
 
 	@trigger
-	def _update_statlist(self, *args):
+	def _update_statlist(self, *_):
 		if not self.app or not self.app.engine:
 			return
 		if not self.app.selected_proxy:
@@ -309,14 +309,14 @@ class MainScreen(Screen):
 			self.statpanel.statlist, past_turns=0, future_turns=0
 		)
 
-	def pull_visibility(self, *args):
+	def pull_visibility(self, *_):
 		self.visible = self.manager.current == "main"
 
-	def on_manager(self, *args):
+	def on_manager(self, *_):
 		self.pull_visibility()
 		self.manager.bind(current=self.pull_visibility)
 
-	def on_play_speed(self, *args):
+	def on_play_speed(self, *_):
 		"""Change the interval at which ``self.play`` is called to match my
 		current ``play_speed``.
 
@@ -327,7 +327,7 @@ class MainScreen(Screen):
 			self.play, 1.0 / self.play_speed
 		)
 
-	def remake_display(self, *args):
+	def remake_display(self, *_):
 		"""Remake any affected widgets after a change in my ``kv``."""
 		Builder.load_string(self.kv)
 		if hasattr(self, "_kv_layout"):
@@ -370,7 +370,7 @@ class MainScreen(Screen):
 			return self.statpanel.dispatch("on_touch_up", touch)
 		return self.mainview.dispatch("on_touch_up", touch)
 
-	def on_dummies(self, *args):
+	def on_dummies(self, *_):
 		"""Give the dummies numbers such that, when appended to their names,
 		they give a unique name for the resulting new
 		:class:`graph.Pawn` or :class:`graph.Spot`.
@@ -380,7 +380,7 @@ class MainScreen(Screen):
 			Clock.schedule_once(self.on_dummies, 0)
 			return
 
-		def renum_dummy(dummy, *args):
+		def renum_dummy(dummy, *_):
 			dummy.num = dummynum(self.app.character, dummy.prefix) + 1
 
 		for dummy in self.dummies:
@@ -395,11 +395,11 @@ class MainScreen(Screen):
 			dummy.bind(prefix=partial(renum_dummy, dummy))
 			dummy._numbered = True
 
-	def _propagate_thing_paths(self, *args):
+	def _propagate_thing_paths(self, *_):
 		# horrible hack
 		self.dummything.paths = self.app.pawncfg.imgpaths
 
-	def _propagate_place_paths(self, *args):
+	def _propagate_place_paths(self, *_):
 		# horrible hack
 		self.dummyplace.paths = self.app.spotcfg.imgpaths
 
@@ -414,7 +414,7 @@ class MainScreen(Screen):
 		self.app.tick = tick
 		self.statpanel.statlist.mirror = dict(self.app.selected_proxy)
 
-	def play(self, *args):
+	def play(self, *_):
 		"""If the 'play' button is pressed, advance a turn.
 
 		If you want to disable this, set ``engine.universal['block'] = True``
@@ -446,7 +446,7 @@ class MainScreen(Screen):
 		if cb is not None:
 			cb(command, branch, turn, tick, result)
 
-	def next_turn(self, cb=None, *args):
+	def next_turn(self, cb=None, *_):
 		"""Advance time by one turn, if it's not blocked.
 
 		Block time by setting ``engine.universal['block'] = True``"""
@@ -472,19 +472,19 @@ class MainScreen(Screen):
 		self._next_turn_thread.start()
 		self.ids.charmenu.switch_to_menu()
 
-	def switch_to_calendar(self, *args):
+	def switch_to_calendar(self, *_):
 		self.app.update_calendar(self.calendar)
 		self.mainview.clear_widgets()
 		self.mainview.add_widget(self.calendar_view)
 
-	def switch_to_boardview(self, *args):
+	def switch_to_boardview(self, *_):
 		self.mainview.clear_widgets()
 		self.app.engine.handle(
 			"apply_choices", choices=[self.calendar.get_track()]
 		)
 		self.mainview.add_widget(self.boardview)
 
-	def toggle_gridview(self, *args):
+	def toggle_gridview(self, *_):
 		if self.gridview in self.mainview.children:
 			self.mainview.clear_widgets()
 			self.mainview.add_widget(self.boardview)
@@ -492,7 +492,7 @@ class MainScreen(Screen):
 			self.mainview.clear_widgets()
 			self.mainview.add_widget(self.gridview)
 
-	def toggle_calendar(self, *args):
+	def toggle_calendar(self, *_):
 		# TODO decide how to handle switching between >2 view types
 		if self.boardview in self.mainview.children:
 			self.switch_to_calendar()
@@ -500,7 +500,7 @@ class MainScreen(Screen):
 			self.switch_to_boardview()
 
 	@trigger
-	def toggle_timestream(self, *args):
+	def toggle_timestream(self, *_):
 		if self.manager.current != "timestream":
 			self.manager.current = "timestream"
 		else:
@@ -544,7 +544,7 @@ class CharMenuContainer(BoxLayout):
 			edit_locked=self.button.setter("disabled"),
 		)
 
-	def on_parent(self, *args):
+	def on_parent(self, *_):
 		if (
 			not self.screen
 			or not hasattr(self, "charmenu")
@@ -557,7 +557,7 @@ class CharMenuContainer(BoxLayout):
 		self.add_widget(self.button)
 
 	@trigger
-	def _toggle_stepper(self, *args):
+	def _toggle_stepper(self, *_):
 		if self.charmenu in self.children:
 			engine = self.screen.app.engine
 			self.clear_widgets()

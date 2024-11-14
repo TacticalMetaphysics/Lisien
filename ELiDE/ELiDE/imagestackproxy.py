@@ -50,7 +50,7 @@ class ImageStackProxy(ImageStack):
 		self._offys_binding = self.fbind("offys", self._trigger_push_offys)
 		self._finalized = True
 
-	def finalize_children(self, initial=True, *args):
+	def finalize_children(self, initial=True, *_):
 		for child in self.children:
 			if not getattr(child, "_finalized", False):
 				child.finalize(initial=initial)
@@ -61,7 +61,7 @@ class ImageStackProxy(ImageStack):
 		self.unbind_uid("offys", self._offys_binding)
 		self._finalized = False
 
-	def pull_from_proxy(self, *args):
+	def pull_from_proxy(self, *_):
 		initial = not hasattr(self, "_finalized")
 		self.unfinalize()
 		for key, att in [
@@ -81,23 +81,23 @@ class ImageStackProxy(ImageStack):
 		)
 
 	@trigger
-	def _trigger_push_image_paths(self, *args):
+	def _trigger_push_image_paths(self, *_):
 		self.proxy["_image_paths"] = list(self.paths)
 
 	@trigger
-	def _trigger_push_offxs(self, *args):
+	def _trigger_push_offxs(self, *_):
 		self.proxy["_offxs"] = list(self.offxs)
 
 	@trigger
-	def _trigger_push_offys(self, *args):
+	def _trigger_push_offys(self, *_):
 		self.proxy["_offys"] = list(self.offys)
 
 	@trigger
-	def _trigger_push_stackhs(self, *args):
+	def _trigger_push_stackhs(self, *_):
 		self.proxy["_stackhs"] = list(self.stackhs)
 
 	@trigger
-	def restack(self, *args):
+	def restack(self, *_):
 		childs = sorted(
 			list(self.children), key=lambda child: child.priority, reverse=True
 		)

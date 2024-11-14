@@ -64,7 +64,7 @@ class CharactersScreen(Screen):
 	def engine(self):
 		return App.get_running_app().engine
 
-	def new_character(self, name, *args):
+	def new_character(self, name, *_):
 		self.engine.add_character(name)
 		self.ids.newname.text = ""
 		i = len(self.charsview.data)
@@ -87,7 +87,7 @@ class CharactersScreen(Screen):
 			self.charsview.name2i[name] = i
 			yield {"index": i, "text": name}
 
-	def on_names(self, *args):
+	def on_names(self, *_):
 		app = App.get_running_app()
 		if not app.character or not self.charsview:
 			Clock.schedule_once(self.on_names, 0)
@@ -99,7 +99,7 @@ class CharactersScreen(Screen):
 				self.charsview.children[0].select_node(i)
 				return
 
-	def on_charsview(self, *args):
+	def on_charsview(self, *_):
 		if not self.push_character_name:
 			Clock.schedule_once(self.on_charsview, 0)
 			return

@@ -78,12 +78,12 @@ class StoreButton(RecycleToggleButton):
 	select = ObjectProperty()
 	"""Function that gets called with my ``index`` when I'm selected"""
 
-	def on_parent(self, *args):
+	def on_parent(self, *_):
 		if self.name == "+":
 			self.state = "down"
 			self.select(self.index)
 
-	def on_state(self, *args):
+	def on_state(self, *_):
 		if self.state == "down":
 			self.select(self.index)
 
@@ -106,14 +106,14 @@ class StoreList(RecycleView):
 		self._name2i = {}
 		super().__init__(**kwargs)
 
-	def on_store(self, *args):
+	def on_store(self, *_):
 		self.store.connect(self._trigger_redata)
 		self.redata()
 
-	def on_boxl(self, *args):
+	def on_boxl(self, *_):
 		self.boxl.bind(selected_nodes=self._pull_selection)
 
-	def _pull_selection(self, *args):
+	def _pull_selection(self, *_):
 		if not self.boxl.selected_nodes:
 			return
 		self.selection_name = self._i2name[self.boxl.selected_nodes[0]]
@@ -134,7 +134,7 @@ class StoreList(RecycleView):
 		yield "+"
 		yield from sorted(self.store._cache.keys())
 
-	def redata(self, *args, **kwargs):
+	def redata(self, *_, **kwargs):
 		"""Update my ``data`` to match what's in my ``store``"""
 		select_name = kwargs.get("select_name")
 		if not self.store:
@@ -150,7 +150,7 @@ class StoreList(RecycleView):
 			Clock.unschedule(self._scheduled_redata)
 		self._scheduled_redata = Clock.schedule_once(part, 0)
 
-	def select_name(self, name, *args):
+	def select_name(self, name, *_):
 		"""Select an item by its name, highlighting"""
 		self.boxl.select_node(self._name2i[name])
 
@@ -190,7 +190,7 @@ class StringsEdScreen(Screen):
 	edbox = ObjectProperty()
 	"""Widget containing editors for the current string and its name"""
 
-	def on_language(self, *args):
+	def on_language(self, *_):
 		if self.edbox is None:
 			Clock.schedule_once(self.on_language, 0)
 			return
@@ -198,14 +198,14 @@ class StringsEdScreen(Screen):
 		if self.store.language != self.language:
 			self.store.language = self.language
 
-	def on_store(self, *args):
+	def on_store(self, *_):
 		self.language = self.store.language
 		self.store.language.connect(self._pull_language)
 
-	def _pull_language(self, *args, language):
+	def _pull_language(self, *_, language):
 		self.language = language
 
-	def save(self, *args):
+	def save(self, *_):
 		if self.edbox is None:
 			Clock.schedule_once(self.save, 0)
 			return
@@ -227,7 +227,7 @@ class Editor(BoxLayout):
 	_trigger_save = ObjectProperty()
 	_trigger_delete = ObjectProperty()
 
-	def save(self, *args):
+	def save(self, *_):
 		"""Put text in my store, return True if it changed"""
 		if self.name_wid is None or self.store is None:
 			Logger.debug(
@@ -286,7 +286,7 @@ class Editor(BoxLayout):
 				do_redata = True
 		return do_redata
 
-	def delete(self, *args):
+	def delete(self, *_):
 		"""Remove the currently selected item from my store"""
 		key = self.name_wid.text or self.name_wid.hint_text
 		if not hasattr(self.store, key):
@@ -305,7 +305,7 @@ class StringInput(Editor):
 	validate_name_input = ObjectProperty()
 	"""Boolean function for checking if a string name is acceptable"""
 
-	def on_name_wid(self, *args):
+	def on_name_wid(self, *_):
 		if not self.validate_name_input:
 			Clock.schedule_once(self.on_name_wid, 0)
 			return
@@ -315,7 +315,7 @@ class StringInput(Editor):
 		if self.name_wid:
 			return self.name_wid.text
 
-	def _set_name(self, v, *args):
+	def _set_name(self, v, *_):
 		if not self.name_wid:
 			Clock.schedule_once(partial(self._set_name, v), 0)
 			return
@@ -359,25 +359,25 @@ class EdBox(BoxLayout):
 	disable_text_input = BooleanProperty(False)
 	"""Set to ``True`` to prevent entering text in the editor"""
 
-	def on_store_name(self, *args):
+	def on_store_name(self, *_):
 		app = App.get_running_app()
 		if app.engine is None:
 			Clock.schedule_once(self.on_store_name, 0)
 			return
 		self.store = getattr(app.engine, self.store_name)
 
-	def on_storelist(self, *args):
+	def on_storelist(self, *_):
 		self.storelist.bind(selection_name=self._pull_from_storelist)
 
 	@trigger
-	def validate_name_input(self, *args):
+	def validate_name_input(self, *_):
 		self.disable_text_input = not (
 			self.valid_name(self.editor.name_wid.hint_text)
 			or self.valid_name(self.editor.name_wid.text)
 		)
 
 	@trigger
-	def _pull_from_storelist(self, *args):
+	def _pull_from_storelist(self, *_):
 		self.save()
 		# The + button at the top is for adding an entry yet unnamed, so don't display hint text for it
 		self.editor.name_wid.hint_text = self.storelist.selection_name.strip(
@@ -398,11 +398,11 @@ class EdBox(BoxLayout):
 		if hasattr(self, "_lock_save"):
 			del self._lock_save
 
-	def dismiss(self, *args):
+	def dismiss(self, *_):
 		self.save()
 		self.toggle()
 
-	def save(self, *args, name=None):
+	def save(self, *_, name=None):
 		if not self.editor or not self.store:
 			return
 		if hasattr(self, "_lock_save"):
@@ -419,7 +419,7 @@ class EdBox(BoxLayout):
 		Clock.unschedule(part)
 		Clock.schedule_once(part, 0)
 
-	def delete(self, *args):
+	def delete(self, *_):
 		if not self.editor:
 			return
 		if hasattr(self, "_lock_save"):
@@ -433,7 +433,7 @@ class EdBox(BoxLayout):
 
 	_trigger_delete = trigger(delete)
 
-	def on_store(self, *args):
+	def on_store(self, *_):
 		pass
 
 
@@ -490,7 +490,7 @@ class FunctionNameInput(TextInput):
 			)
 		)
 
-	def on_focus(self, inst, val, *largs):
+	def on_focus(self, inst, val, *_):
 		if not val:
 			self._trigger_save(self.text)
 

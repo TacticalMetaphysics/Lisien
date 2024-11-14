@@ -23,13 +23,13 @@ class BoardView(StencilView):
 	scale_min = NumericProperty(allownone=True)
 	scale_max = NumericProperty(allownone=True)
 
-	def on_pos(self, *args):
+	def on_pos(self, *_):
 		if self.board and self.children:
 			self.children[0].pos = self.pos
 		else:
 			Clock.schedule_once(self.on_pos, 0.001)
 
-	def on_size(self, *args):
+	def on_size(self, *_):
 		if self.board and self.children:
 			self.children[0].size = self.size
 		else:

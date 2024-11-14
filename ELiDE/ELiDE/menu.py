@@ -37,7 +37,7 @@ class MenuTextInput(TextInput):
 		super().__init__(**kwargs)
 		self.bind(on_text_validate=self.on_enter)
 
-	def on_enter(self, *args):
+	def on_enter(self, *_):
 		"""Call the setter and blank myself out so that my hint text shows
 		up. It will be the same you just entered if everything's
 		working.
@@ -54,7 +54,7 @@ class MenuTextInput(TextInput):
 		if not self.focus:
 			self.on_enter(*args)
 
-	def on_text_validate(self, *args):
+	def on_text_validate(self, *_):
 		"""Equivalent to hitting Enter."""
 		self.on_enter()
 
@@ -84,7 +84,7 @@ class WorldStartConfigurator(BoxLayout):
 	init_board = ObjectProperty()
 	generator_dropdown = ObjectProperty()
 
-	def on_generator_dropdown(self, *args):
+	def on_generator_dropdown(self, *_):
 		def select_txt(btn):
 			self.generator_dropdown.select(btn.text)
 
@@ -106,7 +106,7 @@ class WorldStartConfigurator(BoxLayout):
 			self.grid_config.pos = self.ids.controls.pos
 			self.generator_type = "grid"
 
-	def start(self, *args):
+	def start(self, *_):
 		if self.generator_type == "grid":
 			if self.grid_config.validate():
 				engine = self.starter()
@@ -128,7 +128,7 @@ class WorldStartConfigurator(BoxLayout):
 class DirPicker(Screen):
 	toggle = ObjectProperty()
 
-	def open(self, path, *args):
+	def open(self, path, *_):
 		App.get_running_app().starting_dir = os.path.abspath(".")
 		os.chdir(path)
 		if "world.db" not in os.listdir(path):

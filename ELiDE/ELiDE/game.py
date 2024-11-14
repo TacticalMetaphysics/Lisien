@@ -231,7 +231,7 @@ class GameApp(App):
 			cb=partial(self.wait_command, start_func, turns, end_func),
 		)
 
-	def _pull_time(self, *args, branch, turn, tick):
+	def _pull_time(self, *_, branch, turn, tick):
 		self.branch, self.turn, self.tick = branch, turn, tick
 
 	def build(self):
@@ -264,12 +264,12 @@ class GameApp(App):
 		self.engine.commit()
 		self.config.write()
 
-	def on_stop(self, *largs):
+	def on_stop(self, *_):
 		"""Sync the database, wrap up the game, and halt."""
 		self.procman.shutdown()
 		self.config.write()
 
-	def next_turn(self, *args):
+	def next_turn(self, *_):
 		"""Smoothly advance to the next turn in the simulation
 
 		This uses a subthread to wait for LiSE to finish simulating
