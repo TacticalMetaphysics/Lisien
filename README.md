@@ -100,7 +100,7 @@ instead let's generate one, Parable of the Polygons by Nicky Case.
 
 Make a new Python script, let's say 'polygons.py', and write the
 following in it (or use the [example
-version](https://github.com/LogicalDash/LiSE/blob/master/LiSE/LiSE/examples/polygons.py)):
+version](https://codeberg.org/clayote/LiSE/src/branch/main/LiSE/LiSE/examples/polygons.py)):
 
 ```python
 from LiSE import Engine
@@ -350,7 +350,7 @@ entities:
 
 ELiDE is meant to support repurposing its widgets to build a rudimentary graphical
 interface for a game. For an example of what that might look like, see
-[the Awareness sim](https://github.com/TacticalMetaphysics/LiSE/blob/main/ELiDE/ELiDE/examples/awareness.py).
+[the Awareness sim](https://codeberg.org/clayote/LiSE/src/branch/main/ELiDE/ELiDE/examples/awareness.py).
 You may prefer to work with some other Python-based game engine, such as
 [Pyglet](http://pyglet.org/) or [Ursina](https://www.ursinaengine.org/), in which case you don't really need ELiDE--
 though you may find it useful to open ELiDE in your game folder when you're
