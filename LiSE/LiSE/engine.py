@@ -1780,6 +1780,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				kf_from["graph_val"].keys() - kf_to["graph_val"].keys()
 			):
 				delta[pack(deleted)] = NONE
+			futwait(futs)
 		if not delta[UNIVERSAL]:
 			del delta[UNIVERSAL]
 		if not delta[RULEBOOK]:
