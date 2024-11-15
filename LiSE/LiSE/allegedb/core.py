@@ -600,7 +600,7 @@ class ORM:
 			)
 			q.task_done()
 
-	def get_delta(
+	def _get_branch_delta(
 		self,
 		branch: str,
 		turn_from: int,
@@ -1672,7 +1672,7 @@ class ORM:
 				self._snap_keyframe_from_delta(
 					(parent, turn_from, tick_from),
 					(parent, branched_turn_from, branched_tick_from),
-					self.get_delta(
+					self._get_branch_delta(
 						parent,
 						turn_from,
 						tick_from,
@@ -1748,7 +1748,7 @@ class ORM:
 			self._snap_keyframe_from_delta(
 				the_kf,
 				(branch, turn, tick),
-				self.get_delta(*the_kf, turn, tick),
+				self._get_branch_delta(*the_kf, turn, tick),
 			)
 			if the_kf[0] != branch:
 				self._copy_kf(the_kf[0], branch, turn, tick)

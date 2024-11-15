@@ -29,6 +29,7 @@ from typing import (
 	Union,
 	Any,
 	List,
+	Literal,
 	Iterable,
 	Optional,
 )
@@ -38,7 +39,29 @@ import numpy as np
 
 from .allegedb import OutOfTimelineError, Key
 from .allegedb.cache import StructuredDefaultDict, PickyDefaultDict
-from .engine import Engine
+from .engine import (
+	Engine,
+	TRUE,
+	FALSE,
+	NONE,
+	NAME,
+	NODES,
+	EDGES,
+	UNITS,
+	RULEBOOK,
+	RULEBOOKS,
+	NODE_VAL,
+	EDGE_VAL,
+	ETERNAL,
+	UNIVERSAL,
+	STRINGS,
+	RULES,
+	TRIGGERS,
+	PREREQS,
+	ACTIONS,
+	LOCATION,
+	BRANCH,
+)
 from .node import Node
 from .portal import Portal
 from .util import AbstractCharacter, BadTimeException, timer
@@ -57,27 +80,6 @@ SlightlyPackedDeltaType = Dict[
 	],
 ]
 FormerAndCurrentType = Tuple[Dict[bytes, bytes], Dict[bytes, bytes]]
-
-TRUE: bytes = msgpack.packb(True)
-FALSE: bytes = msgpack.packb(False)
-NONE: bytes = msgpack.packb(None)
-NAME: bytes = msgpack.packb("name")
-NODES: bytes = msgpack.packb("nodes")
-EDGES: bytes = msgpack.packb("edges")
-UNITS: bytes = msgpack.packb("units")
-RULEBOOK: bytes = msgpack.packb("rulebook")
-RULEBOOKS: bytes = msgpack.packb("rulebooks")
-NODE_VAL: bytes = msgpack.packb("node_val")
-EDGE_VAL: bytes = msgpack.packb("edge_val")
-ETERNAL: bytes = msgpack.packb("eternal")
-UNIVERSAL: bytes = msgpack.packb("universal")
-STRINGS: bytes = msgpack.packb("strings")
-RULES: bytes = msgpack.packb("rules")
-TRIGGERS: bytes = msgpack.packb("triggers")
-PREREQS: bytes = msgpack.packb("prereqs")
-ACTIONS: bytes = msgpack.packb("actions")
-LOCATION: bytes = msgpack.packb("location")
-BRANCH: bytes = msgpack.packb("branch")
 
 
 def concat_d(r: Dict[bytes, bytes]) -> bytes:
@@ -164,7 +166,7 @@ class EngineHandle:
 	def snap_keyframe(self, silent=False):
 		return self._real.snap_keyframe(silent=silent)
 
-	def _pack_delta(self, delta):
+	def _pack_delta(self, delta) -> Tuple[SlightlyPackedDeltaType, bytes]:
 		pack = self.pack
 		slightly_packed_delta = {}
 		mostly_packed_delta = {}
@@ -243,7 +245,7 @@ class EngineHandle:
 	@staticmethod
 	def _concat_char_delta(delta: SlightlyPackedDeltaType) -> bytes:
 		delta = delta.copy()
-		mostly_packed_delta = {}
+		mostly_packed_delta = packd = {}
 		eternal = delta.pop(ETERNAL, None)
 		if eternal:
 			mostly_packed_delta[ETERNAL] = eternal
@@ -252,54 +254,42 @@ class EngineHandle:
 			mostly_packed_delta[UNIVERSAL] = universal
 		if RULEBOOK in delta:
 			mostly_packed_delta[RULEBOOK] = delta.pop(RULEBOOK)
-		rules = delta.pop(RULES, {})
-		for char, chardelta in delta.items():
-			if chardelta == NONE:
-				mostly_packed_delta[char] = NONE
-				continue
-			if chardelta.get(b"\xa4name") == b"\xc0":
-				mostly_packed_delta[char] = b"\xc0"
-				continue
-			chardelta = chardelta.copy()
-			packd = mostly_packed_delta[char] = {}
-			if NODES in chardelta:
-				charnodes = chardelta.pop(NODES)
-				packd[NODES] = concat_d(charnodes)
-			if NODE_VAL in chardelta:
-				slightnoded = {}
-				packnodevd = {}
-				for node, vals in chardelta.pop(NODE_VAL).items():
-					slightnoded[node] = vals
-					packnodevd[node] = concat_d(vals)
-				packd[NODE_VAL] = concat_d(packnodevd)
-			if EDGES in chardelta:
-				es = chardelta.pop(EDGES)
-				packd[EDGES] = concat_d(es)
-			if EDGE_VAL in chardelta:
-				packorigd = {}
-				for orig, dests in chardelta.pop(EDGE_VAL).items():
-					slightdestd = {}
-					packdestd = {}
-					for dest, port in dests.items():
-						slightdestd[dest] = port
-						packdestd[dest] = concat_d(port)
-					packorigd[orig] = concat_d(packdestd)
-				packd[EDGE_VAL] = concat_d(packorigd)
-			if UNITS in chardelta:
-				if chardelta[UNITS] == NONE:
-					packd[UNITS] = concat_d({})
-				else:
-					packd[UNITS] = chardelta[UNITS]
-			packd.update(chardelta)
-		almost_entirely_packed_delta = {
-			charn: (concat_d(stuff) if stuff != b"\xc0" else b"\xc0")
-			for charn, stuff in mostly_packed_delta.items()
-		}
-		if rules:
-			almost_entirely_packed_delta[RULES] = concat_d(
+		if RULES in delta:
+			rules = delta.pop(RULES)
+			mostly_packed_delta[RULES] = concat_d(
 				{rule: concat_d(funcls) for (rule, funcls) in rules.items()}
 			)
-		return concat_d(almost_entirely_packed_delta)
+		if NODES in delta:
+			charnodes = delta.pop(NODES)
+			packd[NODES] = concat_d(charnodes)
+		if NODE_VAL in delta:
+			slightnoded = {}
+			packnodevd = {}
+			for node, vals in delta.pop(NODE_VAL).items():
+				slightnoded[node] = vals
+				packnodevd[node] = concat_d(vals)
+			packd[NODE_VAL] = concat_d(packnodevd)
+		if EDGES in delta:
+			es = delta.pop(EDGES)
+			packd[EDGES] = concat_d(es)
+		if EDGE_VAL in delta:
+			packorigd = {}
+			for orig, dests in delta.pop(EDGE_VAL).items():
+				slightdestd = {}
+				packdestd = {}
+				for dest, port in dests.items():
+					slightdestd[dest] = port
+					packdestd[dest] = concat_d(port)
+				packorigd[orig] = concat_d(packdestd)
+			packd[EDGE_VAL] = concat_d(packorigd)
+		if UNITS in delta:
+			if delta[UNITS] == NONE:
+				packd[UNITS] = concat_d({})
+				del delta[UNITS]
+			else:
+				packd[UNITS] = delta.pop(UNITS)
+		mostly_packed_delta.update(delta)
+		return concat_d(mostly_packed_delta)
 
 	@prepacked
 	def next_turn(self) -> Tuple[bytes, bytes]:
@@ -322,328 +312,7 @@ class EngineHandle:
 		btt_from: Tuple[str, int, int] = None,
 		btt_to: Tuple[str, int, int] = None,
 	) -> SlightlyPackedDeltaType:
-		def newgraph():
-			return {
-				# null mungers mean KeyError, which is correct
-				NODES: PickyDefaultDict(
-					bytes, args_munger=None, kwargs_munger=None
-				),
-				EDGES: PickyDefaultDict(
-					bytes, args_munger=None, kwargs_munger=None
-				),
-				NODE_VAL: StructuredDefaultDict(
-					1, bytes, args_munger=None, kwargs_munger=None
-				),
-				EDGE_VAL: StructuredDefaultDict(
-					2, bytes, args_munger=None, kwargs_munger=None
-				),
-			}
-
-		pack = self._real.pack
-		delta: Dict[bytes, Any] = {
-			UNIVERSAL: PickyDefaultDict(bytes),
-			RULES: StructuredDefaultDict(1, bytes),
-			RULEBOOK: PickyDefaultDict(bytes),
-		}
-		btt_from = self._get_btt(btt_from)
-		btt_to = self._get_btt(btt_to)
-		if btt_from == btt_to:
-			return delta
-		now = self._real._btt()
-		self._real._set_btt(*btt_from)
-		kf_from = self._real.snap_keyframe()
-		self._real._set_btt(*btt_to)
-		kf_to = self._real.snap_keyframe()
-		self._real._set_btt(*now)
-		keys = []
-		ids_from = []
-		ids_to = []
-		values_from = []
-		values_to = []
-		# Comparing object IDs is guaranteed never to give a false equality,
-		# because of the way keyframes are constructed.
-		# It may give a false inequality.
-		for k in kf_from["universal"].keys() | kf_to["universal"].keys():
-			keys.append(("universal", k))
-			va = kf_from["universal"].get(k)
-			vb = kf_to["universal"].get(k)
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
-		for rule in kf_from["triggers"].keys() | kf_to["triggers"].keys():
-			a = kf_from["triggers"].get(rule, ())
-			b = kf_to["triggers"].get(rule, ())
-			keys.append(("triggers", rule))
-			ids_from.append(id(a))
-			ids_to.append(id(b))
-			values_from.append(a)
-			values_to.append(b)
-		for rule in kf_from["prereqs"].keys() | kf_to["prereqs"].keys():
-			a = kf_from["prereqs"].get(rule, ())
-			b = kf_to["prereqs"].get(rule, ())
-			keys.append(("prereqs", rule))
-			ids_from.append(id(a))
-			ids_to.append(id(b))
-			values_from.append(a)
-			values_to.append(b)
-		for rule in kf_from["actions"].keys() | kf_to["actions"].keys():
-			a = kf_from["actions"].get(rule, ())
-			b = kf_to["actions"].get(rule, ())
-			keys.append(("actions", rule))
-			ids_from.append(id(a))
-			ids_to.append(id(b))
-			values_from.append(a)
-			values_to.append(b)
-		for rulebook in kf_from["rulebook"].keys() | kf_to["rulebook"].keys():
-			a = kf_from["rulebook"].get(rulebook, ())
-			b = kf_to["rulebook"].get(rulebook, ())
-			keys.append(("rulebook", rulebook))
-			ids_from.append(id(a))
-			ids_to.append(id(b))
-			values_from.append(a)
-			values_to.append(b)
-		for graph in kf_from["graph_val"].keys() | kf_to["graph_val"].keys():
-			a = kf_from["graph_val"].get(graph, {})
-			b = kf_to["graph_val"].get(graph, {})
-			for k in a.keys() | b.keys():
-				keys.append(("graph", graph, k))
-				va = a.get(k)
-				vb = b.get(k)
-				ids_from.append(id(va))
-				ids_to.append(id(vb))
-				values_from.append(va)
-				values_to.append(vb)
-		for graph in kf_from["node_val"].keys() | kf_to["node_val"].keys():
-			nodes = set()
-			if graph in kf_from["node_val"]:
-				nodes.update(kf_from["node_val"][graph].keys())
-			if graph in kf_to["node_val"]:
-				nodes.update(kf_to["node_val"][graph].keys())
-			for node in nodes:
-				a = kf_from["node_val"].get(graph, {}).get(node, {})
-				b = kf_to["node_val"].get(graph, {}).get(node, {})
-				for k in a.keys() | b.keys():
-					keys.append(("node", graph, node, k))
-					va = a.get(k)
-					vb = b.get(k)
-					ids_from.append(id(va))
-					ids_to.append(id(vb))
-					values_from.append(va)
-					values_to.append(vb)
-		for graph in kf_from["edge_val"].keys() | kf_to["edge_val"].keys():
-			edges = set()
-			if graph in kf_from["edge_val"]:
-				for orig in kf_from["edge_val"][graph]:
-					for dest in kf_from["edge_val"][graph][orig]:
-						edges.add((orig, dest))
-			if graph in kf_to["edge_val"]:
-				for orig in kf_to["edge_val"][graph]:
-					for dest in kf_to["edge_val"][graph][orig]:
-						edges.add((orig, dest))
-			for orig, dest in edges:
-				a = (
-					kf_from["edge_val"]
-					.get(graph, {})
-					.get(orig, {})
-					.get(dest, {})
-				)
-				b = (
-					kf_to["edge_val"]
-					.get(graph, {})
-					.get(orig, {})
-					.get(dest, {})
-				)
-				for k in a.keys() | b.keys():
-					keys.append(("edge", graph, orig, dest, k))
-					va = a.get(k)
-					vb = b.get(k)
-					ids_from.append(id(va))
-					ids_to.append(id(vb))
-					values_from.append(va)
-					values_to.append(vb)
-		for rulebook in kf_from["rulebook"].keys() | kf_to["rulebook"].keys():
-			va = kf_from["rulebook"].get(rulebook, ())
-			vb = kf_to["rulebook"].get(rulebook, ())
-			keys.append(("rulebook", rulebook))
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
-		for rule in kf_from["triggers"].keys() | kf_to["triggers"].keys():
-			va = kf_from["triggers"].get(rule, ())
-			vb = kf_to["triggers"].get(rule, ())
-			keys.append(("triggers", rule))
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
-		for rule in kf_from["prereqs"].keys() | kf_to["prereqs"].keys():
-			va = kf_from["prereqs"].get(rule, ())
-			vb = kf_to["prereqs"].get(rule, ())
-			keys.append(("prereqs", rule))
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
-		for rule in kf_from["actions"].keys() | kf_to["actions"].keys():
-			va = kf_from["actions"].get(rule, ())
-			vb = kf_to["actions"].get(rule, ())
-			keys.append(("actions", rule))
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
-		values_changed = np.array(ids_from) != np.array(ids_to)
-
-		def pack_one(k, va, vb, deleted_nodes, deleted_edges):
-			if va == vb:
-				return
-			v = pack(vb)
-			if k[0] == "universal":
-				key = pack(k[1])
-				delta[UNIVERSAL][key] = v
-			elif k[0] == "triggers":
-				rule = pack(k[1])
-				delta[RULES][rule][TRIGGERS] = v
-			elif k[0] == "prereqs":
-				rule = pack(k[1])
-				delta[RULES][rule][PREREQS] = v
-			elif k[0] == "actions":
-				rule = pack(k[1])
-				delta[RULES][rule][ACTIONS] = v
-			elif k[0] == "rulebook":
-				rulebook = pack(k[1])
-				delta[RULEBOOK][rulebook] = v
-			elif k[0] == "node":
-				_, graph, node, key = k
-				if graph in deleted_nodes and node in deleted_nodes[graph]:
-					return
-				graph, node, key = map(pack, (graph, node, key))
-				if graph not in delta:
-					delta[graph] = newgraph()
-				delta[graph][NODE_VAL][node][key] = v
-			elif k[0] == "edge":
-				_, graph, orig, dest, key = k
-				if (graph, orig, dest) in deleted_edges:
-					return
-				graph, orig, dest, key = map(pack, (graph, orig, dest, key))
-				if graph not in delta:
-					delta[graph] = newgraph()
-				delta[graph][EDGE_VAL][orig][dest][key] = v
-			else:
-				assert k[0] == "graph"
-				_, graph, key = k
-				graph, key = map(pack, (graph, key))
-				if graph not in delta:
-					delta[graph] = newgraph()
-				delta[graph][key] = v
-
-		def pack_node(graph, node, existence):
-			grap, node = map(pack, (graph, node))
-			if grap not in delta:
-				delta[grap] = newgraph()
-			delta[grap][NODES][node] = existence
-
-		def pack_edge(graph, orig, dest, existence):
-			graph, origdest = map(pack, (graph, (orig, dest)))
-			if graph not in delta:
-				delta[graph] = newgraph()
-			delta[graph][EDGES][origdest] = existence
-
-		futs = []
-		with ThreadPoolExecutor() as pool:
-			nodes_intersection = (
-				kf_from["nodes"].keys() & kf_to["nodes"].keys()
-			)
-			deleted_nodes = {}
-			for graph in nodes_intersection:
-				deleted_nodes_here = deleted_nodes[graph] = (
-					kf_from["nodes"][graph].keys()
-					- kf_to["nodes"][graph].keys()
-				)
-				for node in deleted_nodes_here:
-					futs.append(pool.submit(pack_node, graph, node, FALSE))
-			deleted_edges = set()
-			for graph in kf_from["edges"]:
-				for orig in kf_from["edges"][graph]:
-					for dest, ex in kf_from["edges"][graph][orig].items():
-						deleted_edges.add((graph, orig, dest))
-			for graph in kf_to["edges"]:
-				for orig in kf_to["edges"][graph]:
-					for dest, ex in kf_to["edges"][graph][orig].items():
-						deleted_edges.discard((graph, orig, dest))
-			for k, va, vb, _ in filter(
-				itemgetter(3),
-				zip(keys, values_from, values_to, values_changed),
-			):
-				futs.append(
-					pool.submit(
-						pack_one, k, va, vb, deleted_nodes, deleted_edges
-					)
-				)
-			for graf in (
-				kf_from["graph_val"].keys() - kf_to["graph_val"].keys()
-			):
-				delta[self.pack(graf)] = NONE
-			for graph in nodes_intersection:
-				for node in (
-					kf_to["nodes"][graph].keys()
-					- kf_from["nodes"][graph].keys()
-				):
-					futs.append(pool.submit(pack_node, graph, node, TRUE))
-			for graph, orig, dest in deleted_edges:
-				futs.append(pool.submit(pack_edge, graph, orig, dest, FALSE))
-			edges_to = {
-				(graph, orig, dest)
-				for graph in kf_to["edges"]
-				for orig in kf_to["edges"][graph]
-				for dest in kf_to["edges"][graph][orig]
-			}
-			edges_from = {
-				(graph, orig, dest)
-				for graph in kf_from["edges"]
-				for orig in kf_from["edges"][graph]
-				for dest in kf_from["edges"][graph][orig]
-			}
-			for graph, orig, dest in edges_to - edges_from:
-				futs.append(pool.submit(pack_edge, graph, orig, dest, TRUE))
-			for deleted in (
-				kf_from["graph_val"].keys() - kf_to["graph_val"].keys()
-			):
-				delta[pack(deleted)] = NONE
-		if not delta[UNIVERSAL]:
-			del delta[UNIVERSAL]
-		if not delta[RULEBOOK]:
-			del delta[RULEBOOK]
-		todel = []
-		for rule_name, rule in delta[RULES].items():
-			if not rule[TRIGGERS]:
-				del rule[TRIGGERS]
-			if not rule[PREREQS]:
-				del rule[PREREQS]
-			if not rule[ACTIONS]:
-				del rule[ACTIONS]
-			if not rule:
-				todel.append(rule_name)
-		for deleterule in todel:
-			del delta[deleterule]
-		if not delta[RULES]:
-			del delta[RULES]
-		for key, mapp in delta.items():
-			if key in {RULES, RULEBOOKS, ETERNAL, UNIVERSAL} or mapp == NONE:
-				continue
-			todel = []
-			for keey, mappp in mapp.items():
-				if not mappp:
-					todel.append(keey)
-			for todo in todel:
-				del mapp[todo]
-		for added in kf_to["graph_val"].keys() - kf_from["graph_val"].keys():
-			graphn = pack(added)
-			if graphn not in delta:
-				delta[graphn] = {}
-		return delta
+		return self._real._get_slow_delta(btt_from, btt_to)
 
 	@prepacked
 	def time_travel(
@@ -658,7 +327,6 @@ class EngineHandle:
 		the 0th item of which is `None`.
 
 		"""
-		turn_to = None
 		if branch in self._real._branches:
 			parent, turn_from, tick_from, turn_to, tick_to = (
 				self._real._branches[branch]
@@ -679,37 +347,38 @@ class EngineHandle:
 						"Out of bounds", *self._real._btt(), branch, turn, tick
 					)
 		branch_from, turn_from, tick_from = self._real._btt()
-
-		def is_timespan_bigger():
-			kfint = self._real.query.keyframe_interval
-			acc = 0
-			for r in range(
-				min((turn_from, turn_to or float("inf"))),
-				max((turn_from, turn_to or -float("inf"))),
-			):
-				acc += r
-				if r > kfint:
-					return True
-			return False
-
-		slow_delta = branch != branch_from or is_timespan_bigger()
 		self._real.time = (branch, turn)
-		if tick is None:
-			tick = self._real.tick
-		else:
+		if tick is not None:
 			self._real.tick = tick
-		if slow_delta:
-			delta = self._get_slow_delta(
-				btt_from=(branch_from, turn_from, tick_from),
-				btt_to=(branch, turn, tick),
+		if branch_from != branch or self._real._is_timespan_too_big(
+			branch, turn_from, turn
+		):
+			slightly: SlightlyPackedDeltaType = self._real._get_slow_delta(
+				(branch_from, turn_from, tick_from), self._real._btt()
 			)
-			packed_delta = self._concat_char_delta(delta)
-		else:
-			delta = self._real.get_delta(
-				branch, turn_from, tick_from, turn, tick
+			mostly = {}
+			if UNIVERSAL in slightly:
+				mostly[UNIVERSAL] = concat_d(slightly.pop(UNIVERSAL))
+			if RULES in slightly:
+				mostly[RULES] = concat_d(
+					{
+						rule: concat_d(rule_d)
+						for (rule, rule_d) in slightly.pop(RULES).items()
+					}
+				)
+			if RULEBOOK in slightly:
+				mostly[RULEBOOK] = concat_d(slightly.pop(RULEBOOK))
+			for char, chardeltapacked in slightly.items():
+				if chardeltapacked == b"\xc0":
+					mostly[char] = b"\xc0"
+					continue
+				mostly[char] = self._concat_char_delta(chardeltapacked)
+			return NONE, concat_d(mostly)
+		return NONE, self._pack_delta(
+			self._real.get_delta(
+				(branch_from, turn_from, tick_from), self._real._btt()
 			)
-			slightly_packed_delta, packed_delta = self._pack_delta(delta)
-		return NONE, packed_delta
+		)[1]
 
 	@prepacked
 	def increment_branch(self) -> bytes:
@@ -1015,7 +684,9 @@ class EngineHandle:
 		callme = getattr(store, func)
 		res = callme(*args, **kwargs)
 		_, turn_now, tick_now = self._real._btt()
-		delta = self._real.get_delta(branch, turn, tick, turn_now, tick_now)
+		delta = self._real._get_branch_delta(
+			branch, turn, tick, turn_now, tick_now
+		)
 		return res, delta
 
 	def call_randomizer(self, method: str, *args, **kwargs) -> Any:
@@ -1028,7 +699,7 @@ class EngineHandle:
 		time_from = self._real._btt()
 		if hasattr(self._real.method, "game_start"):
 			self._real.game_start()
-		return [], self._real.get_delta(
+		return [], self._real._get_branch_delta(
 			*time_from, self._real.turn, self._real.tick
 		)
 
