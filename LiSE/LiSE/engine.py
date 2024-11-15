@@ -59,7 +59,11 @@ from .allegedb import (
 	Key,
 	world_locked,
 )
-from .allegedb.cache import KeyframeError
+from .allegedb.cache import (
+	KeyframeError,
+	PickyDefaultDict,
+	StructuredDefaultDict,
+)
 from .allegedb.window import update_window, update_backward_window
 from .util import sort_set, AbstractEngine, final_rule, normalize_layout
 from .xcollections import (
