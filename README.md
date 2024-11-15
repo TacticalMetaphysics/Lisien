@@ -371,9 +371,6 @@ ELiDE uses third-party graphics sets:
   BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 * The ELiDE icon is by Robin Hill, used with permission.
 
-``collide.py`` is ported from Kivy's ``garden.collider`` module and
-carries the MIT license.
-
 The allegedb, LiSE, and ELiDE source files are licensed under the
 terms of the GNU Affero Public License version 3 (and no later).
 If you make a game with it, you have to release any modifications you
