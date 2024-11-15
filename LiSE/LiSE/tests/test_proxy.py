@@ -227,27 +227,26 @@ def test_thing_place_iter(tmp_path):
 	manager.shutdown()
 
 
-@pytest.mark.parametrize("run", list(range(10)))
-@patch("LiSE.handle.Engine")
-def test_get_slow_delta_overload(_: MagicMock, run):
-	def pack_pair(pair):
-		k, v = pair
-		return msgpack.packb(k), msgpack.packb(v)
+@pytest.fixture
+def mocked_keyframe(tmp_path):
+	with patch("LiSE.Engine.snap_keyframe"), Engine(
+		tmp_path,
+		random_seed=69105,
+		enforce_end_of_time=False,
+		keyframe_on_close=False,
+		threaded_triggers=False,
+		workers=0,
+	) as eng:
+		eng.snap_keyframe.side_effect = [data.KF_FROM, data.KF_TO]
+		eng._set_btt(*data.BTT_FROM)
+		yield eng
 
-	hand = EngineHandle()
-	eng = hand._real
-	eng.pack = hand.pack = msgpack.packb
-	eng.unpack = hand.unpack = msgpack.unpackb
-	hand.pack_pair = pack_pair
-	eng.branch, eng.turn, eng.tick = data.BTT_FROM
-	eng._btt.return_value = data.BTT_FROM
-	eng.snap_keyframe.side_effect = [data.KF_FROM, data.KF_TO]
-	slowd = msgpack.unpackb(
-		hand._concat_char_delta(
-			hand._get_slow_delta(data.BTT_FROM, data.BTT_TO)
-		),
-		strict_map_key=False,
-		use_list=False,
+
+@pytest.mark.parametrize("run", list(range(10)))
+def test_get_slow_delta_overload(mocked_keyframe, run):
+	eng = mocked_keyframe
+	slowd = eng._unpack_slightly_packed_delta(
+		eng._get_slow_delta(data.BTT_FROM, data.BTT_TO)
 	)
 	assert slowd == data.SLOW_DELTA
 
