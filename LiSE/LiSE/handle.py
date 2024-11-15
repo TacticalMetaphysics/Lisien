@@ -360,6 +360,27 @@ class EngineHandle:
 					)
 		branch_from, turn_from, tick_from = self._real._btt()
 		self._real.time = (branch, turn)
+		if branch_from != branch or self._real._is_timespan_too_big(
+			branch, turn_from, turn
+		):
+			slightly: SlightlyPackedDeltaType = self._real._get_slow_delta(
+				(branch_from, turn_from, tick_from), self._real._btt()
+			)
+			mostly = {}
+			if UNIVERSAL in slightly:
+				mostly[UNIVERSAL] = concat_d(slightly.pop(UNIVERSAL))
+			if RULES in slightly:
+				mostly[RULES] = concat_d(
+					{
+						rule: concat_d(rule_d)
+						for (rule, rule_d) in slightly.pop(RULES).items()
+					}
+				)
+			if RULEBOOK in slightly:
+				mostly[RULEBOOK] = concat_d(slightly.pop(RULEBOOK))
+			for char, chardeltapacked in slightly.items():
+				mostly[char] = self._concat_char_delta(chardeltapacked)
+			return NONE, concat_d(mostly)
 		return NONE, self._pack_delta(
 			self._real.get_delta(
 				(branch_from, turn_from, tick_from), self._real._btt()
