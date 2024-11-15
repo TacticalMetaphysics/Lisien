@@ -380,6 +380,9 @@ class EngineHandle:
 			if RULEBOOK in slightly:
 				mostly[RULEBOOK] = concat_d(slightly.pop(RULEBOOK))
 			for char, chardeltapacked in slightly.items():
+				if chardeltapacked == b"\xc0":
+					mostly[char] = b"\xc0"
+					continue
 				mostly[char] = self._concat_char_delta(chardeltapacked)
 			return NONE, concat_d(mostly)
 		return NONE, self._pack_delta(
