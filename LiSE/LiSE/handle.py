@@ -360,6 +360,8 @@ class EngineHandle:
 					)
 		branch_from, turn_from, tick_from = self._real._btt()
 		self._real.time = (branch, turn)
+		if tick is not None:
+			self._real.tick = tick
 		if branch_from != branch or self._real._is_timespan_too_big(
 			branch, turn_from, turn
 		):
