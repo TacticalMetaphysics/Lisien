@@ -1417,7 +1417,39 @@ class Engine(AbstractEngine, gORM, Executor):
 		return self._unpack_slightly_packed_delta(self._get_slow_delta(time_from, time_to))
 
 	def _unpack_slightly_packed_delta(self, delta: SlightlyPackedDeltaType) -> DeltaDict:
-		raise NotImplementedError()
+		unpack = self.unpack
+		delta = delta.copy()
+		delt = {}
+		universal = delt["universal"] = {}
+		for k, v in delta.pop(UNIVERSAL, {}).items():
+			universal[unpack(k)] = unpack(v)
+		rules = delt["rules"] = {}
+		for rule_name, funclists in delta.pop(RULES, {}).items():
+			rules[rule_name] = {"triggers": unpack(funclists[TRIGGERS]), "prereqs": unpack(funclists[PREREQS]), "actions": unpack(funclists[ACTIONS])}
+		rulebook = delt["rulebook"] = {}
+		for rulebok, rules in delta.pop(RULEBOOK, {}).items():
+			rulebook[rulebok] = unpack(rules)
+		for char, chardeltpacked in delta.items():
+			chardelt = delt[char] = {}
+			chardelt["nodes"] = {unpack(node): extant == TRUE for (node, extant) in chardeltpacked[NODES].items()}
+			edges = chardelt["edges"] = {}
+			for (a, b), ex in chardeltpacked.pop(EDGES, {}).items():
+				if a not in edges:
+					edges[a] = {}
+				edges[a][b] = ex == TRUE
+			node_val = chardelt["node_val"] = {}
+			for node, stats in chardeltpacked.pop(NODE_VAL, {}).items():
+				node_val[node] = {unpack(k): unpack(v) for (k, v) in stats.items()}
+			edge_val = chardelt["edge_val"] = {}
+			for a, bs in chardeltpacked.pop(EDGE_VAl, {}).items():
+				aA = unpack(a)
+				if aA not in edge_val:
+					edge_val[aA] = {}
+				for b, stats in bs.items():
+					edge_val[aA][unpack(b)] = {unpack(k): unpack(v) for (k, v) in stats.items()}
+			for k, v in chardeltpacked.items():
+				chardelt[unpack(k)] = unpack(v)
+		return delt
 
 	def _get_slow_delta(self, btt_from: Tuple[str, int, int], btt_to: Tuple[str, int, int]) -> :
 		def newgraph():
