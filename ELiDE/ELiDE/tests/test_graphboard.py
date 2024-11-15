@@ -1,3 +1,4 @@
+from kivy.clock import Clock
 from kivy.tests.common import GraphicUnitTest, UnitTestTouch
 import networkx as nx
 
@@ -78,13 +79,34 @@ class GraphBoardTest(GraphicUnitTest):
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
 		win = window_with_widget(boardview)
-		idle_until(lambda: 0 in board.arrow and 1 in board.arrow[0])
+		idle_until(
+			lambda: board.arrow_plane, 100, "GraphBoard never got arrow_plane"
+		)
+		idle_until(
+			lambda: 0 in board.arrow and 1 in board.arrow[0],
+			100,
+			"GraphBoard never got arrow",
+		)
+		idle_until(
+			lambda: board.arrow_plane.data,
+			100,
+			"GraphBoard.arrow_plane.data never populated",
+		)
+		idle_until(
+			lambda: board.arrow_plane._bot_left_corner_xs.shape[0] > 0,
+			100,
+			"GraphBoard.arrow_plane never got bounding boxes",
+		)
 		ox, oy = board.spot[0].center
 		dx, dy = board.spot[1].center
 		motion = UnitTestTouch((ox + ((dx - ox) / 2)), dy)
 		motion.touch_down()
 		motion.touch_up()
-		assert app.selection == board.arrow[0][1]
+		idle_until(
+			lambda: app.selection == board.arrow[0][1],
+			100,
+			"Arrow not selected",
+		)
 
 	@staticmethod
 	def test_select_spot():
