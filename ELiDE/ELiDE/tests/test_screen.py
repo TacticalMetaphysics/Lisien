@@ -1,3 +1,4 @@
+from textwrap import dedent
 from types import SimpleNamespace
 
 import pytest
@@ -117,7 +118,13 @@ class ScreenTest(ELiDEAppTest):
 		)
 		playbut.state = "normal"
 
-	@pytest.mark.skip
+	@pytest.mark.skip(
+		" ".join(
+			dedent("""
+		This double adds to a ScrollView, but only when running in the debugger.
+		I don't know how to deal with that!""").split("\n")
+		).strip("\n ")
+	)
 	def test_update(self):
 		def almost(a, b):
 			if isinstance(a, tuple) and isinstance(b, tuple):
