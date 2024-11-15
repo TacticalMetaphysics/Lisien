@@ -359,27 +359,10 @@ class EngineHandle:
 						"Out of bounds", *self._real._btt(), branch, turn, tick
 					)
 		branch_from, turn_from, tick_from = self._real._btt()
-
-		slow_delta = branch != branch_from or self._real._is_timespan_too_big(
-			branch, turn_from, turn_to
-		)
 		self._real.time = (branch, turn)
-		if tick is None:
-			tick = self._real.tick
-		else:
-			self._real.tick = tick
-		if slow_delta:
-			delta = self._get_slow_delta(
-				btt_from=(branch_from, turn_from, tick_from),
-				btt_to=(branch, turn, tick),
-			)
-			packed_delta = self._concat_char_delta(delta)
-		else:
-			delta = self._real._get_branch_delta(
-				branch, turn_from, tick_from, turn, tick
-			)
-			slightly_packed_delta, packed_delta = self._pack_delta(delta)
-		return NONE, packed_delta
+		return NONE, self._real.get_delta(
+			(branch_from, turn_from, tick_from), self._real._btt()
+		)
 
 	@prepacked
 	def increment_branch(self) -> bytes:
