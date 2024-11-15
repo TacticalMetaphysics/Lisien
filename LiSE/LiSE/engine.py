@@ -1314,7 +1314,9 @@ class Engine(AbstractEngine, gORM, Executor):
 			return  # not that it helps performance any, in this case
 		return ret
 
-	def _is_timespan_bigger(self, branch, turn_from, turn_to) -> bool:
+	def _is_timespan_bigger(
+		self, branch: str, turn_from: int, turn_to: int
+	) -> bool:
 		"""Return whether the changes between these turns are big enough that you might as well use the slow delta"""
 		kfint = self.query.keyframe_interval
 		if kfint is None:
