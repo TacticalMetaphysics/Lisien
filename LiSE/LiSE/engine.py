@@ -1368,7 +1368,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		return False
 
 	def get_delta(
-		self, time_from: Tuple[str, int, int], time_to: Tuple[str, int, int]
+		self, time_from: Tuple[str, int, int], time_to: Tuple[str, int, int], slow=False
 	) -> DeltaDict:
 		"""Get a dictionary describing changes to the world.
 
@@ -1402,11 +1402,17 @@ class Engine(AbstractEngine, gORM, Executor):
 		  containing any of the lists ``'triggers'``, ``'prereqs'``,
 		  and ``'actions'``
 
+
+		:param slow: Whether to compare entire keyframes. Default ``False``,
+			but we may take that approach anyway, if comparing between branches,
+			or between times that are far enough apart that a delta assuming
+			linear time would require *more* comparisons than comparing keyframes.
+
 		"""
 		if time_from == time_to:
 			return {}
 		if time_from[0] == time_to[0]:
-			if self._is_timespan_too_big(
+			if slow or self._is_timespan_too_big(
 				time_from[0], time_from[1], time_to[1]
 			):
 				return self._unpack_slightly_packed_delta(self._get_slow_delta(time_from, time_to))
