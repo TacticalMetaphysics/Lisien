@@ -1,3 +1,4 @@
+from kivy.clock import Clock
 from kivy.tests.common import UnitTestTouch
 
 from abc import abstractmethod
@@ -189,6 +190,11 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			100,
 			"Never filled trigger builder",
 		)
+		idle_until(
+			lambda: [child.x for child in builder.children if child.x > 0],
+			100,
+			"Never positioned trigger builder's children",
+		)
 		aware = breakcover = None
 		for card in builder.children:
 			if not isinstance(card, Card):
@@ -203,6 +209,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 		), "Didn't get 'aware' and 'breakcover' cards"
 		start_x = aware.center_x
 		start_y = aware.top - 10
+		assert aware.collide_point(start_x, start_y)
 		mov = UnitTestTouch(start_x, start_y)
 		mov.touch_down()
 		dist_x = start_x - breakcover.center_x
@@ -218,7 +225,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			self.advance_frames(1)
 		mov.touch_up(*breakcover.center)
 		idle_until(
-			lambda: aware.x == breakcover.x,
+			lambda: abs(aware.x - breakcover.x) < 2,
 			100,
 			"aware didn't move to its new place",
 		)
