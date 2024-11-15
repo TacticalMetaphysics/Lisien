@@ -1483,7 +1483,7 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def _get_slow_delta(
 		self, btt_from: Tuple[str, int, int], btt_to: Tuple[str, int, int]
-	) -> DeltaDict:
+	) -> SlightlyPackedDeltaType:
 		def newgraph():
 			return {
 				# null mungers mean KeyError, which is correct
