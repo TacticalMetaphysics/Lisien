@@ -1368,7 +1368,10 @@ class Engine(AbstractEngine, gORM, Executor):
 		return False
 
 	def get_delta(
-		self, time_from: Tuple[str, int, int], time_to: Tuple[str, int, int], slow=False
+		self,
+		time_from: Tuple[str, int, int],
+		time_to: Tuple[str, int, int],
+		slow=False,
 	) -> DeltaDict:
 		"""Get a dictionary describing changes to the world.
 
@@ -1415,14 +1418,20 @@ class Engine(AbstractEngine, gORM, Executor):
 			if slow or self._is_timespan_too_big(
 				time_from[0], time_from[1], time_to[1]
 			):
-				return self._unpack_slightly_packed_delta(self._get_slow_delta(time_from, time_to))
+				return self._unpack_slightly_packed_delta(
+					self._get_slow_delta(time_from, time_to)
+				)
 			else:
 				return self._get_branch_delta(
 					*time_from, turn_to[1], turn_to[2]
 				)
-		return self._unpack_slightly_packed_delta(self._get_slow_delta(time_from, time_to))
+		return self._unpack_slightly_packed_delta(
+			self._get_slow_delta(time_from, time_to)
+		)
 
-	def _unpack_slightly_packed_delta(self, delta: SlightlyPackedDeltaType) -> DeltaDict:
+	def _unpack_slightly_packed_delta(
+		self, delta: SlightlyPackedDeltaType
+	) -> DeltaDict:
 		unpack = self.unpack
 		delta = delta.copy()
 		delt = {}
@@ -1431,13 +1440,20 @@ class Engine(AbstractEngine, gORM, Executor):
 			universal[unpack(k)] = unpack(v)
 		rules = delt["rules"] = {}
 		for rule_name, funclists in delta.pop(RULES, {}).items():
-			rules[rule_name] = {"triggers": unpack(funclists[TRIGGERS]), "prereqs": unpack(funclists[PREREQS]), "actions": unpack(funclists[ACTIONS])}
+			rules[rule_name] = {
+				"triggers": unpack(funclists[TRIGGERS]),
+				"prereqs": unpack(funclists[PREREQS]),
+				"actions": unpack(funclists[ACTIONS]),
+			}
 		rulebook = delt["rulebook"] = {}
 		for rulebok, rules in delta.pop(RULEBOOK, {}).items():
 			rulebook[rulebok] = unpack(rules)
 		for char, chardeltpacked in delta.items():
 			chardelt = delt[char] = {}
-			chardelt["nodes"] = {unpack(node): extant == TRUE for (node, extant) in chardeltpacked[NODES].items()}
+			chardelt["nodes"] = {
+				unpack(node): extant == TRUE
+				for (node, extant) in chardeltpacked[NODES].items()
+			}
 			edges = chardelt["edges"] = {}
 			for (a, b), ex in chardeltpacked.pop(EDGES, {}).items():
 				if a not in edges:
@@ -1445,19 +1461,25 @@ class Engine(AbstractEngine, gORM, Executor):
 				edges[a][b] = ex == TRUE
 			node_val = chardelt["node_val"] = {}
 			for node, stats in chardeltpacked.pop(NODE_VAL, {}).items():
-				node_val[node] = {unpack(k): unpack(v) for (k, v) in stats.items()}
+				node_val[node] = {
+					unpack(k): unpack(v) for (k, v) in stats.items()
+				}
 			edge_val = chardelt["edge_val"] = {}
 			for a, bs in chardeltpacked.pop(EDGE_VAl, {}).items():
 				aA = unpack(a)
 				if aA not in edge_val:
 					edge_val[aA] = {}
 				for b, stats in bs.items():
-					edge_val[aA][unpack(b)] = {unpack(k): unpack(v) for (k, v) in stats.items()}
+					edge_val[aA][unpack(b)] = {
+						unpack(k): unpack(v) for (k, v) in stats.items()
+					}
 			for k, v in chardeltpacked.items():
 				chardelt[unpack(k)] = unpack(v)
 		return delt
 
-	def _get_slow_delta(self, btt_from: Tuple[str, int, int], btt_to: Tuple[str, int, int]) -> :
+	def _get_slow_delta(
+		self, btt_from: Tuple[str, int, int], btt_to: Tuple[str, int, int]
+	) -> DeltaDict:
 		def newgraph():
 			return {
 				# null mungers mean KeyError, which is correct
@@ -1474,6 +1496,7 @@ class Engine(AbstractEngine, gORM, Executor):
 					2, bytes, args_munger=None, kwargs_munger=None
 				),
 			}
+
 		delta: Dict[bytes, Any] = {
 			UNIVERSAL: PickyDefaultDict(bytes),
 			RULES: StructuredDefaultDict(1, bytes),
