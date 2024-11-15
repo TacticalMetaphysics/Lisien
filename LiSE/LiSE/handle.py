@@ -680,19 +680,9 @@ class EngineHandle:
 					)
 		branch_from, turn_from, tick_from = self._real._btt()
 
-		def is_timespan_bigger():
-			kfint = self._real.query.keyframe_interval
-			acc = 0
-			for r in range(
-				min((turn_from, turn_to or float("inf"))),
-				max((turn_from, turn_to or -float("inf"))),
-			):
-				acc += r
-				if r > kfint:
-					return True
-			return False
-
-		slow_delta = branch != branch_from or is_timespan_bigger()
+		slow_delta = branch != branch_from or self._real._is_timespan_bigger(
+			turn_from, turn_to
+		)
 		self._real.time = (branch, turn)
 		if tick is None:
 			tick = self._real.tick

@@ -1314,6 +1314,20 @@ class Engine(AbstractEngine, gORM, Executor):
 			return  # not that it helps performance any, in this case
 		return ret
 
+	def _is_timespan_bigger(self, branch, turn_from, turn_to) -> bool:
+		kfint = self.query.keyframe_interval
+		if kfint is None:
+			return False
+		acc = 0
+		for r in range(
+				min((turn_from, turn_to or float("inf"))),
+				max((turn_from, turn_to or -float("inf"))),
+			):
+				acc += self._turn_end_plan[branch, r]
+				if r > kfint:
+					return True
+			return False
+
 	def _get_branch_delta(
 		self,
 		branch: str,
