@@ -33,7 +33,7 @@ from queue import SimpleQueue, Empty
 from threading import Thread, Lock
 from time import sleep
 from types import FunctionType, ModuleType, MethodType
-from typing import Union, Tuple, Any, Set, List, Type, Optional
+from typing import Dict, Union, Tuple, Any, Set, List, Type, Optional
 from os import PathLike
 from abc import ABC, abstractmethod
 from random import Random
