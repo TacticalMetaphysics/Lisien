@@ -1,3 +1,5 @@
+from functools import partial
+
 from kivy.clock import Clock
 from kivy.tests.common import UnitTestTouch
 
@@ -7,6 +9,13 @@ from LiSE.examples import kobold
 from LiSE.examples import polygons
 from .util import idle_until, window_with_widget, ELiDEAppTest
 from ..card import Card
+
+
+def builder_foundation(builder):
+	for child in builder.children:
+		if not isinstance(child, Card):
+			return True
+	return False
 
 
 class RuleBuilderTest(ELiDEAppTest):
@@ -130,20 +139,59 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			100,
 			"Never filled trigger builder",
 		)
-		for card in builder.children:
-			if not isinstance(card, Card):
-				continue
-			if card.headline_text == "breakcover":
-				break
-		else:
-			assert False, "No breakcover card"
-		for foundation in builder.children:
-			if isinstance(foundation, Card):
-				continue
-			if foundation.x > card.right:
-				break
-		else:
-			assert False, "No right foundation"
+
+		breakcover = None
+
+		def have_breakcover():
+			nonlocal breakcover
+			for card in builder.children:
+				if not isinstance(card, Card):
+					continue
+				if card.headline_text == "breakcover":
+					breakcover = card
+					return True
+			return False
+
+		idle_until(have_breakcover, 100, "Never got breakcover card")
+
+		right_foundation = None
+
+		def have_right_foundation():
+			nonlocal right_foundation
+			for foundation in builder.children:
+				if isinstance(foundation, Card):
+					continue
+				if foundation.x > breakcover.right:
+					right_foundation = foundation
+					return True
+			return False
+
+		idle_until(have_right_foundation, 100, "Never built right foundation")
+
+		assert breakcover is not None
+		assert right_foundation is not None
+
+		def breakcover_is_flush_with_right_foundation():
+			for card in builder.children:
+				if not isinstance(card, Card):
+					continue
+				if card.headline_text == "breakcover":
+					breakcover = card
+					right_foundation = None
+					for foundation in builder.children:
+						if isinstance(foundation, Card):
+							continue
+						if (
+							right_foundation is None
+							or foundation.x > right_foundation.x
+						):
+							right_foundation = foundation
+					assert right_foundation is not None, "No foundations??"
+					return breakcover.x == right_foundation.x
+			return False
+
+		card = breakcover
+		foundation = right_foundation
 		mov = UnitTestTouch(*card.center)
 		mov.touch_down()
 		dist_x = foundation.center_x - card.center_x
@@ -155,7 +203,14 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			mov.touch_move(x, y)
 			self.advance_frames(1)
 		mov.touch_up(foundation.center_x, foundation.y)
-		idle_until(lambda: card.x == foundation.x, 100, "card didn't move")
+		idle_until(
+			partial(builder_foundation, builder),
+			100,
+			"didn't replace foundations",
+		)
+		idle_until(
+			breakcover_is_flush_with_right_foundation, 100, "card didn't move"
+		)
 		idle_until(
 			lambda: "breakcover"
 			not in self.app.engine.rule["shrubsprint"].triggers,
@@ -327,14 +382,11 @@ class TestCharRuleBuilder(ELiDEAppTest):
 		idle_until(
 			lambda: builder.children, 100, "trigger builder never got children"
 		)
-
-		def builder_foundation():
-			for child in builder.children:
-				if not isinstance(child, Card):
-					return True
-			return False
-
-		idle_until(builder_foundation, 100, "Never filled trigger builder")
+		idle_until(
+			partial(builder_foundation, builder),
+			100,
+			"Never filled trigger builder",
+		)
 		idle_until(
 			lambda: builder.parent, 100, "trigger builder never got parent"
 		)
