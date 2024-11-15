@@ -21,7 +21,7 @@ from kivy.clock import Clock, triggered
 
 from .arrow import get_points, get_quad_vertices
 from ELiDE.pawnspot import GraphPawnSpot
-from ..collide import Collide2DPoly
+from kivy_garden.collider import Collide2DPoly
 
 
 def trigger(func):

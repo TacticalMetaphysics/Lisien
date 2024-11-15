@@ -37,7 +37,7 @@ from kivy.clock import Clock, mainthread
 try:
 	from kivy.garden.collider import Collide2DPoly
 except (KeyError, ImportError):
-	from ..collide import Collide2DPoly
+	from kivy_garden.collider import Collide2DPoly
 
 fortyfive = pi / 4
 cos45 = cos(fortyfive)
@@ -354,9 +354,33 @@ class GraphArrow:
 		self.destination = destination
 
 	def collide_point(self, x: float, y: float) -> bool:
-		return self.board.arrow_plane._colliders_map[
+		od = (self.origin.name, self.destination.name)
+		if od not in self.board.arrow_plane._colliders_map:
+			if od not in self.board.arrow_plane._instructions_map:
+				shaft_points, head_points = get_points(
+					self.origin,
+					self.destination,
+					self.board.arrow_plane.arrowhead_size,
+				)
+				r = self.board.arrow_plane.arrow_width / 2
+				bg_points = get_quad_vertices(
+					*shaft_points,
+					*head_points,
+					r * self.board.arrow_plane.bg_scale_unselected,
+					r,
+					0,
+					0,
+				)["shaft_bg"]
+			else:
+				bg_points = self.board.arrow_plane._instructions_map[od][
+					"shaft_bg"
+				].points
+			self.board.arrow_plane._colliders_map[od] = Collide2DPoly(
+				points=bg_points, cache=True
+			)
+		return (x, y) in self.board.arrow_plane._colliders_map[
 			self.origin.name, self.destination.name
-		].collide_point(x, y)
+		]
 
 	def pos_along(self, pct: float) -> Tuple[float, float]:
 		"""Return coordinates for where a Pawn should be if it has travelled
