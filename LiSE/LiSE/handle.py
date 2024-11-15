@@ -29,6 +29,7 @@ from typing import (
 	Union,
 	Any,
 	List,
+	Literal,
 	Iterable,
 	Optional,
 )
@@ -244,7 +245,7 @@ class EngineHandle:
 	@staticmethod
 	def _concat_char_delta(delta: SlightlyPackedDeltaType) -> bytes:
 		delta = delta.copy()
-		mostly_packed_delta = {}
+		mostly_packed_delta = packd = {}
 		eternal = delta.pop(ETERNAL, None)
 		if eternal:
 			mostly_packed_delta[ETERNAL] = eternal
@@ -253,54 +254,42 @@ class EngineHandle:
 			mostly_packed_delta[UNIVERSAL] = universal
 		if RULEBOOK in delta:
 			mostly_packed_delta[RULEBOOK] = delta.pop(RULEBOOK)
-		rules = delta.pop(RULES, {})
-		for char, chardelta in delta.items():
-			if chardelta == NONE:
-				mostly_packed_delta[char] = NONE
-				continue
-			if chardelta.get(b"\xa4name") == b"\xc0":
-				mostly_packed_delta[char] = b"\xc0"
-				continue
-			chardelta = chardelta.copy()
-			packd = mostly_packed_delta[char] = {}
-			if NODES in chardelta:
-				charnodes = chardelta.pop(NODES)
-				packd[NODES] = concat_d(charnodes)
-			if NODE_VAL in chardelta:
-				slightnoded = {}
-				packnodevd = {}
-				for node, vals in chardelta.pop(NODE_VAL).items():
-					slightnoded[node] = vals
-					packnodevd[node] = concat_d(vals)
-				packd[NODE_VAL] = concat_d(packnodevd)
-			if EDGES in chardelta:
-				es = chardelta.pop(EDGES)
-				packd[EDGES] = concat_d(es)
-			if EDGE_VAL in chardelta:
-				packorigd = {}
-				for orig, dests in chardelta.pop(EDGE_VAL).items():
-					slightdestd = {}
-					packdestd = {}
-					for dest, port in dests.items():
-						slightdestd[dest] = port
-						packdestd[dest] = concat_d(port)
-					packorigd[orig] = concat_d(packdestd)
-				packd[EDGE_VAL] = concat_d(packorigd)
-			if UNITS in chardelta:
-				if chardelta[UNITS] == NONE:
-					packd[UNITS] = concat_d({})
-				else:
-					packd[UNITS] = chardelta[UNITS]
-			packd.update(chardelta)
-		almost_entirely_packed_delta = {
-			charn: (concat_d(stuff) if stuff != b"\xc0" else b"\xc0")
-			for charn, stuff in mostly_packed_delta.items()
-		}
-		if rules:
-			almost_entirely_packed_delta[RULES] = concat_d(
+		if RULES in delta:
+			rules = delta.pop(RULES)
+			mostly_packed_delta[RULES] = concat_d(
 				{rule: concat_d(funcls) for (rule, funcls) in rules.items()}
 			)
-		return concat_d(almost_entirely_packed_delta)
+		if NODES in delta:
+			charnodes = delta.pop(NODES)
+			packd[NODES] = concat_d(charnodes)
+		if NODE_VAL in delta:
+			slightnoded = {}
+			packnodevd = {}
+			for node, vals in delta.pop(NODE_VAL).items():
+				slightnoded[node] = vals
+				packnodevd[node] = concat_d(vals)
+			packd[NODE_VAL] = concat_d(packnodevd)
+		if EDGES in delta:
+			es = delta.pop(EDGES)
+			packd[EDGES] = concat_d(es)
+		if EDGE_VAL in delta:
+			packorigd = {}
+			for orig, dests in delta.pop(EDGE_VAL).items():
+				slightdestd = {}
+				packdestd = {}
+				for dest, port in dests.items():
+					slightdestd[dest] = port
+					packdestd[dest] = concat_d(port)
+				packorigd[orig] = concat_d(packdestd)
+			packd[EDGE_VAL] = concat_d(packorigd)
+		if UNITS in delta:
+			if delta[UNITS] == NONE:
+				packd[UNITS] = concat_d({})
+				del delta[UNITS]
+			else:
+				packd[UNITS] = delta.pop(UNITS)
+		mostly_packed_delta.update(delta)
+		return concat_d(mostly_packed_delta)
 
 	@prepacked
 	def next_turn(self) -> Tuple[bytes, bytes]:
