@@ -165,7 +165,7 @@ class EngineHandle:
 	def snap_keyframe(self, silent=False):
 		return self._real.snap_keyframe(silent=silent)
 
-	def _pack_delta(self, delta):
+	def _pack_delta(self, delta) -> Tuple[SlightlyPackedDeltaType, bytes]:
 		pack = self.pack
 		slightly_packed_delta = {}
 		mostly_packed_delta = {}
@@ -360,9 +360,11 @@ class EngineHandle:
 					)
 		branch_from, turn_from, tick_from = self._real._btt()
 		self._real.time = (branch, turn)
-		return NONE, self._real.get_delta(
-			(branch_from, turn_from, tick_from), self._real._btt()
-		)
+		return NONE, self._pack_delta(
+			self._real.get_delta(
+				(branch_from, turn_from, tick_from), self._real._btt()
+			)
+		)[1]
 
 	@prepacked
 	def increment_branch(self) -> bytes:
