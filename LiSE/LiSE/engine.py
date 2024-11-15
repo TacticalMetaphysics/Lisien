@@ -130,7 +130,7 @@ class NextTurn(Signal):
 				turn=engine.turn,
 				tick=engine.tick,
 			)
-			return [], engine.get_delta(
+			return [], engine._get_branch_delta(
 				branch=start_branch,
 				turn_from=start_turn,
 				turn_to=engine.turn,
@@ -167,7 +167,7 @@ class NextTurn(Signal):
 						engine.universal["last_result_idx"] = 0
 						branch, turn, tick = engine._btt()
 						self.send(engine, branch=branch, turn=turn, tick=tick)
-						return list(res), engine.get_delta(
+						return list(res), engine._get_branch_delta(
 							branch=start_branch,
 							turn_from=start_turn,
 							turn_to=turn,
@@ -198,7 +198,7 @@ class NextTurn(Signal):
 			turn=engine.turn,
 			tick=engine.tick,
 		)
-		delta = engine.get_delta(
+		delta = engine._get_branch_delta(
 			branch=engine.branch,
 			turn_from=start_turn,
 			turn_to=engine.turn,
@@ -1314,7 +1314,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			return  # not that it helps performance any, in this case
 		return ret
 
-	def get_delta(
+	def _get_branch_delta(
 		self,
 		branch: str,
 		turn_from: int,
@@ -1364,7 +1364,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			if tick_from == tick_to:
 				return {}
 			return self._get_turn_delta(branch, turn_to, tick_from, tick_to)
-		delta = super().get_delta(
+		delta = super()._get_branch_delta(
 			branch, turn_from, tick_from, turn_to, tick_to
 		)
 		if turn_from < turn_to:
@@ -2219,7 +2219,7 @@ class Engine(AbstractEngine, gORM, Executor):
 					delt = deltas[branch_from, turn_from, tick_from]
 				else:
 					delt = deltas[branch_from, turn_from, tick_from] = (
-						self.get_delta(
+						self._get_branch_delta(
 							branch_from,
 							turn_from,
 							tick_from,
@@ -2255,7 +2255,7 @@ class Engine(AbstractEngine, gORM, Executor):
 	def _update_worker_process_state(self, i):
 		branch_from, turn_from, tick_from = self._worker_updated_btts[i]
 		if branch_from == self.branch:
-			delt = self.get_delta(
+			delt = self._get_branch_delta(
 				branch_from, turn_from, tick_from, self.turn, self.tick
 			)
 			argbytes = zlib.compress(

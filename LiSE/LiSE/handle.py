@@ -705,7 +705,7 @@ class EngineHandle:
 			)
 			packed_delta = self._concat_char_delta(delta)
 		else:
-			delta = self._real.get_delta(
+			delta = self._real._get_branch_delta(
 				branch, turn_from, tick_from, turn, tick
 			)
 			slightly_packed_delta, packed_delta = self._pack_delta(delta)
@@ -1015,7 +1015,9 @@ class EngineHandle:
 		callme = getattr(store, func)
 		res = callme(*args, **kwargs)
 		_, turn_now, tick_now = self._real._btt()
-		delta = self._real.get_delta(branch, turn, tick, turn_now, tick_now)
+		delta = self._real._get_branch_delta(
+			branch, turn, tick, turn_now, tick_now
+		)
 		return res, delta
 
 	def call_randomizer(self, method: str, *args, **kwargs) -> Any:
@@ -1028,7 +1030,7 @@ class EngineHandle:
 		time_from = self._real._btt()
 		if hasattr(self._real.method, "game_start"):
 			self._real.game_start()
-		return [], self._real.get_delta(
+		return [], self._real._get_branch_delta(
 			*time_from, self._real.turn, self._real.tick
 		)
 
