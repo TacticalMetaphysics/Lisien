@@ -40,6 +40,7 @@ from random import Random
 import zlib
 
 import msgpack
+import numpy as np
 import networkx as nx
 from networkx import (
 	Graph,
