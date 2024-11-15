@@ -1441,44 +1441,52 @@ class Engine(AbstractEngine, gORM, Executor):
 		unpack = self.unpack
 		delta = delta.copy()
 		delt = {}
-		universal = delt["universal"] = {}
-		for k, v in delta.pop(UNIVERSAL, {}).items():
-			universal[unpack(k)] = unpack(v)
-		rules = delt["rules"] = {}
-		for rule_name, funclists in delta.pop(RULES, {}).items():
-			rules[rule_name] = {
-				"triggers": unpack(funclists[TRIGGERS]),
-				"prereqs": unpack(funclists[PREREQS]),
-				"actions": unpack(funclists[ACTIONS]),
-			}
-		rulebook = delt["rulebook"] = {}
-		for rulebok, rules in delta.pop(RULEBOOK, {}).items():
-			rulebook[rulebok] = unpack(rules)
-		for char, chardeltpacked in delta.items():
-			chardelt = delt[char] = {}
-			chardelt["nodes"] = {
-				unpack(node): extant == TRUE
-				for (node, extant) in chardeltpacked[NODES].items()
-			}
-			edges = chardelt["edges"] = {}
-			for (a, b), ex in chardeltpacked.pop(EDGES, {}).items():
-				if a not in edges:
-					edges[a] = {}
-				edges[a][b] = ex == TRUE
-			node_val = chardelt["node_val"] = {}
-			for node, stats in chardeltpacked.pop(NODE_VAL, {}).items():
-				node_val[node] = {
-					unpack(k): unpack(v) for (k, v) in stats.items()
+		if UNIVERSAL in delta:
+			universal = delt["universal"] = {}
+			for k, v in delta.pop(UNIVERSAL).items():
+				universal[unpack(k)] = unpack(v)
+		if RULES in delta:
+			rules = delt["rules"] = {}
+			for rule_name, funclists in delta.pop(RULES).items():
+				rules[unpack(rule_name)] = {
+					"triggers": unpack(funclists[TRIGGERS]),
+					"prereqs": unpack(funclists[PREREQS]),
+					"actions": unpack(funclists[ACTIONS]),
 				}
-			edge_val = chardelt["edge_val"] = {}
-			for a, bs in chardeltpacked.pop(EDGE_VAl, {}).items():
-				aA = unpack(a)
-				if aA not in edge_val:
-					edge_val[aA] = {}
-				for b, stats in bs.items():
-					edge_val[aA][unpack(b)] = {
+		if RULEBOOK in delta:
+			rulebook = delt["rulebook"] = {}
+			for rulebok, rules in delta.pop(RULEBOOK).items():
+				rulebook[unpack(rulebok)] = unpack(rules)
+		for char, chardeltpacked in delta.items():
+			chardelt = delt[unpack(char)] = {}
+			if NODES in chardeltpacked:
+				chardelt["nodes"] = {
+					unpack(node): extant == TRUE
+					for (node, extant) in chardeltpacked.pop(NODES).items()
+				}
+			if EDGES in chardeltpacked:
+				edges = chardelt["edges"] = {}
+				for ab, ex in chardeltpacked.pop(EDGES).items():
+					a, b = unpack(ab)
+					if a not in edges:
+						edges[a] = {}
+					edges[a][b] = ex == TRUE
+			if NODE_VAL in chardeltpacked:
+				node_val = chardelt["node_val"] = {}
+				for node, stats in chardeltpacked.pop(NODE_VAL).items():
+					node_val[unpack(node)] = {
 						unpack(k): unpack(v) for (k, v) in stats.items()
 					}
+			if EDGE_VAL in chardeltpacked:
+				edge_val = chardelt["edge_val"] = {}
+				for a, bs in chardeltpacked.pop(EDGE_VAL).items():
+					aA = unpack(a)
+					if aA not in edge_val:
+						edge_val[aA] = {}
+					for b, stats in bs.items():
+						edge_val[aA][unpack(b)] = {
+							unpack(k): unpack(v) for (k, v) in stats.items()
+						}
 			for k, v in chardeltpacked.items():
 				chardelt[unpack(k)] = unpack(v)
 		return delt
