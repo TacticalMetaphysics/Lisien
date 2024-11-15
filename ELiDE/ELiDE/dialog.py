@@ -75,16 +75,16 @@ class DialogMenu(Box):
 	options = ListProperty()
 	"""List of pairs of (button_text, callable)"""
 
-	def _set_sv_size(self, *args):
+	def _set_sv_size(self, *_):
 		self._sv.width = self.width - self.padding[0] - self.padding[2]
 		self._sv.height = self.height - self.padding[1] - self.padding[3]
 
-	def _set_sv_pos(self, *args):
+	def _set_sv_pos(self, *_):
 		self._sv.x = self.x + self.padding[0]
 		self._sv.y = self.y + self.padding[3]
 
 	@mainthread
-	def on_options(self, *args):
+	def on_options(self, *_):
 		if not hasattr(self, "_sv"):
 			self._sv = ScrollView(size=self.size, pos=self.pos)
 			self.bind(size=self._set_sv_size, pos=self._set_sv_pos)
@@ -131,7 +131,7 @@ class Dialog(BoxLayout):
 		self._propagate_msg_kwargs()
 		self._propagate_menu_kwargs()
 
-	def _propagate_msg_kwargs(self, *args):
+	def _propagate_msg_kwargs(self, *_):
 		if "msg" not in self.ids:
 			Clock.schedule_once(self._propagate_msg_kwargs, 0)
 			return
@@ -142,7 +142,7 @@ class Dialog(BoxLayout):
 		for k, v in kw.items():
 			setattr(self.ids.msg, k, v)
 
-	def _propagate_menu_kwargs(self, *args):
+	def _propagate_menu_kwargs(self, *_):
 		if "menu" not in self.ids:
 			Clock.schedule_once(self._propagate_menu_kwargs, 0)
 			return
@@ -184,7 +184,7 @@ class DialogLayout(FloatLayout):
 		super().__init__(**kwargs)
 		self.dialog = Dialog()
 
-	def on_engine(self, *args):
+	def on_engine(self, *_):
 		todo = self.engine.universal.get("last_result")
 		if isinstance(todo, list):
 			self.todo = todo
@@ -195,13 +195,13 @@ class DialogLayout(FloatLayout):
 		if self.todo:
 			self.advance_dialog()
 
-	def _pull(self, *args, key, value):
+	def _pull(self, *_, key, value):
 		if key == "last_result":
 			self.todo = value if value and isinstance(value, list) else []
 		elif key == "last_result_idx":
 			self.idx = value if value and isinstance(value, int) else 0
 
-	def on_idx(self, *args):
+	def on_idx(self, *_):
 		lidx = self.engine.universal.get("last_result_idx")
 		if lidx is not None and lidx != self.idx:
 			self.engine.universal["last_result_idx"] = self.idx
@@ -283,7 +283,7 @@ class DialogLayout(FloatLayout):
 			)
 		self.add_widget(dia)
 
-	def ok(self, *args, cb=None, cb2=None):
+	def ok(self, *_, cb=None, cb2=None):
 		"""Clear dialog widgets, call ``cb``s if provided, and advance the dialog queue"""
 		self.clear_widgets()
 		if cb:

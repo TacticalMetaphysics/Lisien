@@ -51,7 +51,7 @@ class SwatchButton(ToggleButton):
 	tex = ObjectProperty()
 	"""Texture to display here"""
 
-	def on_state(self, *args):
+	def on_state(self, *_):
 		if self.state == "down":
 			assert self not in self.parent.selection
 			if self.parent.selection_mode == "single":
@@ -66,7 +66,7 @@ class SwatchButton(ToggleButton):
 				self.parent.selection.remove(self)
 
 	@mainthread
-	def on_parent(self, *args):
+	def on_parent(self, *_):
 		if not self.canvas or not self.tex:
 			Clock.schedule_once(self.on_parent, 0)
 			return
@@ -87,16 +87,16 @@ class SwatchButton(ToggleButton):
 		return (x + (width / 2 - tw / 2), y + height - th)
 
 	@trigger
-	def _upd_img_rect_pos(self, *args):
+	def _upd_img_rect_pos(self, *_):
 		self._img_rect.pos = self._get_img_rect_pos()
 
 	@trigger
-	def _upd_img_rect_tex(self, *args):
+	def _upd_img_rect_tex(self, *_):
 		self._img_rect.texture = self.tex
 		self._img_rect.size = self.tex.size
 		self._img_rect.pos = self._get_img_rect_pos()
 
-	def on_size(self, *args):
+	def on_size(self, *_):
 		self.text_size = self.size
 
 
@@ -120,12 +120,12 @@ class Pallet(StackLayout):
 	selection_mode = OptionProperty("single", options=["single", "multiple"])
 	"""Whether to allow only a 'single' selected :class:`SwatchButton` (default), or 'multiple'"""
 
-	def on_selection(self, *args):
+	def on_selection(self, *_):
 		Logger.debug(
 			"Pallet: {} got selection {}".format(self.filename, self.selection)
 		)
 
-	def on_filename(self, *args):
+	def on_filename(self, *_):
 		if not self.filename:
 			return
 		resource = resource_find(self.filename)
@@ -133,13 +133,13 @@ class Pallet(StackLayout):
 			raise ValueError("Couldn't find atlas: {}".format(self.filename))
 		self.atlas = Atlas(resource)
 
-	def on_atlas(self, *args):
+	def on_atlas(self, *_):
 		if self.atlas is None:
 			return
 		self.upd_textures()
 		self.atlas.bind(textures=self._trigger_upd_textures)
 
-	def upd_textures(self, *args):
+	def upd_textures(self, *_):
 		"""Create one :class:`SwatchButton` for each texture"""
 		if self.canvas is None:
 			Clock.schedule_once(self.upd_textures, 0)
@@ -165,7 +165,7 @@ class Pallet(StackLayout):
 				)
 				add_widget(swatches[name])
 
-	def _trigger_upd_textures(self, *args):
+	def _trigger_upd_textures(self, *_):
 		if hasattr(self, "_scheduled_upd_textures"):
 			Clock.unschedule(self._scheduled_upd_textures)
 		self._scheduled_upd_textures = Clock.schedule_once(

@@ -192,7 +192,7 @@ class Card(FloatLayout):
 	editable = BooleanProperty(False)
 	edit_func = ObjectProperty()
 
-	def on_text(self, *args):
+	def on_text(self, *_):
 		if "main_text" not in self.ids:
 			Clock.schedule_once(self.on_text, 0)
 			return

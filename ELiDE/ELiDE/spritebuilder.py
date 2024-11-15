@@ -42,13 +42,13 @@ class SpriteSelector(BoxLayout):
 	default_imgpaths = ListProperty()
 	preview = ObjectProperty()
 
-	def on_prefix(self, *args):
+	def on_prefix(self, *_):
 		if "textbox" not in self.ids:
 			Clock.schedule_once(self.on_prefix, 0)
 			return
 		self.ids.textbox.text = self.prefix
 
-	def on_imgpaths(self, *args):
+	def on_imgpaths(self, *_):
 		if not self.preview:
 			Logger.debug("SpriteSelector: no preview")
 			Clock.schedule_once(self.on_imgpaths, 0)
@@ -62,11 +62,11 @@ class SpriteSelector(BoxLayout):
 		)
 		self.preview.add_widget(self._imgstack)
 
-	def on_pallets(self, *args):
+	def on_pallets(self, *_):
 		for pallet in self.pallets:
 			pallet.fbind("selection", self._upd_imgpaths)
 
-	def _upd_imgpaths(self, *args):
+	def _upd_imgpaths(self, *_):
 		imgpaths = []
 		for pallet in self.pallets:
 			if pallet.selection:

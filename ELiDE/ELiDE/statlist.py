@@ -49,7 +49,7 @@ class BaseStatListView(RecycleView):
 		self._listeners = {}
 		super().__init__(**kwargs)
 
-	def on_proxy(self, *args):
+	def on_proxy(self, *_):
 		self.proxy.connect(self._trigger_upd_data, weak=False)
 		self._trigger_upd_data()
 
@@ -79,7 +79,7 @@ class BaseStatListView(RecycleView):
 		if (k, v) in self._scheduled_set_value:
 			del self._scheduled_set_value[k, v]
 
-	def _trigger_set_value(self, k, v, *args):
+	def _trigger_set_value(self, k, v, *_):
 		todo = partial(self.set_value, k, v)
 		if (k, v) in self._scheduled_set_value:
 			Clock.unschedule(self._scheduled_set_value[k, v])
@@ -134,22 +134,22 @@ class BaseStatListView(RecycleView):
 			"config": config,
 		}
 
-	def upd_data(self, *args):
+	def upd_data(self, *_):
 		"""Update to match new entity data"""
 		data = [self.munge(k, v) for k, v in self.iter_data()]
 		self.data = sorted(data, key=lambda d: d["key"])
 
-	def _trigger_upd_data(self, *args, **kwargs):
+	def _trigger_upd_data(self, *_, **__):
 		if hasattr(self, "_scheduled_upd_data"):
 			Clock.unschedule(self._scheduled_upd_data)
 		self._scheduled_upd_data = Clock.schedule_once(self.upd_data, 0)
 
-	def _reg_widget(self, w, *args):
+	def _reg_widget(self, w, *_):
 		if not self.proxy:
 			Clock.schedule_once(partial(self._reg_widget, w), 0)
 			return
 
-		def listen(*args):
+		def listen(*_):
 			if w.key not in self.proxy:
 				return
 			if w.value != self.proxy[w.key]:

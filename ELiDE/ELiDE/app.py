@@ -83,10 +83,10 @@ class ELiDEApp(App):
 	edit_locked = BooleanProperty(False)
 	simulate_button_down = BooleanProperty(False)
 
-	def on_selection(self, *args):
+	def on_selection(self, *_):
 		Logger.debug("App: {} selected".format(self.selection))
 
-	def on_selected_proxy(self, *args):
+	def on_selected_proxy(self, *_):
 		if hasattr(self.selected_proxy, "name"):
 			self.selected_proxy_name = str(self.selected_proxy.name)
 			return
@@ -103,7 +103,7 @@ class ELiDEApp(App):
 			str(origin.name) + "->" + str(destination.name)
 		)
 
-	def _get_character_name(self, *args):
+	def _get_character_name(self, *_):
 		if self.character is None:
 			return
 		return self.character.name
@@ -116,7 +116,7 @@ class ELiDEApp(App):
 		_get_character_name, _set_character_name, bind=("character",)
 	)
 
-	def _pull_time(self, *args):
+	def _pull_time(self, *_):
 		if not self.engine:
 			Clock.schedule_once(self._pull_time, 0)
 			return
@@ -165,7 +165,7 @@ class ELiDEApp(App):
 		self, command, branch, turn, tick, result, **kwargs
 	):
 		(self.branch, self.turn, self.tick) = (branch, turn, tick)
-		self.mainscreen._update_from_time_travel(
+		self.mainscreen.update_from_time_travel(
 			command, branch, turn, tick, result, **kwargs
 		)
 
@@ -254,17 +254,17 @@ class ELiDEApp(App):
 		self._add_screens()
 		return self.manager
 
-	def _pull_lang(self, *args, **kwargs):
+	def _pull_lang(self, *_, **kwargs):
 		self.strings.language = kwargs["language"]
 
-	def _pull_chars(self, *args, **kwargs):
+	def _pull_chars(self, *_, **__):
 		self.chars.names = list(self.engine.character)
 
-	def _pull_time_from_signal(self, *args, branch, turn, tick):
+	def _pull_time_from_signal(self, *_, branch, turn, tick):
 		self.branch, self.turn, self.tick = branch, turn, tick
 		self.mainscreen.ids.turnscroll.value = turn
 
-	def start_subprocess(self, *args):
+	def start_subprocess(self, *_):
 		"""Start the LiSE core and get a proxy to it
 
 		Must be called before ``init_board``
@@ -292,7 +292,7 @@ class ELiDEApp(App):
 
 	trigger_start_subprocess = trigger(start_subprocess)
 
-	def init_board(self, *args):
+	def init_board(self, *_):
 		"""Get the board widgets initialized to display the game state
 
 		Must be called after start_subprocess
@@ -319,9 +319,9 @@ class ELiDEApp(App):
 		self.select_character(self.engine.eternal["boardchar"])
 		self.selected_proxy = self._get_selected_proxy()
 
-	def _add_screens(self, *args):
+	def _add_screens(self, *_):
 		def toggler(screenname):
-			def tog(*args):
+			def tog(*_):
 				if self.manager.current == screenname:
 					self.manager.current = "main"
 				else:
@@ -357,7 +357,7 @@ class ELiDEApp(App):
 		)
 		self.bind(character_name=self.chars.setter("character_name"))
 
-		def chars_push_character_name(*args):
+		def chars_push_character_name(*_):
 			self.unbind(character_name=self.chars.setter("character_name"))
 			self.character_name = self.chars.character_name
 			self.bind(character_name=self.chars.setter("character_name"))
@@ -462,10 +462,10 @@ class ELiDEApp(App):
 		else:
 			raise ValueError("Invalid selection: {}".format(self.selection))
 
-	def refresh_selected_proxy(self, *args):
+	def refresh_selected_proxy(self, *_):
 		self.selected_proxy = self._get_selected_proxy()
 
-	def on_character_name(self, *args):
+	def on_character_name(self, *_):
 		if not self.engine:
 			Clock.schedule_once(self.on_character_name, 0)
 			return
@@ -473,7 +473,7 @@ class ELiDEApp(App):
 			self.character_name
 		]
 
-	def on_character(self, *args):
+	def on_character(self, *_):
 		if not hasattr(self, "mainscreen"):
 			Clock.schedule_once(self.on_character, 0)
 			return
@@ -545,7 +545,7 @@ class ELiDEApp(App):
 		self.mainscreen.gridboards[name] = GridBoard(character=char)
 		self.character = char
 
-	def on_edit_locked(self, *args):
+	def on_edit_locked(self, *_):
 		Logger.debug(
 			"ELiDEApp: "
 			+ ("edit locked" if self.edit_locked else "edit unlocked")

@@ -54,12 +54,12 @@ class CalendarWidget(Widget, RecycleDataViewBehavior):
 	val = ObjectProperty(allownone=True)
 	"""The value you want to set the key to"""
 
-	def _update_disabledness(self, *args, **kwargs):
+	def _update_disabledness(self, *_, **__):
 		if not self.parent:
 			return
 		self.disabled = self.turn < self.parent.parent.entity.engine.turn
 
-	def _trigger_update_disabledness(self, *args, **kwargs):
+	def _trigger_update_disabledness(self, *_, **__):
 		if hasattr(self, "_scheduled_update_disabledness"):
 			Clock.unschedule(self._scheduled_update_disabledness)
 		self._scheduled_update_disabledness = Clock.schedule_once(
@@ -71,7 +71,7 @@ class CalendarWidget(Widget, RecycleDataViewBehavior):
 		entity = getattr(entity, "stat", entity)
 		entity[self.key] = self.val
 
-	def on_val(self, *args):
+	def on_val(self, *_):
 		# do I want to do some validation at this point?
 		# Maybe I should validate on the proxy objects and catch that in Calendar,
 		# display an error message?
@@ -100,7 +100,7 @@ class CalendarWidget(Widget, RecycleDataViewBehavior):
 					self._set_value()
 					eng.turn = now
 
-	def on_parent(self, *args):
+	def on_parent(self, *_):
 		if not self.parent:
 			return
 		self._trigger_update_disabledness()
@@ -117,18 +117,18 @@ class CalendarLabel(CalendarWidget, Label):
 
 
 class CalendarSlider(Slider, CalendarWidget):
-	def on_val(self, *args):
+	def on_val(self, *_):
 		try:
 			self.value = float(self.val)
 		except ValueError:
 			self.value = 0.0
 
-	def on_value(self, *args):
+	def on_value(self, *_):
 		self.val = self.value
 
 
 class CalendarTextInput(CalendarWidget, TextInput):
-	def _parse_text(self, *args):
+	def _parse_text(self, *_):
 		from ast import literal_eval
 
 		try:
@@ -154,7 +154,7 @@ class CalendarOptionButton(CalendarWidget, Button):
 		self.bind(options=self._update_modalview)
 		self.bind(on_release=self.modalview.open)
 
-	def _make_modalview(self, *args):
+	def _make_modalview(self, *_):
 		if not self.modalview:
 			self.modalview = ModalView()
 		if self.modalview.children:
@@ -165,7 +165,7 @@ class CalendarOptionButton(CalendarWidget, Button):
 		container.size = container.minimum_size
 		self._update_modalview()
 
-	def _update_modalview(self, *args):
+	def _update_modalview(self, *_):
 		if not self.modalview:
 			Clock.schedule_once(self.on_options, 0)
 			return
@@ -198,7 +198,7 @@ class CalendarOptionButton(CalendarWidget, Button):
 				)
 		container.size = container.minimum_size
 
-	def _set_value_and_close(self, val, *args):
+	def _set_value_and_close(self, val, *_):
 		self.val = val
 		self.modalview.dismiss()
 
@@ -208,7 +208,7 @@ class CalendarToggleButton(CalendarWidget, ToggleButton):
 	true_text = StringProperty("True")
 	false_text = StringProperty("False")
 
-	def on_state(self, *args):
+	def on_state(self, *_):
 		self.val = self.state == "down"
 		self.text = self.true_text if self.val else self.false_text
 
@@ -261,7 +261,7 @@ class CalendarBehavior:
 	"""
 	data: ListProperty
 
-	def on_data(self, *args):
+	def on_data(self, *_):
 		idx = self.idx
 		for item in self.data:
 			if "key" in item and "turn" in item:

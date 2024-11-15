@@ -83,3 +83,16 @@ def install(eng, seed=None):
 	@go_places.trigger
 	def turn_one_only(char):
 		return char.engine.turn == 1
+
+
+if __name__ == "__main__":
+	from tempfile import mkdtemp
+	from LiSE import Engine
+	
+	td = mkdtemp()
+	with Engine(td) as eng:
+		install(eng)
+		for _ in range(10):
+			eng.next_turn()
+	print("View the sim with:")
+	print("python -m ELiDE " + td)
