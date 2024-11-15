@@ -20,6 +20,7 @@ from array import array
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+from typing import Union
 
 
 class Collide2DPoly(object):
@@ -126,7 +127,9 @@ class Collide2DPoly(object):
 						j = i
 					space[y * width + x] = odd
 
-	def collide_point(self, x, y):
+	def collide_point(
+		self, x: Union[int, float], y: Union[int, float]
+	) -> bool:
 		points = self.points
 		if not points or not (
 			self.min_x <= x <= self.max_x and self.min_y <= y <= self.max_y
@@ -152,7 +155,7 @@ class Collide2DPoly(object):
 			):
 				odd ^= y * multiple[i] + constant[i] < x
 			j = i
-		return odd
+		return bool(odd)
 
 	def __contains__(self, point):
 		return self.collide_point(*point)
