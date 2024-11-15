@@ -656,7 +656,7 @@ class ArrowPlane(Widget):
 			self._rectangle = Rectangle(
 				size=self.size, texture=self._fbo.texture
 			)
-		self._trigger_redraw()
+		self.redraw()
 
 	def have_arrow(self, orig, dest):
 		return (orig, dest) in self._port_index
