@@ -338,7 +338,6 @@ class EngineHandle:
 		the 0th item of which is `None`.
 
 		"""
-		turn_to = None
 		if branch in self._real._branches:
 			parent, turn_from, tick_from, turn_to, tick_to = (
 				self._real._branches[branch]
