@@ -1350,7 +1350,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			return  # not that it helps performance any, in this case
 		return ret
 
-	def _is_timespan_bigger(
+	def _is_timespan_too_big(
 		self, branch: str, turn_from: int, turn_to: int
 	) -> bool:
 		"""Return whether the changes between these turns are big enough that you might as well use the slow delta"""
@@ -1406,7 +1406,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		if time_from == time_to:
 			return {}
 		if time_from[0] == time_to[0]:
-			if self._is_timespan_bigger(
+			if self._is_timespan_too_big(
 				time_from[0], time_from[1], time_to[1]
 			):
 				return self._unpack_slightly_packed_delta(self._get_slow_delta(time_from, time_to))

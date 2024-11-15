@@ -360,7 +360,7 @@ class EngineHandle:
 					)
 		branch_from, turn_from, tick_from = self._real._btt()
 
-		slow_delta = branch != branch_from or self._real._is_timespan_bigger(
+		slow_delta = branch != branch_from or self._real._is_timespan_too_big(
 			branch, turn_from, turn_to
 		)
 		self._real.time = (branch, turn)
