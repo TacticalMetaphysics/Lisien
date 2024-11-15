@@ -1365,7 +1365,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			acc += self._turn_end_plan[branch, r]
 			if r > kfint:
 				return True
-			return False
+		return False
 
 	def get_delta(
 		self, time_from: Tuple[str, int, int], time_to: Tuple[str, int, int]
