@@ -27,6 +27,7 @@ from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from functools import partial
 from multiprocessing import Process, Pipe, Queue
+from operator import itemgetter
 from collections import defaultdict
 from itertools import chain
 from queue import SimpleQueue, Empty
