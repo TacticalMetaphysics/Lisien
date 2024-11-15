@@ -67,14 +67,11 @@ class SetStorageTest(ProxyTest, LiSE.allegedb.tests.test_all.SetStorageTest):
 
 def test_fast_delta(handle_initialized):
 	hand = handle_initialized
+	unpack_delta = hand._real._unpack_slightly_packed_delta
 
 	# there's currently no way to do fast delta past the time when
 	# a character was created, due to the way keyframes work...
 	# so don't test that
-	def unpack_delta(d):
-		catted = hand._concat_char_delta(d)
-		assert isinstance(catted, bytes)
-		return hand.unpack(catted)
 
 	branch, turn, tick = hand._real._btt()
 	ret, diff = hand.next_turn()
