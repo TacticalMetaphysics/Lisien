@@ -1427,7 +1427,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				)
 			else:
 				return self._get_branch_delta(
-					*time_from, turn_to[1], turn_to[2]
+					*time_from, time_to[1], time_to[2]
 				)
 		return self._unpack_slightly_packed_delta(
 			self._get_slow_delta(time_from, time_to)
