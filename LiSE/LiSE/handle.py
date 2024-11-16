@@ -697,8 +697,7 @@ class EngineHandle:
 
 	def do_game_start(self):
 		time_from = self._real._btt()
-		if hasattr(self._real.method, "game_start"):
-			self._real.game_start()
+		self._real.game_start()
 		return [], self._real._get_branch_delta(
 			*time_from, self._real.turn, self._real.tick
 		)
