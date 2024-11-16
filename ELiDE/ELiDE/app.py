@@ -273,7 +273,12 @@ class ELiDEApp(App):
 		if hasattr(self, "_started"):
 			raise ChildProcessError("Subprocess already running")
 		config = self.config
-		enkw = {"logger": Logger}
+		enkw = {
+			"logger": Logger,
+			"threaded_triggers": False,
+			"workers": 0,
+			"do_game_start": getattr(self, "do_game_start", False),
+		}
 		if config["LiSE"].get("logfile"):
 			enkw["logfile"] = config["LiSE"]["logfile"]
 		if config["LiSE"].get("loglevel"):

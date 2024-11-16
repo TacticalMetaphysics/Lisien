@@ -3282,7 +3282,14 @@ class EngineProxy(AbstractEngine):
 				yield thing.name
 
 
-def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
+def engine_subprocess(
+	args,
+	input_pipe,
+	output_pipe,
+	logq,
+	loglevel,
+	**kwargs,
+):
 	"""Loop to handle one command at a time and pipe results back"""
 	from .handle import EngineHandle
 
@@ -3440,10 +3447,22 @@ class EngineProcessManager(object):
 		self._args = args
 		self._kwargs = kwargs
 
-	def start(self, *args, **kwargs):
+	def start(
+		self,
+		*args,
+		logger=None,
+		logfile=None,
+		loglevel=None,
+		install_modules=(),
+		**kwargs,
+	):
 		"""Start LiSE in a subprocess, and return a proxy to it"""
 		if hasattr(self, "engine_proxy"):
 			raise RedundantProcessError("Already started")
+		if logger is None and "logger" in self._kwargs:
+			logger = self._kwargs.pop("logger")
+		if loglevel is None and "loglevel" in self._kwargs:
+			loglevel = self._kwargs.pop("loglevel")
 		(handle_out_pipe_recv, self._handle_out_pipe_send) = Pipe(duplex=False)
 		(handle_in_pipe_recv, handle_in_pipe_send) = Pipe(duplex=False)
 		self.logq = Queue()
@@ -3455,22 +3474,22 @@ class EngineProcessManager(object):
 			"error": logging.ERROR,
 			"critical": logging.CRITICAL,
 		}
-		loglevel = logging.INFO
-		if "loglevel" in kwargs:
-			if kwargs["loglevel"] in logl:
-				loglevel = logl[kwargs["loglevel"]]
-			else:
-				loglevel = kwargs["loglevel"]
-			del kwargs["loglevel"]
-		if "logger" in kwargs:
-			self.logger = kwargs["logger"]
-			del kwargs["logger"]
-		else:
+		loglevel = logl.get(loglevel, loglevel) or logging.INFO
+		if logger is None:
 			self.logger = logging.getLogger(__name__)
 			stdout = logging.StreamHandler(sys.stdout)
 			stdout.set_name("stdout")
 			handlers.append(stdout)
 			handlers[0].setLevel(loglevel)
+		else:
+			self.logger = logger
+		if logfile:
+			try:
+				fh = logging.FileHandler(logfile)
+				handlers.append(fh)
+				fh.setLevel(loglevel)
+			except OSError:
+				pass
 		if "logfile" in kwargs:
 			try:
 				fh = logging.FileHandler(kwargs["logfile"])
@@ -3479,14 +3498,6 @@ class EngineProcessManager(object):
 			except OSError:
 				pass
 			del kwargs["logfile"]
-		do_game_start = (
-			kwargs.pop("do_game_start") if "do_game_start" in kwargs else False
-		)
-		install_modules = (
-			kwargs.pop("install_modules")
-			if "install_modules" in kwargs
-			else []
-		)
 		formatter = logging.Formatter(
 			fmt="[{levelname}] LiSE.proxy({process}) t{message}", style="{"
 		)
@@ -3498,12 +3509,12 @@ class EngineProcessManager(object):
 			target=engine_subprocess,
 			args=(
 				args or self._args,
-				kwargs or self._kwargs,
 				handle_out_pipe_recv,
 				handle_in_pipe_send,
 				self.logq,
 				loglevel,
 			),
+			kwargs=kwargs or self._kwargs,
 		)
 		self._p.start()
 		self._logthread = Thread(
@@ -3514,7 +3525,6 @@ class EngineProcessManager(object):
 			self._handle_out_pipe_send,
 			handle_in_pipe_recv,
 			self.logger,
-			do_game_start,
 			install_modules,
 		)
 		return self.engine_proxy

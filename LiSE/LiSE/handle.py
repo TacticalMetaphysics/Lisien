@@ -118,6 +118,7 @@ class EngineHandle:
 
 		"""
 		kwargs.setdefault("logfun", self.log)
+		do_game_start = kwargs.pop("do_game_start", False)
 		self._logq = logq
 		self._loglevel = loglevel
 		self._real = Engine(*args, cache_arranger=False, **kwargs)
@@ -131,6 +132,8 @@ class EngineHandle:
 		self.unpack = self._real.unpack
 
 		self._cache_arranger_started = False
+		if do_game_start:
+			self.do_game_start()
 
 	def log(self, level: Union[str, int], message: str) -> None:
 		if isinstance(level, str):
