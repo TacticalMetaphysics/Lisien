@@ -13,6 +13,7 @@ def game_start(engine, random_seed=69105) -> None:
 	from random import Random
 	import networkx as nx
 
+	@engine.function
 	def remove_prefix(s: str, prefix: str):
 		"""py3.8 compat"""
 		if s.startswith(prefix):
@@ -159,7 +160,12 @@ def game_start(engine, random_seed=69105) -> None:
 		maxnum = 0
 		for unit in lit_.units():
 			if unit.name.startswith("flyer"):
-				maxnum = max((int(remove_prefix(unit.name, "flyer")), maxnum))
+				maxnum = max(
+					(
+						int(engine.function.remove_prefix(unit.name, "flyer")),
+						maxnum,
+					)
+				)
 		scroll = person.location.new_thing(
 			f"flyer{maxnum:02}",
 			nonusage=0,
@@ -197,6 +203,11 @@ def game_start(engine, random_seed=69105) -> None:
 
 class AwarenessGridBoard(GridBoard):
 	def on_selection(self, *args):
+		def remove_prefix(s: str, pre: str) -> str:
+			if s.startswith(pre):
+				return s[len(pre) :]
+			return s
+
 		if not GameApp.get_running_app().placing_centers or not isinstance(
 			self.selection, self.spot_cls
 		):
