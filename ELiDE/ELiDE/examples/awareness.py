@@ -254,9 +254,15 @@ class MainGame(GameScreen):
 		app = GameApp.get_running_app()
 		self._push_character()
 		if not hasattr(self, "ran_once"):
-			self.ids.people.value = app.engine.eternal["people"]
-			self.ids.centers.value = app.engine.eternal["centers"]
-			self.ids.nonusage.value = app.engine.eternal["nonusage-limit"]
+			self.ids.people.value = app.engine.eternal.setdefault(
+				"people", 100
+			)
+			self.ids.centers.value = app.engine.eternal.setdefault(
+				"centers", 60
+			)
+			self.ids.nonusage.value = app.engine.eternal.setdefault(
+				"nonusage-limit", 10
+			)
 			self.ran_once = True
 
 	def _push_character(self, *args):
