@@ -278,7 +278,7 @@ class UnitRulesHandledCache(RulesHandledCache):
 					rulebook, branch, turn, tick
 				)[1]
 			except KeyError:
-				continue
+				prio = 0.0
 			charavm = charm[character].unit
 			for graph in sort_set(charavm.keys()):
 				for avatar in sort_set(charavm[graph].keys()):
