@@ -16,12 +16,14 @@ def remove_prefix(s: str, prefix: str):
 	return s
 
 
-def game_start(engine, random_seed=None) -> None:
+def game_start(engine, random_seed=69105) -> None:
 	from random import Random
 	import networkx as nx
-	
+
 	rand = Random()
-	rand.seed(engine.universal.get(rando_state))
+	if random_seed is not None:
+		rand.seed(random_seed)
+	rand.setstate(engine.universal.setdefault("rando_state", rand.getstate()))
 
 	# ensure we're on a fresh branch
 	if engine.turn != 0 or engine.tick != 0:
@@ -190,7 +192,7 @@ def game_start(engine, random_seed=None) -> None:
 			ctr.get("last_read", ctr.engine.turn) - ctr.engine.turn
 			> ctr.engine.eternal["nonusage-limit"]
 		)
-	
+
 	engine.universal.setdefault("rando_state", rand.getstate())
 
 
