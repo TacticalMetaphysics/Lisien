@@ -31,6 +31,7 @@ from kivy.factory import Factory
 from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
 
 import LiSE.proxy
+from LiSE.allegedb import Key
 from .graph.board import GraphBoard, GraphBoardView
 from .grid.board import GridBoard, GridBoardView
 from .dialog import DialogLayout
@@ -164,7 +165,7 @@ class GameApp(App):
 	prefix = StringProperty(".")
 	selection = ObjectProperty(allownone=True)
 
-	def wait_turns(self, turns, *, cb=None):
+	def wait_turns(self, turns: int, *, cb: callable = None) -> None:
 		"""Call ``self.engine.next_turn()`` ``turns`` times, waiting ``self.turn_length`` in between
 
 		If provided, call ``cb`` when done.
@@ -185,7 +186,9 @@ class GameApp(App):
 			partial(self.wait_turns, turns, cb=cb), self.turn_length
 		)
 
-	def wait_travel(self, character, thing, dest, cb=None):
+	def wait_travel(
+		self, character: Key, thing: Key, dest: Key, cb: callable = None
+	) -> None:
 		"""Schedule a thing to travel someplace, then wait for it to finish, and call ``cb`` if provided
 
 		:param character: name of the character
@@ -200,7 +203,9 @@ class GameApp(App):
 			cb=cb,
 		)
 
-	def wait_command(self, start_func, turns=1, end_func=None):
+	def wait_command(
+		self, start_func: callable, turns=1, end_func: callable = None
+	) -> None:
 		"""Call ``start_func``, and wait to call ``end_func`` after simulating ``turns`` (default 1)
 
 		:param start_func: function to call before waiting
@@ -213,8 +218,14 @@ class GameApp(App):
 		self.wait_turns(turns, cb=end_func)
 
 	def wait_travel_command(
-		self, character, thing, dest, start_func, turns=1, end_func=None
-	):
+		self,
+		character: Key,
+		thing: Key,
+		dest: Key,
+		start_func: callable,
+		turns=1,
+		end_func: callable = None,
+	) -> None:
 		"""Schedule a thing to travel someplace and do something, then wait for it to finish.
 
 		:param character: name of the character
@@ -232,7 +243,7 @@ class GameApp(App):
 			cb=partial(self.wait_command, start_func, turns, end_func),
 		)
 
-	def _pull_time(self, *_, branch, turn, tick):
+	def _pull_time(self, *_, branch: str, turn: int, tick: int) -> None:
 		self.branch, self.turn, self.tick = branch, turn, tick
 
 	def build(self):
