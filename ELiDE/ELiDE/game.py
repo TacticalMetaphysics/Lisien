@@ -24,6 +24,7 @@ from kivy.properties import (
 	ObjectProperty,
 	NumericProperty,
 	StringProperty,
+	ListProperty,
 )
 
 from kivy.factory import Factory
@@ -154,7 +155,7 @@ class GameScreen(Screen):
 
 
 class GameApp(App):
-	modules = []
+	modules = ListProperty([])
 	do_game_start = BooleanProperty(True)
 	turn_length = NumericProperty(0.5)
 	branch = StringProperty("trunk")
