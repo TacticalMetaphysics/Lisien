@@ -155,7 +155,7 @@ class GameScreen(Screen):
 
 class GameApp(App):
 	modules = []
-	do_game_start = False
+	do_game_start = BooleanProperty(False)
 	turn_length = NumericProperty(0.5)
 	branch = StringProperty("trunk")
 	turn = NumericProperty(0)
