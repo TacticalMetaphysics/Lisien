@@ -245,6 +245,13 @@ class MainGame(GameScreen):
 
 	def set_up(self):
 		"""Regenerate the whole map"""
+
+		def remove_prefix(s: str, prefix: str):
+			"""py3.8 compat"""
+			if s.startswith(prefix):
+				return s[len(prefix) :]
+			return s
+
 		branch = self.engine.branch
 		try:
 			branchidx = int(remove_prefix(branch, "branch")) + 1
