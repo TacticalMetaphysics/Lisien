@@ -16,9 +16,12 @@ def remove_prefix(s: str, prefix: str):
 	return s
 
 
-def game_start(engine) -> None:
-	from random import randint, shuffle
+def game_start(engine, random_seed=None) -> None:
+	from random import Random
 	import networkx as nx
+	
+	rand = Random()
+	rand.seed(engine.universal.get(rando_state))
 
 	# ensure we're on a fresh branch
 	if engine.turn != 0 or engine.tick != 0:
@@ -43,7 +46,7 @@ def game_start(engine) -> None:
 		initworld.add_edge((wide - 1, y), (0, y))
 
 	locs = list(initworld.nodes.keys())
-	shuffle(locs)
+	rand.shuffle(locs)
 
 	for turtle in range(engine.eternal.setdefault("people", 60)):
 		initworld.add_node(
@@ -187,6 +190,8 @@ def game_start(engine) -> None:
 			ctr.get("last_read", ctr.engine.turn) - ctr.engine.turn
 			> ctr.engine.eternal["nonusage-limit"]
 		)
+	
+	engine.universal.setdefault("rando_state", rand.getstate())
 
 
 class AwarenessGridBoard(GridBoard):
