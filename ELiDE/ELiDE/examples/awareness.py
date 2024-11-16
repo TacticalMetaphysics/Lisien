@@ -20,7 +20,11 @@ def game_start(engine, random_seed=69105) -> None:
 	from random import Random
 	import networkx as nx
 
-	engine.function(remove_prefix)
+	@engine.function
+	def remove_prefix(s: str, prefix: str):
+		if s.startswith(prefix):
+			return s[len(prefix) :]
+		return s
 
 	rand = Random()
 	if random_seed is not None:
@@ -56,7 +60,7 @@ def game_start(engine, random_seed=69105) -> None:
 		initworld.add_node(
 			"turtle" + str(turtle),
 			awareness=0,
-			facing=randint(0, 3),
+			facing=rand.randint(0, 3),
 			location=locs.pop(),
 			_image_paths=[
 				"atlas://rltiles/base/unseen",
