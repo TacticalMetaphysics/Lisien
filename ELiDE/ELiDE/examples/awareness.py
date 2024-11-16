@@ -9,16 +9,15 @@ from kivy.properties import BooleanProperty, NumericProperty
 from ELiDE.game import GameApp, GameScreen, GridBoard
 
 
-def remove_prefix(s: str, prefix: str):
-	"""py3.8 compat"""
-	if s.startswith(prefix):
-		return s[len(prefix) :]
-	return s
-
-
 def game_start(engine, random_seed=69105) -> None:
 	from random import Random
 	import networkx as nx
+
+	def remove_prefix(s: str, prefix: str):
+		"""py3.8 compat"""
+		if s.startswith(prefix):
+			return s[len(prefix) :]
+		return s
 
 	rand = Random()
 	if random_seed is not None:
