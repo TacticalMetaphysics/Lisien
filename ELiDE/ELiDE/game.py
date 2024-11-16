@@ -247,12 +247,11 @@ class GameApp(App):
 		self.branch, self.turn, self.tick = branch, turn, tick
 
 	def build(self):
-		have_world = False
 		try:
 			os.stat("world.db")
 			have_world = True
 		except FileNotFoundError:
-			pass
+			have_world = False
 		self.procman = LiSE.proxy.EngineProcessManager()
 		self.engine = self.procman.start(
 			self.prefix,
