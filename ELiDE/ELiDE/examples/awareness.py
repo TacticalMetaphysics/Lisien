@@ -9,16 +9,18 @@ from kivy.properties import BooleanProperty, NumericProperty
 from ELiDE.game import GameApp, GameScreen, GridBoard
 
 
+def remove_prefix(s: str, prefix: str):
+	"""py3.8 compat"""
+	if s.startswith(prefix):
+		return s[len(prefix) :]
+	return s
+
+
 def game_start(engine, random_seed=69105) -> None:
 	from random import Random
 	import networkx as nx
 
-	@engine.function
-	def remove_prefix(s: str, prefix: str):
-		"""py3.8 compat"""
-		if s.startswith(prefix):
-			return s[len(prefix) :]
-		return s
+	engine.function(remove_prefix)
 
 	rand = Random()
 	if random_seed is not None:
@@ -203,11 +205,6 @@ def game_start(engine, random_seed=69105) -> None:
 
 class AwarenessGridBoard(GridBoard):
 	def on_selection(self, *args):
-		def remove_prefix(s: str, pre: str) -> str:
-			if s.startswith(pre):
-				return s[len(pre) :]
-			return s
-
 		if not GameApp.get_running_app().placing_centers or not isinstance(
 			self.selection, self.spot_cls
 		):
@@ -245,13 +242,6 @@ class MainGame(GameScreen):
 
 	def set_up(self):
 		"""Regenerate the whole map"""
-
-		def remove_prefix(s: str, prefix: str):
-			"""py3.8 compat"""
-			if s.startswith(prefix):
-				return s[len(prefix) :]
-			return s
-
 		branch = self.engine.branch
 		try:
 			branchidx = int(remove_prefix(branch, "branch")) + 1
