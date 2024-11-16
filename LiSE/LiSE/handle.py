@@ -796,3 +796,9 @@ class EngineHandle:
 			prereqs,
 			actions,
 		)
+
+
+def serial_handle(prefix, **kwargs):
+	kwargs["threaded_triggers"] = False
+	kwargs["workers"] = 0
+	return EngineHandle(prefix, **kwargs)

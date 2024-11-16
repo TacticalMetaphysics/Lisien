@@ -265,7 +265,13 @@ class UnitRulesHandledCache(RulesHandledCache):
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		charm = self.engine.character
-		for character in sort_set(charm.keys()):
+		characters = frozenset(
+			self.engine._graph_cache.iter_keys(branch, turn, tick)
+		)
+		for character in sort_set(characters):
+			self.engine.debug(
+				"Iterating over unhandled unit rules in: %s" % repr(character)
+			)
 			rulebook = self.get_rulebook(character, branch, turn, tick)
 			try:
 				prio = self.engine._rulebooks_cache.retrieve(

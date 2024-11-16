@@ -2,6 +2,7 @@ from tempfile import mkdtemp
 from multiprocessing import freeze_support
 from inspect import getsource
 
+from kivy import Logger
 from kivy.clock import Clock
 from kivy.lang.builder import Builder
 from kivy.properties import BooleanProperty, NumericProperty
@@ -229,7 +230,11 @@ class AwarenessGridBoard(GridBoard):
 
 class MainGame(GameScreen):
 	def on_parent(self, *args):
-		if "game" not in self.ids:
+		if "game" not in self.ids or "physical" not in self.engine.character:
+			if "physical" not in self.engine.character:
+				Logger.debug(
+					"MainGame: waiting for character before we do 'on_parent'"
+				)
 			Clock.schedule_once(self.on_parent, 0)
 			return
 		self.set_up()
@@ -310,6 +315,8 @@ class AwarenessApp(GameApp):
 
 kv = """
 # kv_start
+<AwarenessApp>:
+	do_game_start: True
 <ScreenManager>:
 	MainGame:
 		name: 'play'
