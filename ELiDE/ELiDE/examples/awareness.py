@@ -21,7 +21,8 @@ def game_start(engine, random_seed=None) -> None:
 	import networkx as nx
 	
 	rand = Random()
-	rand.seed(engine.universal.get(rando_state))
+	rand.seed(random_seed)
+	engine.universal["rando_state"] = rand.getstate()
 
 	# ensure we're on a fresh branch
 	if engine.turn != 0 or engine.tick != 0:
