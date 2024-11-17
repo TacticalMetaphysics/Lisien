@@ -298,10 +298,10 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		charm = self.engine.character
-		for character in charm.keys():
+		for character in sort_set(charm.keys()):
 			rulebook = self.get_rulebook(character, branch, turn, tick)
 			prio = self.get_priority(rulebook, branch, turn, tick)
-			for thing in charm[character].thing.keys():
+			for thing in sort_set(charm[character].thing.keys()):
 				try:
 					rules = self.unhandled_rulebook_rules(
 						character, thing, rulebook, branch, turn, tick
@@ -323,10 +323,10 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		charm = self.engine.character
-		for character in charm.keys():
+		for character in sort_set(charm.keys()):
 			rulebook = self.get_rulebook(character, branch, turn, tick)
 			prio = self.get_priority(rulebook, branch, turn, tick)
-			for place in charm[character].place.keys():
+			for place in sort_set(charm[character].place.keys()):
 				try:
 					rules = self.unhandled_rulebook_rules(
 						character, place, rulebook, branch, turn, tick
@@ -354,18 +354,15 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 			char = charm[character]
 			charn = char.node
 			charp = char.portal
-			for orig in charp.keys():
+			for orig in sort_set(charp.keys()):
 				if orig not in charn:
 					continue
-				for dest in charp[orig].keys():
+				for dest in sort_set(charp[orig].keys()):
 					if dest not in charn:
 						continue
-					try:
-						rules = self.unhandled_rulebook_rules(
-							character, orig, dest, rulebook, branch, turn, tick
-						)
-					except KeyError:
-						continue
+					rules = self.unhandled_rulebook_rules(
+						character, orig, dest, rulebook, branch, turn, tick
+					)
 					for rule in rules:
 						yield prio, character, orig, dest, rulebook, rule
 
@@ -405,9 +402,12 @@ class PortalRulesHandledCache(RulesHandledCache):
 			return character, orig, dest
 
 	def iter_unhandled_rules(self, branch, turn, tick):
-		for character_name, character in self.engine.character.items():
-			for orig_name, dests in character.portal.items():
-				for dest_name in dests.keys():
+		for character_name, character in sorted(
+			self.engine.character.items(), key=itemgetter(0)
+		):
+			for orig_name in sort_set(character.portal.keys()):
+				dests = character.portal[orig_name]
+				for dest_name in sort_set(dests.keys()):
 					rulebook = self.get_rulebook(
 						character_name,
 						orig_name,
