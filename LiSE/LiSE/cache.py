@@ -418,7 +418,7 @@ class PortalRulesHandledCache(RulesHandledCache):
 					)
 					prio = self.get_priority(rulebook, branch, turn, tick)
 					rules = self.unhandled_rulebook_rules(
-						character,
+						character_name,
 						orig_name,
 						dest_name,
 						rulebook,
