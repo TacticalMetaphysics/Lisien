@@ -67,6 +67,7 @@ from .allegedb.cache import (
 	StructuredDefaultDict,
 )
 from .allegedb.window import update_window, update_backward_window
+from .rule import Rule
 from .util import sort_set, AbstractEngine, final_rule, normalize_layout
 from .xcollections import (
 	StringStore,
@@ -2759,6 +2760,12 @@ class Engine(AbstractEngine, gORM, Executor):
 		branch, turn, tick = self._btt()
 		charmap = self.character
 		rulemap = self.rule
+
+		def getrule(rulen):
+			if rulen not in rulemap:
+				rulemap[rulen] = Rule(self, rulen)
+			return rulemap[rulen]
+
 		pool = getattr(self, "_trigger_pool", None)
 		if pool:
 			submit = pool.submit
@@ -2851,7 +2858,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		):
 			if charactername not in charmap:
 				continue
-			rule = rulemap[rulename]
+			rule = getrule(rulename)
 			handled = partial(
 				self._handled_char,
 				charactername,
@@ -2861,7 +2868,8 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = charmap[charactername]
-			if truthfun in self.rulebook[rulebook]:
+			breakpoint()
+			if truthfun in rule.triggers:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.append(
@@ -3054,11 +3062,12 @@ class Engine(AbstractEngine, gORM, Executor):
 		) in self._unit_rules_handled_cache.iter_unhandled_rules(
 			branch, turn, tick
 		):
-			if not node_exists(graphn, avn) or avcache_retr(
-				(charn, graphn, avn, branch, turn, tick)
-			) in (KeyError, None):
+			if not node_exists(graphn, avn) or (
+				avcache_retr((charn, graphn, avn, branch, turn, tick))
+				in (KeyError, None)
+			):
 				continue
-			rule = rulemap[rulen]
+			rule = getrule(rulen)
 			handled = partial(
 				self._handled_av,
 				charn,
@@ -3070,7 +3079,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_node(graphn, avn)
-			if truthfun in self.rulebook[rulebook]:
+			if truthfun in rule.triggers:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.append(
@@ -3097,7 +3106,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		):
 			if not node_exists(charn, thingn) or not is_thing(charn, thingn):
 				continue
-			rule = rulemap[rulen]
+			rule = getrule(rulen)
 			handled = partial(
 				handled_char_thing,
 				charn,
@@ -3108,7 +3117,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_thing(charn, thingn)
-			if truthfun in self.rulebook[rulebook]:
+			if truthfun in rule.triggers:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.append(
@@ -3134,7 +3143,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		):
 			if not node_exists(charn, placen) or is_thing(charn, placen):
 				continue
-			rule = rulemap[rulen]
+			rule = getrule(rulen)
 			handled = partial(
 				handled_char_place,
 				charn,
@@ -3145,7 +3154,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_place(charn, placen)
-			if truthfun in self.rulebook[rulebook]:
+			if truthfun in rule.triggers:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.append(
@@ -3174,7 +3183,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		):
 			if not edge_exists(charn, orign, destn):
 				continue
-			rule = rulemap[rulen]
+			rule = getrule(rulen)
 			handled = partial(
 				handled_char_port,
 				charn,
@@ -3186,7 +3195,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_edge(charn, orign, destn)
-			if truthfun in self.rulebook[rulebook]:
+			if truthfun in rule.triggers:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.append(
@@ -3212,12 +3221,12 @@ class Engine(AbstractEngine, gORM, Executor):
 		):
 			if not node_exists(charn, noden):
 				continue
-			rule = rulemap[rulen]
+			rule = getrule(rulen)
 			handled = partial(
 				handled_node, charn, noden, rulebook, rulen, branch, turn
 			)
 			entity = get_node(charn, noden)
-			if truthfun in self.rulebook[rulebook]:
+			if truthfun in rule.triggers:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.append(
@@ -3244,7 +3253,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		):
 			if not edge_exists(charn, orign, destn):
 				continue
-			rule = rulemap[rulen]
+			rule = getrule(rulen)
 			handled = partial(
 				handled_portal,
 				charn,
@@ -3256,7 +3265,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_edge(charn, orign, destn)
-			if truthfun in self.rulebook[rulebook]:
+			if truthfun in rule.triggers:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.append(
