@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from functools import partial
-from operator import sub, or_
+from operator import sub, or_, itemgetter
 
 from .allegedb import Key
 from .allegedb.cache import (
@@ -65,7 +65,7 @@ class InitializedEntitylessCache(EntitylessCache, InitializedCache):
 class UnitnessCache(Cache):
 	"""A cache for remembering when a node is a unit of a character."""
 
-	def __init__(self, db)
+	def __init__(self, db):
 		super().__init__(db)
 		self.user_cache = Cache(db)
 		self.user_cache.name = "user_cache"
@@ -180,6 +180,14 @@ class RulesHandledCache(object):
 	def get_rulebook(self, *args):
 		raise NotImplementedError
 
+	def get_priority(self, rulebook, branch, turn, tick):
+		try:
+			return self.engine._rulebooks_cache.retrieve(
+				rulebook, branch, turn, tick
+			)[1]
+		except KeyError:
+			return 0.0
+
 	def iter_unhandled_rules(self, branch, turn, tick):
 		raise NotImplementedError
 
@@ -243,12 +251,7 @@ class CharacterRulesHandledCache(RulesHandledCache):
 	def iter_unhandled_rules(self, branch, turn, tick):
 		for character in self.engine.character.keys():
 			rb = self.get_rulebook(character, branch, turn, tick)
-			try:
-				prio = self.engine._rulebooks_cache.retrieve(
-					rb, branch, turn, tick
-				)[1]
-			except KeyError:
-				continue
+			prio = self.get_priority(rb, branch, turn, tick)
 			for rule in self.unhandled_rulebook_rules(
 				character, rb, branch, turn, tick
 			):
@@ -268,28 +271,19 @@ class UnitRulesHandledCache(RulesHandledCache):
 		charm = self.engine.character
 		for character in sort_set(charm.keys()):
 			rulebook = self.get_rulebook(character, branch, turn, tick)
-			try:
-				prio = self.engine._rulebooks_cache.retrieve(
-					rulebook, branch, turn, tick
-				)[1]
-			except KeyError:
-				continue
+			prio = self.get_priority(rulebook, branch, turn, tick)
 			charavm = charm[character].unit
 			for graph in sort_set(charavm.keys()):
 				for avatar in sort_set(charavm[graph].keys()):
-					try:
-						rules = self.unhandled_rulebook_rules(
-							character,
-							graph,
-							avatar,
-							rulebook,
-							branch,
-							turn,
-							tick,
-						)
-					except KeyError:
-						continue
-					for rule in rules:
+					for rule in self.unhandled_rulebook_rules(
+						character,
+						graph,
+						avatar,
+						rulebook,
+						branch,
+						turn,
+						tick,
+					):
 						yield prio, character, graph, avatar, rulebook, rule
 
 
@@ -306,12 +300,7 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
 		charm = self.engine.character
 		for character in charm.keys():
 			rulebook = self.get_rulebook(character, branch, turn, tick)
-			try:
-				prio = self.engine._rulebooks_cache.retrieve(
-					rulebook, branch, turn, tick
-				)[1]
-			except KeyError:
-				continue
+			prio = self.get_priority(rulebook, branch, turn, tick)
 			for thing in charm[character].thing.keys():
 				try:
 					rules = self.unhandled_rulebook_rules(
@@ -336,12 +325,7 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
 		charm = self.engine.character
 		for character in charm.keys():
 			rulebook = self.get_rulebook(character, branch, turn, tick)
-			try:
-				prio = self.engine._rulebooks_cache.retrieve(
-					rulebook, branch, turn, tick
-				)[1]
-			except KeyError:
-				continue
+			prio = self.get_priority(rulebook, branch, turn, tick)
 			for place in charm[character].place.keys():
 				try:
 					rules = self.unhandled_rulebook_rules(
@@ -365,18 +349,8 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 	def iter_unhandled_rules(self, branch, turn, tick):
 		charm = self.engine.character
 		for character in sort_set(charm.keys()):
-			try:
-				rulebook = self.get_rulebook(character, branch, turn, tick)
-			except KeyError:
-				continue
-			try:
-				rulebook_rules, prio = self.engine._rulebooks_cache.retrieve(
-					rulebook, branch, turn, tick
-				)
-			except KeyError:
-				continue
-			if not rulebook_rules:
-				continue
+			rulebook = self.get_rulebook(character, branch, turn, tick)
+			prio = self.get_priority(rulebook, branch, turn, tick)
 			char = charm[character]
 			charn = char.node
 			charp = char.portal
@@ -407,17 +381,14 @@ class NodeRulesHandledCache(RulesHandledCache):
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		charm = self.engine.character
-		for character_name, character in sort_set(charm.items()):
+		for character_name, character in sorted(
+			charm.items(), key=itemgetter(0)
+		):
 			for node_name in character.node:
 				rulebook = self.get_rulebook(
 					character_name, node_name, branch, turn, tick
 				)
-				try:
-					prio = self.engine._rulebooks_cache.retrieve(
-						rulebook, branch, turn, tick
-					)[1]
-				except KeyError:
-					prio = 0.0
+				prio = self.get_priority(rulebook, branch, turn, tick)
 				for rule in self.unhandled_rulebook_rules(
 					character_name, node_name, rulebook, branch, turn, tick
 				):
@@ -434,45 +405,36 @@ class PortalRulesHandledCache(RulesHandledCache):
 			return character, orig, dest
 
 	def iter_unhandled_rules(self, branch, turn, tick):
-		portals_with_rulebook_changed = {
-			(character, orig, dest)
-			for (
-				character,
-				orig,
-				dest,
-				_,
-				_,
-				_,
-			) in self.engine._portals_rulebooks_cache.shallowest
-		}
-		portals_default_rulebooks = {
-			(None, port) for port in self.engine._edges_cache.keys
-		}
-		portals_with_filled_default_rulebooks = {
-			(character, orig, dest)
-			for (_, (character, orig, dest)) in (
-				portals_default_rulebooks
-				& self.engine._rulebooks_cache.branches.keys()
-			)
-		}
-		for character, orig, dest in (
-			portals_with_rulebook_changed
-			| portals_with_filled_default_rulebooks
-		):
-			try:
-				rulebook = self.get_rulebook(
-					character, orig, dest, branch, turn, tick
-				)
-				prio = self.engine._rulebooks_cache.retrieve(
-					rulebook, branch, turn, tick
-				)[1]
-				rules = self.unhandled_rulebook_rules(
-					character, orig, dest, rulebook, branch, turn, tick
-				)
-			except KeyError:
-				continue
-			for rule in rules:
-				yield prio, character, orig, dest, rulebook, rule
+		for character_name, character in self.engine.character.items():
+			for orig_name, dests in character.portal.items():
+				for dest_name, portal in dests.items():
+					rulebook = self.get_rulebook(
+						character_name,
+						orig_name,
+						dest_name,
+						branch,
+						turn,
+						tick,
+					)
+					prio = self.get_priority(rulebook, branch, turn, tick)
+					rules = self.unhandled_rulebook_rules(
+						character,
+						orig_name,
+						dest_name,
+						rulebook,
+						branch,
+						turn,
+						tick,
+					)
+					for rule in rules:
+						yield (
+							prio,
+							character,
+							orig_name,
+							dest_name,
+							rulebook,
+							rule,
+						)
 
 
 class ThingsCache(Cache):
