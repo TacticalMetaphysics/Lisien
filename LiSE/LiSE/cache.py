@@ -111,6 +111,18 @@ class UnitnessCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
+		super().store(
+			character,
+			None,
+			branch,
+			turn,
+			tick,
+			(graph, node, is_unit),
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+		)
 		self.user_cache.store(
 			graph,
 			node,
@@ -166,7 +178,14 @@ class UnitnessCache(Cache):
 		return next(self.iter_entities(char, branch, turn, tick))
 
 	def iter_char_graphs(self, char, branch, turn, tick):
-		return self.iter_entities(char, branch, turn, tick)
+		seen = set()
+		for graph, node, is_unit in self.iter_entities(
+			char, None, branch, turn, tick
+		):
+			if graph not in seen:
+				if is_unit:
+					yield graph
+				seen.add(graph)
 
 
 class RulesHandledCache(object):
@@ -280,8 +299,12 @@ class UnitRulesHandledCache(RulesHandledCache):
 			except KeyError:
 				prio = 0.0
 			charavm = charm[character].unit
-			for graph in sort_set(charavm.keys()):
-				for avatar in sort_set(charavm[graph].keys()):
+			for graph in sort_set(characters):
+				try:
+					avmap = charavm[graph]
+				except KeyError:
+					continue
+				for avatar in sort_set(avmap.keys()):
 					try:
 						rules = self.unhandled_rulebook_rules(
 							character,
