@@ -24,6 +24,7 @@ from kivy.properties import (
 	ObjectProperty,
 	NumericProperty,
 	StringProperty,
+	DictProperty,
 )
 
 from kivy.factory import Factory
@@ -162,6 +163,7 @@ class GameApp(App):
 	tick = NumericProperty(0)
 	prefix = StringProperty(".")
 	selection = ObjectProperty(allownone=True)
+	engine_kwargs = DictProperty({})
 
 	def wait_turns(self, turns, *, cb=None):
 		"""Call ``self.engine.next_turn()`` ``turns`` times, waiting ``self.turn_length`` in between
@@ -248,6 +250,7 @@ class GameApp(App):
 			loglevel=getattr(self, "loglevel", "debug"),
 			do_game_start=self.do_game_start and not have_world,
 			install_modules=self.modules,
+			**self.engine_kwargs,
 		)
 		self.branch, self.turn, self.tick = self.engine._btt()
 		self.engine.time.connect(self._pull_time, weak=False)

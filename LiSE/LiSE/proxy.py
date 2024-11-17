@@ -2627,12 +2627,16 @@ class EngineProxy(AbstractEngine):
 						chars[char].node.send(
 							that, key="location", value=that._location
 						)
+					if char in places and node in places[char]:
+						del places[char][node]
 				else:
 					if char not in places or node not in places[char]:
 						that = PlaceProxy(chars[char], node)
 						places[char][node] = that
 					else:
 						that = places[char][node]
+					if char in things and node in things[char]:
+						del things[char][node]
 				for key in list(stats):
 					if key in that and stats[key] == that[key]:
 						del stats[key]
