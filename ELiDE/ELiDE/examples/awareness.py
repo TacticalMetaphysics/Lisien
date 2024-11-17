@@ -2,6 +2,7 @@ from tempfile import mkdtemp
 from multiprocessing import freeze_support
 from inspect import getsource
 
+from kivy import Logger
 from kivy.clock import Clock
 from kivy.lang.builder import Builder
 from kivy.properties import BooleanProperty, NumericProperty
@@ -211,7 +212,9 @@ class AwarenessGridBoard(GridBoard):
 
 class MainGame(GameScreen):
 	def on_parent(self, *args):
-		if "game" not in self.ids:
+		if "game" not in self.ids or "physical" not in self.engine.character:
+			if "physical" not in self.engine.character:
+				Logger.debug("MainGame.on_parent: no physical character")
 			Clock.schedule_once(self.on_parent, 0)
 			return
 		self.set_up()
@@ -247,10 +250,23 @@ class MainGame(GameScreen):
 		app = GameApp.get_running_app()
 		self._push_character()
 		if not hasattr(self, "ran_once"):
-			self.ids.people.value = app.engine.eternal["people"]
-			self.ids.centers.value = app.engine.eternal["centers"]
-			self.ids.nonusage.value = app.engine.eternal["nonusage-limit"]
-			self.ran_once = True
+			self.pull_values()
+
+	def pull_values(self, *_):
+		app = GameApp.get_running_app()
+		if (
+			"people" not in app.engine.eternal
+			or "centers" not in app.engine.eternal
+			or "nonusage-limit" not in app.engine.eternal
+		):
+			Logger.debug("eternals not set")
+			Clock.schedule_once(self.pull_values, 0)
+			return
+		app = GameApp.get_running_app()
+		self.ids.people.value = app.engine.eternal["people"]
+		self.ids.centers.value = app.engine.eternal["centers"]
+		self.ids.nonusage.value = app.engine.eternal["nonusage-limit"]
+		self.ran_once = True
 
 	def _push_character(self, *args):
 		board = self.ids.game.board
@@ -269,6 +285,7 @@ class AwarenessApp(GameApp):
 	placing_centers = BooleanProperty(False)
 	end_turn = NumericProperty(0)
 	inspector = True
+	do_game_start = True
 
 	def on_play(self, *args):
 		if self.play:
