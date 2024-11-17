@@ -20,13 +20,14 @@ from kivy.properties import (
 	StringProperty,
 	ObjectProperty,
 )
-from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
 from kivy.uix.textinput import TextInput
+
 from .statlist import BaseStatListView
+from .util import load_string_once
 
 
 class FloatInput(TextInput):
@@ -240,7 +241,7 @@ class StatScreen(Screen):
 		self.ids.newstatval.text = ""
 
 
-Builder.load_string("""
+load_string_once("""
 <ConfigListItemCustomization>:
 	pos_hint: {'x': 0, 'y': 0}
 <ConfigListItemToggleButton>:

@@ -3,7 +3,6 @@ from threading import Thread
 
 from kivy.app import App
 from kivy.clock import triggered
-from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.properties import (
 	BooleanProperty,
@@ -16,6 +15,8 @@ from kivy.uix.recycleview import RecycleView
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
+
+from .util import load_string_once
 
 
 def trigger(func):
@@ -351,7 +352,7 @@ class TimestreamScreen(Screen):
 		self.timestream.disabled = False
 
 
-Builder.load_string(r"""
+load_string_once(r"""
 <ThornyRectangle>:
 	text: f"{self.branch}\n{int(self.turn)}"
 <Timestream>:

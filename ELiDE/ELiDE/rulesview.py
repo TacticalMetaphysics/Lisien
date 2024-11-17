@@ -16,7 +16,6 @@ from collections import OrderedDict
 from inspect import signature
 
 from kivy.app import App
-from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock, triggered
 from kivy.properties import ObjectProperty, StringProperty
@@ -34,10 +33,12 @@ from kivy.uix.screenmanager import Screen
 
 from .card import Card, DeckBuilderView, DeckBuilderScrollBar
 from .stores import FuncEditor
+from .util import load_string_once
 
 
 def trigger(func):
 	return triggered()(func)
+
 
 dbg = Logger.debug
 
@@ -565,7 +566,7 @@ class CharacterRulesScreen(Screen):
 		# 2018-08-13
 
 
-Builder.load_string("""
+load_string_once("""
 <RuleButton>:
     text: self.rule.name if self.rule else ''
 <RulesList>:

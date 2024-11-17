@@ -12,9 +12,19 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from kivy.lang import Builder
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.behaviors import FocusBehavior
+
+loaded_kv = set()
+
+
+def load_string_once(kv: str) -> None:
+	if kv in loaded_kv:
+		return
+	Builder.load_string(kv)
+	loaded_kv.add(kv)
 
 
 class SelectableRecycleBoxLayout(

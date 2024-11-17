@@ -17,8 +17,9 @@ from kivy.properties import NumericProperty, ObjectProperty, StringProperty
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.recycleview import RecycleView
-from kivy.lang import Builder
 from kivy.graphics import Color, Line
+
+from .util import load_string_once
 
 
 class RuleStepper(RecycleView):
@@ -127,7 +128,7 @@ class RulebookTypeLabel(Label):
 	name = StringProperty()
 
 
-Builder.load_string("""
+load_string_once("""
 #:import ScrollEffect kivy.effects.scroll.ScrollEffect
 <RuleStepper>:
 	key_viewclass: 'widget'

@@ -18,12 +18,12 @@ from kivy.properties import (
 	ReferenceListProperty,
 	StringProperty,
 )
-from kivy.lang import Builder
 from kivy.logger import Logger
 
 from .kivygarden.texturestack import ImageStack
 
 from . import menu  # for kv
+from .util import load_string_once
 
 
 class Dummy(ImageStack):
@@ -90,12 +90,11 @@ class Dummy(ImageStack):
 		return True
 
 
-kv = """
+load_string_once("""
 <Dummy>:
 	name: "".join((self.prefix, str(self.num)))
 	x_center_up: self.x_up + self.width / 2
 	y_center_up: self.y_up + self.height / 2
 	right_up: self.x_up + self.width
 	top_up: self.y_up + self.height
-"""
-Builder.load_string(kv)
+""")

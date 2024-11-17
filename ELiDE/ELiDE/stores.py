@@ -30,7 +30,6 @@ from textwrap import indent, dedent
 
 from kivy.app import App
 from kivy.clock import Clock, triggered
-from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.recycleview import RecycleView
@@ -38,7 +37,6 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.togglebutton import ToggleButton
-
 from kivy.properties import (
 	AliasProperty,
 	BooleanProperty,
@@ -47,6 +45,8 @@ from kivy.properties import (
 	ObjectProperty,
 	StringProperty,
 )
+
+from .util import load_string_once
 
 
 def trigger(func):
@@ -601,7 +601,7 @@ class FuncsEdScreen(Screen):
 		self.ids.actions.save()
 
 
-Builder.load_string("""
+load_string_once("""
 #: import py3lexer pygments.lexers.Python3Lexer
 <StoreButton>:
 	size_hint_y: None

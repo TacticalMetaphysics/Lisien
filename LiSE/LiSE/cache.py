@@ -148,7 +148,8 @@ class UnitnessCache(Cache):
 					)
 
 	def get_char_graph_units(self, char, graph, branch, turn, tick):
-		return set(self.iter_entities(char, graph, branch, turn, tick))
+		return self._get_adds_dels((char, graph), branch, turn, tick)[0]
+		return  # set(self.iter_entities(char, graph, branch, turn, tick))
 
 	def get_char_only_unit(self, char, branch, turn, tick):
 		if self.count_entities(char, branch, turn, tick) != 1:

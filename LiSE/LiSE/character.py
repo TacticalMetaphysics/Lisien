@@ -1343,7 +1343,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			self._iter_stuff = (get_char_graphs, charn, btt)
 			self._len_stuff = (avcache.count_entities_or_keys, charn, btt)
 			self._contains_stuff = (
-				avcache.user_cache.iter_keys,
+				avcache.user_cache.contains_key,
 				charn,
 				btt,
 			)
@@ -1377,8 +1377,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			return iter(get_char_graphs(charn, *btt()))
 
 		def __contains__(self, k):
-			get_char_graphs, charn, btt = self._iter_stuff
-			return k in get_char_graphs(charn, *btt())
+			retrieve, charn, btt = self._contains_stuff
+			got = retrieve(charn, *btt())
+			return got is not None and not isinstance(got, Exception)
 
 		def __len__(self):
 			"""Number of graphs in which I have a unit."""
