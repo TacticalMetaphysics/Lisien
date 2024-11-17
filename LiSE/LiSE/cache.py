@@ -65,7 +65,7 @@ class InitializedEntitylessCache(EntitylessCache, InitializedCache):
 class UnitnessCache(Cache):
 	"""A cache for remembering when a node is a unit of a character."""
 
-	def __init__(self, db):
+	def __init__(self, db)
 		super().__init__(db)
 		self.user_cache = Cache(db)
 		self.user_cache.name = "user_cache"
@@ -407,44 +407,21 @@ class NodeRulesHandledCache(RulesHandledCache):
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		charm = self.engine.character
-		nodes_with_rulebook_changed = {
-			(character, node)
-			for (
-				character,
-				node,
-				_,
-				_,
-				_,
-			) in self.engine._nodes_rulebooks_cache.shallowest
-		}
-		nodes_with_filled_default_rulebooks = {
-			(character, node)
-			for (_, (character, node)) in (
-				{
-					(None, (character, node))
-					for character in charm
-					for node in charm[character].node
-				}
-				& self.engine._rulebooks_cache.branches.keys()
-			)
-		}
-		for character, node in (
-			nodes_with_rulebook_changed | nodes_with_filled_default_rulebooks
-		):
-			try:
+		for character_name, character in sort_set(charm.items()):
+			for node_name in character.node:
 				rulebook = self.get_rulebook(
-					character, node, branch, turn, tick
+					character_name, node_name, branch, turn, tick
 				)
-				prio = self.engine._rulebooks_cache.retrieve(
-					rulebook, branch, turn, tick
-				)[1]
-				rules = self.unhandled_rulebook_rules(
-					character, node, rulebook, branch, turn, tick
-				)
-			except KeyError:
-				continue
-			for rule in rules:
-				yield prio, character, node, rulebook, rule
+				try:
+					prio = self.engine._rulebooks_cache.retrieve(
+						rulebook, branch, turn, tick
+					)[1]
+				except KeyError:
+					prio = 0.0
+				for rule in self.unhandled_rulebook_rules(
+					character_name, node_name, rulebook, branch, turn, tick
+				):
+					yield prio, character_name, node_name, rulebook, rule
 
 
 class PortalRulesHandledCache(RulesHandledCache):
