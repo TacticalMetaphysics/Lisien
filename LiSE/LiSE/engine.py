@@ -2868,7 +2868,6 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = charmap[charactername]
-			breakpoint()
 			if truthfun in rule.triggers:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
