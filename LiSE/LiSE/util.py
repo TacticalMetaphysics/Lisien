@@ -315,7 +315,7 @@ def _sort_set_key(v):
 _sort_set_memo = {}
 
 
-def sort_set(s, key=None):
+def sort_set(s):
 	"""Return a sorted list of the contents of a set
 
 	This is intended to be used to iterate over world state.
@@ -330,7 +330,7 @@ def sort_set(s, key=None):
 		raise TypeError("sets only")
 	s = frozenset(s)
 	if s not in _sort_set_memo:
-		_sort_set_memo[s] = sorted(s, key=key or _sort_set_key)
+		_sort_set_memo[s] = sorted(s, key=_sort_set_key)
 	return _sort_set_memo[s]
 
 
