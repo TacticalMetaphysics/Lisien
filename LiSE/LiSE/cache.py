@@ -407,7 +407,7 @@ class PortalRulesHandledCache(RulesHandledCache):
 	def iter_unhandled_rules(self, branch, turn, tick):
 		for character_name, character in self.engine.character.items():
 			for orig_name, dests in character.portal.items():
-				for dest_name, portal in dests.items():
+				for dest_name in dests.keys():
 					rulebook = self.get_rulebook(
 						character_name,
 						orig_name,
