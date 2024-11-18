@@ -1205,14 +1205,14 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._prereqs_cache,
 			self._actions_cache,
 			self._rulebooks_cache,
+			self._unitness_cache,
 			self._characters_rulebooks_cache,
 			self._units_rulebooks_cache,
 			self._characters_things_rulebooks_cache,
 			self._characters_places_rulebooks_cache,
 			self._characters_portals_rulebooks_cache,
 		):
-			kf = cache.get_keyframe(branch_from, turn, tick, copy=True)
-			cache.set_keyframe(branch_to, turn, tick, kf)
+			cache.copy_keyframe(branch_from, branch_to, turn, tick)
 
 		for character in self._graph_cache.iter_entities(
 			branch_from, turn, tick

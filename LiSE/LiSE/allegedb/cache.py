@@ -309,6 +309,16 @@ class Cache:
 			d[turn] = {tick: keyframe}
 			kfg[branch] = d
 
+	def copy_keyframe(self, branch_from, branch_to, turn, tick):
+		for graph_ent in self.iter_keys(branch_from, turn, tick):
+			self.set_keyframe(
+				graph_ent,
+				branch_to,
+				turn,
+				tick,
+				self.get_keyframe(graph_ent, branch_from, turn, tick),
+			)
+
 	def load(self, data):
 		"""Add a bunch of data. Must be in chronological order.
 
@@ -1955,6 +1965,11 @@ class EntitylessCache(Cache):
 
 	def set_keyframe(self, branch, turn, tick, keyframe):
 		super().set_keyframe((None,), branch, turn, tick, keyframe)
+
+	def copy_keyframe(self, branch_from, branch_to, turn, tick):
+		self.set_keyframe(
+			branch_to, turn, tick, self.get_keyframe(branch_from, turn, tick)
+		)
 
 	def iter_entities_or_keys(self, branch, turn, tick, *, forward=None):
 		return super().iter_entities_or_keys(
