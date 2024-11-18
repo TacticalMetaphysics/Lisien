@@ -302,11 +302,6 @@ class EngineHandle:
 		)
 		ret, delta = self._real.next_turn()
 		slightly_packed_delta, packed_delta = self._pack_delta(delta)
-		self.debug(
-			"got results from next_turn at {}, {}, {}. Packing...".format(
-				*self._real._btt()
-			)
-		)
 		return pack(ret), packed_delta
 
 	def _get_slow_delta(
