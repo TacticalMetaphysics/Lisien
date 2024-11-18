@@ -15,6 +15,7 @@
 """The main interface to the allegedb ORM"""
 
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
 import gc
@@ -1901,83 +1902,128 @@ class ORM:
 		nodevalrows = []
 		edgevalrows = []
 		updload = self._updload
-		for window in reversed(windows):
-			for _, node, branch, turn, tick, ex in self.query.load_nodes(
-				graph, *window
-			):
-				noderows.append((graph, node, branch, turn, tick, ex or None))
-				updload(branch, turn, tick)
-			for (
-				_,
-				orig,
-				dest,
-				idx,
-				branch,
-				turn,
-				tick,
-				ex,
-			) in self.query.load_edges(graph, *window):
-				edgerows.append(
-					(
-						graph,
-						orig,
-						dest,
-						idx,
-						branch,
-						turn,
-						tick,
-						ex or None,
+		with ThreadPoolExecutor() as pool:
+			nodes_futs = []
+			edges_futs = []
+			graph_val_futs = []
+			node_val_futs = []
+			edge_val_futs = []
+			for window in reversed(windows):
+				node_fut = pool.submit(self.query.load_nodes, graph, *window)
+				node_fut.graph = graph
+				node_fut.window = window
+				node_fut.kind = "node"
+				nodes_futs.append(node_fut)
+				edge_fut = pool.submit(self.query.load_edges, graph, *window)
+				edge_fut.graph = graph
+				edge_fut.window = window
+				edge_fut.kind = "edge"
+				edges_futs.append(edge_fut)
+				graph_val_fut = pool.submit(
+					self.query.load_graph_val, graph, *window
+				)
+				graph_val_fut.graph = graph
+				graph_val_fut.window = window
+				graph_val_fut.kind = "graph_val"
+				graph_val_futs.append(graph_val_fut)
+				node_val_fut = pool.submit(
+					self.query.load_node_val, graph, *window
+				)
+				node_val_fut.graph = graph
+				node_val_fut.window = window
+				node_val_fut.kind = "node_val"
+				node_val_futs.append(node_val_fut)
+				edge_val_fut = pool.submit(
+					self.query.load_edge_val, graph, *window
+				)
+				edge_val_fut.graph = graph
+				edge_val_fut.window = window
+				edge_val_fut.kind = "edge_val"
+				edge_val_futs.append(edge_val_fut)
+
+			for fut in nodes_futs:
+				for graph, node, branch, turn, tick, ex in fut.result():
+					noderows.append(
+						(graph, node, branch, turn, tick, ex or None)
 					)
-				)
-				updload(branch, turn, tick)
-			for (
-				graph,
-				key,
-				branch,
-				turn,
-				tick,
-				value,
-			) in self.query.load_graph_val(graph, *window):
-				graphvalrows.append((graph, key, branch, turn, tick, value))
-				updload(branch, turn, tick)
-			for (
-				graph,
-				node,
-				key,
-				branch,
-				turn,
-				tick,
-				value,
-			) in self.query.load_node_val(graph, *window):
-				nodevalrows.append(
-					(graph, node, key, branch, turn, tick, value)
-				)
-				updload(branch, turn, tick)
-			for (
-				graph,
-				orig,
-				dest,
-				idx,
-				key,
-				branch,
-				turn,
-				tick,
-				value,
-			) in self.query.load_edge_val(graph, *window):
-				edgevalrows.append(
-					(
-						graph,
-						orig,
-						dest,
-						idx,
-						key,
-						branch,
-						turn,
-						tick,
-						value,
+					updload(branch, turn, tick)
+			for fut in edges_futs:
+				for (
+					graph,
+					orig,
+					dest,
+					idx,
+					branch,
+					turn,
+					tick,
+					ex,
+				) in fut.result():
+					edgerows.append(
+						(
+							graph,
+							orig,
+							dest,
+							idx,
+							branch,
+							turn,
+							tick,
+							ex or None,
+						)
 					)
-				)
-				updload(branch, turn, tick)
+					updload(branch, turn, tick)
+			for fut in graph_val_futs:
+				for (
+					graph,
+					key,
+					branch,
+					turn,
+					tick,
+					value,
+				) in fut.result():
+					graphvalrows.append(
+						(graph, key, branch, turn, tick, value)
+					)
+					updload(branch, turn, tick)
+			for fut in node_val_futs:
+				for (
+					graph,
+					node,
+					key,
+					branch,
+					turn,
+					tick,
+					value,
+				) in fut.result():
+					nodevalrows.append(
+						(graph, node, key, branch, turn, tick, value)
+					)
+					updload(branch, turn, tick)
+			for fut in edge_val_futs:
+				for (
+					graph,
+					orig,
+					dest,
+					idx,
+					key,
+					branch,
+					turn,
+					tick,
+					value,
+				) in fut.result():
+					edgevalrows.append(
+						(
+							graph,
+							orig,
+							dest,
+							idx,
+							key,
+							branch,
+							turn,
+							tick,
+							value,
+						)
+					)
+					updload(branch, turn, tick)
 		return {
 			"nodes": noderows,
 			"edges": edgerows,

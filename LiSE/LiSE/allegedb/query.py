@@ -20,7 +20,7 @@ doesn't pollute the other files so much.
 
 from threading import Thread, Lock
 from time import monotonic
-from typing import Tuple, Any, Iterator, Hashable
+from typing import List, Tuple, Any, Iterator, Hashable
 from queue import Queue
 import os
 from collections.abc import MutableMapping
@@ -657,7 +657,7 @@ class QueryEngine(object):
 				bool(extant),
 			)
 
-	def load_nodes(
+	def iter_nodes(
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
 	) -> Iterator[NodeRowType]:
 		if (turn_to is None) ^ (tick_to is None):
@@ -689,6 +689,15 @@ class QueryEngine(object):
 		for node, turn, tick, extant in it:
 			yield graph, unpack(node), branch, turn, tick, extant
 
+	def load_nodes(
+		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
+	) -> List[NodeRowType]:
+		return list(
+			self.iter_nodes(
+				graph, branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
 		"""Yield the entire contents of the node_val table."""
 		self._flush_node_val()
@@ -706,7 +715,7 @@ class QueryEngine(object):
 				unpack(value),
 			)
 
-	def load_node_val(
+	def iter_node_val(
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
 	) -> Iterator[NodeValRowType]:
 		if (turn_to is None) ^ (tick_to is None):
@@ -745,6 +754,15 @@ class QueryEngine(object):
 				tick,
 				unpack(value),
 			)
+
+	def load_node_val(
+		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
+	):
+		return list(
+			self.iter_node_val(
+				graph, branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
 
 	def _flush_node_val(self):
 		if not self._nodevals2set:
@@ -814,7 +832,7 @@ class QueryEngine(object):
 				bool(extant),
 			)
 
-	def load_edges(
+	def iter_edges(
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
 	) -> Iterator[EdgeRowType]:
 		if (turn_to is None) ^ (tick_to is None):
@@ -854,6 +872,15 @@ class QueryEngine(object):
 				tick,
 				extant,
 			)
+
+	def load_edges(
+		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
+	) -> List[EdgeRowType]:
+		return list(
+			self.iter_edges(
+				graph, branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
 
 	def _pack_edge2set(self, tup):
 		graph, orig, dest, idx, branch, turn, tick, extant = tup
@@ -920,7 +947,7 @@ class QueryEngine(object):
 				unpack(value),
 			)
 
-	def load_edge_val(
+	def iter_edge_val(
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
 	) -> Iterator[EdgeValRowType]:
 		if (turn_to is None) ^ (tick_to is None):
@@ -961,6 +988,15 @@ class QueryEngine(object):
 				tick,
 				unpack(value),
 			)
+
+	def load_edge_val(
+		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
+	):
+		return list(
+			self.iter_edge_val(
+				graph, branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
 
 	def _pack_edgeval2set(self, tup):
 		graph, orig, dest, idx, key, branch, turn, tick, value = tup
