@@ -143,6 +143,8 @@ class EngineHandle:
 			}[level.lower()]
 		if self._logq and level >= self._loglevel:
 			self._logq.put((level, message))
+		elif not self._logq:
+			print(level, message)
 
 	def debug(self, message: str) -> None:
 		self.log(DEBUG, message)
