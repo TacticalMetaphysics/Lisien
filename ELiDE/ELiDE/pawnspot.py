@@ -677,6 +677,8 @@ class Stack:
 		rects = insts["rectangles"] = []
 		wide = datum.get("width", 0)
 		tall = datum.get("height", 0)
+		if v is None:
+			return
 		for path in v:
 			if not isinstance(path, str):
 				raise TypeError("paths must be strings")
