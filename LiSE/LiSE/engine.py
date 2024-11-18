@@ -1365,14 +1365,13 @@ class Engine(AbstractEngine, gORM, Executor):
 		if kfint is None:
 			return False
 		acc = 0
-		if None not in (turn_from, turn_to):
-			for r in range(
-				min((turn_from, turn_to)),
-				max((turn_from, turn_to)),
-			):
-				acc += self._turn_end_plan[branch, r]
-				if acc > kfint:
-					return True
+		for r in range(
+			min((turn_from, turn_to)),
+			max((turn_from, turn_to)),
+		):
+			acc += self._turn_end_plan[branch, r]
+			if acc > kfint:
+				return True
 		return False
 
 	def get_delta(
