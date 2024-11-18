@@ -482,12 +482,14 @@ class Cache:
 			stoptime, _ = self.db._build_keyframe_window(branch, turn, tick)
 			if stoptime is None:
 				ret = None
-				if branch in self.keyframe:
-					kfb = self.keyframe[branch]
-					if turn in kfb:
-						kfbr = kfb[turn]
-						if tick in kfbr:
-							ret = frozenset(kfbr[tick].keys())
+				if parentity in self.keyframe:
+					keyframes = self.keyframe[parentity]
+					if branch in keyframes:
+						kfb = keyframes[branch]
+						if turn in kfb:
+							kfbr = kfb[turn]
+							if tick in kfbr:
+								ret = frozenset(kfbr[tick].keys())
 				if ret is None:
 					adds, _ = get_adds_dels(parentity, branch, turn, tick)
 					ret = frozenset(adds)
