@@ -18,6 +18,7 @@ import sys
 import os
 import json
 from functools import partial
+from threading import Thread
 
 from LiSE.allegedb import OutOfTimelineError
 
@@ -127,7 +128,7 @@ class ELiDEApp(App):
 
 	pull_time = trigger(_pull_time)
 
-	def time_travel(self, branch, turn, tick=None):
+	def _really_time_travel(self, branch, turn, tick):
 		try:
 			self.engine.time_travel(
 				branch, turn, tick, cb=self._update_from_time_travel
@@ -143,8 +144,20 @@ class ELiDEApp(App):
 				ex.turn_from,
 				ex.tick_from,
 			)
+		finally:
+			self.edit_locked = False
+			del self._time_travel_thread
 
-	def time_travel_to_tick(self, tick):
+	def time_travel(self, branch, turn, tick=None):
+		if hasattr(self, "_time_travel_thread"):
+			return
+		self.edit_locked = True
+		self._time_travel_thread = Thread(
+			target=self._really_time_travel, args=(branch, turn, tick)
+		)
+		self._time_travel_thread.start()
+
+	def _really_time_travel_to_tick(self, tick):
 		try:
 			self.engine.time_travel(
 				self.branch, self.turn, tick, cb=self._update_from_time_travel
@@ -160,6 +173,15 @@ class ELiDEApp(App):
 				ex.turn_from,
 				ex.tick_from,
 			)
+		finally:
+			self.edit_locked = False
+			del self._time_travel_thread
+
+	def time_travel_to_tick(self, tick):
+		self._time_travel_thread = Thread(
+			target=self._really_time_travel_to_tick, args=(tick,)
+		)
+		self._time_travel_thread.start()
 
 	def _update_from_time_travel(
 		self, command, branch, turn, tick, result, **kwargs
