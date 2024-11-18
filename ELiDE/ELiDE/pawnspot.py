@@ -650,6 +650,8 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 class Stack:
 	__slots__ = ["board", "proxy", "__self__"]
 
+	default_image_paths = ["atlas://rltiles/floor.atlas/floor-normal"]
+
 	def __init__(self, **kwargs):
 		self.board = kwargs["board"]
 		self.proxy = kwargs["proxy"]
@@ -678,7 +680,7 @@ class Stack:
 		wide = datum.get("width", 0)
 		tall = datum.get("height", 0)
 		if v is None:
-			return
+			v = self.default_image_paths
 		for path in v:
 			if not isinstance(path, str):
 				raise TypeError("paths must be strings")
