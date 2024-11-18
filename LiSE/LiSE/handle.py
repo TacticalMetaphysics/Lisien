@@ -352,7 +352,7 @@ class EngineHandle:
 		self._real.time = (branch, turn)
 		if tick is not None:
 			self._real.tick = tick
-		if (
+		if turn_from != turn and (
 			branch_from != branch
 			or None in (turn_from, turn)
 			or self._real._is_timespan_too_big(branch, turn_from, turn)
