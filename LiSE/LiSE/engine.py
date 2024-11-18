@@ -1359,7 +1359,11 @@ class Engine(AbstractEngine, gORM, Executor):
 	def _is_timespan_too_big(
 		self, branch: str, turn_from: int, turn_to: int
 	) -> bool:
-		"""Return whether the changes between these turns are big enough that you might as well use the slow delta"""
+		"""Return whether the changes between these turns are numerous enough that you might as well use the slow delta
+
+		Somewhat imprecise.
+
+		"""
 		kfint = self.query.keyframe_interval
 		if kfint is None:
 			return False
