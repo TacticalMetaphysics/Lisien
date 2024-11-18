@@ -1366,11 +1366,11 @@ class Engine(AbstractEngine, gORM, Executor):
 			return False
 		acc = 0
 		for r in range(
-			min((turn_from, turn_to or float("inf"))),
-			max((turn_from, turn_to or -float("inf"))),
+			min((turn_from, turn_to)),
+			max((turn_from, turn_to)),
 		):
 			acc += self._turn_end_plan[branch, r]
-			if r > kfint:
+			if acc > kfint:
 				return True
 		return False
 
