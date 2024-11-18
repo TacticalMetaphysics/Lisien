@@ -268,23 +268,23 @@ class UnitRulesHandledCache(RulesHandledCache):
 			return "unit_rulebook", character
 
 	def iter_unhandled_rules(self, branch, turn, tick):
-		charm = self.engine.character
-		for character in sort_set(charm.keys()):
-			rulebook = self.get_rulebook(character, branch, turn, tick)
-			prio = self.get_priority(rulebook, branch, turn, tick)
-			charavm = charm[character].unit
-			for graph in sort_set(charavm.keys()):
-				for avatar in sort_set(charavm[graph].keys()):
-					for rule in self.unhandled_rulebook_rules(
-						character,
-						graph,
-						avatar,
-						rulebook,
-						branch,
-						turn,
-						tick,
-					):
-						yield prio, character, graph, avatar, rulebook, rule
+		retr = self.engine._unitness_cache._base_retrieve
+		iter_keys = self.engine._unitness_cache.iter_keys
+		characters_now = frozenset(
+			self.engine._graph_cache.iter_keys(branch, turn, tick)
+		)
+		for charname in characters_now:
+			for graphname in characters_now:
+				for node in iter_keys(charname, graphname, branch, turn, tick):
+					rightnow = retr((charname, graphname, branch, turn, tick))
+					if rightnow[1] is not True:
+						continue
+					rb = self.get_rulebook(charname, branch, turn, tick)
+					prio = self.get_priority(rb, branch, turn, tick)
+					for rule in self.engine._rulebooks_cache.retrieve(
+						rb, branch, turn, tick
+					)[0]:
+						yield prio, charname, graphname, node, rb, rule
 
 
 class CharacterThingRulesHandledCache(RulesHandledCache):
