@@ -1360,6 +1360,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		self, branch: str, turn_from: int, turn_to: int
 	) -> bool:
 		"""Return whether the changes between these turns are big enough that you might as well use the slow delta"""
+		assert turn_from or turn_to
 		kfint = self.query.keyframe_interval
 		if kfint is None:
 			return False

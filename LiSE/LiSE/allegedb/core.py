@@ -1895,143 +1895,6 @@ class ORM:
 			latest_past_keyframe = (branch, *self._loaded[branch][:2])
 		return latest_past_keyframe, earliest_future_keyframe
 
-	def _load_graph_windows(self, graph, windows):
-		noderows = []
-		edgerows = []
-		graphvalrows = []
-		nodevalrows = []
-		edgevalrows = []
-		updload = self._updload
-		with ThreadPoolExecutor() as pool:
-			nodes_futs = []
-			edges_futs = []
-			graph_val_futs = []
-			node_val_futs = []
-			edge_val_futs = []
-			for window in reversed(windows):
-				node_fut = pool.submit(self.query.load_nodes, graph, *window)
-				node_fut.graph = graph
-				node_fut.window = window
-				node_fut.kind = "node"
-				nodes_futs.append(node_fut)
-				edge_fut = pool.submit(self.query.load_edges, graph, *window)
-				edge_fut.graph = graph
-				edge_fut.window = window
-				edge_fut.kind = "edge"
-				edges_futs.append(edge_fut)
-				graph_val_fut = pool.submit(
-					self.query.load_graph_val, graph, *window
-				)
-				graph_val_fut.graph = graph
-				graph_val_fut.window = window
-				graph_val_fut.kind = "graph_val"
-				graph_val_futs.append(graph_val_fut)
-				node_val_fut = pool.submit(
-					self.query.load_node_val, graph, *window
-				)
-				node_val_fut.graph = graph
-				node_val_fut.window = window
-				node_val_fut.kind = "node_val"
-				node_val_futs.append(node_val_fut)
-				edge_val_fut = pool.submit(
-					self.query.load_edge_val, graph, *window
-				)
-				edge_val_fut.graph = graph
-				edge_val_fut.window = window
-				edge_val_fut.kind = "edge_val"
-				edge_val_futs.append(edge_val_fut)
-
-			for fut in nodes_futs:
-				for graph, node, branch, turn, tick, ex in fut.result():
-					noderows.append(
-						(graph, node, branch, turn, tick, ex or None)
-					)
-					updload(branch, turn, tick)
-			for fut in edges_futs:
-				for (
-					graph,
-					orig,
-					dest,
-					idx,
-					branch,
-					turn,
-					tick,
-					ex,
-				) in fut.result():
-					edgerows.append(
-						(
-							graph,
-							orig,
-							dest,
-							idx,
-							branch,
-							turn,
-							tick,
-							ex or None,
-						)
-					)
-					updload(branch, turn, tick)
-			for fut in graph_val_futs:
-				for (
-					graph,
-					key,
-					branch,
-					turn,
-					tick,
-					value,
-				) in fut.result():
-					graphvalrows.append(
-						(graph, key, branch, turn, tick, value)
-					)
-					updload(branch, turn, tick)
-			for fut in node_val_futs:
-				for (
-					graph,
-					node,
-					key,
-					branch,
-					turn,
-					tick,
-					value,
-				) in fut.result():
-					nodevalrows.append(
-						(graph, node, key, branch, turn, tick, value)
-					)
-					updload(branch, turn, tick)
-			for fut in edge_val_futs:
-				for (
-					graph,
-					orig,
-					dest,
-					idx,
-					key,
-					branch,
-					turn,
-					tick,
-					value,
-				) in fut.result():
-					edgevalrows.append(
-						(
-							graph,
-							orig,
-							dest,
-							idx,
-							key,
-							branch,
-							turn,
-							tick,
-							value,
-						)
-					)
-					updload(branch, turn, tick)
-		return {
-			"nodes": noderows,
-			"edges": edgerows,
-			"node_val": nodevalrows,
-			"edge_val": edgevalrows,
-			"graph_val": graphvalrows,
-		}
-
 	@world_locked
 	def _load_between(
 		self,
@@ -2051,7 +1914,7 @@ class ORM:
 		# It would be better to filter to the graphs that existed during this window, though.
 		loaded_graphs = {}
 		for _, graph in self._graph_cache.branches:
-			loaded = self._load_graph_windows(
+			loaded = self.query.load_graph_windows(
 				graph, [(branch, turn_from, tick_from, turn_to, tick_to)]
 			)
 			noderows.extend(loaded["nodes"])
@@ -2217,7 +2080,7 @@ class ORM:
 				if latest_past_keyframe == (branch_now, turn_now, tick_now):
 					continue
 				_, _, _, turn_then, tick_then = self._branches[branch_now]
-				loaded = loaded_graphs[graph] = self._load_graph_windows(
+				loaded = loaded_graphs[graph] = self.query.load_graph_windows(
 					graph,
 					self._build_loading_windows(
 						*latest_past_keyframe, branch_now, turn_then, tick_then
@@ -2303,7 +2166,7 @@ class ORM:
 				)
 				updload(branch, turn, tick)
 				continue
-			loaded = loaded_graphs[graph] = self._load_graph_windows(
+			loaded = loaded_graphs[graph] = self.query.load_graph_windows(
 				graph,
 				self._build_loading_windows(
 					past_branch,

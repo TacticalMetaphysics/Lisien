@@ -698,6 +698,242 @@ class QueryEngine(object):
 			)
 		)
 
+	def _put_graph_window_tick_to_end(
+		self, graph, branch, turn_from, tick_from
+	):
+		packed_graph = self.pack(graph)
+		self._inq.put(
+			(
+				"one",
+				"load_nodes_tick_to_end",
+				(
+					packed_graph,
+					branch,
+					turn_from,
+					turn_from,
+					tick_from,
+				),
+				{},
+			)
+		)
+		self._inq.put(("echo", 0))
+		self._inq.put(
+			(
+				"one",
+				"load_edges_tick_to_end",
+				(
+					packed_graph,
+					branch,
+					turn_from,
+					turn_from,
+					tick_from,
+				),
+				{},
+			)
+		)
+		self._inq.put(("echo", 1))
+		self._inq.put(
+			(
+				"one",
+				"load_graph_val_tick_to_end",
+				(
+					packed_graph,
+					branch,
+					turn_from,
+					turn_from,
+					tick_from,
+				),
+				{},
+			)
+		)
+		self._inq.put(("echo", 2))
+		self._inq.put(
+			(
+				"one",
+				"load_node_val_tick_to_end",
+				(
+					packed_graph,
+					branch,
+					turn_from,
+					turn_from,
+					tick_from,
+				),
+				{},
+			)
+		)
+		self._inq.put(("echo", 3))
+		self._inq.put(
+			(
+				"one",
+				"load_edge_val_tick_to_end",
+				(
+					packed_graph,
+					branch,
+					turn_from,
+					turn_from,
+					tick_from,
+				),
+				{},
+			)
+		)
+		self._inq.put(("echo", 4))
+
+	def _put_graph_window_tick_to_tick(
+		self, graph, branch, turn_from, tick_from, turn_to, tick_to
+	):
+		packed_graph = self.pack(graph)
+		self._inq.put(
+			(
+				"one",
+				"load_nodes_tick_to_tick",
+				(
+					packed_graph,
+					branch,
+					turn_from,
+					turn_from,
+					tick_from,
+					turn_to,
+					turn_to,
+					tick_to,
+				),
+				{},
+			)
+		)
+		self._inq.put(("echo", 0))
+		self._inq.put(
+			(
+				"one",
+				"load_edges_tick_to_tick",
+				(
+					packed_graph,
+					branch,
+					turn_from,
+					turn_from,
+					tick_from,
+					turn_to,
+					turn_to,
+					tick_to,
+				),
+				{},
+			)
+		)
+		self._inq.put(("echo", 1))
+		self._inq.put(
+			(
+				"one",
+				"load_graph_val_tick_to_tick",
+				(
+					packed_graph,
+					branch,
+					turn_from,
+					turn_from,
+					tick_from,
+					turn_to,
+					turn_to,
+					tick_to,
+				),
+				{},
+			)
+		)
+		self._inq.put(("echo", 2))
+		self._inq.put(
+			(
+				"one",
+				"load_node_val_tick_to_tick",
+				(
+					packed_graph,
+					branch,
+					turn_from,
+					turn_from,
+					tick_from,
+					turn_to,
+					turn_to,
+					tick_to,
+				),
+				{},
+			)
+		)
+		self._inq.put(("echo", 3))
+		self._inq.put(
+			(
+				"one",
+				"load_edge_val_tick_to_tick",
+				(
+					packed_graph,
+					branch,
+					turn_from,
+					turn_from,
+					tick_from,
+					turn_to,
+					turn_to,
+					tick_to,
+				),
+				{},
+			)
+		)
+		self._inq.put(("echo", 4))
+
+	def load_graph_window(
+		self, graph, branch, turn_from, tick_from, turn_to, tick_to
+	):
+		ret = {
+			"nodes": [],
+			"edges": [],
+			"graph_val": [],
+			"node_val": [],
+			"edge_val": [],
+		}
+		with self._holder.lock:
+			if turn_to is None:
+				self._put_graph_window_tick_to_end(
+					graph, branch, turn_from, tick_from
+				)
+			else:
+				self._put_graph_window_tick_to_tick(
+					graph, branch, turn_from, tick_from, turn_to, tick_to
+				)
+			while isinstance(got := self._outq.get(), list):
+				ret["nodes"].extend(got)
+			while isinstance(got := self._outq.get(), list):
+				ret["edges"].extend(got)
+			while isinstance(got := self._outq.get(), list):
+				ret["graph_val"].extend(got)
+			while isinstance(got := self._outq.get(), list):
+				ret["node_val"].extend(got)
+			while isinstance(got := self._outq.get(), list):
+				ret["edge_val"].extend(got)
+		return ret
+
+	def load_graph_windows(self, graph, windows):
+		ret = {
+			"nodes": [],
+			"edges": [],
+			"graph_val": [],
+			"node_val": [],
+			"edge_val": [],
+		}
+		with self._holder.lock:
+			for branch, turn_from, tick_from, turn_to, tick_to in windows:
+				if turn_to is None:
+					self._put_graph_window_tick_to_end(
+						graph, branch, turn_from, tick_from
+					)
+				else:
+					self._put_graph_window_tick_to_tick(
+						graph, branch, turn_from, tick_from, turn_to, tick_to
+					)
+				while isinstance(got := self._outq.get(), list):
+					ret["nodes"].extend(got)
+				while isinstance(got := self._outq.get(), list):
+					ret["edges"].extend(got)
+				while isinstance(got := self._outq.get(), list):
+					ret["graph_val"].extend(got)
+				while isinstance(got := self._outq.get(), list):
+					ret["node_val"].extend(got)
+				while isinstance(got := self._outq.get(), list):
+					ret["edge_val"].extend(got)
+		return ret
+
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
 		"""Yield the entire contents of the node_val table."""
 		self._flush_node_val()
