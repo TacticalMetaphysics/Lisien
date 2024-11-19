@@ -3480,9 +3480,6 @@ class EngineProcessManager(object):
 			except OSError:
 				pass
 			del kwargs["logfile"]
-		do_game_start = (
-			kwargs.pop("do_game_start") if "do_game_start" in kwargs else False
-		)
 		install_modules = (
 			kwargs.pop("install_modules")
 			if "install_modules" in kwargs
@@ -3515,7 +3512,6 @@ class EngineProcessManager(object):
 			self._handle_out_pipe_send,
 			handle_in_pipe_recv,
 			self.logger,
-			do_game_start,
 			install_modules,
 		)
 		return self.engine_proxy

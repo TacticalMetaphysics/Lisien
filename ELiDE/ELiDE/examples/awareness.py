@@ -294,7 +294,6 @@ class AwarenessApp(GameApp):
 	placing_centers = BooleanProperty(False)
 	end_turn = NumericProperty(0)
 	inspector = True
-	do_game_start = True
 
 	def on_play(self, *args):
 		if self.play:
