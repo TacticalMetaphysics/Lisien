@@ -66,9 +66,18 @@ def game_start(engine) -> None:
 			_image_paths=["atlas://rltiles/dungeon/dngn_altar_xom"],
 		)
 
-	phys = engine.new_character("physical", initworld)
-	peep = engine.new_character("people")
-	lit = engine.new_character("literature")
+	try:
+		phys = engine.new_character("physical", initworld)
+	except KeyError:
+		phys = engine.character["physical"].become(initworld)
+	try:
+		peep = engine.new_character("people")
+	except KeyError:
+		peep = engine.character["people"]
+	try:
+		lit = engine.new_character("literature")
+	except KeyError:
+		lit = engine.character["literature"]
 	# there really ought to be a way to specify a character's units in its starting data
 	for node in phys.thing.values():
 		if node.name.startswith("turtle"):
