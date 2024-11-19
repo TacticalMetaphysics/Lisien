@@ -308,6 +308,11 @@ class AwarenessApp(GameApp):
 		if turn != self.engine.turn:
 			self.engine.turn = turn
 
+	def on_start(self):
+		if not hasattr(self, "_initialized"):
+			self.engine.game_init()
+			self._initialized = True
+
 
 kv = """
 # kv_start
