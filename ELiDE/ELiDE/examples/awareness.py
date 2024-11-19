@@ -299,8 +299,8 @@ class AwarenessApp(GameApp):
 
 	def on_start(self):
 		if not hasattr(self, "_initialized"):
-			self.engine.game_init()
 			self._initialized = True
+			self.engine.game_init()
 
 
 kv = """
