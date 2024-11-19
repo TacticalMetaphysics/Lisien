@@ -771,12 +771,13 @@ class EngineHandle:
 		self._real.switch_main_branch(branch)
 		return self.snap_keyframe()
 
-	def game_start(self) -> None:
+	def game_init(self) -> None:
 		branch, turn, tick = self._real._btt()
 		if (turn, tick) != (0, 0):
 			raise BadTimeException(
 				"You tried to start a game when it wasn't the start of time"
 			)
+		self.do_game_start()
 		kf = self.snap_keyframe()
 		functions = dict(self._real.function.iterplain())
 		methods = dict(self._real.method.iterplain())

@@ -2480,12 +2480,12 @@ class EngineProxy(AbstractEngine):
 			)
 		return self.handle("snap_keyframe")
 
-	def game_start(self) -> None:
+	def game_init(self) -> None:
 		if self._worker:
 			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
-		self.handle("game_start", cb=self._upd_from_game_start)
+		self.handle("game_init", cb=self._upd_from_game_start)
 
 	def _node_exists(self, char, node) -> bool:
 		return self.handle("node_exists", char=char, node=node)

@@ -233,10 +233,10 @@ class MainGame(GameScreen):
 		"""Regenerate the whole map"""
 		branch = self.engine.branch
 		try:
-			branchidx = int(remove_prefix(branch, "branch")) + 1
-			branch = f"branch{branchidx:02}"
+			branchidx = int(remove_prefix(branch, "trunk")) + 1
+			branch = f"trunk{branchidx:02}"
 		except ValueError:
-			branch = f"branch01"
+			branch = f"trunk01"
 		self.engine.turn = 0
 		self.engine.tick = 0
 		self.engine.switch_main_branch(branch)
@@ -246,7 +246,7 @@ class MainGame(GameScreen):
 			self.engine.eternal["nonusage-limit"] = int(
 				self.ids.nonusage.value
 			)
-		self.engine.game_start()
+		self.engine.game_init()
 		app = GameApp.get_running_app()
 		self._push_character()
 		if not hasattr(self, "ran_once"):
