@@ -48,7 +48,8 @@ class AllegedMapping(MutableMappingUnwrapper, ABC):
 	def clear(self):
 		"""Delete everything"""
 		for k in list(self.keys()):
-			del self[k]
+			if k in self:
+				del self[k]
 
 
 class AbstractEntityMapping(AllegedMapping, ABC):
