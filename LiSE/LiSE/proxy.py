@@ -2739,7 +2739,6 @@ class EngineProxy(AbstractEngine):
 		handle_out,
 		handle_in,
 		logger,
-		do_game_start=False,
 		install_modules=(),
 		submit_func=None,
 		threads=None,
@@ -2834,8 +2833,6 @@ class EngineProxy(AbstractEngine):
 			self._initialized = True
 			for module in install_modules:
 				self.handle("install_module", module=module)
-			if do_game_start:
-				self.handle("do_game_start", cb=self._upd_caches)
 
 	def __getattr__(self, item):
 		meth = super().__getattribute__("method").__getattr__(item)
