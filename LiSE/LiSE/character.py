@@ -1162,6 +1162,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				end_turn,
 				tick,
 			)
+			self.engine._turn_end_plan[branch, turn] = tick
+			if not self.engine._planning:
+				self.engine._turn_end[branch, turn] = tick
 			self.engine.tick = tick
 
 		class Successors(DiGraphSuccessorsMapping.Successors):
