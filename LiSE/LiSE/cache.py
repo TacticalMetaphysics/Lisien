@@ -138,20 +138,21 @@ class UnitnessCache(Cache):
 			super().set_keyframe(
 				(*characters, graph), branch, turn, tick, subkf
 			)
-			for unit, is_unit in subkf.items():
-				try:
-					kf = self.user_cache.get_keyframe(
-						(graph, unit), branch, turn, tick
-					)
-					kf[characters] = is_unit
-				except KeyframeError:
-					self.user_cache.set_keyframe(
-						(graph, unit),
-						branch,
-						turn,
-						tick,
-						{characters: is_unit},
-					)
+			if isinstance(subkf, dict):
+				for unit, is_unit in subkf.items():
+					try:
+						kf = self.user_cache.get_keyframe(
+							(graph, unit), branch, turn, tick
+						)
+						kf[characters] = is_unit
+					except KeyframeError:
+						self.user_cache.set_keyframe(
+							(graph, unit),
+							branch,
+							turn,
+							tick,
+							{characters: is_unit},
+						)
 
 	def copy_keyframe(self, branch_from, branch_to, turn, tick):
 		for entty in list(self.keyframe):
