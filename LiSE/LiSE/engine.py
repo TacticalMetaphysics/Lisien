@@ -3440,23 +3440,22 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._universal_cache.set_keyframe(branch, turn, tick, universal)
 		all_graphs = set(self._graph_cache.iter_keys(branch, turn, tick))
 		for char in all_graphs:
+			char_kf = {}
 			for graph in self._unitness_cache.iter_keys(
 				char, branch, turn, tick
 			):
-				self._unitness_cache.set_keyframe(
-					graph,
-					branch,
-					turn,
-					tick,
-					{
-						unit: self._unitness_cache.retrieve(
-							char, graph, unit, branch, turn, tick
-						)
-						for unit in self._unitness_cache.iter_keys(
-							char, graph, branch, turn, tick
-						)
-					},
-				)
+				char_kf[graph] = {
+					unit: self._unitness_cache.retrieve(
+						char, graph, unit, branch, turn, tick
+					)
+					for unit in self._unitness_cache.iter_keys(
+						char, graph, branch, turn, tick
+					)
+				}
+
+			self._unitness_cache.set_keyframe(
+				char, branch, turn, tick, char_kf
+			)
 		rbnames = list(self._rulebooks_cache.iter_keys(branch, turn, tick))
 		rbs = {}
 		for rbname in rbnames:
