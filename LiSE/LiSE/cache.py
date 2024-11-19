@@ -148,12 +148,12 @@ class UnitnessCache(Cache):
 					)
 
 	def copy_keyframe(self, branch_from, branch_to, turn, tick):
-		for entty in self.keyframe:
+		for entty in list(self.keyframe):
 			try:
 				kf = self.get_keyframe(entty, branch_from, turn, tick)
 			except KeyError:
-				continue
-			self.set_keyframe(*entty, branch_to, turn, tick, kf)
+				kf = {}
+			self.set_keyframe(entty, branch_to, turn, tick, kf)
 
 	def get_char_graph_units(self, char, graph, branch, turn, tick):
 		return self._get_adds_dels((char, graph), branch, turn, tick)[0]
