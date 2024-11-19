@@ -1152,7 +1152,17 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 									v,
 								)
 								tick += 1
-			engine.tick = tick
+			parent, start_turn, start_tick, end_turn, _ = (
+				self.engine._branches[branch]
+			)
+			self.engine._branches[branch] = (
+				parent,
+				start_turn,
+				start_tick,
+				end_turn,
+				tick,
+			)
+			self.engine.tick = tick
 
 		class Successors(DiGraphSuccessorsMapping.Successors):
 			"""Mapping for possible destinations from some node."""
