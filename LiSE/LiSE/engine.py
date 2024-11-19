@@ -830,7 +830,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			(name,), *now, {k: frozenset(v) for (k, v) in conts.items()}
 		)
 		self._things_cache.set_keyframe((name,), *now, things)
-		self._unitness_cache.set_keyframe(name, *now, units)
+		self._unitness_cache.set_keyframe((name,), *now, units)
 		for rbcache, rbname in [
 			(self._characters_rulebooks_cache, "character_rulebook"),
 			(self._units_rulebooks_cache, "unit_rulebook"),
@@ -2370,7 +2370,7 @@ class Engine(AbstractEngine, gORM, Executor):
 						charunit[graf].update(units)
 					else:
 						charunit[graf] = units
-			self._unitness_cache.set_keyframe(graph, *now, charunit)
+			self._unitness_cache.set_keyframe((graph,), *now, charunit)
 			self._unitness_cache.get_keyframe((graph,), *now)
 			if "character_rulebook" in delt:
 				charrbs[graph] = delt["character_rulebook"]
