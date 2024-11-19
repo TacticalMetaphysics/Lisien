@@ -21,17 +21,6 @@ def game_start(engine) -> None:
 	from random import randint, shuffle
 	import networkx as nx
 
-	# ensure we're on a fresh branch
-	if engine.turn != 0 or engine.tick != 0:
-		if engine.branch == "trunk":
-			new_branch_name = "trunk0"
-		else:
-			new_branch_num = int(engine.branch[5:])
-			new_branch_name = "trunk" + str(new_branch_num)
-		engine.turn = 0
-		engine.tick = 0
-		engine.switch_main_branch(new_branch_name)
-
 	engine.eternal["nonusage-limit"] = 100
 	wide = engine.eternal.setdefault("max-pxcor", 36)
 	high = engine.eternal.setdefault("max-pycor", 37)
