@@ -252,7 +252,6 @@ class GameApp(App):
 			from kivy.modules import inspector
 
 			inspector.create_inspector(Window, self.screen_manager)
-		self.engine.game_init()
 		return self.screen_manager
 
 	def on_pause(self):
