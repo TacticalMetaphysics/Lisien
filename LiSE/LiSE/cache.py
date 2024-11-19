@@ -291,10 +291,10 @@ class UnitRulesHandledCache(RulesHandledCache):
 		for charname in characters_now:
 			for graphname in characters_now:
 				for node in iter_keys(charname, graphname, branch, turn, tick):
-					rightnow = retr(
-						(charname, graphname, node, branch, turn, tick)
-					)
-					if rightnow is not True:
+					if (
+						retr((charname, graphname, node, branch, turn, tick))
+						is not True
+					):
 						continue
 					rb = self.get_rulebook(charname, branch, turn, tick)
 					prio = self.get_priority(rb, branch, turn, tick)
