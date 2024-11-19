@@ -45,6 +45,7 @@ def game_start(engine) -> None:
 
 	locs = list(initworld.nodes.keys())
 	shuffle(locs)
+	peeps = {}
 
 	for turtle in range(engine.eternal.setdefault("people", 60)):
 		initworld.add_node(
@@ -57,6 +58,9 @@ def game_start(engine) -> None:
 				"atlas://rltiles/body/robe_black",
 			],
 		)
+		peeps["turtle" + str(turtle)] = True
+
+	centers = {}
 
 	for center in range(engine.eternal.setdefault("centers", 20)):
 		initworld.add_node(
@@ -65,25 +69,11 @@ def game_start(engine) -> None:
 			nonusage=0,
 			_image_paths=["atlas://rltiles/dungeon/dngn_altar_xom"],
 		)
+		centers["center" + str(center)] = True
 
-	try:
-		phys = engine.new_character("physical", initworld)
-	except KeyError:
-		phys = engine.character["physical"].become(initworld)
-	try:
-		peep = engine.new_character("people")
-	except KeyError:
-		peep = engine.character["people"]
-	try:
-		lit = engine.new_character("literature")
-	except KeyError:
-		lit = engine.character["literature"]
-	# there really ought to be a way to specify a character's units in its starting data
-	for node in phys.thing.values():
-		if node.name.startswith("turtle"):
-			peep.add_unit(node)
-		elif node.name.startswith("center"):
-			lit.add_unit(node)
+	phys = engine.new_character("physical", initworld)
+	peep = engine.new_character("people", units={"physical": peeps})
+	lit = engine.new_character("literature", units={"physical": centers})
 
 	@peep.unit.rule(always=True)
 	def wander(person):
@@ -255,7 +245,6 @@ class MainGame(GameScreen):
 			self.engine.eternal["nonusage-limit"] = int(
 				self.ids.nonusage.value
 			)
-		self.engine.game_init()
 		app = GameApp.get_running_app()
 		self._push_character()
 		if not hasattr(self, "ran_once"):
