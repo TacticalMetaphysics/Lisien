@@ -349,7 +349,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		if you're not using the rules engine.
 	:param threaded_triggers: Whether to evaluate trigger functions in threads.
 		This has performance benefits if you are using a free-threaded build of
-		Python (without a GIL). Default ``True``.
+		Python (without a GIL). Defaults to ``True`` when there are workers
+		(see below), ``False`` otherwise.
 	:param workers: How many subprocesses to use as workers for
 		parallel processing. When ``None`` (the default), use as many
 		subprocesses as we have CPU cores. When ``0``, parallel processing
@@ -412,7 +413,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		keyframe_on_close: bool = True,
 		cache_arranger: bool = False,
 		enforce_end_of_time: bool = True,
-		threaded_triggers: bool = True,
+		threaded_triggers: bool = None,
 		workers: int = None,
 	):
 		if logfun is None:
@@ -501,6 +502,8 @@ class Engine(AbstractEngine, gORM, Executor):
 				self.universal["rando_state"] = rando_state
 		if not self._keyframes_times:
 			self._snap_keyframe_de_novo(*self._btt())
+		if threaded_triggers is None:
+			threaded_triggers = workers is not None and workers != 0
 		if threaded_triggers:
 			self._trigger_pool = ThreadPoolExecutor()
 		if workers is None:
