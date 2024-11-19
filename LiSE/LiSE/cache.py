@@ -297,10 +297,10 @@ class UnitRulesHandledCache(RulesHandledCache):
 					):
 						continue
 					rb = self.get_rulebook(charname, branch, turn, tick)
-					prio = self.get_priority(rb, branch, turn, tick)
-					for rule in self.engine._rulebooks_cache.retrieve(
+					rules, prio = self.engine._rulebooks_cache.retrieve(
 						rb, branch, turn, tick
-					)[0]:
+					)
+					for rule in rules:
 						yield prio, charname, graphname, node, rb, rule
 
 
