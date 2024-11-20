@@ -175,6 +175,9 @@ class GameApp(App):
 		:return: ``None``
 
 		"""
+		if hasattr(self, "_next_turn_thread"):
+			Clock.schedule_once(partial(self.wait_turns, turns, cb=cb), 0)
+			return
 		if turns == 0:
 			if cb:
 				cb()
@@ -264,6 +267,9 @@ class GameApp(App):
 		self.procman.shutdown()
 		self.config.write()
 
+	def _del_next_turn_thread(self, *_):
+		del self._next_turn_thread
+
 	def next_turn(self, *_):
 		"""Smoothly advance to the next turn in the simulation
 
@@ -276,8 +282,11 @@ class GameApp(App):
 
 		"""
 		if hasattr(self, "_next_turn_thread"):
-			self._next_turn_thread.join()
-		self._next_turn_thread = Thread(target=self.engine.next_turn)
+			return
+		self._next_turn_thread = Thread(
+			target=self.engine.next_turn,
+			kwargs={"cb": self._del_next_turn_thread},
+		)
 		self._next_turn_thread.start()
 
 	trigger_next_turn = triggered(next_turn)
