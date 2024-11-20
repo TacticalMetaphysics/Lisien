@@ -284,14 +284,16 @@ class UnitRulesHandledCache(RulesHandledCache):
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		retr = self.engine._unitness_cache._base_retrieve
-		iter_keys = self.engine._unitness_cache.iter_keys
-		characters_now = frozenset(
-			self.engine._graph_cache.iter_keys(branch, turn, tick)
-		)
-		for charname in characters_now:
-			for graphname in characters_now:
-				for node in iter_keys(charname, graphname, branch, turn, tick):
-					if (
+		for charname in self.engine._units_rulebooks_cache.iter_keys(
+			branch, turn, tick
+		):
+			for graphname in self.engine._unitness_cache.iter_keys(
+				charname, branch, turn, tick
+			):
+				for node, ex in self.engine._unitness_cache.retrieve(
+					charname, "physical", "trunk", 0, 13
+				).items():
+					if not ex or (
 						retr((charname, graphname, node, branch, turn, tick))
 						is not True
 					):
