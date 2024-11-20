@@ -290,7 +290,7 @@ class UnitRulesHandledCache(RulesHandledCache):
 				charname, branch, turn, tick
 			):
 				for node, ex in self.engine._unitness_cache.retrieve(
-					charname, "physical", "trunk", 0, 13
+					charname, graphname, "trunk", 0, 13
 				).items():
 					if not ex:
 						continue
