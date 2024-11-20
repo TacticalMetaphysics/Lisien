@@ -283,7 +283,6 @@ class UnitRulesHandledCache(RulesHandledCache):
 			return "unit_rulebook", character
 
 	def iter_unhandled_rules(self, branch, turn, tick):
-		retr = self.engine._unitness_cache._base_retrieve
 		for charname in self.engine._units_rulebooks_cache.iter_keys(
 			branch, turn, tick
 		):
@@ -293,10 +292,7 @@ class UnitRulesHandledCache(RulesHandledCache):
 				for node, ex in self.engine._unitness_cache.retrieve(
 					charname, "physical", "trunk", 0, 13
 				).items():
-					if not ex or (
-						retr((charname, graphname, node, branch, turn, tick))
-						is not True
-					):
+					if not ex:
 						continue
 					rb = self.get_rulebook(charname, branch, turn, tick)
 					rules, prio = self.engine._rulebooks_cache.retrieve(
