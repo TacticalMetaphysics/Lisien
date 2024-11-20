@@ -219,25 +219,16 @@ class MainGame(GameScreen):
 
 	def set_up(self):
 		"""Regenerate the whole map"""
-		branch = self.engine.branch
-		try:
-			branchidx = int(remove_prefix(branch, "trunk")) + 1
-			branch = f"trunk{branchidx:02}"
-		except ValueError:
-			branch = f"trunk01"
 		self.engine.turn = 0
-		self.engine.tick = 0
-		self.engine.switch_main_branch(branch)
 		if hasattr(self, "ran_once"):
 			self.engine.eternal["people"] = int(self.ids.people.value)
 			self.engine.eternal["centers"] = int(self.ids.centers.value)
 			self.engine.eternal["nonusage-limit"] = int(
 				self.ids.nonusage.value
 			)
-		app = GameApp.get_running_app()
-		self._push_character()
-		if not hasattr(self, "ran_once"):
+		else:
 			self.pull_values()
+		self._push_character()
 
 	def pull_values(self, *_):
 		app = GameApp.get_running_app()
