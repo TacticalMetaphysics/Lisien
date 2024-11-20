@@ -310,11 +310,19 @@ class Rule:
 		self.engine = engine
 		self.name = self.__name__ = name
 		branch, turn, tick = engine._btt()
-		if create and not self.engine._triggers_cache.contains_key(
-			name, branch, turn, tick
-		):
-			tick += 1
-			self.engine.tick = tick
+		if create:
+			if (
+				self.engine._triggers_cache.contains_key(
+					name, branch, turn, tick
+				)
+				or self.engine._prereqs_cache.contains_key(
+					name, branch, turn, tick
+				)
+				or self.engine._actions_cache.contains_key(
+					name, branch, turn, tick
+				)
+			):
+				(branch, turn, tick) = self.engine._nbtt()
 			triggers = tuple(self._fun_names_iter("trigger", triggers or []))
 			prereqs = tuple(self._fun_names_iter("prereq", prereqs or []))
 			actions = tuple(self._fun_names_iter("action", actions or []))
