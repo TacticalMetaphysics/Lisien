@@ -283,9 +283,7 @@ class UnitRulesHandledCache(RulesHandledCache):
 			return "unit_rulebook", character
 
 	def iter_unhandled_rules(self, branch, turn, tick):
-		for charname in self.engine._units_rulebooks_cache.iter_keys(
-			branch, turn, tick
-		):
+		for charname in self.engine._graph_cache.iter_keys(branch, turn, tick):
 			for graphname in self.engine._unitness_cache.iter_keys(
 				charname, branch, turn, tick
 			):
