@@ -267,7 +267,7 @@ class GameApp(App):
 		self.procman.shutdown()
 		self.config.write()
 
-	def _del_next_turn_thread(self, *_):
+	def _del_next_turn_thread(self, *_, **__):
 		del self._next_turn_thread
 
 	def next_turn(self, *_):
