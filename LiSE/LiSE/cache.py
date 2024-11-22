@@ -240,6 +240,8 @@ class CharacterRulesHandledCache(RulesHandledCache):
 				)
 			except KeyError:
 				continue
+			if not rules:
+				continue
 			handled = self.get_handled_rules((character,), rb, branch, turn)
 			for rule in rules:
 				if rule not in handled:
@@ -257,6 +259,15 @@ class UnitRulesHandledCache(RulesHandledCache):
 
 	def iter_unhandled_rules(self, branch, turn, tick):
 		for charname in self.engine._graph_cache.iter_keys(branch, turn, tick):
+			rb = self.get_rulebook(charname, branch, turn, tick)
+			try:
+				rules, prio = self.engine._rulebooks_cache.retrieve(
+					rb, branch, turn, tick
+				)
+			except KeyError:
+				continue
+			if not rules:
+				continue
 			for graphname in self.engine._unitness_cache.iter_keys(
 				charname, branch, turn, tick
 			):
@@ -264,13 +275,6 @@ class UnitRulesHandledCache(RulesHandledCache):
 					charname, graphname, branch, turn, tick
 				).items():
 					if not ex:
-						continue
-					rb = self.get_rulebook(charname, branch, turn, tick)
-					try:
-						rules, prio = self.engine._rulebooks_cache.retrieve(
-							rb, branch, turn, tick
-						)
-					except KeyError:
 						continue
 					handled = self.get_handled_rules(
 						(charname, graphname), rb, branch, turn
@@ -298,6 +302,8 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
 					rulebook, branch, turn, tick
 				)
 			except KeyError:
+				continue
+			if not rules:
 				continue
 			for thing in sort_set(charm[character].thing.keys()):
 				handled = self.get_handled_rules(
@@ -327,6 +333,8 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
 				)
 			except KeyError:
 				continue
+			if not rules:
+				continue
 			for place in sort_set(charm[character].place.keys()):
 				handled = self.get_handled_rules(
 					(character, place), rulebook, branch, turn
@@ -354,6 +362,8 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 					character, branch, turn, tick
 				)
 			except KeyError:
+				continue
+			if not rules:
 				continue
 			char = charm[character]
 			charn = char.node
