@@ -710,7 +710,7 @@ class Engine(AbstractEngine, gORM, Executor):
 						None,
 						(
 							self.snap_keyframe(update_worker_processes=False),
-							self._worker_last_eternal,
+							dict(self.eternal.items()),
 							dict(self.function.iterplain()),
 							dict(self.method.iterplain()),
 							dict(self.trigger.iterplain()),
@@ -2742,10 +2742,18 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def _update_worker_process_state(self, i):
 		branch_from, turn_from, tick_from = self._worker_updated_btts[i]
+		old_eternal = self._worker_last_eternal
+		new_eternal = self._worker_last_eternal = dict(self.eternal.items())
+		eternal_delta = {
+			k: new_eternal.get(k)
+			for k in old_eternal.keys() | new_eternal.keys()
+			if old_eternal.get(k) != new_eternal.get(k)
+		}
 		if branch_from == self.branch:
 			delt = self._get_branch_delta(
 				branch_from, turn_from, tick_from, self.turn, self.tick
 			)
+			delt["eternal"] = eternal_delta
 			argbytes = zlib.compress(
 				self.pack(
 					(
