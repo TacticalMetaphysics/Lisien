@@ -1650,21 +1650,24 @@ class CharacterProxy(AbstractCharacter):
 						)
 					)
 				self.node.send(prox, key=None, value=False)
-		for (orig, dest), ex in delta.pop("edges", {}).items():
-			if ex:
-				self.engine._character_portals_cache.store(
-					self.name, orig, dest, PortalProxy(self, orig, dest)
-				)
-				self.portal.send(self.portal[orig][dest], key=None, value=True)
-			elif orig in self.portal and dest in self.portal[orig]:
-				prox = self.portal[orig][dest]
-				try:
-					self.engine._character_portals_cache.delete(
-						self.name, orig, dest
+		for orig, dests in delta.pop("edges", {}).items():
+			for dest, ex in dests.items():
+				if ex:
+					self.engine._character_portals_cache.store(
+						self.name, orig, dest, PortalProxy(self, orig, dest)
 					)
-				except KeyError:
-					pass
-				self.portal.send(prox, key=None, value=False)
+					self.portal.send(
+						self.portal[orig][dest], key=None, value=True
+					)
+				elif orig in self.portal and dest in self.portal[orig]:
+					prox = self.portal[orig][dest]
+					try:
+						self.engine._character_portals_cache.delete(
+							self.name, orig, dest
+						)
+					except KeyError:
+						pass
+					self.portal.send(prox, key=None, value=False)
 		self.portal._apply_delta(delta.pop("edge_val", {}))
 		nodemap = self.node
 		name = self.name
