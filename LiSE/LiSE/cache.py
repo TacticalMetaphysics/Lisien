@@ -207,11 +207,7 @@ class RulesHandledCache(object):
 			.setdefault(branch, {})
 		)
 		if turn not in unhandl:
-			unhandl[turn] = list(
-				self.unhandled_rulebook_rules(
-					entity, rulebook, branch, turn, tick
-				)
-			)
+			unhandl[turn] = list(self.iter_unhandled_rules(branch, turn, tick))
 		try:
 			unhandl[turn].remove(rule)
 		except ValueError:
