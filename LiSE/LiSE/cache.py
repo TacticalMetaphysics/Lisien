@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from functools import partial
 from operator import sub, or_, itemgetter
+from typing import Tuple
 
 from .allegedb import Key
 from .allegedb.cache import (
@@ -76,6 +77,28 @@ class PortalsRulebooksCache(InitializedCache):
 			destrbs = {dest: rb}
 		super().store(char, orig, dest, branch, turn, tick, rb)
 		super().store(char, orig, branch, turn, tick, destrbs)
+
+	def set_keyframe(
+		self,
+		graph_ent: Tuple[Key],
+		branch: str,
+		turn: int,
+		tick: int,
+		keyframe,
+	):
+		super().set_keyframe(graph_ent, branch, turn, tick, keyframe)
+		for (orig, dest), rulebook in keyframe.items():
+			try:
+				subkf = self.get_keyframe(
+					(*graph_ent, orig), branch, turn, tick, copy=True
+				)
+				if orig in subkf:
+					subkf[orig][dest] = rulebook
+				else:
+					subkf[orig] = {dest: rulebook}
+			except KeyError:
+				subkf = {orig: {dest: rulebook}}
+			super().set_keyframe((*graph_ent, orig), branch, turn, tick, subkf)
 
 
 class UnitnessCache(Cache):
