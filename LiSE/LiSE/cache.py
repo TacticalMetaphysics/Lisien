@@ -138,13 +138,18 @@ class UnitnessCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
+		try:
+			noded = self.retrieve(character, graph, branch, turn, tick)
+			noded[node] = is_unit
+		except KeyError:
+			noded = {node: is_unit}
 		super().store(
 			character,
 			graph,
 			branch,
 			turn,
 			tick,
-			(node, is_unit),
+			noded,
 			planning=planning,
 			forward=forward,
 			loading=loading,
