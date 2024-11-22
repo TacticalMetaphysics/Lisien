@@ -64,7 +64,8 @@ GraphNodeValDict = Dict[Key, NodeValDict]
 EdgeValDict = Dict[Key, Dict[Key, StatDict]]
 GraphEdgeValDict = Dict[Key, EdgeValDict]
 DeltaDict = Dict[
-	Key, Union[GraphValDict, GraphNodeValDict, GraphEdgeValDict, None]
+	Key,
+	Union[GraphValDict, GraphNodeValDict, GraphEdgeValDict, StatDict, None],
 ]
 KeyframeTuple = Tuple[
 	Key,

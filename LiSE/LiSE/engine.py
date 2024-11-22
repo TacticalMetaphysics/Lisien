@@ -518,6 +518,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				store.save(reimport=False)
 
 			branches_payload = zlib.compress(self.pack(self._branches))
+			self._worker_last_eternal = dict(self.eternal.items())
 			initial_payload = self._get_worker_kf_payload(-1)
 
 			self._worker_processes = wp = []
@@ -709,7 +710,7 @@ class Engine(AbstractEngine, gORM, Executor):
 						None,
 						(
 							self.snap_keyframe(update_worker_processes=False),
-							self.eternal,
+							self._worker_last_eternal,
 							dict(self.function.iterplain()),
 							dict(self.method.iterplain()),
 							dict(self.trigger.iterplain()),
@@ -2690,6 +2691,15 @@ class Engine(AbstractEngine, gORM, Executor):
 		deltas = {}
 		for i in range(len(self._worker_processes)):
 			branch_from, turn_from, tick_from = self._worker_updated_btts[i]
+			old_eternal = self._worker_last_eternal
+			new_eternal = self._worker_last_eternal = dict(
+				self.eternal.items()
+			)
+			eternal_delta = {
+				k: new_eternal.get(k)
+				for k in old_eternal.keys() | new_eternal.keys()
+				if old_eternal.get(k) != new_eternal.get(k)
+			}
 			if not clobber and branch_from == self.branch:
 				if (branch_from, turn_from, tick_from) in deltas:
 					delt = deltas[branch_from, turn_from, tick_from]
@@ -2703,6 +2713,8 @@ class Engine(AbstractEngine, gORM, Executor):
 							self.tick,
 						)
 					)
+				if eternal_delta:
+					delt["eternal"] = eternal_delta
 				argbytes = zlib.compress(
 					self.pack(
 						(
