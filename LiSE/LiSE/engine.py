@@ -67,6 +67,7 @@ from .allegedb.cache import (
 	StructuredDefaultDict,
 )
 from .allegedb.window import update_window, update_backward_window
+from .cache import PortalsRulebooksCache
 from .util import sort_set, AbstractEngine, final_rule, normalize_layout
 from .xcollections import (
 	StringStore,
@@ -1110,7 +1111,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._characters_portals_rulebooks_cache = cporc
 		self._nodes_rulebooks_cache = InitializedCache(self)
 		self._nodes_rulebooks_cache.name = "nodes_rulebooks_cache"
-		self._portals_rulebooks_cache = InitializedCache(self)
+		self._portals_rulebooks_cache = PortalsRulebooksCache(self)
 		self._portals_rulebooks_cache.name = "portals_rulebooks_cache"
 		self._triggers_cache = InitializedEntitylessCache(self)
 		self._triggers_cache.name = "triggers_cache"

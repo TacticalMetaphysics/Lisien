@@ -59,6 +59,25 @@ class InitializedEntitylessCache(EntitylessCache, InitializedCache):
 	__slots__ = ()
 
 
+class PortalsRulebooksCache(InitializedCache):
+	def store(
+		self,
+		*args,
+		planning: bool = None,
+		forward: bool = None,
+		loading=False,
+		contra: bool = None,
+	):
+		char, orig, dest, branch, turn, tick, rb = args
+		try:
+			destrbs = self.retrieve(char, orig, branch, turn, tick)
+			destrbs[dest] = rb
+		except KeyError:
+			destrbs = {dest: rb}
+		super().store(char, orig, dest, branch, turn, tick, rb)
+		super().store(char, orig, branch, turn, tick, destrbs)
+
+
 class UnitnessCache(Cache):
 	"""A cache for remembering when a node is a unit of a character."""
 
@@ -427,17 +446,18 @@ class PortalRulesHandledCache(RulesHandledCache):
 		for character_name, character in sorted(
 			self.engine.character.items(), key=itemgetter(0)
 		):
-			for orig_name in sort_set(character.portal.keys()):
-				dests = character.portal[orig_name]
-				for dest_name in sort_set(dests.keys()):
-					rulebook = self.get_rulebook(
-						character_name,
-						orig_name,
-						dest_name,
-						branch,
-						turn,
-						tick,
+			for orig_name in sort_set(
+				frozenset(
+					self.engine._portals_rulebooks_cache.iter_keys(
+						character_name, branch, turn, tick
 					)
+				)
+			):
+				destrbs = self.engine._portals_rulebooks_cache.retrieve(
+					character_name, orig_name, branch, turn, tick
+				)
+				for dest_name in sort_set(destrbs.keys()):
+					rulebook = destrbs[dest_name]
 					try:
 						rules, prio = self.engine._rulebooks_cache.retrieve(
 							rulebook, branch, turn, tick
