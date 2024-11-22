@@ -2132,13 +2132,13 @@ class EternalVarProxy(MutableMapping):
 		return k in self._cache
 
 	def __iter__(self):
-		yield from self.engine.handle(command="eternal_keys")
+		return iter(self._cache)
 
 	def __len__(self):
-		return self.engine.handle(command="eternal_len")
+		return len(self._cache)
 
 	def __getitem__(self, k):
-		return self.engine.handle(command="get_eternal", k=k)
+		return self._cache[k]
 
 	def __setitem__(self, k, v):
 		if self.engine._worker:
