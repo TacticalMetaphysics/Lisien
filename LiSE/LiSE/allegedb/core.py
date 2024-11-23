@@ -1413,15 +1413,21 @@ class ORM:
 			graph_keyframe,
 		)
 		for graph in self._graph_cache.iter_keys(branch_to, turn, tick):
-			graph_vals = self._graph_val_cache.get_keyframe(
-				(graph,), branch_from, turn, tick, copy=False
-			)
+			try:
+				graph_vals = self._graph_val_cache.get_keyframe(
+					(graph,), branch_from, turn, tick, copy=False
+				)
+			except KeyframeError:
+				graph_vals = {}
 			self._graph_val_cache.set_keyframe(
 				(graph,), branch_to, turn, tick, graph_vals
 			)
-			nodes = self._nodes_cache.get_keyframe(
-				(graph,), branch_from, turn, tick, copy=False
-			)
+			try:
+				nodes = self._nodes_cache.get_keyframe(
+					(graph,), branch_from, turn, tick, copy=False
+				)
+			except KeyframeError:
+				nodes = {}
 			self._nodes_cache.set_keyframe(
 				(graph,), branch_to, turn, tick, nodes
 			)
