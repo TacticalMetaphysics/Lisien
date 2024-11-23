@@ -3478,7 +3478,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				}
 
 			self._unitness_cache.set_keyframe(
-				char, branch, turn, tick, char_kf
+				(char,), branch, turn, tick, char_kf
 			)
 		rbnames = list(self._rulebooks_cache.iter_keys(branch, turn, tick))
 		rbs = {}
