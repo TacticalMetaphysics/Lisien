@@ -781,6 +781,8 @@ class QueryEngine(object):
 	def _put_graph_window_tick_to_tick(
 		self, graph, branch, turn_from, tick_from, turn_to, tick_to
 	):
+		if (turn_from, tick_from) == (turn_to, tick_to):
+			raise ValueError("Don't load an empty slice of time")
 		packed_graph = self.pack(graph)
 		self._inq.put(
 			(
@@ -1177,6 +1179,9 @@ class QueryEngine(object):
 	def load_edges(
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
 	) -> List[EdgeRowType]:
+		assert (turn_from, tick_from) != (turn_to, tick_to)
+		if (turn_from, tick_from) == (turn_to, tick_to):
+			raise ValueError("Loading empty slice of time")
 		return list(
 			self.iter_edges(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
