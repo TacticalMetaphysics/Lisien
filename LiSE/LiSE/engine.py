@@ -1469,6 +1469,9 @@ class Engine(AbstractEngine, gORM, Executor):
 			for rulebok, rules in delta.pop(RULEBOOK).items():
 				rulebook[unpack(rulebok)] = unpack(rules)
 		for char, chardeltpacked in delta.items():
+			if chardeltpacked == b"\xc0":
+				delt[unpack(char)] = None
+				continue
 			chardelt = delt[unpack(char)] = {}
 			if NODES in chardeltpacked:
 				chardelt["nodes"] = {
