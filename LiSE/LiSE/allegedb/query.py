@@ -905,6 +905,7 @@ class QueryEngine(object):
 		return ret
 
 	def load_graph_windows(self, graph, windows):
+		unpack = self.unpack
 		ret = {
 			"nodes": [],
 			"edges": [],
@@ -923,15 +924,79 @@ class QueryEngine(object):
 						graph, branch, turn_from, tick_from, turn_to, tick_to
 					)
 				while isinstance(got := self._outq.get(), list):
-					ret["nodes"].extend(got)
+					ret["nodes"].extend(
+						(
+							graph,
+							unpack(node),
+							branch,
+							turn,
+							tick,
+							ex,
+						)
+						for (node, turn, tick, ex) in got
+					)
 				while isinstance(got := self._outq.get(), list):
-					ret["edges"].extend(got)
+					ret["edges"].extend(
+						(
+							graph,
+							unpack(orig),
+							unpack(dest),
+							idx,
+							branch,
+							turn,
+							tick,
+							ex,
+						)
+						for (orig, dest, idx, turn, tick, ex) in got
+					)
 				while isinstance(got := self._outq.get(), list):
-					ret["graph_val"].extend(got)
+					ret["graph_val"].extend(
+						(
+							graph,
+							unpack(key),
+							branch,
+							turn,
+							tick,
+							unpack(val),
+						)
+						for (key, turn, tick, val) in got
+					)
 				while isinstance(got := self._outq.get(), list):
-					ret["node_val"].extend(got)
+					ret["node_val"].extend(
+						(
+							graph,
+							unpack(node),
+							unpack(key),
+							branch,
+							turn,
+							tick,
+							unpack(val),
+						)
+						for (node, key, turn, tick, val) in got
+					)
 				while isinstance(got := self._outq.get(), list):
-					ret["edge_val"].extend(got)
+					ret["edge_val"].extend(
+						(
+							graph,
+							unpack(orig),
+							unpack(dest),
+							idx,
+							unpack(key),
+							branch,
+							turn,
+							tick,
+							unpack(val),
+						)
+						for (
+							orig,
+							dest,
+							idx,
+							key,
+							turn,
+							tick,
+							val,
+						) in got
+					)
 		return ret
 
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
