@@ -1769,8 +1769,8 @@ class ORM:
 		turn_from: int,
 		tick_from: int,
 		branch_to: str,
-		turn_to: int,
-		tick_to: int,
+		turn_to: Optional[int],
+		tick_to: Optional[int],
 	) -> List[Tuple[str, int, int, int, int]]:
 		"""Return windows of time I've got to load
 
@@ -1781,9 +1781,28 @@ class ORM:
 		"""
 		if branch_from == branch_to:
 			return [(branch_from, turn_from, tick_from, turn_to, tick_to)]
-		parentage_iter = self._iter_parent_btt(branch_to, turn_to, tick_to)
-		branch1, turn1, tick1 = next(parentage_iter)
 		windows = []
+		if turn_to is None:
+			(
+				branch1,
+				turn1,
+				tick1,
+				_,
+				_,
+			) = self._branches[branch_to]
+			windows.append(
+				(
+					branch_to,
+					turn1,
+					tick1,
+					None,
+					None,
+				)
+			)
+			parentage_iter = self._iter_parent_btt(branch1, turn1, tick1)
+		else:
+			parentage_iter = self._iter_parent_btt(branch_to, turn_to, tick_to)
+			branch1, turn1, tick1 = next(parentage_iter)
 		for branch0, turn0, tick0 in parentage_iter:
 			windows.append((branch1, turn0, tick0, turn1, tick1))
 			(branch1, turn1, tick1) = (branch0, turn0, tick0)
@@ -2086,11 +2105,10 @@ class ORM:
 			if earliest_future_keyframe is None:
 				if latest_past_keyframe == (branch_now, turn_now, tick_now):
 					continue
-				_, _, _, turn_then, tick_then = self._branches[branch_now]
 				loaded = loaded_graphs[graph] = self.query.load_graph_windows(
 					graph,
 					self._build_loading_windows(
-						*latest_past_keyframe, branch_now, turn_then, tick_then
+						*latest_past_keyframe, branch_now, None, None
 					),
 				)
 				noderows.extend(loaded["nodes"])
