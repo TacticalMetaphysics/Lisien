@@ -297,6 +297,20 @@ class Cache:
 	def set_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, keyframe
 	):
+		if not isinstance(graph_ent, tuple):
+			raise TypeError(
+				"Keyframes can only be set to tuples identifying graph entities"
+			)
+		if not isinstance(branch, str):
+			raise TypeError("Branches must be strings")
+		if not isinstance(turn, int):
+			raise TypeError("Turns must be integers")
+		if turn < 0:
+			raise ValueError("Turns can't be negative")
+		if not isinstance(tick, int):
+			raise TypeError("Ticks must be integers")
+		if tick < 0:
+			raise ValueError("Ticks can't be negative")
 		kfg = self.keyframe[graph_ent]
 		if branch in kfg:
 			kfgb = kfg[branch]
