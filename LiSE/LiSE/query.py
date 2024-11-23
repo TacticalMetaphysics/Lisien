@@ -36,13 +36,11 @@ Other comparison operators like ``>`` and ``<`` work as well.
 """
 
 import operator
-from collections.abc import MutableMapping, Sequence, Set
+from collections.abc import Sequence, Set
 from itertools import chain
 from operator import gt, lt, eq, ne, le, ge
 from functools import partialmethod
 from time import monotonic
-from queue import Queue
-from threading import Thread
 from typing import Any, List, Callable, Tuple
 
 from sqlalchemy import select, and_, Table
