@@ -880,51 +880,6 @@ class Engine(AbstractEngine, gORM, Executor):
 		for window in reversed(windows):
 			lst.extend(load(*window))
 
-	def _load_graph_windows(self, graph, windows):
-		ret = super()._load_graph_windows(graph, windows)
-		thingrows = []
-		character_rulebook_rows = []
-		unit_rulebook_rows = []
-		character_thing_rulebook_rows = []
-		character_place_rulebook_rows = []
-		character_portal_rulebook_rows = []
-
-		build_rows = self._build_rows
-		build_rows(partial(self.query.load_things, graph), thingrows, windows)
-		build_rows(
-			partial(self.query.load_character_rulebook, graph),
-			character_rulebook_rows,
-			windows,
-		)
-		build_rows(
-			partial(self.query.load_unit_rulebook, graph),
-			unit_rulebook_rows,
-			windows,
-		)
-		build_rows(
-			partial(self.query.load_character_thing_rulebook, graph),
-			character_thing_rulebook_rows,
-			windows,
-		)
-		build_rows(
-			partial(self.query.load_character_place_rulebook, graph),
-			character_place_rulebook_rows,
-			windows,
-		)
-		build_rows(
-			partial(self.query.load_character_portal_rulebook, graph),
-			character_portal_rulebook_rows,
-			windows,
-		)
-
-		ret["thing_location"] = thingrows
-		ret["character_rulebook"] = character_rulebook_rows
-		ret["unit_rulebook"] = unit_rulebook_rows
-		ret["character_thing_rulebook"] = character_thing_rulebook_rows
-		ret["character_place_rulebook"] = character_place_rulebook_rows
-		ret["character_portal_rulebook"] = character_portal_rulebook_rows
-		return ret
-
 	def _load_ext_windows(self, windows):
 		universal_rows = []
 		rulebooks_rows = []
