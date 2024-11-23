@@ -2739,9 +2739,7 @@ class ORM:
 			plan_ticks[last_plan][turn].append(tick)
 			plan_ticks_uncommitted.append((last_plan, turn, tick))
 			time_plan[branch, turn, tick] = last_plan
-		elif turn > end_turn or (turn == end_turn and tick > end_tick):
-			branches[branch] = parent, start_turn, start_tick, turn, tick
-		elif not self._planning:
+		else:
 			if turn < branch_end[branch]:
 				raise OutOfTimelineError(
 					"You're in the past. Go to turn {} to change things"
@@ -2756,6 +2754,8 @@ class ORM:
 				tick = turn_end_plan[branch, turn] + 1
 			if tick > turn_end[branch_turn]:
 				turn_end[branch_turn] = tick
+		if turn > end_turn or (turn == end_turn and tick > end_tick):
+			branches[branch] = parent, start_turn, start_tick, turn, tick
 		if tick > turn_end_plan[branch_turn]:
 			turn_end_plan[branch_turn] = tick
 		loaded = self._loaded
