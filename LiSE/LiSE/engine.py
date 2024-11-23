@@ -338,12 +338,6 @@ class Engine(AbstractEngine, gORM, Executor):
 		engine, default ``True``. This is usually what you want, as it will
 		make future startups faster, but could cause database bloat if
 		your game runs few turns per session.
-	:param cache_arranger: Whether to start a background
-		thread that indexes the caches to make time travel faster
-		when it's to points we anticipate. If you use this, you can
-		specify some other point in time to index by putting the
-		``(branch, turn, tick)`` in my ``cache_arrange_queue``.
-		Default ``False``.
 	:param enforce_end_of_time: Whether to raise an exception when
 		time travelling to a point after the time that's been simulated.
 		Default ``True``. You normally want this, but it could cause problems
@@ -412,7 +406,6 @@ class Engine(AbstractEngine, gORM, Executor):
 		clear: bool = False,
 		keep_rules_journal: bool = True,
 		keyframe_on_close: bool = True,
-		cache_arranger: bool = False,
 		enforce_end_of_time: bool = True,
 		threaded_triggers: bool = None,
 		workers: int = None,
@@ -467,7 +460,6 @@ class Engine(AbstractEngine, gORM, Executor):
 			connect_string or os.path.join(prefix, "world.db"),
 			clear=clear,
 			connect_args=connect_args,
-			cache_arranger=cache_arranger,
 			main_branch=main_branch,
 			enforce_end_of_time=enforce_end_of_time,
 		)
@@ -563,8 +555,6 @@ class Engine(AbstractEngine, gORM, Executor):
 			self.method.connect(self._reimport_worker_methods)
 			self._worker_updated_btts = [self._btt()] * workers
 		self._rules_iter = self._follow_rules()
-		if cache_arranger:
-			self._start_cache_arranger()
 
 	def _call_in_subprocess(
 		self, uid, method, func_name, future: Future, *args, **kwargs
@@ -765,20 +755,6 @@ class Engine(AbstractEngine, gORM, Executor):
 		for lock in self._worker_locks:
 			lock.release()
 		return ret
-
-	def _start_cache_arranger(self) -> None:
-		for branch, (
-			parent,
-			turn_start,
-			tick_start,
-			turn_end,
-			tick_end,
-		) in self._branches.items():
-			self.cache_arrange_queue.put((branch, turn_start, tick_start))
-			if (turn_start, tick_start) != (turn_end, tick_end):
-				self.cache_arrange_queue.put((branch, turn_end, tick_end))
-		if not self._cache_arrange_thread.is_alive():
-			self._cache_arrange_thread.start()
 
 	def _init_graph(
 		self,
@@ -2305,10 +2281,6 @@ class Engine(AbstractEngine, gORM, Executor):
 		"""
 		if hasattr(self, "_closed"):
 			raise RuntimeError("Already closed")
-		if hasattr(self, "cache_arrange_queue"):
-			self.cache_arrange_queue.put("shutdown")
-			if self._cache_arrange_thread.is_alive():
-				self._cache_arrange_thread.join()
 		if (
 			self._keyframe_on_close
 			and self._btt() not in self._keyframes_times

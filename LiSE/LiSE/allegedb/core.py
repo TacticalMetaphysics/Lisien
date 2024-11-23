@@ -577,31 +577,6 @@ class ORM:
 								(graph, node, dest, stat, branch, turn, tick)
 							)
 
-	def _arrange_cache_loop(self) -> None:
-		q = self.cache_arrange_queue
-		while True:
-			inst = q.get()
-			if inst == "shutdown":
-				q.task_done()
-				return
-			if not isinstance(inst, tuple):
-				raise TypeError(
-					"cache_arrange_queue needs tuples of length 2 or 3"
-				)
-			if len(inst) == 2:
-				branch, turn = inst
-				tick = self._turn_end_plan[branch, turn]
-			elif len(inst) == 3:
-				branch, turn, tick = inst
-			else:
-				raise ValueError(
-					"cache_arrange_queue tuples must be length 2 or 3"
-				)
-			self.arrange_cache_signal.send(
-				self, branch=branch, turn=turn, tick=tick
-			)
-			q.task_done()
-
 	def _get_branch_delta(
 		self,
 		branch: str,
@@ -1043,7 +1018,6 @@ class ORM:
 		clear=False,
 		connect_args: dict = None,
 		main_branch=None,
-		cache_arranger=False,
 		enforce_end_of_time=False,
 	):
 		"""Make a SQLAlchemy engine and begin a transaction
@@ -1156,14 +1130,6 @@ class ORM:
 		] = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
 		self._load_plans()
 		self._load_at(*self._btt())
-		self.cache_arrange_queue = Queue()
-		self._cache_arrange_thread = Thread(
-			target=self._arrange_cache_loop, daemon=True
-		)
-		self.arrange_cache_signal = Signal()
-		self.arrange_cache_signal.connect(self._arrange_caches_at_time)
-		if cache_arranger:
-			self._cache_arrange_thread.start()
 
 	def _get_kf(
 		self, branch: str, turn: int, tick: int, copy=True
@@ -2851,10 +2817,6 @@ class ORM:
 
 	def close(self) -> None:
 		"""Write changes to database and close the connection"""
-		if hasattr(self, "cache_arrange_queue"):
-			self.cache_arrange_queue.put("shutdown")
-		if self._cache_arrange_thread.is_alive():
-			self._cache_arrange_thread.join()
 		self.commit()
 		self.query.close()
 
