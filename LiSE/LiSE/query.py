@@ -1414,7 +1414,7 @@ class QueryEngine(query.QueryEngine):
 		}
 		with self._holder.lock:
 			for window in windows:
-				branch, turn_from, turn_to, tick_from, tick_to = window
+				branch, turn_from, tick_from, turn_to, tick_to = window
 				if turn_to is None:
 					self._put_graph_window_tick_to_end(
 						graph, branch, turn_from, tick_from
