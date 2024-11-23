@@ -998,9 +998,9 @@ class DiGraph(networkx.DiGraph):
 		if n not in self._node:
 			raise NetworkXError("The node %s is not in the digraph." % (n,))
 		nbrs = list(self._succ[n])
-		pred = list(self._pred[n])
 		for u in nbrs:
 			del self._pred[u][n]  # remove all edges n-u in digraph
+		pred = list(self._pred[n])
 		for u in pred:
 			del self._succ[u][n]  # remove all edges n-u in digraph
 		del self._node[n]
