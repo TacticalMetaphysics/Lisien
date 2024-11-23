@@ -1238,7 +1238,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				(character,), branch_to, turn, tick, conts_kf
 			)
 			self._unitness_cache.set_keyframe(
-				character, branch_to, turn, tick, units_kf
+				(character,), branch_to, turn, tick, units_kf
 			)
 		self.query.keyframe_extension_insert(
 			branch_to,
@@ -1310,11 +1310,11 @@ class Engine(AbstractEngine, gORM, Executor):
 				charportrbkf[graph] = graphval["character_portal_rulebook"]
 			if "units" in graphval:
 				self._unitness_cache.set_keyframe(
-					graph, branch, turn, tick, graphval["units"]
+					(graph,), branch, turn, tick, graphval["units"]
 				)
 			else:
 				self._unitness_cache.set_keyframe(
-					graph, branch, turn, tick, {}
+					(graph,), branch, turn, tick, {}
 				)
 			if graph in ret["node_val"]:
 				locs = {}
@@ -3549,7 +3549,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				(charname,), branch, turn, tick, conts
 			)
 			self._unitness_cache.set_keyframe(
-				charname, branch, turn, tick, units
+				(charname,), branch, turn, tick, units
 			)
 		for graph in thing_graphs:
 			self._things_cache.set_keyframe((graph,), branch, turn, tick, {})
@@ -3594,10 +3594,10 @@ class Engine(AbstractEngine, gORM, Executor):
 		)
 		if "units" in graph_val:
 			self._unitness_cache.set_keyframe(
-				graph, branch, turn, tick, graph_val["units"]
+				(graph,), branch, turn, tick, graph_val["units"]
 			)
 		else:
-			self._unitness_cache.set_keyframe(graph, branch, turn, tick, {})
+			self._unitness_cache.set_keyframe((graph,), branch, turn, tick, {})
 		newkf = {}
 		contkf = {}
 		for name, node in nodes.items():
