@@ -107,7 +107,8 @@ def test_keyframe_load_unload(tmp_path):
 		assert not eng._time_is_loaded("trunk")
 
 
-def test_load_branch_to_end(tmp_path):
+@pytest.fixture
+def some_state(tmp_path):
 	with Engine(tmp_path, workers=0, random_seed=0) as eng:
 		initial_state = nx.DiGraph(
 			{
@@ -141,7 +142,11 @@ def test_load_branch_to_end(tmp_path):
 		phys.portal[0][1]["meaning"] = 42
 		del phys.portal[0][1]["omg"]
 		eng.branch = "trunk"
-	with Engine(tmp_path, workers=0) as eng:
+	return tmp_path
+
+
+def test_load_branch_to_end(some_state):
+	with Engine(some_state, workers=0, random_seed=0) as eng:
 		assert eng.turn == 0
 		phys = eng.character["physical"]
 		assert 3 in phys.place
@@ -159,42 +164,9 @@ def test_load_branch_to_end(tmp_path):
 		assert "omg" not in phys.portal[0][1]
 
 
-def test_load_windows_once_each(tmp_path):
-	with Engine(tmp_path, workers=0, random_seed=0) as eng:
-		initial_state = nx.DiGraph(
-			{
-				0: {1: {"omg": "lol"}},
-				1: {0: {"omg": "blasphemy"}},
-				2: {},
-				3: {},
-				"it": {},
-			}
-		)
-		initial_state.nodes()[2]["hi"] = "hello"
-		initial_state.nodes()["it"]["location"] = 0
-		initial_state.graph["wat"] = "nope"
-		phys = eng.new_character("physical", initial_state)
-		eng.add_character("pointless")
-		kf0 = eng.snap_keyframe()
-		del kf0["universal"]["rando_state"]
-		eng.branch = "b"
-		kf1 = eng.snap_keyframe()
-		del kf1["universal"]["rando_state"]
-		assert kf0 == kf1
-		del phys.portal[1][0]
-		port = phys.new_portal(0, 2)
-		port["hi"] = "bye"
-		phys.place[1]["wtf"] = "bbq"
-		phys.thing["it"].location = phys.place[1]
-		del phys.place[3]
-		eng.add_character("pointed")
-		del eng.character["pointless"]
-		assert "pointless" not in eng.character, "Failed to delete character"
-		phys.portal[0][1]["meaning"] = 42
-		del phys.portal[0][1]["omg"]
-		eng.branch = "trunk"
+def test_load_windows_once_each(some_state):
 	with patch("LiSE.query.QueryEngine.load_graph_windows") as mocked, Engine(
-		tmp_path, workers=0, random_seed=0
+		some_state, workers=0, random_seed=0
 	):
 		assert mocked.mock_calls == [
 			call("physical", [("trunk", 0, 0, None, None)]),
