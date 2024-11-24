@@ -1975,11 +1975,6 @@ class ORM:
 		# number of possible futures, and we're trying to be conservative
 		# about what we load. If neither branch is an ancestor of the other,
 		# we can't use the keyframe for this load.
-		load_nodes = self.query.load_nodes
-		load_edges = self.query.load_edges
-		load_graph_val = self.query.load_graph_val
-		load_node_val = self.query.load_node_val
-		load_edge_val = self.query.load_edge_val
 		load_keyframe = self._get_keyframe
 		updload = self._updload
 		noderows = []
