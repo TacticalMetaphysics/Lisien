@@ -1794,6 +1794,11 @@ class ORM:
 	def _build_keyframe_window(
 		self, branch: str, turn: int, tick: int, loading=False
 	) -> Tuple[Optional[Tuple[str, int, int]], Optional[Tuple[str, int, int]]]:
+		"""Return a pair of keyframes that contain the given moment
+
+		They give the smallest contiguous span of time I can reasonably load.
+
+		"""
 		branch_now = branch
 		turn_now = turn
 		tick_now = tick
