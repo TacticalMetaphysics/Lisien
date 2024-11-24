@@ -2066,20 +2066,11 @@ class ORM:
 			)
 		past_branch, past_turn, past_tick = latest_past_keyframe
 		keyframed = load_keyframe(past_branch, past_turn, past_tick)
-		graphs_created = set()
-		graphs_deleted = set()
-		for graph, _, _, _, typ in self.query.graphs_types(
+		graphs = set(keyframed["graph_val"].keys())
+		for graph, _, _, _, _ in self.query.graphs_types(
 			past_branch, past_turn, past_tick
 		):
-			if typ == "Deleted":
-				graphs_deleted.add(graph)
-				graphs_created.discard(graph)
-			else:
-				graphs_created.add(graph)
-				graphs_deleted.discard(graph)
-		graphs = (
-			keyframed["graph_val"].keys() | graphs_created
-		) - graphs_deleted
+			graphs.add(graph)
 
 		for graph in sort_set(graphs):
 			loaded = loaded_graphs[graph] = self.query.load_graph_windows(
