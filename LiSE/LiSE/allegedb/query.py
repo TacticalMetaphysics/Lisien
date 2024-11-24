@@ -1507,6 +1507,7 @@ class QueryEngine(object):
 		"""Commit the transaction"""
 		self.flush()
 		self._inq.put("commit")
+		assert self.echo("committed") == "committed"
 
 	def close(self):
 		"""Commit the transaction, then close the connection"""
