@@ -1901,11 +1901,18 @@ class ORM:
 		edgerows = []
 		edgevalrows = []
 		graphvalrows = []
-
-		# I want the set of all graphs that have ever existed.
-		# It would be better to filter to the graphs that existed during this window, though.
+		kf = self._get_keyframe(branch, turn_from, tick_from)
+		graphsrows = list(
+			self.query.graphs_types(
+				branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+		self._graph_cache.load(graphsrows)
+		graphs2load = kf["graph_val"].keys() | (
+			graph for (graph, _, _, _, _) in graphsrows
+		)
 		loaded_graphs = {}
-		for _, graph in self._graph_cache.branches:
+		for graph in graphs2load:
 			loaded = self.query.load_graph_windows(
 				graph, [(branch, turn_from, tick_from, turn_to, tick_to)]
 			)
@@ -2067,9 +2074,11 @@ class ORM:
 		past_branch, past_turn, past_tick = latest_past_keyframe
 		keyframed = load_keyframe(past_branch, past_turn, past_tick)
 		graphs = set(keyframed["graph_val"].keys())
-		for graph, _, _, _, _ in self.query.graphs_types(
-			past_branch, past_turn, past_tick
-		):
+		graphs_rows = list(
+			self.query.graphs_types(past_branch, past_turn, past_tick)
+		)
+		self._graph_cache.load(graphs_rows)
+		for graph, _, _, _, _ in graphs_rows:
 			graphs.add(graph)
 
 		for graph in sort_set(graphs):
