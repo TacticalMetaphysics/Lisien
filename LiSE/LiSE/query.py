@@ -36,6 +36,7 @@ Other comparison operators like ``>`` and ``<`` work as well.
 """
 
 import operator
+from collections import defaultdict
 from collections.abc import Sequence, Set
 from itertools import chain
 from operator import gt, lt, eq, ne, le, ge
@@ -1178,86 +1179,6 @@ class QueryEngine(query.QueryEngine):
 		self._unitness = []
 		self._location = []
 
-	def _put_graph_window_tick_to_end(
-		self, graph, branch, turn_from, tick_from
-	):
-		super()._put_graph_window_tick_to_end(
-			graph, branch, turn_from, tick_from
-		)
-		packed_char = self.pack(graph)
-		putargs = (packed_char, branch, turn_from, turn_from, tick_from)
-		self._inq.put(
-			(
-				"one",
-				"load_things_tick_to_end",
-				putargs,
-			)
-		)
-		self._inq.put(("echo", 5))
-		self._inq.put(
-			(
-				"one",
-				"load_character_rulebook_tick_to_end",
-				putargs,
-				{},
-			)
-		)
-		self._inq.put(("echo", 6))
-		self._inq.put(
-			(
-				"one",
-				"load_unit_rulebook_tick_to_end",
-				putargs,
-				{},
-			)
-		)
-		self._inq.put(("echo", 7))
-		self._inq.put(
-			(
-				"one",
-				"load_character_thing_rulebook_tick_to_end",
-				putargs,
-				{},
-			)
-		)
-		self._inq.put(("echo", 8))
-		self._inq.put(
-			(
-				"one",
-				"load_character_place_rulebook_tick_to_end",
-				putargs,
-				{},
-			)
-		)
-		self._inq.put(("echo", 9))
-		self._inq.put(
-			(
-				"one",
-				"load_character_portal_rulebook_tick_to_end",
-				putargs,
-				{},
-			)
-		)
-		self._inq.put(("echo", 10))
-		self._inq.put(
-			(
-				"one",
-				"load_node_rulebook_tick_to_end",
-				putargs,
-				{},
-			)
-		)
-		self._inq.put(("echo", 11))
-		self._inq.put(
-			(
-				"one",
-				"load_portal_rulebook_tick_to_end",
-				putargs,
-				{},
-			)
-		)
-		self._inq.put(("echo", 12))
-
 	def _put_graph_window_tick_to_tick(
 		self, graph, branch, turn_from, tick_from, turn_to, tick_to
 	):
@@ -1336,147 +1257,122 @@ class QueryEngine(query.QueryEngine):
 		)
 		self._inq.put(("echo", 12))
 
-	def load_graph_windows(self, graph, windows):
-		ret = {
-			"nodes": [],
-			"edges": [],
-			"graph_val": [],
-			"node_val": [],
-			"edge_val": [],
-			"thing_location": [],
-			"character_rulebook": [],
-			"unit_rulebook": [],
-			"character_thing_rulebook": [],
-			"character_place_rulebook": [],
-			"character_portal_rulebook": [],
-			"node_rulebook": [],
-			"portal_rulebook": [],
-		}
-		unpack = self.unpack
-		with self._holder.lock:
-			for window in windows:
-				branch, turn_from, tick_from, turn_to, tick_to = window
-				if turn_to is None:
-					self._put_graph_window_tick_to_end(
-						graph, branch, turn_from, tick_from
-					)
-				else:
-					self._put_graph_window_tick_to_tick(
-						graph, branch, turn_from, tick_from, turn_to, tick_to
-					)
-				while isinstance(got := self._outq.get(), list):
-					ret["nodes"].extend(
-						(graph, unpack(node), branch, turn, tick, ex or None)
-						for (node, turn, tick, ex) in got
-					)
-				assert got == 0
-				while isinstance(got := self._outq.get(), list):
-					ret["edges"].extend(
-						(
-							graph,
-							unpack(orig),
-							unpack(dest),
-							idx,
-							branch,
-							turn,
-							tick,
-							ex or None,
-						)
-						for (orig, dest, idx, turn, tick, ex) in got
-					)
-				assert got == 1
-				while isinstance(got := self._outq.get(), list):
-					ret["graph_val"].extend(
-						(graph, unpack(key), branch, turn, tick, unpack(val))
-						for (key, turn, tick, val) in got
-					)
-				assert got == 2, got
-				while isinstance(got := self._outq.get(), list):
-					ret["node_val"].extend(
-						(
-							graph,
-							unpack(node),
-							unpack(key),
-							branch,
-							turn,
-							tick,
-							unpack(val),
-						)
-						for (node, key, turn, tick, val) in got
-					)
-				assert got == 3, got
-				while isinstance(got := self._outq.get(), list):
-					ret["edge_val"].extend(
-						(
-							graph,
-							unpack(orig),
-							unpack(dest),
-							idx,
-							unpack(key),
-							branch,
-							turn,
-							tick,
-							unpack(val),
-						)
-						for (orig, dest, idx, key, turn, tick, val) in got
-					)
-				assert got == 4, got
-				while isinstance(got := self._outq.get(), list):
-					ret["thing_location"].extend(
-						(graph, unpack(node), branch, turn, tick, unpack(loc))
-						for (node, turn, tick, loc) in got
-					)
-				assert got == 5, got
-				while isinstance(got := self._outq.get(), list):
-					ret["character_rulebook"].extend(
-						(graph, branch, turn, tick, unpack(rb))
-						for (turn, tick, rb) in got
-					)
-				assert got == 6, got
-				while isinstance(got := self._outq.get(), list):
-					ret["unit_rulebook"].extend(
-						(graph, branch, turn, tick, unpack(rb))
-						for (turn, tick, rb) in got
-					)
-				assert got == 7, got
-				while isinstance(got := self._outq.get(), list):
-					ret["character_thing_rulebook"].extend(
-						(graph, branch, turn, tick, unpack(rb))
-						for (turn, tick, rb) in got
-					)
-				assert got == 8, got
-				while isinstance(got := self._outq.get(), list):
-					ret["character_place_rulebook"].extend(
-						(graph, branch, turn, tick, unpack(rb))
-						for (turn, tick, rb) in got
-					)
-				assert got == 9, got
-				while isinstance(got := self._outq.get(), list):
-					ret["character_portal_rulebook"].extend(
-						(graph, branch, turn, tick, unpack(rb))
-						for (turn, tick, rb) in got
-					)
-				assert got == 10, got
-				while isinstance(got := self._outq.get(), list):
-					ret["node_rulebook"].extend(
-						(graph, unpack(node), branch, turn, tick, unpack(rb))
-						for (node, turn, tick, rb) in got
-					)
-				assert got == 11, got
-				while isinstance(got := self._outq.get(), list):
-					ret["portal_rulebook"].extend(
-						(
-							graph,
-							unpack(orig),
-							unpack(dest),
-							branch,
-							turn,
-							tick,
-							unpack(rb),
-						)
-						for (orig, dest, turn, tick, rb) in got
-					)
+	_infixes2load = [
+		"nodes",
+		"edges",
+		"graph_val",
+		"node_val",
+		"edge_val",
+		"things",
+		"character_rulebook",
+		"unit_rulebook",
+		"character_thing_rulebook",
+		"character_place_rulebook",
+		"character_portal_rulebook",
+		"node_rulebook",
+		"portal_rulebook",
+	]
+
+	def load_windows(self, windows: list) -> dict:
+		def empty_char():
+			return {
+				"nodes": [],
+				"edges": [],
+				"graph_val": [],
+				"node_val": [],
+				"edge_val": [],
+				"thing_location": [],
+				"character_rulebook": [],
+				"unit_rulebook": [],
+				"character_thing_rulebook": [],
+				"character_place_rulebook": [],
+				"character_portal_rulebook": [],
+				"node_rulebook": [],
+				"portal_rulebook": [],
+			}
+
+		ret = defaultdict(empty_char)
+		self._load_windows_into(ret, windows)
 		return ret
+
+	def _get_one_window(
+		self, ret, branch, turn_from, tick_from, turn_to, tick_to
+	):
+		super()._get_one_window(
+			ret, branch, turn_from, tick_from, turn_to, tick_to
+		)
+		unpack = self.unpack
+		assert self._outq.get() == ("begin", "things", branch)
+		while isinstance(got := self._outq.get(), list):
+			for graph, node, turn, tick, loc in got:
+				(graph, node, loc) = map(unpack, (graph, node, loc))
+				ret[graph]["thing_location"].append(
+					(graph, node, branch, turn, tick, loc)
+				)
+		assert got == ("end", "things", branch), got
+		assert self._outq.get() == ("begin", "character_rulebook", branch)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				ret[graph]["character_rulebook"].append(
+					(unpack(graph), branch, turn, tick, unpack(rb))
+				)
+		assert got == ("end", "character_rulebook", branch), got
+		assert self._outq.get() == ("begin", "unit_rulebook", branch)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				ret[graph]["unit_rulebook"].append(
+					(unpack(graph), branch, turn, tick, unpack(rb))
+				)
+		assert got == ("end", "unit_rulebook", branch), got
+		assert self._outq.get() == (
+			"begin",
+			"character_thing_rulebook",
+			branch,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				ret[graph]["character_thing_rulebook"].append(
+					(unpack(graph), branch, turn, tick, unpack(rb))
+				)
+		assert got == ("end", "character_thing_rulebook", branch), got
+		assert self._outq.get() == (
+			"begin",
+			"character_place_rulebook",
+			branch,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				ret[graph]["character_place_rulebook"].append(
+					(unpack(graph), branch, turn, tick, unpack(rb))
+				)
+		assert got == ("end", "character_place_rulebook", branch), got
+		assert self._outq.get() == (
+			"begin",
+			"character_portal_rulebook",
+			branch,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				ret[graph]["character_portal_rulebook"].append(
+					(unpack(graph), branch, turn, tick, unpack(rb))
+				)
+		assert got == ("end", "character_portal_rulebook", branch), got
+		assert self._outq.get() == ("begin", "node_rulebook", branch)
+		while isinstance(got := self._outq.get(), list):
+			for graph, node, turn, tick, rb in got:
+				(graph, node, rb) = map(unpack, (graph, node, rb))
+				ret[graph]["node_rulebook"].append(
+					(graph, node, branch, turn, tick, rb)
+				)
+		assert got == ("end", "node_rulebook", branch), got
+		assert self._outq.get() == ("begin", "portal_rulebook", branch)
+		while isinstance(got := self._outq.get(), list):
+			for graph, orig, dest, turn, tick, rb in got:
+				(graph, orig, dest, rb) = map(unpack, (graph, orig, dest, rb))
+				ret[graph]["portal_rulebook"].append(
+					(graph, orig, dest, branch, turn, tick, rb)
+				)
+		assert got == ("end", "portal_rulebook", branch), got
 
 	def keyframe_extension_insert(
 		self, branch, turn, tick, universal, rules, rulebooks
@@ -1513,10 +1409,9 @@ class QueryEngine(query.QueryEngine):
 		)
 		self._increc()
 
-	def flush(self):
-		super().flush()
+	def _flush(self):
+		super()._flush()
 		put = self._inq.put
-		pack = self.pack
 		if self._new_keyframe_extensions:
 			put(
 				(
@@ -1591,7 +1486,6 @@ class QueryEngine(query.QueryEngine):
 			if getattr(self, attr):
 				put(("silent", "many", cmd, getattr(self, attr)))
 			setattr(self, attr, [])
-		assert self.echo("flushed") == "flushed"
 
 	def keyframe_extensions_dump(self):
 		unpack = self.unpack

@@ -1908,14 +1908,10 @@ class ORM:
 			)
 		)
 		self._graph_cache.load(graphsrows)
-		graphs2load = kf["graph_val"].keys() | (
-			graph for (graph, _, _, _, _) in graphsrows
+		loaded_graphs = self.query.load_windows(
+			[(branch, turn_from, tick_from, turn_to, tick_to)]
 		)
-		loaded_graphs = {}
-		for graph in graphs2load:
-			loaded = self.query.load_graph_windows(
-				graph, [(branch, turn_from, tick_from, turn_to, tick_to)]
-			)
+		for graph, loaded in loaded_graphs.items():
 			noderows.extend(loaded["nodes"])
 			edgerows.extend(loaded["edges"])
 			nodevalrows.extend(loaded["node_val"])
@@ -1982,17 +1978,18 @@ class ORM:
 		graphvalrows = []
 		nodevalrows = []
 		edgevalrows = []
-		loaded_graphs: Dict[Hashable, Dict[str, list]] = defaultdict(
-			lambda: {
-				"nodes": [],
-				"node_val": [],
-				"edges": [],
-				"edge_val": [],
-				"graph_val": [],
-			}
-		)
+		loaded_graphs: Dict[Hashable, Dict[str, list]]
 
 		if latest_past_keyframe is None:  # happens in very short games
+			loaded_graphs = defaultdict(
+				lambda: {
+					"nodes": [],
+					"node_val": [],
+					"edges": [],
+					"edge_val": [],
+					"graph_val": [],
+				}
+			)
 			for graph, node, branch, turn, tick, ex in self.query.nodes_dump():
 				updload(branch, turn, tick)
 				row = (graph, node, branch, turn, tick, ex or None)
@@ -2058,6 +2055,11 @@ class ORM:
 			self._node_val_cache.load(nodevalrows)
 			self._edge_val_cache.load(edgevalrows)
 			return None, None, dict(loaded_graphs)
+		loaded_graphs = self.query.load_windows(
+			self._build_loading_windows(
+				*latest_past_keyframe, branch_now, None, None
+			)
+		)
 		if earliest_future_keyframe:
 			return (
 				latest_past_keyframe,
@@ -2067,22 +2069,13 @@ class ORM:
 				),
 			)
 		past_branch, past_turn, past_tick = latest_past_keyframe
-		keyframed = load_keyframe(past_branch, past_turn, past_tick)
-		graphs = set(keyframed["graph_val"].keys())
+		load_keyframe(past_branch, past_turn, past_tick, silent=True)
 		graphs_rows = list(
 			self.query.graphs_types(past_branch, past_turn, past_tick)
 		)
 		self._graph_cache.load(graphs_rows)
-		for graph, _, _, _, _ in graphs_rows:
-			graphs.add(graph)
 
-		for graph in sort_set(graphs):
-			loaded = loaded_graphs[graph] = self.query.load_graph_windows(
-				graph,
-				self._build_loading_windows(
-					*latest_past_keyframe, branch_now, None, None
-				),
-			)
+		for graph, loaded in loaded_graphs.items():
 			noderows.extend(loaded["nodes"])
 			edgerows.extend(loaded["edges"])
 			nodevalrows.extend(loaded["node_val"])

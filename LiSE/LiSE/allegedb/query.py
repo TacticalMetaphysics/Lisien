@@ -18,6 +18,7 @@ doesn't pollute the other files so much.
 
 """
 
+from collections import defaultdict
 from threading import Thread, Lock
 from time import monotonic
 from typing import List, Tuple, Any, Iterator, Hashable
@@ -176,7 +177,7 @@ class ConnectionHolder:
 				self.outq.put(inst[1])
 			elif inst[0] == "one":
 				try:
-					res = self.call_one(inst[1], *inst[2])
+					res = self.call_one(inst[1], *inst[2], **inst[3])
 					if not silent:
 						if hasattr(res, "returns_rows"):
 							if res.returns_rows:
@@ -208,15 +209,14 @@ class ConnectionHolder:
 					if not silent:
 						self.outq.put(ex)
 
-	def call_one(self, k, *largs):
+	def call_one(self, k, *largs, **kwargs):
 		statement = self.sql[k].compile(dialect=self.engine.dialect)
 		if hasattr(statement, "positiontup"):
-			return self.connection.execute(
-				statement, dict(zip(statement.positiontup, largs))
-			)
+			kwargs.update(dict(zip(statement.positiontup, largs)))
+			return self.connection.execute(statement, kwargs)
 		elif largs:
 			raise TypeError("{} is a DDL query, I think".format(k))
-		return self.connection.execute(self.sql[k])
+		return self.connection.execute(self.sql[k], kwargs)
 
 	def call_many(self, k, largs):
 		statement = self.sql[k].compile(dialect=self.engine.dialect)
@@ -726,6 +726,137 @@ class QueryEngine(object):
 			)
 		)
 
+	_infixes2load = [
+		"nodes",
+		"edges",
+		"graph_val",
+		"node_val",
+		"edge_val",
+	]
+
+	def _put_window_tick_to_end(self, branch, turn_from, tick_from):
+		putkwargs = {
+			"branch": branch,
+			"turn_from": turn_from,
+			"tick_from": tick_from,
+		}
+		for i, infix in enumerate(self._infixes2load):
+			self._inq.put(("echo", ("begin", infix, branch)))
+			self._inq.put(("one", f"load_{infix}_tick_to_end", (), putkwargs))
+			self._inq.put(("echo", ("end", infix, branch)))
+
+	def _put_window_tick_to_tick(
+		self, branch, turn_from, tick_from, turn_to, tick_to
+	):
+		putkwargs = {
+			"branch": branch,
+			"turn_from": turn_from,
+			"tick_from": tick_from,
+			"turn_to": turn_to,
+			"tick_to": tick_to,
+		}
+		for i, infix in enumerate(self._infixes2load):
+			self._inq.put(("echo", ("begin", infix, branch)))
+			self._inq.put(("one", f"load_{infix}_tick_to_tick", (), putkwargs))
+			self._inq.put(("echo", ("end", infix, branch)))
+
+	def load_windows(self, windows: list) -> dict:
+		def empty_graph():
+			return {
+				"nodes": [],
+				"edges": [],
+				"graph_val": [],
+				"node_val": [],
+				"edge_val": [],
+			}
+
+		ret = defaultdict(empty_graph)
+		self._load_windows_into(ret, windows)
+		return ret
+
+	def _load_windows_into(self, ret, windows: list):
+		with self._holder.lock:
+			for branch, turn_from, tick_from, turn_to, tick_to in windows:
+				if turn_to is None:
+					self._put_window_tick_to_end(branch, turn_from, tick_from)
+				else:
+					self._put_window_tick_to_tick(
+						branch, turn_from, tick_from, turn_to, tick_to
+					)
+			for window in windows:
+				self._get_one_window(ret, *window)
+			assert self._outq.empty()
+
+	def _get_one_window(
+		self, ret, branch, turn_from, tick_from, turn_to, tick_to
+	):
+		unpack = self.unpack
+		assert self._outq.get() == ("begin", "nodes", branch)
+		while isinstance(got := self._outq.get(), list):
+			for graph, node, turn, tick, ex in got:
+				(graph, node) = map(unpack, (graph, node))
+				ret[graph]["nodes"].append(
+					(graph, node, branch, turn, tick, ex or None)
+				)
+		assert got == (
+			"end",
+			"nodes",
+			branch,
+		), f"{got} != {('end', 'nodes', branch)}"
+		assert self._outq.get() == ("begin", "edges", branch)
+		while isinstance(got := self._outq.get(), list):
+			for graph, orig, dest, idx, turn, tick, ex in got:
+				(graph, orig, dest) = map(unpack, (graph, orig, dest))
+				ret[graph]["edges"].append(
+					(
+						graph,
+						orig,
+						dest,
+						idx,
+						branch,
+						turn,
+						tick,
+						ex or None,
+					)
+				)
+		assert got == ("end", "edges", branch), got
+		assert self._outq.get() == ("begin", "graph_val", branch)
+		while isinstance(got := self._outq.get(), list):
+			for graph, key, turn, tick, val in got:
+				(graph, key, val) = map(unpack, (graph, key, val))
+				ret[graph]["graph_val"].append(
+					(graph, key, branch, turn, tick, val)
+				)
+		assert got == ("end", "graph_val", branch), got
+		assert self._outq.get() == ("begin", "node_val", branch)
+		while isinstance(got := self._outq.get(), list):
+			for graph, node, key, turn, tick, val in got:
+				(graph, node, key, val) = map(unpack, (graph, node, key, val))
+				ret[graph]["node_val"].append(
+					(graph, node, key, branch, turn, tick, val)
+				)
+		assert got == ("end", "node_val", branch), got
+		assert self._outq.get() == ("begin", "edge_val", branch)
+		while isinstance(got := self._outq.get(), list):
+			for graph, orig, dest, idx, key, turn, tick, val in got:
+				(graph, orig, dest, key, val) = map(
+					unpack, (graph, orig, dest, key, val)
+				)
+				ret[graph]["edge_val"].append(
+					(
+						graph,
+						orig,
+						dest,
+						idx,
+						key,
+						branch,
+						turn,
+						tick,
+						val,
+					)
+				)
+		assert got == ("end", "edge_val", branch), got
+
 	def _put_graph_window_tick_to_end(
 		self, graph, branch, turn_from, tick_from
 	):
@@ -842,101 +973,6 @@ class QueryEngine(object):
 			)
 		)
 		self._inq.put(("echo", 4))
-
-	def load_graph_windows(self, graph, windows):
-		unpack = self.unpack
-		ret = {
-			"nodes": [],
-			"edges": [],
-			"graph_val": [],
-			"node_val": [],
-			"edge_val": [],
-		}
-		with self._holder.lock:
-			for branch, turn_from, tick_from, turn_to, tick_to in windows:
-				if turn_to is None:
-					self._put_graph_window_tick_to_end(
-						graph, branch, turn_from, tick_from
-					)
-				else:
-					self._put_graph_window_tick_to_tick(
-						graph, branch, turn_from, tick_from, turn_to, tick_to
-					)
-				while isinstance(got := self._outq.get(), list):
-					ret["nodes"].extend(
-						(
-							graph,
-							unpack(node),
-							branch,
-							turn,
-							tick,
-							ex or None,
-						)
-						for (node, turn, tick, ex) in got
-					)
-				while isinstance(got := self._outq.get(), list):
-					ret["edges"].extend(
-						(
-							graph,
-							unpack(orig),
-							unpack(dest),
-							idx,
-							branch,
-							turn,
-							tick,
-							ex or None,
-						)
-						for (orig, dest, idx, turn, tick, ex) in got
-					)
-				while isinstance(got := self._outq.get(), list):
-					ret["graph_val"].extend(
-						(
-							graph,
-							unpack(key),
-							branch,
-							turn,
-							tick,
-							unpack(val),
-						)
-						for (key, turn, tick, val) in got
-					)
-				while isinstance(got := self._outq.get(), list):
-					ret["node_val"].extend(
-						(
-							graph,
-							unpack(node),
-							unpack(key),
-							branch,
-							turn,
-							tick,
-							unpack(val),
-						)
-						for (node, key, turn, tick, val) in got
-					)
-				while isinstance(got := self._outq.get(), list):
-					ret["edge_val"].extend(
-						(
-							graph,
-							unpack(orig),
-							unpack(dest),
-							idx,
-							unpack(key),
-							branch,
-							turn,
-							tick,
-							unpack(val),
-						)
-						for (
-							orig,
-							dest,
-							idx,
-							key,
-							turn,
-							tick,
-							val,
-						) in got
-					)
-		return ret
 
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
 		"""Yield the entire contents of the node_val table."""
@@ -1297,6 +1333,16 @@ class QueryEngine(object):
 
 	def flush(self):
 		"""Put all pending changes into the SQL transaction."""
+		with self._holder.lock:
+			self._inq.put(("echo", "ready"))
+			readied = self._outq.get()
+			assert readied == "ready", readied
+			self._flush()
+			self._inq.put(("echo", "flushed"))
+			flushed = self._outq.get()
+			assert flushed == "flushed", flushed
+
+	def _flush(self):
 		pack = self.pack
 		put = self._inq.put
 		if self._nodes2set:
