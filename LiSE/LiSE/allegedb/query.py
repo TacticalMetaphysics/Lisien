@@ -959,7 +959,7 @@ class QueryEngine(object):
 							branch,
 							turn,
 							tick,
-							ex,
+							ex or None,
 						)
 						for (node, turn, tick, ex) in got
 					)
@@ -973,7 +973,7 @@ class QueryEngine(object):
 							branch,
 							turn,
 							tick,
-							ex,
+							ex or None,
 						)
 						for (orig, dest, idx, turn, tick, ex) in got
 					)
