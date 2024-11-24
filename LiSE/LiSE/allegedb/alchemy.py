@@ -399,6 +399,7 @@ def queries_for_table_dict(table):
 			table["graphs"].c.graph,
 			table["graphs"].c.turn,
 			table["graphs"].c.tick,
+			table["graphs"].c.type,
 		).where(
 			and_(
 				table["graphs"].c.branch == bindparam("branch"),
