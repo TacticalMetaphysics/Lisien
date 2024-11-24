@@ -2071,8 +2071,47 @@ class ORM:
 			)
 		past_branch, past_turn, past_tick = latest_past_keyframe
 		keyframed = load_keyframe(past_branch, past_turn, past_tick)
+		graphs = set(keyframed["graph_val"].keys())
+		graphs_rows = {}
+		order = []
+		if earliest_future_keyframe:
+			if past_branch == earliest_future_keyframe[0]:
+				graphs_rows[past_branch] = list(
+					self.query.graphs_types(
+						past_branch,
+						past_turn,
+						past_tick,
+						*earliest_future_keyframe[1:],
+					)
+				)
+			else:
+				it = self._iter_parent_btt(
+					*earliest_future_keyframe, stoptime=latest_past_keyframe
+				)
+				for b, r, t in it:
+					_, prior_turn, prior_tick, _, _ = self._branches[b]
+					graphs_rows[b] = list(
+						self.query.graphs_types(
+							b, prior_turn, prior_tick, r, t
+						)
+					)
+					order.append(b)
+		else:
+			graphs_rows[past_branch] = list(
+				self.query.graphs_types(past_branch, past_turn, past_tick)
+			)
+		if order:
+			for b in reversed(order):
+				for graph, typ in sorted(
+					graphs_rows[b], key=lambda row: (row[1], row[2])
+				):
+					if typ == "Deleted":
+						graphs.remove(graph)
+					else:
+						assert graph not in graphs
+						graphs.add(graph)
 
-		for graph in keyframed["graph_val"]:
+		for graph in graphs:
 			if earliest_future_keyframe is None:
 				if latest_past_keyframe == (branch_now, turn_now, tick_now):
 					continue

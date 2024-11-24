@@ -591,9 +591,37 @@ class QueryEngine(object):
 		self.call_one("graph_val_del_time", branch, turn, tick)
 		self._btts.discard((branch, turn, tick))
 
-	def graphs_types(self):
-		for graph, typ in self.call_one("graphs_types"):
-			yield (self.unpack(graph), typ)
+	def graphs_types(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		unpack = self.unpack
+		if turn_to is None:
+			if tick_to is not None:
+				raise ValueError("Need both or neither of turn_to and tick_to")
+			for graph, turn, tick, typ in self.call_one(
+				"graphs_after", branch, turn_from, turn_from, tick_from
+			):
+				yield unpack(graph), branch, turn, tick, typ
+			return
+		else:
+			if tick_to is None:
+				raise ValueError("Need both or neither of turn_to and tick_to")
+		for graph, turn, tick, typ in self.call_one(
+			"graphs_between",
+			branch,
+			turn_from,
+			turn_from,
+			tick_from,
+			turn_to,
+			turn_to,
+			tick_to,
+		):
+			yield unpack(graph), branch, turn, tick, typ
 
 	def graphs_dump(self):
 		unpack = self.unpack

@@ -371,6 +371,46 @@ def queries_for_table_dict(table):
 		"graphs_named": select(func.COUNT())
 		.select_from(table["graphs"])
 		.where(table["graphs"].c.graph == bindparam("graph")),
+		"graphs_between": select(
+			table["graphs"].c.graph,
+			table["graphs"].c.turn,
+			table["graphs"].c.tick,
+			table["graphs"].c.type,
+		).where(
+			and_(
+				table["graphs"].c.branch == bindparam("branch"),
+				or_(
+					table["graphs"].c.turn > bindparam("turn_from_a"),
+					and_(
+						table["graphs"].c.turn == bindparam("turn_from_b"),
+						table["graphs"].c.tick >= bindparam("tick_from"),
+					),
+				),
+				or_(
+					table["graphs"].c.turn < bindparam("turn_to_a"),
+					and_(
+						table["graphs"].c.turn == bindparam("turn_to_b"),
+						table["graphs"].c.tick <= bindparam("tick_to"),
+					),
+				),
+			)
+		),
+		"graphs_after": select(
+			table["graphs"].c.graph,
+			table["graphs"].c.turn,
+			table["graphs"].c.tick,
+		).where(
+			and_(
+				table["graphs"].c.branch == bindparam("branch"),
+				or_(
+					table["graphs"].c.turn > bindparam("turn_from_a"),
+					and_(
+						table["graphs"].c.turn == bindparam("turn_from_b"),
+						table["graphs"].c.tick >= bindparam("tick_from"),
+					),
+				),
+			)
+		),
 		"update_branches": table["branches"]
 		.update()
 		.values(
