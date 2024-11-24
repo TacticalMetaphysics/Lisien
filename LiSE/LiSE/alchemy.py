@@ -508,6 +508,26 @@ def queries(table):
 		r[f"load_{name}_tick_to_tick"] = sel.where(
 			character_to_tick_clause(tab)
 		)
+	ntab = table["node_rulebook"]
+	node_rb_select = select(
+		ntab.c.node, ntab.c.turn, ntab.c.tick, ntab.c.rulebook
+	)
+	r["load_node_rulebook_tick_to_end"] = node_rb_select.where(
+		character_to_end_clause(ntab)
+	)
+	r["load_node_rulebook_tick_to_tick"] = node_rb_select.where(
+		character_to_tick_clause(ntab)
+	)
+	ptab = table["portal_rulebook"]
+	port_rb_select = select(
+		ptab.c.orig, ptab.c.dest, ptab.c.turn, ptab.c.tick, ptab.c.rulebook
+	)
+	r["load_portal_rulebook_tick_to_end"] = port_rb_select.where(
+		character_to_end_clause(ptab)
+	)
+	r["load_portal_rulebook_tick_to_tick"] = port_rb_select.where(
+		character_to_tick_clause(ptab)
+	)
 
 	def generic_tick_to_end_clause(tab: Table):
 		return and_(
