@@ -2068,7 +2068,7 @@ class ORM:
 		keyframed = load_keyframe(past_branch, past_turn, past_tick)
 		graphs_created = set()
 		graphs_deleted = set()
-		for graph, typ in self.query.graphs_types(
+		for graph, _, _, _, typ in self.query.graphs_types(
 			past_branch, past_turn, past_tick
 		):
 			if typ == "Deleted":
@@ -2082,102 +2082,10 @@ class ORM:
 		) - graphs_deleted
 
 		for graph in sort_set(graphs):
-			if earliest_future_keyframe is None:
-				loaded = loaded_graphs[graph] = self.query.load_graph_windows(
-					graph,
-					self._build_loading_windows(
-						*latest_past_keyframe, branch_now, None, None
-					),
-				)
-				noderows.extend(loaded["nodes"])
-				edgerows.extend(loaded["edges"])
-				nodevalrows.extend(loaded["node_val"])
-				edgevalrows.extend(loaded["edge_val"])
-				graphvalrows.extend(loaded["graph_val"])
-				continue
-			future_branch, future_turn, future_tick = earliest_future_keyframe
-			if past_branch == future_branch:
-				for graph, node, branch, turn, tick, ex in load_nodes(
-					graph,
-					past_branch,
-					past_turn,
-					past_tick,
-					future_turn,
-					future_tick,
-				):
-					noderows.append(
-						(graph, node, branch, turn, tick, ex or None)
-					)
-				for (
-					graph,
-					orig,
-					dest,
-					idx,
-					branch,
-					turn,
-					tick,
-					ex,
-				) in load_edges(
-					graph,
-					past_branch,
-					past_turn,
-					past_tick,
-					future_turn,
-					future_tick,
-				):
-					edgerows.append(
-						(
-							graph,
-							orig,
-							dest,
-							idx,
-							branch,
-							turn,
-							tick,
-							ex or None,
-						)
-					)
-				graphvalrows.extend(
-					load_graph_val(
-						graph,
-						past_branch,
-						past_turn,
-						past_tick,
-						future_turn,
-						future_tick,
-					)
-				)
-				nodevalrows.extend(
-					load_node_val(
-						graph,
-						past_branch,
-						past_turn,
-						past_tick,
-						future_turn,
-						future_tick,
-					)
-				)
-				edgevalrows.extend(
-					load_edge_val(
-						graph,
-						past_branch,
-						past_turn,
-						past_tick,
-						future_turn,
-						future_tick,
-					)
-				)
-				updload(branch, turn, tick)
-				continue
 			loaded = loaded_graphs[graph] = self.query.load_graph_windows(
 				graph,
 				self._build_loading_windows(
-					past_branch,
-					past_turn,
-					past_tick,
-					future_branch,
-					future_turn,
-					future_tick,
+					*latest_past_keyframe, branch_now, None, None
 				),
 			)
 			noderows.extend(loaded["nodes"])
@@ -2185,6 +2093,7 @@ class ORM:
 			nodevalrows.extend(loaded["node_val"])
 			edgevalrows.extend(loaded["edge_val"])
 			graphvalrows.extend(loaded["graph_val"])
+
 		self._nodes_cache.load(noderows)
 		self._edges_cache.load(edgerows)
 		self._graph_val_cache.load(graphvalrows)
