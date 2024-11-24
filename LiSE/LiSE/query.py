@@ -49,9 +49,11 @@ import msgpack
 
 from .alchemy import meta, gather_sql
 from .allegedb import query, Key
-from .exc import IntegrityError, OperationalError
+from .exc import OperationalError
 from .util import EntityStatAccessor
 import LiSE
+
+IntegrityError = query.IntegrityError
 
 
 NONE = msgpack.packb(None)

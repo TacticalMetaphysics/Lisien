@@ -46,6 +46,7 @@ from .query import (
 	TimeError,
 )
 from .window import HistoricKeyError
+from ..util import sort_set
 
 Key = Union[str, int, float, Tuple["Key", ...], FrozenSet["Key"]]
 """Type hint for things LiSE can use as keys
@@ -965,14 +966,8 @@ class ORM:
 		if (branch, turn, tick) in self._keyframes_loaded:
 			return self._get_kf(branch, turn, tick, copy=copy)
 		with self.batch():  # so that iter_keys doesn't try fetching the kf we're about to make
-			graphs = set(self._graph_cache.iter_keys(branch, turn, tick))
-			for graph in graphs:
-				try:
-					# I didn't think I'd have to do this, because `iter_keys`
-					# ignored None values, but actually it doesn't...
-					self._graph_cache.retrieve(graph, branch, turn, tick)
-				except KeyError:
-					continue
+			graphs = frozenset(self._graph_cache.iter_keys(branch, turn, tick))
+			for graph in sort_set(graphs):
 				self._snap_keyframe_de_novo_graph(
 					graph,
 					branch,
@@ -2111,10 +2106,8 @@ class ORM:
 						assert graph not in graphs
 						graphs.add(graph)
 
-		for graph in graphs:
+		for graph in sort_set(graphs):
 			if earliest_future_keyframe is None:
-				if latest_past_keyframe == (branch_now, turn_now, tick_now):
-					continue
 				loaded = loaded_graphs[graph] = self.query.load_graph_windows(
 					graph,
 					self._build_loading_windows(
