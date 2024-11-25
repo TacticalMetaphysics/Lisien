@@ -1230,34 +1230,86 @@ class QueryEngine(query.QueryEngine):
 			ret, branch, turn_from, tick_from, turn_to, tick_to
 		)
 		unpack = self.unpack
-		assert self._outq.get() == ("begin", "things", branch)
+		assert self._outq.get() == (
+			"begin",
+			"things",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 		while isinstance(got := self._outq.get(), list):
 			for graph, node, turn, tick, loc in got:
 				(graph, node, loc) = map(unpack, (graph, node, loc))
 				ret[graph]["things"].append(
 					(graph, node, branch, turn, tick, loc)
 				)
-		assert got == ("end", "things", branch), got
-		assert self._outq.get() == ("begin", "character_rulebook", branch)
+		assert got == (
+			"end",
+			"things",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"character_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 		while isinstance(got := self._outq.get(), list):
 			for graph, turn, tick, rb in got:
 				(graph, rb) = map(unpack, (graph, rb))
 				ret[graph]["character_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
-		assert got == ("end", "character_rulebook", branch), got
-		assert self._outq.get() == ("begin", "unit_rulebook", branch)
+		assert got == (
+			"end",
+			"character_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"unit_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 		while isinstance(got := self._outq.get(), list):
 			for graph, turn, tick, rb in got:
 				(graph, rb) = map(unpack, (graph, rb))
 				ret[graph]["unit_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
-		assert got == ("end", "unit_rulebook", branch), got
+		assert got == (
+			"end",
+			"unit_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
 		assert self._outq.get() == (
 			"begin",
 			"character_thing_rulebook",
 			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
 		)
 		while isinstance(got := self._outq.get(), list):
 			for graph, turn, tick, rb in got:
@@ -1265,11 +1317,23 @@ class QueryEngine(query.QueryEngine):
 				ret[graph]["character_thing_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
-		assert got == ("end", "character_thing_rulebook", branch), got
+		assert got == (
+			"end",
+			"character_thing_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
 		assert self._outq.get() == (
 			"begin",
 			"character_place_rulebook",
 			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
 		)
 		while isinstance(got := self._outq.get(), list):
 			for graph, turn, tick, rb in got:
@@ -1277,11 +1341,23 @@ class QueryEngine(query.QueryEngine):
 				ret[graph]["character_place_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
-		assert got == ("end", "character_place_rulebook", branch), got
+		assert got == (
+			"end",
+			"character_place_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
 		assert self._outq.get() == (
 			"begin",
 			"character_portal_rulebook",
 			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
 		)
 		while isinstance(got := self._outq.get(), list):
 			for graph, turn, tick, rb in got:
@@ -1289,24 +1365,72 @@ class QueryEngine(query.QueryEngine):
 				ret[graph]["character_portal_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
-		assert got == ("end", "character_portal_rulebook", branch), got
-		assert self._outq.get() == ("begin", "node_rulebook", branch)
+		assert got == (
+			"end",
+			"character_portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"node_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 		while isinstance(got := self._outq.get(), list):
 			for graph, node, turn, tick, rb in got:
 				(graph, node, rb) = map(unpack, (graph, node, rb))
 				ret[graph]["node_rulebook"].append(
 					(graph, node, branch, turn, tick, rb)
 				)
-		assert got == ("end", "node_rulebook", branch), got
-		assert self._outq.get() == ("begin", "portal_rulebook", branch)
+		assert got == (
+			"end",
+			"node_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 		while isinstance(got := self._outq.get(), list):
 			for graph, orig, dest, turn, tick, rb in got:
 				(graph, orig, dest, rb) = map(unpack, (graph, orig, dest, rb))
 				ret[graph]["portal_rulebook"].append(
 					(graph, orig, dest, branch, turn, tick, rb)
 				)
-		assert got == ("end", "portal_rulebook", branch), got
-		assert self._outq.get() == ("begin", "universals", branch)
+		assert got == (
+			"end",
+			"portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"universals",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 		while isinstance(got := self._outq.get(), list):
 			for key, branch, turn, tick, val in got:
 				(key, val) = map(unpack, (key, val))
@@ -1314,8 +1438,24 @@ class QueryEngine(query.QueryEngine):
 					ret["universals"].append((key, branch, turn, tick, val))
 				else:
 					ret["universals"] = [(key, branch, turn, tick, val)]
-		assert got == ("end", "universals", branch), got
-		assert self._outq.get() == ("begin", "rulebooks", branch)
+		assert got == (
+			"end",
+			"universals",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rulebooks",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 		while isinstance(got := self._outq.get(), list):
 			for rulebook, branch, turn, tick, rules, priority in got:
 				(rulebook, rules) = map(unpack, (rulebook, rules))
@@ -1327,8 +1467,24 @@ class QueryEngine(query.QueryEngine):
 					ret["rulebooks"] = [
 						(rulebook, branch, turn, tick, (rules, priority))
 					]
-		assert got == ("end", "rulebooks", branch), got
-		assert self._outq.get() == ("begin", "rule_triggers", branch)
+		assert got == (
+			"end",
+			"rulebooks",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rule_triggers",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 		while isinstance(got := self._outq.get(), list):
 			for rule, branch, turn, tick, triggers in got:
 				triggers = unpack(triggers)
@@ -1340,8 +1496,24 @@ class QueryEngine(query.QueryEngine):
 					ret["rule_triggers"] = [
 						(rule, branch, turn, tick, triggers)
 					]
-		assert got == ("end", "rule_triggers", branch), got
-		assert self._outq.get() == ("begin", "rule_prereqs", branch)
+		assert got == (
+			"end",
+			"rule_triggers",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rule_prereqs",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 		while isinstance(got := self._outq.get(), list):
 			for rule, branch, turn, tick, prereqs in got:
 				prereqs = unpack(prereqs)
@@ -1351,8 +1523,24 @@ class QueryEngine(query.QueryEngine):
 					)
 				else:
 					ret["rule_prereqs"] = [(rule, branch, turn, tick, prereqs)]
-		assert got == ("end", "rule_prereqs", branch), got
-		assert self._outq.get() == ("begin", "rule_actions", branch)
+		assert got == (
+			"end",
+			"rule_prereqs",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rule_actions",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 		while isinstance(got := self._outq.get(), list):
 			for rule, branch, turn, tick, actions in got:
 				actions = unpack(actions)
@@ -1362,8 +1550,24 @@ class QueryEngine(query.QueryEngine):
 					)
 				else:
 					ret["rule_actions"] = [(rule, branch, turn, tick, actions)]
-		assert got == ("end", "rule_actions", branch), got
-		assert self._outq.get() == ("begin", "rule_neighborhoods", branch)
+		assert got == (
+			"end",
+			"rule_actions",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rule_neighborhoods",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 		while isinstance(got := self._outq.get(), list):
 			for rule, branch, turn, tick, neighborhoods in got:
 				neighborhoods = unpack(neighborhoods)
@@ -1375,7 +1579,15 @@ class QueryEngine(query.QueryEngine):
 					ret["rule_neighborhoods"] = [
 						(rule, branch, turn, tick, neighborhoods)
 					]
-		assert got == ("end", "rule_neighborhoods", branch), got
+		assert got == (
+			"end",
+			"rule_neighborhoods",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
 
 	def keyframe_extension_insert(
 		self, branch, turn, tick, universal, rules, rulebooks
