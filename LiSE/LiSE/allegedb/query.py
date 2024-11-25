@@ -153,7 +153,6 @@ class ConnectionHolder:
 		while True:
 			inst = self.inq.get()
 			if inst == "shutdown":
-				self.commit()
 				self.transaction.close()
 				self.connection.close()
 				self.engine.dispose()
@@ -1485,8 +1484,6 @@ class QueryEngine(object):
 
 	def close(self):
 		"""Commit the transaction, then close the connection"""
-		self.flush()
-		assert self.echo("flushed") == "flushed"
 		self._inq.put("shutdown")
 		self._holder.existence_lock.acquire()
 		self._holder.existence_lock.release()
