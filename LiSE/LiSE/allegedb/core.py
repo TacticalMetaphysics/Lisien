@@ -1932,18 +1932,6 @@ class ORM:
 		self._edges_cache.load(edgerows)
 		self._edge_val_cache.load(edgevalrows)
 		self._graph_val_cache.load(graphvalrows)
-		if branch in self._keyframes_dict:
-			for turn, ticks in self._keyframes_dict[branch].items():
-				if not (turn_from <= turn <= turn_to):
-					continue
-				for tick in ticks:
-					if not (
-						(turn_from, tick_from)
-						<= (turn, tick)
-						<= (turn_to, tick_to)
-					):
-						continue
-					self._get_keyframe(branch, turn, tick, silent=True)
 		return loaded_graphs
 
 	def load_between(
