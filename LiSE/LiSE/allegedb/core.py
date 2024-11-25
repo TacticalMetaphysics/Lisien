@@ -2048,12 +2048,12 @@ class ORM:
 		nodevalrows = []
 		edgevalrows = []
 		graphvalrows = []
-		for graph, loaded in loaded.items():
-			noderows.extend(loaded["nodes"])
-			edgerows.extend(loaded["edges"])
-			nodevalrows.extend(loaded["node_val"])
-			edgevalrows.extend(loaded["edge_val"])
-			graphvalrows.extend(loaded["graph_val"])
+		for graph, graph_loaded in loaded.items():
+			noderows.extend(graph_loaded["nodes"])
+			edgerows.extend(graph_loaded["edges"])
+			nodevalrows.extend(graph_loaded["node_val"])
+			edgevalrows.extend(graph_loaded["edge_val"])
+			graphvalrows.extend(graph_loaded["graph_val"])
 
 		self._graph_cache.load(graphs_rows)
 		self._nodes_cache.load(noderows)
