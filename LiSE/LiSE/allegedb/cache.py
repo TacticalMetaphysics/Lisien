@@ -1296,27 +1296,44 @@ class Cache:
 								"No value", entikey, b, r, t
 							)
 		else:
+			kfd = self.db._keyframes_dict
 			for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
-				if b in keyframes:
-					kfb = keyframes[b]
+				if b in kfd:
+					if b not in keyframes:
+						return NotInKeyframeError("No value", entikey, b, r, t)
+					kfb = kfd[b]
 					if r in kfb:
+						if not keyframes[b].rev_gettable(r):
+							return NotInKeyframeError(
+								"No value", entikey, b, r, t
+							)
 						if search:
 							kfbr = kfb.search(r)
 						else:
 							kfbr = kfb[r]
-						if kfbr.rev_gettable(t):
-							kf = kfbr[t]
-							if key in kf:
-								ret = kf[key]
-								if store_hint:
-									shallowest[args] = ret
-								return ret
-							else:
-								return NotInKeyframeError(
-									"No value", entikey, b, r, t
-								)
+						tcks = set()
+						for tck in kfbr:
+							if tck <= t:
+								tcks.add(tck)
+						if not tcks:
+							continue
+						toptck = max(tcks)
+						if not keyframes[b][r].rev_gettable(toptck):
+							return NotInKeyframeError(
+								"No value", entikey, b, r, t
+							)
+						kf = keyframes[b][r][toptck]
+						if key in kf:
+							ret = kf[key]
+							if store_hint:
+								shallowest[args] = ret
+							return ret
+						else:
+							return NotInKeyframeError(
+								"No value", entikey, b, r, t
+							)
 					if kfb.rev_gettable(r - 1):
-						kfbr = kfb[r]
+						kfbr = keyframes[b][r]
 						kf = kfbr.final()
 						if key in kf:
 							ret = kf[key]
