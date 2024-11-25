@@ -344,6 +344,64 @@ class Rule:
 			self.engine._neighborhoods_cache.store(
 				name, branch, turn, tick, neighborhood
 			)
+			# Don't *make* a keyframe -- but if there happens to already *be*
+			# a keyframe at this very moment, add the new rule to it
+			if (branch, turn, tick) in self.engine._keyframes_times:
+				# ensure it's loaded
+				self.engine._get_keyframe(branch, turn, tick, silent=True)
+				# Just because there's a keyframe doesn't mean it's in every cache.
+				# I should probably change that.
+				try:
+					trigkf = self.engine._triggers_cache.get_keyframe(
+						branch, turn, tick
+					)
+				except KeyError:
+					trigkf = {
+						aname: self.engine._triggers_cache.retrieve(
+							aname, branch, turn, tick
+						)
+						for aname in self.engine._triggers_cache.iter_keys(
+							branch, turn, tick
+						)
+					}
+				try:
+					preqkf = self.engine._prereqs_cache.get_keyframe(
+						branch, turn, tick
+					)
+				except KeyError:
+					preqkf = {
+						aname: self.engine._prereqs_cache.retrieve(
+							aname, branch, turn, tick
+						)
+						for aname in self.engine._prereqs_cache.iter_keys(
+							branch, turn, tick
+						)
+					}
+				try:
+					actkf = self.engine._actions_cache.get_keyframe(
+						branch, turn, tick
+					)
+				except KeyError:
+					actkf = {
+						aname: self.engine._actions_cache.retrieve(
+							aname, branch, turn, tick
+						)
+						for aname in self.engine._actions_cache.iter_keys(
+							branch, turn, tick
+						)
+					}
+				trigkf[name] = triggers
+				preqkf[name] = prereqs
+				actkf[name] = actions
+				self.engine._triggers_cache.set_keyframe(
+					branch, turn, tick, trigkf
+				)
+				self.engine._prereqs_cache.set_keyframe(
+					branch, turn, tick, preqkf
+				)
+				self.engine._actions_cache.set_keyframe(
+					branch, turn, tick, actkf
+				)
 
 	def __eq__(self, other):
 		return hasattr(other, "name") and self.name == other.name
