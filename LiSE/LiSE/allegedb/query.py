@@ -1373,7 +1373,6 @@ class QueryEngine(object):
 
 	def commit(self):
 		"""Commit the transaction"""
-		self.flush()
 		self._inq.put("commit")
 		assert self.echo("committed") == "committed"
 
