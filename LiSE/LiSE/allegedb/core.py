@@ -38,7 +38,7 @@ from typing import (
 from blinker import Signal
 import networkx as nx
 
-from .cache import KeyframeError
+from .cache import KeyframeError, PickyDefaultDict
 from .window import update_window, update_backward_window, WindowDict
 from .graph import DiGraph, Node, Edge, GraphsMapping
 from .query import (
@@ -1115,7 +1115,7 @@ class ORM:
 			Callable[[Key, Key, Key, int, str, int, int, Any], None],
 		] = (self._nbtt, self.query.exist_edge, self._edges_cache.store)
 		self._keyframes_list = []
-		self._keyframes_dict = defaultdict(WindowDict)
+		self._keyframes_dict = PickyDefaultDict(WindowDict)
 		self._keyframes_times = set()
 		self._keyframes_loaded = set()
 		self._load_graphs()
