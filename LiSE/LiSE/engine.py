@@ -981,8 +981,8 @@ class Engine(AbstractEngine, gORM, Executor):
 				)
 
 		ext = self._load_ext_windows(windows)
-		if loaded.get("thing_location"):
-			self._things_cache.load(loaded["thing_location"])
+		if loaded.get("things"):
+			self._things_cache.load(loaded["thing"])
 		if ext["universals"]:
 			self._universal_cache.load(ext["universals"])
 		if ext["rulebooks"]:

@@ -1281,7 +1281,7 @@ class QueryEngine(query.QueryEngine):
 				"graph_val": [],
 				"node_val": [],
 				"edge_val": [],
-				"thing_location": [],
+				"things": [],
 				"character_rulebook": [],
 				"unit_rulebook": [],
 				"character_thing_rulebook": [],
@@ -1306,7 +1306,7 @@ class QueryEngine(query.QueryEngine):
 		while isinstance(got := self._outq.get(), list):
 			for graph, node, turn, tick, loc in got:
 				(graph, node, loc) = map(unpack, (graph, node, loc))
-				ret[graph]["thing_location"].append(
+				ret[graph]["things"].append(
 					(graph, node, branch, turn, tick, loc)
 				)
 		assert got == ("end", "things", branch), got
