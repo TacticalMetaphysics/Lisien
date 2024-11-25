@@ -981,8 +981,31 @@ class Engine(AbstractEngine, gORM, Executor):
 				)
 
 		ext = self._load_ext_windows(windows)
-		if loaded.get("things"):
-			self._things_cache.load(loaded["thing"])
+		for loaded_graph, data in loaded.items():
+			if data.get("things"):
+				self._things_cache.load(data["things"])
+			if data.get("character_rulebook"):
+				self._characters_rulebooks_cache.load(
+					data["character_rulebook"]
+				)
+			if data.get("unit_rulebook"):
+				self._units_rulebooks_cache.load(data["unit_rulebook"])
+			if data.get("character_thing_rulebook"):
+				self._characters_things_rulebooks_cache.load(
+					data["character_thing_rulebook"]
+				)
+			if data.get("character_place_rulebook"):
+				self._characters_places_rulebooks_cache.load(
+					data["character_place_rulebook"]
+				)
+			if data.get("character_portal_rulebook"):
+				self._characters_portals_rulebooks_cache.load(
+					data["character_portal_rulebook"]
+				)
+			if data.get("node_rulebook"):
+				self._nodes_rulebooks_cache.load(data["node_rulebook"])
+			if data.get("portal_rulebook"):
+				self._portals_rulebooks_cache.load(data["portal_rulebook"])
 		if ext["universals"]:
 			self._universal_cache.load(ext["universals"])
 		if ext["rulebooks"]:
