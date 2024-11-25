@@ -1900,7 +1900,11 @@ class Engine(AbstractEngine, gORM, Executor):
 		if branch in noderbbranches:
 			updater(updnoderb, noderbbranches[branch])
 
-		def updedgerb(character, orig, dest, rulebook):
+		def updedgerb(character, orig, dest, rulebook=None):
+			if rulebook is None:
+				# It's one of those updates that stores all the rulebooks from
+				# some origin. Not relevant to deltas.
+				return
 			if character in delta and (
 				delta[character] is None
 				or (
