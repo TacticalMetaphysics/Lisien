@@ -2016,7 +2016,7 @@ class ORM:
 					future_turn,
 					future_tick,
 				)
-			graphs_types = []
+		graphs_types = []
 		for window in windows:
 			graphs_types.extend(self.query.graphs_types(*window))
 		return (
