@@ -1974,18 +1974,22 @@ class ORM:
 		# we can't use the keyframe for this load
 
 		if latest_past_keyframe is None:
-			windows = self._build_loading_windows(
-				self.query.globl["main_branch"], 0, 0, branch, turn, tick
-			)
 			if earliest_future_keyframe is None:
-				graphs_types = []
-				for window in windows:
-					graphs_types.extend(self.query.graphs_types(*window))
 				return (
 					None,
 					None,
-					graphs_types,
-					self.query.load_windows(windows),
+					list(
+						self.query.graphs_types(
+							self.query.globl["main_branch"], 0, 0
+						)
+					),
+					self.query.load_windows(
+						[(self.query.globl["main_branch"], 0, 0, None, None)]
+					),
+				)
+			else:
+				windows = self._build_loading_windows(
+					self.query.globl["main_branch"], 0, 0, branch, turn, tick
 				)
 		else:
 			past_branch, past_turn, past_tick = latest_past_keyframe
@@ -2013,14 +2017,14 @@ class ORM:
 					future_tick,
 				)
 			graphs_types = []
-			for window in windows:
-				graphs_types.extend(self.query.graphs_types(*window))
-			return (
-				latest_past_keyframe,
-				earliest_future_keyframe,
-				graphs_types,
-				self.query.load_windows(windows),
-			)
+		for window in windows:
+			graphs_types.extend(self.query.graphs_types(*window))
+		return (
+			latest_past_keyframe,
+			earliest_future_keyframe,
+			graphs_types,
+			self.query.load_windows(windows),
+		)
 
 	@world_locked
 	def _load_at(self, branch: str, turn: int, tick: int) -> None:
