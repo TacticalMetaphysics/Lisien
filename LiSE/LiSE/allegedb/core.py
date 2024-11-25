@@ -2740,7 +2740,7 @@ class ORM:
 				name, branch, turn, tick, nodes, edges, val
 			)
 			self.query.keyframe_graph_insert(
-				(name, branch, turn, tick, nodes, edges, val)
+				name, branch, turn, tick, nodes, edges, val
 			)
 		elif isinstance(data, nx.Graph):
 			self._snap_keyframe_de_novo_graph(
