@@ -1905,12 +1905,12 @@ class ORM:
 		turn_to: int,
 		tick_to: int,
 	):
+		self._get_keyframe(branch, turn_from, tick_from, silent=True)
 		noderows = []
 		nodevalrows = []
 		edgerows = []
 		edgevalrows = []
 		graphvalrows = []
-		kf = self._get_keyframe(branch, turn_from, tick_from)
 		graphsrows = list(
 			self.query.graphs_types(
 				branch, turn_from, tick_from, turn_to, tick_to
