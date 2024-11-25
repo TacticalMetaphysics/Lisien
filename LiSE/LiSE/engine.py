@@ -920,7 +920,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			branch, turn_from, tick_from, turn_to, tick_to
 		)
 		for graph, rowdict in loaded.items():
-			self._things_cache.load(rowdict["thing_location"])
+			self._things_cache.load(rowdict["things"])
 			self._characters_rulebooks_cache.load(
 				rowdict["character_rulebook"]
 			)
