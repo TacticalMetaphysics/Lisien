@@ -1346,6 +1346,18 @@ class ORM:
 		self._graph_val_cache.set_keyframe(
 			(graph,), branch, turn, tick, graph_val
 		)
+		if (branch, turn, tick) not in self._keyframes_times:
+			self._keyframes_times.add((branch, turn, tick))
+			self._keyframes_loaded.add((branch, turn, tick))
+			if branch in self._keyframes_dict:
+				turns = self._keyframes_dict[branch]
+				if turn in turns:
+					turns[turn].add(tick)
+				else:
+					turns[turn] = {tick}
+			else:
+				self._keyframes_dict[branch] = {turn: {tick}}
+			self._keyframes_list.append((branch, turn, tick))
 
 	def _copy_kf(self, branch_from, branch_to, turn, tick):
 		"""Copy a keyframe from one branch to another
