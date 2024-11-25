@@ -1357,7 +1357,7 @@ class ORM:
 					turns[turn] = {tick}
 			else:
 				self._keyframes_dict[branch] = {turn: {tick}}
-			self._keyframes_list.append((branch, turn, tick))
+			self._keyframes_list.append((graph, branch, turn, tick))
 
 	def _copy_kf(self, branch_from, branch_to, turn, tick):
 		"""Copy a keyframe from one branch to another
