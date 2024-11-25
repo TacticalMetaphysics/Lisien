@@ -136,9 +136,14 @@ class RuleFollower(BaseRuleFollower):
 		pass
 
 	def _get_rulebook_name(self):
-		return self._get_rulebook_cache().retrieve(
-			self.character.name, *self.engine._btt()
-		)
+		try:
+			return self._get_rulebook_cache().retrieve(
+				self.character.name, *self.engine._btt()
+			)
+		except KeyError:
+			ret = (self._book + "_rulebook", self.character.name)
+			self._set_rulebook_name(ret)
+			return ret
 
 	def _set_rulebook_name(self, n):
 		branch, turn, tick = self.engine._nbtt()
