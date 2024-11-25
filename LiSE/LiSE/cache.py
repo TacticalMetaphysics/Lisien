@@ -376,7 +376,7 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
 			rulebook = self.get_rulebook(character, branch, turn, tick)
 			try:
 				rules, prio = self.engine._rulebooks_cache.retrieve(
-					character, branch, turn, tick
+					rulebook, branch, turn, tick
 				)
 			except KeyError:
 				continue
@@ -406,7 +406,7 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 			rulebook = self.get_rulebook(character, branch, turn, tick)
 			try:
 				rules, prio = self.engine._rulebooks_cache.retrieve(
-					character, branch, turn, tick
+					rulebook, branch, turn, tick
 				)
 			except KeyError:
 				continue
@@ -449,7 +449,7 @@ class NodeRulesHandledCache(RulesHandledCache):
 				)
 				try:
 					rules, prio = self.engine._rulebooks_cache.retrieve(
-						(character_name, node_name), branch, turn, tick
+						rulebook, branch, turn, tick
 					)
 				except KeyError:
 					continue
