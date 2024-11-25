@@ -345,10 +345,6 @@ class TimeSignalDescriptor:
 				)
 			e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
 		e._obranch, e._oturn = val
-		if branch_then == branch_now:
-			e._load_between(
-				branch_then, turn_then, tick_then, turn_now, tick_now
-			)
 		if not e._time_is_loaded(*val, tick_now):
 			e._load_at(*val, tick_now)
 
