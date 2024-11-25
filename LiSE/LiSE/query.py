@@ -1313,15 +1313,17 @@ class QueryEngine(query.QueryEngine):
 		assert self._outq.get() == ("begin", "character_rulebook", branch)
 		while isinstance(got := self._outq.get(), list):
 			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
 				ret[graph]["character_rulebook"].append(
-					(unpack(graph), branch, turn, tick, unpack(rb))
+					(graph, branch, turn, tick, rb)
 				)
 		assert got == ("end", "character_rulebook", branch), got
 		assert self._outq.get() == ("begin", "unit_rulebook", branch)
 		while isinstance(got := self._outq.get(), list):
 			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
 				ret[graph]["unit_rulebook"].append(
-					(unpack(graph), branch, turn, tick, unpack(rb))
+					(graph, branch, turn, tick, rb)
 				)
 		assert got == ("end", "unit_rulebook", branch), got
 		assert self._outq.get() == (
@@ -1331,8 +1333,9 @@ class QueryEngine(query.QueryEngine):
 		)
 		while isinstance(got := self._outq.get(), list):
 			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
 				ret[graph]["character_thing_rulebook"].append(
-					(unpack(graph), branch, turn, tick, unpack(rb))
+					(graph, branch, turn, tick, rb)
 				)
 		assert got == ("end", "character_thing_rulebook", branch), got
 		assert self._outq.get() == (
@@ -1342,8 +1345,9 @@ class QueryEngine(query.QueryEngine):
 		)
 		while isinstance(got := self._outq.get(), list):
 			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
 				ret[graph]["character_place_rulebook"].append(
-					(unpack(graph), branch, turn, tick, unpack(rb))
+					(graph, branch, turn, tick, rb)
 				)
 		assert got == ("end", "character_place_rulebook", branch), got
 		assert self._outq.get() == (
@@ -1353,8 +1357,9 @@ class QueryEngine(query.QueryEngine):
 		)
 		while isinstance(got := self._outq.get(), list):
 			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
 				ret[graph]["character_portal_rulebook"].append(
-					(unpack(graph), branch, turn, tick, unpack(rb))
+					(graph, branch, turn, tick, rb)
 				)
 		assert got == ("end", "character_portal_rulebook", branch), got
 		assert self._outq.get() == ("begin", "node_rulebook", branch)
