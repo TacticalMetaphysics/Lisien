@@ -879,6 +879,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		turn_to: int,
 		tick_to: int,
 	) -> None:
+		"""Load time between two keyframes."""
 		loaded = super()._load_between(
 			branch, turn_from, tick_from, turn_to, tick_to
 		)
