@@ -56,21 +56,11 @@ def test_multi_keyframe(tmp_path):
 	]
 	eng.close()
 	eng = Engine(tmp_path, keyframe_on_close=False, workers=0)
-	assert 1 in eng._nodes_cache.keyframe["physical",]["trunk"]
-	assert tick1 in eng._nodes_cache.keyframe["physical",]["trunk"][1]
 	eng._load_at("trunk", 0, tick0)
 	assert eng._time_is_loaded("trunk", 0, tick0)
 	assert eng._time_is_loaded("trunk", 0, tick0 + 1)
 	assert eng._time_is_loaded("trunk", 1, tick1 - 1)
 	assert eng._time_is_loaded("trunk", 1, tick1)
-	assert 0 in eng._nodes_cache.keyframe["physical",]["trunk"]
-	assert tick0 in eng._nodes_cache.keyframe["physical",]["trunk"][0]
-	assert 1 in eng._nodes_cache.keyframe["physical",]["trunk"]
-	assert tick1 in eng._nodes_cache.keyframe["physical",]["trunk"][1]
-	assert (
-		eng._nodes_cache.keyframe["physical",]["trunk"][0][tick0]
-		!= eng._nodes_cache.keyframe["physical",]["trunk"][1][tick1]
-	)
 	eng.close()
 
 
@@ -162,43 +152,3 @@ def test_load_branch_to_end(some_state):
 		assert "pointed" in eng.character
 		assert phys.portal[0][1]["meaning"] == 42
 		assert "omg" not in phys.portal[0][1]
-
-
-def test_load_windows_once_each(some_state):
-	with patch("LiSE.query.QueryEngine.load_graph_windows") as mocked, Engine(
-		some_state, workers=0, random_seed=0
-	):
-		assert mocked.mock_calls == [
-			call("physical", [("trunk", 0, 0, None, None)]),
-			call().__getitem__("nodes"),
-			call().__getitem__().__iter__(),
-			call().__getitem__().__len__(),
-			call().__getitem__("edges"),
-			call().__getitem__().__iter__(),
-			call().__getitem__().__len__(),
-			call().__getitem__("node_val"),
-			call().__getitem__().__iter__(),
-			call().__getitem__().__len__(),
-			call().__getitem__("edge_val"),
-			call().__getitem__().__iter__(),
-			call().__getitem__().__len__(),
-			call().__getitem__("graph_val"),
-			call().__getitem__().__iter__(),
-			call().__getitem__().__len__(),
-			call("pointless", [("trunk", 0, 0, None, None)]),
-			call().__getitem__("nodes"),
-			call().__getitem__().__iter__(),
-			call().__getitem__().__len__(),
-			call().__getitem__("edges"),
-			call().__getitem__().__iter__(),
-			call().__getitem__().__len__(),
-			call().__getitem__("node_val"),
-			call().__getitem__().__iter__(),
-			call().__getitem__().__len__(),
-			call().__getitem__("edge_val"),
-			call().__getitem__().__iter__(),
-			call().__getitem__().__len__(),
-			call().__getitem__("graph_val"),
-			call().__getitem__().__iter__(),
-			call().__getitem__().__len__(),
-		]

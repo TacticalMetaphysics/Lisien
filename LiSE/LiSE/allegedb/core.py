@@ -1948,11 +1948,12 @@ class ORM:
 		self._load_between(branch, turn_from, tick_from, turn_to, tick_to)
 
 	@world_locked
-	def _load_at(
+	def _read_at(
 		self, branch: str, turn: int, tick: int
 	) -> Tuple[
 		Optional[Tuple[str, int, int]],
 		Optional[Tuple[str, int, int]],
+		list,
 		dict,
 	]:
 		latest_past_keyframe: Optional[Tuple[str, int, int]]
@@ -1970,129 +1971,92 @@ class ORM:
 		# there, because then we'd potentially be loading keyframes from any
 		# number of possible futures, and we're trying to be conservative
 		# about what we load. If neither branch is an ancestor of the other,
-		# we can't use the keyframe for this load.
-		load_keyframe = self._get_keyframe
-		updload = self._updload
-		noderows = []
-		edgerows = []
-		graphvalrows = []
-		nodevalrows = []
-		edgevalrows = []
-		loaded_graphs: Dict[Hashable, Dict[str, list]]
+		# we can't use the keyframe for this load
 
-		if latest_past_keyframe is None:  # happens in very short games
-			loaded_graphs = defaultdict(
-				lambda: {
-					"nodes": [],
-					"node_val": [],
-					"edges": [],
-					"edge_val": [],
-					"graph_val": [],
-				}
+		if latest_past_keyframe is None:
+			windows = self._build_loading_windows(
+				self.query.globl["main_branch"], 0, 0, branch, turn, tick
 			)
-			for graph, node, branch, turn, tick, ex in self.query.nodes_dump():
-				updload(branch, turn, tick)
-				row = (graph, node, branch, turn, tick, ex or None)
-				noderows.append(row)
-				loaded_graphs[graph]["nodes"].append(row)
-			for (
-				graph,
-				orig,
-				dest,
-				idx,
-				branch,
-				turn,
-				tick,
-				ex,
-			) in self.query.edges_dump():
-				updload(branch, turn, tick)
-				row = (graph, orig, dest, idx, branch, turn, tick, ex or None)
-				edgerows.append(row)
-				loaded_graphs[graph]["edges"].append(row)
-			for (
-				graph,
-				key,
-				branch,
-				turn,
-				tick,
-				value,
-			) in self.query.graph_val_dump():
-				updload(branch, turn, tick)
-				row = (graph, key, branch, turn, tick, value)
-				graphvalrows.append(row)
-				loaded_graphs[graph]["graph_val"].append(row)
-			for (
-				graph,
-				node,
-				key,
-				branch,
-				turn,
-				tick,
-				value,
-			) in self.query.node_val_dump():
-				updload(branch, turn, tick)
-				row = (graph, node, key, branch, turn, tick, value)
-				nodevalrows.append(row)
-				loaded_graphs[graph]["node_val"].append(row)
-			for (
-				graph,
-				orig,
-				dest,
-				idx,
-				key,
-				branch,
-				turn,
-				tick,
-				value,
-			) in self.query.edge_val_dump():
-				updload(branch, turn, tick)
-				row = (graph, orig, dest, idx, key, branch, turn, tick, value)
-				edgevalrows.append(row)
-				loaded_graphs[graph]["edge_val"].append(row)
-			self._nodes_cache.load(noderows)
-			self._edges_cache.load(edgerows)
-			self._graph_val_cache.load(graphvalrows)
-			self._node_val_cache.load(nodevalrows)
-			self._edge_val_cache.load(edgevalrows)
-			return None, None, dict(loaded_graphs)
-		loaded_graphs = self.query.load_windows(
-			self._build_loading_windows(
-				*latest_past_keyframe, branch_now, None, None
-			)
-		)
-		if earliest_future_keyframe:
+			if earliest_future_keyframe is None:
+				graphs_types = []
+				for window in windows:
+					graphs_types.extend(self.query.graphs_types(*window))
+				return (
+					None,
+					None,
+					graphs_types,
+					self.query.load_windows(windows),
+				)
+		else:
+			past_branch, past_turn, past_tick = latest_past_keyframe
+			if earliest_future_keyframe is None:
+				# Load data from the keyframe to now
+				windows = self._build_loading_windows(
+					past_branch,
+					past_turn,
+					past_tick,
+					branch,
+					None,
+					None,
+				)
+			else:
+				# Load data between the two keyframes
+				(future_branch, future_turn, future_tick) = (
+					earliest_future_keyframe
+				)
+				windows = self._build_loading_windows(
+					past_branch,
+					past_turn,
+					past_tick,
+					future_branch,
+					future_turn,
+					future_tick,
+				)
+			graphs_types = []
+			for window in windows:
+				graphs_types.extend(self.query.graphs_types(*window))
 			return (
 				latest_past_keyframe,
 				earliest_future_keyframe,
-				self._load_between(
-					*latest_past_keyframe, *earliest_future_keyframe[1:]
-				),
+				graphs_types,
+				self.query.load_windows(windows),
 			)
-		past_branch, past_turn, past_tick = latest_past_keyframe
-		load_keyframe(past_branch, past_turn, past_tick, silent=True)
-		graphs_rows = list(
-			self.query.graphs_types(past_branch, past_turn, past_tick)
-		)
-		self._graph_cache.load(graphs_rows)
 
-		for graph, loaded in loaded_graphs.items():
+	@world_locked
+	def _load_at(self, branch: str, turn: int, tick: int) -> None:
+		if self._time_is_loaded(branch, turn, tick):
+			return
+		self._load(*self._read_at(branch, turn, tick))
+
+	def _load(
+		self,
+		latest_past_keyframe: Optional[Tuple[str, int, int]],
+		earliest_future_keyframe: Optional[Tuple[str, int, int]],
+		graphs_rows: list,
+		loaded: dict,
+	):
+		if latest_past_keyframe:
+			self._get_keyframe(*latest_past_keyframe)
+
+		self._graph_cache.load(graphs_rows)
+		noderows = []
+		edgerows = []
+		nodevalrows = []
+		edgevalrows = []
+		graphvalrows = []
+		for graph, loaded in loaded.items():
 			noderows.extend(loaded["nodes"])
 			edgerows.extend(loaded["edges"])
 			nodevalrows.extend(loaded["node_val"])
 			edgevalrows.extend(loaded["edge_val"])
 			graphvalrows.extend(loaded["graph_val"])
 
+		self._graph_cache.load(graphs_rows)
 		self._nodes_cache.load(noderows)
 		self._edges_cache.load(edgerows)
 		self._graph_val_cache.load(graphvalrows)
 		self._node_val_cache.load(nodevalrows)
 		self._edge_val_cache.load(edgevalrows)
-
-		return (
-			latest_past_keyframe,
-			earliest_future_keyframe,
-			dict(loaded_graphs),
-		)
 
 	def load_at(self, branch: str, turn: int, tick: int) -> None:
 		self._load_at(branch, turn, tick)

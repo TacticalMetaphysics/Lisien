@@ -870,43 +870,6 @@ class Engine(AbstractEngine, gORM, Executor):
 			name: Rule(self, name, create=False) for name in q.rules_dump()
 		}
 
-	@staticmethod
-	def _build_rows(load, lst, windows):
-		if not windows:
-			return
-		if len(windows) == 1:
-			btt = windows[0]
-			lst.extend(load(*btt))
-		for window in reversed(windows):
-			lst.extend(load(*window))
-
-	def _load_ext_windows(self, windows):
-		universal_rows = []
-		rulebooks_rows = []
-		rule_triggers_rows = []
-		rule_prereqs_rows = []
-		rule_actions_rows = []
-		rule_neighborhood_rows = []
-
-		build_rows = self._build_rows
-		build_rows(self.query.load_universals, universal_rows, windows)
-		build_rows(self.query.load_rulebooks, windows, rulebooks_rows)
-		build_rows(self.query.load_rule_triggers, rule_triggers_rows, windows)
-		build_rows(self.query.load_rule_prereqs, rule_prereqs_rows, windows)
-		build_rows(self.query.load_rule_actions, rule_actions_rows, windows)
-		build_rows(
-			self.query.load_rule_neighborhood, rule_neighborhood_rows, windows
-		)
-
-		return {
-			"universals": universal_rows,
-			"rulebooks": rulebooks_rows,
-			"triggers": rule_triggers_rows,
-			"prereqs": rule_prereqs_rows,
-			"actions": rule_actions_rows,
-			"neighborhoods": rule_neighborhood_rows,
-		}
-
 	@world_locked
 	def _load_between(
 		self,
@@ -919,68 +882,73 @@ class Engine(AbstractEngine, gORM, Executor):
 		loaded = super()._load_between(
 			branch, turn_from, tick_from, turn_to, tick_to
 		)
+		if universals := loaded.pop("universals"):
+			self._universal_cache.load(universals)
+		if rulebooks := loaded.pop("rulebooks"):
+			self._rulebooks_cache.load(rulebooks)
+		if rule_triggers := loaded.pop("rule_triggers"):
+			self._triggers_cache.load(rule_triggers)
+		if rule_prereqs := loaded.pop("rule_prereqs"):
+			self._prereqs_cache.load(rule_prereqs)
+		if rule_actions := loaded.pop("rule_actions"):
+			self._actions_cache.load(rule_actions)
+		if rule_neighborhoods := loaded.pop("rule_neighborhoods"):
+			self._neighborhoods_cache.load(rule_neighborhoods)
 		for graph, rowdict in loaded.items():
-			self._things_cache.load(rowdict["things"])
-			self._characters_rulebooks_cache.load(
-				rowdict["character_rulebook"]
-			)
-			self._units_rulebooks_cache.load(rowdict["unit_rulebook"])
-			self._characters_things_rulebooks_cache.load(
-				rowdict["character_thing_rulebook"]
-			)
-			self._characters_places_rulebooks_cache.load(
-				rowdict["character_place_rulebook"]
-			)
-			self._characters_portals_rulebooks_cache.load(
-				rowdict["character_portal_rulebook"]
-			)
+			if rowdict.get("things"):
+				self._things_cache.load(rowdict["things"])
+			if rowdict.get("character_rulebook"):
+				self._characters_rulebooks_cache.load(
+					rowdict["character_rulebook"]
+				)
+			if rowdict.get("unit_rulebook"):
+				self._units_rulebooks_cache.load(rowdict["unit_rulebook"])
+			if rowdict.get("character_thing_rulebook"):
+				self._characters_things_rulebooks_cache.load(
+					rowdict["character_thing_rulebook"]
+				)
+			if rowdict.get("character_place_rulebook"):
+				self._characters_places_rulebooks_cache.load(
+					rowdict["character_place_rulebook"]
+				)
+			if rowdict.get("character_portal_rulebook"):
+				self._characters_portals_rulebooks_cache.load(
+					rowdict["character_portal_rulebook"]
+				)
+			if rowdict.get("node_rulebook"):
+				self._nodes_rulebooks_cache.load(rowdict["node_rulebook"])
+			if rowdict.get("portal_rulebook"):
+				self._portals_rulebooks_cache.load(rowdict["portal_rulebook"])
 		return loaded
 
-	@world_locked
-	def _load_at(self, branch: str, turn: int, tick: int) -> None:
+	def _load(
+		self,
+		latest_past_keyframe: Optional[Tuple[str, int, int]],
+		earliest_future_keyframe: Optional[Tuple[str, int, int]],
+		graphs_rows: list,
+		loaded: dict,
+	) -> None:
 		"""Load history data at the given time
 
 		Will load the keyframe prior to that time, and all history
 		data following, up to (but not including) the keyframe thereafter.
 
 		"""
-		if self._time_is_loaded(branch, turn, tick):
-			return
-		(latest_past_keyframe, earliest_future_keyframe, loaded) = (
-			super()._load_at(branch, turn, tick)
-		)
+		if latest_past_keyframe:
+			self._get_keyframe(*latest_past_keyframe)
 
-		if latest_past_keyframe is None:
-			windows = self._build_loading_windows(
-				self.eternal["main_branch"], 0, 0, branch, turn, tick
-			)
-		else:
-			past_branch, past_turn, past_tick = latest_past_keyframe
-			if earliest_future_keyframe is None:
-				# Load data from the keyframe to now
-				windows = self._build_loading_windows(
-					past_branch,
-					past_turn,
-					past_tick,
-					branch,
-					turn,
-					tick,
-				)
-			else:
-				# Load data between the two keyframes
-				(future_branch, future_turn, future_tick) = (
-					earliest_future_keyframe
-				)
-				windows = self._build_loading_windows(
-					past_branch,
-					past_turn,
-					past_tick,
-					future_branch,
-					future_turn,
-					future_tick,
-				)
-
-		ext = self._load_ext_windows(windows)
+		if universals := loaded.pop("universals", None):
+			self._universal_cache.load(universals)
+		if rulebooks := loaded.pop("rulebooks", None):
+			self._rulebooks_cache.load(rulebooks)
+		if rule_triggers := loaded.pop("rule_triggers", None):
+			self._triggers_cache.load(rule_triggers)
+		if rule_prereqs := loaded.pop("rule_prereqs", None):
+			self._prereqs_cache.load(rule_prereqs)
+		if rule_actions := loaded.pop("rule_actions", None):
+			self._actions_cache.load(rule_actions)
+		if rule_neighborhoods := loaded.pop("rule_neighborhoods", None):
+			self._neighborhoods_cache.load(rule_neighborhoods)
 		for loaded_graph, data in loaded.items():
 			if data.get("things"):
 				self._things_cache.load(data["things"])
@@ -1006,18 +974,9 @@ class Engine(AbstractEngine, gORM, Executor):
 				self._nodes_rulebooks_cache.load(data["node_rulebook"])
 			if data.get("portal_rulebook"):
 				self._portals_rulebooks_cache.load(data["portal_rulebook"])
-		if ext["universals"]:
-			self._universal_cache.load(ext["universals"])
-		if ext["rulebooks"]:
-			self._rulebooks_cache.load(ext["rulebooks"])
-		if ext["triggers"]:
-			self._triggers_cache.load(ext["triggers"])
-		if ext["prereqs"]:
-			self._prereqs_cache.load(ext["prereqs"])
-		if ext["actions"]:
-			self._actions_cache.load(ext["actions"])
-		if ext["neighborhoods"]:
-			self._neighborhoods_cache.load(ext["neighborhoods"])
+		super()._load(
+			latest_past_keyframe, earliest_future_keyframe, graphs_rows, loaded
+		)
 
 	def _init_caches(self) -> None:
 		from .xcollections import (
@@ -2861,7 +2820,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		def get_neighbors(
 			entity: Union[place_cls, thing_cls, portal_cls],
 			neighborhood: Optional[int],
-		) -> Optional[list[Union[Tuple[Key], Tuple[Key, Key]]]]:
+		) -> Optional[List[Union[Tuple[Key], Tuple[Key, Key]]]]:
 			"""Get a list of neighbors within the neighborhood
 
 			Neighbors are given by a tuple containing only their name,
@@ -2872,8 +2831,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			charn = entity.character.name
 			btt = self._btt()
 
-			def get_place_neighbors(name: Key) -> set[Key]:
-				seen: set[Key] = set()
+			def get_place_neighbors(name: Key) -> Set[Key]:
+				seen: Set[Key] = set()
 				for succ in self._edges_cache.iter_successors(
 					charn, name, *btt
 				):
@@ -2893,7 +2852,7 @@ class Engine(AbstractEngine, gORM, Executor):
 					return set()
 
 			def get_place_portals(name: Key) -> Set[Tuple[Key, Key]]:
-				seen: set[Tuple[Key, Key]] = set()
+				seen: Set[Tuple[Key, Key]] = set()
 				seen.update(
 					(name, dest)
 					for dest in self._edges_cache.iter_successors(
