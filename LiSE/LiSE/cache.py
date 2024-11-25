@@ -502,7 +502,7 @@ class PortalRulesHandledCache(RulesHandledCache):
 						if rule not in handled:
 							yield (
 								prio,
-								character,
+								character_name,
 								orig_name,
 								dest_name,
 								rulebook,
