@@ -613,7 +613,11 @@ class WindowDict(MutableMapping):
 		return rev >= beg
 
 	def rev_before(self, rev: int, search=False):
-		"""Return the latest past rev on which the value changed."""
+		"""Return the latest past rev on which the value changed.
+
+		If it changed on this exact rev, return the rev.
+
+		"""
 		with self._lock:
 			if search:
 				self.search(rev)
