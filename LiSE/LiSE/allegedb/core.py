@@ -1873,6 +1873,7 @@ class ORM:
 						latest_past_keyframe = (branch, turn, tick)
 				else:
 					latest_past_keyframe = (branch, turn, tick)
+		(branch, turn, tick) = (branch_now, turn_now, tick_now)
 		if not loading or branch not in self._loaded:
 			return latest_past_keyframe, earliest_future_keyframe
 		if (
