@@ -82,6 +82,9 @@ SlightlyPackedDeltaType = Dict[
 FormerAndCurrentType = Tuple[Dict[bytes, bytes], Dict[bytes, bytes]]
 
 
+EMPTY_MAPPING = msgpack.packb({})
+
+
 def concat_d(r: Dict[bytes, bytes]) -> bytes:
 	"""Pack a dictionary of msgpack-encoded keys and values into msgpack bytes"""
 	resp = msgpack.Packer().pack_map_header(len(r))
@@ -344,6 +347,12 @@ class EngineHandle:
 						"Out of bounds", *self._real._btt(), branch, turn, tick
 					)
 		branch_from, turn_from, tick_from = self._real._btt()
+		if (branch_from, turn_from, tick_from) == (
+			self._real._obranch,
+			self._real._oturn,
+			self._real._otick,
+		):
+			return NONE, EMPTY_MAPPING
 		self._real.time = (branch, turn)
 		if tick is not None:
 			self._real.tick = tick
