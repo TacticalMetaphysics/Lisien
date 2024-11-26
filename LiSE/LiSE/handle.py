@@ -17,9 +17,7 @@ ordinary method calls.
 
 """
 
-from concurrent.futures import ThreadPoolExecutor
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
-from operator import itemgetter
 from re import match
 from importlib import import_module
 from typing import (
@@ -29,22 +27,16 @@ from typing import (
 	Union,
 	Any,
 	List,
-	Literal,
 	Iterable,
 	Optional,
 )
 
 import msgpack
-import numpy as np
 
 from .allegedb import OutOfTimelineError, Key
-from .allegedb.cache import StructuredDefaultDict, PickyDefaultDict
 from .engine import (
 	Engine,
-	TRUE,
-	FALSE,
 	NONE,
-	NAME,
 	NODES,
 	EDGES,
 	UNITS,
@@ -54,13 +46,7 @@ from .engine import (
 	EDGE_VAL,
 	ETERNAL,
 	UNIVERSAL,
-	STRINGS,
 	RULES,
-	TRIGGERS,
-	PREREQS,
-	ACTIONS,
-	LOCATION,
-	BRANCH,
 )
 from .node import Node
 from .portal import Portal
