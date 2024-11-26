@@ -333,14 +333,26 @@ class EngineHandle:
 						"Out of bounds", *self._real._btt(), branch, turn, tick
 					)
 		branch_from, turn_from, tick_from = self._real._btt()
-		if (branch_from, turn_from, tick_from) == (
-			self._real._obranch,
-			self._real._oturn,
-			self._real._otick,
-		):
-			return NONE, EMPTY_MAPPING
-		self._real.time = (branch, turn)
-		if tick is not None:
+		if tick is None:
+			if (
+				branch,
+				turn,
+				self._real._turn_end_plan.get((branch, turn)),
+			) == (
+				branch_from,
+				turn_from,
+				tick_from,
+			):
+				return NONE, EMPTY_MAPPING
+			self._real.time = (branch, turn)
+		else:
+			if (branch, turn, tick) == (
+				branch_from,
+				turn_from,
+				tick_from,
+			):
+				return NONE, EMPTY_MAPPING
+			self._real.time = (branch, turn)
 			self._real.tick = tick
 		if turn_from != turn and (
 			branch_from != branch
