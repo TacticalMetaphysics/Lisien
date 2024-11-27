@@ -665,18 +665,7 @@ class ORM:
 			"""Change a delta to say that an edge stat was set to a certain value"""
 			if (graphstat := delta.setdefault(graph, {})) is not None:
 				if is_multigraph(graph):
-					if (
-						graph in delta
-						and "edges" in delta[graph]
-						and orig in delta[graph]["edges"]
-						and dest in delta[graph]["edges"][orig]
-						and idx in delta[graph]["edges"][orig][dest]
-						and not delta[graph]["edges"][orig][dest][idx]
-					):
-						return
-					graphstat.setdefault("edge_val", {}).setdefault(
-						orig, {}
-					).setdefault(dest, {}).setdefault(idx, {})[key] = value
+					raise NotImplementedError("Only digraphs for now")
 				else:
 					if (
 						graph in delta
