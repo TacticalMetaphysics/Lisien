@@ -2120,9 +2120,13 @@ class Engine(AbstractEngine, gORM, Executor):
 			branch in portal_rulebooks_settings
 			and turn in portal_rulebooks_settings[branch]
 		):
-			for character, orig, dest, rulebook in portal_rulebooks_settings[
-				branch
-			][turn][tick_from:tick_to]:
+			for setting in portal_rulebooks_settings[branch][turn][
+				tick_from:tick_to
+			]:
+				try:
+					character, orig, dest, rulebook = setting
+				except ValueError:
+					continue
 				chardelt = delta.setdefault(character, {})
 				if chardelt is None:
 					continue
