@@ -359,6 +359,7 @@ class EngineHandle:
 			or None in (turn_from, turn)
 			or self._real._is_timespan_too_big(branch, turn_from, turn)
 		):
+			# This branch avoids unpacking and re-packing the delta
 			slightly: SlightlyPackedDeltaType = self._real._get_slow_delta(
 				(branch_from, turn_from, tick_from), self._real._btt()
 			)
