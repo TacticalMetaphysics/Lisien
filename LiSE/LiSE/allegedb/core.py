@@ -642,13 +642,15 @@ class ORM:
 			"""Change a delta to say that an edge was created or deleted"""
 			if (graphstat := delta.setdefault(graph, {})) is not None:
 				if is_multigraph(graph):
-					graphstat.setdefault("edges", {})[orig, dest, idx] = bool(
-						exists
-					)
+					raise NotImplementedError("Only digraphs for now")
+				if "edges" in graphstat:
+					es = graphstat["edges"]
+					if orig in es:
+						es[orig][dest] = exists
+					else:
+						es[orig] = {dest: exists}
 				else:
-					graphstat.setdefault("edges", {})[orig, dest] = bool(
-						exists
-					)
+					graphstat["edges"] = {orig: {dest: exists}}
 
 		def setedgeval(
 			delta: DeltaDict,
