@@ -598,7 +598,7 @@ class ORM:
 			if val is None:
 				delta[graph] = None
 			elif graph in delta and delta[graph] is None:
-				del delta[graph]
+				return
 
 		def setgraphval(
 			delta: DeltaDict, graph: Key, key: Key, val: Any
