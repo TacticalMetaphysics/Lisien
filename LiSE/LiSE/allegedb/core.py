@@ -1720,7 +1720,7 @@ class ORM:
 					return self._get_kf(branch, turn, tick)
 			the_kf = self._recurse_delta_keyframes((branch, turn, tick))
 		if the_kf not in self._keyframes_loaded:
-			self._get_keyframe(*the_kf, copy=False)
+			self._get_keyframe(*the_kf, silent=True)
 		if the_kf != (branch, turn, tick):
 			self._snap_keyframe_from_delta(
 				the_kf,
