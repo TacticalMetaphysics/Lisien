@@ -966,9 +966,15 @@ class PlaceMapProxy(CachingProxy):
 class SuccessorsProxy(CachingProxy):
 	@property
 	def _cache(self):
-		return self.engine._character_portals_cache.successors[self._charname][
-			self._orig
-		]
+		succ = self.engine._character_portals_cache.successors
+		if self._charname not in succ:
+			raise KeyError("No portals in this character")
+		succc = succ[self._charname]
+		if self._orig not in succc:
+			raise KeyError(
+				"No successors to this portal", self._charname, self._orig
+			)
+		return succc[self._orig]
 
 	def _set_rulebook_proxy(self, k):
 		raise NotImplementedError(
@@ -1043,6 +1049,8 @@ class CharSuccessorsMappingProxy(CachingProxy):
 
 	@property
 	def _cache(self):
+		if self.name not in self.engine._character_portals_cache.successors:
+			raise KeyError("No successors to this node", self.name)
 		return self.engine._character_portals_cache.successors[self.name]
 
 	def __init__(self, engine_proxy, charname):
@@ -1061,6 +1069,8 @@ class CharSuccessorsMappingProxy(CachingProxy):
 		return {vk: PortalProxy(self, vk, vv) for (vk, vv) in v.items()}
 
 	def __getitem__(self, k):
+		if k not in self:
+			raise KeyError("No successors to this node", self.name, k)
 		return SuccessorsProxy(self.engine, self.name, k)
 
 	def _apply_delta(self, delta):
@@ -1665,6 +1675,7 @@ class CharacterProxy(AbstractCharacter):
 						self.engine._character_portals_cache.delete(
 							self.name, orig, dest
 						)
+						assert dest not in self.portal[orig]
 					except KeyError:
 						pass
 					self.portal.send(prox, key=None, value=False)
@@ -2350,28 +2361,46 @@ class ChangeSignatureError(TypeError):
 	pass
 
 
-class PortalObjCache(object):
+class PortalObjCache:
 	def __init__(self):
-		self.successors = StructuredDefaultDict(2, PortalProxy)
-		self.predecessors = StructuredDefaultDict(2, PortalProxy)
+		self.successors = {}
+		self.predecessors = {}
 
 	def store(self, char: Key, u: Key, v: Key, obj: PortalProxy) -> None:
-		self.successors[char][u][v] = obj
-		self.predecessors[char][v][u] = obj
+		succ = self.successors
+		if char in succ:
+			char_us = succ[char]
+			if u in char_us:
+				char_us[u][v] = obj
+			else:
+				char_us[u] = {v: obj}
+		else:
+			succ[char] = {u: {v: obj}}
+		pred = self.predecessors
+		if char in pred:
+			char_vs = pred[char]
+			if v in char_vs:
+				char_vs[v][u] = obj
+			else:
+				char_vs[v] = {u: obj}
+		else:
+			pred[char] = {v: {u: obj}}
 
 	def delete(self, char: Key, u: Key, v: Key) -> None:
-		for mapp, a, b in [(self.successors, u, v), (self.predecessors, v, u)]:
-			if char not in mapp:
-				raise KeyError(char)
-			submap = mapp[char]
-			if a not in submap:
-				raise KeyError((char, a))
-			submap_a = submap[a]
-			if b not in submap_a:
-				raise KeyError((char, a, b))
-			del submap_a[b]
-			if not submap_a:
-				del submap[a]
+		succ = self.successors
+		if char in succ:
+			succ_us = succ[char]
+			if u in succ_us:
+				del succ_us[u][v]
+			if not succ_us:
+				del succ[char]
+		pred = self.predecessors
+		if char in pred:
+			pred_vs = pred[char]
+			if v in pred_vs:
+				del pred_vs[v][u]
+			if not pred_vs:
+				del pred[char]
 
 	def delete_char(self, char: Key) -> None:
 		if char in self.successors:
