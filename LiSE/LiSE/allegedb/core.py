@@ -595,10 +595,10 @@ class ORM:
 
 		def setgraph(delta: DeltaDict, _: None, graph: Key, val: Any) -> None:
 			"""Change a delta to say that a graph was deleted or not"""
-			if val is None:
+			if val in (None, "Deleted"):
 				delta[graph] = None
 			elif graph in delta and delta[graph] is None:
-				return
+				delta[graph] = {}
 
 		def setgraphval(
 			delta: DeltaDict, graph: Key, key: Key, val: Any
