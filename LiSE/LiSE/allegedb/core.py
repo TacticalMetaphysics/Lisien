@@ -666,17 +666,16 @@ class ORM:
 			if (graphstat := delta.setdefault(graph, {})) is not None:
 				if is_multigraph(graph):
 					raise NotImplementedError("Only digraphs for now")
-				else:
-					if (
-						graph in delta
-						and "edges" in delta[graph]
-						and (orig, dest) in delta[graph]["edges"]
-						and not delta[graph]["edges"][orig, dest]
-					):
-						return
-					graphstat.setdefault("edge_val", {}).setdefault(
-						orig, {}
-					).setdefault(dest, {})[key] = value
+				if (
+					"edges" in graphstat
+					and orig in graphstat["edges"]
+					and dest in graphstat["edges"][orig]
+					and not graphstat["edges"][orig][dest]
+				):
+					return
+				graphstat.setdefault("edge_val", {}).setdefault(
+					orig, {}
+				).setdefault(dest, {})[key] = value
 
 		from functools import partial
 
