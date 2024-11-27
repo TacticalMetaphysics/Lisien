@@ -1538,17 +1538,18 @@ class ORM:
 				self._node_val_cache.set_keyframe((graph, node), *now, val)
 			if deltg is not None and "edges" in deltg:
 				dge = deltg.pop("edges")
-				for (orig, dest), exists in dge.items():
-					if orig in ekg:
-						if exists:
-							ekg[orig][dest] = exists
-						else:
-							if dest in ekg[orig]:
-								del ekg[orig][dest]
-							if orig in evkg and dest in evkg[orig]:
-								del evkg[orig][dest]
-					elif exists:
-						ekg[orig] = {dest: exists}
+				for orig, dests in dge.items():
+					for dest, exists in dests.items():
+						if orig in ekg:
+							if exists:
+								ekg[orig][dest] = exists
+							else:
+								if dest in ekg[orig]:
+									del ekg[orig][dest]
+								if orig in evkg and dest in evkg[orig]:
+									del evkg[orig][dest]
+						elif exists:
+							ekg[orig] = {dest: exists}
 			if graph in edges_keyframe:
 				if graph not in edge_val_keyframe:
 					edge_val_keyframe[graph] = {}
