@@ -843,9 +843,9 @@ class ORM:
 						)
 					):
 						continue
-					delta.setdefault(graph, {}).setdefault("edges", {})[
-						orig, dest
-					] = bool(exists)
+					delta.setdefault(graph, {}).setdefault(
+						"edges", {}
+					).setdefault(orig, {})[dest] = bool(exists)
 				else:
 					if graph in delta and (
 						delta[graph] is None
@@ -857,9 +857,9 @@ class ORM:
 						)
 					):
 						continue
-					delta.setdefault(graph, {}).setdefault("edges", {})[
-						orig, dest
-					] = bool(exists)
+					delta.setdefault(graph, {}).setdefault(
+						"edges", {}
+					).setdefault(orig, {})[dest] = bool(exists)
 
 		if branch in evbranches and turn in evbranches[branch]:
 			for graph, orig, dest, idx, key, value in evbranches[branch][turn][
