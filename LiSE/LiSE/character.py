@@ -1242,6 +1242,20 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				planning = engine._planning
 				forward = engine._forward
 				branch, turn, start_tick = engine._btt()
+				if (
+					turn < engine._branches[branch][3]
+					or start_tick < engine._turn_end_plan[branch, turn]
+				):
+					raise RuntimeError(
+						"Tried to update successors in the past"
+					)
+				if (
+					turn > engine._branches[branch][3]
+					or start_tick > engine._turn_end_plan[branch, turn]
+				):
+					raise RuntimeError(
+						"Tried to update successors in the future"
+					)
 				tick = start_tick + 1
 				with self.db.world_lock:
 					for dest, val in chain(other.items(), kwargs.items()):
