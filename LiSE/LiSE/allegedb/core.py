@@ -1587,6 +1587,8 @@ class ORM:
 					):
 						units_kf = graph_val_keyframe[graph]["units"]
 						units_update = deltg.pop("units")
+						if not units_update:
+							continue
 						for newgraf in units_update.keys() - units_kf.keys():
 							units_kf[newgraf] = units_update[newgraf]
 						for oldgraf, unitz in units_kf.items():
