@@ -1243,17 +1243,43 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				forward = engine._forward
 				branch, turn, start_tick = engine._btt()
 				tick = start_tick + 1
-				for dest, val in chain(other.items(), kwargs.items()):
-					if val is None:
-						for k in iter_edge_keys(
-							charn, orig, dest, 0, branch, turn, start_tick
-						):
-							store_edge_val(
+				with self.db.world_lock:
+					for dest, val in chain(other.items(), kwargs.items()):
+						if val is None:
+							for k in iter_edge_keys(
+								charn, orig, dest, 0, branch, turn, start_tick
+							):
+								store_edge_val(
+									charn,
+									orig,
+									dest,
+									0,
+									k,
+									branch,
+									turn,
+									tick,
+									None,
+									planning=planning,
+									forward=forward,
+									loading=True,
+								)
+								set_edge_val(
+									charn,
+									orig,
+									dest,
+									0,
+									k,
+									branch,
+									turn,
+									tick,
+									None,
+								)
+								tick += 1
+							store_edge(
 								charn,
 								orig,
 								dest,
 								0,
-								k,
 								branch,
 								turn,
 								tick,
@@ -1262,35 +1288,76 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 								forward=forward,
 								loading=True,
 							)
-							set_edge_val(
+							exist_edge(
+								charn, orig, dest, 0, branch, turn, tick, None
+							)
+							tick += 1
+						else:
+							store_edge(
 								charn,
 								orig,
 								dest,
 								0,
-								k,
 								branch,
 								turn,
 								tick,
-								None,
+								True,
+								planning=planning,
+								forward=forward,
+								loading=True,
+							)
+							exist_edge(
+								charn, orig, dest, 0, branch, turn, tick, True
 							)
 							tick += 1
-						store_edge(
-							charn,
-							orig,
-							dest,
-							0,
-							branch,
-							turn,
-							tick,
-							None,
-							planning=planning,
-							forward=forward,
-							loading=True,
-						)
-						exist_edge(
-							charn, orig, dest, 0, branch, turn, tick, None
-						)
-						tick += 1
+							for key, value in val.items():
+								store_edge_val(
+									charn,
+									orig,
+									dest,
+									0,
+									key,
+									branch,
+									turn,
+									tick,
+									value,
+								)
+								set_edge_val(
+									charn,
+									orig,
+									dest,
+									0,
+									key,
+									branch,
+									turn,
+									tick,
+									value,
+									planning=planning,
+									forward=forward,
+									loading=True,
+								)
+								tick += 1
+					parent, start_turn, start_tick, end_turn, _ = (
+						self.db._branches[branch]
+					)
+					self.db._branches[branch] = (
+						parent,
+						start_turn,
+						start_tick,
+						end_turn,
+						tick,
+					)
+					self.db._turn_end_plan[branch, turn] = tick
+					if not planning:
+						self.db._turn_end[branch, turn] = tick
+					turn_from, tick_from, turn_to, _ = self.db._loaded[branch]
+					self.db._loaded[branch] = (
+						turn_from,
+						tick_from,
+						turn_to,
+						tick,
+					)
+					self.db._otick = tick
 
 	adj_cls = PortalSuccessorsMapping
 
