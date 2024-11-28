@@ -2282,7 +2282,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			charunit = self._unitness_cache.get_keyframe(
 				(graph,), b, r, t, copy=True
 			)
-			if "units" in delt:
+			if "units" in delt and delt["units"]:
 				for graf, units in delt["units"].items():
 					if graf in charunit:
 						charunit[graf].update(units)
