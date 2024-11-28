@@ -694,10 +694,16 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 		del self._cache[key]
 
 	def __iter__(self):
-		return iter(self.graph.node)
+		for node in self.graph.node:
+			if node in self:
+				yield node
 
 	def __len__(self):
-		return len(self.graph.node)
+		n = 0
+		for node in self.graph.node:
+			if node in self:
+				n += 1
+		return n
 
 	def __contains__(self, key):
 		return (
