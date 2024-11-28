@@ -1172,6 +1172,10 @@ class Engine(AbstractEngine, gORM, Executor):
 		self, branch: str, turn: int, tick: int, copy: bool = True
 	) -> dict:
 		kf = super()._get_kf(branch, turn, tick, copy=copy)
+		for graph, vals in kf["graph_val"].items():
+			vals["units"] = self._unitness_cache.get_keyframe(
+				(graph,), branch, turn, tick
+			)
 		kf["universal"] = self._universal_cache.get_keyframe(
 			branch, turn, tick
 		)
