@@ -700,7 +700,12 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 		return len(self.graph.node)
 
 	def __contains__(self, key):
-		return key in self.graph.node
+		return (
+			self.db._edges_cache.count_successors(
+				self.graph.name, key, *self.db._btt()
+			)
+			> 0
+		)
 
 	def __repr__(self):
 		cls = self.__class__
