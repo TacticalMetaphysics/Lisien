@@ -60,6 +60,7 @@ from .allegedb import (
 	DeltaDict,
 	Key,
 	world_locked,
+	OutOfTimelineError,
 )
 from .allegedb.cache import (
 	KeyframeError,
@@ -2374,7 +2375,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			raise ValueError("Turns can't be negative")
 		turn_end = self._branches[self.branch][3]
 		if not self._planning and v > turn_end + 1:
-			raise exc.OutOfTimelineError(
+			raise OutOfTimelineError(
 				f"The turn {v} is after the end of the branch {self.branch}. "
 				f"Go to turn {turn_end + 1} and simulate with `next_turn`.",
 				self.branch,
@@ -2399,7 +2400,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			raise ValueError("Ticks can't be negative")
 		tick_end = self._turn_end_plan[self.branch, self.turn]
 		if v > tick_end + 1:
-			raise exc.OutOfTimelineError(
+			raise OutOfTimelineError(
 				f"The tick {v} is after the end of the turn {self.turn}. "
 				f"Go to tick {tick_end + 1} and simulate with `next_turn`.",
 				self.branch,
