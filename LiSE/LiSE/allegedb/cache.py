@@ -800,6 +800,125 @@ class Cache:
 			if not db._no_kc:
 				update_keycache(*args, forward=forward)
 
+	def remove_character(self, character):
+		(
+			lock,
+			time_entity,
+			parents,
+			branches,
+			keys,
+			settings,
+			presettings,
+			remove_keycache,
+			keycache,
+		) = self._remove_stuff
+		todel = {
+			(branch, turn, tick, parent, entity, key)
+			for (
+				(branch, turn, tick),
+				(parent, entity, key),
+			) in time_entity.items()
+			if (parent and parent[0] == character)
+			or (not parent and entity == character)
+		}
+		todel_shallow = {k for k in self.shallowest if k[0] == character}
+		with lock:
+			for k in todel_shallow:
+				del self.shallowest[k]
+			for branch, turn, tick, parent, entity, key in todel:
+				self._remove_btt_parentikey(
+					branch, turn, tick, parent, entity, key
+				)
+
+	def remove_branch(self, branch: str):
+		(
+			lock,
+			time_entity,
+			parents,
+			branches,
+			keys,
+			settings,
+			presettings,
+			remove_keycache,
+			keycache,
+		) = self._remove_stuff
+		todel = {
+			(branc, turn, tick, parent, entity, key)
+			for (
+				(branc, turn, tick),
+				(parent, entity, key),
+			) in time_entity.items()
+			if branc == branch
+		}
+		todel_shallow = {k for k in self.shallowest if k[-2] == branch}
+		with lock:
+			for k in todel_shallow:
+				del self.shallowest[k]
+			for branc, turn, tick, parent, entity, key in todel:
+				self._remove_btt_parentikey(
+					branc, turn, tick, parent, entity, key
+				)
+				if (
+					*parent,
+					entity,
+					key,
+					branc,
+					turn,
+					tick,
+				) in self.shallowest:
+					del self.shallowest[
+						(*parent, entity, key, branc, turn, tick)
+					]
+
+	def _remove_btt_parentikey(self, branch, turn, tick, parent, entity, key):
+		(
+			_,
+			time_entity,
+			parents,
+			branches,
+			keys,
+			settings,
+			presettings,
+			remove_keycache,
+			keycache,
+		) = self._remove_stuff
+		try:
+			del time_entity[branch][turn][tick]
+		except KeyError:
+			pass
+		branchkey = parent + (entity, key)
+		keykey = parent + (entity,)
+		if parent in parents:
+			parentt = parents[parent]
+			if entity in parentt:
+				entty = parentt[entity]
+				if key in entty:
+					kee = entty[key]
+					if branch in kee:
+						del kee[branch]
+					if not kee:
+						del entty[key]
+				if not entty:
+					del parentt[entity]
+			if not parentt:
+				del parents[parent]
+		if branchkey in branches:
+			entty = branches[branchkey]
+			if branch in entty:
+				del entty[branch]
+			if not entty:
+				del branches[branchkey]
+		if keykey in keys:
+			entty = keys[keykey]
+			if key in entty:
+				kee = entty[key]
+				if branch in kee:
+					del kee[branch]
+				if not kee:
+					del entty[key]
+			if not entty:
+				del keys[keykey]
+
 	def remove(self, branch: str, turn: int, tick: int):
 		"""Delete all data from a specific tick"""
 		(
