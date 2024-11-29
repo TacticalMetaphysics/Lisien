@@ -1042,6 +1042,10 @@ class ORM:
 		self._nodes_cache.deldb = self.query.nodes_del_time
 		self._graph_val_cache.setdb = self.query.graph_val_set
 		self._graph_val_cache.deldb = self.query.graph_val_del_time
+		self._keyframes_list = []
+		self._keyframes_dict = PickyDefaultDict(WindowDict)
+		self._keyframes_times = set()
+		self._keyframes_loaded = set()
 		self.query.initdb()
 		if main_branch is not None:
 			self.query.globl["main_branch"] = main_branch
@@ -1102,10 +1106,6 @@ class ORM:
 			Callable[[Key, Key, Key, int, str, int, int, bool], None],
 			Callable[[Key, Key, Key, int, str, int, int, Any], None],
 		] = (self._nbtt, self.query.exist_edge, self._edges_cache.store)
-		self._keyframes_list = []
-		self._keyframes_dict = PickyDefaultDict(WindowDict)
-		self._keyframes_times = set()
-		self._keyframes_loaded = set()
 		self._load_graphs()
 		assert hasattr(self, "graph")
 		self._loaded: Dict[
