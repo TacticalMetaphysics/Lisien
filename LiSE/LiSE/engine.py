@@ -2003,17 +2003,16 @@ class Engine(AbstractEngine, gORM, Executor):
 				if (
 					not isinstance(stuff, list)
 					or len(stuff) != 1
-					or not isinstance(stuff[0], tuple)
-					or len(stuff[0]) != 2
+					or not isinstance(stuff[0], dict)
 				):
 					continue
-				node, is_av = stuff[0]
 				chardelt = delta.setdefault(chara, {})
 				if chardelt is None:
 					continue
-				chardelt.setdefault("units", {}).setdefault(graph, {})[
-					node
-				] = is_av
+				for node, is_av in stuff[0].items():
+					chardelt.setdefault("units", {}).setdefault(graph, {})[
+						node
+					] = is_av
 		if branch in things_settings and turn in things_settings[branch]:
 			for chara, thing, location in things_settings[branch][turn][
 				tick_from:tick_to
