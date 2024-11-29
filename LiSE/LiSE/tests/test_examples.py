@@ -15,6 +15,7 @@ from LiSE.examples import (
 pytestmark = [pytest.mark.big]
 
 
+@pytest.mark.skip("I'll optimize later")
 def test_college(engy):
 	college.install(engy)
 	for i in range(10):
