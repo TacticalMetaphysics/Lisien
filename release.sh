@@ -8,6 +8,7 @@ python -m sphinx --version
 pyclean --version
 wine --version
 ls ~/lise_windows
+rm -rf .tox
 python -m tox
 python -m sphinx . docs/
 rm -rf LiSE/build LiSE/dist
