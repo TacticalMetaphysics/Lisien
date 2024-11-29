@@ -783,8 +783,8 @@ class ORM:
 			for _, graph, typ in gbranches[branch][turn][tick_from:tick_to]:
 				if typ == "Deleted":
 					delta[graph] = None
-				elif graph in delta and delta[graph] is None:
-					del delta[graph]
+				else:
+					delta[graph] = {}
 
 		if branch in gvbranches and turn in gvbranches[branch]:
 			for graph, key, value in gvbranches[branch][turn][
