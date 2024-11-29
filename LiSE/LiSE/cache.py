@@ -183,6 +183,8 @@ class UnitnessCache(Cache):
 				(*characters, graph), branch, turn, tick, subkf
 			)
 			if isinstance(subkf, dict):
+				if isinstance(characters, tuple) and len(characters) == 1:
+					characters = characters[0]
 				for unit, is_unit in subkf.items():
 					try:
 						kf = self.user_cache.get_keyframe(
