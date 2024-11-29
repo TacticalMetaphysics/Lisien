@@ -309,8 +309,8 @@ class Rule:
 		"""
 		self.engine = engine
 		self.name = self.__name__ = name
-		branch, turn, tick = engine._btt()
 		if create:
+			branch, turn, tick = engine._nbtt()
 			if (
 				self.engine._triggers_cache.contains_key(
 					name, branch, turn, tick
