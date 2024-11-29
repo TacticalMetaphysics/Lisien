@@ -2000,7 +2000,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			for chara, graph, *stuff in unitness_settings[branch][turn][
 				tick_from:tick_to
 			]:
-				if (
+				if (graph in delta and delta[graph] is None) or (
 					not isinstance(stuff, list)
 					or len(stuff) != 1
 					or not isinstance(stuff[0], dict)
