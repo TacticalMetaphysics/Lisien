@@ -1768,9 +1768,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		self.engine._exist_node(g, n)
 		# Declare that the node is my unit
 		branch, turn, tick = self.engine._nbtt()
-		self.engine._remember_unitness(
-			self.name, g, n, branch=branch, turn=turn, tick=tick
+		self.engine._unitness_cache.store(
+			self.name, g, n, branch, turn, tick, True
 		)
+		self.engine.query.unit_set(self.name, g, n, branch, turn, tick, True)
 
 	def remove_unit(self, a, b=None):
 		"""This is no longer my unit, though it still exists"""
@@ -1790,7 +1791,11 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		else:
 			g = a.name if isinstance(a, Character) else a
 			n = b.name if isinstance(b, Node) else b
-		self.engine._remember_unitness(self.character.name, g, n, False)
+		branch, turn, tick = self.engine._nbtt()
+		self.engine._unitness_cache.store(
+			self.name, g, n, branch, turn, tick, False
+		)
+		self.engine.query.unit_set(self.name, g, n, branch, turn, tick, False)
 
 	def portals(self):
 		"""Iterate over all portals."""

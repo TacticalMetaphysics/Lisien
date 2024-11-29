@@ -2143,36 +2143,6 @@ class Engine(AbstractEngine, gORM, Executor):
 	def _del_rulebook(self, rulebook):
 		raise NotImplementedError("Can't delete rulebooks yet")
 
-	def _remember_unitness(
-		self,
-		character: Character,
-		graph: Character,
-		node: Union[thing_cls, place_cls],
-		is_unit=True,
-		branch: str = None,
-		turn: int = None,
-		tick: int = None,
-	) -> None:
-		"""Use this to record a change in unitness.
-
-		Should be called whenever a node that wasn't a unit of a
-		character now is, and whenever a node that was a unit of a
-		character now isn't.
-
-		``character`` is the one using the node as a unit,
-		``graph`` is the character the node is in.
-
-		"""
-		branch = branch or self.branch
-		turn = turn or self.turn
-		tick = tick or self.tick
-		self._unitness_cache.store(
-			character, graph, node, branch, turn, tick, is_unit
-		)
-		self.query.unit_set(
-			character, graph, node, branch, turn, tick, is_unit
-		)
-
 	@property
 	def stores(self):
 		return (
