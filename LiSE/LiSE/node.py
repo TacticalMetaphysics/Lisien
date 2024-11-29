@@ -88,6 +88,11 @@ class UserMapping(Mapping):
 	def __iter__(self) -> Iterator[Key]:
 		yield from self._user_names()
 
+	def __contains__(self, item: Key) -> bool:
+		return item in self.engine._unitness_cache.user_cache.retrieve(
+			self.node.character.name, self.node.name, *self.engine._btt()
+		)
+
 	def __len__(self) -> int:
 		return self.engine._unitness_cache.user_cache.count_keys(
 			self.node.character.name, self.node.name, *self.engine._btt()
@@ -99,12 +104,6 @@ class UserMapping(Mapping):
 				self.node.character.name, self.node.name, *self.engine._btt()
 			)
 		)
-
-	def __contains__(self, item) -> bool:
-		chara = self.engine.character[item]
-		nn = self.node.name
-		charn = self.node.character.name
-		return charn in chara.unit and nn in chara.unit[charn]
 
 	def __getitem__(self, k) -> AbstractCharacter:
 		ret = self.engine.character[k]
