@@ -1953,7 +1953,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			if turn == self.turn:
 				tick_to = self.tick
 			else:
-				tick_to = self._turn_end[turn]
+				tick_to = self._turn_end[branch, turn]
 		delta = super()._get_turn_delta(branch, turn, tick_from, tick_to)
 		if tick_from < tick_to:
 			attribute = "settings"
