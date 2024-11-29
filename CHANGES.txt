@@ -1,4 +1,6 @@
-== 0.17.1 | TBD ==
+== 0.17.1 | 2024-11-29 ==
+* Fix rule poller. It only worked for some rulebook types before.
+* Performance improvements as a result of new caching behavior for the above.
 * Disable editing all throughout ELiDE whenever the simulation is running.
   It was only disabled sometimes, in some parts of the UI.
 * Add a button to edit a function card without backing out of the rule editor
