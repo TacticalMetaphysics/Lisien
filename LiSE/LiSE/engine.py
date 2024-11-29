@@ -2155,11 +2155,11 @@ class Engine(AbstractEngine, gORM, Executor):
 	) -> None:
 		"""Use this to record a change in unitness.
 
-		Should be called whenever a node that wasn't an unit of a
-		character now is, and whenever a node that was an unit of a
+		Should be called whenever a node that wasn't a unit of a
+		character now is, and whenever a node that was a unit of a
 		character now isn't.
 
-		``character`` is the one using the node as an unit,
+		``character`` is the one using the node as a unit,
 		``graph`` is the character the node is in.
 
 		"""
