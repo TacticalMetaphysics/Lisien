@@ -136,9 +136,14 @@ class RuleFollower(BaseRuleFollower):
 		pass
 
 	def _get_rulebook_name(self):
-		return self._get_rulebook_cache().retrieve(
-			self.character.name, *self.engine._btt()
-		)
+		try:
+			return self._get_rulebook_cache().retrieve(
+				self.character.name, *self.engine._btt()
+			)
+		except KeyError:
+			ret = (self._book + "_rulebook", self.character.name)
+			self._set_rulebook_name(ret)
+			return ret
 
 	def _set_rulebook_name(self, n):
 		branch, turn, tick = self.engine._nbtt()
@@ -1152,7 +1157,20 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 									v,
 								)
 								tick += 1
-			engine.tick = tick
+			parent, start_turn, start_tick, end_turn, _ = (
+				self.engine._branches[branch]
+			)
+			self.engine._branches[branch] = (
+				parent,
+				start_turn,
+				start_tick,
+				end_turn,
+				tick,
+			)
+			self.engine._turn_end_plan[branch, turn] = tick
+			if not self.engine._planning:
+				self.engine._turn_end[branch, turn] = tick
+			self.engine.tick = tick
 
 		class Successors(DiGraphSuccessorsMapping.Successors):
 			"""Mapping for possible destinations from some node."""
@@ -1224,18 +1242,58 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				planning = engine._planning
 				forward = engine._forward
 				branch, turn, start_tick = engine._btt()
+				if (
+					turn < engine._branches[branch][3]
+					or start_tick < engine._turn_end_plan[branch, turn]
+				):
+					raise RuntimeError(
+						"Tried to update successors in the past"
+					)
+				if (
+					turn > engine._branches[branch][3]
+					or start_tick > engine._turn_end_plan[branch, turn]
+				):
+					raise RuntimeError(
+						"Tried to update successors in the future"
+					)
 				tick = start_tick + 1
-				for dest, val in chain(other.items(), kwargs.items()):
-					if val is None:
-						for k in iter_edge_keys(
-							charn, orig, dest, 0, branch, turn, start_tick
-						):
-							store_edge_val(
+				with self.db.world_lock:
+					for dest, val in chain(other.items(), kwargs.items()):
+						if val is None:
+							for k in iter_edge_keys(
+								charn, orig, dest, 0, branch, turn, start_tick
+							):
+								store_edge_val(
+									charn,
+									orig,
+									dest,
+									0,
+									k,
+									branch,
+									turn,
+									tick,
+									None,
+									planning=planning,
+									forward=forward,
+									loading=True,
+								)
+								set_edge_val(
+									charn,
+									orig,
+									dest,
+									0,
+									k,
+									branch,
+									turn,
+									tick,
+									None,
+								)
+								tick += 1
+							store_edge(
 								charn,
 								orig,
 								dest,
 								0,
-								k,
 								branch,
 								turn,
 								tick,
@@ -1244,35 +1302,76 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 								forward=forward,
 								loading=True,
 							)
-							set_edge_val(
+							exist_edge(
+								charn, orig, dest, 0, branch, turn, tick, None
+							)
+							tick += 1
+						else:
+							store_edge(
 								charn,
 								orig,
 								dest,
 								0,
-								k,
 								branch,
 								turn,
 								tick,
-								None,
+								True,
+								planning=planning,
+								forward=forward,
+								loading=True,
+							)
+							exist_edge(
+								charn, orig, dest, 0, branch, turn, tick, True
 							)
 							tick += 1
-						store_edge(
-							charn,
-							orig,
-							dest,
-							0,
-							branch,
-							turn,
-							tick,
-							None,
-							planning=planning,
-							forward=forward,
-							loading=True,
-						)
-						exist_edge(
-							charn, orig, dest, 0, branch, turn, tick, None
-						)
-						tick += 1
+							for key, value in val.items():
+								store_edge_val(
+									charn,
+									orig,
+									dest,
+									0,
+									key,
+									branch,
+									turn,
+									tick,
+									value,
+								)
+								set_edge_val(
+									charn,
+									orig,
+									dest,
+									0,
+									key,
+									branch,
+									turn,
+									tick,
+									value,
+									planning=planning,
+									forward=forward,
+									loading=True,
+								)
+								tick += 1
+					parent, start_turn, start_tick, end_turn, _ = (
+						self.db._branches[branch]
+					)
+					self.db._branches[branch] = (
+						parent,
+						start_turn,
+						start_tick,
+						end_turn,
+						tick,
+					)
+					self.db._turn_end_plan[branch, turn] = tick
+					if not planning:
+						self.db._turn_end[branch, turn] = tick
+					turn_from, tick_from, turn_to, _ = self.db._loaded[branch]
+					self.db._loaded[branch] = (
+						turn_from,
+						tick_from,
+						turn_to,
+						tick,
+					)
+					self.db._otick = tick
 
 	adj_cls = PortalSuccessorsMapping
 
@@ -1343,7 +1442,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			self._iter_stuff = (get_char_graphs, charn, btt)
 			self._len_stuff = (avcache.count_entities_or_keys, charn, btt)
 			self._contains_stuff = (
-				avcache.user_cache.iter_keys,
+				avcache.user_cache.contains_key,
 				charn,
 				btt,
 			)
@@ -1377,8 +1476,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			return iter(get_char_graphs(charn, *btt()))
 
 		def __contains__(self, k):
-			get_char_graphs, charn, btt = self._iter_stuff
-			return k in get_char_graphs(charn, *btt())
+			retrieve, charn, btt = self._contains_stuff
+			got = retrieve(charn, *btt())
+			return got is not None and not isinstance(got, Exception)
 
 		def __len__(self):
 			"""Number of graphs in which I have a unit."""
@@ -1668,9 +1768,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		self.engine._exist_node(g, n)
 		# Declare that the node is my unit
 		branch, turn, tick = self.engine._nbtt()
-		self.engine._remember_unitness(
-			self.name, g, n, branch=branch, turn=turn, tick=tick
+		self.engine._unitness_cache.store(
+			self.name, g, n, branch, turn, tick, True
 		)
+		self.engine.query.unit_set(self.name, g, n, branch, turn, tick, True)
 
 	def remove_unit(self, a, b=None):
 		"""This is no longer my unit, though it still exists"""
@@ -1690,7 +1791,11 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		else:
 			g = a.name if isinstance(a, Character) else a
 			n = b.name if isinstance(b, Node) else b
-		self.engine._remember_unitness(self.character.name, g, n, False)
+		branch, turn, tick = self.engine._nbtt()
+		self.engine._unitness_cache.store(
+			self.name, g, n, branch, turn, tick, False
+		)
+		self.engine.query.unit_set(self.name, g, n, branch, turn, tick, False)
 
 	def portals(self):
 		"""Iterate over all portals."""

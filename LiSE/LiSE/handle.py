@@ -36,10 +36,7 @@ import msgpack
 from .allegedb import OutOfTimelineError, Key
 from .engine import (
 	Engine,
-	TRUE,
-	FALSE,
 	NONE,
-	NAME,
 	NODES,
 	EDGES,
 	UNITS,
@@ -49,13 +46,7 @@ from .engine import (
 	EDGE_VAL,
 	ETERNAL,
 	UNIVERSAL,
-	STRINGS,
 	RULES,
-	TRIGGERS,
-	PREREQS,
-	ACTIONS,
-	LOCATION,
-	BRANCH,
 )
 from .node import Node
 from .portal import Portal
@@ -75,6 +66,9 @@ SlightlyPackedDeltaType = Dict[
 	],
 ]
 FormerAndCurrentType = Tuple[Dict[bytes, bytes], Dict[bytes, bytes]]
+
+
+EMPTY_MAPPING = msgpack.packb({})
 
 
 def concat_d(r: Dict[bytes, bytes]) -> bytes:
@@ -116,7 +110,7 @@ class EngineHandle:
 		do_game_start = kwargs.pop("do_game_start", False)
 		self._logq = logq
 		self._loglevel = loglevel
-		self._real = Engine(*args, cache_arranger=False, **kwargs)
+		self._real = Engine(*args, **kwargs)
 		self.pack = pack = self._real.pack
 
 		def pack_pair(pair):
@@ -141,6 +135,8 @@ class EngineHandle:
 			}[level.lower()]
 		if self._logq and level >= self._loglevel:
 			self._logq.put((level, message))
+		elif not self._logq:
+			print(level, message)
 
 	def debug(self, message: str) -> None:
 		self.log(DEBUG, message)
@@ -298,11 +294,6 @@ class EngineHandle:
 		)
 		ret, delta = self._real.next_turn()
 		slightly_packed_delta, packed_delta = self._pack_delta(delta)
-		self.debug(
-			"got results from next_turn at {}, {}, {}. Packing...".format(
-				*self._real._btt()
-			)
-		)
 		return pack(ret), packed_delta
 
 	def _get_slow_delta(
@@ -345,12 +336,33 @@ class EngineHandle:
 						"Out of bounds", *self._real._btt(), branch, turn, tick
 					)
 		branch_from, turn_from, tick_from = self._real._btt()
-		self._real.time = (branch, turn)
-		if tick is not None:
+		if tick is None:
+			if (
+				branch,
+				turn,
+				self._real._turn_end_plan.get((branch, turn)),
+			) == (
+				branch_from,
+				turn_from,
+				tick_from,
+			):
+				return NONE, EMPTY_MAPPING
+			self._real.time = (branch, turn)
+		else:
+			if (branch, turn, tick) == (
+				branch_from,
+				turn_from,
+				tick_from,
+			):
+				return NONE, EMPTY_MAPPING
+			self._real.time = (branch, turn)
 			self._real.tick = tick
-		if branch_from != branch or self._real._is_timespan_too_big(
-			branch, turn_from, turn
+		if turn_from != turn and (
+			branch_from != branch
+			or None in (turn_from, turn)
+			or self._real._is_timespan_too_big(branch, turn_from, turn)
 		):
+			# This branch avoids unpacking and re-packing the delta
 			slightly: SlightlyPackedDeltaType = self._real._get_slow_delta(
 				(branch_from, turn_from, tick_from), self._real._btt()
 			)
@@ -770,12 +782,13 @@ class EngineHandle:
 		self._real.switch_main_branch(branch)
 		return self.snap_keyframe()
 
-	def game_start(self) -> None:
+	def game_init(self) -> None:
 		branch, turn, tick = self._real._btt()
 		if (turn, tick) != (0, 0):
 			raise BadTimeException(
 				"You tried to start a game when it wasn't the start of time"
 			)
+		self.do_game_start()
 		kf = self.snap_keyframe()
 		functions = dict(self._real.function.iterplain())
 		methods = dict(self._real.method.iterplain())

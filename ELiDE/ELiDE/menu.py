@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 from kivy.app import App
-from kivy.properties import BooleanProperty, OptionProperty, ObjectProperty
+from kivy.properties import OptionProperty, ObjectProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
@@ -22,8 +22,9 @@ from kivy.uix.modalview import ModalView
 from kivy.uix.textinput import TextInput
 from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
-from kivy.lang import Builder
+
 from .gen import GridGeneratorDialog
+from .util import load_string_once
 
 
 class MenuTextInput(TextInput):
@@ -149,7 +150,7 @@ class DirPicker(Screen):
 		self.toggle()
 
 
-Builder.load_string("""
+load_string_once("""
 #: import os os
 <GeneratorButton>:
 	size_hint_y: None

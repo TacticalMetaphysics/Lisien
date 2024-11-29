@@ -966,9 +966,15 @@ class PlaceMapProxy(CachingProxy):
 class SuccessorsProxy(CachingProxy):
 	@property
 	def _cache(self):
-		return self.engine._character_portals_cache.successors[self._charname][
-			self._orig
-		]
+		succ = self.engine._character_portals_cache.successors
+		if self._charname not in succ:
+			raise KeyError("No portals in this character")
+		succc = succ[self._charname]
+		if self._orig not in succc:
+			raise KeyError(
+				"No successors to this portal", self._charname, self._orig
+			)
+		return succc[self._orig]
 
 	def _set_rulebook_proxy(self, k):
 		raise NotImplementedError(
@@ -1043,7 +1049,9 @@ class CharSuccessorsMappingProxy(CachingProxy):
 
 	@property
 	def _cache(self):
-		return self.engine._character_portals_cache.successors[self.name]
+		return self.engine._character_portals_cache.successors.setdefault(
+			self.name, {}
+		)
 
 	def __init__(self, engine_proxy, charname):
 		self.engine = engine_proxy
@@ -1061,6 +1069,8 @@ class CharSuccessorsMappingProxy(CachingProxy):
 		return {vk: PortalProxy(self, vk, vv) for (vk, vv) in v.items()}
 
 	def __getitem__(self, k):
+		if k not in self:
+			raise KeyError("No successors to this node", self.name, k)
 		return SuccessorsProxy(self.engine, self.name, k)
 
 	def _apply_delta(self, delta):
@@ -1650,21 +1660,25 @@ class CharacterProxy(AbstractCharacter):
 						)
 					)
 				self.node.send(prox, key=None, value=False)
-		for (orig, dest), ex in delta.pop("edges", {}).items():
-			if ex:
-				self.engine._character_portals_cache.store(
-					self.name, orig, dest, PortalProxy(self, orig, dest)
-				)
-				self.portal.send(self.portal[orig][dest], key=None, value=True)
-			elif orig in self.portal and dest in self.portal[orig]:
-				prox = self.portal[orig][dest]
-				try:
-					self.engine._character_portals_cache.delete(
-						self.name, orig, dest
+		for orig, dests in delta.pop("edges", {}).items():
+			for dest, ex in dests.items():
+				if ex:
+					self.engine._character_portals_cache.store(
+						self.name, orig, dest, PortalProxy(self, orig, dest)
 					)
-				except KeyError:
-					pass
-				self.portal.send(prox, key=None, value=False)
+					self.portal.send(
+						self.portal[orig][dest], key=None, value=True
+					)
+				elif orig in self.portal and dest in self.portal[orig]:
+					prox = self.portal[orig][dest]
+					try:
+						self.engine._character_portals_cache.delete(
+							self.name, orig, dest
+						)
+						assert dest not in self.portal[orig]
+					except KeyError:
+						pass
+					self.portal.send(prox, key=None, value=False)
 		self.portal._apply_delta(delta.pop("edge_val", {}))
 		nodemap = self.node
 		name = self.name
@@ -2132,13 +2146,13 @@ class EternalVarProxy(MutableMapping):
 		return k in self._cache
 
 	def __iter__(self):
-		yield from self.engine.handle(command="eternal_keys")
+		return iter(self._cache)
 
 	def __len__(self):
-		return self.engine.handle(command="eternal_len")
+		return len(self._cache)
 
 	def __getitem__(self, k):
-		return self.engine.handle(command="get_eternal", k=k)
+		return self._cache[k]
 
 	def __setitem__(self, k, v):
 		if self.engine._worker:
@@ -2347,28 +2361,46 @@ class ChangeSignatureError(TypeError):
 	pass
 
 
-class PortalObjCache(object):
+class PortalObjCache:
 	def __init__(self):
-		self.successors = StructuredDefaultDict(2, PortalProxy)
-		self.predecessors = StructuredDefaultDict(2, PortalProxy)
+		self.successors = {}
+		self.predecessors = {}
 
 	def store(self, char: Key, u: Key, v: Key, obj: PortalProxy) -> None:
-		self.successors[char][u][v] = obj
-		self.predecessors[char][v][u] = obj
+		succ = self.successors
+		if char in succ:
+			char_us = succ[char]
+			if u in char_us:
+				char_us[u][v] = obj
+			else:
+				char_us[u] = {v: obj}
+		else:
+			succ[char] = {u: {v: obj}}
+		pred = self.predecessors
+		if char in pred:
+			char_vs = pred[char]
+			if v in char_vs:
+				char_vs[v][u] = obj
+			else:
+				char_vs[v] = {u: obj}
+		else:
+			pred[char] = {v: {u: obj}}
 
 	def delete(self, char: Key, u: Key, v: Key) -> None:
-		for mapp, a, b in [(self.successors, u, v), (self.predecessors, v, u)]:
-			if char not in mapp:
-				raise KeyError(char)
-			submap = mapp[char]
-			if a not in submap:
-				raise KeyError((char, a))
-			submap_a = submap[a]
-			if b not in submap_a:
-				raise KeyError((char, a, b))
-			del submap_a[b]
-			if not submap_a:
-				del submap[a]
+		succ = self.successors
+		if char in succ:
+			succ_us = succ[char]
+			if u in succ_us:
+				del succ_us[u][v]
+			if not succ_us:
+				del succ[char]
+		pred = self.predecessors
+		if char in pred:
+			pred_vs = pred[char]
+			if v in pred_vs:
+				del pred_vs[v][u]
+			if not pred_vs:
+				del pred[char]
 
 	def delete_char(self, char: Key) -> None:
 		if char in self.successors:
@@ -2480,12 +2512,12 @@ class EngineProxy(AbstractEngine):
 			)
 		return self.handle("snap_keyframe")
 
-	def game_start(self) -> None:
+	def game_init(self) -> None:
 		if self._worker:
 			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
-		self.handle("game_start", cb=self._upd_from_game_start)
+		self.handle("game_init", cb=self._upd_from_game_start)
 
 	def _node_exists(self, char, node) -> bool:
 		return self.handle("node_exists", char=char, node=node)
@@ -2627,12 +2659,16 @@ class EngineProxy(AbstractEngine):
 						chars[char].node.send(
 							that, key="location", value=that._location
 						)
+					if char in places and node in places[char]:
+						del places[char][node]
 				else:
 					if char not in places or node not in places[char]:
 						that = PlaceProxy(chars[char], node)
 						places[char][node] = that
 					else:
 						that = places[char][node]
+					if char in things and node in things[char]:
+						del things[char][node]
 				for key in list(stats):
 					if key in that and stats[key] == that[key]:
 						del stats[key]
@@ -2735,7 +2771,6 @@ class EngineProxy(AbstractEngine):
 		handle_out,
 		handle_in,
 		logger,
-		do_game_start=False,
 		install_modules=(),
 		submit_func=None,
 		threads=None,
@@ -2830,8 +2865,6 @@ class EngineProxy(AbstractEngine):
 			self._initialized = True
 			for module in install_modules:
 				self.handle("install_module", module=module)
-			if do_game_start:
-				self.handle("do_game_start", cb=self._upd_caches)
 
 	def __getattr__(self, item):
 		meth = super().__getattribute__("method").__getattr__(item)
@@ -3282,14 +3315,7 @@ class EngineProxy(AbstractEngine):
 				yield thing.name
 
 
-def engine_subprocess(
-	args,
-	input_pipe,
-	output_pipe,
-	logq,
-	loglevel,
-	**kwargs,
-):
+def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
 	"""Loop to handle one command at a time and pipe results back"""
 	from .handle import EngineHandle
 
@@ -3447,22 +3473,10 @@ class EngineProcessManager(object):
 		self._args = args
 		self._kwargs = kwargs
 
-	def start(
-		self,
-		*args,
-		logger=None,
-		logfile=None,
-		loglevel=None,
-		install_modules=(),
-		**kwargs,
-	):
+	def start(self, *args, **kwargs):
 		"""Start LiSE in a subprocess, and return a proxy to it"""
 		if hasattr(self, "engine_proxy"):
 			raise RedundantProcessError("Already started")
-		if logger is None and "logger" in self._kwargs:
-			logger = self._kwargs.pop("logger")
-		if loglevel is None and "loglevel" in self._kwargs:
-			loglevel = self._kwargs.pop("loglevel")
 		(handle_out_pipe_recv, self._handle_out_pipe_send) = Pipe(duplex=False)
 		(handle_in_pipe_recv, handle_in_pipe_send) = Pipe(duplex=False)
 		self.logq = Queue()
@@ -3474,22 +3488,22 @@ class EngineProcessManager(object):
 			"error": logging.ERROR,
 			"critical": logging.CRITICAL,
 		}
-		loglevel = logl.get(loglevel, loglevel) or logging.INFO
-		if logger is None:
+		loglevel = logging.INFO
+		if "loglevel" in kwargs:
+			if kwargs["loglevel"] in logl:
+				loglevel = logl[kwargs["loglevel"]]
+			else:
+				loglevel = kwargs["loglevel"]
+			del kwargs["loglevel"]
+		if "logger" in kwargs:
+			self.logger = kwargs["logger"]
+			del kwargs["logger"]
+		else:
 			self.logger = logging.getLogger(__name__)
 			stdout = logging.StreamHandler(sys.stdout)
 			stdout.set_name("stdout")
 			handlers.append(stdout)
 			handlers[0].setLevel(loglevel)
-		else:
-			self.logger = logger
-		if logfile:
-			try:
-				fh = logging.FileHandler(logfile)
-				handlers.append(fh)
-				fh.setLevel(loglevel)
-			except OSError:
-				pass
 		if "logfile" in kwargs:
 			try:
 				fh = logging.FileHandler(kwargs["logfile"])
@@ -3498,6 +3512,11 @@ class EngineProcessManager(object):
 			except OSError:
 				pass
 			del kwargs["logfile"]
+		install_modules = (
+			kwargs.pop("install_modules")
+			if "install_modules" in kwargs
+			else []
+		)
 		formatter = logging.Formatter(
 			fmt="[{levelname}] LiSE.proxy({process}) t{message}", style="{"
 		)
@@ -3509,12 +3528,12 @@ class EngineProcessManager(object):
 			target=engine_subprocess,
 			args=(
 				args or self._args,
+				kwargs or self._kwargs,
 				handle_out_pipe_recv,
 				handle_in_pipe_send,
 				self.logq,
 				loglevel,
 			),
-			kwargs=kwargs or self._kwargs,
 		)
 		self._p.start()
 		self._logthread = Thread(

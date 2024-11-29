@@ -23,7 +23,6 @@ from pygments.formatters.bbcode import BBCodeFormatter
 from pygments.lexers import PythonLexer
 
 from kivy.clock import Clock
-from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.properties import (
 	AliasProperty,
@@ -45,6 +44,8 @@ from kivy.uix.layout import Layout
 from kivy.uix.stencilview import StencilView
 from kivy.uix.image import Image
 from kivy.uix.widget import Widget
+
+from .util import load_string_once
 
 dbg = Logger.debug
 
@@ -1053,7 +1054,7 @@ class DeckBuilderScrollBar(FloatLayout):
 		self.scrolling = False
 
 
-kv = """
+load_string_once("""
 <ColorTextureBox>:
 	canvas:
 		Color:
@@ -1172,8 +1173,7 @@ kv = """
 		id: bar
 		color: root.bar_color if root.scrolling else root.bar_inactive_color
 		texture: root.bar_texture
-"""
-Builder.load_string(kv)
+""")
 
 if __name__ == "__main__":
 	deck0 = [

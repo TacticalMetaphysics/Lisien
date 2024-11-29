@@ -12,11 +12,12 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from kivy.properties import NumericProperty, ObjectProperty, OptionProperty
-from kivy.lang import Builder
+from kivy.properties import NumericProperty, OptionProperty
 from kivy.uix.boxlayout import BoxLayout
 from LiSE.character import grid_2d_8graph
 from networkx import grid_2d_graph
+
+from .util import load_string_once
 
 
 class GridGeneratorDialog(BoxLayout):
@@ -43,7 +44,7 @@ class GridGeneratorDialog(BoxLayout):
 		return self.directions and int(self.xval) and int(self.yval)
 
 
-Builder.load_string("""
+load_string_once("""
 <GridGeneratorDialog>:
 	directions: 4 if but4.state == 'down' else 8
 	orientation: 'vertical'

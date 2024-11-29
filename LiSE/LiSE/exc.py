@@ -14,10 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Exception classes for use in LiSE."""
 
-from .allegedb import HistoricKeyError, OutOfTimelineError
-from .allegedb.query import IntegrityError, TimeError
-from .allegedb.cache import NotInKeyframeError
-
 try:
 	from sqlalchemy.exc import OperationalError as alchemyOpError
 	from sqlite3 import OperationalError as liteOpError

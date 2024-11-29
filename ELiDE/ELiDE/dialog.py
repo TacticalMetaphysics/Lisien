@@ -30,8 +30,9 @@ from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.clock import Clock, mainthread
-from kivy.lang import Builder
 from kivy.logger import Logger
+
+from .util import load_string_once
 
 
 class Box(Widget):
@@ -321,7 +322,7 @@ class DialogLayout(FloatLayout):
 		return name, partial(self.ok, cb=func, cb2=after_ok)
 
 
-Builder.load_string("""
+load_string_once("""
 <Box>:
 	canvas.before:
 		Color:

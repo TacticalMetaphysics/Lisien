@@ -17,31 +17,9 @@ def remove_prefix(s: str, prefix: str):
 	return s
 
 
-def game_start(engine, random_seed=69105) -> None:
-	from random import Random
+def game_start(engine) -> None:
+	from random import randint, shuffle
 	import networkx as nx
-
-	@engine.function
-	def remove_prefix(s: str, prefix: str):
-		if s.startswith(prefix):
-			return s[len(prefix) :]
-		return s
-
-	rand = Random()
-	if random_seed is not None:
-		rand.seed(random_seed)
-	rand.setstate(engine.universal.setdefault("rando_state", rand.getstate()))
-
-	# ensure we're on a fresh branch
-	if engine.turn != 0 or engine.tick != 0:
-		if engine.branch == "trunk":
-			new_branch_name = "trunk0"
-		else:
-			new_branch_num = int(engine.branch[5:])
-			new_branch_name = "trunk" + str(new_branch_num)
-		engine.turn = 0
-		engine.tick = 0
-		engine.switch_main_branch(new_branch_name)
 
 	engine.eternal["nonusage-limit"] = 100
 	wide = engine.eternal.setdefault("max-pxcor", 36)
@@ -55,19 +33,23 @@ def game_start(engine, random_seed=69105) -> None:
 		initworld.add_edge((wide - 1, y), (0, y))
 
 	locs = list(initworld.nodes.keys())
-	rand.shuffle(locs)
+	shuffle(locs)
+	peeps = {}
 
 	for turtle in range(engine.eternal.setdefault("people", 60)):
 		initworld.add_node(
 			"turtle" + str(turtle),
 			awareness=0,
-			facing=rand.randint(0, 3),
+			facing=randint(0, 3),
 			location=locs.pop(),
 			_image_paths=[
 				"atlas://rltiles/base/unseen",
 				"atlas://rltiles/body/robe_black",
 			],
 		)
+		peeps["turtle" + str(turtle)] = True
+
+	centers = {}
 
 	for center in range(engine.eternal.setdefault("centers", 20)):
 		initworld.add_node(
@@ -76,16 +58,11 @@ def game_start(engine, random_seed=69105) -> None:
 			nonusage=0,
 			_image_paths=["atlas://rltiles/dungeon/dngn_altar_xom"],
 		)
+		centers["center" + str(center)] = True
 
 	phys = engine.new_character("physical", initworld)
-	peep = engine.new_character("people")
-	lit = engine.new_character("literature")
-	# there really ought to be a way to specify a character's units in its starting data
-	for node in phys.thing.values():
-		if node.name.startswith("turtle"):
-			peep.add_unit(node)
-		elif node.name.startswith("center"):
-			lit.add_unit(node)
+	peep = engine.new_character("people", units={"physical": peeps})
+	lit = engine.new_character("literature", units={"physical": centers})
 
 	@peep.unit.rule(always=True)
 	def wander(person):
@@ -167,12 +144,7 @@ def game_start(engine, random_seed=69105) -> None:
 		maxnum = 0
 		for unit in lit_.units():
 			if unit.name.startswith("flyer"):
-				maxnum = max(
-					(
-						int(engine.function.remove_prefix(unit.name, "flyer")),
-						maxnum,
-					)
-				)
+				maxnum = max((int(remove_prefix(unit.name, "flyer")), maxnum))
 		scroll = person.location.new_thing(
 			f"flyer{maxnum:02}",
 			nonusage=0,
@@ -205,8 +177,6 @@ def game_start(engine, random_seed=69105) -> None:
 			> ctr.engine.eternal["nonusage-limit"]
 		)
 
-	engine.universal.setdefault("rando_state", rand.getstate())
-
 
 class AwarenessGridBoard(GridBoard):
 	def on_selection(self, *args):
@@ -232,9 +202,7 @@ class MainGame(GameScreen):
 	def on_parent(self, *args):
 		if "game" not in self.ids or "physical" not in self.engine.character:
 			if "physical" not in self.engine.character:
-				Logger.debug(
-					"MainGame: waiting for character before we do 'on_parent'"
-				)
+				Logger.debug("MainGame.on_parent: no physical character")
 			Clock.schedule_once(self.on_parent, 0)
 			return
 		self.set_up()
@@ -251,35 +219,32 @@ class MainGame(GameScreen):
 
 	def set_up(self):
 		"""Regenerate the whole map"""
-		branch = self.engine.branch
-		try:
-			branchidx = int(remove_prefix(branch, "branch")) + 1
-			branch = f"branch{branchidx:02}"
-		except ValueError:
-			branch = f"branch01"
 		self.engine.turn = 0
-		self.engine.tick = 0
-		self.engine.switch_main_branch(branch)
 		if hasattr(self, "ran_once"):
 			self.engine.eternal["people"] = int(self.ids.people.value)
 			self.engine.eternal["centers"] = int(self.ids.centers.value)
 			self.engine.eternal["nonusage-limit"] = int(
 				self.ids.nonusage.value
 			)
-		self.engine.game_start()
-		app = GameApp.get_running_app()
+		else:
+			self.pull_values()
 		self._push_character()
-		if not hasattr(self, "ran_once"):
-			self.ids.people.value = app.engine.eternal.setdefault(
-				"people", 100
-			)
-			self.ids.centers.value = app.engine.eternal.setdefault(
-				"centers", 60
-			)
-			self.ids.nonusage.value = app.engine.eternal.setdefault(
-				"nonusage-limit", 10
-			)
-			self.ran_once = True
+
+	def pull_values(self, *_):
+		app = GameApp.get_running_app()
+		if (
+			"people" not in app.engine.eternal
+			or "centers" not in app.engine.eternal
+			or "nonusage-limit" not in app.engine.eternal
+		):
+			Logger.debug("eternals not set")
+			Clock.schedule_once(self.pull_values, 0)
+			return
+		app = GameApp.get_running_app()
+		self.ids.people.value = app.engine.eternal["people"]
+		self.ids.centers.value = app.engine.eternal["centers"]
+		self.ids.nonusage.value = app.engine.eternal["nonusage-limit"]
+		self.ran_once = True
 
 	def _push_character(self, *args):
 		board = self.ids.game.board
@@ -312,11 +277,14 @@ class AwarenessApp(GameApp):
 		if turn != self.engine.turn:
 			self.engine.turn = turn
 
+	def on_start(self):
+		if not hasattr(self, "_initialized"):
+			self._initialized = True
+			self.engine.game_init()
+
 
 kv = """
 # kv_start
-<AwarenessApp>:
-	do_game_start: True
 <ScreenManager>:
 	MainGame:
 		name: 'play'

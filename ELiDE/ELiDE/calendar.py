@@ -36,7 +36,8 @@ from kivy.uix.recycleview import RecycleView
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 from kivy.clock import Clock, triggered
-from kivy.lang import Builder
+
+from ELiDE.util import load_string_once
 
 
 class CalendarWidget(Widget, RecycleDataViewBehavior):
@@ -445,7 +446,7 @@ class Calendar(RecycleView, CalendarBehavior):
 		self.data = data
 
 
-Builder.load_string("""
+load_string_once("""
 <Agenda>:
 	key_viewclass: 'widget'
 	RecycleGridLayout:

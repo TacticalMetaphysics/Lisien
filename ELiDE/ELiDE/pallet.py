@@ -30,12 +30,13 @@ from kivy.properties import (
 )
 from kivy.resources import resource_find
 from kivy.atlas import Atlas
-from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.stacklayout import StackLayout
 from kivy.graphics import Rectangle
+
+from .util import load_string_once
 
 
 def trigger(func):
@@ -173,14 +174,13 @@ class Pallet(StackLayout):
 		)
 
 
-kv = """
+load_string_once("""
 <Pallet>:
 	orientation: 'lr-tb'
 	padding_y: 100
 	size_hint: (None, None)
 	height: self.minimum_height
-"""
-Builder.load_string(kv)
+""")
 
 
 class PalletBox(BoxLayout):

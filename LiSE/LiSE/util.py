@@ -45,7 +45,7 @@ import numpy as np
 from networkx.exception import NetworkXException
 from tblib import Traceback
 
-from . import exc
+from . import exc, allegedb
 
 
 class BadTimeException(Exception):
@@ -546,9 +546,9 @@ class AbstractEngine(ABC):
 			"WorldIntegrityError": exc.WorldIntegrityError,
 			"CacheError": exc.CacheError,
 			"TravelException": exc.TravelException,
-			"OutOfTimelineError": exc.OutOfTimelineError,
-			"HistoricKeyError": exc.HistoricKeyError,
-			"NotInKeyframeError": exc.NotInKeyframeError,
+			"OutOfTimelineError": allegedb.OutOfTimelineError,
+			"HistoricKeyError": allegedb.HistoricKeyError,
+			"NotInKeyframeError": allegedb.cache.NotInKeyframeError,
 			"WorkerProcessReadOnlyError": exc.WorkerProcessReadOnlyError,
 		}
 

@@ -15,7 +15,6 @@
 from .pallet import Pallet, PalletBox
 from .kivygarden.texturestack import ImageStack
 from kivy.clock import Clock, triggered
-from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.properties import (
 	ListProperty,
@@ -27,6 +26,8 @@ from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
+
+from .util import load_string_once
 
 # TODO: let the user import their own sprite art
 
@@ -185,7 +186,7 @@ class SpotConfigScreen(Screen):
 	imgpaths = ListProperty()
 
 
-Builder.load_string("""
+load_string_once("""
 <SpriteDialog>:
 	orientation: 'vertical'
 	SpriteBuilder:

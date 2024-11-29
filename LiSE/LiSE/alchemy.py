@@ -460,37 +460,44 @@ def queries(table):
 		)
 	)
 
-	def character_to_end_clause(tab: Table):
+	def to_end_clause(tab: Table):
 		return and_(
-			tab.c.character == bindparam("character"),
 			tab.c.branch == bindparam("branch"),
 			or_(
-				tab.c.turn > bindparam("turn_from_a"),
+				tab.c.turn > bindparam("turn_from"),
 				and_(
-					tab.c.turn == bindparam("turn_from_b"),
+					tab.c.turn == bindparam("turn_from"),
 					tab.c.tick >= bindparam("tick_from"),
 				),
 			),
 		)
 
-	def character_to_tick_clause(tab: Table):
+	def to_tick_clause(tab: Table):
 		return and_(
-			character_to_end_clause(tab),
+			to_end_clause(tab),
 			or_(
-				tab.c.turn < bindparam("turn_to_a"),
+				tab.c.turn < bindparam("turn_to"),
 				and_(
-					tab.c.turn == bindparam("turn_to_b"),
+					tab.c.turn == bindparam("turn_to"),
 					tab.c.tick <= bindparam("tick_to"),
 				),
 			),
 		)
 
 	r["load_things_tick_to_end"] = select(
-		things.c.thing, things.c.turn, things.c.tick, things.c.location
-	).where(character_to_end_clause(things))
+		things.c.character,
+		things.c.thing,
+		things.c.turn,
+		things.c.tick,
+		things.c.location,
+	).where(to_end_clause(things))
 	r["load_things_tick_to_tick"] = select(
-		things.c.thing, things.c.turn, things.c.tick, things.c.location
-	).where(character_to_tick_clause(things))
+		things.c.character,
+		things.c.thing,
+		things.c.turn,
+		things.c.tick,
+		things.c.location,
+	).where(to_tick_clause(things))
 	for name in (
 		"character_rulebook",
 		"unit_rulebook",
@@ -500,22 +507,50 @@ def queries(table):
 	):
 		tab = table[name]
 		sel = select(
+			tab.c.character,
 			tab.c.turn,
 			tab.c.tick,
 			tab.c.rulebook,
 		)
-		r[f"load_{name}_tick_to_end"] = sel.where(character_to_end_clause(tab))
-		r[f"load_{name}_tick_to_tick"] = sel.where(
-			character_to_tick_clause(tab)
-		)
+		r[f"load_{name}_tick_to_end"] = sel.where(to_end_clause(tab))
+		r[f"load_{name}_tick_to_tick"] = sel.where(to_tick_clause(tab))
+	ntab = table["node_rulebook"]
+	node_rb_select = select(
+		ntab.c.character,
+		ntab.c.node,
+		ntab.c.turn,
+		ntab.c.tick,
+		ntab.c.rulebook,
+	)
+	r["load_node_rulebook_tick_to_end"] = node_rb_select.where(
+		to_end_clause(ntab)
+	)
+	r["load_node_rulebook_tick_to_tick"] = node_rb_select.where(
+		to_tick_clause(ntab)
+	)
+	ptab = table["portal_rulebook"]
+	port_rb_select = select(
+		ptab.c.character,
+		ptab.c.orig,
+		ptab.c.dest,
+		ptab.c.turn,
+		ptab.c.tick,
+		ptab.c.rulebook,
+	)
+	r["load_portal_rulebook_tick_to_end"] = port_rb_select.where(
+		to_end_clause(ptab)
+	)
+	r["load_portal_rulebook_tick_to_tick"] = port_rb_select.where(
+		to_tick_clause(ptab)
+	)
 
 	def generic_tick_to_end_clause(tab: Table):
 		return and_(
 			tab.c.branch == bindparam("branch"),
 			or_(
-				tab.c.turn > bindparam("turn_from_a"),
+				tab.c.turn > bindparam("turn_from"),
 				and_(
-					tab.c.turn == bindparam("turn_from_b"),
+					tab.c.turn == bindparam("turn_from"),
 					tab.c.tick >= bindparam("tick_from"),
 				),
 			),
@@ -525,9 +560,9 @@ def queries(table):
 		return and_(
 			generic_tick_to_end_clause(tab),
 			or_(
-				tab.c.turn < bindparam("turn_to_a"),
+				tab.c.turn < bindparam("turn_to"),
 				and_(
-					tab.c.turn == bindparam("turn_to_b"),
+					tab.c.turn == bindparam("turn_to"),
 					tab.c.tick <= bindparam("tick_to"),
 				),
 			),
@@ -535,15 +570,20 @@ def queries(table):
 
 	univ = table["universals"]
 	r["load_universals_tick_to_end"] = select(
-		univ.c.key, univ.c.turn, univ.c.tick, univ.c.value
+		univ.c.key, univ.c.branch, univ.c.turn, univ.c.tick, univ.c.value
 	).where(generic_tick_to_end_clause(univ))
 	r["load_universals_tick_to_tick"] = select(
-		univ.c.key, univ.c.turn, univ.c.tick, univ.c.value
+		univ.c.key, univ.c.branch, univ.c.turn, univ.c.tick, univ.c.value
 	).where(generic_tick_to_tick_clause(univ))
 
 	rbs = table["rulebooks"]
 	rbsel = select(
-		rbs.c.rulebook, rbs.c.turn, rbs.c.tick, rbs.c.rules, rbs.c.priority
+		rbs.c.rulebook,
+		rbs.c.branch,
+		rbs.c.turn,
+		rbs.c.tick,
+		rbs.c.rules,
+		rbs.c.priority,
 	)
 	r["load_rulebooks_tick_to_end"] = rbsel.where(
 		generic_tick_to_end_clause(rbs)
@@ -558,35 +598,42 @@ def queries(table):
 	act = table["rule_actions"]
 	hoodsel = select(
 		hood.c.rule,
+		hood.c.branch,
 		hood.c.turn,
 		hood.c.tick,
 		hood.c.neighborhood,
 	)
-	r["load_neighborhoods_tick_to_end"] = hoodsel.where(
+	r["load_rule_neighborhoods_tick_to_end"] = hoodsel.where(
 		generic_tick_to_end_clause(hood)
 	)
-	r["load_neighborhoods_tick_to_tick"] = hoodsel.where(
+	r["load_rule_neighborhoods_tick_to_tick"] = hoodsel.where(
 		generic_tick_to_tick_clause(hood)
 	)
-	trigsel = select(trig.c.rule, trig.c.turn, trig.c.tick, trig.c.triggers)
-	r["load_triggers_tick_to_end"] = trigsel.where(
+	trigsel = select(
+		trig.c.rule, trig.c.branch, trig.c.turn, trig.c.tick, trig.c.triggers
+	)
+	r["load_rule_triggers_tick_to_end"] = trigsel.where(
 		generic_tick_to_end_clause(trig)
 	)
-	r["load_triggers_tick_to_tick"] = trigsel.where(
+	r["load_rule_triggers_tick_to_tick"] = trigsel.where(
 		generic_tick_to_tick_clause(trig)
 	)
-	preqsel = select(preq.c.rule, preq.c.turn, preq.c.tick, preq.c.prereqs)
-	r["load_prereqs_tick_to_end"] = preqsel.where(
+	preqsel = select(
+		preq.c.rule, preq.c.branch, preq.c.turn, preq.c.tick, preq.c.prereqs
+	)
+	r["load_rule_prereqs_tick_to_end"] = preqsel.where(
 		generic_tick_to_end_clause(preq)
 	)
-	r["load_prereqs_tick_to_tick"] = preqsel.where(
+	r["load_rule_prereqs_tick_to_tick"] = preqsel.where(
 		generic_tick_to_tick_clause(preq)
 	)
-	actsel = select(act.c.rule, act.c.turn, act.c.tick, act.c.actions)
-	r["load_actions_tick_to_end"] = actsel.where(
+	actsel = select(
+		act.c.rule, act.c.branch, act.c.turn, act.c.tick, act.c.actions
+	)
+	r["load_rule_actions_tick_to_end"] = actsel.where(
 		generic_tick_to_end_clause(act)
 	)
-	r["load_actions_tick_to_tick"] = actsel.where(
+	r["load_rule_actions_tick_to_tick"] = actsel.where(
 		generic_tick_to_tick_clause(act)
 	)
 	kfx = table["keyframe_extensions"]

@@ -70,7 +70,7 @@ class UserMapping(Mapping):
 					if engine._unitness_cache.user_cache.retrieve(
 						charn, nn, user, b, r, t
 					):
-						yield user
+						yield user[0]
 				except KeyError:
 					continue
 
@@ -375,12 +375,18 @@ class Node(graph.Node, rule.RuleFollower):
 		return rule.RuleMapping(self.db, self.rulebook)
 
 	def _get_rulebook_name(self):
+		now = self.engine._btt()
 		try:
 			return self.engine._nodes_rulebooks_cache.retrieve(
-				self.character.name, self.name, *self.engine._btt()
+				self.character.name, self.name, *now
 			)
 		except KeyError:
-			return self.character.name, self.name
+			ret = (self.character.name, self.name)
+			self.engine._nodes_rulebooks_cache.store(*ret, *now, ret)
+			self.engine.query.set_node_rulebook(
+				self.character.name, self.name, *now, ret
+			)
+			return ret
 
 	def _get_rulebook(self):
 		return rule.RuleBook(self.engine, self._get_rulebook_name())

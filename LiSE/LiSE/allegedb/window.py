@@ -95,7 +95,7 @@ def update_backward_window(
 			for future_state in reversed(branchd[midturn][:]):
 				updfun(*future_state)
 	if turn_to in branchd:
-		for future_state in reversed(branchd[turn_to][tick_to:]):
+		for future_state in reversed(branchd[turn_to][tick_to + 1 :]):
 			updfun(*future_state)
 
 
@@ -613,7 +613,11 @@ class WindowDict(MutableMapping):
 		return rev >= beg
 
 	def rev_before(self, rev: int, search=False):
-		"""Return the latest past rev on which the value changed."""
+		"""Return the latest past rev on which the value changed.
+
+		If it changed on this exact rev, return the rev.
+
+		"""
 		with self._lock:
 			if search:
 				self.search(rev)

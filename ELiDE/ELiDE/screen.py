@@ -51,11 +51,12 @@ from .charmenu import CharMenu
 from .graph.board import GraphBoardView
 from .grid.board import GridBoardView
 from .calendar import Agenda
-from .util import dummynum
+from .util import dummynum, load_string_once
 
 
 def trigger(func):
 	return triggered()(func)
+
 
 Factory.register("CharMenu", cls=CharMenu)
 
@@ -629,7 +630,7 @@ class TurnScroll(Slider):
 			app.engine.time.connect(self._receive_time)
 
 
-Builder.load_string("""
+load_string_once("""
 #: import resource_find kivy.resources.resource_find
 <StatListPanel>:
 	orientation: 'vertical'

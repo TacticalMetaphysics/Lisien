@@ -357,7 +357,7 @@ class CharacterMapping(GraphsMapping, Signal):
 		from .character import Character
 
 		if name not in self:
-			raise KeyError("No such character")
+			raise KeyError("No such character", name)
 		cache = self.engine._graph_objs
 		if name not in cache:
 			cache[name] = Character(

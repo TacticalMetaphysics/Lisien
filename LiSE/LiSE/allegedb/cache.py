@@ -297,6 +297,20 @@ class Cache:
 	def set_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, keyframe
 	):
+		if not isinstance(graph_ent, tuple):
+			raise TypeError(
+				"Keyframes can only be set to tuples identifying graph entities"
+			)
+		if not isinstance(branch, str):
+			raise TypeError("Branches must be strings")
+		if not isinstance(turn, int):
+			raise TypeError("Turns must be integers")
+		if turn < 0:
+			raise ValueError("Turns can't be negative")
+		if not isinstance(tick, int):
+			raise TypeError("Ticks must be integers")
+		if tick < 0:
+			raise ValueError("Ticks can't be negative")
 		kfg = self.keyframe[graph_ent]
 		if branch in kfg:
 			kfgb = kfg[branch]
@@ -308,6 +322,16 @@ class Cache:
 			d = SettingsTurnDict()
 			d[turn] = {tick: keyframe}
 			kfg[branch] = d
+
+	def copy_keyframe(self, branch_from, branch_to, turn, tick):
+		for graph_ent in self.iter_keys(branch_from, turn, tick):
+			self.set_keyframe(
+				graph_ent,
+				branch_to,
+				turn,
+				tick,
+				self.get_keyframe(graph_ent, branch_from, turn, tick),
+			)
 
 	def load(self, data):
 		"""Add a bunch of data. Must be in chronological order.
@@ -472,12 +496,14 @@ class Cache:
 			stoptime, _ = self.db._build_keyframe_window(branch, turn, tick)
 			if stoptime is None:
 				ret = None
-				if branch in self.keyframe:
-					kfb = self.keyframe[branch]
-					if turn in kfb:
-						kfbr = kfb[turn]
-						if tick in kfbr:
-							ret = frozenset(kfbr[tick].keys())
+				if parentity in self.keyframe:
+					keyframes = self.keyframe[parentity]
+					if branch in keyframes:
+						kfb = keyframes[branch]
+						if turn in kfb:
+							kfbr = kfb[turn]
+							if tick in kfbr:
+								ret = frozenset(kfbr[tick].keys())
 				if ret is None:
 					adds, _ = get_adds_dels(parentity, branch, turn, tick)
 					ret = frozenset(adds)
@@ -1270,27 +1296,44 @@ class Cache:
 								"No value", entikey, b, r, t
 							)
 		else:
+			kfd = self.db._keyframes_dict
 			for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
-				if b in keyframes:
-					kfb = keyframes[b]
+				if b in kfd:
+					if b not in keyframes:
+						return NotInKeyframeError("No value", entikey, b, r, t)
+					kfb = kfd[b]
 					if r in kfb:
+						if not keyframes[b].rev_gettable(r):
+							return NotInKeyframeError(
+								"No value", entikey, b, r, t
+							)
 						if search:
 							kfbr = kfb.search(r)
 						else:
 							kfbr = kfb[r]
-						if kfbr.rev_gettable(t):
-							kf = kfbr[t]
-							if key in kf:
-								ret = kf[key]
-								if store_hint:
-									shallowest[args] = ret
-								return ret
-							else:
-								return NotInKeyframeError(
-									"No value", entikey, b, r, t
-								)
+						tcks = set()
+						for tck in kfbr:
+							if tck <= t:
+								tcks.add(tck)
+						if not tcks:
+							continue
+						toptck = max(tcks)
+						if not keyframes[b][r].rev_gettable(toptck):
+							return NotInKeyframeError(
+								"No value", entikey, b, r, t
+							)
+						kf = keyframes[b][r][toptck]
+						if key in kf:
+							ret = kf[key]
+							if store_hint:
+								shallowest[args] = ret
+							return ret
+						else:
+							return NotInKeyframeError(
+								"No value", entikey, b, r, t
+							)
 					if kfb.rev_gettable(r - 1):
-						kfbr = kfb[r]
+						kfbr = keyframes[b][r]
 						kf = kfbr.final()
 						if key in kf:
 							ret = kf[key]
@@ -1955,6 +1998,11 @@ class EntitylessCache(Cache):
 
 	def set_keyframe(self, branch, turn, tick, keyframe):
 		super().set_keyframe((None,), branch, turn, tick, keyframe)
+
+	def copy_keyframe(self, branch_from, branch_to, turn, tick):
+		self.set_keyframe(
+			branch_to, turn, tick, self.get_keyframe(branch_from, turn, tick)
+		)
 
 	def iter_entities_or_keys(self, branch, turn, tick, *, forward=None):
 		return super().iter_entities_or_keys(

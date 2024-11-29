@@ -48,7 +48,8 @@ class AllegedMapping(MutableMappingUnwrapper, ABC):
 	def clear(self):
 		"""Delete everything"""
 		for k in list(self.keys()):
-			del self[k]
+			if k in self:
+				del self[k]
 
 
 class AbstractEntityMapping(AllegedMapping, ABC):
@@ -693,13 +694,24 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 		del self._cache[key]
 
 	def __iter__(self):
-		return iter(self.graph.node)
+		for node in self.graph.node:
+			if node in self:
+				yield node
 
 	def __len__(self):
-		return len(self.graph.node)
+		n = 0
+		for node in self.graph.node:
+			if node in self:
+				n += 1
+		return n
 
 	def __contains__(self, key):
-		return key in self.graph.node
+		return (
+			self.db._edges_cache.count_successors(
+				self.graph.name, key, *self.db._btt()
+			)
+			> 0
+		)
 
 	def __repr__(self):
 		cls = self.__class__
@@ -997,9 +1009,9 @@ class DiGraph(networkx.DiGraph):
 		if n not in self._node:
 			raise NetworkXError("The node %s is not in the digraph." % (n,))
 		nbrs = list(self._succ[n])
-		pred = list(self._pred[n])
 		for u in nbrs:
 			del self._pred[u][n]  # remove all edges n-u in digraph
+		pred = list(self._pred[n])
 		for u in pred:
 			del self._succ[u][n]  # remove all edges n-u in digraph
 		del self._node[n]

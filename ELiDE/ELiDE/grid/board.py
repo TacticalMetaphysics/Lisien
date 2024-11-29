@@ -78,7 +78,8 @@ class GridBoard(Widget):
 		placen = place["name"]
 		if not isinstance(placen, tuple) or len(placen) != 2:
 			raise TypeError(
-				"Can only make spot from places with tuple names of length 2"
+				"Can only make spot from places with tuple names of length 2",
+				placen,
 			)
 		if (
 			not isinstance(placen, tuple)
@@ -347,7 +348,7 @@ class GridBoardView(BoardView):
 	pass
 
 
-Builder.load_string("""
+kv = """
 <GridBoard>:
 	app: app
 	size_hint: None, None
@@ -358,4 +359,8 @@ Builder.load_string("""
 		board: root.board
 		scale_min: root.scale_min
 		scale_max: root.scale_max
-""")
+"""
+kv_loaded = False
+if not kv_loaded:
+	Builder.load_string(kv)
+	kv_loaded = True

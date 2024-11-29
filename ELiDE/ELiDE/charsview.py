@@ -16,18 +16,15 @@ from functools import partial
 
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen
 from kivy.uix.recycleview import RecycleView
 from kivy.properties import (
 	ListProperty,
 	ObjectProperty,
 	StringProperty,
-	NumericProperty,
 )
 
-from .stores import RecycleToggleButton
-from .util import SelectableRecycleBoxLayout
+from .util import SelectableRecycleBoxLayout, load_string_once
 
 # TODO: Visual preview
 # TODO: Background image chooser
@@ -107,7 +104,7 @@ class CharactersScreen(Screen):
 		self.bind(character_name=self.push_character_name)
 
 
-Builder.load_string("""
+load_string_once("""
 #: import resource_find kivy.resources.resource_find
 <CharactersView>:
 	viewclass: 'RecycleToggleButton'

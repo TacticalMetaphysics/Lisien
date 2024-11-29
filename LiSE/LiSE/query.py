@@ -36,13 +36,12 @@ Other comparison operators like ``>`` and ``<`` work as well.
 """
 
 import operator
-from collections.abc import MutableMapping, Sequence, Set
+from collections import defaultdict
+from collections.abc import Sequence, Set
 from itertools import chain
 from operator import gt, lt, eq, ne, le, ge
 from functools import partialmethod
 from time import monotonic
-from queue import Queue
-from threading import Thread
 from typing import Any, List, Callable, Tuple
 
 from sqlalchemy import select, and_, Table
@@ -51,9 +50,11 @@ import msgpack
 
 from .alchemy import meta, gather_sql
 from .allegedb import query, Key
-from .exc import IntegrityError, OperationalError
+from .exc import OperationalError
 from .util import EntityStatAccessor
 import LiSE
+
+IntegrityError = query.IntegrityError
 
 
 NONE = msgpack.packb(None)
@@ -1178,6 +1179,416 @@ class QueryEngine(query.QueryEngine):
 		self._unitness = []
 		self._location = []
 
+	_infixes2load = [
+		"nodes",
+		"edges",
+		"graph_val",
+		"node_val",
+		"edge_val",
+		"things",
+		"character_rulebook",
+		"unit_rulebook",
+		"character_thing_rulebook",
+		"character_place_rulebook",
+		"character_portal_rulebook",
+		"node_rulebook",
+		"portal_rulebook",
+		"universals",
+		"rulebooks",
+		"rule_triggers",
+		"rule_prereqs",
+		"rule_actions",
+		"rule_neighborhoods",
+	]
+
+	def load_windows(self, windows: list) -> dict:
+		def empty_char():
+			return {
+				"nodes": [],
+				"edges": [],
+				"graph_val": [],
+				"node_val": [],
+				"edge_val": [],
+				"things": [],
+				"character_rulebook": [],
+				"unit_rulebook": [],
+				"character_thing_rulebook": [],
+				"character_place_rulebook": [],
+				"character_portal_rulebook": [],
+				"node_rulebook": [],
+				"portal_rulebook": [],
+			}
+
+		ret = defaultdict(empty_char)
+		self._load_windows_into(ret, windows)
+		return ret
+
+	def _get_one_window(
+		self, ret, branch, turn_from, tick_from, turn_to, tick_to
+	):
+		super()._get_one_window(
+			ret, branch, turn_from, tick_from, turn_to, tick_to
+		)
+		unpack = self.unpack
+		assert self._outq.get() == (
+			"begin",
+			"things",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, node, turn, tick, loc in got:
+				(graph, node, loc) = map(unpack, (graph, node, loc))
+				ret[graph]["things"].append(
+					(graph, node, branch, turn, tick, loc)
+				)
+		assert got == (
+			"end",
+			"things",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"character_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
+				ret[graph]["character_rulebook"].append(
+					(graph, branch, turn, tick, rb)
+				)
+		assert got == (
+			"end",
+			"character_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"unit_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
+				ret[graph]["unit_rulebook"].append(
+					(graph, branch, turn, tick, rb)
+				)
+		assert got == (
+			"end",
+			"unit_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"character_thing_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
+				ret[graph]["character_thing_rulebook"].append(
+					(graph, branch, turn, tick, rb)
+				)
+		assert got == (
+			"end",
+			"character_thing_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"character_place_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
+				ret[graph]["character_place_rulebook"].append(
+					(graph, branch, turn, tick, rb)
+				)
+		assert got == (
+			"end",
+			"character_place_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"character_portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
+				ret[graph]["character_portal_rulebook"].append(
+					(graph, branch, turn, tick, rb)
+				)
+		assert got == (
+			"end",
+			"character_portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"node_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, node, turn, tick, rb in got:
+				(graph, node, rb) = map(unpack, (graph, node, rb))
+				ret[graph]["node_rulebook"].append(
+					(graph, node, branch, turn, tick, rb)
+				)
+		assert got == (
+			"end",
+			"node_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, orig, dest, turn, tick, rb in got:
+				(graph, orig, dest, rb) = map(unpack, (graph, orig, dest, rb))
+				ret[graph]["portal_rulebook"].append(
+					(graph, orig, dest, branch, turn, tick, rb)
+				)
+		assert got == (
+			"end",
+			"portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"universals",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for key, branch, turn, tick, val in got:
+				(key, val) = map(unpack, (key, val))
+				if "universals" in ret:
+					ret["universals"].append((key, branch, turn, tick, val))
+				else:
+					ret["universals"] = [(key, branch, turn, tick, val)]
+		assert got == (
+			"end",
+			"universals",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rulebooks",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for rulebook, branch, turn, tick, rules, priority in got:
+				(rulebook, rules) = map(unpack, (rulebook, rules))
+				if "rulebooks" in ret:
+					ret["rulebooks"].append(
+						(rulebook, branch, turn, tick, (rules, priority))
+					)
+				else:
+					ret["rulebooks"] = [
+						(rulebook, branch, turn, tick, (rules, priority))
+					]
+		assert got == (
+			"end",
+			"rulebooks",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rule_triggers",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for rule, branch, turn, tick, triggers in got:
+				triggers = unpack(triggers)
+				if "rule_triggers" in ret:
+					ret["rule_triggers"].append(
+						(rule, branch, turn, tick, triggers)
+					)
+				else:
+					ret["rule_triggers"] = [
+						(rule, branch, turn, tick, triggers)
+					]
+		assert got == (
+			"end",
+			"rule_triggers",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rule_prereqs",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for rule, branch, turn, tick, prereqs in got:
+				prereqs = unpack(prereqs)
+				if "rule_prereqs" in ret:
+					ret["rule_prereqs"].append(
+						(rule, branch, turn, tick, prereqs)
+					)
+				else:
+					ret["rule_prereqs"] = [(rule, branch, turn, tick, prereqs)]
+		assert got == (
+			"end",
+			"rule_prereqs",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rule_actions",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for rule, branch, turn, tick, actions in got:
+				actions = unpack(actions)
+				if "rule_actions" in ret:
+					ret["rule_actions"].append(
+						(rule, branch, turn, tick, actions)
+					)
+				else:
+					ret["rule_actions"] = [(rule, branch, turn, tick, actions)]
+		assert got == (
+			"end",
+			"rule_actions",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rule_neighborhoods",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for rule, branch, turn, tick, neighborhoods in got:
+				neighborhoods = unpack(neighborhoods)
+				if "rule_neighborhoods" in ret:
+					ret["rule_neighborhoods"].append(
+						(rule, branch, turn, tick, neighborhoods)
+					)
+				else:
+					ret["rule_neighborhoods"] = [
+						(rule, branch, turn, tick, neighborhoods)
+					]
+		assert got == (
+			"end",
+			"rule_neighborhoods",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+
 	def keyframe_extension_insert(
 		self, branch, turn, tick, universal, rules, rulebooks
 	):
@@ -1213,10 +1624,9 @@ class QueryEngine(query.QueryEngine):
 		)
 		self._increc()
 
-	def flush(self):
-		super().flush()
+	def _flush(self):
+		super()._flush()
 		put = self._inq.put
-		pack = self.pack
 		if self._new_keyframe_extensions:
 			put(
 				(
@@ -1291,7 +1701,6 @@ class QueryEngine(query.QueryEngine):
 			if getattr(self, attr):
 				put(("silent", "many", cmd, getattr(self, attr)))
 			setattr(self, attr, [])
-		assert self.echo("flushed") == "flushed"
 
 	def keyframe_extensions_dump(self):
 		unpack = self.unpack
@@ -1327,101 +1736,12 @@ class QueryEngine(query.QueryEngine):
 		for key, branch, turn, tick, value in self.call_one("universals_dump"):
 			yield unpack(key), branch, turn, tick, unpack(value)
 
-	def load_universals(
-		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	):
-		unpack = self.unpack
-		if turn_to is None:
-			if tick_to is not None:
-				raise ValueError("Need both or neither of turn_to, tick_to")
-			for key, turn, tick, value in self.call_one(
-				"load_universals_tick_to_end",
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-			):
-				yield (
-					unpack(key),
-					branch,
-					turn,
-					tick,
-					unpack(value),
-				)
-		else:
-			if tick_to is None:
-				raise ValueError("Need both or neither of turn_to, tick_to")
-			for key, turn, tick, value in self.call_one(
-				"load_universals_tick_to_tick",
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-				turn_to,
-				turn_to,
-				tick_to,
-			):
-				yield (
-					unpack(key),
-					branch,
-					turn,
-					tick,
-					unpack(value),
-				)
-
 	def rulebooks_dump(self):
 		unpack = self.unpack
 		for rulebook, branch, turn, tick, rules, prio in self.call_one(
 			"rulebooks_dump"
 		):
 			yield unpack(rulebook), branch, turn, tick, (unpack(rules), prio)
-
-	def load_rulebooks(
-		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	):
-		unpack = self.unpack
-		if turn_to is None:
-			if tick_to is not None:
-				raise ValueError("Need both or neither of turn_to, tick_to")
-			for rulebook, turn, tick, rules in self.call_one(
-				"load_rulebooks_tick_to_end",
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-			):
-				yield unpack(rulebook), branch, turn, tick, unpack(rules)
-		else:
-			if tick_to is None:
-				raise ValueError("Need both or neither of turn_to, tick_to")
-			for rulebook, turn, tick, rules, priority in self.call_one(
-				"load_rulebooks_tick_to_tick",
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-				turn_to,
-				turn_to,
-				tick_to,
-			):
-				yield (
-					unpack(rulebook),
-					branch,
-					turn,
-					tick,
-					unpack(rules),
-					priority,
-				)
 
 	def _rule_dump(self, typ):
 		unpack = self.unpack
@@ -1432,237 +1752,6 @@ class QueryEngine(query.QueryEngine):
 
 	def rule_triggers_dump(self):
 		return self._rule_dump("triggers")
-
-	def _load_rule_funclist(
-		self,
-		typ: str,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	):
-		unpack = self.unpack
-		if turn_to is None:
-			if tick_to is not None:
-				raise ValueError("Need both or neither of turn_to, tick_to")
-			for rule, turn, tick, funclist in self.call_one(
-				f"load_{typ}_tick_to_end",
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-			):
-				yield (rule, branch, turn, tick, unpack(funclist))
-		else:
-			if tick_to is None:
-				raise ValueError("Need both or neither of turn_to, tick_to")
-			for rule, turn, tick, funclist in self.call_one(
-				f"load_{typ}_tick_to_tick",
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-				turn_to,
-				turn_to,
-				tick_to,
-			):
-				yield (rule, branch, turn, tick, unpack(funclist))
-
-	def load_rule_triggers(
-		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	):
-		return self._load_rule_funclist(
-			"triggers", branch, turn_from, tick_from, turn_to, tick_to
-		)
-
-	def load_rule_prereqs(
-		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	):
-		return self._load_rule_funclist(
-			"prereqs", branch, turn_from, tick_from, turn_to, tick_to
-		)
-
-	def load_rule_actions(
-		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	):
-		return self._load_rule_funclist(
-			"actions", branch, turn_from, tick_from, turn_to, tick_to
-		)
-
-	def load_rule_neighborhood(
-		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	):
-		return self._load_rule_funclist(
-			"neighborhoods", branch, turn_from, tick_from, turn_to, tick_to
-		)
-
-	def _load_character_rulebook(
-		self,
-		typ: str,
-		character: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	):
-		charn = self.pack(character)
-		unpack = self.unpack
-		if turn_to is None:
-			if tick_to is not None:
-				raise ValueError("Need both or neither of turn_to, tick_to")
-			for turn, tick, rulebook in self.call_one(
-				f"load_{typ}_tick_to_end",
-				charn,
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-			):
-				yield (
-					character,
-					branch,
-					turn,
-					tick,
-					unpack(rulebook),
-				)
-		else:
-			if tick_to is None:
-				raise ValueError("Need both or neither of turn_to, tick_to")
-			for turn, tick, rulebook in self.call_one(
-				f"load_{typ}_tick_to_tick",
-				charn,
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-				turn_to,
-				turn_to,
-				tick_to,
-			):
-				yield (
-					character,
-					branch,
-					turn,
-					tick,
-					unpack(rulebook),
-				)
-
-	def load_character_rulebook(
-		self,
-		character: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	):
-		return self._load_character_rulebook(
-			"character_rulebook",
-			character,
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-
-	def load_unit_rulebook(
-		self,
-		character: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	):
-		return self._load_character_rulebook(
-			"unit_rulebook",
-			character,
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-
-	def load_character_thing_rulebook(
-		self,
-		character: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	):
-		return self._load_character_rulebook(
-			"character_thing_rulebook",
-			character,
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-
-	def load_character_place_rulebook(
-		self,
-		character: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	):
-		return self._load_character_rulebook(
-			"character_place_rulebook",
-			character,
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-
-	def load_character_portal_rulebook(
-		self,
-		character: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	):
-		return self._load_character_rulebook(
-			"character_portal_rulebook",
-			character,
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
 
 	def rule_prereqs_dump(self):
 		return self._rule_dump("prereqs")
@@ -2494,105 +2583,3 @@ class QueryEngine(query.QueryEngine):
 			self._char_portal_rules_handled = []
 			self._node_rules_handled = []
 			self._portal_rules_handled = []
-
-
-class QueryEngineProxy:
-	def __init__(
-		self, dbstring, connect_args, alchemy, pack=None, unpack=None
-	):
-		self._inq = Queue()
-		self._outq = Queue()
-		self._dbstring = dbstring
-		self._connect_args = connect_args
-		self._alchemy = alchemy
-		self._pack = pack
-		self._unpack = unpack
-		self.globl = self.GlobalsProxy(self._inq, self._outq)
-		self._thread = Thread(target=self._subthread, daemon=True)
-		self._thread.start()
-
-	def _subthread(self):
-		real = QueryEngine(
-			self._dbstring,
-			self._connect_args,
-			self._alchemy,
-			pack=self._pack,
-			unpack=self._unpack,
-		)
-		while True:
-			func, args, kwargs = self._inq.get()
-			if func == "get_global":
-				if args not in real.globl:
-					output = KeyError()
-				else:
-					output = real.globl[args]
-			elif func == "set_global":
-				k, v = args
-				real.globl[k] = v
-				continue
-			elif func == "list_globals":
-				output = list(real.globl)
-			elif func == "len_globals":
-				output = len(real.globl)
-			elif func == "del_global":
-				if args in real.globl:
-					del real.globl[args]
-					output = None
-				else:
-					output = KeyError()
-			else:
-				try:
-					output = getattr(real, func)(*args, **kwargs)
-				except Exception as ex:
-					output = ex
-			if hasattr(output, "__next__"):
-				output = list(output)
-			self._outq.put(output)
-			if func == "close":
-				return
-
-	class Caller:
-		def __init__(self, func, inq, outq):
-			self._func = func
-			self._inq = inq
-			self._outq = outq
-
-		def __call__(self, *args, **kwargs):
-			self._inq.put((self._func, args, kwargs))
-			ret = self._outq.get()
-			if isinstance(ret, Exception):
-				raise ret
-			return ret
-
-	class GlobalsProxy(MutableMapping):
-		def __init__(self, inq, outq):
-			self._inq = inq
-			self._outq = outq
-
-		def __iter__(self):
-			self._inq.put(("list_globals", None, None))
-			return iter(self._outq.get())
-
-		def __len__(self):
-			self._inq.put(("len_globals", None, None))
-			return self._outq.get()
-
-		def __getitem__(self, item):
-			self._inq.put(("get_global", item, None))
-			ret = self._outq.get()
-			if isinstance(ret, Exception):
-				raise ret
-			return ret
-
-		def __setitem__(self, key, value):
-			self._inq.put(("set_global", (key, value), None))
-
-		def __delitem__(self, key):
-			self._inq.put(("del_global", key, None))
-			ret = self._outq.get()
-			if isinstance(ret, Exception):
-				raise ret
-
-	def __getattr__(self, item):
-		if hasattr(QueryEngine, item) and callable(getattr(QueryEngine, item)):
-			return self.Caller(item, self._inq, self._outq)

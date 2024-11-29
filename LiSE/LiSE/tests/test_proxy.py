@@ -89,7 +89,6 @@ def test_fast_delta(handle_initialized):
 	fastd2 = hand.unpack(diff2)
 	del slowd2["universal"]["rando_state"]
 	del fastd2["universal"]["rando_state"]
-	del fastd2["rules"]  # this difference is just a quirk, not worth fixing
 	assert fastd2 == slowd2, "Fast delta differs from slow delta"
 	ret, diff3 = hand.time_travel("trunk", 1)
 	btt3 = hand._real._btt()

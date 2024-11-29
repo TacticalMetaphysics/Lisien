@@ -24,14 +24,13 @@ from kivy.properties import (
 	ObjectProperty,
 	NumericProperty,
 	StringProperty,
-	ListProperty,
+	DictProperty,
 )
 
 from kivy.factory import Factory
 from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
 
 import LiSE.proxy
-from LiSE.allegedb import Key
 from .graph.board import GraphBoard, GraphBoardView
 from .grid.board import GridBoard, GridBoardView
 from .dialog import DialogLayout
@@ -156,16 +155,16 @@ class GameScreen(Screen):
 
 
 class GameApp(App):
-	modules = ListProperty([])
-	do_game_start = BooleanProperty(True)
+	modules = []
 	turn_length = NumericProperty(0.5)
 	branch = StringProperty("trunk")
 	turn = NumericProperty(0)
 	tick = NumericProperty(0)
 	prefix = StringProperty(".")
 	selection = ObjectProperty(allownone=True)
+	engine_kwargs = DictProperty({})
 
-	def wait_turns(self, turns: int, *, cb: callable = None) -> None:
+	def wait_turns(self, turns, *, cb=None):
 		"""Call ``self.engine.next_turn()`` ``turns`` times, waiting ``self.turn_length`` in between
 
 		If provided, call ``cb`` when done.
@@ -176,6 +175,9 @@ class GameApp(App):
 		:return: ``None``
 
 		"""
+		if hasattr(self, "_next_turn_thread"):
+			Clock.schedule_once(partial(self.wait_turns, turns, cb=cb), 0)
+			return
 		if turns == 0:
 			if cb:
 				cb()
@@ -186,9 +188,7 @@ class GameApp(App):
 			partial(self.wait_turns, turns, cb=cb), self.turn_length
 		)
 
-	def wait_travel(
-		self, character: Key, thing: Key, dest: Key, cb: callable = None
-	) -> None:
+	def wait_travel(self, character, thing, dest, cb=None):
 		"""Schedule a thing to travel someplace, then wait for it to finish, and call ``cb`` if provided
 
 		:param character: name of the character
@@ -203,9 +203,7 @@ class GameApp(App):
 			cb=cb,
 		)
 
-	def wait_command(
-		self, start_func: callable, turns=1, end_func: callable = None
-	) -> None:
+	def wait_command(self, start_func, turns=1, end_func=None):
 		"""Call ``start_func``, and wait to call ``end_func`` after simulating ``turns`` (default 1)
 
 		:param start_func: function to call before waiting
@@ -218,14 +216,8 @@ class GameApp(App):
 		self.wait_turns(turns, cb=end_func)
 
 	def wait_travel_command(
-		self,
-		character: Key,
-		thing: Key,
-		dest: Key,
-		start_func: callable,
-		turns=1,
-		end_func: callable = None,
-	) -> None:
+		self, character, thing, dest, start_func, turns=1, end_func=None
+	):
 		"""Schedule a thing to travel someplace and do something, then wait for it to finish.
 
 		:param character: name of the character
@@ -243,20 +235,17 @@ class GameApp(App):
 			cb=partial(self.wait_command, start_func, turns, end_func),
 		)
 
-	def _pull_time(self, *_, branch: str, turn: int, tick: int) -> None:
+	def _pull_time(self, *_, branch, turn, tick):
 		self.branch, self.turn, self.tick = branch, turn, tick
 
 	def build(self):
-		have_world = os.path.isfile(
-			os.path.join(self.prefix, "world.db")
-		) or os.path.isdir(os.path.join(self.prefix, "world"))
 		self.procman = LiSE.proxy.EngineProcessManager()
 		self.engine = self.procman.start(
 			self.prefix,
 			logger=Logger,
 			loglevel=getattr(self, "loglevel", "debug"),
-			do_game_start=self.do_game_start and not have_world,
 			install_modules=self.modules,
+			**self.engine_kwargs,
 		)
 		self.branch, self.turn, self.tick = self.engine._btt()
 		self.engine.time.connect(self._pull_time, weak=False)
@@ -278,6 +267,9 @@ class GameApp(App):
 		self.procman.shutdown()
 		self.config.write()
 
+	def _del_next_turn_thread(self, *_, **__):
+		del self._next_turn_thread
+
 	def next_turn(self, *_):
 		"""Smoothly advance to the next turn in the simulation
 
@@ -290,8 +282,11 @@ class GameApp(App):
 
 		"""
 		if hasattr(self, "_next_turn_thread"):
-			self._next_turn_thread.join()
-		self._next_turn_thread = Thread(target=self.engine.next_turn)
+			return
+		self._next_turn_thread = Thread(
+			target=self.engine.next_turn,
+			kwargs={"cb": self._del_next_turn_thread},
+		)
 		self._next_turn_thread.start()
 
 	trigger_next_turn = triggered(next_turn)

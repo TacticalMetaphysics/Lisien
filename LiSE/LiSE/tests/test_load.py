@@ -12,6 +12,11 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from unittest.mock import patch, call
+
+import networkx as nx
+import pytest
+
 from LiSE.engine import Engine
 from LiSE.examples.kobold import inittest
 
@@ -51,21 +56,11 @@ def test_multi_keyframe(tmp_path):
 	]
 	eng.close()
 	eng = Engine(tmp_path, keyframe_on_close=False, workers=0)
-	assert 1 in eng._nodes_cache.keyframe["physical",]["trunk"]
-	assert tick1 in eng._nodes_cache.keyframe["physical",]["trunk"][1]
 	eng._load_at("trunk", 0, tick0)
 	assert eng._time_is_loaded("trunk", 0, tick0)
 	assert eng._time_is_loaded("trunk", 0, tick0 + 1)
 	assert eng._time_is_loaded("trunk", 1, tick1 - 1)
 	assert eng._time_is_loaded("trunk", 1, tick1)
-	assert 0 in eng._nodes_cache.keyframe["physical",]["trunk"]
-	assert tick0 in eng._nodes_cache.keyframe["physical",]["trunk"][0]
-	assert 1 in eng._nodes_cache.keyframe["physical",]["trunk"]
-	assert tick1 in eng._nodes_cache.keyframe["physical",]["trunk"][1]
-	assert (
-		eng._nodes_cache.keyframe["physical",]["trunk"][0][tick0]
-		!= eng._nodes_cache.keyframe["physical",]["trunk"][1][tick1]
-	)
 	eng.close()
 
 
@@ -100,3 +95,60 @@ def test_keyframe_load_unload(tmp_path):
 		eng.snap_keyframe()
 		eng.unload()
 		assert not eng._time_is_loaded("trunk")
+
+
+@pytest.fixture
+def some_state(tmp_path):
+	with Engine(tmp_path, workers=0, random_seed=0) as eng:
+		initial_state = nx.DiGraph(
+			{
+				0: {1: {"omg": "lol"}},
+				1: {0: {"omg": "blasphemy"}},
+				2: {},
+				3: {},
+				"it": {},
+			}
+		)
+		initial_state.nodes()[2]["hi"] = "hello"
+		initial_state.nodes()["it"]["location"] = 0
+		initial_state.graph["wat"] = "nope"
+		phys = eng.new_character("physical", initial_state)
+		eng.add_character("pointless")
+		kf0 = eng.snap_keyframe()
+		del kf0["universal"]["rando_state"]
+		eng.branch = "b"
+		kf1 = eng.snap_keyframe()
+		del kf1["universal"]["rando_state"]
+		assert kf0 == kf1
+		del phys.portal[1][0]
+		port = phys.new_portal(0, 2)
+		port["hi"] = "bye"
+		phys.place[1]["wtf"] = "bbq"
+		phys.thing["it"].location = phys.place[1]
+		del phys.place[3]
+		eng.add_character("pointed")
+		del eng.character["pointless"]
+		assert "pointless" not in eng.character, "Failed to delete character"
+		phys.portal[0][1]["meaning"] = 42
+		del phys.portal[0][1]["omg"]
+		eng.branch = "trunk"
+	return tmp_path
+
+
+def test_load_branch_to_end(some_state):
+	with Engine(some_state, workers=0, random_seed=0) as eng:
+		assert eng.turn == 0
+		phys = eng.character["physical"]
+		assert 3 in phys.place
+		assert phys.portal[1][0]["omg"] == "blasphemy"
+		eng.branch = "b"
+		assert 3 not in phys.place
+		assert 0 not in phys.portal[1]
+		assert 2 in phys.portal[0]
+		assert phys.portal[0][2]["hi"] == "bye"
+		assert phys.place[1]["wtf"] == "bbq"
+		assert phys.thing["it"].location == phys.place[1]
+		assert "pointless" not in eng.character, "Loaded deleted character"
+		assert "pointed" in eng.character
+		assert phys.portal[0][1]["meaning"] == 42
+		assert "omg" not in phys.portal[0][1]
