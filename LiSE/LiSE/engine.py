@@ -1589,7 +1589,6 @@ class Engine(AbstractEngine, gORM, Executor):
 			ids_to.append(id(vb))
 			values_from.append(va)
 			values_to.append(vb)
-		values_changed = np.array(ids_from) != np.array(ids_to)
 
 		def pack_one(k, va, vb, deleted_nodes, deleted_edges):
 			if va == vb:
@@ -1668,6 +1667,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				for orig in kf_to["edges"][graph]:
 					for dest, ex in kf_to["edges"][graph][orig].items():
 						deleted_edges.discard((graph, orig, dest))
+			values_changed = np.array(ids_from) != np.array(ids_to)
 			for k, va, vb, _ in filter(
 				itemgetter(3),
 				zip(keys, values_from, values_to, values_changed),
