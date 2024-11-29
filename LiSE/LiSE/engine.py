@@ -1961,7 +1961,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		else:
 			attribute = "presettings"
 		universals_settings = getattr(self._universal_cache, attribute)
-		avatarness_settings = getattr(self._unitness_cache, attribute)
+		unitness_settings = getattr(self._unitness_cache, attribute)
 		things_settings = getattr(self._things_cache, attribute)
 		rulebooks_settings = getattr(self._rulebooks_cache, attribute)
 		triggers_settings = getattr(self._triggers_cache, attribute)
@@ -1996,11 +1996,8 @@ class Engine(AbstractEngine, gORM, Executor):
 				tick_from:tick_to
 			]:
 				delta.setdefault("universal", {})[key] = val
-		if (
-			branch in avatarness_settings
-			and turn in avatarness_settings[branch]
-		):
-			for chara, graph, *stuff in avatarness_settings[branch][turn][
+		if branch in unitness_settings and turn in unitness_settings[branch]:
+			for chara, graph, *stuff in unitness_settings[branch][turn][
 				tick_from:tick_to
 			]:
 				if (
