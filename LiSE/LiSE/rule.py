@@ -675,7 +675,7 @@ class RuleMapping(MutableMapping, Signal):
 		kwargs = {}
 		if always:
 			kwargs["always"] = True
-		if neighborhood is not -1:
+		if neighborhood != -1:
 			kwargs["neighborhood"] = neighborhood
 		if v is None:
 			return partial(wrap, name, **kwargs)
